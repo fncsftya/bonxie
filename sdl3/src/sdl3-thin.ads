@@ -222,6 +222,10 @@ private package SDL3.Thin is
      (User_Data : System.Address; E : access Event) return Interfaces.C.C_bool
      with Convention => C;
 
+   procedure Remove_Event_Watch
+     (Filter : Event_Filter; User_Data : System.Address)
+     with Import, Convention => C, External_Name => "SDL_RemoveEventWatch";
+
    function Add_Event_Watch
      (Filter : Event_Filter; User_Data : System.Address)
       return Interfaces.C.C_bool

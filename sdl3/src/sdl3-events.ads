@@ -39,11 +39,4 @@ package SDL3.Events is
    function Command_Held return Boolean;
    --  Whether Control or Command is held now.
 
-   type Redraw_Handler is access procedure;
-
-   procedure Set_Redraw_Handler (Handler : Redraw_Handler);
-   --  Call Handler whenever the window needs repainting, including while a
-   --  live resize is in progress (when Poll is not being called, because the
-   --  OS runs its own modal loop). Handler runs on the thread pumping events.
-
 end SDL3.Events;
