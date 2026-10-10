@@ -11,12 +11,15 @@ package body SDL3.Windows is
       Title     : String;
       Width     : Positive;
       Height    : Positive;
-      Resizable : Boolean := False)
+      Resizable : Boolean := False;
+      High_Density : Boolean := False)
    is
       use Interfaces.C;
       C_Title : Strings.chars_ptr := Strings.New_String (Title);
+      use type Thin.Window_Flags;
       Flags   : constant Thin.Window_Flags :=
-        (if Resizable then Thin.Window_Resizable else 0);
+        (if Resizable then Thin.Window_Resizable else 0)
+        + (if High_Density then Thin.Window_High_Pixel_Density else 0);
    begin
       Finalize (Item);
       Item.Handle :=
@@ -29,6 +32,14 @@ package body SDL3.Windows is
 
    function Is_Open (Item : Window) return Boolean is
      (Item.Handle /= System.Null_Address);
+
+   function Pixel_Density (Item : Window) return Float is
+      Found : constant Float :=
+        Float (Thin.Get_Window_Pixel_Density (Item.Handle));
+   begin
+      --  0.0 if SDL cannot say.
+      return Float'Max (1.0, Found);
+   end Pixel_Density;
 
    overriding procedure Finalize (Item : in out Window) is
    begin

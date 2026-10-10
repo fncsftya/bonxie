@@ -38,6 +38,10 @@ package SDL3.Windows.Renderers is
    --  Draw Text with SDL's built-in 8x8 debug font; the result is
    --  Text'Length * Debug_Text_Size * Scale pixels wide.
 
+   procedure Save_BMP (Item : Renderer; File_Name : String);
+   --  Write what has been drawn since the last Present to a BMP file,
+   --  to see it without looking at the screen. Call before Present.
+
    procedure Present (Item : Renderer);
 
 private

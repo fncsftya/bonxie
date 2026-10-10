@@ -1,0 +1,28 @@
+name = "typeset"
+description = "Lazy paragraph layout and glyph-atlas text drawing (macOS only)"
+version = "0.1.0-dev"
+
+authors = ["Your Name"]
+maintainers = ["Your Name <example@example.com>"]
+licenses = "MIT OR Apache-2.0 WITH LLVM-exception"
+website = ""
+tags = []
+
+[available.'case(os)']
+macos = true
+'...' = false
+
+[[depends-on]]
+coretext = "*"
+sdl3 = "*"
+
+[[pins]]
+coretext = { path = "../coretext" }
+sdl3 = { path = "../sdl3" }
+
+[build-switches]
+"*".ada_version = "Ada2022"
+"*".compile_checks = "Errors"
+"*".runtime_checks = "Everything"
+"*".style_checks = "Yes"
+"*".contracts = "Yes"

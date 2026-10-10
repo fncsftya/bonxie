@@ -11,11 +11,15 @@ tags = []
 executables = ["bonxie"]
 
 [[depends-on]]
+coretext = "*"
 sdl3 = "*"
+typeset = "*"
 yoga = "*"
 
 [[pins]]
+coretext = { path = "coretext" }
 sdl3 = { path = "sdl3" }
+typeset = { path = "typeset" }
 yoga = { path = "yoga" }
 
 [build-switches]

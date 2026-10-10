@@ -1,0 +1,31 @@
+name = "bench"
+description = "Benchmarks for laying out and drawing long documents"
+version = "0.1.0-dev"
+
+authors = ["Your Name"]
+maintainers = ["Your Name <example@example.com>"]
+licenses = "MIT OR Apache-2.0 WITH LLVM-exception"
+website = ""
+tags = []
+
+executables = ["bench"]
+
+[available.'case(os)']
+macos = true
+'...' = false
+
+[[depends-on]]
+coretext = "*"
+typeset = "*"
+
+[[pins]]
+coretext = { path = "../coretext" }
+sdl3 = { path = "../sdl3" }
+typeset = { path = "../typeset" }
+
+[build-switches]
+"*".ada_version = "Ada2022"
+"*".compile_checks = "Errors"
+"*".runtime_checks = "Everything"
+"*".style_checks = "Yes"
+"*".contracts = "Yes"

@@ -11,9 +11,17 @@ package SDL3.Windows is
       Title     : String;
       Width     : Positive;
       Height    : Positive;
-      Resizable : Boolean := False);
+      Resizable : Boolean := False;
+      High_Density : Boolean := False);
+   --  With High_Density the window's pixels are the display's own, not
+   --  scaled up from points: see Pixel_Density.
 
    function Is_Open (Item : Window) return Boolean;
+
+   function Pixel_Density (Item : Window) return Float
+     with Pre => Is_Open (Item), Post => Pixel_Density'Result >= 1.0;
+   --  How many pixels of the window's drawing area there are to each
+   --  point of its size: 2.0 on a Retina display, if High_Density.
 
 private
 

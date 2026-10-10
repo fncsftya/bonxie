@@ -1,4 +1,5 @@
 with Interfaces.C;
+with Interfaces.C.Strings;
 with SDL3.Errors;
 with SDL3.Thin;
 
@@ -87,6 +88,23 @@ package body SDL3.Windows.Renderers is
       Errors.Check
         (Thin.Set_Render_Scale (Item.Handle, 1.0, 1.0), "SDL_SetRenderScale");
    end Draw_Text;
+
+   procedure Save_BMP (Item : Renderer; File_Name : String) is
+      Surface : constant System.Address :=
+        Thin.Render_Read_Pixels (Item.Handle, System.Null_Address);
+      Name    : Interfaces.C.Strings.chars_ptr :=
+        Interfaces.C.Strings.New_String (File_Name);
+      Saved   : Interfaces.C.C_bool;
+   begin
+      if Surface = System.Null_Address then
+         Interfaces.C.Strings.Free (Name);
+         Errors.Raise_Last_Error ("SDL_RenderReadPixels");
+      end if;
+      Saved := Thin.Save_BMP (Surface, Name);
+      Interfaces.C.Strings.Free (Name);
+      Thin.Destroy_Surface (Surface);
+      Errors.Check (Saved, "SDL_SaveBMP");
+   end Save_BMP;
 
    procedure Present (Item : Renderer) is
    begin
