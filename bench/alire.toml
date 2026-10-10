@@ -16,6 +16,7 @@ macos = true
 
 [[depends-on]]
 coretext = "*"
+sdl3 = "*"
 typeset = "*"
 
 [[pins]]

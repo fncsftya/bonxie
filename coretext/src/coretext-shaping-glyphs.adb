@@ -14,6 +14,34 @@ package body CoreText.Shaping.Glyphs is
    --  Transparent pixels around the glyph, so that smoothing it when
    --  scaled does not bleed in its neighbours.
 
+   procedure Straighten (Data : in out Buffer; Color : Boolean);
+   --  Make the premultiplied RGBA pixels of Data straight: their colour not
+   --  scaled by their alpha. Those of a glyph of one colour, not Color,
+   --  are all made white, their alpha saying how much is covered.
+
+   procedure Straighten (Data : in out Buffer; Color : Boolean) is
+      use type Interfaces.Unsigned_8;
+      Index : Natural := Data'First;
+   begin
+      while Index + 3 <= Data'Last loop
+         declare
+            Alpha : constant Interfaces.Unsigned_8 := Data (Index + 3);
+         begin
+            for Channel in Index .. Index + 2 loop
+               Data (Channel) :=
+                 (if not Color then 255
+                  elsif Alpha = 0 then 0
+                  else Interfaces.Unsigned_8
+                         (Natural'Min
+                            (255,
+                             (Natural (Data (Channel)) * 255
+                              + Natural (Alpha) / 2) / Natural (Alpha))));
+            end loop;
+         end;
+         Index := Index + 4;
+      end loop;
+   end Straighten;
+
    procedure Rasterize
      (Reg      : Registry;
       Item     : Font_Id;
@@ -96,6 +124,7 @@ package body CoreText.Shaping.Glyphs is
             Thin.CT_Font_Draw_Glyphs
               (Sized, Glyph_Id'Address, Position'Address, 1, Context);
             Thin.CG_Context_Release (Context);
+            Straighten (Data.all, Reg.Fonts (Item).Color);
 
             Result.Data := Data;
             Result.Columns := Columns;

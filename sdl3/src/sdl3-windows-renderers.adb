@@ -7,6 +7,7 @@ package body SDL3.Windows.Renderers is
 
    use type System.Address;
    use type Interfaces.C.C_float;
+   use type Thin.Surface_Access;
 
    function To_C (Value : Float) return Interfaces.C.C_float is
      (Interfaces.C.C_float (Value));
@@ -23,7 +24,8 @@ package body SDL3.Windows.Renderers is
          "SDL_SetRenderDrawColor");
    end Set_Color;
 
-   procedure Create (Item : in out Renderer; Target : Window) is
+   procedure Create
+     (Item : in out Renderer; Target : Window; VSync : Boolean := True) is
    begin
       Finalize (Item);
       Item.Handle := Thin.Create_Renderer (Target.Handle, System.Null_Address);
@@ -31,11 +33,48 @@ package body SDL3.Windows.Renderers is
          Errors.Raise_Last_Error ("SDL_CreateRenderer");
       end if;
 
-      --  Present waits for the display refresh: no tearing, and it paces
-      --  the render loop.
       Errors.Check
-        (Thin.Set_Render_VSync (Item.Handle, 1), "SDL_SetRenderVSync");
+        (Thin.Set_Render_VSync (Item.Handle, (if VSync then 1 else 0)),
+         "SDL_SetRenderVSync");
    end Create;
+
+   procedure Create_Offscreen
+     (Item : in out Renderer; Width, Height : Positive)
+   is
+      Surface : constant Thin.Surface_Access :=
+        Thin.Create_Surface (1, 1, Thin.Pixel_Format_RGBA32);
+   begin
+      Finalize (Item);
+      if Surface = null then
+         Errors.Raise_Last_Error ("SDL_CreateSurface");
+      end if;
+      Item.Surface := Surface.all'Address;
+      Item.Handle := Thin.Create_Software_Renderer (Surface);
+      if Item.Handle = System.Null_Address then
+         Errors.Raise_Last_Error ("SDL_CreateSoftwareRenderer");
+      end if;
+      Resize (Item, Width, Height);
+   end Create_Offscreen;
+
+   function Is_Offscreen (Item : Renderer) return Boolean is
+     (Item.Surface /= System.Null_Address);
+
+   procedure Resize (Item : in out Renderer; Width, Height : Positive) is
+      Canvas : constant Thin.Texture :=
+        Thin.Create_Texture
+          (Item.Handle, Thin.Pixel_Format_RGBA32, Thin.Texture_Access_Target,
+           Interfaces.C.int (Width), Interfaces.C.int (Height));
+   begin
+      if Canvas = System.Null_Address then
+         Errors.Raise_Last_Error ("SDL_CreateTexture");
+      end if;
+      Errors.Check
+        (Thin.Set_Render_Target (Item.Handle, Canvas), "SDL_SetRenderTarget");
+      if Item.Canvas /= System.Null_Address then
+         Thin.Destroy_Texture (Item.Canvas);
+      end if;
+      Item.Canvas := Canvas;
+   end Resize;
 
    procedure Output_Size (Item : Renderer; Width, Height : out Natural) is
       W, H : aliased Interfaces.C.int;
@@ -113,9 +152,20 @@ package body SDL3.Windows.Renderers is
 
    overriding procedure Finalize (Item : in out Renderer) is
    begin
+      if Item.Canvas /= System.Null_Address then
+         Errors.Check
+           (Thin.Set_Render_Target (Item.Handle, System.Null_Address),
+            "SDL_SetRenderTarget");
+         Thin.Destroy_Texture (Item.Canvas);
+         Item.Canvas := System.Null_Address;
+      end if;
       if Item.Handle /= System.Null_Address then
          Thin.Destroy_Renderer (Item.Handle);
          Item.Handle := System.Null_Address;
+      end if;
+      if Item.Surface /= System.Null_Address then
+         Thin.Destroy_Surface (Item.Surface);
+         Item.Surface := System.Null_Address;
       end if;
    end Finalize;
 

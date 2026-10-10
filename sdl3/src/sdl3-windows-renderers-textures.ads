@@ -25,8 +25,10 @@ package SDL3.Windows.Renderers.Textures is
       Columns, Rows : Positive;
       Smooth  : Boolean);
    --  Replace Item with a transparent image to fill in with
-   --  Update_Region, drawn with the same blend as above. With Smooth,
-   --  drawn scaled it is smoothed, otherwise it is not.
+   --  Update_Region. Its pixels are not premultiplied, unlike those
+   --  above: the software renderer blends geometry, as Draw_Quads draws,
+   --  only so. With Smooth, drawn scaled it is smoothed, otherwise it is
+   --  not.
 
    procedure Update_Region
      (Item   : Texture;
@@ -37,8 +39,9 @@ package SDL3.Windows.Renderers.Textures is
                  and then Left + Columns <= Width (Item)
                  and then Top + Rows <= Height (Item)
                  and then Pitch >= 4 * Columns;
-   --  Copy Pixels, in the format of Create_Premultiplied_RGBA, over the
-   --  part of Item whose top left is at Left, Top.
+   --  Copy Pixels, rows of Pitch bytes, each pixel the bytes R, G, B, A,
+   --  premultiplied or not as Item is, over the part of Item whose top
+   --  left is at Left, Top.
 
    function Is_Empty (Item : Texture) return Boolean;
 
@@ -59,8 +62,8 @@ package SDL3.Windows.Renderers.Textures is
    type Vertex is record
       X, Y  : Float;  --  where on the target
       Red, Green, Blue, Alpha : Float;
-      --  What the texture's colour is multiplied by: for the
-      --  premultiplied images above, so are Red, Green and Blue by Alpha.
+      --  What the texture's colour is multiplied by: for premultiplied
+      --  images, so are Red, Green and Blue by Alpha.
       U, V  : Float;  --  where in the texture, 0.0 .. 1.0
    end record
      with Convention => C;

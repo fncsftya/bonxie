@@ -1,5 +1,5 @@
-with Ada.Unchecked_Deallocation;
 with Interfaces.C;
+with System.Storage_Elements;
 with CoreText.Core;
 with CoreText.Thin;
 
@@ -11,18 +11,23 @@ package body CoreText.Shaping is
 
    type Id_Array is array (Positive range <>) of Interfaces.Unsigned_16;
    type Position_Array is array (Positive range <>) of Thin.CG_Point;
-   type Id_Access is access Id_Array;
-   type Position_Access is access Position_Array;
 
-   procedure Free is new Ada.Unchecked_Deallocation (Id_Array, Id_Access);
-   procedure Free is new Ada.Unchecked_Deallocation
-     (Position_Array, Position_Access);
+   function Hash (Key : System.Address) return Ada.Containers.Hash_Type is
+      use type Ada.Containers.Hash_Type;
+      use type System.Storage_Elements.Integer_Address;
+      Bits : constant System.Storage_Elements.Integer_Address :=
+        System.Storage_Elements.To_Integer (Key);
+   begin
+      --  Objects are 16-byte aligned: the low bits say nothing.
+      return Ada.Containers.Hash_Type'Mod (Bits / 16) * 16#9E37_79B1#;
+   end Hash;
 
-   function Register
+   function Register_By_Name
      (Reg : in out Registry; Font : Thin.Ref) return Font_Id;
-   --  The id of the run font Font, adding it if it is new.
+   --  The id of the run font Font, found by its name, adding it if it is
+   --  new.
 
-   function Register
+   function Register_By_Name
      (Reg : in out Registry; Font : Thin.Ref) return Font_Id
    is
       Name_Ref : Thin.Ref := Thin.CT_Font_Copy_PostScript_Name (Font);
@@ -57,6 +62,29 @@ package body CoreText.Shaping is
             Reg.Names.Insert (Name, Reg.Fonts.Last_Index);
             return Reg.Fonts.Last_Index;
          end;
+      end;
+   end Register_By_Name;
+
+   function Register
+     (Reg : in out Registry; Font : Thin.Ref) return Font_Id;
+   --  The id of the run font Font, adding it if it is new.
+
+   function Register
+     (Reg : in out Registry; Font : Thin.Ref) return Font_Id
+   is
+      Cursor : constant Handle_Maps.Cursor := Reg.Seen.Find (Font);
+   begin
+      if Handle_Maps.Has_Element (Cursor) then
+         return Handle_Maps.Element (Cursor);
+      end if;
+
+      declare
+         Id : constant Font_Id := Register_By_Name (Reg, Font);
+      begin
+         if Natural (Reg.Seen.Length) < Max_Seen then
+            Reg.Seen.Insert (Thin.CF_Retain (Font), Id);
+         end if;
+         return Id;
       end;
    end Register;
 
@@ -99,6 +127,8 @@ package body CoreText.Shaping is
          raise Error with "CTLineCreateWithAttributedString failed";
       end if;
 
+      Result.Glyphs.Reserve_Capacity
+        (Ada.Containers.Count_Type (Thin.CT_Line_Get_Glyph_Count (Line)));
       Result.Width := Float
         (Thin.CT_Line_Typographic_Bounds
            (Line, Ascent'Address, Descent'Address, System.Null_Address));
@@ -123,9 +153,10 @@ package body CoreText.Shaping is
                   end if;
                   declare
                      Id : constant Font_Id := Register (Reg, Font);
-                     Ids : Id_Access := new Id_Array (1 .. Count);
-                     Positions : Position_Access :=
-                       new Position_Array (1 .. Count);
+                     --  A run is at most a line's glyphs: few enough for
+                     --  the stack.
+                     Ids : Id_Array (1 .. Count);
+                     Positions : Position_Array (1 .. Count);
                      Whole : constant Thin.CF_Range := (0, 0);
                   begin
                      Thin.CT_Run_Get_Glyphs (Run, Whole, Ids (1)'Address);
@@ -137,8 +168,6 @@ package body CoreText.Shaping is
                                   Font => Id,
                                   X    => Float (Positions (I).X)));
                      end loop;
-                     Free (Ids);
-                     Free (Positions);
                   end;
                end if;
             end;
@@ -162,6 +191,14 @@ package body CoreText.Shaping is
             Core.Release (Handle);
          end;
       end loop;
+      for Position in Item.Seen.Iterate loop
+         declare
+            Handle : Thin.Ref := Handle_Maps.Key (Position);
+         begin
+            Core.Release (Handle);
+         end;
+      end loop;
+      Item.Seen.Clear;
       Item.Fonts.Clear;
       Item.Names.Clear;
    end Finalize;

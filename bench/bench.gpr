@@ -1,5 +1,6 @@
 with "config/bench_config.gpr";
 with "coretext.gpr";
+with "sdl3.gpr";
 with "typeset.gpr";
 project Bench is
 

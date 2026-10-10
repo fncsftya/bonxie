@@ -8,9 +8,14 @@ package body SDL3.Windows.Renderers.Textures is
 
    use type System.Address;
 
-   Blend_Factor_One                 : constant := 16#2#;
-   Blend_Factor_One_Minus_Src_Alpha : constant := 16#6#;
-   Blend_Operation_Add              : constant := 16#1#;
+   Blend_Premultiplied : constant Interfaces.Unsigned_32 := 16#10#;
+   --  SDL_BLENDMODE_BLEND_PREMULTIPLIED: what is under is kept as much as
+   --  what is over is transparent. A predefined mode, which the software
+   --  renderer has, unlike composed ones.
+
+   Blend_Straight : constant Interfaces.Unsigned_32 := 16#1#;
+   --  SDL_BLENDMODE_BLEND: the same, for colours not premultiplied. The
+   --  software renderer draws geometry only in this mode.
 
    procedure Create_Premultiplied_RGBA
      (Item   : in out Texture;
@@ -35,13 +40,7 @@ package body SDL3.Windows.Renderers.Textures is
          "SDL_UpdateTexture");
       --  Source colour is already scaled by its alpha.
       Errors.Check
-        (Thin.Set_Texture_Blend_Mode
-           (Handle,
-            Thin.Compose_Custom_Blend_Mode
-              (Blend_Factor_One, Blend_Factor_One_Minus_Src_Alpha,
-               Blend_Operation_Add,
-               Blend_Factor_One, Blend_Factor_One_Minus_Src_Alpha,
-               Blend_Operation_Add)),
+        (Thin.Set_Texture_Blend_Mode (Handle, Blend_Premultiplied),
          "SDL_SetTextureBlendMode");
       Errors.Check
         (Thin.Set_Texture_Scale_Mode (Handle, Thin.Scale_Mode_Nearest),
@@ -106,13 +105,7 @@ package body SDL3.Windows.Renderers.Textures is
          "SDL_UpdateTexture");
       Free (Blank);
       Errors.Check
-        (Thin.Set_Texture_Blend_Mode
-           (Handle,
-            Thin.Compose_Custom_Blend_Mode
-              (Blend_Factor_One, Blend_Factor_One_Minus_Src_Alpha,
-               Blend_Operation_Add,
-               Blend_Factor_One, Blend_Factor_One_Minus_Src_Alpha,
-               Blend_Operation_Add)),
+        (Thin.Set_Texture_Blend_Mode (Handle, Blend_Straight),
          "SDL_SetTextureBlendMode");
       Errors.Check
         (Thin.Set_Texture_Scale_Mode

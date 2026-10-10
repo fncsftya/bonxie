@@ -1,11 +1,6 @@
 with Ada.Numerics.Elementary_Functions;
-with SDL3.Events;
 with SDL3.Events.Redraws;
-with SDL3.Windows;
 with SDL3.Windows.Renderers;
-with Typeset.Documents;
-with Typeset.Views;
-with Yoga.Nodes;
 
 package body Viewer is
 
@@ -47,44 +42,33 @@ package body Viewer is
    Page_Fraction   : constant Float := 0.9;
    --  How much of a view Page Up and Page Down move.
 
-   type App is limited record
-      UI           : Yoga.Nodes.Tree;
-      --  A column: the page area above the toolbar.
-      Page_Node    : Yoga.Nodes.Node;
-      Toolbar_Node : Yoga.Nodes.Node;
-
-      Doc          : Documents.Document;
-      Win          : SDL3.Windows.Window;
-      Target       : Renderer;  --  after Win: it is destroyed first
-      Page         : Views.View;  --  and after Target, for the same reason
-      Density      : Float := 1.0;
-      --  Pixels to a point of the window.
-
-      --  What is shown
-      Anchor       : Documents.Paragraph_Number := 1;
-      Offset       : Float := 0.0;
-      Zoom         : Float := 1.0;
-      Settled      : Boolean := True;
-      --  The zoom has stopped changing.
-
-      Dirty        : Boolean := True;
-      --  What is shown is out of date.
-      Done         : Boolean := False;
-   end record;
-
    --  The page area's height, in layout units.
-   function Extent (Item : App) return Float is
+   function Extent (Item : Session) return Float is
      (Yoga.Nodes.Height (Item.Page_Node) / (Item.Density * Item.Zoom));
 
    --  Drawing
 
-   procedure Draw (Item : in out App) is
-      Scale  : constant Float := Item.Density * Item.Zoom;
+   procedure Lay_Out_Window (Item : in out Session);
+   --  Lay out the window's parts to fit its size now.
+
+   procedure Lay_Out_Window (Item : in out Session) is
       Width  : Natural;
       Height : Natural;
    begin
       Output_Size (Item.Target, Width, Height);
       Yoga.Nodes.Calculate_Layout (Item.UI, Float (Width), Float (Height));
+   end Lay_Out_Window;
+
+   procedure Paint (Item : in out Session);
+   --  Draw what is shown, but do not present it.
+
+   procedure Paint (Item : in out Session) is
+      Scale  : constant Float := Item.Density * Item.Zoom;
+      Width  : Natural;
+      Height : Natural;
+   begin
+      Lay_Out_Window (Item);
+      Output_Size (Item.Target, Width, Height);
 
       Clear (Item.Target, Background);
       Views.Draw
@@ -105,22 +89,27 @@ package body Viewer is
          Yoga.Nodes.Top (Item.Toolbar_Node),
          Yoga.Nodes.Width (Item.Toolbar_Node),
          Yoga.Nodes.Height (Item.Toolbar_Node));
-      Present (Item.Target);
       Item.Dirty := False;
+   end Paint;
+
+   procedure Draw (Item : in out Session) is
+   begin
+      Paint (Item);
+      Present (Item.Target);
    end Draw;
 
-   package Redraws is new SDL3.Events.Redraws (App, Draw);
+   package Redraws is new SDL3.Events.Redraws (Session, Draw);
 
    --  Moving about
 
-   procedure Scroll (Item : in out App; By : Float) is
+   procedure Scroll (Item : in out Session; By : Float) is
    begin
       Documents.Scroll
         (Item.Doc, Item.Anchor, Item.Offset, By, Extent (Item));
       Item.Dirty := True;
    end Scroll;
 
-   procedure Zoom_By (Item : in out App; Factor : Float) is
+   procedure Zoom_By (Item : in out Session; Factor : Float) is
       Zoom : constant Float :=
         Float'Min (Max_Zoom, Float'Max (Min_Zoom, Item.Zoom * Factor));
    begin
@@ -131,7 +120,7 @@ package body Viewer is
       end if;
    end Zoom_By;
 
-   procedure Go_To_Start (Item : in out App) is
+   procedure Go_To_Start (Item : in out Session) is
    begin
       Item.Anchor := 1;
       Item.Offset := 0.0;
@@ -140,7 +129,7 @@ package body Viewer is
 
    --  Events
 
-   procedure Handle_Wheel (Item : in out App; Notches : Float) is
+   procedure Handle_Wheel (Item : in out Session; Notches : Float) is
    begin
       if SDL3.Events.Command_Held then
          Zoom_By
@@ -153,7 +142,7 @@ package body Viewer is
       end if;
    end Handle_Wheel;
 
-   procedure Handle_Key (Item : in out App; Event : SDL3.Events.Event) is
+   procedure Handle_Key (Item : in out Session; Event : SDL3.Events.Event) is
       Line : constant Float := Documents.Line_Height (Item.Doc);
    begin
       if Event.Key = SDL3.Events.Key_Down_Arrow then
@@ -177,7 +166,7 @@ package body Viewer is
       end if;
    end Handle_Key;
 
-   procedure Handle (Item : in out App; Event : SDL3.Events.Event) is
+   procedure Handle (Item : in out Session; Event : SDL3.Events.Event) is
    begin
       case Event.Kind is
          when SDL3.Events.Quit =>
@@ -195,14 +184,11 @@ package body Viewer is
 
    --  Running
 
-   procedure Open (Item : in out App; Source : String) is
-   begin
-      SDL3.Windows.Create
-        (Item.Win, "bonxie", Window_Width, Window_Height,
-         Resizable => True, High_Density => True);
-      Item.Density := SDL3.Windows.Pixel_Density (Item.Win);
-      Create (Item.Target, Item.Win);
+   procedure Set_Up (Item : in out Session; Source : String);
+   --  Lay out the window and the document in it, once there is a target.
 
+   procedure Set_Up (Item : in out Session; Source : String) is
+   begin
       Documents.Configure
         (Item.Doc, Family, Font_Size, Page_Width, Para_Gap);
       Documents.Load (Item.Doc, Source);
@@ -212,9 +198,21 @@ package body Viewer is
       Yoga.Nodes.Set_Flex_Direction (Yoga.Nodes.Root (Item.UI), Yoga.Column);
       Yoga.Nodes.Set_Flex_Grow (Item.Page_Node, 1.0);
       Yoga.Nodes.Set_Height (Item.Toolbar_Node, Toolbar_Size * Item.Density);
+      --  Before any event: moving about needs the page area's size.
+      Lay_Out_Window (Item);
+   end Set_Up;
+
+   procedure Open (Item : in out Session; Source : String) is
+   begin
+      SDL3.Windows.Create
+        (Item.Win, "bonxie", Window_Width, Window_Height,
+         Resizable => True, High_Density => True);
+      Item.Density := SDL3.Windows.Pixel_Density (Item.Win);
+      Create (Item.Target, Item.Win);
+      Set_Up (Item, Source);
    end Open;
 
-   procedure Wait_And_Handle (Item : in out App) is
+   procedure Wait_And_Handle (Item : in out Session) is
       Event : SDL3.Events.Event;
    begin
       --  Nothing to do until something happens, except to settle the
@@ -232,8 +230,55 @@ package body Viewer is
       end if;
    end Wait_And_Handle;
 
+   --  Without a window
+
+   function Pixels (Points : Positive; Density : Float) return Positive is
+     (Positive (Float (Points) * Density));
+
+   procedure Open
+     (Item    : in out Session;
+      Source  : String;
+      Width   : Positive;
+      Height  : Positive;
+      Density : Float := 2.0) is
+   begin
+      Item.Density := Density;
+      Create_Offscreen
+        (Item.Target, Pixels (Width, Density), Pixels (Height, Density));
+      Set_Up (Item, Source);
+   end Open;
+
+   function Is_Open (Item : Session) return Boolean is
+     (Documents.Is_Configured (Item.Doc));
+
+   procedure Settle (Item : in out Session) is
+   begin
+      if not Item.Settled then
+         Item.Settled := True;
+         Item.Dirty := True;
+      end if;
+   end Settle;
+
+   procedure Resize (Item : in out Session; Width, Height : Positive) is
+   begin
+      SDL3.Windows.Renderers.Resize
+        (Item.Target,
+         Pixels (Width, Item.Density), Pixels (Height, Item.Density));
+      Lay_Out_Window (Item);
+      Item.Dirty := True;
+   end Resize;
+
+   procedure Render
+     (Item   : in out Session;
+      Result : in out SDL3.Windows.Renderers.Images.Image) is
+   begin
+      --  Offscreen there is nothing to present to.
+      Paint (Item);
+      SDL3.Windows.Renderers.Images.Read (Result, Item.Target);
+   end Render;
+
    procedure Run (Source : String) is
-      Item    : aliased App;
+      Item    : aliased Session;
       Watcher : Redraws.Watch;  --  ends before Item does
    begin
       Open (Item, Source);

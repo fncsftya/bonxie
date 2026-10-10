@@ -16,7 +16,24 @@ package SDL3.Windows.Renderers is
    Debug_Text_Size : constant := 8;
    --  Width and height in pixels of one Draw_Text character at Scale 1.
 
-   procedure Create (Item : in out Renderer; Target : Window);
+   procedure Create
+     (Item : in out Renderer; Target : Window; VSync : Boolean := True);
+   --  With VSync, Present waits for the display's refresh: no tearing,
+   --  and it paces the render loop. Without it frames are as fast as
+   --  they can be drawn, as for measuring.
+
+   procedure Create_Offscreen
+     (Item : in out Renderer; Width, Height : Positive)
+     with Post => Is_Offscreen (Item);
+   --  Draw, without a window, into a Width x Height image of its own, in
+   --  software: the same drawing gives the same pixels every time, as for
+   --  testing. Read them with Images.Read.
+
+   function Is_Offscreen (Item : Renderer) return Boolean;
+
+   procedure Resize (Item : in out Renderer; Width, Height : Positive)
+     with Pre => Is_Offscreen (Item);
+   --  Make the image Width x Height, losing what is drawn.
 
    procedure Output_Size
      (Item : Renderer; Width, Height : out Natural);
@@ -48,6 +65,10 @@ private
 
    type Renderer is new Ada.Finalization.Limited_Controlled with record
       Handle : System.Address := System.Null_Address;
+      Surface : System.Address := System.Null_Address;
+      Canvas  : System.Address := System.Null_Address;
+      --  Offscreen, the surface the renderer is made for, and the texture
+      --  it draws to: a target texture can be resized, a surface not.
    end record;
 
    overriding procedure Finalize (Item : in out Renderer);

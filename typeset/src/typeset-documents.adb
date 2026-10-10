@@ -325,7 +325,7 @@ package body Typeset.Documents is
       declare
          Old_Stop : constant Integer :=
            P.Edit_Stop - (P.Units - P.Laid_Units);
-         Lines : constant Span_Vectors.Vector :=
+         Lines : Span_Vectors.Vector :=
            (if P.Dirty and then Old_Stop >= P.Edit_At
               and then Old_Stop <= P.Laid_Units
               and then P.Edit_Stop <= P.Units
@@ -334,7 +334,7 @@ package body Typeset.Documents is
                     P.Edit_At, Old_Stop, P.Edit_Stop)
             else Wrap (Item.Font, P.Held, Item.Wide));
       begin
-         P.Lines := Lines;
+         P.Lines.Move (Source => Lines);  --  not copied
       end;
       P.Dirty := False;
       Item.Next_Id := Item.Next_Id + 1;

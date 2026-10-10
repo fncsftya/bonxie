@@ -1,3 +1,4 @@
+with Ada.Containers.Hashed_Maps;
 with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Containers.Vectors;
 with Ada.Finalization;
@@ -25,6 +26,8 @@ package CoreText.Shaping is
    end record;
 
    package Glyph_Vectors is new Ada.Containers.Vectors (Positive, Glyph);
+
+   type Glyph_Array is array (Positive range <>) of Glyph;
 
    type Shaped is record
       Glyphs : Glyph_Vectors.Vector;
@@ -62,9 +65,22 @@ private
    package Name_Maps is new Ada.Containers.Indefinite_Hashed_Maps
      (String, Font_Id, Ada.Strings.Hash, "=");
 
+   function Hash (Key : System.Address) return Ada.Containers.Hash_Type;
+
+   package Handle_Maps is new Ada.Containers.Hashed_Maps
+     (System.Address, Font_Id, Hash, System."=");
+
+   Max_Seen : constant := 256;
+   --  Run fonts kept by handle; past this many they are looked up by
+   --  name each time.
+
    type Registry is new Ada.Finalization.Limited_Controlled with record
       Fonts : Entry_Vectors.Vector;
       Names : Name_Maps.Map;
+      Seen  : Handle_Maps.Map;
+      --  Run fonts met, retained so that no other font can have their
+      --  handle, to their ids: CoreText gives the same CTFont for most
+      --  runs, and looking it up by name is costly.
    end record;
 
    overriding procedure Finalize (Item : in out Registry);

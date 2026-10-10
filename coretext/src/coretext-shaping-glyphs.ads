@@ -5,9 +5,12 @@ with System;
 package CoreText.Shaping.Glyphs is
 
    type Image is limited private;
-   --  One glyph rasterized: premultiplied RGBA, eight bits a channel,
-   --  white where the glyph is solid. Colour glyphs (see Is_Color) are
-   --  in their own colours.
+   --  One glyph rasterized: RGBA, eight bits a channel, the colour not
+   --  multiplied by the alpha. A glyph of one colour is white, its alpha
+   --  how much of each pixel it covers, so that it can be tinted any
+   --  colour and smoothed without darkening its edges; colour glyphs (see
+   --  Is_Color) are in their own colours. There is a transparent pixel
+   --  all round.
 
    procedure Rasterize
      (Reg      : Registry;

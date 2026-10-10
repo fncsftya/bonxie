@@ -253,6 +253,9 @@ private package CoreText.Thin is
    function CT_Line_Get_Glyph_Runs (Line : Ref) return Ref
      with Import, Convention => C, External_Name => "CTLineGetGlyphRuns";
 
+   function CT_Line_Get_Glyph_Count (Line : Ref) return long
+     with Import, Convention => C, External_Name => "CTLineGetGlyphCount";
+
    function CT_Run_Get_Glyph_Count (Run : Ref) return long
      with Import, Convention => C, External_Name => "CTRunGetGlyphCount";
 

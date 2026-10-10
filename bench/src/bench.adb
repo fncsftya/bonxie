@@ -8,12 +8,17 @@ with CoreText.Shaping.Glyphs;
 with CoreText.Wrapping;
 with Typeset.Documents;
 with Interfaces;
+with SDL3;
+with SDL3.Windows;
+with SDL3.Windows.Renderers;
 with Typeset.Samples;
+with Typeset.Views;
 
---  Measures laying out, scrolling and editing a long document, and
---  shaping and rasterizing its text: bench [paragraphs]
+--  Measures laying out, scrolling and editing a long document, shaping
+--  and rasterizing its text, and drawing it: bench [paragraphs]
 procedure Bench is
    package Documents renames Typeset.Documents;
+   package Renderers renames SDL3.Windows.Renderers;
 
    use Ada.Real_Time;
    use Ada.Text_IO;
@@ -223,4 +228,122 @@ begin
       end loop;
       Report ("rasterizing a glyph at 36 px, each", Millis / Float (Made));
    end;
+
+   --  Drawing, as the viewer does, into a hidden window without vsync
+   --  so that frames are not paced by the display.
+   SDL3.Initialize;
+   declare
+      Win    : SDL3.Windows.Window;
+      Target : Renderers.Renderer;  --  after Win: it is destroyed first
+      Viewed : Typeset.Views.View;  --  and after Target
+      Ink    : constant Renderers.Color := (230, 230, 235, 255);
+      Paper  : constant Renderers.Color := (30, 30, 36, 255);
+      Width, Height : Natural;
+      Density : Float;
+      Drawing : Duration := 0.0;
+      --  In Views.Draw: Present waits for the display even without
+      --  vsync, so the frames are timed without it.
+      Draw_Frames : constant := 300;
+      Anchor : Documents.Paragraph_Number := 1;
+      Offset : Float := 0.0;
+
+      procedure Frame (Zoom : Float; Settled : Boolean) is
+         Scale : constant Float := Density * Zoom;
+      begin
+         Renderers.Clear (Target, Paper);
+         Started := Clock;
+         Typeset.Views.Draw
+           (Viewed, Doc, Target, Ink, Anchor, Offset,
+            Left    => Float'Max
+                         (0.0, (Float (Width) - 640.0 * Scale) / 2.0),
+            Top     => 0.0,
+            Width   => Width,
+            Height  => Height,
+            Scale   => Scale,
+            Settled => Settled);
+         Drawing := Drawing + To_Duration (Clock - Started);
+         Renderers.Present (Target);
+      end Frame;
+
+      function Drawn (Count : Positive) return Float is
+        (Float (Drawing) * 1000.0 / Float (Count));
+
+      procedure Report_Made (Shaped_Before, Made_Before : Natural) is
+      begin
+         Put_Line ("    lines shaped:"
+                   & Natural'Image
+                       (Typeset.Views.Lines_Shaped (Viewed) - Shaped_Before)
+                   & ", glyphs rasterized:"
+                   & Natural'Image
+                       (Typeset.Views.Glyphs_Made (Viewed) - Made_Before));
+      end Report_Made;
+   begin
+      SDL3.Windows.Create
+        (Win, "bench", 1000, 800, High_Density => True, Hidden => True);
+      Density := SDL3.Windows.Pixel_Density (Win);
+      Renderers.Create (Target, Win, VSync => False);
+      Renderers.Output_Size (Target, Width, Height);
+      Put_Line ("drawing" & Width'Image & " x" & Height'Image
+                & " pixels:");
+
+      declare
+         Step : constant Float :=
+           Documents.Total_Height (Doc) / Float (Draw_Frames);
+      begin
+         Drawing := 0.0;
+         for K in 1 .. Draw_Frames loop
+            Frame (1.0, Settled => True);
+            Documents.Scroll
+              (Doc, Anchor, Offset, Step,
+               Float (Height) / Density);
+         end loop;
+         Report ("scrolling through, a new screen each frame, per frame",
+                 Drawn (Draw_Frames));
+         Report_Made (0, 0);
+      end;
+
+      Anchor := Documents.Count (Doc) / 2;
+      Offset := 0.0;
+      Frame (1.0, Settled => True);
+      declare
+         Shaped_Before : constant Natural :=
+           Typeset.Views.Lines_Shaped (Viewed);
+         Made_Before   : constant Natural :=
+           Typeset.Views.Glyphs_Made (Viewed);
+      begin
+         Drawing := 0.0;
+         for K in 1 .. Draw_Frames loop
+            Frame (1.0, Settled => True);
+         end loop;
+         Report ("holding still, warm, per frame", Drawn (Draw_Frames));
+
+         Drawing := 0.0;
+         for K in 1 .. Draw_Frames loop
+            Documents.Scroll
+              (Doc, Anchor, Offset,
+               (if (K / 50) mod 2 = 0 then 10.0 else -10.0),
+               Float (Height) / Density);
+            Frame (1.0, Settled => True);
+         end loop;
+         Report ("scrolling a little back and forth, per frame",
+                 Drawn (Draw_Frames));
+         Report_Made (Shaped_Before, Made_Before);
+      end;
+
+      declare
+         Zooms : constant := 200;
+         Shaped_Before : constant Natural :=
+           Typeset.Views.Lines_Shaped (Viewed);
+         Made_Before   : constant Natural :=
+           Typeset.Views.Glyphs_Made (Viewed);
+      begin
+         Drawing := 0.0;
+         for K in 1 .. Zooms loop
+            Frame (1.0 + Float (K) / Float (Zooms), Settled => False);
+         end loop;
+         Report ("zooming in, per frame", Drawn (Zooms));
+         Report_Made (Shaped_Before, Made_Before);
+      end;
+   end;
+   SDL3.Shutdown;
 end Bench;

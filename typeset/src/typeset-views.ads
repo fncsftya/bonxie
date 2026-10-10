@@ -1,4 +1,4 @@
-with Ada.Containers.Hashed_Maps;
+with Ada.Containers.Bounded_Hashed_Maps;
 with Ada.Finalization;
 with Typeset.Documents;
 with CoreText.Shaping;
@@ -15,9 +15,11 @@ package Typeset.Views is
    --  Declare it after the Renderer it draws to, and always draw it to
    --  that Renderer.
 
-   Lines_Kept : constant := 4096;
-   --  How many shaped lines a view keeps. Past that it drops those not
-   --  drawn lately.
+   Lines_Kept  : constant := 4096;
+   Glyphs_Kept : constant := 64 * Lines_Kept;
+   --  How many shaped lines a view keeps, and their glyphs between them:
+   --  the room for them is made once, when the view is. Past either it
+   --  drops those not drawn lately.
 
    procedure Draw
      (Item   : in out View;
@@ -61,23 +63,38 @@ private
       + Ada.Containers.Hash_Type (Key.Number));
 
    type Kept is record
-      Line : CoreText.Shaping.Shaped;
-      Used : Natural := 0;  --  the frame last drawn
+      First : Positive := 1;  --  of its glyphs, in the active slab
+      Count : Natural := 0;
+      Used  : Natural := 0;  --  the frame last drawn
    end record;
 
-   type Kept_Access is access Kept;
+   package Line_Maps is new Ada.Containers.Bounded_Hashed_Maps
+     (Line_Key, Kept, Hash, "=");
 
-   package Line_Maps is new Ada.Containers.Hashed_Maps
-     (Line_Key, Kept_Access, Hash, "=");
+   subtype Slab is CoreText.Shaping.Glyph_Array (1 .. Glyphs_Kept);
+   type Slab_Access is access Slab;
+   type Slab_Index is mod 2;
+   type Slab_Pair is array (Slab_Index) of Slab_Access;
+   --  The glyphs of the kept lines are in the active slab, one line's
+   --  after another's. When it is full those of lines drawn lately are
+   --  copied to the other, which becomes active, and the rest dropped.
 
    type View is new Ada.Finalization.Limited_Controlled with record
-      Reg    : CoreText.Shaping.Registry;
-      Atlas  : Glyph_Atlas.Atlas;
-      Lines  : Line_Maps.Map;
-      Frame  : Natural := 0;
-      Shaped : Natural := 0;
+      Reg     : CoreText.Shaping.Registry;
+      Atlas   : Glyph_Atlas.Atlas;
+      Lines   : Line_Maps.Map
+                  (Capacity => Lines_Kept,
+                   Modulus  => Line_Maps.Default_Modulus (Lines_Kept));
+      Slabs   : Slab_Pair;
+      Active  : Slab_Index := 0;
+      Filled  : Natural := 0;  --  of the active slab
+      Scratch : CoreText.Shaping.Shaped;
+      --  A line as shaped, before it is kept: it holds on to its room.
+      Frame   : Natural := 0;
+      Shaped  : Natural := 0;
    end record;
 
+   overriding procedure Initialize (Item : in out View);
    overriding procedure Finalize (Item : in out View);
 
 end Typeset.Views;

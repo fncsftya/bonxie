@@ -12,9 +12,11 @@ package SDL3.Windows is
       Width     : Positive;
       Height    : Positive;
       Resizable : Boolean := False;
-      High_Density : Boolean := False);
+      High_Density : Boolean := False;
+      Hidden    : Boolean := False);
    --  With High_Density the window's pixels are the display's own, not
-   --  scaled up from points: see Pixel_Density.
+   --  scaled up from points: see Pixel_Density. A Hidden window is not
+   --  shown, but can be drawn to, as for measuring.
 
    function Is_Open (Item : Window) return Boolean;
 

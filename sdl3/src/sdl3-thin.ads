@@ -11,6 +11,7 @@ private package SDL3.Thin is
    Init_Video : constant Init_Flags := 16#20#;
 
    type Window_Flags is new Interfaces.Unsigned_64;
+   Window_Hidden    : constant Window_Flags := 16#8#;
    Window_Resizable : constant Window_Flags := 16#20#;
    Window_High_Pixel_Density : constant Window_Flags := 16#2000#;
 
@@ -73,6 +74,7 @@ private package SDL3.Thin is
    Pixel_Format_RGBA32 : constant Interfaces.Unsigned_32 := 16#1676_2004#;
    --  SDL_PIXELFORMAT_RGBA32 on little-endian (ABGR8888): bytes R, G, B, A.
    Texture_Access_Static : constant Interfaces.C.int := 0;
+   Texture_Access_Target : constant Interfaces.C.int := 2;
    Scale_Mode_Nearest    : constant Interfaces.C.int := 0;
    Scale_Mode_Linear     : constant Interfaces.C.int := 1;
 
@@ -167,7 +169,9 @@ private package SDL3.Thin is
 
    function Get_Render_Output_Size
      (R : Renderer; W, H : access Interfaces.C.int) return Interfaces.C.C_bool
-     with Import, Convention => C, External_Name => "SDL_GetRenderOutputSize";
+     with Import, Convention => C,
+          External_Name => "SDL_GetCurrentRenderOutputSize";
+   --  Of the render target, if there is one.
 
    function Wait_Event_Timeout
      (E : access Event; Timeout_MS : Interfaces.Integer_32)
@@ -211,6 +215,48 @@ private package SDL3.Thin is
      (Surface : System.Address; File : Interfaces.C.Strings.chars_ptr)
       return Interfaces.C.C_bool
      with Import, Convention => C, External_Name => "SDL_SaveBMP";
+
+   type Surface_Data is record
+      Flags  : Interfaces.Unsigned_32;
+      Format : Interfaces.Unsigned_32;
+      W, H   : Interfaces.C.int;
+      Pitch  : Interfaces.C.int;
+      Pixels : System.Address;
+      Refcount : Interfaces.C.int;
+      Reserved : System.Address;
+   end record
+     with Convention => C;
+   --  SDL_Surface, whose fields are read-only.
+
+   type Surface_Access is access all Surface_Data
+     with Convention => C;
+
+   function Create_Surface
+     (W, H : Interfaces.C.int; Format : Interfaces.Unsigned_32)
+      return Surface_Access
+     with Import, Convention => C, External_Name => "SDL_CreateSurface";
+
+   function Convert_Surface
+     (From : System.Address; Format : Interfaces.Unsigned_32)
+      return Surface_Access
+     with Import, Convention => C, External_Name => "SDL_ConvertSurface";
+
+   function Load_PNG
+     (File : Interfaces.C.Strings.chars_ptr) return Surface_Access
+     with Import, Convention => C, External_Name => "SDL_LoadPNG";
+
+   function Save_PNG
+     (Item : Surface_Access; File : Interfaces.C.Strings.chars_ptr)
+      return Interfaces.C.C_bool
+     with Import, Convention => C, External_Name => "SDL_SavePNG";
+
+   function Create_Software_Renderer (Target : Surface_Access) return Renderer
+     with Import, Convention => C,
+          External_Name => "SDL_CreateSoftwareRenderer";
+
+   function Set_Render_Target
+     (R : Renderer; T : Texture) return Interfaces.C.C_bool
+     with Import, Convention => C, External_Name => "SDL_SetRenderTarget";
 
    procedure Destroy_Surface (Surface : System.Address)
      with Import, Convention => C, External_Name => "SDL_DestroySurface";

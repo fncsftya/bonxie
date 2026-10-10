@@ -1,4 +1,3 @@
-with Ada.Containers.Hashed_Maps;
 with Ada.Finalization;
 with Interfaces;
 with CoreText.Shaping;
@@ -27,9 +26,32 @@ package Typeset.Glyph_Atlas is
    Max_Pages : constant := 4;
    --  When all are full, the least recently drawn from is emptied.
 
+   Slots_Kept : constant := 2 ** 16;
+   --  Room to know where this many glyphs are, drawn or blank; it is
+   --  made once, with the atlas. When it is three quarters full every
+   --  page is emptied.
+
    procedure Begin_Frame (Item : in out Atlas);
    --  Call before drawing a frame, so that the atlas knows which pages
    --  are in use.
+
+   procedure Draw
+     (Item     : in out Atlas;
+      Reg      : CoreText.Shaping.Registry;
+      Target   : SDL3.Windows.Renderers.Renderer;
+      Line     : CoreText.Shaping.Glyph_Array;
+      X        : Float;
+      Baseline : Float;
+      Scale    : Float;
+      Size     : Float;
+      Value    : SDL3.Windows.Renderers.Color;
+      Settled  : Boolean)
+     with Pre => Scale > 0.0 and then Size > 0.0;
+   --  Draw a line of glyphs, its start X pixels and its baseline
+   --  Baseline pixels from the target's top left. The glyphs' positions
+   --  are in units that are Scale pixels each; their font is Size
+   --  pixels. The glyphs are batched: Flush before drawing anything
+   --  that should be over them or under them.
 
    procedure Draw
      (Item     : in out Atlas;
@@ -43,11 +65,7 @@ package Typeset.Glyph_Atlas is
       Value    : SDL3.Windows.Renderers.Color;
       Settled  : Boolean)
      with Pre => Scale > 0.0 and then Size > 0.0;
-   --  Draw a line of glyphs, its start X pixels and its baseline
-   --  Baseline pixels from the target's top left. The glyphs' positions
-   --  are in units that are Scale pixels each; their font is Size
-   --  pixels. The glyphs are batched: Flush before drawing anything
-   --  that should be over them or under them.
+   --  The same, of a line as shaped.
 
    procedure Flush
      (Item   : in out Atlas;
@@ -70,11 +88,19 @@ private
       Color       : Boolean := False;
    end record;
 
-   function Hash (Key : Interfaces.Unsigned_64)
-      return Ada.Containers.Hash_Type;
+   No_Key : constant Interfaces.Unsigned_64 := 0;
+   --  No glyph has it: its size is part of its key, and never 0.
 
-   package Slot_Maps is new Ada.Containers.Hashed_Maps
-     (Interfaces.Unsigned_64, Slot, Hash, Interfaces."=");
+   type Known is record
+      Key  : Interfaces.Unsigned_64 := No_Key;
+      Spot : Slot;
+   end record;
+
+   type Slot_Index is mod Slots_Kept;
+   type Slot_Table is array (Slot_Index) of Known;
+   type Slot_Table_Access is access Slot_Table;
+   --  Open addressing, probed linearly from where a key hashes to: one
+   --  probe, mostly, to find a glyph, and no container to check.
 
    type Vertex_Access is access Textures.Vertex_Array;
 
@@ -93,12 +119,14 @@ private
    type Atlas is new Ada.Finalization.Limited_Controlled with record
       Pages  : Page_Array;
       Count  : Natural := 0;
-      Slots  : Slot_Maps.Map;
+      Slots  : Slot_Table_Access;
+      Filled : Natural := 0;  --  of Slots
       Frame  : Natural := 0;
       Made   : Natural := 0;
       Scratch : CoreText.Shaping.Glyphs.Image;
    end record;
 
+   overriding procedure Initialize (Item : in out Atlas);
    overriding procedure Finalize (Item : in out Atlas);
 
 end Typeset.Glyph_Atlas;

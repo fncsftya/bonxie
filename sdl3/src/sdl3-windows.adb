@@ -12,14 +12,16 @@ package body SDL3.Windows is
       Width     : Positive;
       Height    : Positive;
       Resizable : Boolean := False;
-      High_Density : Boolean := False)
+      High_Density : Boolean := False;
+      Hidden    : Boolean := False)
    is
       use Interfaces.C;
       C_Title : Strings.chars_ptr := Strings.New_String (Title);
       use type Thin.Window_Flags;
       Flags   : constant Thin.Window_Flags :=
         (if Resizable then Thin.Window_Resizable else 0)
-        + (if High_Density then Thin.Window_High_Pixel_Density else 0);
+        + (if High_Density then Thin.Window_High_Pixel_Density else 0)
+        + (if Hidden then Thin.Window_Hidden else 0);
    begin
       Finalize (Item);
       Item.Handle :=
