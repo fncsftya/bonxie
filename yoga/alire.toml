@@ -1,0 +1,16 @@
+name = "yoga"
+description = "Ada bindings for the Yoga flexbox layout engine"
+version = "0.1.0-dev"
+
+authors = ["Your Name"]
+maintainers = ["Your Name <example@example.com>"]
+licenses = "MIT OR Apache-2.0 WITH LLVM-exception"
+website = ""
+tags = []
+
+[build-switches]
+"*".ada_version = "Ada2022"
+"*".compile_checks = "Errors"
+"*".runtime_checks = "Everything"
+"*".style_checks = "Yes"
+"*".contracts = "Yes"

@@ -1,5 +1,6 @@
 with "config/bonxie_config.gpr";
 with "sdl3.gpr";
+with "yoga.gpr";
 project Bonxie is
 
    for Source_Dirs use ("src/", "config/");
@@ -9,7 +10,11 @@ project Bonxie is
    for Main use ("bonxie.adb");
 
    package Compiler is
-      for Default_Switches ("Ada") use Bonxie_Config.Ada_Compiler_Switches;
+      for Default_Switches ("Ada") use Bonxie_Config.Ada_Compiler_Switches &
+        ("-gnatwh",          --  local declarations hiding others
+         "-gnatVa",          --  validity checks everywhere
+         "-fstack-check",    --  detect stack overflow
+         "-fstack-protector-strong");
    end Compiler;
 
    package Binder is

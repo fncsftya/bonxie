@@ -1,0 +1,43 @@
+with "config/yoga_config.gpr";
+project Yoga is
+
+   for Library_Name use "yoga_ada";
+   for Library_Version use Project'Library_Name & ".so." & Yoga_Config.Crate_Version;
+
+   for Languages use ("Ada", "C++");
+   --  Facebook's Yoga (v3.2.1, MIT) is vendored as C++ in vendor/yoga.
+   for Source_Dirs use ("src/", "config/", "vendor/yoga/**");
+   for Object_Dir use "obj/" & Yoga_Config.Build_Profile;
+   for Create_Missing_Dirs use "True";
+   for Library_Dir use "lib";
+
+   type Library_Type_Type is ("relocatable", "static", "static-pic");
+   Library_Type : Library_Type_Type :=
+     external ("YOGA_LIBRARY_TYPE", external ("LIBRARY_TYPE", "static"));
+   for Library_Kind use Library_Type;
+
+   package Compiler is
+      for Default_Switches ("Ada") use Yoga_Config.Ada_Compiler_Switches &
+        ("-gnatwh",          --  local declarations hiding others
+         "-gnatVa",          --  validity checks everywhere
+         "-fstack-check",    --  detect stack overflow
+         "-fstack-protector-strong");
+      --  "-I vendor" lets the sources find <yoga/Yoga.h>.
+      for Default_Switches ("C++") use
+        ("-std=c++20", "-O2", "-fno-rtti", "-I" & Project'Project_Dir & "vendor");
+   end Compiler;
+
+   --  Propagated to every project that depends on this one.
+   package Linker is
+      for Linker_Options use ("-lstdc++");
+   end Linker;
+
+   package Binder is
+      for Switches ("Ada") use ("-Es"); --  Symbolic traceback
+   end Binder;
+
+   package Install is
+      for Artifacts (".") use ("share");
+   end Install;
+
+end Yoga;

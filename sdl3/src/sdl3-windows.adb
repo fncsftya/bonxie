@@ -1,4 +1,5 @@
 with Interfaces.C.Strings;
+with SDL3.Errors;
 with SDL3.Thin;
 
 package body SDL3.Windows is
@@ -22,8 +23,7 @@ package body SDL3.Windows is
         Thin.Create_Window (C_Title, int (Width), int (Height), Flags);
       Strings.Free (C_Title);
       if Item.Handle = System.Null_Address then
-         raise SDL_Error with
-           "SDL_CreateWindow: " & Strings.Value (Thin.Get_Error);
+         Errors.Raise_Last_Error ("SDL_CreateWindow");
       end if;
    end Create;
 

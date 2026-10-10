@@ -12,6 +12,15 @@ executables = ["bonxie"]
 
 [[depends-on]]
 sdl3 = "*"
+yoga = "*"
 
 [[pins]]
 sdl3 = { path = "sdl3" }
+yoga = { path = "yoga" }
+
+[build-switches]
+"*".ada_version = "Ada2022"
+"*".compile_checks = "Errors"
+"*".runtime_checks = "Everything"
+"*".style_checks = "Yes"
+"*".contracts = "Yes"
