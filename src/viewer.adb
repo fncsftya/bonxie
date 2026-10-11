@@ -1,14 +1,21 @@
+with Ada.Directories;
+with Ada.Exceptions;
 with Ada.Numerics.Elementary_Functions;
+with Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
+with Ada.Text_IO;
+with Files;
 with SDL3.Events.Redraws;
 with SDL3.Windows.Renderers;
+with UI.Themes;
 
 package body Viewer is
 
-   package Documents renames Typeset.Documents;
-   package Views renames Typeset.Views;
+   package Text_Areas renames UI.Text_Areas;
 
+   use Ada.Strings.Unbounded;
    use type SDL3.Events.Event_Kind;
    use type SDL3.Events.Key_Code;
+   use type SDL3.Events.Milliseconds;
    use SDL3.Windows.Renderers;
 
    --  The page
@@ -24,13 +31,12 @@ package body Viewer is
    Window_Height : constant := 800;
    Toolbar_Size  : constant Float := 32.0;
    Margin        : constant Float := 16.0;
-   --  Beside the page when it fills the window's width.
+   --  Around the text area.
 
-   Background : constant Color := (30, 30, 36, 255);
-   Toolbar    : constant Color := (52, 54, 66, 255);
-   Ink        : constant Color := (230, 230, 235, 255);
+   Colors  : constant UI.Themes.Theme := UI.Themes.Light;
+   Toolbar : constant Color := (52, 54, 66, 255);
 
-   --  Moving about
+   --  Zooming
 
    Min_Zoom       : constant Float := 0.25;
    Max_Zoom       : constant Float := 8.0;
@@ -38,51 +44,38 @@ package body Viewer is
    Settle_MS      : constant := 120;
    --  How long the zoom must hold still to count as settled.
 
-   Lines_Per_Notch : constant Float := 3.0;
-   Page_Fraction   : constant Float := 0.9;
-   --  How much of a view Page Up and Page Down move.
-
-   --  The page area's height, in layout units.
-   function Extent (Item : Session) return Float is
-     (Yoga.Nodes.Height (Item.Page_Node) / (Item.Density * Item.Zoom));
-
    --  Drawing
 
    procedure Lay_Out_Window (Item : in out Session);
    --  Lay out the window's parts to fit its size now.
 
    procedure Lay_Out_Window (Item : in out Session) is
+      package Nodes renames Yoga.Nodes;
       Width  : Natural;
       Height : Natural;
    begin
       Output_Size (Item.Target, Width, Height);
-      Yoga.Nodes.Calculate_Layout (Item.UI, Float (Width), Float (Height));
+      Nodes.Calculate_Layout (Item.Layout, Float (Width), Float (Height));
+      Text_Areas.Place
+        (Item.Area,
+         Left    => Nodes.Left (Item.Content_Node)
+                    + Nodes.Left (Item.Area_Node),
+         Top     => Nodes.Top (Item.Content_Node)
+                    + Nodes.Top (Item.Area_Node),
+         Width   => Nodes.Width (Item.Area_Node),
+         Height  => Nodes.Height (Item.Area_Node),
+         Density => Item.Density,
+         Zoom    => Item.Zoom);
    end Lay_Out_Window;
 
    procedure Paint (Item : in out Session);
    --  Draw what is shown, but do not present it.
 
    procedure Paint (Item : in out Session) is
-      Scale  : constant Float := Item.Density * Item.Zoom;
-      Width  : Natural;
-      Height : Natural;
    begin
       Lay_Out_Window (Item);
-      Output_Size (Item.Target, Width, Height);
-
-      Clear (Item.Target, Background);
-      Views.Draw
-        (Item.Page, Item.Doc, Item.Target, Ink, Item.Anchor, Item.Offset,
-         Left    => Float'Max
-                      (Margin * Item.Density,
-                       (Float (Width) - Page_Width * Scale) / 2.0),
-         Top     => Yoga.Nodes.Top (Item.Page_Node),
-         Width   => Natural (Yoga.Nodes.Width (Item.Page_Node)),
-         Height  => Natural (Yoga.Nodes.Height (Item.Page_Node)),
-         Scale   => Scale,
-         Settled => Item.Settled);
-
-      --  Over the text, which is flushed.
+      Clear (Item.Target, Colors.Background);
+      Text_Areas.Draw (Item.Area, Item.Target, Colors, Item.Settled);
       Fill_Rect
         (Item.Target, Toolbar,
          Yoga.Nodes.Left (Item.Toolbar_Node),
@@ -92,22 +85,41 @@ package body Viewer is
       Item.Dirty := False;
    end Paint;
 
+   procedure Tell_Input_Method (Item : in out Session);
+   --  Where the caret is, so that an input method can show its choices
+   --  beside it.
+
+   procedure Tell_Input_Method (Item : in out Session) is
+      X, Y, Width, Height : Float;
+   begin
+      if Text_Areas.Is_Focused (Item.Area) then
+         Text_Areas.Caret_Box (Item.Area, X, Y, Width, Height);
+         declare
+            Across : constant Integer := Integer (X / Item.Density);
+         begin
+            --  Once a line, not once a character: the input method's
+            --  choices would jump about as it is typed into.
+            if Across /= Item.Input_Area then
+               Item.Input_Area := Across;
+               SDL3.Windows.Set_Text_Input_Area
+                 (Item.Win, Across, Integer (Y / Item.Density),
+                  Integer (Float'Ceiling (Width / Item.Density)),
+                  Integer (Float'Ceiling (Height / Item.Density)));
+            end if;
+         end;
+      end if;
+   end Tell_Input_Method;
+
    procedure Draw (Item : in out Session) is
    begin
       Paint (Item);
       Present (Item.Target);
+      Tell_Input_Method (Item);
    end Draw;
 
    package Redraws is new SDL3.Events.Redraws (Session, Draw);
 
-   --  Moving about
-
-   procedure Scroll (Item : in out Session; By : Float) is
-   begin
-      Documents.Scroll
-        (Item.Doc, Item.Anchor, Item.Offset, By, Extent (Item));
-      Item.Dirty := True;
-   end Scroll;
+   --  Zooming
 
    procedure Zoom_By (Item : in out Session; Factor : Float) is
       Zoom : constant Float :=
@@ -117,70 +129,122 @@ package body Viewer is
          Item.Zoom := Zoom;
          Item.Settled := False;
          Item.Dirty := True;
+         --  Before the next event, which may be over the text.
+         Lay_Out_Window (Item);
       end if;
    end Zoom_By;
 
-   procedure Go_To_Start (Item : in out Session) is
-   begin
-      Item.Anchor := 1;
-      Item.Offset := 0.0;
-      Item.Dirty := True;
-   end Go_To_Start;
-
    --  Events
 
-   procedure Handle_Wheel (Item : in out Session; Notches : Float) is
+   procedure Handle_Zoom
+     (Item : in out Session; Event : SDL3.Events.Event; Handled : out Boolean);
+   --  Command with the wheel, =, - or 0.
+
+   procedure Handle_Zoom
+     (Item : in out Session; Event : SDL3.Events.Event; Handled : out Boolean)
+   is
    begin
-      if SDL3.Events.Command_Held then
+      Handled := True;
+      Item.Zoomed_At := Event.Time;
+      if Event.Kind = SDL3.Events.Mouse_Wheel and then Event.Command then
          Zoom_By
            (Item,
-            Ada.Numerics.Elementary_Functions."**" (Zoom_Per_Notch, Notches));
-      else
-         Scroll
-           (Item,
-            -Notches * Lines_Per_Notch * Documents.Line_Height (Item.Doc));
-      end if;
-   end Handle_Wheel;
-
-   procedure Handle_Key (Item : in out Session; Event : SDL3.Events.Event) is
-      Line : constant Float := Documents.Line_Height (Item.Doc);
-   begin
-      if Event.Key = SDL3.Events.Key_Down_Arrow then
-         Scroll (Item, Line);
-      elsif Event.Key = SDL3.Events.Key_Up_Arrow then
-         Scroll (Item, -Line);
-      elsif Event.Key = SDL3.Events.Key_Page_Down then
-         Scroll (Item, Page_Fraction * Extent (Item));
-      elsif Event.Key = SDL3.Events.Key_Page_Up then
-         Scroll (Item, -Page_Fraction * Extent (Item));
-      elsif Event.Key = SDL3.Events.Key_Home then
-         Go_To_Start (Item);
-      elsif Event.Key = SDL3.Events.Key_End then
-         Scroll (Item, Documents.Total_Height (Item.Doc));
-      elsif Event.Command and then Event.Key = SDL3.Events.Key_Equals then
+            Ada.Numerics.Elementary_Functions."**"
+              (Zoom_Per_Notch, Event.Wheel_Y));
+      elsif Event.Kind /= SDL3.Events.Key_Down or else not Event.Command then
+         Handled := False;
+      elsif Event.Key = SDL3.Events.Key_Equals then
          Zoom_By (Item, Zoom_Per_Notch);
-      elsif Event.Command and then Event.Key = SDL3.Events.Key_Minus then
+      elsif Event.Key = SDL3.Events.Key_Minus then
          Zoom_By (Item, 1.0 / Zoom_Per_Notch);
-      elsif Event.Command and then Event.Key = SDL3.Events.Key_0 then
+      elsif Event.Key = SDL3.Events.Key_0 then
          Zoom_By (Item, 1.0 / Item.Zoom);
+      else
+         Handled := False;
       end if;
-   end Handle_Key;
+   end Handle_Zoom;
 
    procedure Handle (Item : in out Session; Event : SDL3.Events.Event) is
+      Handled : Boolean;
    begin
       case Event.Kind is
          when SDL3.Events.Quit =>
             Item.Done := True;
          when SDL3.Events.Redraw =>
             Item.Dirty := True;
-         when SDL3.Events.Mouse_Wheel =>
-            Handle_Wheel (Item, Event.Wheel_Y);
-         when SDL3.Events.Key_Down =>
-            Handle_Key (Item, Event);
-         when SDL3.Events.Other =>
-            null;
+         when others =>
+            Handle_Zoom (Item, Event, Handled);
+            if not Handled and then Event.Kind = SDL3.Events.Key_Down
+              and then Event.Command and then Event.Key = SDL3.Events.Key_S
+            then
+               Save (Item);
+               Handled := True;
+            end if;
+            if Handled then
+               null;
+            elsif Item.Windowed then
+               Text_Areas.Handle
+                 (Item.Area, Event, Item.System_Board, Handled);
+            else
+               Text_Areas.Handle (Item.Area, Event, Item.Own_Board, Handled);
+            end if;
+            --  A click elsewhere takes the focus away.
+            if not Handled and then Event.Kind = SDL3.Events.Mouse_Down
+              and then Text_Areas.Is_Focused (Item.Area)
+            then
+               Text_Areas.Set_Focus (Item.Area, False);
+               Handled := True;
+            end if;
+            if Handled then
+               Item.Dirty := True;
+            end if;
       end case;
    end Handle;
+
+   --  The file
+
+   Edited : constant String :=
+     Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Encode
+       (" " & Wide_Wide_Character'Val (16#2014#) & " Edited");
+   --  After the name, an em dash: in UTF-8, as the title is.
+
+   function Title (Item : Session) return String is
+      Name : constant String := To_String (Item.File_Name);
+   begin
+      return
+        (if Name = "" then "Untitled"
+         else Ada.Directories.Simple_Name (Name))
+        & (if Text_Areas.State (Item.Area) /= Item.Saved then Edited
+           else "");
+   end Title;
+
+   procedure Save (Item : in out Session) is
+      Name : constant String := To_String (Item.File_Name);
+   begin
+      if Name /= "" then
+         Files.Write (Name, Text_Areas.Text (Item.Area));
+         Item.Saved := Text_Areas.State (Item.Area);
+      end if;
+   exception
+      when Problem : others =>
+         --  Keep the text, to save another time.
+         Ada.Text_IO.Put_Line
+           (Ada.Text_IO.Standard_Error,
+            "Could not save " & Name & ": "
+            & Ada.Exceptions.Exception_Message (Problem));
+   end Save;
+
+   procedure Show_Title (Item : in out Session);
+   --  In the window's title bar, if it has changed.
+
+   procedure Show_Title (Item : in out Session) is
+      Now : constant String := Title (Item);
+   begin
+      if Now /= To_String (Item.Shown_Title) then
+         SDL3.Windows.Set_Title (Item.Win, Now);
+         Item.Shown_Title := To_Unbounded_String (Now);
+      end if;
+   end Show_Title;
 
    --  Running
 
@@ -188,46 +252,76 @@ package body Viewer is
    --  Lay out the window and the document in it, once there is a target.
 
    procedure Set_Up (Item : in out Session; Source : String) is
+      use Yoga.Nodes;
+      Window_Node : constant Node := Root (Item.Layout);
    begin
-      Documents.Configure
-        (Item.Doc, Family, Font_Size, Page_Width, Para_Gap);
-      Documents.Load (Item.Doc, Source);
+      Text_Areas.Configure
+        (Item.Area, Family, Font_Size, Page_Width, Para_Gap);
+      Text_Areas.Load (Item.Area, Source);
+      Text_Areas.Set_Focus (Item.Area, True);
 
-      Item.Page_Node := Yoga.Nodes.New_Child (Yoga.Nodes.Root (Item.UI));
-      Item.Toolbar_Node := Yoga.Nodes.New_Child (Yoga.Nodes.Root (Item.UI));
-      Yoga.Nodes.Set_Flex_Direction (Yoga.Nodes.Root (Item.UI), Yoga.Column);
-      Yoga.Nodes.Set_Flex_Grow (Item.Page_Node, 1.0);
-      Yoga.Nodes.Set_Height (Item.Toolbar_Node, Toolbar_Size * Item.Density);
-      --  Before any event: moving about needs the page area's size.
+      Item.Content_Node := New_Child (Window_Node);
+      Item.Area_Node := New_Child (Item.Content_Node);
+      Item.Toolbar_Node := New_Child (Window_Node);
+      Set_Flex_Direction (Window_Node, Yoga.Column);
+      Set_Flex_Grow (Item.Content_Node, 1.0);
+      Set_Flex_Direction (Item.Content_Node, Yoga.Column);
+      Set_Padding (Item.Content_Node, Yoga.All_Edges, Margin * Item.Density);
+      Set_Flex_Grow (Item.Area_Node, 1.0);
+      Set_Height (Item.Toolbar_Node, Toolbar_Size * Item.Density);
+      --  Before any event: the text area must know where it is.
       Lay_Out_Window (Item);
    end Set_Up;
 
-   procedure Open (Item : in out Session; Source : String) is
+   procedure Open
+     (Item : in out Session; Source : String; File_Name : String) is
    begin
+      Item.File_Name := To_Unbounded_String (File_Name);
+      Item.Windowed := True;
       SDL3.Windows.Create
         (Item.Win, "bonxie", Window_Width, Window_Height,
          Resizable => True, High_Density => True);
       Item.Density := SDL3.Windows.Pixel_Density (Item.Win);
       Create (Item.Target, Item.Win);
       Set_Up (Item, Source);
+      SDL3.Windows.Start_Text_Input (Item.Win);
    end Open;
 
    procedure Wait_And_Handle (Item : in out Session) is
-      Event : SDL3.Events.Event;
+      Event   : SDL3.Events.Event;
+      Timeout : Integer := -1;  --  none
+
+      procedure Wake_In (Milliseconds : Integer) is
+      begin
+         Timeout :=
+           (if Timeout < 0 then Integer'Max (0, Milliseconds)
+            else Integer'Min (Timeout, Integer'Max (0, Milliseconds)));
+      end Wake_In;
    begin
       --  Nothing to do until something happens, except to settle the
-      --  zoom once it has held still.
-      if SDL3.Events.Wait
-           (Event, Timeout_MS => (if Item.Settled then -1 else Settle_MS))
-      then
+      --  zoom once it has held still, and to blink the caret.
+      Tick (Item, SDL3.Events.Ticks);
+      if not Item.Settled then
+         Wake_In
+           (Settle_MS - Integer (SDL3.Events.Ticks - Item.Zoomed_At));
+      end if;
+      if Text_Areas.Is_Focused (Item.Area) then
+         Wake_In (Integer (Text_Areas.Until_Blink (Item.Area)));
+      end if;
+
+      if SDL3.Events.Wait (Event, Timeout_MS => Timeout) then
          Handle (Item, Event);
          while SDL3.Events.Poll (Event) loop
             Handle (Item, Event);
          end loop;
-      elsif not Item.Settled then
-         Item.Settled := True;
-         Item.Dirty := True;
       end if;
+
+      if not Item.Settled
+        and then SDL3.Events.Ticks - Item.Zoomed_At >= Settle_MS
+      then
+         Settle (Item);
+      end if;
+      Tick (Item, SDL3.Events.Ticks);
    end Wait_And_Handle;
 
    --  Without a window
@@ -236,12 +330,14 @@ package body Viewer is
      (Positive (Float (Points) * Density));
 
    procedure Open
-     (Item    : in out Session;
-      Source  : String;
-      Width   : Positive;
-      Height  : Positive;
-      Density : Float := 2.0) is
+     (Item      : in out Session;
+      Source    : String;
+      Width     : Positive;
+      Height    : Positive;
+      Density   : Float := 2.0;
+      File_Name : String := "") is
    begin
+      Item.File_Name := To_Unbounded_String (File_Name);
       Item.Density := Density;
       Create_Offscreen
         (Item.Target, Pixels (Width, Density), Pixels (Height, Density));
@@ -249,7 +345,19 @@ package body Viewer is
    end Open;
 
    function Is_Open (Item : Session) return Boolean is
-     (Documents.Is_Configured (Item.Doc));
+     (Text_Areas.Is_Configured (Item.Area));
+
+   function Text (Item : Session) return String is
+     (Text_Areas.Text (Item.Area));
+
+   procedure Tick (Item : in out Session; Now : SDL3.Events.Milliseconds) is
+      Changed : Boolean;
+   begin
+      Text_Areas.Tick (Item.Area, Now, Changed);
+      if Changed then
+         Item.Dirty := True;
+      end if;
+   end Tick;
 
    procedure Settle (Item : in out Session) is
    begin
@@ -277,11 +385,11 @@ package body Viewer is
       SDL3.Windows.Renderers.Images.Read (Result, Item.Target);
    end Render;
 
-   procedure Run (Source : String) is
+   procedure Run (Source : String; File_Name : String := "") is
       Item    : aliased Session;
       Watcher : Redraws.Watch;  --  ends before Item does
    begin
-      Open (Item, Source);
+      Open (Item, Source, File_Name);
 
       --  The redraw watch also draws: the OS blocks the event loop
       --  during a live resize, and only repainting from inside the event
@@ -289,6 +397,7 @@ package body Viewer is
       Redraws.Install (Watcher, Item);
 
       while not Item.Done loop
+         Show_Title (Item);
          if Item.Dirty then
             Draw (Item);
          end if;

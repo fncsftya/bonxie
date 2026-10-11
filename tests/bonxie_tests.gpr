@@ -1,5 +1,6 @@
 with "config/bonxie_tests_config.gpr";
 with "bonxie.gpr";
+with "bonxie_ui.gpr";
 project Bonxie_Tests is
 
    for Source_Dirs use ("src/", "config/");

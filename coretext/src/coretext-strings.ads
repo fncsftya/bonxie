@@ -21,6 +21,42 @@ package CoreText.Strings is
    function Length (Item : Text) return Natural;
    --  In UTF-16 units; 0 if not set.
 
+   procedure Cluster
+     (Item : Text; Unit : Natural; First, Stop : out Natural)
+     with Pre  => Is_Set (Item) and then Unit < Length (Item),
+          Post => First <= Unit and then Unit < Stop
+                  and then Stop <= Length (Item);
+   --  The UTF-16 range [First, Stop) of the character Unit is part of,
+   --  as a reader sees one: a letter and its accents, an emoji and its
+   --  modifiers, a surrogate pair. Move and delete by these.
+
+   --  Words, as CoreFoundation finds them in the text's language: not
+   --  the spaces and punctuation between them.
+
+   function Previous_Word_Start (Item : Text; Unit : Natural) return Natural
+     with Pre  => Is_Set (Item) and then Unit <= Length (Item),
+          Post => Previous_Word_Start'Result <= Unit
+                  and then (Unit = 0
+                            or else Previous_Word_Start'Result < Unit);
+   --  Where the last word that starts before Unit starts; 0 if none does.
+
+   function Next_Word_Stop (Item : Text; Unit : Natural) return Natural
+     with Pre  => Is_Set (Item) and then Unit <= Length (Item),
+          Post => Next_Word_Stop'Result >= Unit
+                  and then Next_Word_Stop'Result <= Length (Item)
+                  and then (Unit = Length (Item)
+                            or else Next_Word_Stop'Result > Unit);
+   --  Where the first word that ends after Unit ends; the end of the text
+   --  if none does.
+
+   procedure Word_At
+     (Item : Text; Unit : Natural; First, Stop : out Natural)
+     with Pre  => Is_Set (Item) and then Unit <= Length (Item),
+          Post => First <= Unit and then Unit <= Stop
+                  and then Stop <= Length (Item);
+   --  The UTF-16 range [First, Stop) of the word Unit is in, or that ends
+   --  at Unit; First = Stop = Unit if there is none.
+
    function Handle (Item : Text) return System.Address
      with Pre => Is_Set (Item);
    --  The CFStringRef, for CoreText's own packages.

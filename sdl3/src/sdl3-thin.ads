@@ -18,6 +18,11 @@ private package SDL3.Thin is
    type Event_Type is new Interfaces.Unsigned_32;
    Event_Quit        : constant Event_Type := 16#100#;
    Event_Key_Down    : constant Event_Type := 16#300#;
+   Event_Text_Editing : constant Event_Type := 16#302#;
+   Event_Text_Input  : constant Event_Type := 16#303#;
+   Event_Mouse_Motion : constant Event_Type := 16#400#;
+   Event_Mouse_Button_Down : constant Event_Type := 16#401#;
+   Event_Mouse_Button_Up : constant Event_Type := 16#402#;
    Event_Mouse_Wheel : constant Event_Type := 16#403#;
    Event_Window_Exposed           : constant Event_Type := 16#204#;
    Event_Window_Resized           : constant Event_Type := 16#206#;
@@ -31,6 +36,40 @@ private package SDL3.Thin is
      with Convention => C, Size => 128 * 8;
 
    --  The parts of SDL_Event this binding reads, over the same 128 bytes.
+
+   type Common_Event is record
+      Kind      : Event_Type;
+      Reserved  : Interfaces.Unsigned_32;
+      Timestamp : Interfaces.Unsigned_64;  --  nanoseconds, as Get_Ticks
+      Padding   : Interfaces.C.char_array (1 .. 112);
+   end record
+     with Convention => C, Size => 128 * 8;
+
+   type Editing_Event is record
+      Kind      : Event_Type;
+      Reserved  : Interfaces.Unsigned_32;
+      Timestamp : Interfaces.Unsigned_64;
+      Window_Id : Interfaces.Unsigned_32;
+      Align     : Interfaces.Unsigned_32;
+      Text      : Interfaces.C.Strings.chars_ptr;
+      Start     : Interfaces.Integer_32;  --  in characters; -1 if none
+      Length    : Interfaces.Integer_32;
+      Padding   : Interfaces.C.char_array (1 .. 88);
+   end record
+     with Convention => C, Size => 128 * 8;
+
+   type Motion_Event is record
+      Kind      : Event_Type;
+      Reserved  : Interfaces.Unsigned_32;
+      Timestamp : Interfaces.Unsigned_64;
+      Window_Id : Interfaces.Unsigned_32;
+      Which     : Interfaces.Unsigned_32;
+      State     : Interfaces.Unsigned_32;  --  buttons held, a bit each
+      X, Y      : Interfaces.C.C_float;
+      X_Rel, Y_Rel : Interfaces.C.C_float;
+      Padding   : Interfaces.C.char_array (1 .. 84);
+   end record
+     with Convention => C, Size => 128 * 8;
    type Wheel_Event is record
       Kind      : Event_Type;
       Reserved  : Interfaces.Unsigned_32;
@@ -57,6 +96,32 @@ private package SDL3.Thin is
       Down      : Interfaces.C.C_bool;
       Repeated  : Interfaces.C.C_bool;
       Padding   : Interfaces.C.char_array (1 .. 90);
+   end record
+     with Convention => C, Size => 128 * 8;
+
+   type Text_Event is record
+      Kind      : Event_Type;
+      Reserved  : Interfaces.Unsigned_32;
+      Timestamp : Interfaces.Unsigned_64;
+      Window_Id : Interfaces.Unsigned_32;
+      Align     : Interfaces.Unsigned_32;
+      Text      : Interfaces.C.Strings.chars_ptr;  --  UTF-8, SDL's
+      Padding   : Interfaces.C.char_array (1 .. 96);
+   end record
+     with Convention => C, Size => 128 * 8;
+
+   type Button_Event is record
+      Kind      : Event_Type;
+      Reserved  : Interfaces.Unsigned_32;
+      Timestamp : Interfaces.Unsigned_64;
+      Window_Id : Interfaces.Unsigned_32;
+      Which     : Interfaces.Unsigned_32;
+      Button    : Interfaces.Unsigned_8;
+      Down      : Interfaces.C.C_bool;
+      Clicks    : Interfaces.Unsigned_8;
+      Pad       : Interfaces.Unsigned_8;
+      X, Y      : Interfaces.C.C_float;
+      Padding   : Interfaces.C.char_array (1 .. 92);
    end record
      with Convention => C, Size => 128 * 8;
 
@@ -149,6 +214,39 @@ private package SDL3.Thin is
    function Render_Fill_Rect
      (R : Renderer; Rect : access constant FRect) return Interfaces.C.C_bool
      with Import, Convention => C, External_Name => "SDL_RenderFillRect";
+
+   function Set_Render_Clip_Rect
+     (R : Renderer; Rect : System.Address) return Interfaces.C.C_bool
+     with Import, Convention => C, External_Name => "SDL_SetRenderClipRect";
+   --  Of an SDL_Rect; null for none.
+
+   function Start_Text_Input (Win : Window) return Interfaces.C.C_bool
+     with Import, Convention => C, External_Name => "SDL_StartTextInput";
+
+   function Set_Text_Input_Area
+     (Win : Window; Rect : System.Address; Cursor : Interfaces.C.int)
+      return Interfaces.C.C_bool
+     with Import, Convention => C, External_Name => "SDL_SetTextInputArea";
+
+   function Set_Window_Title
+     (Win : Window; Title : Interfaces.C.Strings.chars_ptr)
+      return Interfaces.C.C_bool
+     with Import, Convention => C, External_Name => "SDL_SetWindowTitle";
+
+   function Set_Clipboard_Text
+     (Text : Interfaces.C.Strings.chars_ptr) return Interfaces.C.C_bool
+     with Import, Convention => C, External_Name => "SDL_SetClipboardText";
+
+   function Get_Clipboard_Text return Interfaces.C.Strings.chars_ptr
+     with Import, Convention => C, External_Name => "SDL_GetClipboardText";
+   --  Never null; free it.
+
+   procedure Free (Item : Interfaces.C.Strings.chars_ptr)
+     with Import, Convention => C, External_Name => "SDL_free";
+
+   function Get_Ticks return Interfaces.Unsigned_64
+     with Import, Convention => C, External_Name => "SDL_GetTicks";
+   --  Milliseconds since SDL started.
 
    function Render_Present (R : Renderer) return Interfaces.C.C_bool
      with Import, Convention => C, External_Name => "SDL_RenderPresent";

@@ -46,6 +46,14 @@ package SDL3.Windows.Renderers is
       Value : Color;
       X, Y, Width, Height : Float);
 
+   procedure Set_Clip (Item : Renderer; X, Y, Width, Height : Integer)
+     with Pre => Width >= 0 and then Height >= 0;
+   --  Draw only into the rectangle Width x Height pixels with its top
+   --  left at X, Y, until Clear_Clip.
+
+   procedure Clear_Clip (Item : Renderer);
+   --  Draw anywhere again.
+
    procedure Draw_Text
      (Item  : Renderer;
       Value : Color;

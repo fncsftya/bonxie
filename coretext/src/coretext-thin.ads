@@ -90,6 +90,28 @@ private package CoreText.Thin is
      with Import, Convention => C,
           External_Name => "CFStringGetRangeOfComposedCharactersAtIndex";
 
+   Tokenizer_Unit_Word : constant unsigned_long := 0;
+   --  kCFStringTokenizerUnitWord
+   Token_None : constant unsigned_long := 0;
+   --  kCFStringTokenizerTokenNone
+
+   function CF_String_Tokenizer_Create
+     (Allocator : Ref;
+      Text      : Ref;
+      Within    : CF_Range;
+      Options   : unsigned_long;
+      Locale    : Ref) return Ref
+     with Import, Convention => C,
+          External_Name => "CFStringTokenizerCreate";
+
+   function CF_String_Tokenizer_Advance (Item : Ref) return unsigned_long
+     with Import, Convention => C,
+          External_Name => "CFStringTokenizerAdvanceToNextToken";
+
+   function CF_String_Tokenizer_Token_Range (Item : Ref) return CF_Range
+     with Import, Convention => C,
+          External_Name => "CFStringTokenizerGetCurrentTokenRange";
+
    function CF_Dictionary_Create
      (Allocator       : Ref;
       Keys            : System.Address;

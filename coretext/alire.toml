@@ -2,9 +2,8 @@ name = "coretext"
 description = "Ada bindings for CoreText text shaping and rasterization (macOS only)"
 version = "0.1.0-dev"
 
-authors = ["Your Name"]
-maintainers = ["Your Name <example@example.com>"]
-licenses = "MIT OR Apache-2.0 WITH LLVM-exception"
+authors = ["Matt Rawcliffe"]
+licenses = "MIT"
 website = ""
 tags = []
 

@@ -1,4 +1,5 @@
 with Ada.Unchecked_Deallocation;
+with CoreText.Lines;
 
 package body Typeset.Documents is
 
@@ -92,6 +93,29 @@ package body Typeset.Documents is
       Item.Paragraphs.Clear;
    end Clear;
 
+   procedure Forget_Layout (Item : in out Document);
+   --  Of every paragraph, and what was learnt from it, for lines of
+   --  another width or font.
+
+   procedure Forget_Layout (Item : in out Document) is
+   begin
+      Item.Per_Line :=
+        Long_Float'Max
+          (1.0,
+           Long_Float
+             (Item.Wide
+              / (Initial_Per_Line * CoreText.Fonts.Size (Item.Font))));
+      Item.Units_Seen := 0.0;
+      Item.Lines_Seen := 0.0;
+      Item.Laid_Out := 0;
+      Item.Next_Sample := Sample_Doubling;
+      for P of Item.Paragraphs loop
+         P.Lines.Clear;
+         P.Dirty := False;
+      end loop;
+      Reset_Heights (Item);
+   end Forget_Layout;
+
    procedure Configure
      (Item    : in out Document;
       Family  : String;
@@ -102,23 +126,20 @@ package body Typeset.Documents is
       CoreText.Fonts.Open (Item.Font, Family, Size);
       Item.Wide := Page_Width;
       Item.Gap := Spacing;
-      Item.Per_Line :=
-        Long_Float'Max
-          (1.0, Long_Float (Page_Width / (Initial_Per_Line * Size)));
-      Item.Units_Seen := 0.0;
-      Item.Lines_Seen := 0.0;
-      Item.Laid_Out := 0;
-      Item.Next_Sample := Sample_Doubling;
       for P of Item.Paragraphs loop
-         P.Lines.Clear;
-         P.Dirty := False;
          CoreText.Strings.Clear (P.Held);
       end loop;
-      Reset_Heights (Item);
+      Forget_Layout (Item);
    end Configure;
 
    function Is_Configured (Item : Document) return Boolean is
      (CoreText.Fonts.Is_Open (Item.Font));
+
+   procedure Set_Width (Item : in out Document; Page_Width : Float) is
+   begin
+      Item.Wide := Page_Width;
+      Forget_Layout (Item);
+   end Set_Width;
 
    procedure Load (Item : in out Document; Content : String) is
       Start : Positive := Content'First;
@@ -280,6 +301,123 @@ package body Typeset.Documents is
       Forget_Tops (Item, Para);
    end Join;
 
+   --  Characters
+
+   function Sequence_Length (Lead : Character) return Positive is
+     (case Character'Pos (Lead) is
+         when 16#F0# .. 16#FF# => 4,
+         when 16#E0# .. 16#EF# => 3,
+         when 16#C0# .. 16#DF# => 2,
+         when others           => 1);
+   --  How many bytes the UTF-8 character Lead starts takes.
+
+   function Units_Before
+     (Item : Document; Para : Paragraph_Number; Index : Positive)
+      return Natural
+   is
+      Content : constant Text_Access := Item.Paragraphs (Para).Body_Text;
+   begin
+      return CoreText.UTF16_Length
+               (Content (Content'First .. Content'First + Index - 2));
+   end Units_Before;
+
+   function Index_Of
+     (Item : Document; Para : Paragraph_Number; Units : Natural)
+      return Positive
+   is
+      Content : constant Text_Access := Item.Paragraphs (Para).Body_Text;
+      Index   : Positive := 1;
+      Seen    : Natural := 0;  --  UTF-16 units before Index
+   begin
+      while Seen < Units and then Index <= Content'Length loop
+         declare
+            Bytes : constant Positive :=
+              Sequence_Length (Content (Content'First + Index - 1));
+            Wide  : constant Positive := (if Bytes = 4 then 2 else 1);
+         begin
+            exit when Seen + Wide > Units;  --  inside a surrogate pair
+            Seen := Seen + Wide;
+            Index := Natural'Min (Index + Bytes, Content'Length + 1);
+         end;
+      end loop;
+      return Index;
+   end Index_Of;
+
+   procedure Hold (Item : in out Document; Para : Paragraph_Number);
+   --  Set the paragraph's text as a CoreFoundation string, unless it is.
+
+   procedure Hold (Item : in out Document; Para : Paragraph_Number) is
+      P : constant Paragraph_Access := Item.Paragraphs (Para);
+   begin
+      if not CoreText.Strings.Is_Set (P.Held) then
+         CoreText.Strings.Set (P.Held, P.Body_Text.all);
+      end if;
+   end Hold;
+
+   function Next_Character
+     (Item : in out Document; Para : Paragraph_Number; Index : Positive)
+      return Positive
+   is
+      First, Stop : Natural;
+   begin
+      Hold (Item, Para);
+      CoreText.Strings.Cluster
+        (Item.Paragraphs (Para).Held, Units_Before (Item, Para, Index),
+         First, Stop);
+      return Index_Of (Item, Para, Stop);
+   end Next_Character;
+
+   function Previous_Character
+     (Item : in out Document; Para : Paragraph_Number; Index : Positive)
+      return Positive
+   is
+      First, Stop : Natural;
+   begin
+      Hold (Item, Para);
+      CoreText.Strings.Cluster
+        (Item.Paragraphs (Para).Held, Units_Before (Item, Para, Index) - 1,
+         First, Stop);
+      return Index_Of (Item, Para, First);
+   end Previous_Character;
+
+   function Previous_Word
+     (Item : in out Document; Para : Paragraph_Number; Index : Positive)
+      return Positive is
+   begin
+      Hold (Item, Para);
+      return Index_Of
+        (Item, Para,
+         CoreText.Strings.Previous_Word_Start
+           (Item.Paragraphs (Para).Held, Units_Before (Item, Para, Index)));
+   end Previous_Word;
+
+   function Next_Word
+     (Item : in out Document; Para : Paragraph_Number; Index : Positive)
+      return Positive is
+   begin
+      Hold (Item, Para);
+      return Index_Of
+        (Item, Para,
+         CoreText.Strings.Next_Word_Stop
+           (Item.Paragraphs (Para).Held, Units_Before (Item, Para, Index)));
+   end Next_Word;
+
+   procedure Word_At
+     (Item  : in out Document;
+      Para  : Paragraph_Number;
+      Index : Positive;
+      First, Stop : out Positive)
+   is
+      Word_First, Word_Stop : Natural;
+   begin
+      Hold (Item, Para);
+      CoreText.Strings.Word_At
+        (Item.Paragraphs (Para).Held, Units_Before (Item, Para, Index),
+         Word_First, Word_Stop);
+      First := Index_Of (Item, Para, Word_First);
+      Stop := Index_Of (Item, Para, Word_Stop);
+   end Word_At;
+
    --  Metrics
 
    function Line_Height (Item : Document) return Float is
@@ -318,9 +456,7 @@ package body Typeset.Documents is
          return;
       end if;
 
-      if not CoreText.Strings.Is_Set (P.Held) then
-         CoreText.Strings.Set (P.Held, P.Body_Text.all);
-      end if;
+      Hold (Item, Para);
 
       declare
          Old_Stop : constant Integer :=
@@ -383,6 +519,83 @@ package body Typeset.Documents is
       CoreText.Shaping.Shape
         (Reg, Item.Font, P.Held, Range_Of.First, Range_Of.Stop, Result);
    end Shape_Line;
+
+   --  Carets
+
+   function Line_At
+     (Item : Document; Para : Paragraph_Number; Units : Natural)
+      return Positive
+   is
+      Lines : Span_Vectors.Vector renames Item.Paragraphs (Para).Lines;
+   begin
+      for Number in Lines.First_Index .. Lines.Last_Index - 1 loop
+         if Units < Lines (Number).Stop then
+            return Number;
+         end if;
+      end loop;
+      return Lines.Last_Index;
+   end Line_At;
+
+   procedure Set_Line
+     (Item   : in out Document;
+      Para   : Paragraph_Number;
+      Number : Positive;
+      Result : in out CoreText.Lines.Line);
+   --  Make Result line Number of the paragraph, as it is shaped.
+
+   procedure Set_Line
+     (Item   : in out Document;
+      Para   : Paragraph_Number;
+      Number : Positive;
+      Result : in out CoreText.Lines.Line)
+   is
+      Bounds  : constant CoreText.Wrapping.Span := Line (Item, Para, Number);
+      First   : constant Positive := Index_Of (Item, Para, Bounds.First);
+      Stop    : constant Positive := Index_Of (Item, Para, Bounds.Stop);
+      Content : constant Text_Access := Item.Paragraphs (Para).Body_Text;
+   begin
+      CoreText.Lines.Make
+        (Result, Item.Font,
+         Content (Content'First + First - 1 .. Content'First + Stop - 2));
+      pragma Assert
+        (CoreText.Lines.Length (Result) = Bounds.Stop - Bounds.First);
+   end Set_Line;
+
+   function Caret_Offset
+     (Item   : in out Document;
+      Para   : Paragraph_Number;
+      Number : Positive;
+      Units  : Natural) return Float
+   is
+      Set : CoreText.Lines.Line;
+   begin
+      Set_Line (Item, Para, Number, Set);
+      return CoreText.Lines.Offset_For_Index
+               (Set, Units - Line (Item, Para, Number).First);
+   end Caret_Offset;
+
+   function Units_At_Offset
+     (Item   : in out Document;
+      Para   : Paragraph_Number;
+      Number : Positive;
+      X      : Float) return Natural
+   is
+      Bounds  : constant CoreText.Wrapping.Span := Line (Item, Para, Number);
+      Set   : CoreText.Lines.Line;
+      Units : Natural;
+   begin
+      Set_Line (Item, Para, Number, Set);
+      Units := Bounds.First + CoreText.Lines.Index_For_Position (Set, X);
+      --  The end of a line but the last is the start of the next: stop
+      --  before the character the line breaks after.
+      if Number < Line_Count (Item, Para) and then Units >= Bounds.Stop then
+         Units := Units_Before
+           (Item, Para,
+            Previous_Character
+              (Item, Para, Index_Of (Item, Para, Bounds.Stop)));
+      end if;
+      return Units;
+   end Units_At_Offset;
 
    --  Position
 

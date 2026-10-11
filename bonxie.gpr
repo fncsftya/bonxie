@@ -1,4 +1,5 @@
 with "config/bonxie_config.gpr";
+with "bonxie_ui.gpr";
 with "coretext.gpr";
 with "sdl3.gpr";
 with "typeset.gpr";

@@ -208,6 +208,21 @@ package body Goldens is
              Against => "what was expected", Keep_Expected => True);
    end Check_Same;
 
+   procedure Check_Text (Name : String; Expected, Actual : String) is
+   begin
+      if Actual = Expected then
+         Pass (Name);
+      else
+         Fail (Name, "expected """ & Expected & """, got """ & Actual & """");
+      end if;
+   end Check_Text;
+
+   function Scratch (Name : String) return String is
+   begin
+      Ada.Directories.Create_Path (Output_Dir);
+      return Output_Dir & "/" & Name;
+   end Scratch;
+
    function Passed return Natural is (Passes);
    function Failed return Natural is (Failures);
 

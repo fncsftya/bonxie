@@ -106,6 +106,23 @@ package body SDL3.Windows.Renderers is
          "SDL_RenderFillRect");
    end Fill_Rect;
 
+   procedure Set_Clip (Item : Renderer; X, Y, Width, Height : Integer) is
+      use Interfaces.C;
+      Rect : aliased constant Thin.IRect :=
+        (X => int (X), Y => int (Y), W => int (Width), H => int (Height));
+   begin
+      Errors.Check
+        (Thin.Set_Render_Clip_Rect (Item.Handle, Rect'Address),
+         "SDL_SetRenderClipRect");
+   end Set_Clip;
+
+   procedure Clear_Clip (Item : Renderer) is
+   begin
+      Errors.Check
+        (Thin.Set_Render_Clip_Rect (Item.Handle, System.Null_Address),
+         "SDL_SetRenderClipRect");
+   end Clear_Clip;
+
    procedure Draw_Text
      (Item  : Renderer;
       Value : Color;

@@ -43,6 +43,34 @@ package body SDL3.Windows is
       return Float'Max (1.0, Found);
    end Pixel_Density;
 
+   procedure Start_Text_Input (Item : Window) is
+   begin
+      Errors.Check
+        (Thin.Start_Text_Input (Item.Handle), "SDL_StartTextInput");
+   end Start_Text_Input;
+
+   procedure Set_Text_Input_Area
+     (Item : Window; X, Y, Width, Height : Integer)
+   is
+      use Interfaces.C;
+      Rect : aliased constant Thin.IRect :=
+        (X => int (X), Y => int (Y), W => int (Width), H => int (Height));
+   begin
+      Errors.Check
+        (Thin.Set_Text_Input_Area (Item.Handle, Rect'Address, 0),
+         "SDL_SetTextInputArea");
+   end Set_Text_Input_Area;
+
+   procedure Set_Title (Item : Window; Title : String) is
+      C_Title : Interfaces.C.Strings.chars_ptr :=
+        Interfaces.C.Strings.New_String (Title);
+      Done    : constant Interfaces.C.C_bool :=
+        Thin.Set_Window_Title (Item.Handle, C_Title);
+   begin
+      Interfaces.C.Strings.Free (C_Title);
+      Errors.Check (Done, "SDL_SetWindowTitle");
+   end Set_Title;
+
    overriding procedure Finalize (Item : in out Window) is
    begin
       if Item.Handle /= System.Null_Address then

@@ -38,6 +38,14 @@ package Goldens is
    --  Expected rather than a golden. A mismatch also writes
    --  out/<name>-expected.png.
 
+   procedure Check_Text (Name : String; Expected, Actual : String)
+     with Pre => Name'Length > 0;
+   --  That Actual is Expected: for what a test checks besides pictures.
+
+   function Scratch (Name : String) return String
+     with Pre => Name'Length > 0;
+   --  The path of a file Name in out/, for a test to write and read.
+
    function Passed return Natural;
    function Failed return Natural;
 

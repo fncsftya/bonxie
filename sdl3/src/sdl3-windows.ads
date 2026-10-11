@@ -25,6 +25,20 @@ package SDL3.Windows is
    --  How many pixels of the window's drawing area there are to each
    --  point of its size: 2.0 on a Retina display, if High_Density.
 
+   procedure Start_Text_Input (Item : Window)
+     with Pre => Is_Open (Item);
+   --  Have typing in the window come as Text_Input events, through the
+   --  system's input methods.
+
+   procedure Set_Text_Input_Area
+     (Item : Window; X, Y, Width, Height : Integer)
+     with Pre => Is_Open (Item) and then Width >= 0 and then Height >= 0;
+   --  Where the text being typed is, in points from the window's top
+   --  left, so that an input method can show its choices beside it.
+
+   procedure Set_Title (Item : Window; Title : String)
+     with Pre => Is_Open (Item);
+
 private
 
    type Window is new Ada.Finalization.Limited_Controlled with record

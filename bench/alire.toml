@@ -2,9 +2,8 @@ name = "bench"
 description = "Benchmarks for laying out and drawing long documents"
 version = "0.1.0-dev"
 
-authors = ["Your Name"]
-maintainers = ["Your Name <example@example.com>"]
-licenses = "MIT OR Apache-2.0 WITH LLVM-exception"
+authors = ["Matt Rawcliffe"]
+licenses = "MIT"
 website = ""
 tags = []
 

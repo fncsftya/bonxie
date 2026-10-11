@@ -34,6 +34,11 @@ package Typeset.Documents is
 
    function Is_Configured (Item : Document) return Boolean;
 
+   procedure Set_Width (Item : in out Document; Page_Width : Float)
+     with Pre => Is_Configured (Item) and then Page_Width > 0.0;
+   --  Make lines no wider than Page_Width. Forgets all layout, but keeps
+   --  the font.
+
    procedure Load (Item : in out Document; Content : String);
    --  Replace the document with Content, a paragraph to each line. A
    --  document always has a paragraph, perhaps empty.
@@ -95,6 +100,95 @@ package Typeset.Documents is
           Post => Count (Item) = Count (Item)'Old - 1;
    --  Append the next paragraph to this one.
 
+   --  Characters
+
+   function Units_Before
+     (Item : Document; Para : Paragraph_Number; Index : Positive)
+      return Natural
+     with Pre  => Para <= Count (Item)
+                  and then Index <= Byte_Length (Item, Para) + 1
+                  and then Is_Boundary (Item, Para, Index),
+          Post => Units_Before'Result <= Length (Item, Para);
+   --  How many UTF-16 units come before byte Index of the paragraph's
+   --  text: where it is in the lines.
+
+   function Index_Of
+     (Item : Document; Para : Paragraph_Number; Units : Natural)
+      return Positive
+     with Pre  => Para <= Count (Item) and then Units <= Length (Item, Para),
+          Post => Index_Of'Result <= Byte_Length (Item, Para) + 1
+                  and then Is_Boundary (Item, Para, Index_Of'Result);
+   --  The byte index of the character that starts at UTF-16 unit Units,
+   --  or that Units is inside, as the second of a surrogate pair is.
+
+   function Next_Character
+     (Item : in out Document; Para : Paragraph_Number; Index : Positive)
+      return Positive
+     with Pre  => Para <= Count (Item)
+                  and then Index <= Byte_Length (Item, Para)
+                  and then Is_Boundary (Item, Para, Index),
+          Post => Next_Character'Result > Index
+                  and then Next_Character'Result
+                           <= Byte_Length (Item, Para) + 1
+                  and then Is_Boundary
+                             (Item, Para, Next_Character'Result);
+   --  The byte index after the character at byte Index: a character as
+   --  a reader sees one, such as an emoji and its modifiers (see
+   --  CoreText.Strings.Cluster). Move the caret and delete by these.
+
+   function Previous_Character
+     (Item : in out Document; Para : Paragraph_Number; Index : Positive)
+      return Positive
+     with Pre  => Para <= Count (Item) and then Index > 1
+                  and then Index <= Byte_Length (Item, Para) + 1
+                  and then Is_Boundary (Item, Para, Index),
+          Post => Previous_Character'Result < Index
+                  and then Is_Boundary
+                             (Item, Para, Previous_Character'Result);
+   --  The byte index of the character that ends at byte Index.
+
+   function Previous_Word
+     (Item : in out Document; Para : Paragraph_Number; Index : Positive)
+      return Positive
+     with Pre  => Para <= Count (Item)
+                  and then Index <= Byte_Length (Item, Para) + 1
+                  and then Is_Boundary (Item, Para, Index),
+          Post => Previous_Word'Result <= Index
+                  and then (Index = 1 or else Previous_Word'Result < Index)
+                  and then Is_Boundary (Item, Para, Previous_Word'Result);
+   --  The byte index of the start of the last word that starts before
+   --  byte Index; the paragraph's start if none does. Words are as
+   --  CoreText.Strings finds them.
+
+   function Next_Word
+     (Item : in out Document; Para : Paragraph_Number; Index : Positive)
+      return Positive
+     with Pre  => Para <= Count (Item)
+                  and then Index <= Byte_Length (Item, Para) + 1
+                  and then Is_Boundary (Item, Para, Index),
+          Post => Next_Word'Result >= Index
+                  and then Next_Word'Result <= Byte_Length (Item, Para) + 1
+                  and then (Index > Byte_Length (Item, Para)
+                            or else Next_Word'Result > Index)
+                  and then Is_Boundary (Item, Para, Next_Word'Result);
+   --  The byte index after the end of the first word that ends after
+   --  byte Index; the paragraph's end if none does.
+
+   procedure Word_At
+     (Item  : in out Document;
+      Para  : Paragraph_Number;
+      Index : Positive;
+      First, Stop : out Positive)
+     with Pre  => Para <= Count (Item)
+                  and then Index <= Byte_Length (Item, Para) + 1
+                  and then Is_Boundary (Item, Para, Index),
+          Post => First <= Index and then Index <= Stop
+                  and then Stop <= Byte_Length (Item, Para) + 1
+                  and then Is_Boundary (Item, Para, First)
+                  and then Is_Boundary (Item, Para, Stop);
+   --  The bytes First .. Stop - 1 of the word byte Index is in, or that
+   --  ends there; none, First = Stop = Index, if there is no such word.
+
    --  Metrics
 
    function Line_Height (Item : Document) return Float
@@ -144,6 +238,44 @@ package Typeset.Documents is
      with Pre => Para <= Count (Item) and then Is_Laid_Out (Item, Para)
                  and then Number <= Line_Count (Item, Para);
    --  Set the line as glyphs.
+
+   --  Carets: a caret is before a UTF-16 unit of a paragraph, or at its
+   --  end. One at the break between two lines is at the start of the
+   --  second.
+
+   function Line_At
+     (Item : Document; Para : Paragraph_Number; Units : Natural)
+      return Positive
+     with Pre  => Para <= Count (Item) and then Is_Laid_Out (Item, Para)
+                  and then Units <= Length (Item, Para),
+          Post => Line_At'Result <= Line_Count (Item, Para);
+   --  The line the caret before unit Units is on.
+
+   function Caret_Offset
+     (Item   : in out Document;
+      Para   : Paragraph_Number;
+      Number : Positive;
+      Units  : Natural) return Float
+     with Pre => Para <= Count (Item) and then Is_Laid_Out (Item, Para)
+                 and then Number <= Line_Count (Item, Para)
+                 and then Units >= Line (Item, Para, Number).First
+                 and then Units <= Line (Item, Para, Number).Stop;
+   --  How far along line Number, in layout units, the caret before unit
+   --  Units is.
+
+   function Units_At_Offset
+     (Item   : in out Document;
+      Para   : Paragraph_Number;
+      Number : Positive;
+      X      : Float) return Natural
+     with Pre  => Para <= Count (Item) and then Is_Laid_Out (Item, Para)
+                  and then Number <= Line_Count (Item, Para),
+          Post => Units_At_Offset'Result >= Line (Item, Para, Number).First
+                  and then Units_At_Offset'Result
+                           <= Line (Item, Para, Number).Stop
+                  and then Line_At (Item, Para, Units_At_Offset'Result)
+                           = Number;
+   --  Where on line Number the caret nearest X layout units along it is.
 
    --  Position
 

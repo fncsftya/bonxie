@@ -1,16 +1,18 @@
 with SDL3.Events;
 with SDL3.Windows.Renderers.Images;
+private with Ada.Strings.Unbounded;
 private with SDL3.Windows;
-private with Typeset.Documents;
-private with Typeset.Views;
+private with UI.Clipboards;
+private with UI.Text_Areas;
 private with Yoga.Nodes;
 
---  A window showing a document, for scrolling and zooming.
+--  A window showing a document to edit, scroll and zoom.
 package Viewer is
 
-   procedure Run (Source : String);
-   --  Open a window showing the text Source, a paragraph to each line,
-   --  and run until it is closed. SDL must be initialized.
+   procedure Run (Source : String; File_Name : String := "");
+   --  Open a window with the text Source to edit, a paragraph to each
+   --  line, and run until it is closed. Command-S saves it to File_Name,
+   --  if it is given. SDL must be initialized.
 
    --  Without a window, to test what is shown
 
@@ -18,21 +20,41 @@ package Viewer is
    --  What Run shows, and how it is moved about.
 
    procedure Open
-     (Item    : in out Session;
-      Source  : String;
-      Width   : Positive;
-      Height  : Positive;
-      Density : Float := 2.0)
+     (Item      : in out Session;
+      Source    : String;
+      Width     : Positive;
+      Height    : Positive;
+      Density   : Float := 2.0;
+      File_Name : String := "")
      with Pre  => not Is_Open (Item) and then Density >= 1.0,
           Post => Is_Open (Item);
    --  Show Source as Run would, in a window Width x Height points of
-   --  Density pixels each, but drawn offscreen, in software.
+   --  Density pixels each, but drawn offscreen, in software. It cuts,
+   --  copies and pastes on a clipboard of its own.
 
    function Is_Open (Item : Session) return Boolean;
+
+   function Text (Item : Session) return String
+     with Pre => Is_Open (Item);
+   --  As edited, a line to each paragraph.
+
+   function Title (Item : Session) return String
+     with Pre => Is_Open (Item);
+   --  Of the window: the file's name, and whether it has been edited
+   --  since it was opened or saved.
+
+   procedure Save (Item : in out Session)
+     with Pre => Is_Open (Item);
+   --  Write the text to the file, if there is one, a line to each
+   --  paragraph, as Command-S does.
 
    procedure Handle (Item : in out Session; Event : SDL3.Events.Event)
      with Pre => Is_Open (Item);
    --  As if Event had come.
+
+   procedure Tick (Item : in out Session; Now : SDL3.Events.Milliseconds)
+     with Pre => Is_Open (Item);
+   --  As if it were time Now, as SDL3.Events.Ticks: the caret blinks.
 
    procedure Settle (Item : in out Session)
      with Pre => Is_Open (Item);
@@ -51,25 +73,34 @@ package Viewer is
 private
 
    type Session is limited record
-      UI           : Yoga.Nodes.Tree;
-      --  A column: the page area above the toolbar.
-      Page_Node    : Yoga.Nodes.Node;
+      Layout       : Yoga.Nodes.Tree;
+      --  A column: the content area above the toolbar.
+      Content_Node : Yoga.Nodes.Node;
+      Area_Node    : Yoga.Nodes.Node;  --  in the content area
       Toolbar_Node : Yoga.Nodes.Node;
 
-      Doc          : Typeset.Documents.Document;
       Win          : SDL3.Windows.Window;
       Target       : SDL3.Windows.Renderers.Renderer;
       --  after Win: it is destroyed first
-      Page         : Typeset.Views.View;  --  and after Target
+      Area         : UI.Text_Areas.Text_Area;  --  and after Target
       Density      : Float := 1.0;
       --  Pixels to a point of the window.
 
-      --  What is shown
-      Anchor       : Typeset.Documents.Paragraph_Number := 1;
-      Offset       : Float := 0.0;
       Zoom         : Float := 1.0;
       Settled      : Boolean := True;
       --  The zoom has stopped changing.
+      Zoomed_At    : SDL3.Events.Milliseconds := 0;
+
+      File_Name    : Ada.Strings.Unbounded.Unbounded_String;
+      Saved        : Natural := 0;  --  the text's state when saved
+      Shown_Title  : Ada.Strings.Unbounded.Unbounded_String;
+
+      Windowed     : Boolean := False;
+      System_Board : UI.Clipboards.System_Clipboard;
+      Own_Board    : UI.Clipboards.Memory_Clipboard;
+      --  The clipboard used offscreen.
+      Input_Area   : Integer := Integer'First;
+      --  Where the input method was last told the text is, across.
 
       Dirty        : Boolean := True;
       --  What is shown is out of date.

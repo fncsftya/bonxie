@@ -9,7 +9,11 @@ PREFER static/fixed memory or arena allocation where relevant/possible.
 
 `tests/` draws the viewer offscreen, with SDL's software renderer, in
 various setups (window sizes, densities, scrolling, zooming, resizing, other
-scripts and emoji), and compares each picture with `tests/golden/<name>.png`.
+scripts and emoji, editing, saving), and the `UI.Text_Areas` component by
+itself (`textarea-*`: typing, caret movement, clicks and drags, selection,
+the clipboard, undo, input methods, blinking, scrolling), and compares each
+picture with `tests/golden/<name>.png`. Tests also check text, as edited
+or saved, with `Goldens.Check_Text`.
 The software renderer gives the same pixels every run, so no pixel may
 differ.
 
