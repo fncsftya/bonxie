@@ -1,5 +1,6 @@
 with "config/bonxie_ui_config.gpr";
 with "sdl3.gpr";
+with "texts.gpr";
 with "typeset.gpr";
 with "yoga.gpr";
 project Bonxie_UI is

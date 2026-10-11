@@ -1,6 +1,7 @@
 with Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
 with SDL3.Events;
 with SDL3.Windows.Renderers;
+with Texts.Documents;
 with Goldens;
 with Typeset.Samples;
 with UI.Clipboards;
@@ -13,6 +14,7 @@ package body Text_Area_Tests is
    package Renderers renames SDL3.Windows.Renderers;
    package Images renames Goldens.Images;
    package Text_Areas renames UI.Text_Areas;
+   package Docs renames Texts.Documents;
 
    Colors : constant UI.Themes.Theme := UI.Themes.Light;
 
@@ -31,7 +33,8 @@ package body Text_Area_Tests is
 
    type Fixture is limited record
       Target : Renderers.Renderer;
-      Area   : Text_Areas.Text_Area;  --  after Target
+      Doc    : aliased Docs.Document;
+      Area   : Text_Areas.Text_Area;  --  after Target and Doc
       Board  : UI.Clipboards.Memory_Clipboard;
    end record;
 
@@ -48,7 +51,7 @@ package body Text_Area_Tests is
       Text_Areas.Configure
         (Item.Area, "Georgia", Size => 18.0, Measure => 640.0,
          Spacing => 8.0);
-      Text_Areas.Load (Item.Area, Content);
+      Docs.Load (Item.Doc, Content);
       Text_Areas.Place
         (Item.Area,
          Left    => Float (Margin) * Density,
@@ -57,6 +60,7 @@ package body Text_Area_Tests is
          Height  => Float (Height - 2 * Margin) * Density,
          Density => Density,
          Zoom    => Zoom);
+      Text_Areas.Attach (Item.Area, Item.Doc'Unchecked_Access);
       Text_Areas.Set_Focus (Item.Area, Focus);
    end Open;
 
@@ -128,7 +132,7 @@ package body Text_Area_Tests is
 
    procedure Check_Text (Name : String; Item : Fixture; Expected : String) is
    begin
-      Goldens.Check_Text (Name, Expected, Text_Areas.Text (Item.Area));
+      Goldens.Check_Text (Name, Expected, Docs.Whole (Item.Doc));
    end Check_Text;
 
    --  The tests
@@ -161,7 +165,7 @@ package body Text_Area_Tests is
       Type_In (Item, Second);
       Goldens.Check_Text
         ("textarea-typing-text", First & ASCII.LF & Second,
-         Text_Areas.Text (Item.Area));
+         Docs.Whole (Item.Doc));
       Check (Item, "textarea-typing");
    end Typing;
 
@@ -173,12 +177,12 @@ package body Text_Area_Tests is
       Press (Item, Events.Key_Backspace);   --  joins them
       Goldens.Check_Text
         ("textarea-joining-text", "Great skuaBonxie",
-         Text_Areas.Text (Item.Area));
+         Docs.Whole (Item.Doc));
       Press (Item, Events.Key_Backspace);
       Press (Item, Events.Key_Delete);
       Goldens.Check_Text
         ("textarea-deleting-text", "Great skuonxie",
-         Text_Areas.Text (Item.Area));
+         Docs.Whole (Item.Doc));
       Check (Item, "textarea-joining");
    end Joining;
 
@@ -192,14 +196,14 @@ package body Text_Area_Tests is
       Press (Item, Events.Key_Delete);
       Goldens.Check_Text
         ("textarea-clusters-forward", UTF_8 ("Thumbs  up, mic 🎙️ on"),
-         Text_Areas.Text (Item.Area));
+         Docs.Whole (Item.Doc));
 
       Press (Item, Events.Key_Right_Arrow, Command => True);
       Press (Item, Events.Key_Left_Arrow, Times => 3);
       Press (Item, Events.Key_Backspace);
       Goldens.Check_Text
         ("textarea-clusters-backward", "Thumbs  up, mic  on",
-         Text_Areas.Text (Item.Area));
+         Docs.Whole (Item.Doc));
 
       Press (Item, Events.Key_Left_Arrow);
       Type_In (Item, UTF_8 ("🐦"));
@@ -360,7 +364,7 @@ package body Text_Area_Tests is
          "two" & ASCII.LF & "three four" & ASCII.LF);
       Goldens.Check_Text
         ("textarea-undo-cut-state", " 0",
-         Text_Areas.State (Item.Area)'Image);
+         Docs.State (Item.Doc)'Image);
       Press (Item, Events.Key_Z, Command => True, Shift => True);
       Check_Text ("textarea-redo-cut-text", Item, "one five");
    end Cut_And_Undo;
@@ -383,7 +387,7 @@ package body Text_Area_Tests is
       Check_Text ("textarea-undo-typing-text", Item, "Skuas");
       Goldens.Check_Text
         ("textarea-undo-typing-state", " 0",
-         Text_Areas.State (Item.Area)'Image);
+         Docs.State (Item.Doc)'Image);
 
       --  Nothing more to undo; then all to redo, and a new edit ends
       --  that.
@@ -519,5 +523,97 @@ package body Text_Area_Tests is
       Send (Item, Events.Editing_Event ("", 0));
       Check_Text ("textarea-composing-cancelled", Item, "Skua ");
    end Composing;
+
+   procedure Two_Views is
+      Wide_Points : constant := 560;
+      Target  : Renderers.Renderer;
+      Doc     : aliased Docs.Document;
+      Narrow  : Text_Areas.Text_Area;  --  after Target and Doc
+      Broad   : Text_Areas.Text_Area;
+      Board   : UI.Clipboards.Memory_Clipboard;
+      Drawn   : Images.Image;
+      Handled : Boolean;
+   begin
+      --  One document, two views of different widths: each has its own
+      --  layout, caret and selection, and follows the other's edits.
+      Renderers.Create_Offscreen
+        (Target,
+         Positive (Float (Wide_Points) * Density),
+         Positive (Float (Height) * Density));
+      Docs.Load
+        (Doc,
+         "Bonxies nest on moorland in Shetland and Orkney." & ASCII.LF
+         & "They spend the winter at sea." & ASCII.LF & "Skua");
+      Text_Areas.Configure
+        (Narrow, "Georgia", Size => 18.0, Measure => 640.0, Spacing => 8.0);
+      Text_Areas.Configure
+        (Broad, "Georgia", Size => 18.0, Measure => 640.0, Spacing => 8.0);
+      Text_Areas.Place
+        (Narrow, Float (Margin) * Density, Float (Margin) * Density,
+         180.0 * Density, Float (Height - 2 * Margin) * Density, Density);
+      Text_Areas.Place
+        (Broad, Float (2 * Margin + 180) * Density,
+         Float (Margin) * Density,
+         Float (Wide_Points - 3 * Margin - 180) * Density,
+         Float (Height - 2 * Margin) * Density, Density);
+      Text_Areas.Attach (Narrow, Doc'Unchecked_Access);
+      Text_Areas.Attach (Broad, Doc'Unchecked_Access);
+
+      Text_Areas.Select_Range (Broad, (3, 1), (3, 5));
+      Text_Areas.Set_Focus (Narrow, True);
+      Text_Areas.Select_Range (Narrow, (1, 8), (1, 8));
+      Text_Areas.Handle
+        (Narrow, Events.Text_Event (" (great skuas)"), Board, Handled);
+      Text_Areas.Handle
+        (Narrow,
+         (Kind => Events.Key_Down, Key => Events.Key_Return, others => <>),
+         Board, Handled);
+
+      Goldens.Check_Text
+        ("textarea-two-views-follows", "Skua",
+         Text_Areas.Selected_Text (Broad));
+      Goldens.Check_Text
+        ("textarea-two-views-moved", " 4",
+         Text_Areas.Caret (Broad).Paragraph'Image);
+
+      Renderers.Clear (Target, Colors.Background);
+      Text_Areas.Draw (Narrow, Target, Colors);
+      Text_Areas.Draw (Broad, Target, Colors);
+      Images.Read (Drawn, Target);
+      Goldens.Check ("textarea-two-views", Drawn);
+
+      --  One history: undone from the other view.
+      Text_Areas.Undo (Broad);
+      Text_Areas.Undo (Broad);
+      Goldens.Check_Text
+        ("textarea-two-views-undone",
+         "Bonxies nest on moorland in Shetland and Orkney." & ASCII.LF
+         & "They spend the winter at sea." & ASCII.LF & "Skua",
+         Docs.Whole (Doc));
+   end Two_Views;
+
+   procedure Long_Paragraph is
+      Item     : Fixture;
+      Sentence : constant String := "The bonxie nests on the moor. ";
+      Long     : String (1 .. 3_000 * Sentence'Length);
+   begin
+      --  Longer than is broken into lines all at once: only as far as
+      --  is shown, until more is wanted.
+      for K in 0 .. 2_999 loop
+         Long (K * Sentence'Length + 1 .. (K + 1) * Sentence'Length) :=
+           Sentence;
+      end loop;
+      Open (Item, Long & ASCII.LF & "After it.");
+      Text_Areas.Select_Range
+        (Item.Area, (1, 45_001), (1, 45_001));
+      Type_In (Item, "SKUA ");
+      Check (Item, "textarea-long-paragraph");
+      Goldens.Check_Text
+        ("textarea-long-paragraph-text", "moor. SKUA The",
+         Docs.Slice (Item.Doc, 1, 44_995, 45_009));
+
+      Press (Item, Events.Key_Down_Arrow, Command => True);
+      Check (Item, "textarea-long-paragraph-end");
+   end Long_Paragraph;
 
 end Text_Area_Tests;

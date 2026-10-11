@@ -183,6 +183,40 @@ package body CoreText.Wrapping is
       return Wrap (Using, Held, Width);
    end Wrap;
 
+   procedure Extend
+     (Using       : Fonts.Font;
+      Text        : Strings.Text;
+      Width       : Float;
+      Lines       : in out Span_Vectors.Vector;
+      Until_Count : Positive := Positive'Last;
+      Until_Unit  : Natural := Natural'Last)
+   is
+      Length : constant Natural := Strings.Length (Text);
+
+      function Enough (Item : Span) return Boolean is
+        (Natural (Lines.Length) >= Until_Count
+         and then Item.Stop > Until_Unit);
+
+      procedure More_Lines is new Lines_From (Enough);
+
+      Stopped : Boolean;
+      Where   : Span;
+   begin
+      if Length = 0 then
+         if Lines.Is_Empty then
+            Lines.Append (Span'(First => 0, Stop => 0));
+         end if;
+      elsif Lines.Is_Empty
+        or else (Lines.Last_Element.Stop < Length
+                 and then not Enough (Lines.Last_Element))
+      then
+         More_Lines
+           (Using, Strings.Handle (Text),
+            (if Lines.Is_Empty then 0 else Lines.Last_Element.Stop),
+            Length, Width, Window, Lines, Stopped, Where);
+      end if;
+   end Extend;
+
    function Line_Starting_At
      (Lines : Span_Vectors.Vector; Unit : Natural) return Natural;
    --  The index of the line of Lines (sorted) that starts at Unit, or 0.

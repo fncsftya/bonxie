@@ -1,6 +1,7 @@
 with "config/typeset_config.gpr";
 with "coretext.gpr";
 with "sdl3.gpr";
+with "texts.gpr";
 project Typeset is
 
    for Library_Name use "typeset_ada";

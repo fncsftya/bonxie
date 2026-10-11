@@ -13,15 +13,44 @@ package body CoreText.Strings is
    begin
       Clear (Item);
       Item.Ref := Made;
-      Item.Units := UTF16_Length (Value);
-      pragma Assert
-        (Natural (Thin.CF_String_Get_Length (Made)) = Item.Units);
+      Item.Units := Natural (Thin.CF_String_Get_Length (Made));
    end Set;
+
+   procedure Replace
+     (Item        : in out Text;
+      First, Stop : Natural;
+      By          : String)
+   is
+      Added : Thin.Ref := Core.Create_String (By);
+   begin
+      if not Item.Mutable then
+         declare
+            Copy : constant Thin.Ref :=
+              Thin.CF_String_Create_Mutable_Copy (Thin.Null_Ref, 0, Item.Ref);
+         begin
+            if Copy = Thin.Null_Ref then
+               Core.Release (Added);
+               raise Error with "CFStringCreateMutableCopy failed";
+            end if;
+            Core.Release (Item.Ref);
+            Item.Ref := Copy;
+            Item.Mutable := True;
+         end;
+      end if;
+      Thin.CF_String_Replace
+        (Item.Ref,
+         (Location => Interfaces.C.long (First),
+          Length   => Interfaces.C.long (Stop - First)),
+         Added);
+      Item.Units := Natural (Thin.CF_String_Get_Length (Item.Ref));
+      Core.Release (Added);
+   end Replace;
 
    procedure Clear (Item : in out Text) is
    begin
       Core.Release (Item.Ref);
       Item.Units := 0;
+      Item.Mutable := False;
    end Clear;
 
    overriding procedure Finalize (Item : in out Text) is

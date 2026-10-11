@@ -3,6 +3,7 @@ with Ada.Strings.Fixed;
 with Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
 with Ada.Text_IO;
 with SDL3.Events;
+with Document_Tests;
 with Files;
 with Goldens;
 with Text_Area_Tests;
@@ -337,6 +338,18 @@ procedure Golden is
       end if;
    end Run;
 begin
+   Run ("document-loading", Document_Tests.Loading'Access);
+   Run ("document-splicing", Document_Tests.Splicing'Access);
+   Run ("document-ids", Document_Tests.Ids'Access);
+   Run ("document-kinds", Document_Tests.Kinds'Access);
+   Run ("document-steps", Document_Tests.Steps'Access);
+   Run ("document-joining-edits", Document_Tests.Joining_Edits'Access);
+   Run ("document-units", Document_Tests.Units'Access);
+   Run ("document-against-a-string",
+        Document_Tests.Against_A_String'Access);
+   Run ("document-mapping", Document_Tests.Mapping'Access);
+   Run ("layout-lines-after-edits", Document_Tests.Lines_After_Edits'Access);
+
    Run ("empty", Empty'Access);
    Run ("sample", Top_Of_Sample'Access);
    Run ("sample-1x", Low_Density'Access);
@@ -376,6 +389,8 @@ begin
         Text_Area_Tests.Inactive_Selection'Access);
    Run ("textarea-blink", Text_Area_Tests.Blinking'Access);
    Run ("textarea-composing", Text_Area_Tests.Composing'Access);
+   Run ("textarea-two-views", Text_Area_Tests.Two_Views'Access);
+   Run ("textarea-long-paragraph", Text_Area_Tests.Long_Paragraph'Access);
 
    Ada.Text_IO.Put_Line
      (Ran'Image & " tests:" & Natural'Image (Goldens.Passed)

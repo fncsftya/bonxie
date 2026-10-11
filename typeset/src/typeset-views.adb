@@ -90,10 +90,11 @@ package body Typeset.Views is
 
    procedure Draw
      (Item   : in out View;
-      Doc    : in out Documents.Document;
+      Laid   : in out Layouts.Layout;
+      Doc    : Layouts.Document;
       Target : SDL3.Windows.Renderers.Renderer;
       Value  : SDL3.Windows.Renderers.Color;
-      Anchor : in out Documents.Paragraph_Number;
+      Anchor : in out Positive;
       Offset : in out Float;
       Left   : Float;
       Top    : Float;
@@ -103,25 +104,25 @@ package body Typeset.Views is
       Settled : Boolean)
    is
       pragma Unreferenced (Width);
-      Line_High : constant Float := Documents.Line_Height (Doc);
-      Ascent    : constant Float := Documents.Ascent (Doc);
-      Font_Size : constant Float := Documents.Font_Size (Doc);
-      First, Last : Documents.Paragraph_Number;
+      Line_High : constant Float := Layouts.Line_Height (Laid);
+      Ascent    : constant Float := Layouts.Ascent (Laid);
+      Font_Size : constant Float := Layouts.Font_Size (Laid);
+      First, Last : Positive;
    begin
       Item.Frame := Item.Frame + 1;
       Glyph_Atlas.Begin_Frame (Item.Atlas);
 
-      Documents.Visible
-        (Doc, Anchor, Offset, Float (Height) / Scale, First, Last);
+      Layouts.Visible
+        (Laid, Doc, Anchor, Offset, Float (Height) / Scale, First, Last);
 
       declare
-         View_Top : constant Float := Documents.Top (Doc, Anchor) + Offset;
+         View_Top : constant Float := Layouts.Top (Laid, Anchor) + Offset;
       begin
          for Para in First .. Last loop
             declare
                Para_Y : constant Float :=
-                 Top + (Documents.Top (Doc, Para) - View_Top) * Scale;
-               Lines  : constant Positive := Documents.Line_Count (Doc, Para);
+                 Top + (Layouts.Top (Laid, Para) - View_Top) * Scale;
+               Lines  : constant Positive := Layouts.Line_Count (Laid, Para);
             begin
                for Number in 1 .. Lines loop
                   declare
@@ -133,15 +134,16 @@ package body Typeset.Views is
                      then
                         declare
                            Key      : constant Line_Key :=
-                             (Documents.Layout_Id (Doc, Para), Number);
+                             (Layouts.Layout_Id (Laid, Para), Number);
                            Position : Line_Maps.Cursor :=
                              Item.Lines.Find (Key);
                            Baseline : constant Float :=
                              Line_Y + Ascent * Scale;
                         begin
                            if not Line_Maps.Has_Element (Position) then
-                              Documents.Shape_Line
-                                (Doc, Item.Reg, Para, Number, Item.Scratch);
+                              Layouts.Shape_Line
+                                (Laid, Doc, Item.Reg, Para, Number,
+                                 Item.Scratch);
                               Item.Shaped := Item.Shaped + 1;
                               Keep (Item, Key, Position);
                            end if;

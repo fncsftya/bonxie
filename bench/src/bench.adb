@@ -6,8 +6,9 @@ with CoreText.Fonts;
 with CoreText.Shaping;
 with CoreText.Shaping.Glyphs;
 with CoreText.Wrapping;
-with Typeset.Documents;
 with Interfaces;
+with Texts.Documents;
+with Typeset.Layouts;
 with SDL3;
 with SDL3.Windows;
 with SDL3.Windows.Renderers;
@@ -17,7 +18,8 @@ with Typeset.Views;
 --  Measures laying out, scrolling and editing a long document, shaping
 --  and rasterizing its text, and drawing it: bench [paragraphs]
 procedure Bench is
-   package Documents renames Typeset.Documents;
+   package Docs renames Texts.Documents;
+   package Layouts renames Typeset.Layouts;
    package Renderers renames SDL3.Windows.Renderers;
 
    use Ada.Real_Time;
@@ -50,23 +52,23 @@ procedure Bench is
       Put_Line ("  " & What & ":" & Shown & " " & Unit);
    end Report;
 
-   procedure Scroll_Through
-     (Doc : in out Documents.Document; Label : String)
-   is
-      Anchor : Documents.Paragraph_Number := 1;
+   Doc  : Docs.Document;
+   Laid : Layouts.Layout;
+
+   procedure Scroll_Through (Label : String) is
+      Anchor : Positive := 1;
       Offset : Float := 0.0;
-      First, Last : Documents.Paragraph_Number;
-      Step   : constant Float := Documents.Total_Height (Doc) / Float (Frames);
+      First, Last : Positive;
+      Step   : constant Float := Layouts.Total_Height (Laid) / Float (Frames);
    begin
       Start;
       for Frame in 1 .. Frames loop
-         Documents.Scroll (Doc, Anchor, Offset, Step, Extent);
-         Documents.Visible (Doc, Anchor, Offset, Extent, First, Last);
+         Layouts.Scroll (Laid, Anchor, Offset, Step, Extent);
+         Layouts.Visible (Laid, Doc, Anchor, Offset, Extent, First, Last);
       end loop;
       Report (Label & ", per frame", Millis / Float (Frames), "ms");
    end Scroll_Through;
 
-   Doc : Documents.Document;
    Font : CoreText.Fonts.Font;
    Longest, Longest_Length : Natural := 0;
 begin
@@ -75,42 +77,45 @@ begin
 
    CoreText.Fonts.Open (Font, "Georgia", 18.0);
    Start;
-   Documents.Configure (Doc, "Georgia", 18.0, 640.0, 8.0);
-   Documents.Load (Doc, Text);
+   Docs.Load (Doc, Text);
+   Layouts.Configure (Laid, "Georgia", 18.0, 640.0, 8.0);
+   Layouts.Sync (Laid, Doc);
    Report ("configure and load", Millis);
 
    Start;
    declare
-      Total : constant Float := Documents.Total_Height (Doc);
+      Total : constant Float := Layouts.Total_Height (Laid);
    begin
       Report ("total height, estimated", Millis);
       Put_Line ("  estimate:" & Natural'Image (Natural (Total)) & " units");
    end;
 
    Put_Line ("scrolling through the whole document, from cold:");
-   Scroll_Through (Doc, "first pass (lays out as it goes)");
-   Scroll_Through (Doc, "second pass (laid out)");
+   Scroll_Through ("first pass (lays out as it goes)");
+   Scroll_Through ("second pass (laid out)");
    Put_Line ("  total height now:"
-             & Natural'Image (Natural (Documents.Total_Height (Doc)))
+             & Natural'Image (Natural (Layouts.Total_Height (Laid)))
              & " units");
 
    --  Edits: in the longest paragraph.
-   for P in 1 .. Documents.Count (Doc) loop
-      if Documents.Length (Doc, P) > Longest_Length then
+   for P in 1 .. Docs.Count (Doc) loop
+      if Docs.Length (Doc, P) > Longest_Length then
          Longest := P;
-         Longest_Length := Documents.Length (Doc, P);
+         Longest_Length := Docs.Length (Doc, P);
       end if;
    end loop;
    Put_Line ("editing the longest paragraph (" & Longest_Length'Image
              & " units):");
    declare
-      Middle : constant Positive := Documents.Byte_Length (Doc, Longest) / 2;
+      Middle : constant Positive :=
+        Docs.Index_Of (Doc, Longest, Longest_Length / 2);
       Edits  : constant := 200;
    begin
       Start;
       for K in 1 .. Edits loop
-         Documents.Replace (Doc, Longest, Middle, Middle - 1, "x");
-         Documents.Lay_Out (Doc, Longest);
+         Docs.Replace (Doc, (Longest, Middle), (Longest, Middle), "x");
+         Layouts.Sync (Laid, Doc);
+         Layouts.Lay_Out (Laid, Doc, Longest);
       end loop;
       Report ("typing a character and laying out (rewrap), each",
               Millis / Float (Edits));
@@ -120,7 +125,7 @@ begin
          declare
             Wrapped : constant CoreText.Wrapping.Span_Vectors.Vector :=
               CoreText.Wrapping.Wrap
-                (Font, Documents.Text (Doc, Longest), 640.0);
+                (Font, Docs.Text (Doc, Longest), 640.0);
          begin
             pragma Assert (not Wrapped.Is_Empty);
          end;
@@ -130,35 +135,35 @@ begin
 
    --  The lines after editing must be those of the text laid out afresh.
    declare
-      Para    : constant Documents.Paragraph_Number := Longest;
+      Para    : constant Positive := Longest;
       Mistakes : Natural := 0;
       Filler   : constant String := "quick brown fox quick brown fox";
 
       function Same return Boolean is
          Fresh : constant CoreText.Wrapping.Span_Vectors.Vector :=
-           CoreText.Wrapping.Wrap (Font, Documents.Text (Doc, Para), 640.0);
+           CoreText.Wrapping.Wrap (Font, Docs.Text (Doc, Para), 640.0);
       begin
-         if Natural (Fresh.Length) /= Documents.Line_Count (Doc, Para) then
+         if Natural (Fresh.Length) /= Layouts.Line_Count (Laid, Para) then
             return False;
          end if;
-         for N in 1 .. Documents.Line_Count (Doc, Para) loop
-            if Documents.Line (Doc, Para, N) /= Fresh (N) then
+         for N in 1 .. Layouts.Line_Count (Laid, Para) loop
+            if Layouts.Line (Laid, Para, N) /= Fresh (N) then
                return False;
             end if;
          end loop;
          return True;
       end Same;
    begin
-      Documents.Lay_Out (Doc, Para);
+      Layouts.Lay_Out (Laid, Doc, Para);
       for K in 1 .. 300 loop
          declare
-            Size  : constant Natural := Documents.Byte_Length (Doc, Para);
+            Size  : constant Natural := Docs.Byte_Length (Doc, Para);
 
             --  The next character boundary at or after Index.
             function Aligned (Index : Positive) return Positive is
                At_Index : Positive := Index;
             begin
-               while not Documents.Is_Boundary (Doc, Para, At_Index) loop
+               while not Docs.Is_Boundary (Doc, Para, At_Index) loop
                   At_Index := At_Index + 1;
                end loop;
                return At_Index;
@@ -170,13 +175,14 @@ begin
               Aligned
                 (Natural'Min (Size + 1, Where + (K * 31) mod 40)) - Where;
          begin
-            Documents.Replace
-              (Doc, Para, Where, Where + Cut - 1,
+            Docs.Replace
+              (Doc, (Para, Where), (Para, Where + Cut),
                (if K mod 3 = 0 then "" else Filler (1 .. K mod 17)));
             if K mod 4 = 0 then  --  sometimes two edits before laying out
-               Documents.Replace (Doc, Para, 1, 0, "ab ");
+               Docs.Replace (Doc, (Para, 1), (Para, 1), "ab ");
             end if;
-            Documents.Lay_Out (Doc, Para);
+            Layouts.Sync (Laid, Doc);
+            Layouts.Lay_Out (Laid, Doc, Para);
             if not Same then
                Mistakes := Mistakes + 1;
             end if;
@@ -186,13 +192,16 @@ begin
 
       --  Splitting and joining.
       declare
-         Before : constant Natural := Documents.Count (Doc);
+         Before : constant Natural := Docs.Count (Doc);
+         Half   : constant Positive :=
+           Docs.Index_Of (Doc, Para, Docs.Length (Doc, Para) / 2);
       begin
-         Documents.Split (Doc, Para, Documents.Byte_Length (Doc, Para) / 2);
-         Documents.Join (Doc, Para);
-         Documents.Lay_Out (Doc, Para);
+         Docs.Replace (Doc, (Para, Half), (Para, Half), [ASCII.LF]);
+         Docs.Replace (Doc, Docs.Paragraph_End (Doc, Para), (Para + 1, 1), "");
+         Layouts.Sync (Laid, Doc);
+         Layouts.Lay_Out (Laid, Doc, Para);
          Put_Line ("split and join, same count: "
-                   & Boolean'Image (Documents.Count (Doc) = Before)
+                   & Boolean'Image (Docs.Count (Doc) = Before)
                    & ", lines right: " & Boolean'Image (Same));
       end;
    end;
@@ -205,15 +214,15 @@ begin
       Image  : Glyphs.Image;
       Lines  : Natural := 0;
       Made   : Natural := 0;
-      Anchor : Documents.Paragraph_Number := Documents.Count (Doc) / 2;
+      Anchor : Positive := Docs.Count (Doc) / 2;
       Offset : Float := 0.0;
-      First, Last : Documents.Paragraph_Number;
+      First, Last : Positive;
    begin
-      Documents.Visible (Doc, Anchor, Offset, Extent, First, Last);
+      Layouts.Visible (Laid, Doc, Anchor, Offset, Extent, First, Last);
       Start;
       for P in First .. Last loop
-         for N in 1 .. Documents.Line_Count (Doc, P) loop
-            Documents.Shape_Line (Doc, Reg, P, N, Line);
+         for N in 1 .. Layouts.Line_Count (Laid, P) loop
+            Layouts.Shape_Line (Laid, Doc, Reg, P, N, Line);
             Lines := Lines + 1;
          end loop;
       end loop;
@@ -244,7 +253,7 @@ begin
       --  In Views.Draw: Present waits for the display even without
       --  vsync, so the frames are timed without it.
       Draw_Frames : constant := 300;
-      Anchor : Documents.Paragraph_Number := 1;
+      Anchor : Positive := 1;
       Offset : Float := 0.0;
 
       procedure Frame (Zoom : Float; Settled : Boolean) is
@@ -253,7 +262,7 @@ begin
          Renderers.Clear (Target, Paper);
          Started := Clock;
          Typeset.Views.Draw
-           (Viewed, Doc, Target, Ink, Anchor, Offset,
+           (Viewed, Laid, Doc, Target, Ink, Anchor, Offset,
             Left    => Float'Max
                          (0.0, (Float (Width) - 640.0 * Scale) / 2.0),
             Top     => 0.0,
@@ -288,21 +297,20 @@ begin
 
       declare
          Step : constant Float :=
-           Documents.Total_Height (Doc) / Float (Draw_Frames);
+           Layouts.Total_Height (Laid) / Float (Draw_Frames);
       begin
          Drawing := 0.0;
          for K in 1 .. Draw_Frames loop
             Frame (1.0, Settled => True);
-            Documents.Scroll
-              (Doc, Anchor, Offset, Step,
-               Float (Height) / Density);
+            Layouts.Scroll
+              (Laid, Anchor, Offset, Step, Float (Height) / Density);
          end loop;
          Report ("scrolling through, a new screen each frame, per frame",
                  Drawn (Draw_Frames));
          Report_Made (0, 0);
       end;
 
-      Anchor := Documents.Count (Doc) / 2;
+      Anchor := Docs.Count (Doc) / 2;
       Offset := 0.0;
       Frame (1.0, Settled => True);
       declare
@@ -319,8 +327,8 @@ begin
 
          Drawing := 0.0;
          for K in 1 .. Draw_Frames loop
-            Documents.Scroll
-              (Doc, Anchor, Offset,
+            Layouts.Scroll
+              (Laid, Anchor, Offset,
                (if (K / 50) mod 2 = 0 then 10.0 else -10.0),
                Float (Height) / Density);
             Frame (1.0, Settled => True);

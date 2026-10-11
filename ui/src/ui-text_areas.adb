@@ -2,12 +2,15 @@ with CoreText.Wrapping;
 
 package body UI.Text_Areas is
 
-   package Documents renames Typeset.Documents;
+   package Docs renames Texts.Documents;
+   package Layouts renames Typeset.Layouts;
    package Views renames Typeset.Views;
    package Events renames SDL3.Events;
 
-   use Ada.Strings.Unbounded;
    use type Events.Key_Code;
+   use type Docs.Version;
+   use type Texts.Position;
+   use type Docs.Document_Access;
 
    --  In points
    Outline       : constant Float := 1.0;
@@ -21,6 +24,8 @@ package body UI.Text_Areas is
    Lines_Per_Notch : constant Float := 3.0;
    Page_Fraction   : constant Float := 0.9;
    --  How much of what is shown Page Up and Page Down move.
+
+   Most_Lines : constant := 1_000_000;
 
    --  Geometry
 
@@ -55,84 +60,122 @@ package body UI.Text_Areas is
      (Text_Height (Item) / Scale (Item));
    --  How much of the text is shown, in layout units.
 
-   function View_Top (Item : in out Text_Area) return Float is
-     (Documents.Top (Item.Doc, Item.Anchor) + Item.Offset);
+   function View_Top (Item : Text_Area) return Float is
+     (Layouts.Top (Item.Laid, Item.Anchor) + Item.Offset);
    --  Of what is shown, down the text, in layout units.
 
-   --  Positions
+   --  The document
 
    function Is_Position (Item : Text_Area; At_Point : Position)
-      return Boolean
-   is (At_Point.Paragraph <= Documents.Count (Item.Doc)
-       and then At_Point.Index
-                <= Documents.Byte_Length (Item.Doc, At_Point.Paragraph) + 1
-       and then Documents.Is_Boundary
-                  (Item.Doc, At_Point.Paragraph, At_Point.Index));
+      return Boolean is
+     (Docs.Is_Position (Item.Doc.all, At_Point));
 
    function Paragraph_End (Item : Text_Area; Para : Positive)
       return Position is
-     ((Para, Documents.Byte_Length (Item.Doc, Para) + 1));
+     (Docs.Paragraph_End (Item.Doc.all, Para));
 
    function Text_End (Item : Text_Area) return Position is
-     (Paragraph_End (Item, Documents.Count (Item.Doc)));
+     (Docs.Text_End (Item.Doc.all));
+
+   function Byte_Length (Item : Text_Area; Para : Positive) return Natural is
+     (Docs.Byte_Length (Item.Doc.all, Para));
+
+   function Count (Item : Text_Area) return Positive is
+     (Docs.Count (Item.Doc.all));
 
    function Units (Item : Text_Area; At_Point : Position) return Natural is
-     (Documents.Units_Before (Item.Doc, At_Point.Paragraph, At_Point.Index));
+     (Docs.Units_Before (Item.Doc.all, At_Point.Paragraph, At_Point.Index));
    --  Where At_Point is in its paragraph's lines.
+
+   function Composed_End (Item : Text_Area) return Position is
+     ((Item.Composed.Paragraph,
+       Item.Composed.Index + Item.Composed_Length));
+
+   procedure Restart_Blink (Item : in out Text_Area);
+   --  Show the caret, for a period from now.
+
+   procedure Restart_Blink (Item : in out Text_Area) is
+   begin
+      Item.Since := Item.Now;
+      Item.Caret_On := True;
+   end Restart_Blink;
+
+   procedure Catch_Up (Item : in out Text_Area);
+   --  Bring the caret, the selection and what is shown along with the
+   --  document's changes since they were last seen, and lay it out.
+
+   procedure Catch_Up (Item : in out Text_Area) is
+      Seen : Docs.Version renames Item.Seen;
+   begin
+      if Item.Serial /= Docs.Serial (Item.Doc.all)
+        or else Seen < Docs.Oldest (Item.Doc.all)
+      then
+         --  Too far behind: from the start.
+         Item.Serial := Docs.Serial (Item.Doc.all);
+         Item.At_Caret := (1, 1);
+         Item.At_Mark := (1, 1);
+         Item.Anchor := 1;
+         Item.Offset := 0.0;
+         Item.Composing := False;
+         Item.Has_Goal := False;
+         Item.Dragging := False;
+      else
+         while Seen < Docs.Current (Item.Doc.all) loop
+            declare
+               Done : constant Docs.Change :=
+                 Docs.Change_After (Item.Doc.all, Seen);
+               Old_Anchor : constant Position := (Item.Anchor, 1);
+               Moved_To   : constant Position :=
+                 Docs.Map (Done, Old_Anchor);
+            begin
+               Seen := Seen + 1;
+               Item.At_Caret := Docs.Map (Done, Item.At_Caret);
+               Item.At_Mark := Docs.Map (Done, Item.At_Mark);
+               if Item.Composing
+                 and then not Done.Kind_Only
+                 and then Done.From < Composed_End (Item)
+                 and then Item.Composed < Done.To
+               then
+                  --  Changed from elsewhere: it is now just text.
+                  Item.Composing := False;
+               elsif Item.Composing then
+                  Item.Composed := Docs.Map (Done, Item.Composed);
+               end if;
+
+               --  What is shown stays where it was: by its paragraph, or
+               --  if that went, down the page. The layout is as before
+               --  the change, still.
+               if Moved_To = Done.From and then Old_Anchor /= Done.From
+                 and then Item.Anchor <= Layouts.Count (Item.Laid)
+               then
+                  Item.Offset := Item.Offset
+                    + Layouts.Top (Item.Laid, Item.Anchor)
+                    - Layouts.Top (Item.Laid, Done.From.Paragraph);
+               end if;
+               Item.Anchor := Moved_To.Paragraph;
+            end;
+         end loop;
+      end if;
+      Seen := Docs.Current (Item.Doc.all);
+      Layouts.Sync (Item.Laid, Item.Doc.all);
+      Item.Anchor := Positive'Min (Item.Anchor, Count (Item));
+      pragma Assert (Is_Position (Item, Item.At_Caret));
+      pragma Assert (Is_Position (Item, Item.At_Mark));
+   end Catch_Up;
 
    function Line_Of
      (Item : in out Text_Area; At_Point : Position) return Positive;
    --  The line At_Point is on, of its paragraph, laid out.
 
    function Line_Of
-     (Item : in out Text_Area; At_Point : Position) return Positive is
+     (Item : in out Text_Area; At_Point : Position) return Positive
+   is
+      At_Units : constant Natural := Units (Item, At_Point);
    begin
-      Documents.Lay_Out (Item.Doc, At_Point.Paragraph);
-      return Documents.Line_At
-               (Item.Doc, At_Point.Paragraph, Units (Item, At_Point));
+      Layouts.Lay_Out_To
+        (Item.Laid, Item.Doc.all, At_Point.Paragraph, At_Units);
+      return Layouts.Line_At (Item.Laid, At_Point.Paragraph, At_Units);
    end Line_Of;
-
-   function End_After (From : Position; Added : String) return Position;
-   --  Where Added ends, put at From.
-
-   function End_After (From : Position; Added : String) return Position is
-      Result : Position := From;
-   begin
-      for C of Added loop
-         if C = ASCII.LF then
-            Result := (Result.Paragraph + 1, 1);
-         else
-            Result.Index := Result.Index + 1;
-         end if;
-      end loop;
-      return Result;
-   end End_After;
-
-   function Between (Item : Text_Area; From, To : Position) return String
-     with Pre => not (To < From);
-   --  The text from From to To, a line to each paragraph.
-
-   function Between (Item : Text_Area; From, To : Position) return String is
-      Result : Unbounded_String;
-   begin
-      for Para in From.Paragraph .. To.Paragraph loop
-         declare
-            Whole : constant String := Documents.Text (Item.Doc, Para);
-            First : constant Positive :=
-              (if Para = From.Paragraph then From.Index else 1);
-            Stop  : constant Positive :=
-              (if Para = To.Paragraph then To.Index else Whole'Length + 1);
-         begin
-            if Para > From.Paragraph then
-               Append (Result, ASCII.LF);
-            end if;
-            Append
-              (Result,
-               Whole (Whole'First + First - 1 .. Whole'First + Stop - 2));
-         end;
-      end loop;
-      return To_String (Result);
-   end Between;
 
    --  Setting up
 
@@ -144,39 +187,26 @@ package body UI.Text_Areas is
       Spacing : Float := 0.0) is
    begin
       Item.Measure := Measure;
-      Documents.Configure (Item.Doc, Family, Size, Measure, Spacing);
+      Layouts.Configure (Item.Laid, Family, Size, Measure, Spacing);
    end Configure;
 
    function Is_Configured (Item : Text_Area) return Boolean is
-     (Documents.Is_Configured (Item.Doc));
+     (Layouts.Is_Configured (Item.Laid));
 
-   procedure Restart_Blink (Item : in out Text_Area);
-   --  Show the caret, for a period from now.
-
-   procedure Restart_Blink (Item : in out Text_Area) is
+   procedure Attach (Item : in out Text_Area; Doc : not null Document_Access)
+   is
    begin
-      Item.Since := Item.Now;
-      Item.Caret_On := True;
-   end Restart_Blink;
-
-   procedure Load (Item : in out Text_Area; Content : String) is
-   begin
-      Documents.Load (Item.Doc, Content);
-      Item.Anchor := 1;
-      Item.Offset := 0.0;
-      Item.At_Caret := (others => <>);
-      Item.At_Mark := (others => <>);
-      Item.Has_Goal := False;
-      Item.Dragging := False;
-      Item.Undos.Clear;
-      Item.Redos.Clear;
-      Item.Joining := False;
-      Item.Composing := False;
+      Item.Doc := Doc;
+      Item.Serial := 0;  --  start again
+      Catch_Up (Item);
       Restart_Blink (Item);
-   end Load;
+   end Attach;
 
-   function Text (Item : Text_Area) return String is
-     (Between (Item, (1, 1), Text_End (Item)));
+   function Is_Attached (Item : Text_Area) return Boolean is
+     (Item.Doc /= null);
+
+   function Document (Item : Text_Area) return Document_Access is
+     (Item.Doc);
 
    procedure Place
      (Item    : in out Text_Area;
@@ -190,8 +220,8 @@ package body UI.Text_Areas is
       Item.Height := Height;
       Item.Density := Density;
       Item.Zoom := Zoom;
-      if Documents.Width (Item.Doc) /= Column (Item) then
-         Documents.Set_Width (Item.Doc, Column (Item));
+      if Layouts.Width (Item.Laid) /= Column (Item) then
+         Layouts.Set_Width (Item.Laid, Column (Item));
       end if;
    end Place;
 
@@ -201,28 +231,50 @@ package body UI.Text_Areas is
 
    function Is_Focused (Item : Text_Area) return Boolean is (Item.Focused);
 
-   function Caret (Item : Text_Area) return Position is (Item.At_Caret);
+   function Updated (Item : Text_Area; At_Point : Position) return Position;
+   --  Where At_Point, as the text area last saw the document, is now:
+   --  another view may have changed it since.
 
-   function Mark (Item : Text_Area) return Position is (Item.At_Mark);
+   function Updated (Item : Text_Area; At_Point : Position) return Position
+   is
+      Result : Position := At_Point;
+   begin
+      if Item.Serial /= Docs.Serial (Item.Doc.all)
+        or else Item.Seen < Docs.Oldest (Item.Doc.all)
+      then
+         return (1, 1);  --  as Catch_Up will have it
+      end if;
+      for Seen in Item.Seen .. Docs.Current (Item.Doc.all) - 1 loop
+         Result := Docs.Map (Docs.Change_After (Item.Doc.all, Seen), Result);
+      end loop;
+      return Result;
+   end Updated;
+
+   function Caret (Item : Text_Area) return Position is
+     (Updated (Item, Item.At_Caret));
+
+   function Mark (Item : Text_Area) return Position is
+     (Updated (Item, Item.At_Mark));
 
    function Has_Selection (Item : Text_Area) return Boolean is
-     (Item.At_Mark /= Item.At_Caret);
+     (Mark (Item) /= Caret (Item));
 
    function Selection_First (Item : Text_Area) return Position is
-     (if Item.At_Mark < Item.At_Caret then Item.At_Mark else Item.At_Caret);
+     (if Mark (Item) < Caret (Item) then Mark (Item) else Caret (Item));
 
    function Selection_Last (Item : Text_Area) return Position is
-     (if Item.At_Mark < Item.At_Caret then Item.At_Caret else Item.At_Mark);
+     (if Mark (Item) < Caret (Item) then Caret (Item) else Mark (Item));
 
    function Selected_Text (Item : Text_Area) return String is
-     (Between (Item, Selection_First (Item), Selection_Last (Item)));
+     (Docs.Between
+        (Item.Doc.all, Selection_First (Item), Selection_Last (Item)));
 
    --  Scrolling
 
    procedure Scroll (Item : in out Text_Area; By : Float) is
    begin
-      Documents.Scroll
-        (Item.Doc, Item.Anchor, Item.Offset, By, Extent (Item));
+      Catch_Up (Item);
+      Layouts.Scroll (Item.Laid, Item.Anchor, Item.Offset, By, Extent (Item));
    end Scroll;
 
    procedure Reveal (Item : in out Text_Area);
@@ -231,9 +283,9 @@ package body UI.Text_Areas is
    procedure Reveal (Item : in out Text_Area) is
       Para     : constant Positive := Item.At_Caret.Paragraph;
       Number   : constant Positive := Line_Of (Item, Item.At_Caret);
-      High     : constant Float := Documents.Line_Height (Item.Doc);
+      High     : constant Float := Layouts.Line_Height (Item.Laid);
       Line_Top : constant Float :=
-        Documents.Top (Item.Doc, Para) + Float (Number - 1) * High;
+        Layouts.Top (Item.Laid, Para) + Float (Number - 1) * High;
       Shown    : constant Float := View_Top (Item);
    begin
       if Line_Top < Shown or else Extent (Item) < High then
@@ -255,201 +307,51 @@ package body UI.Text_Areas is
       Reveal (Item);
    end Moved;
 
-   --  Changing the text, as the edits that are undone do
+   --  Changing the text
 
-   procedure Break_Paragraph (Item : in out Text_Area);
-   --  At the caret, which goes to the start of the new paragraph.
-
-   procedure Break_Paragraph (Item : in out Text_Area) is
-      Para : constant Positive := Item.At_Caret.Paragraph;
-   begin
-      Documents.Split (Item.Doc, Para, Item.At_Caret.Index);
-      if Para < Item.Anchor then
-         Item.Anchor := Item.Anchor + 1;
-      end if;
-      Item.At_Caret := (Para + 1, 1);
-   end Break_Paragraph;
-
-   procedure Join_Paragraphs (Item : in out Text_Area; Para : Positive)
-     with Pre => Para < Documents.Count (Item.Doc);
-   --  Para and the next, keeping what is shown where it is.
-
-   procedure Join_Paragraphs (Item : in out Text_Area; Para : Positive) is
-   begin
-      if Item.Anchor = Para + 1 then
-         Item.Offset := Item.Offset
-           + Documents.Top (Item.Doc, Para + 1)
-           - Documents.Top (Item.Doc, Para);
-         Item.Anchor := Para;
-      elsif Item.Anchor > Para + 1 then
-         Item.Anchor := Item.Anchor - 1;
-      end if;
-      Documents.Join (Item.Doc, Para);
-   end Join_Paragraphs;
-
-   procedure Put (Item : in out Text_Area; Piece : String);
-   --  Insert Piece, which has no line feeds, at the caret, and move the
-   --  caret past it.
-
-   procedure Put (Item : in out Text_Area; Piece : String) is
-      At_Caret : Position renames Item.At_Caret;
-   begin
-      if Piece'Length > 0 then
-         Documents.Replace
-           (Item.Doc, At_Caret.Paragraph,
-            At_Caret.Index, At_Caret.Index - 1, Piece);
-         At_Caret.Index := At_Caret.Index + Piece'Length;
-      end if;
-   end Put;
-
-   procedure Replace_Range
+   procedure Change
      (Item     : in out Text_Area;
       From, To : Position;
-      By       : String)
-     with Pre  => Is_Position (Item, From) and then Is_Position (Item, To)
-                  and then not (To < From),
-          Post => Item.At_Caret = End_After (From, By)
-                  and then Item.At_Mark = Item.At_Caret;
-   --  Replace the text from From to To with By, which has a line to each
-   --  paragraph, and put the caret after it. Not recorded to undo.
+      By       : String;
+      Undo_As  : Docs.Edit_Kind := Docs.Other;
+      Recorded : Boolean := True)
+     with Pre => Is_Position (Item, From) and then Is_Position (Item, To)
+                 and then not (To < From);
+   --  Replace the text from From to To with By, and put the caret after
+   --  it, with nothing selected.
 
-   procedure Replace_Range
+   procedure Change
      (Item     : in out Text_Area;
       From, To : Position;
-      By       : String)
-   is
-      Para : constant Positive := From.Paragraph;
-      Line : Unbounded_String;
+      By       : String;
+      Undo_As  : Docs.Edit_Kind := Docs.Other;
+      Recorded : Boolean := True) is
    begin
-      --  Remove what is there.
-      if From.Paragraph = To.Paragraph then
-         if From.Index < To.Index then
-            Documents.Replace (Item.Doc, Para, From.Index, To.Index - 1, "");
-         end if;
-      else
-         Documents.Replace
-           (Item.Doc, Para, From.Index,
-            Documents.Byte_Length (Item.Doc, Para), "");
-         for Middle in From.Paragraph + 1 .. To.Paragraph - 1 loop
-            Documents.Replace
-              (Item.Doc, Para + 1, 1,
-               Documents.Byte_Length (Item.Doc, Para + 1), "");
-            Join_Paragraphs (Item, Para);
-         end loop;
-         Documents.Replace (Item.Doc, Para + 1, 1, To.Index - 1, "");
-         Join_Paragraphs (Item, Para);
-      end if;
-
-      --  Put By in its place.
-      Item.At_Caret := From;
-      for C of By loop
-         if C = ASCII.LF then
-            Put (Item, To_String (Line));
-            Line := Null_Unbounded_String;
-            Break_Paragraph (Item);
-         else
-            Append (Line, C);
-         end if;
-      end loop;
-      Put (Item, To_String (Line));
+      Docs.Replace (Item.Doc.all, From, To, By, Undo_As, Recorded);
+      Catch_Up (Item);
+      Item.At_Caret := Texts.End_After (From, By);
       Item.At_Mark := Item.At_Caret;
-   end Replace_Range;
-
-   --  Edits, which are undone
-
-   procedure Record_Edit
-     (Item     : in out Text_Area;
-      From     : Position;
-      Removed  : String;
-      Inserted : String;
-      Kind     : Edit_Kind);
-   --  To undo, or with the last edit, if they go together.
-
-   procedure Record_Edit
-     (Item     : in out Text_Area;
-      From     : Position;
-      Removed  : String;
-      Inserted : String;
-      Kind     : Edit_Kind)
-   is
-      Joined : Boolean := False;
-   begin
-      Item.Last_Id := Item.Last_Id + 1;
-      if Item.Joining and then not Item.Undos.Is_Empty
-        and then Kind = Item.Undos.Last_Element.Kind
-      then
-         declare
-            Last : Change renames
-              Item.Undos.Reference (Item.Undos.Last_Index);
-         begin
-            case Kind is
-               when Typing =>
-                  --  Typing on from where it stopped, on one line.
-                  Joined := Removed = ""
-                    and then End_After (Last.From, To_String (Last.Inserted))
-                             = From
-                    and then (for all C of Inserted => C /= ASCII.LF);
-                  if Joined then
-                     Append (Last.Inserted, Inserted);
-                  end if;
-               when Deleting_Back =>
-                  Joined := Inserted = ""
-                    and then End_After (From, Removed) = Last.From;
-                  if Joined then
-                     Last.From := From;
-                     Last.Removed := Removed & Last.Removed;
-                  end if;
-               when Deleting_Forward =>
-                  Joined := Inserted = "" and then From = Last.From;
-                  if Joined then
-                     Append (Last.Removed, Removed);
-                  end if;
-               when Other =>
-                  null;
-            end case;
-            if Joined then
-               Last.Id := Item.Last_Id;
-            end if;
-         end;
-      end if;
-
-      if not Joined then
-         Item.Undos.Append
-           (Change'(From     => From,
-                    Removed  => To_Unbounded_String (Removed),
-                    Inserted => To_Unbounded_String (Inserted),
-                    Kind     => Kind,
-                    Id       => Item.Last_Id));
-         if Natural (Item.Undos.Length) > Undo_Depth then
-            Item.Undos.Delete_First;
-         end if;
-      end if;
-      Item.Redos.Clear;
-      Item.Joining := Kind /= Other;
-   end Record_Edit;
+   end Change;
 
    procedure Edit
      (Item     : in out Text_Area;
       From, To : Position;
       By       : String;
-      Kind     : Edit_Kind)
+      Undo_As  : Docs.Edit_Kind)
      with Pre => Is_Position (Item, From) and then Is_Position (Item, To)
                  and then not (To < From);
    --  Replace the text from From to To with By, to undo, with the caret
-   --  after it.
+   --  after it, and bring it into view.
 
    procedure Edit
      (Item     : in out Text_Area;
       From, To : Position;
       By       : String;
-      Kind     : Edit_Kind)
-   is
-      Removed : constant String := Between (Item, From, To);
+      Undo_As  : Docs.Edit_Kind) is
    begin
       Item.Has_Goal := False;
-      if Removed /= "" or else By /= "" then
-         Record_Edit (Item, From, Removed, By, Kind);
-         Replace_Range (Item, From, To, By);
+      if From /= To or else By /= "" then
+         Change (Item, From, To, By, Undo_As);
       end if;
       Moved (Item);
    end Edit;
@@ -458,23 +360,34 @@ package body UI.Text_Areas is
    --  Raw without carriage returns, as from CR LF line ends.
 
    function Without_Returns (Raw : String) return String is
-      Result : String (1 .. Raw'Length);
-      Last   : Natural := 0;
+      Returns : Natural := 0;
    begin
       for C of Raw loop
-         if C /= ASCII.CR then
-            Last := Last + 1;
-            Result (Last) := C;
+         if C = ASCII.CR then
+            Returns := Returns + 1;
          end if;
       end loop;
-      return Result (1 .. Last);
+      if Returns = 0 then
+         return Raw;
+      end if;
+
+      --  Made in place as the result, not on the stack: what is pasted
+      --  may be megabytes.
+      return Result : String (1 .. Raw'Length - Returns) do
+         declare
+            Last : Natural := 0;
+         begin
+            for C of Raw loop
+               if C /= ASCII.CR then
+                  Last := Last + 1;
+                  Result (Last) := C;
+               end if;
+            end loop;
+         end;
+      end return;
    end Without_Returns;
 
    --  Input methods' text
-
-   function Composed_End (Item : Text_Area) return Position is
-     ((Item.Composed.Paragraph,
-       Item.Composed.Index + Item.Composed_Length));
 
    function Is_Composing (Item : Text_Area) return Boolean is
      (Item.Composing);
@@ -484,9 +397,11 @@ package body UI.Text_Areas is
 
    procedure Drop_Composition (Item : in out Text_Area) is
    begin
+      Catch_Up (Item);
       if Item.Composing then
-         Replace_Range (Item, Item.Composed, Composed_End (Item), "");
          Item.Composing := False;
+         Change (Item, Item.Composed, Composed_End (Item), "",
+                 Recorded => False);
       end if;
    end Drop_Composition;
 
@@ -496,14 +411,15 @@ package body UI.Text_Areas is
 
    procedure Finish_Composition (Item : in out Text_Area) is
    begin
+      Catch_Up (Item);
       if Item.Composing then
          declare
             Composed : constant String :=
-              Between (Item, Item.Composed, Composed_End (Item));
+              Docs.Between (Item.Doc.all, Item.Composed, Composed_End (Item));
+            From     : constant Position := Item.Composed;
          begin
             Drop_Composition (Item);
-            Record_Edit (Item, Item.At_Caret, "", Composed, Other);
-            Replace_Range (Item, Item.At_Caret, Item.At_Caret, Composed);
+            Change (Item, From, From, Composed);
          end;
       end if;
    end Finish_Composition;
@@ -515,6 +431,7 @@ package body UI.Text_Areas is
    is
       Clean : String := Without_Returns (Shown);
    begin
+      Catch_Up (Item);
       for C of Clean loop
          if C = ASCII.LF then
             C := ' ';
@@ -524,17 +441,17 @@ package body UI.Text_Areas is
       if not Item.Composing and then Clean /= "" then
          if Has_Selection (Item) then
             Edit (Item, Selection_First (Item), Selection_Last (Item), "",
-                  Other);
+                  Docs.Other);
          end if;
          Item.Composed := Item.At_Caret;
-         Item.Composing := True;
       elsif Item.Composing then
          Drop_Composition (Item);
-         Item.Composing := Clean /= "";
       end if;
 
-      if Item.Composing then
-         Replace_Range (Item, Item.Composed, Item.Composed, Clean);
+      if Clean /= "" then
+         Change (Item, Item.Composed, Item.Composed, Clean,
+                 Recorded => False);
+         Item.Composing := True;
          Item.Composed_Length := Clean'Length;
 
          --  The caret after Cursor characters.
@@ -544,8 +461,8 @@ package body UI.Text_Areas is
          begin
             while Seen < Cursor and then Byte < Composed_End (Item).Index
             loop
-               Byte := Documents.Next_Character
-                 (Item.Doc, Item.Composed.Paragraph, Byte);
+               Byte := Layouts.Next_Character
+                 (Item.Doc.all, Item.Composed.Paragraph, Byte);
                Seen := Seen + 1;
             end loop;
             Item.At_Caret := (Item.Composed.Paragraph, Byte);
@@ -577,12 +494,13 @@ package body UI.Text_Areas is
       Item.At_Mark := From;
       Item.At_Caret := To;
       Item.Has_Goal := False;
-      Item.Joining := False;
+      Docs.Seal (Item.Doc.all);
       Moved (Item);
    end Select_Range;
 
    procedure Select_All (Item : in out Text_Area) is
    begin
+      Catch_Up (Item);
       Select_Range (Item, (1, 1), Text_End (Item));
    end Select_All;
 
@@ -598,12 +516,11 @@ package body UI.Text_Areas is
       From : Position;
       By   : Motion) return Position
    is
-      Para   : constant Positive := From.Paragraph;
-      Byte   : constant Positive := From.Index;
-      Length : constant Natural := Documents.Byte_Length (Item.Doc, Para);
-      Count  : constant Positive := Documents.Count (Item.Doc);
+      Doc_Of   : Docs.Document renames Item.Doc.all;
+      Para     : constant Positive := From.Paragraph;
+      Byte     : constant Positive := From.Index;
       At_Start : constant Boolean := Byte = 1;
-      At_End   : constant Boolean := Byte > Length;
+      At_End   : constant Boolean := Byte > Byte_Length (Item, Para);
    begin
       case By is
          when Previous_Character | Previous_Word =>
@@ -611,9 +528,8 @@ package body UI.Text_Areas is
                return
                  (Para,
                   (if By = Previous_Word
-                   then Documents.Previous_Word (Item.Doc, Para, Byte)
-                   else Documents.Previous_Character
-                          (Item.Doc, Para, Byte)));
+                   then Layouts.Previous_Word (Doc_Of, Para, Byte)
+                   else Layouts.Previous_Character (Doc_Of, Para, Byte)));
             elsif Para > 1 then
                return Paragraph_End (Item, Para - 1);
             end if;
@@ -623,9 +539,9 @@ package body UI.Text_Areas is
                return
                  (Para,
                   (if By = Next_Word
-                   then Documents.Next_Word (Item.Doc, Para, Byte)
-                   else Documents.Next_Character (Item.Doc, Para, Byte)));
-            elsif Para < Count then
+                   then Layouts.Next_Word (Doc_Of, Para, Byte)
+                   else Layouts.Next_Character (Doc_Of, Para, Byte)));
+            elsif Para < Count (Item) then
                return (Para + 1, 1);
             end if;
 
@@ -635,23 +551,25 @@ package body UI.Text_Areas is
             begin
                return
                  (Para,
-                  Documents.Index_Of
-                    (Item.Doc, Para,
-                     Documents.Line (Item.Doc, Para, Number).First));
+                  Docs.Index_Of
+                    (Doc_Of, Para,
+                     Layouts.Line (Item.Laid, Para, Number).First));
             end;
 
          when Line_End =>
             declare
                Number : constant Positive := Line_Of (Item, From);
             begin
-               if Number < Documents.Line_Count (Item.Doc, Para) then
+               if Layouts.Line (Item.Laid, Para, Number).Stop
+                 < Docs.Length (Doc_Of, Para)
+               then
                   --  Before the space the line breaks after.
                   return
                     (Para,
-                     Documents.Index_Of
-                       (Item.Doc, Para,
-                        Documents.Units_At_Offset
-                          (Item.Doc, Para, Number, Float'Last)));
+                     Docs.Index_Of
+                       (Doc_Of, Para,
+                        Layouts.Units_At_Offset
+                          (Item.Laid, Doc_Of, Para, Number, Float'Last)));
                end if;
                return Paragraph_End (Item, Para);
             end;
@@ -666,7 +584,7 @@ package body UI.Text_Areas is
          when Paragraph_End =>
             if not At_End then
                return Paragraph_End (Item, Para);
-            elsif Para < Count then
+            elsif Para < Count (Item) then
                return Paragraph_End (Item, Para + 1);
             end if;
 
@@ -698,9 +616,10 @@ package body UI.Text_Areas is
    begin
       return
         (Para,
-         Documents.Index_Of
-           (Item.Doc, Para,
-            Documents.Units_At_Offset (Item.Doc, Para, Number, X)));
+         Docs.Index_Of
+           (Item.Doc.all, Para,
+            Layouts.Units_At_Offset
+              (Item.Laid, Item.Doc.all, Para, Number, X)));
    end Line_Position;
 
    function Vertical_Step
@@ -716,11 +635,11 @@ package body UI.Text_Areas is
    is
       Para   : constant Positive := Item.At_Caret.Paragraph;
       Number : constant Positive := Line_Of (Item, Item.At_Caret);
-      Lines  : constant Positive := Documents.Line_Count (Item.Doc, Para);
    begin
       if not Item.Has_Goal then
-         Item.Goal := Documents.Caret_Offset
-           (Item.Doc, Para, Number, Units (Item, Item.At_Caret));
+         Item.Goal := Layouts.Caret_Offset
+           (Item.Laid, Item.Doc.all, Para, Number,
+            Units (Item, Item.At_Caret));
          Item.Has_Goal := True;
       end if;
 
@@ -728,16 +647,19 @@ package body UI.Text_Areas is
          if Number > 1 then
             return Line_Position (Item, Para, Number - 1, Item.Goal);
          elsif Para > 1 then
-            Documents.Lay_Out (Item.Doc, Para - 1);
+            Layouts.Lay_Out (Item.Laid, Item.Doc.all, Para - 1);
             return Line_Position
-              (Item, Para - 1, Documents.Line_Count (Item.Doc, Para - 1),
+              (Item, Para - 1, Layouts.Line_Count (Item.Laid, Para - 1),
                Item.Goal);
          end if;
          return (1, 1);
-      elsif Number < Lines then
+      end if;
+
+      Layouts.Lay_Out (Item.Laid, Item.Doc.all, Para, Number + 1);
+      if Number < Layouts.Line_Count (Item.Laid, Para) then
          return Line_Position (Item, Para, Number + 1, Item.Goal);
-      elsif Para < Documents.Count (Item.Doc) then
-         Documents.Lay_Out (Item.Doc, Para + 1);
+      elsif Para < Count (Item) then
+         Layouts.Lay_Out (Item.Laid, Item.Doc.all, Para + 1, 1);
          return Line_Position (Item, Para + 1, 1, Item.Goal);
       end if;
       return Text_End (Item);
@@ -749,7 +671,7 @@ package body UI.Text_Areas is
       Extend : Boolean := False) is
    begin
       Finish_Composition (Item);
-      Item.Joining := False;
+      Docs.Seal (Item.Doc.all);
       if By not in Previous_Line | Next_Line then
          Item.Has_Goal := False;
       end if;
@@ -781,23 +703,21 @@ package body UI.Text_Areas is
    function Point_At (Item : in out Text_Area; X, Y : Float)
       return Position
    is
-      High  : constant Float := Documents.Line_Height (Item.Doc);
-      Shown : constant Float := View_Top (Item);
-      Depth : constant Float := Shown + (Y - Text_Top (Item)) / Scale (Item);
-      Para  : constant Positive := Documents.Paragraph_At (Item.Doc, Depth);
+      High  : constant Float := Layouts.Line_Height (Item.Laid);
+      Depth : constant Float :=
+        View_Top (Item) + (Y - Text_Top (Item)) / Scale (Item);
+      Para  : constant Positive := Layouts.Paragraph_At (Item.Laid, Depth);
+      Within : constant Float :=
+        Float'Max (0.0, Depth - Layouts.Top (Item.Laid, Para)) / High;
+      Wanted : constant Positive :=
+        (if Within >= Float (Most_Lines) then Most_Lines
+         else Natural (Float'Floor (Within)) + 1);
    begin
-      Documents.Lay_Out (Item.Doc, Para);
-      declare
-         Lines  : constant Positive := Documents.Line_Count (Item.Doc, Para);
-         Within : constant Float :=
-           Float'Max (0.0, Depth - Documents.Top (Item.Doc, Para)) / High;
-         Number : constant Positive :=
-           (if Within >= Float (Lines) then Lines
-            else Natural (Float'Floor (Within)) + 1);
-      begin
-         return Line_Position
-           (Item, Para, Number, (X - Column_Left (Item)) / Scale (Item));
-      end;
+      Layouts.Lay_Out (Item.Laid, Item.Doc.all, Para, Wanted);
+      return Line_Position
+        (Item, Para,
+         Positive'Min (Wanted, Layouts.Line_Count (Item.Laid, Para)),
+         (X - Column_Left (Item)) / Scale (Item));
    end Point_At;
 
    procedure Click
@@ -809,11 +729,11 @@ package body UI.Text_Areas is
       Point : Position;
    begin
       Finish_Composition (Item);
+      Docs.Seal (Item.Doc.all);
       Point := Point_At (Item, X, Y);
       Item.Focused := True;
       Item.Dragging := True;
       Item.Has_Goal := False;
-      Item.Joining := False;
 
       if Clicks = 1 or else Extend then
          Item.At_Caret := Point;
@@ -824,15 +744,14 @@ package body UI.Text_Areas is
          declare
             First, Stop : Positive;
          begin
-            Documents.Word_At
-              (Item.Doc, Point.Paragraph, Point.Index, First, Stop);
+            Layouts.Word_At
+              (Item.Doc.all, Point.Paragraph, Point.Index, First, Stop);
             --  Not on a word: the character there.
             if First = Stop
-              and then Point.Index
-                       <= Documents.Byte_Length (Item.Doc, Point.Paragraph)
+              and then Point.Index <= Byte_Length (Item, Point.Paragraph)
             then
-               Stop := Documents.Next_Character
-                 (Item.Doc, Point.Paragraph, Point.Index);
+               Stop := Layouts.Next_Character
+                 (Item.Doc.all, Point.Paragraph, Point.Index);
             end if;
             Item.At_Mark := (Point.Paragraph, First);
             Item.At_Caret := (Point.Paragraph, Stop);
@@ -846,6 +765,7 @@ package body UI.Text_Areas is
 
    procedure Drag (Item : in out Text_Area; X, Y : Float) is
    begin
+      Catch_Up (Item);
       if Item.Dragging then
          Item.At_Caret := Point_At (Item, X, Y);
          Moved (Item);
@@ -866,7 +786,7 @@ package body UI.Text_Areas is
    begin
       Drop_Composition (Item);  --  Typed is what it became
       Edit (Item, Selection_First (Item), Selection_Last (Item),
-            Without_Returns (Typed), Typing);
+            Without_Returns (Typed), Docs.Typing);
    end Insert;
 
    function Deletion_Motion (By : Deletion; Forward : Boolean) return Motion
@@ -882,7 +802,7 @@ package body UI.Text_Areas is
       Finish_Composition (Item);
       if Has_Selection (Item) then
          Edit (Item, Selection_First (Item), Selection_Last (Item), "",
-               Other);
+               Docs.Other);
          return;
       end if;
       declare
@@ -893,7 +813,7 @@ package body UI.Text_Areas is
          if From = Item.At_Caret then
             From := Step (Item, Item.At_Caret, Previous_Character);
          end if;
-         Edit (Item, From, Item.At_Caret, "", Deleting_Back);
+         Edit (Item, From, Item.At_Caret, "", Docs.Deleting_Back);
       end;
    end Delete_Backward;
 
@@ -903,7 +823,7 @@ package body UI.Text_Areas is
       Finish_Composition (Item);
       if Has_Selection (Item) then
          Edit (Item, Selection_First (Item), Selection_Last (Item), "",
-               Other);
+               Docs.Other);
          return;
       end if;
       declare
@@ -913,7 +833,7 @@ package body UI.Text_Areas is
          if To = Item.At_Caret then
             To := Step (Item, Item.At_Caret, Next_Character);
          end if;
-         Edit (Item, Item.At_Caret, To, "", Deleting_Forward);
+         Edit (Item, Item.At_Caret, To, "", Docs.Deleting_Forward);
       end;
    end Delete_Forward;
 
@@ -934,7 +854,7 @@ package body UI.Text_Areas is
       Copy (Item, Board);
       if Has_Selection (Item) then
          Edit (Item, Selection_First (Item), Selection_Last (Item), "",
-               Other);
+               Docs.Other);
       end if;
    end Cut;
 
@@ -944,62 +864,42 @@ package body UI.Text_Areas is
    begin
       Finish_Composition (Item);
       Edit (Item, Selection_First (Item), Selection_Last (Item),
-            Without_Returns (Board.Text), Other);
+            Without_Returns (Board.Text), Docs.Other);
    end Paste;
 
    --  Undoing
 
    procedure Undo (Item : in out Text_Area) is
+      From, To : Position;
    begin
       Finish_Composition (Item);
-      if Item.Undos.Is_Empty then
-         return;
+      if Docs.Can_Undo (Item.Doc.all)
+        and then not Docs.In_Step (Item.Doc.all)
+      then
+         Docs.Undo (Item.Doc.all, From, To);
+         Catch_Up (Item);
+         Item.At_Mark := From;
+         Item.At_Caret := To;
+         Item.Has_Goal := False;
+         Moved (Item);
       end if;
-      declare
-         Last : constant Change := Item.Undos.Last_Element;
-      begin
-         Item.Undos.Delete_Last;
-         Replace_Range
-           (Item, Last.From,
-            End_After (Last.From, To_String (Last.Inserted)),
-            To_String (Last.Removed));
-         Item.At_Mark := Last.From;
-         Item.Redos.Append (Change'(Last));
-      end;
-      Item.Joining := False;
-      Item.Has_Goal := False;
-      Moved (Item);
    end Undo;
 
    procedure Redo (Item : in out Text_Area) is
+      From, To : Position;
    begin
       Finish_Composition (Item);
-      if Item.Redos.Is_Empty then
-         return;
+      if Docs.Can_Redo (Item.Doc.all)
+        and then not Docs.In_Step (Item.Doc.all)
+      then
+         Docs.Redo (Item.Doc.all, From, To);
+         Catch_Up (Item);
+         Item.At_Mark := To;
+         Item.At_Caret := To;
+         Item.Has_Goal := False;
+         Moved (Item);
       end if;
-      declare
-         Last : constant Change := Item.Redos.Last_Element;
-      begin
-         Item.Redos.Delete_Last;
-         Replace_Range
-           (Item, Last.From,
-            End_After (Last.From, To_String (Last.Removed)),
-            To_String (Last.Inserted));
-         Item.Undos.Append (Change'(Last));
-      end;
-      Item.Joining := False;
-      Item.Has_Goal := False;
-      Moved (Item);
    end Redo;
-
-   function Can_Undo (Item : Text_Area) return Boolean is
-     (not Item.Undos.Is_Empty);
-
-   function Can_Redo (Item : Text_Area) return Boolean is
-     (not Item.Redos.Is_Empty);
-
-   function State (Item : Text_Area) return Natural is
-     (if Item.Undos.Is_Empty then 0 else Item.Undos.Last_Element.Id);
 
    --  Blinking
 
@@ -1040,7 +940,7 @@ package body UI.Text_Areas is
       Command : constant Boolean := Event.Command;
       Option  : constant Boolean := Event.Option;
       Shift   : constant Boolean := Event.Shift;
-      High    : constant Float := Documents.Line_Height (Item.Doc);
+      High    : constant Float := Layouts.Line_Height (Item.Laid);
 
       function Deleting return Deletion is
         (if Command then Line_Part elsif Option then Word else Character);
@@ -1119,9 +1019,9 @@ package body UI.Text_Areas is
       elsif Key = Events.Key_Page_Up then
          Scroll (Item, -Page_Fraction * Extent (Item));
       elsif Key = Events.Key_Home then
-         Scroll (Item, -Documents.Total_Height (Item.Doc));
+         Scroll (Item, -Layouts.Total_Height (Item.Laid));
       elsif Key = Events.Key_End then
-         Scroll (Item, Documents.Total_Height (Item.Doc));
+         Scroll (Item, Layouts.Total_Height (Item.Laid));
       else
          Handled := False;
       end if;
@@ -1136,6 +1036,7 @@ package body UI.Text_Areas is
       X : constant Float := Event.Mouse_X * Item.Density;
       Y : constant Float := Event.Mouse_Y * Item.Density;
    begin
+      Catch_Up (Item);
       Item.Now := SDL3.Events.Milliseconds'Max (Item.Now, Event.Time);
       Handled := False;
       case Event.Kind is
@@ -1161,7 +1062,7 @@ package body UI.Text_Areas is
                Scroll
                  (Item,
                   -Event.Wheel_Y * Lines_Per_Notch
-                   * Documents.Line_Height (Item.Doc));
+                   * Layouts.Line_Height (Item.Laid));
                Handled := True;
             end if;
          when Events.Text_Input =>
@@ -1203,7 +1104,7 @@ package body UI.Text_Areas is
       Value       : SDL3.Windows.Renderers.Color;
       Underlined  : Boolean)
    is
-      High  : constant Float := Documents.Line_Height (Item.Doc);
+      High  : constant Float := Layouts.Line_Height (Item.Laid);
       Shown : constant Float := View_Top (Item);
       Right : constant Float := Column (Item);
    begin
@@ -1216,14 +1117,14 @@ package body UI.Text_Areas is
             Range_Stop  : constant Natural :=
               (if Para = To.Paragraph then Units (Item, To)
                else Natural'Last);  --  on past the paragraph's end
-            Para_Top    : constant Float := Documents.Top (Item.Doc, Para);
+            Para_Top    : constant Float := Layouts.Top (Item.Laid, Para);
             Lines       : constant Positive :=
-              Documents.Line_Count (Item.Doc, Para);
+              Layouts.Line_Count (Item.Laid, Para);
          begin
             for Number in 1 .. Lines loop
                declare
                   Line : constant CoreText.Wrapping.Span :=
-                    Documents.Line (Item.Doc, Para, Number);
+                    Layouts.Line (Item.Laid, Para, Number);
                   A    : constant Natural :=
                     Natural'Max (Range_First, Line.First);
                   B    : constant Natural :=
@@ -1240,13 +1141,14 @@ package body UI.Text_Areas is
                               else A < B or else Runs_On)
                   then
                      declare
-                        X_A : constant Float := Documents.Caret_Offset
-                          (Item.Doc, Para, Number, A);
+                        X_A : constant Float := Layouts.Caret_Offset
+                          (Item.Laid, Item.Doc.all, Para, Number, A);
                         X_B : constant Float :=
                           (if Runs_On and then not Underlined
                            then Float'Max (Right, X_A)
-                           else Documents.Caret_Offset
-                                  (Item.Doc, Para, Number, B));
+                           else Layouts.Caret_Offset
+                                  (Item.Laid, Item.Doc.all, Para, Number,
+                                   B));
                         Left : constant Float :=
                           Column_Left (Item) + X_A * Scale (Item);
                         Wide : constant Float := (X_B - X_A) * Scale (Item);
@@ -1254,7 +1156,7 @@ package body UI.Text_Areas is
                         if Underlined then
                            SDL3.Windows.Renderers.Fill_Rect
                              (Target, Value, Left,
-                              Y + Documents.Ascent (Item.Doc) * Scale (Item)
+                              Y + Layouts.Ascent (Item.Laid) * Scale (Item)
                               + Underline_Gap * Item.Density,
                               Wide, Underline * Item.Density);
                         else
@@ -1263,9 +1165,11 @@ package body UI.Text_Areas is
                               --  too, if it runs on to the next.
                               Bottom : constant Float :=
                                 (if Runs_On and then Number = Lines
+                                   and then Layouts.Is_Complete
+                                              (Item.Laid, Para)
                                  then Text_Top (Item)
                                       + (Para_Top
-                                         + Documents.Height (Item.Doc, Para)
+                                         + Layouts.Height (Item.Laid, Para)
                                          - Shown) * Scale (Item)
                                  else Y + High * Scale (Item));
                               Row    : constant Float := Float'Floor (Y);
@@ -1287,21 +1191,24 @@ package body UI.Text_Areas is
 
    procedure Caret_Box
      (Item : in out Text_Area;
-      X, Y, Width, Height : out Float)
-   is
-      Para     : constant Positive := Item.At_Caret.Paragraph;
-      Number   : constant Positive := Line_Of (Item, Item.At_Caret);
-      High     : constant Float := Documents.Line_Height (Item.Doc);
-      Shown    : constant Float := View_Top (Item);
-      Line_Top : constant Float :=
-        Documents.Top (Item.Doc, Para) + Float (Number - 1) * High;
-      Across   : constant Float := Documents.Caret_Offset
-        (Item.Doc, Para, Number, Units (Item, Item.At_Caret));
+      X, Y, Width, Height : out Float) is
    begin
-      Width := Caret_Width * Item.Density;
-      X := Column_Left (Item) + Across * Scale (Item) - Width / 2.0;
-      Y := Text_Top (Item) + (Line_Top - Shown) * Scale (Item);
-      Height := High * Scale (Item);
+      Catch_Up (Item);
+      declare
+         Para     : constant Positive := Item.At_Caret.Paragraph;
+         Number   : constant Positive := Line_Of (Item, Item.At_Caret);
+         High     : constant Float := Layouts.Line_Height (Item.Laid);
+         Line_Top : constant Float :=
+           Layouts.Top (Item.Laid, Para) + Float (Number - 1) * High;
+         Across   : constant Float := Layouts.Caret_Offset
+           (Item.Laid, Item.Doc.all, Para, Number,
+            Units (Item, Item.At_Caret));
+      begin
+         Width := Caret_Width * Item.Density;
+         X := Column_Left (Item) + Across * Scale (Item) - Width / 2.0;
+         Y := Text_Top (Item) + (Line_Top - View_Top (Item)) * Scale (Item);
+         Height := High * Scale (Item);
+      end;
    end Caret_Box;
 
    procedure Draw
@@ -1319,8 +1226,9 @@ package body UI.Text_Areas is
         Integer (Item.Left + Item.Width - Edge);
       Inner_Bottom : constant Integer :=
         Integer (Item.Top + Item.Height - Edge);
-      First, Last  : Documents.Paragraph_Number;
+      First, Last  : Positive;
    begin
+      Catch_Up (Item);
       Fill_Rect
         (Target, (if Item.Focused then Colors.Accent else Colors.Foreground),
          Item.Left, Item.Top, Item.Width, Item.Height);
@@ -1337,8 +1245,9 @@ package body UI.Text_Areas is
          Integer'Max (0, Inner_Bottom - Inner_Top));
 
       --  What is shown, laid out, as the view will draw it.
-      Documents.Visible
-        (Item.Doc, Item.Anchor, Item.Offset, Extent (Item), First, Last);
+      Layouts.Visible
+        (Item.Laid, Item.Doc.all, Item.Anchor, Item.Offset, Extent (Item),
+         First, Last);
 
       if Has_Selection (Item) then
          Draw_Range
@@ -1350,7 +1259,7 @@ package body UI.Text_Areas is
       end if;
 
       Views.Draw
-        (Item.View, Item.Doc, Target, Colors.Foreground,
+        (Item.View, Item.Laid, Item.Doc.all, Target, Colors.Foreground,
          Item.Anchor, Item.Offset,
          Left    => Column_Left (Item),
          Top     => Text_Top (Item),

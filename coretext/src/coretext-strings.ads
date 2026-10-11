@@ -13,6 +13,19 @@ package CoreText.Strings is
      with Post => Is_Set (Item) and then Length (Item) = UTF16_Length (Value);
    --  Replace Item's text with the UTF-8 Value.
 
+   procedure Replace
+     (Item        : in out Text;
+      First, Stop : Natural;
+      By          : String)
+     with Pre  => Is_Set (Item) and then First <= Stop
+                  and then Stop <= Length (Item),
+          Post => Length (Item)
+                  = Length (Item)'Old - (Stop - First) + UTF16_Length (By)
+                  and then Is_Set (Item);
+   --  Replace the UTF-16 range [First, Stop) with the UTF-8 By, in place:
+   --  as the text it holds is edited, without making it again from the
+   --  whole. The first replacement copies it once, to be changeable.
+
    procedure Clear (Item : in out Text)
      with Post => not Is_Set (Item);
 
@@ -66,6 +79,7 @@ private
    type Text is new Ada.Finalization.Limited_Controlled with record
       Ref   : System.Address := System.Null_Address;
       Units : Natural := 0;
+      Mutable : Boolean := False;  --  Ref is a CFMutableString
    end record;
 
    overriding procedure Finalize (Item : in out Text);

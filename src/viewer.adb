@@ -1,9 +1,6 @@
-with Ada.Directories;
 with Ada.Exceptions;
 with Ada.Numerics.Elementary_Functions;
-with Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
 with Ada.Text_IO;
-with Files;
 with SDL3.Events.Redraws;
 with SDL3.Windows.Renderers;
 with UI.Themes;
@@ -203,34 +200,20 @@ package body Viewer is
 
    --  The file
 
-   Edited : constant String :=
-     Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Encode
-       (" " & Wide_Wide_Character'Val (16#2014#) & " Edited");
-   --  After the name, an em dash: in UTF-8, as the title is.
-
    function Title (Item : Session) return String is
-      Name : constant String := To_String (Item.File_Name);
-   begin
-      return
-        (if Name = "" then "Untitled"
-         else Ada.Directories.Simple_Name (Name))
-        & (if Text_Areas.State (Item.Area) /= Item.Saved then Edited
-           else "");
-   end Title;
+     (Scripts.Title (Item.Script));
 
    procedure Save (Item : in out Session) is
-      Name : constant String := To_String (Item.File_Name);
    begin
-      if Name /= "" then
-         Files.Write (Name, Text_Areas.Text (Item.Area));
-         Item.Saved := Text_Areas.State (Item.Area);
+      if Scripts.File_Name (Item.Script) /= "" then
+         Scripts.Save (Item.Script);
       end if;
    exception
       when Problem : others =>
          --  Keep the text, to save another time.
          Ada.Text_IO.Put_Line
            (Ada.Text_IO.Standard_Error,
-            "Could not save " & Name & ": "
+            "Could not save " & Scripts.File_Name (Item.Script) & ": "
             & Ada.Exceptions.Exception_Message (Problem));
    end Save;
 
@@ -248,16 +231,20 @@ package body Viewer is
 
    --  Running
 
-   procedure Set_Up (Item : in out Session; Source : String);
-   --  Lay out the window and the document in it, once there is a target.
+   procedure Set_Up
+     (Item : in out Session; Source : String; File_Name : String);
+   --  Lay out the window and the script in it, once there is a target.
 
-   procedure Set_Up (Item : in out Session; Source : String) is
+   procedure Set_Up
+     (Item : in out Session; Source : String; File_Name : String)
+   is
       use Yoga.Nodes;
       Window_Node : constant Node := Root (Item.Layout);
    begin
+      Scripts.Load (Item.Script, Source, File_Name);
       Text_Areas.Configure
         (Item.Area, Family, Font_Size, Page_Width, Para_Gap);
-      Text_Areas.Load (Item.Area, Source);
+      Text_Areas.Attach (Item.Area, Scripts.Document (Item.Script));
       Text_Areas.Set_Focus (Item.Area, True);
 
       Item.Content_Node := New_Child (Window_Node);
@@ -276,14 +263,13 @@ package body Viewer is
    procedure Open
      (Item : in out Session; Source : String; File_Name : String) is
    begin
-      Item.File_Name := To_Unbounded_String (File_Name);
       Item.Windowed := True;
       SDL3.Windows.Create
         (Item.Win, "bonxie", Window_Width, Window_Height,
          Resizable => True, High_Density => True);
       Item.Density := SDL3.Windows.Pixel_Density (Item.Win);
       Create (Item.Target, Item.Win);
-      Set_Up (Item, Source);
+      Set_Up (Item, Source, File_Name);
       SDL3.Windows.Start_Text_Input (Item.Win);
    end Open;
 
@@ -337,18 +323,17 @@ package body Viewer is
       Density   : Float := 2.0;
       File_Name : String := "") is
    begin
-      Item.File_Name := To_Unbounded_String (File_Name);
       Item.Density := Density;
       Create_Offscreen
         (Item.Target, Pixels (Width, Density), Pixels (Height, Density));
-      Set_Up (Item, Source);
+      Set_Up (Item, Source, File_Name);
    end Open;
 
    function Is_Open (Item : Session) return Boolean is
-     (Text_Areas.Is_Configured (Item.Area));
+     (Text_Areas.Is_Attached (Item.Area));
 
    function Text (Item : Session) return String is
-     (Text_Areas.Text (Item.Area));
+     (Scripts.Text (Item.Script));
 
    procedure Tick (Item : in out Session; Now : SDL3.Events.Milliseconds) is
       Changed : Boolean;

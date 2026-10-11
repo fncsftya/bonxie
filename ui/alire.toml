@@ -13,12 +13,14 @@ macos = true
 
 [[depends-on]]
 sdl3 = "*"
+texts = "*"
 typeset = "*"
 yoga = "*"
 
 [[pins]]
 coretext = { path = "../coretext" }
 sdl3 = { path = "../sdl3" }
+texts = { path = "../texts" }
 typeset = { path = "../typeset" }
 yoga = { path = "../yoga" }
 

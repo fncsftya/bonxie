@@ -42,6 +42,27 @@ package CoreText.Wrapping is
           Post => Is_Layout (Wrap'Result, UTF16_Length (Text));
    --  The same, setting Text first.
 
+   procedure Extend
+     (Using       : Fonts.Font;
+      Text        : Strings.Text;
+      Width       : Float;
+      Lines       : in out Span_Vectors.Vector;
+      Until_Count : Positive := Positive'Last;
+      Until_Unit  : Natural := Natural'Last)
+     with Pre  => Fonts.Is_Open (Using) and then Strings.Is_Set (Text)
+                  and then (Lines.Is_Empty
+                            or else Lines.Last_Element.Stop
+                                    <= Strings.Length (Text)),
+          Post => not Lines.Is_Empty
+                  and then (Lines.Last_Element.Stop = Strings.Length (Text)
+                            or else (Natural (Lines.Length) >= Until_Count
+                                     and then Lines.Last_Element.Stop
+                                              > Until_Unit));
+   --  Lines, the first of the paragraph Text's, wrapped further, a
+   --  window at a time: on until there are Until_Count of them and the
+   --  last ends after unit Until_Unit, or the paragraph ends. So only
+   --  so much of a long paragraph as is wanted is wrapped.
+
    function Rewrap
      (Using    : Fonts.Font;
       Old      : Span_Vectors.Vector;

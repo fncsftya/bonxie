@@ -7,21 +7,26 @@ licenses = "MIT"
 website = ""
 tags = []
 
-executables = ["bench"]
+executables = ["bench", "text_area_bench"]
 
 [available.'case(os)']
 macos = true
 '...' = false
 
 [[depends-on]]
+bonxie_ui = "*"
 coretext = "*"
 sdl3 = "*"
+texts = "*"
 typeset = "*"
 
 [[pins]]
+bonxie_ui = { path = "../ui" }
 coretext = { path = "../coretext" }
 sdl3 = { path = "../sdl3" }
+texts = { path = "../texts" }
 typeset = { path = "../typeset" }
+yoga = { path = "../yoga" }
 
 [build-switches]
 "*".ada_version = "Ada2022"

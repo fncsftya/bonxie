@@ -75,6 +75,15 @@ private package CoreText.Thin is
      with Import, Convention => C,
           External_Name => "CFStringCreateWithBytes";
 
+   function CF_String_Create_Mutable_Copy
+     (Allocator : Ref; Max_Length : long; Item : Ref) return Ref
+     with Import, Convention => C,
+          External_Name => "CFStringCreateMutableCopy";
+
+   procedure CF_String_Replace
+     (Item : Ref; Within : CF_Range; Replacement : Ref)
+     with Import, Convention => C, External_Name => "CFStringReplace";
+
    function CF_String_Get_Length (Item : Ref) return long
      with Import, Convention => C, External_Name => "CFStringGetLength";
 

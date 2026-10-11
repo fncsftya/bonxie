@@ -1,14 +1,14 @@
 with Ada.Containers.Bounded_Hashed_Maps;
 with Ada.Finalization;
-with Typeset.Documents;
 with CoreText.Shaping;
 with Typeset.Glyph_Atlas;
+with Typeset.Layouts;
 with SDL3.Windows.Renderers;
 
---  Draws a Document into a Renderer: the visible paragraphs are laid
---  out, their lines shaped (once each: the shaped lines are kept) and
---  drawn from the glyph atlas. Scrolling, and zooming, are changes to
---  what it is asked to draw.
+--  Draws a document, as a layout has it, into a Renderer: the visible
+--  paragraphs are laid out, their lines shaped (once each: the shaped
+--  lines are kept) and drawn from the glyph atlas. Scrolling, and
+--  zooming, are changes to what it is asked to draw.
 package Typeset.Views is
 
    type View is limited private;
@@ -23,10 +23,11 @@ package Typeset.Views is
 
    procedure Draw
      (Item   : in out View;
-      Doc    : in out Documents.Document;
+      Laid   : in out Layouts.Layout;
+      Doc    : Layouts.Document;
       Target : SDL3.Windows.Renderers.Renderer;
       Value  : SDL3.Windows.Renderers.Color;
-      Anchor : in out Documents.Paragraph_Number;
+      Anchor : in out Positive;
       Offset : in out Float;
       Left   : Float;
       Top    : Float;
@@ -34,8 +35,8 @@ package Typeset.Views is
       Height : Natural;
       Scale  : Float;
       Settled : Boolean)
-     with Pre => Documents.Is_Configured (Doc) and then Scale > 0.0
-                 and then Anchor <= Documents.Count (Doc);
+     with Pre => Layouts.Is_Synced (Laid, Doc) and then Scale > 0.0
+                 and then Anchor <= Layouts.Count (Laid);
    --  Draw the page in colour Value into the part of the target Width x
    --  Height pixels with its top left at Left, Top (the left of the
    --  page is at Left). The top of what is shown is Offset layout units

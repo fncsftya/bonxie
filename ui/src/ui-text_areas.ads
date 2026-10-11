@@ -1,17 +1,20 @@
 with SDL3.Events;
 with SDL3.Windows.Renderers;
+with Texts.Documents;
 with UI.Clipboards;
 with UI.Themes;
-private with Ada.Containers.Vectors;
-private with Ada.Strings.Unbounded;
-private with Typeset.Documents;
+private with Typeset.Layouts;
 private with Typeset.Views;
 
---  A box of text to edit: paragraphs wrapped to its width, but no wider
---  than a measure (centred in it when it is wider), with a blinking
---  caret and a selection moved by the keys and the mouse; typing, also
---  through input methods, deleting, cutting, copying and pasting, and
---  undoing. It scrolls, and its owner may zoom its text.
+--  A box to edit a document in: a view of it, which the application
+--  owns, and which other views may show and edit too. It wraps the
+--  paragraphs to its width, but no wider than a measure (centred when it
+--  is wider), with a blinking caret and a selection moved by the keys
+--  and the mouse; typing, also through input methods, deleting, cutting,
+--  copying and pasting, and undoing (the document's history: one for
+--  all its views). It scrolls, and its owner may zoom its text. What is
+--  shown, the caret and the selection are its own, and follow the
+--  document's changes from elsewhere.
 --
 --  Its text is in layout units, Density x Zoom pixels each; its outline
 --  and padding are in points, Density pixels each.
@@ -34,14 +37,18 @@ package UI.Text_Areas is
 
    function Is_Configured (Item : Text_Area) return Boolean;
 
-   procedure Load (Item : in out Text_Area; Content : String)
-     with Pre => Is_Configured (Item);
-   --  Replace the text with Content, a paragraph to each line, and show
-   --  its start, with the caret there. Nothing is left to undo.
+   subtype Document_Access is Texts.Documents.Document_Access;
 
-   function Text (Item : Text_Area) return String
-     with Pre => Is_Configured (Item);
-   --  All of it, a line to each paragraph.
+   procedure Attach (Item : in out Text_Area; Doc : not null Document_Access)
+     with Pre  => Is_Configured (Item),
+          Post => Is_Attached (Item);
+   --  Show Doc, from its start, with the caret there. Doc must outlive
+   --  the text area, or be attached to another first.
+
+   function Is_Attached (Item : Text_Area) return Boolean;
+
+   function Document (Item : Text_Area) return Document_Access
+     with Pre => Is_Attached (Item);
 
    --  Where it is
 
@@ -63,27 +70,22 @@ package UI.Text_Areas is
    --  Focus: only a focused text area takes typing and shows its caret.
 
    procedure Set_Focus (Item : in out Text_Area; Focused : Boolean)
-     with Pre => Is_Configured (Item);
+     with Pre => Is_Attached (Item);
 
    function Is_Focused (Item : Text_Area) return Boolean;
 
    --  The caret and the selection
 
-   type Position is record
-      Paragraph : Positive := 1;
-      Index     : Positive := 1;  --  the byte of its text it is before
-   end record;
+   subtype Position is Texts.Position;
 
-   function "<" (Left, Right : Position) return Boolean is
-     (Left.Paragraph < Right.Paragraph
-      or else (Left.Paragraph = Right.Paragraph
-               and then Left.Index < Right.Index));
+   function "<" (Left, Right : Position) return Boolean renames Texts."<";
+   function "=" (Left, Right : Position) return Boolean renames Texts."=";
 
    function Is_Position (Item : Text_Area; At_Point : Position)
       return Boolean
-     with Pre => Is_Configured (Item);
-   --  Whether At_Point is in the text, before a character or at the end
-   --  of a paragraph.
+     with Pre => Is_Attached (Item);
+   --  Whether At_Point is in the document, before a character or at the
+   --  end of a paragraph.
 
    function Caret (Item : Text_Area) return Position;
 
@@ -94,18 +96,18 @@ package UI.Text_Areas is
    function Has_Selection (Item : Text_Area) return Boolean;
 
    function Selected_Text (Item : Text_Area) return String
-     with Pre => Is_Configured (Item);
+     with Pre => Is_Attached (Item);
    --  A line to each paragraph.
 
    procedure Select_Range (Item : in out Text_Area; From, To : Position)
-     with Pre  => Is_Configured (Item)
+     with Pre  => Is_Attached (Item)
                   and then Is_Position (Item, From)
                   and then Is_Position (Item, To),
           Post => Mark (Item) = From and then Caret (Item) = To;
    --  Select from From to To, with the caret at To.
 
    procedure Select_All (Item : in out Text_Area)
-     with Pre => Is_Configured (Item);
+     with Pre => Is_Attached (Item);
 
    type Motion is
      (Previous_Character, Next_Character, Previous_Word, Next_Word,
@@ -116,7 +118,7 @@ package UI.Text_Areas is
      (Item   : in out Text_Area;
       By     : Motion;
       Extend : Boolean := False)
-     with Pre => Is_Configured (Item);
+     with Pre => Is_Attached (Item);
    --  Move the caret: a character or a word back or forward; a line up
    --  or down, as near as can be to where it was across (from the first
    --  or last line, to the start or end of the text); or to the start or
@@ -132,7 +134,7 @@ package UI.Text_Areas is
       X, Y   : Float;
       Clicks : Positive := 1;
       Extend : Boolean := False)
-     with Pre  => Is_Configured (Item),
+     with Pre  => Is_Attached (Item),
           Post => Is_Focused (Item) and then Is_Dragging (Item);
    --  Focus it, with the caret where it is nearest pixel X, Y; with
    --  Extend, the selection extended to there. A double click selects
@@ -140,7 +142,7 @@ package UI.Text_Areas is
    --  extends the selection.
 
    procedure Drag (Item : in out Text_Area; X, Y : Float)
-     with Pre => Is_Configured (Item);
+     with Pre => Is_Attached (Item);
    --  Extend the selection to where it is nearest pixel X, Y, if a click
    --  has not been released.
 
@@ -153,7 +155,7 @@ package UI.Text_Areas is
    --  view
 
    procedure Insert (Item : in out Text_Area; Typed : String)
-     with Pre => Is_Configured (Item);
+     with Pre => Is_Attached (Item);
    --  Type Typed, in UTF-8, in place of the selection. A line feed in it
    --  breaks the paragraph. Typing in a row is undone together.
 
@@ -161,10 +163,10 @@ package UI.Text_Areas is
 
    procedure Delete_Backward
      (Item : in out Text_Area; By : Deletion := Character)
-     with Pre => Is_Configured (Item);
+     with Pre => Is_Attached (Item);
    procedure Delete_Forward
      (Item : in out Text_Area; By : Deletion := Character)
-     with Pre => Is_Configured (Item);
+     with Pre => Is_Attached (Item);
    --  Delete the selection, if there is one; otherwise the character,
    --  the word, or the rest of the line, before or after the caret. At
    --  the start or end of a paragraph, join it to the one before or
@@ -173,42 +175,31 @@ package UI.Text_Areas is
    procedure Copy
      (Item  : in out Text_Area;
       Board : in out Clipboards.Clipboard'Class)
-     with Pre => Is_Configured (Item);
+     with Pre => Is_Attached (Item);
    --  Put the selection on Board, if there is one.
 
    procedure Cut
      (Item  : in out Text_Area;
       Board : in out Clipboards.Clipboard'Class)
-     with Pre => Is_Configured (Item);
+     with Pre => Is_Attached (Item);
    --  Copy the selection, and delete it.
 
    procedure Paste
      (Item  : in out Text_Area;
       Board : in out Clipboards.Clipboard'Class)
-     with Pre => Is_Configured (Item);
+     with Pre => Is_Attached (Item);
    --  Insert what is on Board, in place of the selection.
 
    --  Undoing
 
    procedure Undo (Item : in out Text_Area)
-     with Pre => Is_Configured (Item);
-   --  Take back the last edit not taken back, selecting what it removed.
+     with Pre => Is_Attached (Item);
+   --  Take back the document's last step not taken back, if there is
+   --  one, selecting what it restored.
 
    procedure Redo (Item : in out Text_Area)
-     with Pre => Is_Configured (Item);
-   --  Make the last edit taken back again.
-
-   function Can_Undo (Item : Text_Area) return Boolean;
-   function Can_Redo (Item : Text_Area) return Boolean;
-
-   Undo_Depth : constant := 1000;
-   --  How many edits back can be undone.
-
-   function State (Item : Text_Area) return Natural;
-   --  Names the text as it is: 0 as loaded. Undoing or redoing back to
-   --  a state gives the same text, and its name; any other edit gives
-   --  one not seen before. So the text is changed since it was saved if
-   --  its state is not what it was then.
+     with Pre => Is_Attached (Item);
+   --  Make the last step taken back again, selecting what it made.
 
    --  Input methods, which show what they are given before they send it
    --  as typing
@@ -217,7 +208,7 @@ package UI.Text_Areas is
      (Item   : in out Text_Area;
       Shown  : String;
       Cursor : Natural)
-     with Pre => Is_Configured (Item);
+     with Pre => Is_Attached (Item);
    --  Show Shown, in UTF-8, underlined in place of the selection, with
    --  the caret after Cursor characters of it (at its end, if there are
    --  fewer); "" to show none. Insert takes its place. It is not an edit
@@ -228,7 +219,7 @@ package UI.Text_Areas is
    procedure Caret_Box
      (Item : in out Text_Area;
       X, Y, Width, Height : out Float)
-     with Pre => Is_Configured (Item);
+     with Pre => Is_Attached (Item);
    --  Where the caret is drawn, in pixels, as to show an input method's
    --  choices beside it.
 
@@ -255,7 +246,7 @@ package UI.Text_Areas is
    --  Scrolling
 
    procedure Scroll (Item : in out Text_Area; By : Float)
-     with Pre => Is_Configured (Item);
+     with Pre => Is_Attached (Item);
    --  Move what is shown By layout units down the text (up, if negative),
    --  but not past either end. The caret stays where it is.
 
@@ -266,7 +257,7 @@ package UI.Text_Areas is
       Event   : SDL3.Events.Event;
       Board   : in out Clipboards.Clipboard'Class;
       Handled : out Boolean)
-     with Pre => Is_Configured (Item);
+     with Pre => Is_Attached (Item);
    --  Take Event if it is for the text area, and say so; then it is to be
    --  drawn again.
    --
@@ -294,7 +285,7 @@ package UI.Text_Areas is
       Target  : SDL3.Windows.Renderers.Renderer;
       Colors  : Themes.Theme;
       Settled : Boolean := True)
-     with Pre => Is_Configured (Item);
+     with Pre => Is_Attached (Item);
    --  Draw it where it was placed. Settled says the zoom is not changing:
    --  see Typeset.Views.
 
@@ -302,23 +293,13 @@ private
 
    use type SDL3.Events.Milliseconds;
 
-   type Edit_Kind is (Typing, Deleting_Back, Deleting_Forward, Other);
-   --  Edits of the first three kinds in a row are undone together.
-
-   type Change is record
-      From     : Position;
-      Removed  : Ada.Strings.Unbounded.Unbounded_String;
-      Inserted : Ada.Strings.Unbounded.Unbounded_String;
-      --  Each a line to each paragraph.
-      Kind     : Edit_Kind := Other;
-      Id       : Positive := 1;  --  the state it makes
-   end record;
-   --  Removed was replaced by Inserted, at From.
-
-   package Change_Vectors is new Ada.Containers.Vectors (Positive, Change);
-
    type Text_Area is limited record
-      Doc      : Typeset.Documents.Document;
+      Doc      : Document_Access;
+      Serial   : Natural := 0;  --  of Doc, when attached
+      Seen     : Texts.Documents.Version := 0;
+      --  Of Doc: the caret, the selection and what is shown are as of
+      --  then.
+      Laid     : Typeset.Layouts.Layout;
       View     : Typeset.Views.View;
       Measure  : Float := 1.0;
 
@@ -326,7 +307,7 @@ private
       Density  : Float := 1.0;
       Zoom     : Float := 1.0;
 
-      Anchor   : Typeset.Documents.Paragraph_Number := 1;
+      Anchor   : Positive := 1;
       Offset   : Float := 0.0;
       --  The top of what is shown, from the top of paragraph Anchor.
 
@@ -338,12 +319,6 @@ private
       --  was before it moved so.
       Focused  : Boolean := False;
       Dragging : Boolean := False;
-
-      Undos    : Change_Vectors.Vector;
-      Redos    : Change_Vectors.Vector;
-      Last_Id  : Natural := 0;
-      Joining  : Boolean := False;
-      --  The next edit may be undone with the last.
 
       Composing : Boolean := False;
       Composed  : Position;  --  where the input method's text starts

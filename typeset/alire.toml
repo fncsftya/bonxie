@@ -14,10 +14,12 @@ macos = true
 [[depends-on]]
 coretext = "*"
 sdl3 = "*"
+texts = "*"
 
 [[pins]]
 coretext = { path = "../coretext" }
 sdl3 = { path = "../sdl3" }
+texts = { path = "../texts" }
 
 [build-switches]
 "*".ada_version = "Ada2022"

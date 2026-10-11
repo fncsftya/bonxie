@@ -2,6 +2,7 @@ with SDL3.Events;
 with SDL3.Windows.Renderers.Images;
 private with Ada.Strings.Unbounded;
 private with SDL3.Windows;
+private with Scripts;
 private with UI.Clipboards;
 private with UI.Text_Areas;
 private with Yoga.Nodes;
@@ -79,10 +80,12 @@ private
       Area_Node    : Yoga.Nodes.Node;  --  in the content area
       Toolbar_Node : Yoga.Nodes.Node;
 
+      Script       : aliased Scripts.Script;
       Win          : SDL3.Windows.Window;
       Target       : SDL3.Windows.Renderers.Renderer;
       --  after Win: it is destroyed first
-      Area         : UI.Text_Areas.Text_Area;  --  and after Target
+      Area         : UI.Text_Areas.Text_Area;
+      --  and after Target, and Script, which it shows
       Density      : Float := 1.0;
       --  Pixels to a point of the window.
 
@@ -91,8 +94,6 @@ private
       --  The zoom has stopped changing.
       Zoomed_At    : SDL3.Events.Milliseconds := 0;
 
-      File_Name    : Ada.Strings.Unbounded.Unbounded_String;
-      Saved        : Natural := 0;  --  the text's state when saved
       Shown_Title  : Ada.Strings.Unbounded.Unbounded_String;
 
       Windowed     : Boolean := False;

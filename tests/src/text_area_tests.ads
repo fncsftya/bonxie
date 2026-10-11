@@ -23,5 +23,7 @@ package Text_Area_Tests is
    procedure Inactive_Selection;
    procedure Blinking;
    procedure Composing;
+   procedure Two_Views;
+   procedure Long_Paragraph;
 
 end Text_Area_Tests;
