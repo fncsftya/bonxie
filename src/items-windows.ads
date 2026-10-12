@@ -5,6 +5,7 @@ with UI.Themes;
 with UI.Widgets.Buttons;
 with UI.Widgets.Grips;
 with UI.Widgets.Labels;
+with UI.Widgets.Pictures;
 with UI.Widgets.Panels;
 with UI.Widgets.Text_Fields;
 with UI.Widgets.Editors;
@@ -26,8 +27,13 @@ package Items.Windows is
 
    type Window_Array is array (Slot) of Window;
 
-   type Actions is (None, Minimize, Restore, Close);
-   --  What a window's buttons ask for.
+   type Actions is (None, Minimize, Restore, Close, Capture);
+   --  What a window's buttons ask for, and, of a source, Return in its
+   --  link's field: to take the picture of the page.
+
+   type Captures is (Waiting, Busy, Ready, Failed);
+   --  Of a source: there is no picture yet, it is being taken, it is
+   --  shown, or it could not be taken.
 
    Idle_Delay : constant := 500;
    --  Milliseconds the text is left alone for before it is written,
@@ -52,10 +58,12 @@ package Items.Windows is
    procedure Assign
      (Item       : in out Window;
       Of_Item    : Items.Info;
-      Saved_Text : String)
+      Saved_Text : String;
+      Picture_File : String := "")
      with Pre => not Is_Assigned (Item);
    --  Make it the window of the item, with its text Saved_Text, as saved:
-   --  shown as its state says, once it is placed.
+   --  shown as its state says, once it is placed. A source that has been
+   --  captured shows Picture_File, a PNG.
 
    procedure Release (Item : in out Window)
      with Post => not Is_Assigned (Item);
@@ -68,6 +76,24 @@ package Items.Windows is
 
    function Text (Item : Window) return String
      with Pre => Is_Assigned (Item);
+   --  Of a source, its link, as edited.
+
+   procedure Set_Capture
+     (Item   : in out Window;
+      To     : Captures;
+      File   : String := "";
+      Detail : String := "";
+      At_Time : Projects.Seconds := 0)
+     with Pre => Is_Assigned (Item)
+                 and then Details (Item).Kind = Source
+                 and then (To /= Ready or else File /= "");
+   --  Say how the source's picture stands, in its status line: Ready
+   --  shows the PNG File, read again, as taken at At_Time; Failed says
+   --  why, in Detail.
+
+   function Status (Item : Window) return String
+     with Pre => Is_Assigned (Item);
+   --  What its status line says.
 
    function Box (Item : Window) return Items.Frame
      with Pre => Is_Assigned (Item);
@@ -166,6 +192,10 @@ private
       Minimize_Button : UI.Widgets.Buttons.Button;
       Close_Button : UI.Widgets.Buttons.Button;
       Body_Text    : UI.Widgets.Editors.Editor;
+      --  The text of a note. Of a source it is one line, its link, which
+      --  a text area costs too much to have another of.
+      Picture      : UI.Widgets.Pictures.Picture;
+      --  Of a source, below its link: what is shown.
       Status_Bar   : UI.Widgets.Panels.Panel;
       Status       : UI.Widgets.Labels.Label;
       Corner       : UI.Widgets.Grips.Grip;

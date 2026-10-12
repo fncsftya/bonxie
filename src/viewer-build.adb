@@ -163,6 +163,7 @@ package body Viewer.Build is
       Widgets.Add (Item.Project_Panel, Item.Dock_Panel);
       Widgets.Add (Item.Project_Panel, Item.Tools);
       Widgets.Add (Item.Tools, Item.Tool_Item);
+      Widgets.Add (Item.Tools, Item.Tool_Source);
       Widgets.Add (Item.Tools, Item.Tool_List);
       Widgets.Add (Item.Project_Panel, Item.Toolbar_Panel);
       Widgets.Add (Item.Toolbar_Panel, Item.Project_Title);
@@ -175,6 +176,9 @@ package body Viewer.Build is
       Buttons.Set_Label (Item.Tool_Item, "Add Item");
       Buttons.Set_Icon (Item.Tool_Item, UI.Icons.Window);
       Buttons.Set_Captioned (Item.Tool_Item, True);
+      Buttons.Set_Label (Item.Tool_Source, "Add Source");
+      Buttons.Set_Icon (Item.Tool_Source, UI.Icons.Link);
+      Buttons.Set_Captioned (Item.Tool_Source, True);
       Buttons.Set_Label (Item.Tool_List, "Items");
       Buttons.Set_Icon (Item.Tool_List, UI.Icons.List);
       Buttons.Set_Captioned (Item.Tool_List, True);
@@ -199,6 +203,9 @@ package body Viewer.Build is
         (Widgets.Node (Item.Tools), Yoga.All_Gutters, Tool_Gap * Item.Density);
       Set_Width (Widgets.Node (Item.Tool_Item), Tool_Width * Item.Density);
       Set_Height (Widgets.Node (Item.Tool_Item), Tool_Height * Item.Density);
+      Set_Width (Widgets.Node (Item.Tool_Source), Tool_Width * Item.Density);
+      Set_Height
+        (Widgets.Node (Item.Tool_Source), Tool_Height * Item.Density);
       Set_Width (Widgets.Node (Item.Tool_List), Tool_Width * Item.Density);
       Set_Height (Widgets.Node (Item.Tool_List), Tool_Height * Item.Density);
 

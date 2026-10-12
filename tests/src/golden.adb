@@ -796,6 +796,8 @@ begin
    Run ("items-density", Item_Tests.Fractional_Density'Access);
    Run ("items-full", Item_Tests.Full'Access);
    Run ("items-kept", Item_Tests.Kept'Access);
+   Run ("sources-window", Item_Tests.Source_Windows'Access);
+   Run ("sources-pages", Item_Tests.Source_Pages'Access);
    Run ("home-empty", Home_Empty'Access);
    Run ("home-recent", Home_Recent'Access);
    Run ("home-settings", Home_Settings'Access);

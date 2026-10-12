@@ -23,6 +23,12 @@ project Bench is
          "-fstack-protector-strong");
    end Compiler;
 
+   package Linker is
+      --  The session keeps its items' text areas where it is declared:
+      --  more than the usual 8 MB of the main thread's stack.
+      for Default_Switches ("Ada") use ("-Wl,-stack_size,0x4000000");
+   end Linker;
+
    package Binder is
       for Switches ("Ada") use ("-Es"); --  Symbolic traceback
    end Binder;

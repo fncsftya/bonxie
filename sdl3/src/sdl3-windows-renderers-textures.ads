@@ -43,6 +43,18 @@ package SDL3.Windows.Renderers.Textures is
    --  premultiplied or not as Item is, over the part of Item whose top
    --  left is at Left, Top.
 
+   procedure Create_From_PNG
+     (Item      : in out Texture;
+      Target    : Renderer;
+      File_Name : String);
+   --  Replace Item with the PNG file, an opaque picture to draw scaled,
+   --  smoothed. Raises an error if the file cannot be read, or is larger
+   --  than the renderer takes.
+
+   procedure Release (Item : in out Texture)
+     with Post => Is_Empty (Item);
+   --  Give back what it holds: it is empty.
+
    procedure Create_Mask_From_SVG
      (Item      : in out Texture;
       Target    : Renderer;
@@ -74,6 +86,13 @@ package SDL3.Windows.Renderers.Textures is
      with Pre => not Is_Empty (Item);
    function Height (Item : Texture) return Positive
      with Pre => not Is_Empty (Item);
+
+   procedure Draw_Scaled
+     (Target : Renderer;
+      Item   : Texture;
+      X, Y, Wide, High : Float)
+     with Pre => not Is_Empty (Item);
+   --  Draw all of Item in the box X, Y, Wide x High.
 
    --  Many images from one texture in one go
 

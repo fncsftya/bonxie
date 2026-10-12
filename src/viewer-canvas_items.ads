@@ -15,11 +15,20 @@ private package Viewer.Canvas_Items is
 
    Untitled : constant String := "Untitled item";
 
-   procedure Add (Item : in out Session; Name : String := Untitled)
+   Untitled_Source : constant String := "Untitled source";
+
+   procedure Add
+     (Item : in out Session;
+      Name : String := Untitled;
+      Kind : Items.Kinds := Items.Note)
      with Pre => Screen (Item) = Project
                  and then Name'Length <= Projects.Title_Capacity;
    --  Make an item called Name in the middle of the canvas, if there is
    --  room for one.
+
+   function Capturing (Item : Session) return Boolean;
+   --  Whether a source's picture is being taken: the loop is to look at
+   --  it again soon.
 
    procedure Take (Item : in out Session)
      with Pre => Screen (Item) = Project;

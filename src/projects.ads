@@ -60,6 +60,12 @@ package Projects is
 
    function Is_Open (Item : Store) return Boolean;
 
+   function Folder (Item : Store; Key : Id) return String
+     with Pre => Is_Open (Item);
+   --  Where the project's files are kept: its id, in the folder of the
+   --  database (or, for Memory, in a folder in the system's temporary
+   --  one). Open does not make it; Delete removes it.
+
    function Connection
      (Item : Store) return not null access Ada_Sqlite3.Database
      with Pre => Is_Open (Item);
@@ -98,7 +104,8 @@ package Projects is
      with Pre => Is_Open (Item);
    --  Remove the project from the database. Nothing is done if there is
    --  no such project. This is the one place a project is removed:
-   --  whatever else belongs to it, such as its files, is to go here too.
+   --  whatever else belongs to it, such as its files (see Folder), is to
+   --  go here too.
 
    procedure Recent (Item : Store; Result : out Recent_List)
      with Pre => Is_Open (Item);
@@ -109,8 +116,15 @@ private
 
    type Database_Access is access Ada_Sqlite3.Database;
 
+   Path_Capacity : constant := 1024;
+
+   package Paths is new Ada.Strings.Bounded.Generic_Bounded_Length
+     (Path_Capacity);
+
    type Store is new Ada.Finalization.Limited_Controlled with record
       Base : Database_Access;
+      Root : Paths.Bounded_String;
+      --  The folder the project folders are in.
       --  Database is limited and can only be made by Ada_Sqlite3.Open.
    end record;
 

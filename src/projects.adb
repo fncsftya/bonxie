@@ -1,5 +1,6 @@
 with Ada.Directories;
 with Ada.Environment_Variables;
+with Ada.Strings.Fixed;
 with Ada.Unchecked_Deallocation;
 
 package body Projects is
@@ -40,6 +41,10 @@ package body Projects is
    function Is_Open (Item : Store) return Boolean is
      (Item.Base /= null and then Ada_Sqlite3.Is_Open (Item.Base.all));
 
+   function Folder (Item : Store; Key : Id) return String is
+     (Paths.To_String (Item.Root) & "/"
+      & Ada.Strings.Fixed.Trim (Key'Image, Ada.Strings.Both));
+
    function Connection
      (Item : Store) return not null access Ada_Sqlite3.Database is
      (Item.Base);
@@ -49,6 +54,20 @@ package body Projects is
       if Path /= Memory then
          Ada.Directories.Create_Path
            (Ada.Directories.Containing_Directory (Path));
+         Item.Root :=
+           Paths.To_Bounded_String
+             (Ada.Directories.Containing_Directory (Path), Ada.Strings.Error);
+      else
+         Item.Root :=
+           Paths.To_Bounded_String
+             ((if Ada.Environment_Variables.Exists ("TMPDIR")
+                 and then Ada.Environment_Variables.Value ("TMPDIR") /= ""
+               then Ada.Strings.Fixed.Trim
+                      (Ada.Environment_Variables.Value ("TMPDIR"),
+                       Ada.Strings.Right)
+               else "/tmp")
+              & "/bonxie-memory",
+              Ada.Strings.Right);
       end if;
       Item.Base := new Ada_Sqlite3.Database'(Ada_Sqlite3.Open (Path));
       Ada_Sqlite3.Execute (Item.Base.all, "PRAGMA foreign_keys = ON");
@@ -133,9 +152,15 @@ package body Projects is
           (Item.Base.all, "DELETE FROM projects WHERE id = :id");
    begin
       --  What refers to the project goes with it (foreign keys).
-      --  Also to do, when projects have files: remove them.
       Ada_Sqlite3.Bind_Int64 (Remove, ":id", Long_Integer (Key));
       Ada_Sqlite3.Step (Remove);
+      declare
+         Files : constant String := Folder (Item, Key);
+      begin
+         if Ada.Directories.Exists (Files) then
+            Ada.Directories.Delete_Tree (Files);
+         end if;
+      end;
    end Delete;
 
    procedure Recent (Item : Store; Result : out Recent_List) is

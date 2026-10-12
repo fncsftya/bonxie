@@ -1,5 +1,9 @@
+with Ada.Calendar;
+with Ada.Calendar.Formatting;
+with Ada.Strings.Fixed;
 with UI.Widgets;
 with UI.Widgets.Canvases;
+with Webshot;
 
 package body Viewer.Canvas_Items is
 
@@ -9,11 +13,111 @@ package body Viewer.Canvas_Items is
 
    use type Items.States;
    use type Items.Id;
+   use type Items.Kinds;
+   use type Webshot.States;
 
    Cascade_Step  : constant Float := 24.0;
    Cascade_Count : constant := 6;
    --  Each new item is put this far down and right of the last, for so
    --  many, so that they are not all on top of each other.
+
+   pragma Assert (Webshot.Slot_Count = Items.Capacity);
+   --  A source's picture is taken in the slot of its window.
+
+   function Epoch_Now (Item : Session) return Projects.Seconds is
+     (if Item.Pinned_Time > 0 then Item.Pinned_Time else Projects.Seconds
+        (Ada.Calendar."-"
+           (Ada.Calendar.Clock,
+            Ada.Calendar.Formatting.Time_Of
+              (1970, 1, 1, Time_Zone => 0))));
+   --  As SQLite's unixepoch.
+
+   function Is_Source (Item : Session; Which : Items.Slot) return Boolean is
+     (Windows.Is_Assigned (Item.Windows (Which))
+      and then Windows.Details (Item.Windows (Which)).Kind = Items.Source);
+
+   function Capturing (Item : Session) return Boolean is
+   begin
+      for Which in Items.Slot loop
+         if Is_Source (Item, Which)
+           and then Webshot.State (Which) = Webshot.Working
+         then
+            return True;
+         end if;
+      end loop;
+      return False;
+   end Capturing;
+
+   function Link_Of (Typed : String) return String;
+   --  What was typed, as a link: with https:// if it has no scheme.
+
+   function Link_Of (Typed : String) return String is
+      Trimmed : constant String :=
+        Ada.Strings.Fixed.Trim (Typed, Ada.Strings.Both);
+   begin
+      return (if Trimmed = ""
+                or else Ada.Strings.Fixed.Index (Trimmed, "://") > 0
+              then Trimmed else "https://" & Trimmed);
+   end Link_Of;
+
+   procedure Start_Capture (Item : in out Session; Which : Items.Slot);
+   --  Begin to take the picture of the page the source's text links to.
+
+   procedure Start_Capture (Item : in out Session; Which : Items.Slot) is
+      Link : constant String :=
+        Link_Of (Windows.Text (Item.Windows (Which)));
+   begin
+      if Webshot.State (Which) = Webshot.Working then
+         return;
+      end if;
+      if Link = "" then
+         Windows.Set_Capture
+           (Item.Windows (Which), Windows.Failed, Detail => "no link");
+         return;
+      end if;
+      Items.Make_Image_Folder (Item.Store, Item.Current);
+      Webshot.Reset (Which);
+      Webshot.Start
+        (Which, Link,
+         Items.Image_File
+           (Item.Store, Item.Current,
+            Windows.Details (Item.Windows (Which)).Key));
+      Windows.Set_Capture (Item.Windows (Which), Windows.Busy);
+   end Start_Capture;
+
+   procedure Poll_Captures (Item : in out Session);
+   --  Take the pictures that have been taken, and say what failed.
+
+   procedure Poll_Captures (Item : in out Session) is
+   begin
+      for Which in Items.Slot loop
+         if Is_Source (Item, Which) then
+            case Webshot.State (Which) is
+               when Webshot.Done =>
+                  declare
+                     Key  : constant Items.Id :=
+                       Windows.Details (Item.Windows (Which)).Key;
+                     Time : constant Projects.Seconds := Epoch_Now (Item);
+                  begin
+                     Items.Set_Captured (Item.Store, Key, Time);
+                     Windows.Set_Capture
+                       (Item.Windows (Which), Windows.Ready,
+                        Items.Image_File (Item.Store, Item.Current, Key),
+                        At_Time => Time);
+                     Projects.Touch (Item.Store, Item.Current);
+                  end;
+                  Webshot.Reset (Which);
+               when Webshot.Failed =>
+                  Windows.Set_Capture
+                    (Item.Windows (Which), Windows.Failed,
+                     Detail => Webshot.Message (Which));
+                  Webshot.Reset (Which);
+               when Webshot.Idle | Webshot.Working =>
+                  null;
+            end case;
+         end if;
+      end loop;
+   end Poll_Captures;
 
    function Count (Item : Session) return Natural is
       Found : Natural := 0;
@@ -155,7 +259,9 @@ package body Viewer.Canvas_Items is
       for I in 1 .. Found.Count loop
          Windows.Assign
            (Item.Windows (I), Found.Items (I),
-            Items.Content (Item.Store, Found.Items (I).Key));
+            Items.Content (Item.Store, Found.Items (I).Key),
+            Items.Image_File
+              (Item.Store, Item.Current, Found.Items (I).Key));
       end loop;
       Centre_On_Visible (Item);
       Place_All (Item);
@@ -181,15 +287,20 @@ package body Viewer.Canvas_Items is
    procedure Leave (Item : in out Session) is
    begin
       Save_All (Item);
-      for Each of Item.Windows loop
-         if Windows.Is_Assigned (Each) then
-            Windows.Release (Each);
+      for Which in Items.Slot loop
+         if Windows.Is_Assigned (Item.Windows (Which)) then
+            Windows.Release (Item.Windows (Which));
+            Webshot.Reset (Which);
          end if;
       end loop;
       Widgets.Set_Visible (Item.Dock_Panel, False);
    end Leave;
 
-   procedure Add (Item : in out Session; Name : String := Untitled) is
+   procedure Add
+     (Item : in out Session;
+      Name : String := Untitled;
+      Kind : Items.Kinds := Items.Note)
+   is
       View   : UI.Widgets.Canvases.Canvas renames Item.Canvas_View;
       Pixels : constant Float := Widgets.Density (Item.Widgets);
       Made   : constant Natural := Count (Item);
@@ -217,14 +328,17 @@ package body Viewer.Canvas_Items is
       end if;
       declare
          Key : constant Items.Id :=
-           Items.Create (Item.Store, Item.Current, Name, Where);
+           Items.Create
+             (Item.Store, Item.Current, Name, Where, Kind => Kind);
       begin
          Windows.Assign
            (Item.Windows (Free),
             (Key   => Key,
              Title => Projects.Titles.To_Bounded_String (Name),
              Where => Where,
-             State => Items.Open),
+             State => Items.Open,
+             Kind  => Kind,
+             Captured_At => 0),
             "");
          Windows.Place
            (Item.Windows (Free),
@@ -266,6 +380,7 @@ package body Viewer.Canvas_Items is
 
    procedure Remove (Item : in out Session; Which : Items.Slot) is
    begin
+      Webshot.Reset (Which);
       Items.Delete
         (Item.Store, Windows.Details (Item.Windows (Which)).Key);
       Windows.Release (Item.Windows (Which));
@@ -289,6 +404,8 @@ package body Viewer.Canvas_Items is
                   Set_State (Item, Which, Items.Open);
                when Windows.Close =>
                   Set_State (Item, Which, Items.Closed);
+               when Windows.Capture =>
+                  Start_Capture (Item, Which);
             end case;
          end if;
       end loop;
@@ -308,6 +425,7 @@ package body Viewer.Canvas_Items is
       Wrote, Any : Boolean := False;
    begin
       Sync (Item);
+      Poll_Captures (Item);
       for Each of Item.Windows loop
          if Windows.Is_Assigned (Each) then
             Windows.Flush

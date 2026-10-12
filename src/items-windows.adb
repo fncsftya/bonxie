@@ -1,3 +1,5 @@
+with Ada.Calendar;
+with Ada.Calendar.Formatting;
 with Ada.Strings.Fixed;
 with SDL3.Cursors;
 with UI.Text_Areas;
@@ -16,6 +18,7 @@ package body Items.Windows is
    package Text_Fields renames UI.Widgets.Text_Fields;
 
    use type Docs.Version;
+   use type Ada.Calendar.Time;
    use type SDL3.Events.Milliseconds;
 
    --  In points
@@ -40,6 +43,7 @@ package body Items.Windows is
    Mini_Chars    : constant := 16;
    --  How many characters of a title the bar in the dock shows.
    Label_Height  : constant Float := 20.0;
+   Url_Height    : constant Float := 30.0;
 
    function Count_Words (Of_Text : String) return Natural is
       Total  : Natural := 0;
@@ -64,6 +68,19 @@ package body Items.Windows is
    function Status_Text (Number : Natural) return String is
      (Ada.Strings.Fixed.Trim (Number'Image, Ada.Strings.Both)
       & (if Number = 1 then " word" else " words"));
+
+   function Day (Taken : Projects.Seconds) return String is
+     (Ada.Calendar.Formatting.Image
+        (Ada.Calendar.Formatting.Time_Of (1970, 1, 1, Time_Zone => 0)
+         + Duration (Taken),
+         Time_Zone => 0) (1 .. 10));
+   --  As YYYY-MM-DD, in UTC.
+
+   function Fitted (Message : String) return String is
+     (Message (Message'First ..
+               Message'First - 1
+               + Natural'Min (Message'Length, Labels.Text_Capacity)));
+   --  As much as a label takes.
 
    procedure Build
      (Item    : in out Window;
@@ -97,6 +114,7 @@ package body Items.Windows is
       Widgets.Add (Item.Title_Bar, Item.Minimize_Button);
       Widgets.Add (Item.Title_Bar, Item.Close_Button);
       Widgets.Add (Item.Frame, Item.Body_Text);
+      Widgets.Add (Item.Frame, Item.Picture);
       Widgets.Add (Item.Frame, Item.Status_Bar);
       Widgets.Add (Item.Status_Bar, Item.Status);
       Widgets.Add (Item.Status_Bar, Item.Corner);
@@ -163,6 +181,9 @@ package body Items.Windows is
         (Widgets.Node (Item.Body_Text), Yoga.Horizontal, -Edge);
       Set_Height (Widgets.Node (Item.Body_Text), 0.0);
 
+      Set_Flex_Grow (Widgets.Node (Item.Picture), 1.0);
+      Set_Height (Widgets.Node (Item.Picture), 0.0);
+
       Panels.Set_Fill
         (Item.Status_Bar,
          UI.Themes.Mix (Colors.Background, Colors.Foreground, 0.08));
@@ -199,6 +220,7 @@ package body Items.Windows is
       Size (Item.Mini_Close, Button_Size, Button_Size);
 
       Widgets.Set_Visible (Item.Title_Field, False);
+      Widgets.Set_Visible (Item.Picture, False);
       Widgets.Set_Visible (Item.Frame, False);
       Widgets.Set_Visible (Item.Mini, False);
    end Build;
@@ -211,6 +233,31 @@ package body Items.Windows is
      (Docs.Whole (Item.Content_Doc));
 
    function Words (Item : Window) return Natural is (Item.Word_Count);
+
+   function Status (Item : Window) return String is
+     (Labels.Text (Item.Status));
+
+   procedure Set_Capture
+     (Item   : in out Window;
+      To     : Captures;
+      File   : String := "";
+      Detail : String := "";
+      At_Time : Projects.Seconds := 0) is
+   begin
+      case To is
+         when Waiting =>
+            Labels.Set_Text (Item.Status, "Press Return to capture");
+         when Busy =>
+            Labels.Set_Text (Item.Status, "Capturing...");
+         when Ready =>
+            Item.Details.Captured_At := At_Time;
+            UI.Widgets.Pictures.Set_File (Item.Picture, File);
+            Labels.Set_Text (Item.Status, "Captured " & Day (At_Time));
+         when Failed =>
+            Labels.Set_Text
+              (Item.Status, Fitted ("Failed: " & Detail));
+      end case;
+   end Set_Capture;
 
    function Box (Item : Window) return Items.Frame is
      ((Left   => Widgets.Left_Of (Item.Frame),
@@ -250,22 +297,45 @@ package body Items.Windows is
    procedure Show_Words (Item : in out Window) is
    begin
       Item.Content_Version := Docs.Current (Item.Content_Doc);
-      Item.Word_Count := Count_Words (Docs.Whole (Item.Content_Doc));
-      Labels.Set_Text (Item.Status, Status_Text (Item.Word_Count));
+      if Item.Details.Kind = Note then
+         Item.Word_Count := Count_Words (Docs.Whole (Item.Content_Doc));
+         Labels.Set_Text (Item.Status, Status_Text (Item.Word_Count));
+      end if;
    end Show_Words;
 
    procedure Set_State (Item : in out Window; To : States) is
    begin
       Item.Details.State := To;
+      if To /= Open then
+         UI.Widgets.Pictures.Unload (Item.Picture);
+      end if;
       Widgets.Set_Visible (Item.Frame, To = Open);
       Widgets.Set_Visible (Item.Mini, To = Minimized);
       Item.Was_Used := False;
    end Set_State;
 
+   procedure Show_Kind (Item : in out Window);
+   --  Make the text area the item's text, or its one line, the link; and
+   --  show the picture of a source.
+
+   procedure Show_Kind (Item : in out Window) is
+      use Yoga.Nodes;
+      Of_Source : constant Boolean := Item.Details.Kind = Source;
+      Node : constant Yoga.Nodes.Node := Widgets.Node (Item.Body_Text);
+   begin
+      UI.Text_Areas.Set_Single_Line
+        (Editors.Area (Item.Body_Text).all, Of_Source);
+      Set_Flex_Grow (Node, (if Of_Source then 0.0 else 1.0));
+      Set_Height (Node, (if Of_Source then Url_Height * Item.Pixels else 0.0));
+      Widgets.Set_Visible (Item.Picture, Of_Source);
+      Widgets.Request_Layout (Item.Body_Text);
+   end Show_Kind;
+
    procedure Assign
      (Item       : in out Window;
       Of_Item    : Items.Info;
-      Saved_Text : String) is
+      Saved_Text : String;
+      Picture_File : String := "") is
    begin
       Item.Assigned := True;
       Item.Details := Of_Item;
@@ -283,7 +353,19 @@ package body Items.Windows is
       Widgets.Set_Visible (Item.Title_Area, True);
       Widgets.Set_Visible (Item.Title_Field, False);
       Show_Title (Item);
-      Show_Words (Item);
+      Show_Kind (Item);
+      UI.Widgets.Pictures.Set_File (Item.Picture, "");
+      if Of_Item.Kind = Source then
+         Item.Content_Version := Docs.Current (Item.Content_Doc);
+         if Of_Item.Captured_At > 0 and then Picture_File /= "" then
+            Set_Capture
+              (Item, Ready, Picture_File, At_Time => Of_Item.Captured_At);
+         else
+            Set_Capture (Item, Waiting);
+         end if;
+      else
+         Show_Words (Item);
+      end if;
       Set_State (Item, Of_Item.State);
       if Item.Placed_Once then
          Place (Item, Item.Zoom, Item.Origin_X, Item.Origin_Y);
@@ -292,6 +374,7 @@ package body Items.Windows is
 
    procedure Release (Item : in out Window) is
    begin
+      UI.Widgets.Pictures.Unload (Item.Picture);
       Widgets.Set_Visible (Item.Frame, False);
       Widgets.Set_Visible (Item.Mini, False);
       Item.Assigned := False;
@@ -325,7 +408,10 @@ package body Items.Windows is
          Set_Height
            (Widgets.Node (Item.Frame),
             Float'Rounding (Where.Height * Zoom * Pixels));
-         Editors.Set_Zoom (Item.Body_Text, Zoom);
+         --  The link is not zoomed, nor is the title.
+         Editors.Set_Zoom
+           (Item.Body_Text,
+            (if Item.Details.Kind = Source then 1.0 else Zoom));
          Widgets.Request_Layout (Item.Frame);
       end if;
    end Place;
@@ -434,6 +520,14 @@ package body Items.Windows is
         and then not Item.Editing
       then
          Begin_Edit (Item);
+      end if;
+      if Item.Details.Kind = Source and then Item.Details.State = Open then
+         UI.Text_Areas.Take_Return
+           (Editors.Area (Item.Body_Text).all, Entered);
+         if Entered then
+            Action := Capture;
+            return;
+         end if;
       end if;
       if Item.Editing then
          Text_Fields.Take_Return (Item.Title_Field, Entered);

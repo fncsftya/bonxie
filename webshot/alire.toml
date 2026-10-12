@@ -1,0 +1,19 @@
+name = "webshot"
+description = "Pictures of web pages, taken with WebKit (macOS only)"
+version = "0.1.0-dev"
+
+authors = ["Matt Rawcliffe"]
+licenses = "MIT"
+website = ""
+tags = []
+
+[available.'case(os)']
+macos = true
+'...' = false
+
+[build-switches]
+"*".ada_version = "Ada2022"
+"*".compile_checks = "Errors"
+"*".runtime_checks = "Everything"
+"*".style_checks = "Yes"
+"*".contracts = "Yes"

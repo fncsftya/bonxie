@@ -1,3 +1,4 @@
+with Items;
 with UI.Widgets;
 with Viewer.Canvas_Items;
 with Viewer.Deletion;
@@ -93,6 +94,12 @@ package body Viewer.Clicks is
             Buttons.Take_Click (Item.Tool_Item, Clicked);
             if Clicked then
                Canvas_Items.Add (Item);
+               return;
+            end if;
+            Buttons.Take_Click (Item.Tool_Source, Clicked);
+            if Clicked then
+               Canvas_Items.Add
+                 (Item, Canvas_Items.Untitled_Source, Items.Source);
                return;
             end if;
             Buttons.Take_Click (Item.Tool_List, Clicked);

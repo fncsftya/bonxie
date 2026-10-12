@@ -123,7 +123,9 @@ package body Viewer is
      (Canvas_Items.Count (Item));
 
    procedure Add_Item
-     (Item : in out Session; Name : String := "Untitled item")
+     (Item : in out Session;
+      Name : String := "Untitled item";
+      Kind : Items.Kinds := Items.Note)
      renames Canvas_Items.Add;
 
    function Is_Listing (Item : Session) return Boolean is
@@ -146,6 +148,26 @@ package body Viewer is
 
    function Item_Text (Item : Session; Row : Positive) return String is
      (Items.Windows.Text (Item.Windows (Nth (Item, Row))));
+
+   function Item_Kind (Item : Session; Row : Positive) return Items.Kinds is
+     (Items.Windows.Details (Item.Windows (Nth (Item, Row))).Kind);
+
+   function Item_Status (Item : Session; Row : Positive) return String is
+     (Items.Windows.Status (Item.Windows (Nth (Item, Row))));
+
+   function Item_Picture_File (Item : Session; Row : Positive) return String
+   is
+     (Items.Image_File
+        (Item.Store, Item.Current,
+         Items.Windows.Details (Item.Windows (Nth (Item, Row))).Key));
+
+   procedure Pin_Capture_Time (Item : in out Session; To : Projects.Seconds) is
+   begin
+      Item.Pinned_Time := To;
+   end Pin_Capture_Time;
+
+   function Is_Capturing (Item : Session) return Boolean is
+     (Canvas_Items.Capturing (Item));
 
    function Item_Words (Item : Session; Row : Positive) return Natural is
      (Items.Windows.Words (Item.Windows (Nth (Item, Row))));
@@ -235,6 +257,9 @@ package body Viewer is
 
    procedure Paint_Frame (Item : in out Session) renames Painting.Paint;
 
+   Capture_Poll : constant := 100;
+   --  Milliseconds between looks for a picture being taken.
+
    procedure Wait_And_Handle (Item : in out Session) is
       Event   : SDL3.Events.Event;
       Timeout : Integer := -1;  --  none
@@ -250,6 +275,10 @@ package body Viewer is
       Tick (Item, SDL3.Events.Ticks);
       if Widgets.Until_Update (Item.Widgets) >= 0 then
          Wake_In (Widgets.Until_Update (Item.Widgets));
+      end if;
+      --  A picture of a page is on its way: look for it now and then.
+      if Item.Shown = Project and then Canvas_Items.Capturing (Item) then
+         Wake_In (Capture_Poll);
       end if;
 
       if SDL3.Events.Wait (Event, Timeout_MS => Timeout) then

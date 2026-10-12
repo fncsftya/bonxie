@@ -154,12 +154,13 @@ package Viewer is
 
    procedure Add_Item
      (Item : in out Session;
-      Name : String := "Untitled item")
+      Name : String := "Untitled item";
+      Kind : Items.Kinds := Items.Note)
      with Pre => Is_Open (Item) and then Screen (Item) = Project
                  and then Name'Length <= Projects.Title_Capacity;
    --  Add one called Name in the middle of the canvas, with the focus in
-   --  its text, as the Add Item button does; none if the project has
-   --  Items.Capacity.
+   --  its text, as the Add Item button does (or, of a Source, as Add
+   --  Source does, in its link); none if the project has Items.Capacity.
 
    function Item_Title (Item : Session; Row : Positive) return String
      with Pre => Is_Open (Item) and then Screen (Item) = Project
@@ -168,6 +169,29 @@ package Viewer is
    function Item_Text (Item : Session; Row : Positive) return String
      with Pre => Is_Open (Item) and then Screen (Item) = Project
                  and then Row <= Item_Count (Item);
+
+   function Item_Kind (Item : Session; Row : Positive) return Items.Kinds
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item);
+
+   function Item_Status (Item : Session; Row : Positive) return String
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item);
+   --  What the status line of the item says.
+
+   function Item_Picture_File (Item : Session; Row : Positive) return String
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item);
+   --  Where the picture of the item, if a source, is kept.
+
+   procedure Pin_Capture_Time (Item : in out Session; To : Projects.Seconds)
+     with Pre => To > 0;
+   --  Record every picture taken from now on as taken at To, whatever
+   --  the time is: for tests.
+
+   function Is_Capturing (Item : Session) return Boolean
+     with Pre => Is_Open (Item) and then Screen (Item) = Project;
+   --  Whether the picture of a page is being taken, for some source.
 
    function Item_Words (Item : Session; Row : Positive) return Natural
      with Pre => Is_Open (Item) and then Screen (Item) = Project
@@ -330,12 +354,16 @@ private
       --  minimised: shown only when there are any.
       Tools         : UI.Widgets.Panels.Panel;
       Tool_Item     : UI.Widgets.Buttons.Button;
+      Tool_Source   : UI.Widgets.Buttons.Button;
       Tool_List     : UI.Widgets.Buttons.Button;
-      --  The tools of the view: a bar above the toolbar. Add Item, and
-      --  the list of items.
+      --  The tools of the view: a bar above the toolbar. Add Item, Add
+      --  Source, and the list of items.
 
       Shown        : Screens := Home;
       Store        : Projects.Store;
+
+      Pinned_Time : Projects.Seconds := 0;
+      --  The time pictures are taken at, if not 0: see Pin_Capture_Time.
 
       Shown_Zoom, Shown_X, Shown_Y : Float := 0.0;
       --  Of the canvas, as the items' windows have been put by it.

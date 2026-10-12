@@ -1,5 +1,9 @@
+with Ada.Directories;
+with Ada.Strings.Fixed;
+with Ada.Text_IO;
 with SDL3.Cursors;
 with SDL3.Events;
+with Webshot;
 with Goldens;
 with Items.Windows;
 with Projects;
@@ -22,10 +26,12 @@ package body Item_Tests is
    --  and the toolbar, 32 each, so its middle, where the origin starts and
    --  items are added, is at 360, 208.
 
-   Add_X  : constant Float := 64.0;
-   List_X : constant Float := 182.0;
-   Tools_Y : constant Float := 432.0;
-   --  The middle of the buttons on the tools bar: Add Item, and Items.
+   Add_X    : constant Float := 64.0;
+   Source_X : constant Float := 182.0;
+   List_X   : constant Float := 300.0;
+   Tools_Y  : constant Float := 432.0;
+   --  The middle of the buttons on the tools bar: Add Item, Add Source,
+   --  and Items.
 
    --  A new item is 280 x 200 on the canvas, with its middle at its origin,
    --  which is at 360, 208 on the screen: from 220, 108 to 500, 308. Its
@@ -250,8 +256,53 @@ package body Item_Tests is
         ("items-deleted-content", "",
          Items.Content (Store, Listed.Items (1).Key));
 
+      --  A source: a link, and a picture that goes with it.
+      declare
+         Link    : constant Items.Id :=
+           Items.Create
+             (Store, First, "Page", Where, "https://example.org",
+              Kind => Items.Source);
+         Picture : constant String := Items.Image_File (Store, First, Link);
+         File    : Ada.Text_IO.File_Type;
+         Found   : Items.Info_List;
+      begin
+         Items.Set_Captured (Store, Link, 1_700_000_000);
+         Items.Load (Store, First, Found);
+         Check
+           ("source-stored", "SOURCE 1700000000 https://example.org",
+            Items.Kinds'Image (Found.Items (Found.Count).Kind)
+            & Projects.Seconds'Image (Found.Items (Found.Count).Captured_At)
+            & " " & Items.Content (Store, Link));
+         Check
+           ("source-note-kind", "NOTE 0",
+            Items.Kinds'Image (Found.Items (1).Kind)
+            & Projects.Seconds'Image (Found.Items (1).Captured_At));
+         Check
+           ("source-picture-place", "TRUE",
+            Boolean'Image
+              (Picture = Projects.Folder (Store, First) & "/sources/"
+               & Ada.Strings.Fixed.Trim (Link'Image, Ada.Strings.Both)
+               & ".png"));
+         Items.Make_Image_Folder (Store, First);
+         Ada.Text_IO.Create (File, Ada.Text_IO.Out_File, Picture);
+         Ada.Text_IO.Close (File);
+         Items.Delete (Store, Link);
+         Check
+           ("source-picture-deleted", "FALSE",
+            Boolean'Image (Ada.Directories.Exists (Picture)));
+
+         --  And a project's files go with it.
+         Items.Make_Image_Folder (Store, First);
+         Ada.Text_IO.Create (File, Ada.Text_IO.Out_File, Picture);
+         Ada.Text_IO.Close (File);
+      end;
+
       --  All of a project's go with it, and no others.
       Projects.Delete (Store, First);
+      Check
+        ("project-files-deleted", "FALSE",
+         Boolean'Image
+           (Ada.Directories.Exists (Projects.Folder (Store, First))));
       Check
         ("items-with-project", " 0 1",
          Natural'Image (Items.Count (Store, First))
@@ -770,5 +821,119 @@ package body Item_Tests is
       Move_To (Session, 650.0, 60.0);
       Snap (Session, "item-kept");
    end Kept;
+
+   --  Sources
+
+   Whole_Page : constant String :=
+     "<html><body style='margin:0'>"
+     & "<div style='height:600px;background:#c0392b'></div>"
+     & "<div style='height:600px;background:#27ae60'></div>"
+     & "<div style='height:600px;background:#2980b9'></div>"
+     & "</body></html>";
+   --  Three blocks of colour, with no text, which is not the same on
+   --  every release.
+
+   procedure Capture_From
+     (Session : in out Viewer.Session; Link : String)
+   is
+      Tick  : SDL3.Events.Milliseconds := 1_000;
+      Waited : Natural := 0;
+   begin
+      Press_Key (Session, Events.Key_A, Command => True);
+      Type_In (Session, Link);
+      Press_Key (Session, Events.Key_Return);
+      while Viewer.Is_Capturing (Session) and then Waited < 600 loop
+         Webshot.Pump (100);
+         Tick := SDL3.Events.Milliseconds (Natural (Tick) + 100);
+         Viewer.Tick (Session, Tick);
+         Waited := Waited + 1;
+      end loop;
+   end Capture_From;
+
+   procedure Source_Windows is
+      Session : Viewer.Session;
+   begin
+      Start (Session);
+      Click_On (Session, Source_X, Tools_Y);
+      Check
+        ("source-count", " 1", Natural'Image (Viewer.Item_Count (Session)));
+      Check
+        ("source-kind", "SOURCE",
+         Items.Kinds'Image (Viewer.Item_Kind (Session, 1)));
+      Check
+        ("source-status", "Press Return to capture",
+         Viewer.Item_Status (Session, 1));
+      Move_To (Session, 600.0, 60.0);
+      Snap (Session, "source-added");
+      Type_In (Session, "example.org");
+      Check ("source-link", "example.org", Viewer.Item_Text (Session, 1));
+      Click_On (Session, Add_X, Tools_Y);
+      Check
+        ("source-and-note", "NOTE",
+         Items.Kinds'Image (Viewer.Item_Kind (Session, 2)));
+   end Source_Windows;
+
+   procedure Source_Pages is
+      Session : Viewer.Session;
+      Folder  : constant String :=
+        "/tmp/bonxie-source-page";
+      Page    : constant String := Folder & "/page.html";
+      File    : Ada.Text_IO.File_Type;
+      Key     : Projects.Id;
+   begin
+      if not Ada.Directories.Exists (Folder) then
+         Ada.Directories.Create_Path (Folder);
+      end if;
+      Ada.Text_IO.Create (File, Ada.Text_IO.Out_File, Page);
+      Ada.Text_IO.Put (File, Whole_Page);
+      Ada.Text_IO.Close (File);
+
+      Start (Session);
+      Viewer.Pin_Capture_Time (Session, 1_700_000_000);
+      Key := Viewer.Current_Project (Session);
+      Viewer.Add_Item (Session, "Page", Items.Source);
+      Capture_From (Session, "file://" & Page);
+      Check
+        ("source-captured", "FALSE",
+         Boolean'Image (Viewer.Is_Capturing (Session)));
+      Check
+        ("source-picture", "TRUE",
+         Boolean'Image
+           (Ada.Directories.Exists (Viewer.Item_Picture_File (Session, 1))));
+      Check
+        ("source-status-done", "Captured ",
+         Viewer.Item_Status (Session, 1) (1 .. 9));
+      Move_To (Session, 600.0, 60.0);
+      Snap (Session, "source-captured");
+
+      --  Scrolled with the wheel, over the picture.
+      Viewer.Handle
+        (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_Y => -4.0,
+                                Mouse_X => 360.0, Mouse_Y => 220.0,
+                                others => <>));
+      Snap (Session, "source-scrolled");
+
+      --  Kept with the project, picture and all.
+      Viewer.Close_Project (Session);
+      Viewer.Open_Project (Session, Key);
+      Check
+        ("source-kept-status", "Captured ",
+         Viewer.Item_Status (Session, 1) (1 .. 9));
+      Snap (Session, "source-kept");
+
+      --  A page that is not there fails, and says so.
+      Viewer.Add_Item (Session, "Nowhere", Items.Source);
+      Capture_From (Session, "https://nowhere.invalid/");
+      Check
+        ("source-failed", "Failed: ",
+         Viewer.Item_Status (Session, 2) (1 .. 8));
+
+      --  What the test made, and the project's pictures, are tidied away.
+      Ada.Directories.Delete_Tree
+        (Ada.Directories.Containing_Directory
+           (Ada.Directories.Containing_Directory
+              (Viewer.Item_Picture_File (Session, 1))));
+      Ada.Directories.Delete_Tree (Folder);
+   end Source_Pages;
 
 end Item_Tests;

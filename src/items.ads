@@ -13,6 +13,10 @@ package Items is
 
    type Id is new Long_Integer;
 
+   type Kinds is (Note, Source);
+   --  Note: a window of text to write in. Source: a window of a picture of
+   --  a web page, at the link that is its text.
+
    type States is (Open, Minimized, Closed);
    --  Open: a window on the canvas. Minimized: only its title, in a bar
    --  above the tools. Closed: not shown, but kept in the list of items.
@@ -39,6 +43,9 @@ package Items is
         Projects.Titles.Null_Bounded_String;
       Where : Frame;
       State : States := Open;
+      Kind  : Kinds := Note;
+      Captured_At : Projects.Seconds := 0;
+      --  Of a source: when its picture was taken; 0 if it has not been.
    end record;
 
    type Info_Array is array (Positive range <>) of Info;
@@ -58,10 +65,11 @@ package Items is
       Project : Projects.Id;
       Title   : String;
       Where   : Frame;
-      Text    : String := "") return Id
+      Text    : String := "";
+      Kind    : Kinds := Note) return Id
      with Pre => Projects.Is_Open (Store);
    --  Add an item, open, to the project. The project must exist, and have
-   --  fewer than Capacity items.
+   --  fewer than Capacity items. The text of a source is its link.
 
    procedure Load
      (Store   : Projects.Store;
@@ -94,8 +102,25 @@ package Items is
      (Store : in out Projects.Store; Key : Id; State : States)
      with Pre => Projects.Is_Open (Store);
 
+   procedure Set_Captured
+     (Store : in out Projects.Store; Key : Id; At_Time : Projects.Seconds)
+     with Pre => Projects.Is_Open (Store);
+   --  Say the picture of a source was taken at At_Time.
+
+   function Image_File
+     (Store : Projects.Store; Project : Projects.Id; Key : Id) return String
+     with Pre => Projects.Is_Open (Store);
+   --  Where the picture of a source is kept, as a PNG file: in the
+   --  project's folder (see Projects.Folder), in sources, named for the
+   --  item. It does not make the folder: see Make_Image_Folder.
+
+   procedure Make_Image_Folder
+     (Store : Projects.Store; Project : Projects.Id)
+     with Pre => Projects.Is_Open (Store);
+
    procedure Delete (Store : in out Projects.Store; Key : Id)
      with Pre => Projects.Is_Open (Store);
-   --  Remove the item for good. Nothing is done if there is no such item.
+   --  Remove the item for good, and its picture. Nothing is done if there
+   --  is no such item.
 
 end Items;

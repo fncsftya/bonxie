@@ -9,7 +9,10 @@ picture with `tests/golden/<name>.png`. Tests also check text, as edited
 or saved, with `Goldens.Check_Text`, and documents and layouts without
 drawing (`document-*`, `layout-*`), and the items of a canvas (`items-*`:
 added, typed in, dragged, sized, minimised, closed, listed and kept in the
-database, by clicks and drags at points of the window).
+database, by clicks and drags at points of the window), and sources
+(`sources-*`: a link's picture taken from a page written to
+`/tmp/bonxie-source-page`, so the tests need WebKit but not a network
+beyond one name that does not exist).
 The software renderer gives the same pixels every run, so no pixel may
 differ.
 
