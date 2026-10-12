@@ -96,6 +96,58 @@ package body Viewer.Canvas_Items is
       Projects.Touch (Item.Store, Item.Current);
    end Touch;
 
+   procedure Centre_On (Item : in out Session; X, Y : Float);
+   --  Pan so that the canvas point X, Y is in the middle of the view.
+
+   procedure Centre_On (Item : in out Session; X, Y : Float) is
+      View   : UI.Widgets.Canvases.Canvas renames Item.Canvas_View;
+      Pixels : constant Float := Widgets.Density (Item.Widgets);
+      Zoom   : constant Float := Canvases.Zoom (View);
+   begin
+      Canvases.Pan_By
+        (View,
+         Widgets.Width_Of (View) / Pixels / 2.0
+           - (Canvases.Origin_X (View) + X * Zoom),
+         Widgets.Height_Of (View) / Pixels / 2.0
+           - (Canvases.Origin_Y (View) + Y * Zoom));
+   end Centre_On;
+
+   procedure Centre_On_Visible (Item : in out Session);
+   --  Centre the view on the middle of the bounding box of the windows
+   --  that are open, if there are any.
+
+   procedure Centre_On_Visible (Item : in out Session) is
+      Any : Boolean := False;
+      Left, Top, Right, Bottom : Float := 0.0;
+   begin
+      for Each of Item.Windows loop
+         if Windows.Is_Assigned (Each)
+           and then Windows.Details (Each).State = Items.Open
+         then
+            declare
+               Where : constant Items.Frame := Windows.Details (Each).Where;
+            begin
+               if Any then
+                  Left   := Float'Min (Left, Where.Left);
+                  Top    := Float'Min (Top, Where.Top);
+                  Right  := Float'Max (Right, Where.Left + Where.Width);
+                  Bottom := Float'Max (Bottom, Where.Top + Where.Height);
+               else
+                  Any    := True;
+                  Left   := Where.Left;
+                  Top    := Where.Top;
+                  Right  := Where.Left + Where.Width;
+                  Bottom := Where.Top + Where.Height;
+               end if;
+            end;
+         end if;
+      end loop;
+      if Any then
+         pragma Assert (Right >= Left and then Bottom >= Top);
+         Centre_On (Item, (Left + Right) / 2.0, (Top + Bottom) / 2.0);
+      end if;
+   end Centre_On_Visible;
+
    procedure Enter (Item : in out Session) is
       Found : Items.Info_List;
    begin
@@ -105,6 +157,7 @@ package body Viewer.Canvas_Items is
            (Item.Windows (I), Found.Items (I),
             Items.Content (Item.Store, Found.Items (I).Key));
       end loop;
+      Centre_On_Visible (Item);
       Place_All (Item);
       Show_Dock (Item);
       Widgets.Layout (Item.Widgets, Item.Target);
@@ -198,27 +251,14 @@ package body Viewer.Canvas_Items is
    end Set_State;
 
    procedure Reveal (Item : in out Session; Which : Items.Slot) is
-      View   : UI.Widgets.Canvases.Canvas renames Item.Canvas_View;
-      Pixels : constant Float := Widgets.Density (Item.Widgets);
       Where  : constant Items.Frame :=
         Windows.Details (Item.Windows (Which)).Where;
-      Zoom   : constant Float := Canvases.Zoom (View);
    begin
       if Windows.Details (Item.Windows (Which)).State /= Items.Open then
          Set_State (Item, Which, Items.Open);
       end if;
-      --  Pan by how far its middle is from the view's.
-      declare
-         Middle_X : constant Float :=
-           Canvases.Origin_X (View) + (Where.Left + Where.Width / 2.0) * Zoom;
-         Middle_Y : constant Float :=
-           Canvases.Origin_Y (View) + (Where.Top + Where.Height / 2.0) * Zoom;
-      begin
-         Canvases.Pan_By
-           (View,
-            Widgets.Width_Of (View) / Pixels / 2.0 - Middle_X,
-            Widgets.Height_Of (View) / Pixels / 2.0 - Middle_Y);
-      end;
+      Centre_On (Item, Where.Left + Where.Width / 2.0,
+                 Where.Top + Where.Height / 2.0);
       Windows.Bring_To_Front (Item.Windows (Which));
       Sync (Item);
       Widgets.Layout (Item.Widgets, Item.Target);
