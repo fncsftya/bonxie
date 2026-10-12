@@ -3,13 +3,6 @@ with UI.Themes;
 --  How the screens look: the sizes of what is on them, and its colours.
 private package Viewer.Style is
 
-   --  The page
-
-   Family     : constant String := "Georgia";
-   Font_Size  : constant Float := 18.0;
-   Page_Width : constant Float := 640.0;  --  layout units
-   Para_Gap   : constant Float := 8.0;
-
    --  The window
 
    Window_Width  : constant := 1000;
@@ -19,8 +12,15 @@ private package Viewer.Style is
    Header_Inset  : constant Float := 80.0;
    --  The header across the top, and what its title leaves clear at the
    --  left for the window's close, minimise and zoom buttons.
-   Margin        : constant Float := 16.0;
-   --  Around the text area.
+
+   --  The canvas, in points
+
+   Tools_Margin  : constant Float := 16.0;
+   --  Of the floating toolbar from the canvas's top left, to begin with.
+   Tools_Width   : constant Float := 88.0;
+   Tools_Pad     : constant Float := 8.0;
+   Tool_Height   : constant Float := 56.0;
+   Tab_Width     : constant Float := 80.0;
 
    --  The home screen, in points
 

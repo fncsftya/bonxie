@@ -747,7 +747,7 @@ package body UI.Widgets is
                Handled := Taker /= null;
             end if;
 
-         when SDL3.Events.Mouse_Wheel =>
+         when SDL3.Events.Mouse_Wheel | SDL3.Events.Pinch =>
             Over := Hit (Item, Event.Mouse_X * Item.Density,
                          Event.Mouse_Y * Item.Density);
             Bubble (Over, Event, Taker);
@@ -761,6 +761,20 @@ package body UI.Widgets is
             null;
       end case;
    end Dispatch;
+
+   function Wanted_Cursor (Item : Tree) return SDL3.Cursors.Kind is
+      use type SDL3.Cursors.Kind;
+      Asking : Widget_Access :=
+        (if Item.Capture /= null then Item.Capture else Item.Hover);
+   begin
+      while Asking /= null loop
+         if Cursor (Asking.all) /= SDL3.Cursors.Default then
+            return Cursor (Asking.all);
+         end if;
+         Asking := (if Item.Capture /= null then null else Asking.Parent);
+      end loop;
+      return SDL3.Cursors.Default;
+   end Wanted_Cursor;
 
    --  Time
 

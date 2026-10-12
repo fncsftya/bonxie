@@ -11,7 +11,7 @@ with Yoga.Nodes;
 package body Viewer.Build is
 
    package Widgets renames UI.Widgets;
-   package Editors renames UI.Widgets.Editors;
+   package Palettes renames UI.Widgets.Palettes;
    package Panels renames UI.Widgets.Panels;
    package Buttons renames UI.Widgets.Buttons;
    package Labels renames UI.Widgets.Labels;
@@ -157,12 +157,20 @@ package body Viewer.Build is
    begin
       Widgets.Add (Item.Window_Panel, Item.Project_Panel);
       Widgets.Add (Item.Project_Panel, Item.Content_Panel);
-      Widgets.Add (Item.Content_Panel, Item.Area);
+      Widgets.Add (Item.Content_Panel, Item.Canvas_View);
+      Widgets.Add (Item.Content_Panel, Item.Tools);
+      Widgets.Add (Item.Tools, Item.Tool_Item);
       Widgets.Add (Item.Project_Panel, Item.Toolbar_Panel);
       Widgets.Add (Item.Toolbar_Panel, Item.Project_Title);
+      Widgets.Add (Item.Toolbar_Panel, Item.Canvas_Tab);
       Widgets.Add (Item.Toolbar_Panel, Item.Close_Button);
       Panels.Set_Fill (Item.Toolbar_Panel, Toolbar);
+      Buttons.Set_Label (Item.Canvas_Tab, "Canvas");
+      Buttons.Set_Selected (Item.Canvas_Tab, True);
       Buttons.Set_Label (Item.Close_Button, "Close");
+      Buttons.Set_Label (Item.Tool_Item, "New Item");
+      Buttons.Set_Icon (Item.Tool_Item, UI.Icons.Window);
+      Buttons.Set_Captioned (Item.Tool_Item, True);
       Labels.Set_Style (Item.Project_Title, UI.Line_Texts.Strong);
       Labels.Set_Ink (Item.Project_Title, Colors.Background);
 
@@ -170,12 +178,26 @@ package body Viewer.Build is
       Set_Flex_Grow (Widgets.Node (Item.Project_Panel), 1.0);
       Set_Flex_Grow (Widgets.Node (Item.Content_Panel), 1.0);
       Set_Flex_Direction (Widgets.Node (Item.Content_Panel), Yoga.Column);
-      Set_Padding
-        (Widgets.Node (Item.Content_Panel), Yoga.All_Edges,
-         Margin * Item.Density);
-      Set_Flex_Grow (Widgets.Node (Item.Area), 1.0);
+      Set_Flex_Grow (Widgets.Node (Item.Canvas_View), 1.0);
 
-      --  The Close button at the right, in the middle of the bar.
+      --  The floating toolbar is not in the layout: over the canvas, at
+      --  its top left, until it is dragged.
+      Set_Position_Type (Widgets.Node (Item.Tools), Yoga.Absolute);
+      Set_Position
+        (Widgets.Node (Item.Tools), Yoga.Left, Tools_Margin * Item.Density);
+      Set_Position
+        (Widgets.Node (Item.Tools), Yoga.Top, Tools_Margin * Item.Density);
+      Set_Width (Widgets.Node (Item.Tools), Tools_Width * Item.Density);
+      Set_Flex_Direction (Widgets.Node (Item.Tools), Yoga.Column);
+      Set_Padding
+        (Widgets.Node (Item.Tools), Yoga.All_Edges, Tools_Pad * Item.Density);
+      Set_Padding
+        (Widgets.Node (Item.Tools), Yoga.Top,
+         (Palettes.Grip_Height + 2.0) * Item.Density);
+      Set_Height (Widgets.Node (Item.Tool_Item), Tool_Height * Item.Density);
+
+      --  The tabs and the Close button at the right, in the middle of the
+      --  bar.
       Set_Height
         (Widgets.Node (Item.Toolbar_Panel), Toolbar_Size * Item.Density);
       Set_Flex_Direction (Widgets.Node (Item.Toolbar_Panel), Yoga.Row);
@@ -191,6 +213,11 @@ package body Viewer.Build is
       Set_Width (Widgets.Node (Item.Project_Title), 0.0);
       Set_Height
         (Widgets.Node (Item.Project_Title), Close_Height * Item.Density);
+      Set_Width (Widgets.Node (Item.Canvas_Tab), Tab_Width * Item.Density);
+      Set_Height
+        (Widgets.Node (Item.Canvas_Tab), Close_Height * Item.Density);
+      Set_Margin
+        (Widgets.Node (Item.Canvas_Tab), Yoga.Right, Gap * Item.Density);
       Set_Width (Widgets.Node (Item.Close_Button), Close_Width * Item.Density);
       Set_Height
         (Widgets.Node (Item.Close_Button), Close_Height * Item.Density);
@@ -289,8 +316,6 @@ package body Viewer.Build is
       Buttons.Set_Label (Item.Cancel_Button, "Cancel");
       Text_Fields.Configure
         (Item.Edit_Field, UI.Line_Texts.System_UI, Edit_Size);
-      Editors.Configure (Item.Area, Family, Font_Size, Page_Width, Para_Gap);
-      Editors.Attach (Item.Area, Scripts.Document (Item.Script));
 
       --  It starts at the home screen.
       Widgets.Set_Visible (Item.Project_Panel, False);

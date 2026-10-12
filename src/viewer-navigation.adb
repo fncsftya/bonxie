@@ -35,7 +35,7 @@ package body Viewer.Navigation is
       Item.Shown := Project;
       Widgets.Set_Visible (Item.Home_Panel, False);
       Widgets.Set_Visible (Item.Project_Panel, True);
-      Widgets.Focus (Item.Area);
+      Widgets.Clear_Focus (Item.Widgets);
       Widgets.Layout (Item.Widgets, Item.Target);
    end Enter;
 

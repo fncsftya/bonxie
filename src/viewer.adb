@@ -9,12 +9,11 @@ with Viewer.Deletion;
 with Viewer.Navigation;
 with Viewer.Painting;
 with Viewer.Style;
-with Viewer.Zooming;
 
 package body Viewer is
 
    package Widgets renames UI.Widgets;
-   package Editors renames UI.Widgets.Editors;
+   package Canvases renames UI.Widgets.Canvases;
    package Buttons renames UI.Widgets.Buttons;
    package Labels renames UI.Widgets.Labels;
 
@@ -22,12 +21,27 @@ package body Viewer is
    use type Projects.Id;
    use type SDL3.Events.Event_Kind;
    use type SDL3.Events.Key_Code;
-   use type SDL3.Events.Milliseconds;
+   use type SDL3.Cursors.Kind;
    use SDL3.Windows.Renderers;
 
    package Redraws is new SDL3.Events.Redraws (Session, Painting.Draw);
 
    --  Events
+
+   function Cursor (Item : Session) return SDL3.Cursors.Kind is
+     (Widgets.Wanted_Cursor (Item.Widgets));
+
+   procedure Show_Cursor (Item : in out Session);
+   --  Give the window the cursor the widgets want, if it is not that now.
+
+   procedure Show_Cursor (Item : in out Session) is
+      Wanted : constant SDL3.Cursors.Kind := Cursor (Item);
+   begin
+      if Item.Windowed and then Wanted /= Item.Shown_Cursor then
+         SDL3.Cursors.Set (Wanted);
+         Item.Shown_Cursor := Wanted;
+      end if;
+   end Show_Cursor;
 
    procedure Handle (Item : in out Session; Event : SDL3.Events.Event) is
       Handled : Boolean := False;
@@ -46,19 +60,18 @@ package body Viewer is
                   Deletion.Close (Item);
                   return;
                end if;
-            --  The document is shown only in a project.
-            elsif Item.Shown = Project then
-               Zooming.Handle (Item, Event, Handled);
-               if not Handled and then Event.Kind = SDL3.Events.Key_Down
-                 and then Event.Command and then Event.Key = SDL3.Events.Key_S
-               then
-                  Save (Item);
-                  Handled := True;
-               end if;
+            --  The text is saved only from a project.
+            elsif Item.Shown = Project
+              and then Event.Kind = SDL3.Events.Key_Down
+              and then Event.Command and then Event.Key = SDL3.Events.Key_S
+            then
+               Save (Item);
+               Handled := True;
             end if;
             if not Handled then
                Widgets.Dispatch (Item.Widgets, Event, Handled);
                Clicks.Take (Item);
+               Show_Cursor (Item);
             end if;
       end case;
    end Handle;
@@ -66,6 +79,8 @@ package body Viewer is
    --  The screens
 
    function Screen (Item : Session) return Screens is (Item.Shown);
+
+   function Mode (Item : Session) return Modes is (Item.Mode);
 
    function Current_Project (Item : Session) return Projects.Id is
      (Item.Current);
@@ -160,13 +175,8 @@ package body Viewer is
             else Integer'Min (Timeout, Integer'Max (0, Milliseconds)));
       end Wake_In;
    begin
-      --  Nothing to do until something happens, except to settle the
-      --  zoom once it has held still, and to blink the caret.
+      --  Nothing to do until something happens, except to blink a caret.
       Tick (Item, SDL3.Events.Ticks);
-      if not Item.Settled then
-         Wake_In
-           (Zooming.Settle_MS - Integer (SDL3.Events.Ticks - Item.Zoomed_At));
-      end if;
       if Widgets.Until_Update (Item.Widgets) >= 0 then
          Wake_In (Widgets.Until_Update (Item.Widgets));
       end if;
@@ -178,11 +188,6 @@ package body Viewer is
          end loop;
       end if;
 
-      if not Item.Settled
-        and then SDL3.Events.Ticks - Item.Zoomed_At >= Zooming.Settle_MS
-      then
-         Settle (Item);
-      end if;
       Tick (Item, SDL3.Events.Ticks);
    end Wait_And_Handle;
 
@@ -206,7 +211,16 @@ package body Viewer is
    end Open;
 
    function Is_Open (Item : Session) return Boolean is
-     (Editors.Has_Document (Item.Area));
+     (Widgets.Has_Root (Item.Widgets));
+
+   function Canvas_Zoom (Item : Session) return Float is
+     (Canvases.Zoom (Item.Canvas_View));
+
+   function Canvas_Origin_X (Item : Session) return Float is
+     (Canvases.Origin_X (Item.Canvas_View));
+
+   function Canvas_Origin_Y (Item : Session) return Float is
+     (Canvases.Origin_Y (Item.Canvas_View));
 
    function Text (Item : Session) return String is
      (Scripts.Text (Item.Script));
@@ -215,14 +229,6 @@ package body Viewer is
    begin
       Widgets.Update (Item.Widgets, Now);
    end Tick;
-
-   procedure Settle (Item : in out Session) is
-   begin
-      if not Item.Settled then
-         Item.Settled := True;
-         Widgets.Set_Settled (Item.Widgets, True);
-      end if;
-   end Settle;
 
    procedure Resize (Item : in out Session; Width, Height : Positive) is
    begin

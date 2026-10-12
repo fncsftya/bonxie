@@ -26,6 +26,8 @@ package body SDL3.Events is
      (Thin.Event, Thin.Common_Event);
    function To_Wheel is new Ada.Unchecked_Conversion
      (Thin.Event, Thin.Wheel_Event);
+   function To_Pinch is new Ada.Unchecked_Conversion
+     (Thin.Event, Thin.Pinch_Event);
    function To_Key is new Ada.Unchecked_Conversion
      (Thin.Event, Thin.Key_Event);
    function To_Text is new Ada.Unchecked_Conversion
@@ -156,6 +158,19 @@ package body SDL3.Events is
             Item.Wheel_Y := Float (Wheel.Y);
             Item.Mouse_X := Float (Wheel.Mouse_X);
             Item.Mouse_Y := Float (Wheel.Mouse_Y);
+         end;
+      elsif Raw.Kind = Thin.Event_Pinch_Update then
+         declare
+            X, Y : aliased Interfaces.C.C_float;
+            Buttons : constant Interfaces.Unsigned_32 :=
+              Thin.Get_Mouse_State (X'Access, Y'Access);
+            pragma Unreferenced (Buttons);
+         begin
+            --  Where the pointer is, which the event does not say.
+            Item.Kind := Pinch;
+            Item.Scale := Float (To_Pinch (Raw).Scale);
+            Item.Mouse_X := Float (X);
+            Item.Mouse_Y := Float (Y);
          end;
       elsif Raw.Kind = Thin.Event_Window_Exposed
         or else Raw.Kind = Thin.Event_Window_Resized

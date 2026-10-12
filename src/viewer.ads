@@ -1,4 +1,5 @@
 with Projects;
+with SDL3.Cursors;
 with SDL3.Events;
 with SDL3.Windows.Renderers.Images;
 private with Ada.Strings.Unbounded;
@@ -9,23 +10,28 @@ private with UI.Clipboards;
 private with UI.Icons;
 private with UI.Line_Texts;
 private with UI.Widgets.Buttons;
-private with UI.Widgets.Editors;
+private with UI.Widgets.Canvases;
 private with UI.Widgets.Labels;
 private with UI.Widgets.Text_Fields;
+private with UI.Widgets.Palettes;
 private with UI.Widgets.Panels;
 
 --  A window of two screens: the home, with the recent projects and
---  buttons to start with, and a project, with a toolbar and a document to
---  edit, scroll and zoom.
+--  buttons to start with, and a project, with a toolbar and, above it, the
+--  project's main view, one at a time, chosen on the toolbar.
 package Viewer is
 
    type Screens is (Home, Project);
 
+   type Modes is (Canvas);
+   --  The views of a project. Canvas, an infinite canvas to pan and zoom,
+   --  with a floating toolbar to drag, is the first, and so the one shown.
+
    procedure Run (Source : String; File_Name : String := "");
    --  Open a window, at the home screen, and run until it is closed.
-   --  The project screen shows the text Source to edit, a paragraph to
-   --  each line; Command-S saves it to File_Name, if it is given. The
-   --  projects are kept in Projects.Default_Path. SDL must be
+   --  Source is kept as the project's text, a paragraph to each line, and
+   --  Command-S saves it to File_Name, if it is given; no view shows it
+   --  yet. The projects are kept in Projects.Default_Path. SDL must be
    --  initialized.
 
    --  Without a window, to test what is shown
@@ -42,16 +48,20 @@ package Viewer is
       File_Name : String := "")
      with Pre  => not Is_Open (Item) and then Density >= 1.0,
           Post => Is_Open (Item);
-   --  Show Source as Run would, in a window Width x Height points of
-   --  Density pixels each, but drawn offscreen, in software. It cuts,
-   --  copies and pastes on a clipboard of its own, and keeps its
-   --  projects in memory.
+   --  Open as Run would, in a window Width x Height points of Density
+   --  pixels each, but drawn offscreen, in software. It cuts, copies and
+   --  pastes on a clipboard of its own, and keeps its projects in
+   --  memory.
 
    function Is_Open (Item : Session) return Boolean;
 
    function Screen (Item : Session) return Screens
      with Pre => Is_Open (Item);
    --  Which is shown.
+
+   function Mode (Item : Session) return Modes
+     with Pre => Is_Open (Item) and then Screen (Item) = Project;
+   --  Which view of the project is shown.
 
    function Current_Project (Item : Session) return Projects.Id
      with Pre => Is_Open (Item) and then Screen (Item) = Project;
@@ -95,9 +105,26 @@ package Viewer is
      with Pre => Is_Open (Item) and then Updated >= 0;
    --  Keep a project last updated at Updated, to be listed.
 
+   function Canvas_Zoom (Item : Session) return Float
+     with Pre => Is_Open (Item);
+   --  Of the canvas: screen points to a canvas unit.
+
+   function Canvas_Origin_X (Item : Session) return Float
+     with Pre => Is_Open (Item);
+   function Canvas_Origin_Y (Item : Session) return Float
+     with Pre => Is_Open (Item);
+   --  Where the canvas's origin is, in points from the top left of the
+   --  canvas.
+
+   function Cursor (Item : Session) return SDL3.Cursors.Kind
+     with Pre => Is_Open (Item);
+   --  The shape the pointer has, from where it was last seen: the arrow,
+   --  or the move cursor over the grip of the floating toolbar and while
+   --  panning the canvas.
+
    function Text (Item : Session) return String
      with Pre => Is_Open (Item);
-   --  As edited, a line to each paragraph.
+   --  The project's text, a line to each paragraph.
 
    function Title (Item : Session) return String
      with Pre => Is_Open (Item);
@@ -117,10 +144,6 @@ package Viewer is
    procedure Tick (Item : in out Session; Now : SDL3.Events.Milliseconds)
      with Pre => Is_Open (Item);
    --  As if it were time Now, as SDL3.Events.Ticks: the caret blinks.
-
-   procedure Settle (Item : in out Session)
-     with Pre => Is_Open (Item);
-   --  As if the zoom had held still for long enough to settle.
 
    procedure Resize (Item : in out Session; Width, Height : Positive)
      with Pre => Is_Open (Item);
@@ -197,8 +220,18 @@ private
       Toolbar_Panel : UI.Widgets.Panels.Panel;
       Project_Title : UI.Widgets.Labels.Label;
       --  On the left of the toolbar: the title of the project shown.
+      Canvas_Tab    : UI.Widgets.Buttons.Button;
+      --  A tab for each view, in a row before the Close button.
       Close_Button  : UI.Widgets.Buttons.Button;
       --  On the right of the toolbar.
+      Mode          : Modes := Canvas;
+      --  The view shown: its tab is selected.
+
+      Canvas_View   : UI.Widgets.Canvases.Canvas;
+      --  In the content area, all of it.
+      Tools         : UI.Widgets.Palettes.Palette;
+      Tool_Item     : UI.Widgets.Buttons.Button;
+      --  The floating toolbar, over the canvas, and its one item.
 
       Shown        : Screens := Home;
       Store        : Projects.Store;
@@ -207,8 +240,6 @@ private
       Win          : SDL3.Windows.Window;
       Target       : SDL3.Windows.Renderers.Renderer;
       --  after Win: it is destroyed first
-      Area         : UI.Widgets.Editors.Editor;
-      --  in the content area, after Target, and Script, which it shows
       Pictures     : aliased UI.Icons.Library;
       --  after Target, which it draws to
       Lines        : aliased UI.Line_Texts.Drawer;
@@ -222,10 +253,8 @@ private
       Density      : Float := 1.0;
       --  Pixels to a point of the window.
 
-      Zoom         : Float := 1.0;
-      Settled      : Boolean := True;
-      --  The zoom has stopped changing.
-      Zoomed_At    : SDL3.Events.Milliseconds := 0;
+      Shown_Cursor : SDL3.Cursors.Kind := SDL3.Cursors.Default;
+      --  The one the window has been given.
 
       Shown_Title  : Ada.Strings.Unbounded.Unbounded_String;
 
@@ -233,8 +262,6 @@ private
       System_Board : UI.Clipboards.System_Clipboard;
       Own_Board    : UI.Clipboards.Memory_Clipboard;
       --  The clipboard used offscreen.
-      Input_Area   : Integer := Integer'First;
-      --  Where the input method was last told the text is, across.
 
       Done         : Boolean := False;
    end record;

@@ -76,7 +76,15 @@ package body Viewer.Clicks is
             Buttons.Take_Click (Item.Close_Button, Clicked);
             if Clicked then
                Navigation.Leave (Item);
+               return;
             end if;
+            --  The only view, and shown already.
+            Buttons.Take_Click (Item.Canvas_Tab, Clicked);
+            if Clicked then
+               Item.Mode := Canvas;
+            end if;
+            --  A placeholder: it does nothing yet.
+            Buttons.Take_Click (Item.Tool_Item, Clicked);
       end case;
    end Take;
 

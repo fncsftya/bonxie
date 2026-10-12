@@ -24,6 +24,7 @@ private package SDL3.Thin is
    Event_Mouse_Button_Down : constant Event_Type := 16#401#;
    Event_Mouse_Button_Up : constant Event_Type := 16#402#;
    Event_Mouse_Wheel : constant Event_Type := 16#403#;
+   Event_Pinch_Update : constant Event_Type := 16#711#;
    Event_Window_Exposed           : constant Event_Type := 16#204#;
    Event_Window_Resized           : constant Event_Type := 16#206#;
    Event_Window_Pixel_Size_Changed : constant Event_Type := 16#207#;
@@ -80,6 +81,16 @@ private package SDL3.Thin is
       Direction : Interfaces.Unsigned_32;
       Mouse_X, Mouse_Y : Interfaces.C.C_float;
       Padding   : Interfaces.C.char_array (1 .. 84);
+   end record
+     with Convention => C, Size => 128 * 8;
+
+   type Pinch_Event is record
+      Kind      : Event_Type;
+      Reserved  : Interfaces.Unsigned_32;
+      Timestamp : Interfaces.Unsigned_64;
+      Scale     : Interfaces.C.C_float;  --  the change since the last
+      Window_Id : Interfaces.Unsigned_32;
+      Padding   : Interfaces.C.char_array (1 .. 104);
    end record
      with Convention => C, Size => 128 * 8;
 
@@ -352,6 +363,18 @@ private package SDL3.Thin is
 
    function Get_Mod_State return Interfaces.Unsigned_16
      with Import, Convention => C, External_Name => "SDL_GetModState";
+
+   function Get_Mouse_State
+     (X, Y : access Interfaces.C.C_float) return Interfaces.Unsigned_32
+     with Import, Convention => C, External_Name => "SDL_GetMouseState";
+
+   type Cursor is new System.Address;
+
+   function Create_System_Cursor (Id : Interfaces.C.int) return Cursor
+     with Import, Convention => C, External_Name => "SDL_CreateSystemCursor";
+
+   function Set_Cursor (Item : Cursor) return Interfaces.C.C_bool
+     with Import, Convention => C, External_Name => "SDL_SetCursor";
 
    function Render_Read_Pixels
      (R : Renderer; Area : System.Address) return System.Address

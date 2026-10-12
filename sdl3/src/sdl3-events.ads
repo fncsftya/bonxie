@@ -4,14 +4,15 @@ package SDL3.Events is
 
    type Event_Kind is
      (Quit, Key_Down, Text_Input, Text_Editing, Mouse_Down, Mouse_Up,
-      Mouse_Move, Mouse_Wheel, Redraw, Other);
+      Mouse_Move, Mouse_Wheel, Pinch, Redraw, Other);
    --  Text_Input: text typed, once Windows.Start_Text_Input is called;
    --  the keys that typed it come as Key_Down too. Text_Editing: what an
    --  input method has been given so far, to show in place before it
    --  sends it as Text_Input, as when composing Japanese or an accented
    --  letter. Mouse_Down, Mouse_Up: a mouse button pressed or let go.
-   --  Mouse_Move: the pointer moved. Redraw: the window was exposed or
-   --  resized, so what it shows is out of date.
+   --  Mouse_Move: the pointer moved. Pinch: a pinch on a trackpad.
+   --  Redraw: the window was exposed or resized, so what it shows is out
+   --  of date.
 
    subtype Key_Code is Interfaces.Unsigned_32;
 
@@ -61,6 +62,8 @@ package SDL3.Events is
       Left_Held : Boolean := False; --  of Mouse_Move
       Wheel_X : Float := 0.0;       --  of Mouse_Wheel, in lines
       Wheel_Y : Float := 0.0;
+      Scale   : Float := 1.0;       --  of Pinch: the change, over 1 to
+                                    --  zoom in, under 1 to zoom out
       Mouse_X : Float := 0.0;       --  where the pointer was, in points
       Mouse_Y : Float := 0.0;       --  from the window's top left
    end record;

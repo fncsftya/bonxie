@@ -1,3 +1,4 @@
+with SDL3.Cursors;
 with SDL3.Events;
 with SDL3.Windows.Renderers;
 with UI.Clipboards;
@@ -104,6 +105,11 @@ package UI.Widgets is
    function Until_Update (Item : Widget) return Integer is (-1);
    --  How many milliseconds after the time last said it needs to be told
    --  the time to change: negative if it does not.
+
+   function Cursor (Item : Widget) return SDL3.Cursors.Kind is
+     (SDL3.Cursors.Default);
+   --  The shape the pointer should have over it, or while it holds a
+   --  press. Default leaves it to the widgets it is in.
 
    function Accepts_Focus (Item : Widget) return Boolean is (False);
    --  Whether a click on it, or on a widget inside it that does not,
@@ -293,6 +299,11 @@ package UI.Widgets is
    --  The fewest milliseconds any widget says it must wait after the time
    --  last said; negative if none needs the time. As a timeout to wait
    --  for events for.
+
+   function Wanted_Cursor (Item : Tree) return SDL3.Cursors.Kind;
+   --  The cursor to show: the one of the widget holding a press, or of the
+   --  deepest one under the pointer that wants any but the default, going
+   --  out through the widgets it is in.
 
    function Hit (Item : Tree; X, Y : Float) return Widget_Access;
    --  The widget at pixel X, Y: the last of the deepest. null if none.

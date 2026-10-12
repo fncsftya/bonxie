@@ -1,16 +1,14 @@
 with Ada.Command_Line;
 with Ada.Directories;
 with Ada.Strings.Fixed;
-with Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
 with Ada.Text_IO;
+with SDL3.Cursors;
 with SDL3.Events;
 with Document_Tests;
 with Field_Tests;
-with Files;
 with Goldens;
 with Projects;
 with Text_Area_Tests;
-with Typeset.Samples;
 with Widget_Tests;
 with Viewer;
 
@@ -26,28 +24,6 @@ procedure Golden is
      (if Ada.Command_Line.Argument_Count > 0
       then Ada.Command_Line.Argument (1) else "");
 
-   Sample : constant String := Typeset.Samples.Document (200);
-
-   LF : constant Wide_Wide_Character := Wide_Wide_Character'Val (10);
-
-   Em_Dash : constant String :=
-     Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Encode
-       ([Wide_Wide_Character'Val (16#2014#)]);
-
-   Scripts : constant String :=
-     Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Encode
-       ("Accents: café, naïve, Ångström, smørrebrød." & LF
-        & "Emoji keep their colours: 🐦 🌿 🎙️ 👍🏽" & LF
-        & "Other scripts: Привет, こんにちは, 日本語のテキスト, مرحبا." & LF
-        & "Typography: “quoted”, ‘single’, em—dash, en–dash, ½, …" & LF
-        & LF
-        & "After an empty paragraph, a long one that wraps across several "
-        & "lines of the page, to see the lines break between words and the "
-        & "paragraph's spacing after it, before the next. Bonxies are great "
-        & "skuas, which nest on moorland in Shetland and Orkney and spend "
-        & "the winter at sea.");
-   --  In UTF-8, as documents are.
-
    --  Events
 
    function Key
@@ -59,44 +35,70 @@ procedure Golden is
 
    Default_Width  : constant := 720;
    Default_Height : constant := 480;
-   --  In points: the page, 640 wide, fits with a margin.
+   --  In points. The toolbar takes 32 of the height, at the bottom.
 
-   function Wheel (Notches : Float) return Events.Event is
-     ((Kind => Events.Mouse_Wheel, Wheel_Y => Notches,
-       Mouse_X => Float (Default_Width / 2),
-       Mouse_Y => Float (Default_Height / 2), others => <>));
-   --  Over the text.
+   Tools_X : constant Float := 60.0;
+   Tools_Grip_Y : constant Float := 22.0;
+   Tools_Item_Y : constant Float := 58.0;
+   --  In points: the middle of the floating toolbar's grip, and of its
+   --  item, where it starts.
+
+   function Wheel
+     (Across, Down : Float; X, Y : Float; Command : Boolean := False)
+      return Events.Event
+   is ((Kind => Events.Mouse_Wheel, Wheel_X => Across, Wheel_Y => Down,
+        Mouse_X => X, Mouse_Y => Y, Command => Command, others => <>));
 
    function Click (X, Y : Float) return Events.Event is
      ((Kind => Events.Mouse_Down, Button => 1, Clicks => 1,
        Mouse_X => X, Mouse_Y => Y, others => <>));
    --  At X, Y points.
 
+   function Pointer_At (X, Y : Float; Held : Boolean := False)
+      return Events.Event
+   is ((Kind => Events.Mouse_Move, Mouse_X => X, Mouse_Y => Y,
+        Left_Held => Held, others => <>));
+
+   function Press_Button (Which : Natural; X, Y : Float) return Events.Event
+   is ((Kind => Events.Mouse_Down, Button => Which, Clicks => 1,
+        Mouse_X => X, Mouse_Y => Y, others => <>));
+
+   function Release_Button (Which : Natural; X, Y : Float)
+      return Events.Event
+   is ((Kind => Events.Mouse_Up, Button => Which, Clicks => 1,
+        Mouse_X => X, Mouse_Y => Y, others => <>));
+
+   function Whole (Value : Float) return String is
+     (Integer'Image (Integer (Float'Rounding (Value))));
+   --  To the nearest whole number, to compare as text.
+
+   function Percent (Value : Float) return String is
+     (Whole (Value * 100.0));
+
    procedure Press
      (Item  : in out Viewer.Session;
       Code  : Events.Key_Code;
       Times : Positive := 1;
-      Command : Boolean := False;
-      Shift : Boolean := False) is
+      Command : Boolean := False) is
    begin
       for K in 1 .. Times loop
-         Viewer.Handle (Item, (Key (Code, Command) with delta Shift => Shift));
+         Viewer.Handle (Item, Key (Code, Command));
       end loop;
    end Press;
 
-   procedure Zoom_In (Item : in out Viewer.Session; Times : Positive) is
+   procedure Start
+     (Item    : in out Viewer.Session;
+      Width   : Positive := Default_Width;
+      Height  : Positive := Default_Height;
+      Density : Float := 2.0) is
    begin
-      Press (Item, Events.Key_Equals, Times, Command => True);
-   end Zoom_In;
-
-   procedure Zoom_Out (Item : in out Viewer.Session; Times : Positive) is
-   begin
-      Press (Item, Events.Key_Minus, Times, Command => True);
-   end Zoom_Out;
+      Viewer.Open (Item, "", Width, Height, Density);
+      Viewer.New_Project (Item);
+   end Start;
+   --  A project, at its canvas.
 
    procedure Show
      (Name    : String;
-      Source  : String;
       Width   : Positive := Default_Width;
       Height  : Positive := Default_Height;
       Density : Float := 2.0)
@@ -104,243 +106,276 @@ procedure Golden is
       Session : Viewer.Session;
       Drawn   : Images.Image;
    begin
-      Viewer.Open (Session, Source, Width, Height, Density);
-      Viewer.New_Project (Session);
+      Start (Session, Width, Height, Density);
       Viewer.Render (Session, Drawn);
       Goldens.Check (Name, Drawn);
    end Show;
 
-   --  The tests
+   --  The canvas
 
-   procedure Empty is
+   procedure Canvas_Starts is
+      Session : Viewer.Session;
    begin
-      Show ("empty", "");
-   end Empty;
+      Show ("canvas");
+      Start (Session);
+      Goldens.Check_Text
+        ("canvas-mode", "CANVAS", Viewer.Modes'Image (Viewer.Mode (Session)));
+      --  The origin in the middle, at a zoom of 1.
+      Goldens.Check_Text
+        ("canvas-origin", " 360 224",
+         Whole (Viewer.Canvas_Origin_X (Session))
+         & Whole (Viewer.Canvas_Origin_Y (Session)));
+      Goldens.Check_Text
+        ("canvas-first-zoom", " 100", Percent (Viewer.Canvas_Zoom (Session)));
+   end Canvas_Starts;
 
-   procedure Top_Of_Sample is
+   procedure Canvas_Low_Density is
    begin
-      Show ("sample", Sample);
-   end Top_Of_Sample;
+      Show ("canvas-1x", Density => 1.0);
+   end Canvas_Low_Density;
 
-   procedure Low_Density is
+   procedure Canvas_Narrow is
    begin
-      Show ("sample-1x", Sample, Density => 1.0);
-   end Low_Density;
+      Show ("canvas-narrow", Width => 200, Height => 300);
+   end Canvas_Narrow;
 
-   procedure Narrow_Window is
-   begin
-      --  Narrower than the page, which so starts at the margin.
-      Show ("narrow", Sample, Width => 300);
-   end Narrow_Window;
-
-   procedure Wide_Window is
-   begin
-      --  The page in the middle.
-      Show ("wide", Sample, Width => 1000, Height => 300);
-   end Wide_Window;
-
-   procedure Other_Scripts is
-   begin
-      Show ("scripts", Scripts);
-   end Other_Scripts;
-
-   procedure Scrolled is
+   procedure Canvas_Resized is
       Session : Viewer.Session;
       Drawn   : Images.Image;
    begin
-      Viewer.Open (Session, Sample, Default_Width, Default_Height);
-      Viewer.New_Project (Session);
-      Press (Session, Events.Key_Page_Down, Times => 3);
-      Viewer.Render (Session, Drawn);
-      Goldens.Check ("page-down", Drawn);
-
-      Press (Session, Events.Key_Down_Arrow, Times => 2);
-      Viewer.Handle (Session, Wheel (-2.0));
-      Viewer.Render (Session, Drawn);
-      Goldens.Check ("arrows-and-wheel", Drawn);
-
-      Press (Session, Events.Key_End);
-      Viewer.Render (Session, Drawn);
-      Goldens.Check ("end", Drawn);
-   end Scrolled;
-
-   procedure Back_Home is
-      Fresh, Session : Viewer.Session;
-      Expected, Drawn : Images.Image;
-   begin
-      --  Scrolling to the end lays out all between, which changes the
-      --  page's height, but not the top of it.
-      Viewer.Open (Fresh, Sample, Default_Width, Default_Height);
-      Viewer.New_Project (Fresh);
-      Viewer.Render (Fresh, Expected);
-
-      Viewer.Open (Session, Sample, Default_Width, Default_Height);
-      Viewer.New_Project (Session);
-      Press (Session, Events.Key_End);
-      Viewer.Render (Session, Drawn);
-      Press (Session, Events.Key_Home);
-      Viewer.Render (Session, Drawn);
-      Goldens.Check_Same ("home-after-end", Expected, Drawn);
-   end Back_Home;
-
-   procedure Zoomed is
-      Session : Viewer.Session;
-      Drawn   : Images.Image;
-   begin
-      Viewer.Open (Session, Sample, Default_Width, Default_Height);
-      Viewer.New_Project (Session);
-      Zoom_In (Session, 4);
-      Viewer.Render (Session, Drawn);
-      Goldens.Check ("zooming-in", Drawn);
-      --  Glyphs made at a nearby size, scaled.
-
-      Viewer.Settle (Session);
-      Viewer.Render (Session, Drawn);
-      Goldens.Check ("zoomed-in", Drawn);
-
-      Zoom_Out (Session, 10);
-      Viewer.Settle (Session);
-      Viewer.Render (Session, Drawn);
-      Goldens.Check ("zoomed-out", Drawn);
-   end Zoomed;
-
-   procedure Resized is
-      Session : Viewer.Session;
-      Drawn   : Images.Image;
-   begin
-      Viewer.Open (Session, Sample, Default_Width, Default_Height);
-      Viewer.New_Project (Session);
+      Start (Session);
       Viewer.Render (Session, Drawn);
       Viewer.Resize (Session, 400, 600);
       Viewer.Render (Session, Drawn);
-      Goldens.Check ("resized", Drawn);
-   end Resized;
+      Goldens.Check ("canvas-resized", Drawn);
+   end Canvas_Resized;
 
-   procedure Atlas_Order (Settled : Boolean) is
-      Fresh, Session : Viewer.Session;
-      Expected, Drawn : Images.Image;
-   begin
-      --  The same glyphs, placed in the atlas in another order after
-      --  others, must look the same: smoothing them, when scaled, must
-      --  not take in their neighbours.
-      Viewer.Open (Fresh, Sample, Default_Width, Default_Height);
-      Viewer.New_Project (Fresh);
-      Zoom_In (Fresh, 3);
-      if Settled then
-         Viewer.Settle (Fresh);
-      end if;
-      Viewer.Render (Fresh, Expected);
-
-      Viewer.Open (Session, Sample, Default_Width, Default_Height);
-      Viewer.New_Project (Session);
-      Zoom_In (Session, 3);
-      if Settled then
-         Viewer.Settle (Session);
-      end if;
-      Press (Session, Events.Key_End);
-      Viewer.Render (Session, Drawn);
-      Press (Session, Events.Key_Page_Up, Times => 5);
-      Viewer.Render (Session, Drawn);
-      Press (Session, Events.Key_Home);
-      Viewer.Render (Session, Drawn);
-      Goldens.Check_Same
-        ((if Settled then "atlas-order-settled" else "atlas-order-zooming"),
-         Expected, Drawn);
-   end Atlas_Order;
-
-   procedure Atlas_Order_Settled is
-   begin
-      Atlas_Order (Settled => True);
-   end Atlas_Order_Settled;
-
-   procedure Atlas_Order_Zooming is
-   begin
-      Atlas_Order (Settled => False);
-   end Atlas_Order_Zooming;
-
-   procedure Edited is
+   procedure Canvas_Panned is
       Session : Viewer.Session;
       Drawn   : Images.Image;
    begin
-      --  The text area has the focus to start with.
-      Viewer.Open (Session, Sample, Default_Width, Default_Height);
-      Viewer.New_Project (Session);
-      Press (Session, Events.Key_Delete, Times => 3);
-      Viewer.Handle (Session, Events.Text_Event ("Skua"));
-      Press (Session, Events.Key_Return);
-      Viewer.Render (Session, Drawn);
-      Goldens.Check ("edited", Drawn);
+      --  The wheel, or two fingers on a trackpad, pans by 24 points a
+      --  notch: down by Y, and left by X.
+      Start (Session);
+      Viewer.Handle (Session, Wheel (-1.0, 2.0, 400.0, 300.0));
       Goldens.Check_Text
-        ("edited-text",
-         "Skua" & ASCII.LF & Sample (Sample'First + 3 .. Sample'Last),
-         Viewer.Text (Session));
-   end Edited;
+        ("canvas-panned-origin", " 384 272",
+         Whole (Viewer.Canvas_Origin_X (Session))
+         & Whole (Viewer.Canvas_Origin_Y (Session)));
+      Goldens.Check_Text
+        ("canvas-panned-zoom", " 100", Percent (Viewer.Canvas_Zoom (Session)));
+      Viewer.Render (Session, Drawn);
+      Goldens.Check ("canvas-panned", Drawn);
 
-   procedure Unfocused is
+      --  As far as it goes.
+      Viewer.Handle (Session, Wheel (0.0, -1000.0, 400.0, 300.0));
+      Viewer.Render (Session, Drawn);
+      Goldens.Check ("canvas-panned-far", Drawn);
+   end Canvas_Panned;
+
+   procedure Canvas_Zoomed is
       Session : Viewer.Session;
       Drawn   : Images.Image;
+
+      function Under_Pointer return String is
+        (Whole ((500.0 - Viewer.Canvas_Origin_X (Session))
+                / Viewer.Canvas_Zoom (Session))
+         & Whole ((300.0 - Viewer.Canvas_Origin_Y (Session))
+                  / Viewer.Canvas_Zoom (Session)));
    begin
-      --  A click on the toolbar takes the focus from the text area, which
-      --  then no longer takes typing.
-      Viewer.Open (Session, "Bonxie", Default_Width, Default_Height);
-      Viewer.New_Project (Session);
-      Viewer.Handle (Session, Click (100.0, Float (Default_Height - 10)));
-      Viewer.Handle (Session, Events.Text_Event ("Skua"));
+      Start (Session);
+      Goldens.Check_Text ("canvas-zoom-before", " 140 76", Under_Pointer);
+
+      --  Command with the wheel zooms about the pointer, which keeps what
+      --  is under it.
+      Viewer.Handle
+        (Session, Wheel (0.0, 3.0, 500.0, 300.0, Command => True));
+      Goldens.Check_Text
+        ("canvas-zoom-in", " 133", Percent (Viewer.Canvas_Zoom (Session)));
+      Goldens.Check_Text ("canvas-zoom-kept", " 140 76", Under_Pointer);
       Viewer.Render (Session, Drawn);
-      Goldens.Check ("unfocused", Drawn);
-      Goldens.Check_Text ("unfocused-text", "Bonxie", Viewer.Text (Session));
+      Goldens.Check ("canvas-zoomed-in", Drawn);
 
-      --  A click in it gives it back.
-      Viewer.Handle (Session, Click (200.0, 100.0));
-      Viewer.Handle (Session, Events.Text_Event ("Skua"));
+      Viewer.Handle
+        (Session, Wheel (0.0, -8.0, 500.0, 300.0, Command => True));
       Goldens.Check_Text
-        ("refocused-text", "BonxieSkua", Viewer.Text (Session));
-   end Unfocused;
+        ("canvas-zoom-out", " 62", Percent (Viewer.Canvas_Zoom (Session)));
+      Goldens.Check_Text ("canvas-zoom-out-kept", " 140 76", Under_Pointer);
+      Viewer.Render (Session, Drawn);
+      Goldens.Check ("canvas-zoomed-out", Drawn);
+   end Canvas_Zoomed;
 
-   procedure Saved is
-      File    : constant String := Goldens.Scratch ("saved.txt");
+   procedure Canvas_Zoom_Keys is
       Session : Viewer.Session;
    begin
-      Viewer.Open
-        (Session, "Bonxie", Default_Width, Default_Height,
-         File_Name => File);
-      Viewer.New_Project (Session);
-      Goldens.Check_Text ("saved-title-loaded", "saved.txt",
-                          Viewer.Title (Session));
-      Press (Session, Events.Key_Down_Arrow, Command => True);
-      Viewer.Handle (Session, Events.Text_Event (" skua"));
-      Goldens.Check_Text (Name => "saved-title-edited",
-                          Expected => "saved.txt " & Em_Dash & " Edited",
-                          Actual => Viewer.Title (Session));
+      Start (Session);
+      Press (Session, Events.Key_Equals, Times => 2, Command => True);
+      Goldens.Check_Text
+        ("canvas-keys-in", " 121", Percent (Viewer.Canvas_Zoom (Session)));
+      Press (Session, Events.Key_Minus, Times => 4, Command => True);
+      Goldens.Check_Text
+        ("canvas-keys-out", " 83", Percent (Viewer.Canvas_Zoom (Session)));
+      Press (Session, Events.Key_0, Command => True);
+      Goldens.Check_Text
+        ("canvas-keys-reset", " 100", Percent (Viewer.Canvas_Zoom (Session)));
+      --  About the middle.
+      Goldens.Check_Text
+        ("canvas-keys-origin", " 360 224",
+         Whole (Viewer.Canvas_Origin_X (Session))
+         & Whole (Viewer.Canvas_Origin_Y (Session)));
 
-      Press (Session, Events.Key_S, Command => True);
-      Goldens.Check_Text ("saved-title-saved", "saved.txt",
-                          Viewer.Title (Session));
-      Goldens.Check_Text ("saved-file", "Bonxie skua", Files.Read (File));
+      --  Within limits.
+      Press (Session, Events.Key_Equals, Times => 100, Command => True);
+      Goldens.Check_Text
+        ("canvas-keys-most", " 800", Percent (Viewer.Canvas_Zoom (Session)));
+      Press (Session, Events.Key_Minus, Times => 200, Command => True);
+      Goldens.Check_Text
+        ("canvas-keys-least", " 10", Percent (Viewer.Canvas_Zoom (Session)));
+   end Canvas_Zoom_Keys;
 
-      --  Undone, it is not as saved; redone, it is again.
-      Press (Session, Events.Key_Z, Command => True);
-      Goldens.Check_Text ("saved-title-undone",
-                          "saved.txt " & Em_Dash & " Edited",
-                          Viewer.Title (Session));
-      Press (Session, Events.Key_Z, Command => True, Shift => True);
-      Goldens.Check_Text ("saved-title-redone", "saved.txt",
-                          Viewer.Title (Session));
-   end Saved;
-
-   procedure Clipboard is
+   procedure Canvas_Pinched is
       Session : Viewer.Session;
    begin
-      --  Its own clipboard, offscreen.
-      Viewer.Open (Session, "Great skua", Default_Width, Default_Height);
-      Viewer.New_Project (Session);
-      Press (Session, Events.Key_A, Command => True);
-      Press (Session, Events.Key_C, Command => True);
-      Press (Session, Events.Key_Down_Arrow, Command => True);
-      Press (Session, Events.Key_V, Command => True);
+      Start (Session);
+      Viewer.Handle
+        (Session,
+         (Kind => Events.Pinch, Scale => 1.5, Mouse_X => 360.0,
+          Mouse_Y => 224.0, others => <>));
       Goldens.Check_Text
-        ("clipboard-text", "Great skuaGreat skua", Viewer.Text (Session));
-   end Clipboard;
+        ("canvas-pinch-in", " 150", Percent (Viewer.Canvas_Zoom (Session)));
+      Viewer.Handle
+        (Session,
+         (Kind => Events.Pinch, Scale => 0.5, Mouse_X => 360.0,
+          Mouse_Y => 224.0, others => <>));
+      Goldens.Check_Text
+        ("canvas-pinch-out", " 75", Percent (Viewer.Canvas_Zoom (Session)));
+   end Canvas_Pinched;
+
+   procedure Canvas_Dragged is
+      Session : Viewer.Session;
+      Drawn   : Images.Image;
+
+      function Cursor return String is
+        (SDL3.Cursors.Kind'Image (Viewer.Cursor (Session)));
+   begin
+      Start (Session);
+      Viewer.Handle (Session, Pointer_At (300.0, 200.0));
+      Goldens.Check_Text ("canvas-cursor-idle", "DEFAULT", Cursor);
+
+      --  The left button does not pan.
+      Viewer.Handle (Session, Click (300.0, 200.0));
+      Viewer.Handle (Session, Pointer_At (340.0, 230.0, Held => True));
+      Viewer.Handle (Session, Release_Button (1, 340.0, 230.0));
+      Goldens.Check_Text
+        ("canvas-left-drag", " 360 224",
+         Whole (Viewer.Canvas_Origin_X (Session))
+         & Whole (Viewer.Canvas_Origin_Y (Session)));
+
+      --  The middle button does, with the move cursor while it does.
+      Viewer.Handle (Session, Press_Button (2, 300.0, 200.0));
+      Goldens.Check_Text ("canvas-cursor-panning", "MOVE", Cursor);
+      Viewer.Handle (Session, Pointer_At (340.0, 230.0));
+      Viewer.Handle (Session, Pointer_At (350.0, 210.0));
+      Goldens.Check_Text
+        ("canvas-middle-drag", " 410 234",
+         Whole (Viewer.Canvas_Origin_X (Session))
+         & Whole (Viewer.Canvas_Origin_Y (Session)));
+      Goldens.Check_Text ("canvas-cursor-still-panning", "MOVE", Cursor);
+      Viewer.Render (Session, Drawn);
+      Goldens.Check ("canvas-middle-dragged", Drawn);
+      Viewer.Handle (Session, Release_Button (2, 350.0, 210.0));
+      Goldens.Check_Text ("canvas-cursor-let-go", "DEFAULT", Cursor);
+
+      --  Let go, it follows the pointer no more.
+      Viewer.Handle (Session, Pointer_At (400.0, 300.0));
+      Goldens.Check_Text
+        ("canvas-after-drag", " 410 234",
+         Whole (Viewer.Canvas_Origin_X (Session))
+         & Whole (Viewer.Canvas_Origin_Y (Session)));
+   end Canvas_Dragged;
+
+   --  The floating toolbar
+
+   procedure Tools_Shown is
+      Session : Viewer.Session;
+      Drawn   : Images.Image;
+      Hovered : Images.Image;
+   begin
+      Start (Session);
+      Viewer.Render (Session, Drawn);
+      Viewer.Handle (Session, Pointer_At (Tools_X, Tools_Item_Y));
+      Viewer.Render (Session, Hovered);
+      Goldens.Check ("tools-item-hovered", Hovered);
+   end Tools_Shown;
+
+   procedure Tools_Dragged is
+      Session : Viewer.Session;
+      Drawn   : Images.Image;
+
+      function Cursor return String is
+        (SDL3.Cursors.Kind'Image (Viewer.Cursor (Session)));
+   begin
+      Start (Session);
+      Viewer.Handle (Session, Pointer_At (Tools_X, Tools_Grip_Y));
+      Goldens.Check_Text ("tools-cursor-grip", "MOVE", Cursor);
+      Viewer.Handle (Session, Pointer_At (Tools_X, Tools_Item_Y));
+      Goldens.Check_Text ("tools-cursor-item", "DEFAULT", Cursor);
+      Viewer.Handle (Session, Pointer_At (Tools_X, Tools_Grip_Y));
+
+      Viewer.Handle (Session, Click (Tools_X, Tools_Grip_Y));
+      Viewer.Handle
+        (Session, Pointer_At (Tools_X + 200.0, Tools_Grip_Y + 130.0, True));
+      Goldens.Check_Text ("tools-cursor-dragging", "MOVE", Cursor);
+      Viewer.Render (Session, Drawn);
+      Goldens.Check ("tools-dragged", Drawn);
+      Viewer.Handle
+        (Session,
+         Release_Button (1, Tools_X + 200.0, Tools_Grip_Y + 130.0));
+
+      --  Where it was left.
+      Viewer.Handle
+        (Session, Pointer_At (Tools_X + 300.0, Tools_Grip_Y + 200.0));
+      Viewer.Render (Session, Drawn);
+      Goldens.Check ("tools-left", Drawn);
+
+      --  Not out of the canvas: not past its edges.
+      Viewer.Handle
+        (Session, Pointer_At (Tools_X + 200.0, Tools_Grip_Y + 130.0));
+      Viewer.Handle (Session, Click (Tools_X + 200.0, Tools_Grip_Y + 130.0));
+      Viewer.Handle (Session, Pointer_At (-500.0, -500.0, True));
+      Viewer.Render (Session, Drawn);
+      Goldens.Check ("tools-top-left", Drawn);
+      Viewer.Handle (Session, Pointer_At (5000.0, 5000.0, True));
+      Viewer.Render (Session, Drawn);
+      Goldens.Check ("tools-bottom-right", Drawn);
+      Viewer.Handle (Session, Release_Button (1, 5000.0, 5000.0));
+   end Tools_Dragged;
+
+   procedure Tools_Over_Canvas is
+      Session : Viewer.Session;
+   begin
+      --  Dragging the toolbar does not pan the canvas, nor does a click
+      --  on its item do anything yet.
+      Start (Session);
+      Viewer.Handle (Session, Pointer_At (Tools_X, Tools_Grip_Y));
+      Viewer.Handle (Session, Click (Tools_X, Tools_Grip_Y));
+      Viewer.Handle
+        (Session, Pointer_At (Tools_X + 50.0, Tools_Grip_Y, True));
+      Viewer.Handle
+        (Session, Release_Button (1, Tools_X + 50.0, Tools_Grip_Y));
+      Goldens.Check_Text
+        ("tools-origin-kept", " 360 224",
+         Whole (Viewer.Canvas_Origin_X (Session))
+         & Whole (Viewer.Canvas_Origin_Y (Session)));
+
+      Viewer.Handle (Session, Pointer_At (Tools_X + 50.0, Tools_Item_Y));
+      Viewer.Handle (Session, Click (Tools_X + 50.0, Tools_Item_Y));
+      Viewer.Handle
+        (Session, Release_Button (1, Tools_X + 50.0, Tools_Item_Y));
+      Goldens.Check_Text
+        ("tools-item-clicked", "PROJECT",
+         Viewer.Screens'Image (Viewer.Screen (Session)));
+   end Tools_Over_Canvas;
 
    --  The screens
 
@@ -784,22 +819,18 @@ begin
    Run ("document-mapping", Document_Tests.Mapping'Access);
    Run ("layout-lines-after-edits", Document_Tests.Lines_After_Edits'Access);
 
-   Run ("empty", Empty'Access);
-   Run ("sample", Top_Of_Sample'Access);
-   Run ("sample-1x", Low_Density'Access);
-   Run ("narrow", Narrow_Window'Access);
-   Run ("wide", Wide_Window'Access);
-   Run ("scripts", Other_Scripts'Access);
-   Run ("scrolled", Scrolled'Access);
-   Run ("home-after-end", Back_Home'Access);
-   Run ("zoomed", Zoomed'Access);
-   Run ("resized", Resized'Access);
-   Run ("atlas-order-settled", Atlas_Order_Settled'Access);
-   Run ("atlas-order-zooming", Atlas_Order_Zooming'Access);
-   Run ("edited", Edited'Access);
-   Run ("unfocused", Unfocused'Access);
-   Run ("saved", Saved'Access);
-   Run ("clipboard", Clipboard'Access);
+   Run ("canvas", Canvas_Starts'Access);
+   Run ("canvas-1x", Canvas_Low_Density'Access);
+   Run ("canvas-narrow", Canvas_Narrow'Access);
+   Run ("canvas-resized", Canvas_Resized'Access);
+   Run ("canvas-panned", Canvas_Panned'Access);
+   Run ("canvas-zoomed", Canvas_Zoomed'Access);
+   Run ("canvas-zoom-keys", Canvas_Zoom_Keys'Access);
+   Run ("canvas-pinched", Canvas_Pinched'Access);
+   Run ("canvas-dragged", Canvas_Dragged'Access);
+   Run ("tools-shown", Tools_Shown'Access);
+   Run ("tools-dragged", Tools_Dragged'Access);
+   Run ("tools-over-canvas", Tools_Over_Canvas'Access);
    Run ("home-empty", Home_Empty'Access);
    Run ("home-recent", Home_Recent'Access);
    Run ("home-settings", Home_Settings'Access);
