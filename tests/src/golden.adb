@@ -792,6 +792,8 @@ begin
    Run ("items-list-scrolling", Item_Tests.Scrolling_List'Access);
    Run ("items-panning-zooming", Item_Tests.Panning_And_Zooming'Access);
    Run ("items-raising", Item_Tests.Raising'Access);
+   Run ("items-repainting", Item_Tests.Repainting'Access);
+   Run ("items-density", Item_Tests.Fractional_Density'Access);
    Run ("items-full", Item_Tests.Full'Access);
    Run ("items-kept", Item_Tests.Kept'Access);
    Run ("home-empty", Home_Empty'Access);

@@ -1,3 +1,4 @@
+with Ada.Environment_Variables;
 with Ada.Exceptions;
 with Ada.Text_IO;
 with SDL3.Events.Redraws;
@@ -152,6 +153,9 @@ package body Viewer is
    function Item_State (Item : Session; Row : Positive) return Items.States is
      (Items.Windows.Details (Item.Windows (Nth (Item, Row))).State);
 
+   function Item_Box (Item : Session; Row : Positive) return Items.Frame is
+     (Items.Windows.Box (Item.Windows (Nth (Item, Row))));
+
    function Is_Editing_Title (Item : Session; Row : Positive) return Boolean is
      (Items.Windows.Is_Editing_Title (Item.Windows (Nth (Item, Row))));
 
@@ -208,19 +212,28 @@ package body Viewer is
 
    --  Running
 
-   procedure Open
-     (Item : in out Session; Source : String; File_Name : String) is
+   procedure Open_Window
+     (Item      : in out Session;
+      Source    : String;
+      File_Name : String := "";
+      Hidden    : Boolean := False;
+      Store     : String := Projects.Default_Path;
+      VSync     : Boolean := True) is
    begin
       Item.Windowed := True;
       SDL3.Windows.Create
         (Item.Win, "bonxie", Style.Window_Width, Style.Window_Height,
-         Resizable => True, High_Density => True);
+         Resizable => True, High_Density => True, Hidden => Hidden);
       Item.Density := SDL3.Windows.Pixel_Density (Item.Win);
       SDL3.Windows.Extend_Into_Title_Bar (Item.Win);
-      Create (Item.Target, Item.Win);
-      Build.Set_Up (Item, Source, File_Name, Projects.Default_Path);
+      Create (Item.Target, Item.Win, VSync => VSync);
+      Build.Set_Up (Item, Source, File_Name, Store);
       SDL3.Windows.Start_Text_Input (Item.Win);
-   end Open;
+   end Open_Window;
+
+   procedure Draw_Frame (Item : in out Session) renames Painting.Draw;
+
+   procedure Paint_Frame (Item : in out Session) renames Painting.Paint;
 
    procedure Wait_And_Handle (Item : in out Session) is
       Event   : SDL3.Events.Event;
@@ -314,7 +327,11 @@ package body Viewer is
       Item    : aliased Session;
       Watcher : Redraws.Watch;  --  ends before Item does
    begin
-      Open (Item, Source, File_Name);
+      Open_Window
+        (Item, Source, File_Name,
+         VSync => Ada.Environment_Variables.Exists ("BONXIE_VSYNC")
+                  and then Ada.Environment_Variables.Value
+                             ("BONXIE_VSYNC") = "1");
 
       --  The redraw watch also draws: the OS blocks the event loop
       --  during a live resize, and only repainting from inside the event

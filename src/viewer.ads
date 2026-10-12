@@ -36,7 +36,9 @@ package Viewer is
    --  Source is kept as the project's text, a paragraph to each line, and
    --  Command-S saves it to File_Name, if it is given; no view shows it
    --  yet. The projects are kept in Projects.Default_Path. SDL must be
-   --  initialized.
+   --  initialized. Drawing does not wait for the display's refresh, so that
+   --  what is dragged is not a frame or two behind the pointer; with
+   --  BONXIE_VSYNC=1 in the environment it does, which may tear less.
 
    --  Without a window, to test what is shown
 
@@ -58,6 +60,30 @@ package Viewer is
    --  memory.
 
    function Is_Open (Item : Session) return Boolean;
+
+   procedure Open_Window
+     (Item      : in out Session;
+      Source    : String;
+      File_Name : String := "";
+      Hidden    : Boolean := False;
+      Store     : String := Projects.Default_Path;
+      VSync     : Boolean := True)
+     with Pre  => not Is_Open (Item),
+          Post => Is_Open (Item);
+   --  Open as Run does, in a window, which is not shown if Hidden, for
+   --  measuring what drawing it costs on the GPU: see Draw_Frame. The projects
+   --  are kept in the database at Store. Without VSync, presenting does not
+   --  wait for the display, to time drawing. SDL must be initialized.
+
+   procedure Paint_Frame (Item : in out Session)
+     with Pre => Is_Open (Item);
+   --  Draw what has changed in the window, without presenting it: the
+   --  part of Draw_Frame that is not waiting for the display.
+
+   procedure Draw_Frame (Item : in out Session)
+     with Pre => Is_Open (Item);
+   --  Draw what has changed in the window, and present it, as Run does
+   --  when something needs drawing. Not for a session opened offscreen.
 
    function Screen (Item : Session) return Screens
      with Pre => Is_Open (Item);
@@ -156,6 +182,11 @@ package Viewer is
      with Pre => Is_Open (Item) and then Screen (Item) = Project
                  and then Row <= Item_Count (Item);
    --  Where it is on the canvas.
+
+   function Item_Box (Item : Session; Row : Positive) return Items.Frame
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item);
+   --  Where its window is on the screen, in pixels, as of the last layout.
 
    function Is_Editing_Title (Item : Session; Row : Positive) return Boolean
      with Pre => Is_Open (Item) and then Screen (Item) = Project

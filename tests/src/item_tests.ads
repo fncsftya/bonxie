@@ -19,6 +19,8 @@ package Item_Tests is
    procedure Scrolling_List;
    procedure Panning_And_Zooming;
    procedure Raising;
+   procedure Repainting;
+   procedure Fractional_Density;
    procedure Full;
    procedure Kept;
 

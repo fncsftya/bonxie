@@ -69,6 +69,10 @@ package Items.Windows is
    function Text (Item : Window) return String
      with Pre => Is_Assigned (Item);
 
+   function Box (Item : Window) return Items.Frame
+     with Pre => Is_Assigned (Item);
+   --  Where its window is on the screen, in pixels, as of the last layout.
+
    function Words (Item : Window) return Natural
      with Pre => Is_Assigned (Item);
 

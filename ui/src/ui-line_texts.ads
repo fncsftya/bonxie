@@ -1,3 +1,4 @@
+with Ada.Strings.Unbounded;
 with CoreText.Fonts;
 with CoreText.Shaping;
 with CoreText.Strings;
@@ -63,12 +64,26 @@ private
 
    type Face_Array is array (Style) of CoreText.Fonts.Font;
 
+   Cache_Size : constant := 64;
+   --  How many lines are kept shaped: more than a screen has.
+
+   type Cached_Line is record
+      Used  : Boolean := False;
+      Using : Style := Regular;
+      Text  : Ada.Strings.Unbounded.Unbounded_String;
+      Line  : CoreText.Shaping.Shaped;
+   end record;
+
+   type Cache_Array is array (1 .. Cache_Size) of Cached_Line;
+
    type Drawer is limited record
       Reg    : CoreText.Shaping.Registry;
       Atlas  : Typeset.Glyph_Atlas.Atlas;
       Faces  : Face_Array;
       Source : CoreText.Strings.Text;
-      Line   : CoreText.Shaping.Shaped;
+      Cache  : Cache_Array;
+      Next   : Positive range 1 .. Cache_Size := 1;
+      --  The line to replace when one is not there.
    end record;
 
 end UI.Line_Texts;

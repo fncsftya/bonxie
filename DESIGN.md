@@ -69,5 +69,8 @@ From the bottom up; each crate depends only on those before it.
   (`UI.Icons`, rasterized by SDL3_image, drawn in one colour as a mask);
   a button with an icon falls back to its label if there is none.
 
-`bench/` measures layout (`bin/bench`) and text areas
-(`bin/text_area_bench`, on documents of several sizes).
+`bench/` measures layout (`bin/bench`), text areas
+(`bin/text_area_bench`, on documents of several sizes) and dragging and
+sizing items on a canvas (`bin/item_bench [items [frames [paragraphs
+[gpu]]]]`, offscreen in software, or with `gpu` in a hidden window, timing
+the drawing but not presenting).

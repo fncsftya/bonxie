@@ -75,6 +75,10 @@ package body Items.Windows is
    is
       use Yoga.Nodes;
       Pixels : constant Float := Density;
+      Edge   : constant Float :=
+        Float'Max (1.0, Float'Rounding (Outline * Pixels));
+      --  Whole pixels: a border that is not is a pixel more or less where
+      --  it is drawn, or none.
 
       procedure Size (Part : in out Widgets.Widget'Class; Wide, High : Float)
       is
@@ -107,7 +111,7 @@ package body Items.Windows is
       Set_Position_Type (Widgets.Node (Item.Frame), Yoga.Absolute);
       Set_Flex_Direction (Widgets.Node (Item.Frame), Yoga.Column);
       Set_Padding
-        (Widgets.Node (Item.Frame), Yoga.All_Edges, Outline * Pixels);
+        (Widgets.Node (Item.Frame), Yoga.All_Edges, Edge);
 
       Grips.Set_Fill (Item.Title_Bar, Bar);
       Set_Height (Widgets.Node (Item.Title_Bar), Bar_Height * Pixels);
@@ -156,7 +160,7 @@ package body Items.Windows is
       Set_Flex_Grow (Widgets.Node (Item.Body_Text), 1.0);
       --  Its own outline is the window's at the sides.
       Set_Margin
-        (Widgets.Node (Item.Body_Text), Yoga.Horizontal, -Outline * Pixels);
+        (Widgets.Node (Item.Body_Text), Yoga.Horizontal, -Edge);
       Set_Height (Widgets.Node (Item.Body_Text), 0.0);
 
       Panels.Set_Fill
@@ -207,6 +211,12 @@ package body Items.Windows is
      (Docs.Whole (Item.Content_Doc));
 
    function Words (Item : Window) return Natural is (Item.Word_Count);
+
+   function Box (Item : Window) return Items.Frame is
+     ((Left   => Widgets.Left_Of (Item.Frame),
+       Top    => Widgets.Top_Of (Item.Frame),
+       Width  => Widgets.Width_Of (Item.Frame),
+       Height => Widgets.Height_Of (Item.Frame)));
 
    procedure Show_Title (Item : in out Window);
    --  Take the title as edited, for the item and the bar in the dock.
@@ -301,14 +311,20 @@ package body Items.Windows is
       Item.Origin_Y := Origin_Y;
       Item.Placed_Once := True;
       if Item.Assigned and then Item.Details.State = Open then
+         --  On whole pixels, so that its edges, and the borders in them,
+         --  are the same wherever it is.
          Set_Position
            (Widgets.Node (Item.Frame), Yoga.Left,
-            (Origin_X + Where.Left * Zoom) * Pixels);
+            Float'Rounding ((Origin_X + Where.Left * Zoom) * Pixels));
          Set_Position
            (Widgets.Node (Item.Frame), Yoga.Top,
-            (Origin_Y + Where.Top * Zoom) * Pixels);
-         Set_Width (Widgets.Node (Item.Frame), Where.Width * Zoom * Pixels);
-         Set_Height (Widgets.Node (Item.Frame), Where.Height * Zoom * Pixels);
+            Float'Rounding ((Origin_Y + Where.Top * Zoom) * Pixels));
+         Set_Width
+           (Widgets.Node (Item.Frame),
+            Float'Rounding (Where.Width * Zoom * Pixels));
+         Set_Height
+           (Widgets.Node (Item.Frame),
+            Float'Rounding (Where.Height * Zoom * Pixels));
          Editors.Set_Zoom (Item.Body_Text, Zoom);
          Widgets.Request_Layout (Item.Frame);
       end if;

@@ -623,6 +623,100 @@ package body Item_Tests is
       Snap (Session, "item-raised");
    end Raising;
 
+   procedure Repainting is
+      Session : Viewer.Session;
+      Step    : Natural := 0;
+
+      procedure Compare is
+         Partial, Fresh : Pictures.Image;
+      begin
+         Step := Step + 1;
+         Viewer.Render (Session, Partial);
+         Viewer.Handle (Session, Events.Event'(Kind => Events.Redraw,
+                                               others => <>));
+         Viewer.Render (Session, Fresh);
+         Goldens.Check_Same
+           ("item-repaint" & Natural'Image (Step), Fresh, Partial);
+      end Compare;
+   begin
+      Start_With_One (Session);
+      Compare;
+      Type_In (Session, "Some words to count and wrap round the line so");
+      Compare;
+      for T in 1 .. 6 loop
+         Viewer.Tick (Session, Events.Milliseconds (T * 400));
+         Compare;
+      end loop;
+      Move_To (Session, Title_X, Bar_Y);
+      Compare;
+      Move_To (Session, Hold_X, Bar_Y);
+      Compare;
+      Press (Session, Hold_X, Bar_Y);
+      Move_To (Session, Hold_X + 13.0, Bar_Y + 7.0, Held => True);
+      Compare;
+      Move_To (Session, Hold_X + 41.0, Bar_Y + 19.0, Held => True);
+      Compare;
+      Release (Session, Hold_X + 41.0, Bar_Y + 19.0);
+      Compare;
+      Drag (Session, Corner_X + 41.0, Corner_Y + 19.0,
+            Corner_X + 71.0, Corner_Y + 49.0);
+      Compare;
+      Click_On (Session, Add_X, Tools_Y);
+      Compare;
+      Move_To (Session, 300.0, 300.0);
+      Compare;
+
+      --  By amounts that are not whole pixels.
+      Press (Session, 270.3, 145.7);
+      Move_To (Session, 275.77, 150.31, Held => True);
+      Compare;
+      Move_To (Session, 281.13, 153.93, Held => True);
+      Compare;
+      Release (Session, 281.13, 153.93);
+      Viewer.Handle
+        (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_X => -0.37,
+                                Wheel_Y => 0.21, Mouse_X => 650.0,
+                                Mouse_Y => 60.0, others => <>));
+      Compare;
+      Viewer.Handle
+        (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_Y => 0.7,
+                                Command => True, Mouse_X => 301.3,
+                                Mouse_Y => 197.9, others => <>));
+      Compare;
+      Move_To (Session, 400.0, 400.0);
+      Compare;
+      Snap (Session, "item-fractional");
+
+      --  Whole pixels, so that the borders are not a pixel more or less
+      --  at one place than another.
+      for Row in 1 .. 2 loop
+         declare
+            Box : constant Items.Frame := Viewer.Item_Box (Session, Row);
+            function Whole_Pixels (Value : Float) return String is
+              (if Value = Float'Rounding (Value) then "whole" else "not");
+         begin
+            Check
+              ("item-box-whole" & Natural'Image (Row),
+               "whole whole whole whole",
+               Whole_Pixels (Box.Left) & " " & Whole_Pixels (Box.Top) & " "
+               & Whole_Pixels (Box.Width) & " " & Whole_Pixels (Box.Height));
+         end;
+      end loop;
+   end Repainting;
+
+   procedure Fractional_Density is
+      Session : Viewer.Session;
+      Drawn   : Pictures.Image;
+   begin
+      Viewer.Open (Session, "", Width, Height, 1.5);
+      Viewer.New_Project (Session);
+      Click_On (Session, Add_X, Tools_Y);
+      Type_In (Session, "Six words are in this text");
+      Move_To (Session, 650.0, 60.0);
+      Viewer.Render (Session, Drawn);
+      Goldens.Check ("item-density-1-5", Drawn);
+   end Fractional_Density;
+
    procedure Full is
       Session : Viewer.Session;
    begin
