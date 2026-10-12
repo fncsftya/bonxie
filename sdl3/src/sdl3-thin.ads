@@ -208,6 +208,12 @@ private package SDL3.Thin is
       return Interfaces.C.C_bool
      with Import, Convention => C, External_Name => "SDL_SetRenderDrawColor";
 
+   function Set_Render_Draw_Blend_Mode
+     (R : Renderer; Mode : Interfaces.Unsigned_32)
+      return Interfaces.C.C_bool
+     with Import, Convention => C,
+          External_Name => "SDL_SetRenderDrawBlendMode";
+
    function Render_Clear (R : Renderer) return Interfaces.C.C_bool
      with Import, Convention => C, External_Name => "SDL_RenderClear";
 
@@ -358,6 +364,18 @@ private package SDL3.Thin is
      (From : System.Address; Format : Interfaces.Unsigned_32)
       return Surface_Access
      with Import, Convention => C, External_Name => "SDL_ConvertSurface";
+
+   function IO_From_File
+     (File, Mode : Interfaces.C.Strings.chars_ptr) return System.Address
+     with Import, Convention => C, External_Name => "SDL_IOFromFile";
+   --  An SDL_IOStream, or null.
+
+   function Load_Sized_SVG_IO
+     (Source : System.Address; W, H : Interfaces.C.int)
+      return Surface_Access
+     with Import, Convention => C, External_Name => "IMG_LoadSizedSVG_IO";
+   --  SDL3_image: the SVG, rasterized to W x H pixels, or null. It closes
+   --  the stream.
 
    function Load_PNG
      (File : Interfaces.C.Strings.chars_ptr) return Surface_Access

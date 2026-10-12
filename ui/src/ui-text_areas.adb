@@ -16,6 +16,7 @@ package body UI.Text_Areas is
    Outline       : constant Float := 1.0;
    Focus_Outline : constant Float := 2.0;
    Padding       : constant Float := 12.0;
+   Line_Padding  : constant Float := 6.0;  --  of a field for one line
    --  From the outside of the outline to the text.
    Caret_Width   : constant Float := 1.5;
    Underline     : constant Float := 1.5;
@@ -34,10 +35,16 @@ package body UI.Text_Areas is
    --  Pixels to a layout unit.
 
    function Inset (Item : Text_Area) return Float is
-     (Padding * Item.Density);
+     ((if Item.Single then Line_Padding else Padding) * Item.Density);
 
    function Text_Top (Item : Text_Area) return Float is
-     (Item.Top + Inset (Item));
+     (if Item.Single
+      then Item.Top + Float'Max
+             (Inset (Item),
+              (Item.Height - Layouts.Line_Height (Item.Laid) * Scale (Item))
+              / 2.0)
+      else Item.Top + Inset (Item));
+   --  A line for one line is in the middle of its height.
 
    function Text_Width (Item : Text_Area) return Float is
      (Float'Max (0.0, Item.Width - 2.0 * Inset (Item)));
@@ -46,12 +53,14 @@ package body UI.Text_Areas is
      (Float'Max (0.0, Item.Height - 2.0 * Inset (Item)));
 
    function Column (Item : Text_Area) return Float is
-     (Float'Max
+     (if Item.Single then Item.Measure
+      else Float'Max
         (1.0, Float'Min (Item.Measure, Text_Width (Item) / Scale (Item))));
    --  How wide its lines may be, in layout units.
 
    function Column_Left (Item : Text_Area) return Float is
-     (Item.Left + Inset (Item)
+     (if Item.Single then Item.Left + Inset (Item) - Item.Across_Scroll
+      else Item.Left + Inset (Item)
       + Float'Max
           (0.0, (Text_Width (Item) - Column (Item) * Scale (Item)) / 2.0));
    --  Where its lines start, in pixels.
@@ -194,6 +203,24 @@ package body UI.Text_Areas is
    function Is_Configured (Item : Text_Area) return Boolean is
      (Layouts.Is_Configured (Item.Laid));
 
+   procedure Set_Single_Line (Item : in out Text_Area; To : Boolean := True)
+   is
+   begin
+      Item.Single := To;
+      Item.Across_Scroll := 0.0;
+      Item.Returned := False;
+      Item.Caret_Kept := False;
+   end Set_Single_Line;
+
+   function Is_Single_Line (Item : Text_Area) return Boolean is
+     (Item.Single);
+
+   procedure Take_Return (Item : in out Text_Area; Pressed : out Boolean) is
+   begin
+      Pressed := Item.Returned;
+      Item.Returned := False;
+   end Take_Return;
+
    procedure Attach (Item : in out Text_Area; Doc : not null Document_Access)
    is
    begin
@@ -210,6 +237,10 @@ package body UI.Text_Areas is
    function Document (Item : Text_Area) return Document_Access is
      (Item.Doc);
 
+   procedure Reveal (Item : in out Text_Area);
+   --  Scroll as little as brings the caret's line into view, and, for one
+   --  line, across to it.
+
    procedure Place
      (Item    : in out Text_Area;
       Left, Top, Width, Height : Float;
@@ -224,6 +255,10 @@ package body UI.Text_Areas is
       Item.Zoom := Zoom;
       if Layouts.Width (Item.Laid) /= Column (Item) then
          Layouts.Set_Width (Item.Laid, Column (Item));
+      end if;
+      if Item.Single and then Item.Doc /= null then
+         Catch_Up (Item);
+         Reveal (Item);
       end if;
    end Place;
 
@@ -279,9 +314,6 @@ package body UI.Text_Areas is
       Layouts.Scroll (Item.Laid, Item.Anchor, Item.Offset, By, Extent (Item));
    end Scroll;
 
-   procedure Reveal (Item : in out Text_Area);
-   --  Scroll as little as brings the caret's line into view.
-
    procedure Reveal (Item : in out Text_Area) is
       Para     : constant Positive := Item.At_Caret.Paragraph;
       Number   : constant Positive := Line_Of (Item, Item.At_Caret);
@@ -294,6 +326,23 @@ package body UI.Text_Areas is
          Scroll (Item, Line_Top - Shown);
       elsif Line_Top + High > Shown + Extent (Item) then
          Scroll (Item, Line_Top + High - (Shown + Extent (Item)));
+      end if;
+
+      --  Once it has a place.
+      if Item.Single and then Item.Width > 0.0 then
+         declare
+            X, Y, Wide, Tall : Float;
+            Least : constant Float := Item.Left + Inset (Item);
+            Most  : constant Float := Item.Left + Item.Width - Inset (Item);
+         begin
+            Caret_Box (Item, X, Y, Wide, Tall);
+            if X < Least then
+               Item.Across_Scroll :=
+                 Float'Max (0.0, Item.Across_Scroll - (Least - X));
+            elsif X + Wide > Most then
+               Item.Across_Scroll := Item.Across_Scroll + (X + Wide - Most);
+            end if;
+         end;
       end if;
    end Reveal;
 
@@ -784,11 +833,28 @@ package body UI.Text_Areas is
 
    --  Editing
 
+   function Fitted (Item : Text_Area; Raw : String) return String;
+   --  What of Raw to put in the text: without carriage returns, and for
+   --  one line, with spaces for line feeds.
+
+   function Fitted (Item : Text_Area; Raw : String) return String is
+      Result : String := Without_Returns (Raw);
+   begin
+      if Item.Single then
+         for Char of Result loop
+            if Char = ASCII.LF then
+               Char := ' ';
+            end if;
+         end loop;
+      end if;
+      return Result;
+   end Fitted;
+
    procedure Insert (Item : in out Text_Area; Typed : String) is
    begin
       Drop_Composition (Item);  --  Typed is what it became
       Edit (Item, Selection_First (Item), Selection_Last (Item),
-            Without_Returns (Typed), Docs.Typing);
+            Fitted (Item, Typed), Docs.Typing);
    end Insert;
 
    function Deletion_Motion (By : Deletion; Forward : Boolean) return Motion
@@ -866,7 +932,7 @@ package body UI.Text_Areas is
    begin
       Finish_Composition (Item);
       Edit (Item, Selection_First (Item), Selection_Last (Item),
-            Without_Returns (Board.Text), Docs.Other);
+            Fitted (Item, Board.Text), Docs.Other);
    end Paste;
 
    --  Undoing
@@ -1004,7 +1070,11 @@ package body UI.Text_Areas is
          Delete_Forward (Item, Deleting);
          return;
       elsif Key = Events.Key_Return then
-         Insert (Item, [ASCII.LF]);
+         if Item.Single then
+            Item.Returned := True;
+         else
+            Insert (Item, [ASCII.LF]);
+         end if;
          return;
       elsif Key = Events.Key_Escape then
          Set_Focus (Item, False);

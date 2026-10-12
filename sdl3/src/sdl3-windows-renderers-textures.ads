@@ -43,6 +43,24 @@ package SDL3.Windows.Renderers.Textures is
    --  premultiplied or not as Item is, over the part of Item whose top
    --  left is at Left, Top.
 
+   procedure Create_Mask_From_SVG
+     (Item      : in out Texture;
+      Target    : Renderer;
+      File_Name : String;
+      Columns, Rows : Positive);
+   --  Replace Item with the SVG file, drawn Columns x Rows pixels, as a
+   --  mask: every pixel white, and as opaque as the image is there, to be
+   --  drawn in a colour with Draw_Tinted. Raises an error if the file
+   --  cannot be read.
+
+   procedure Draw_Tinted
+     (Target : Renderer;
+      Item   : Texture;
+      X, Y   : Float;
+      Value  : Color)
+     with Pre => not Is_Empty (Item);
+   --  Draw a mask, at its own size, with its top left at X, Y, in Value.
+
    function Is_Empty (Item : Texture) return Boolean;
 
    procedure Draw

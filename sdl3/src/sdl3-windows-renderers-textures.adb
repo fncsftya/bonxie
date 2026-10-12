@@ -1,12 +1,15 @@
 with Ada.Unchecked_Deallocation;
 with Interfaces;
 with Interfaces.C;
+with Interfaces.C.Strings;
 with SDL3.Errors;
 with SDL3.Thin;
 
 package body SDL3.Windows.Renderers.Textures is
 
    use type System.Address;
+   use type Thin.Surface_Access;
+   use type Interfaces.Unsigned_32;
 
    Blend_Premultiplied : constant Interfaces.Unsigned_32 := 16#10#;
    --  SDL_BLENDMODE_BLEND_PREMULTIPLIED: what is under is kept as much as
@@ -151,6 +154,103 @@ package body SDL3.Windows.Renderers.Textures is
             Interfaces.C.int (6 * Quad_Count)),
          "SDL_RenderGeometry");
    end Draw_Quads;
+
+   procedure Create_Mask_From_SVG
+     (Item      : in out Texture;
+      Target    : Renderer;
+      File_Name : String;
+      Columns, Rows : Positive)
+   is
+      use Interfaces.C.Strings;
+      Name   : chars_ptr := New_String (File_Name);
+      Mode   : chars_ptr := New_String ("rb");
+      Stream : constant System.Address := Thin.IO_From_File (Name, Mode);
+      Loaded : Thin.Surface_Access;
+      Plain  : Thin.Surface_Access;
+      type Bytes is array (Natural range <>) of Interfaces.Unsigned_8;
+      type Bytes_Access is access Bytes;
+      procedure Free is new Ada.Unchecked_Deallocation (Bytes, Bytes_Access);
+      Mask   : Bytes_Access;
+   begin
+      Free (Name);
+      Free (Mode);
+      if Stream = System.Null_Address then
+         Errors.Raise_Last_Error ("SDL_IOFromFile " & File_Name);
+      end if;
+      Loaded :=
+        Thin.Load_Sized_SVG_IO
+          (Stream, Interfaces.C.int (Columns), Interfaces.C.int (Rows));
+      if Loaded = null then
+         Errors.Raise_Last_Error ("IMG_LoadSizedSVG_IO " & File_Name);
+      end if;
+      --  Whatever it gave: as R, G, B, A bytes.
+      Plain :=
+        (if Loaded.Format = Thin.Pixel_Format_RGBA32 then Loaded
+         else Thin.Convert_Surface (Loaded.all'Address,
+                                    Thin.Pixel_Format_RGBA32));
+      if Plain = null then
+         Thin.Destroy_Surface (Loaded.all'Address);
+         Errors.Raise_Last_Error ("SDL_ConvertSurface");
+      end if;
+
+      Mask := new Bytes (0 .. 4 * Columns * Rows - 1);
+      declare
+         type Source_Bytes is array (Natural) of Interfaces.Unsigned_8;
+         Source : Source_Bytes
+           with Import, Address => Plain.Pixels;
+      begin
+         for Row in 0 .. Rows - 1 loop
+            for Column in 0 .. Columns - 1 loop
+               declare
+                  Out_At : constant Natural := 4 * (Row * Columns + Column);
+                  In_At  : constant Natural :=
+                    Row * Natural (Plain.Pitch) + 4 * Column;
+               begin
+                  Mask (Out_At .. Out_At + 2) := [255, 255, 255];
+                  Mask (Out_At + 3) := Source (In_At + 3);
+               end;
+            end loop;
+         end loop;
+      end;
+      Thin.Destroy_Surface (Plain.all'Address);
+      if Plain /= Loaded then
+         Thin.Destroy_Surface (Loaded.all'Address);
+      end if;
+
+      Create_Blank (Item, Target, Columns, Rows, Smooth => True);
+      Update_Region
+        (Item, 0, 0, Columns, Rows, Mask (0)'Address, 4 * Columns);
+      Free (Mask);
+   exception
+      when others =>
+         Free (Mask);
+         raise;
+   end Create_Mask_From_SVG;
+
+   procedure Draw_Tinted
+     (Target : Renderer;
+      Item   : Texture;
+      X, Y   : Float;
+      Value  : Color)
+   is
+      function Part (Of_Value : Color_Component) return Float is
+        (Float (Of_Value) / 255.0);
+      Red   : constant Float := Part (Value.Red);
+      Green : constant Float := Part (Value.Green);
+      Blue  : constant Float := Part (Value.Blue);
+      Alpha : constant Float := Part (Value.Alpha);
+      Right : constant Float := X + Float (Item.Wide);
+      Below : constant Float := Y + Float (Item.High);
+   begin
+      --  Not premultiplied, as the texture is not.
+      Draw_Quads
+        (Target, Item,
+         [(X, Y, Red, Green, Blue, Alpha, 0.0, 0.0),
+          (Right, Y, Red, Green, Blue, Alpha, 1.0, 0.0),
+          (X, Below, Red, Green, Blue, Alpha, 0.0, 1.0),
+          (Right, Below, Red, Green, Blue, Alpha, 1.0, 1.0)],
+         1);
+   end Draw_Tinted;
 
    function Is_Empty (Item : Texture) return Boolean is
      (Item.Handle = System.Null_Address);

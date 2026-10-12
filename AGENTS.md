@@ -20,9 +20,9 @@ From the bottom up; each crate depends only on those before it.
   running sums (`Typeset.Sums`); drawing it (`Typeset.Views`).
 - `ui` (crate `bonxie_ui`): components. `UI.Text_Areas` is a view of a
   document the app owns; several may show one document. `UI.Widgets` is
-  a retained tree of widgets (`Panels`, `Buttons`, `Editors`, which wraps
-  a text area) the app owns and adds top-down; Yoga lays them out in
-  pixels. Widgets keep their own state and say when it changes
+  a retained tree of widgets (`Panels`, `Buttons`, `Labels`, `Editors`,
+  which wraps a text area, and `Text_Fields`, an editor of one line) the
+  app owns and adds top-down; Yoga lays them out in pixels. Widgets keep their own state and say when it changes
   (`Invalidate`); the tree keeps the damage, repaints only that when
   the target keeps its frame (`Retained`; a window's renderer does, by
   drawing to an image of its own that `Present` copies, which `Fit`
@@ -34,7 +34,16 @@ From the bottom up; each crate depends only on those before it.
   callbacks: widgets are polled (`Take_Click`) and models are pulled in
   `Update`.
 - bonxie (`src/`): the app. `Scripts` owns the document, its file and
-  saved state.
+  saved state. `Projects` keeps projects (id, title, description, created
+  and updated times) in SQLite (`Ada_Sqlite3`), at
+  `$XDG_CONFIG_HOME/bonxie/projects.db` (`~/.config/bonxie/projects.db`).
+  `Viewer` has two screens, built once and swapped with `Set_Visible`:
+  the home (recent projects, each to open, rename or delete, with a
+  dialog over it to confirm a deletion; New Project, Settings) and a project (the
+  document, and a toolbar with Close). Offscreen sessions keep their
+  projects in memory. Icons are SVG files in `share/bonxie/icons`
+  (`UI.Icons`, rasterized by SDL3_image, drawn in one colour as a mask);
+  a button with an icon falls back to its label if there is none.
 
 `bench/` measures layout (`bin/bench`) and text areas
 (`bin/text_area_bench`, on documents of several sizes).
@@ -76,3 +85,8 @@ goldens there or pass a tolerance to `Goldens.Check`.
 Background: #CDD5D1
 Foreground: #090A0B
 Accent: #FF7F11
+
+Beyond those: Primary #2E7D32 (the main, positive action, as New Project);
+Danger #C62828 (what cannot be undone, as deleting). Buttons
+are not flat: a bevel (light on the top and left, shade on the bottom and
+right, reversed when pressed) and no outline.

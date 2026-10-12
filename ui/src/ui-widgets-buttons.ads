@@ -1,5 +1,6 @@
 with SDL3.Events;
 with SDL3.Windows.Renderers;
+with UI.Icons;
 
 --  A button to click, with a short label.
 --
@@ -14,10 +15,24 @@ package UI.Widgets.Buttons is
 
    type Button is new Widget with private;
 
+   type Kind is (Normal, Primary, Danger);
+   --  Primary is in the theme's primary colour, for the main action;
+   --  Danger in its danger colour, for what cannot be undone.
+
+   procedure Set_Kind (Item : in out Button; To : Kind);
+
+   function Kind_Of (Item : Button) return Kind;
+
    procedure Set_Label (Item : in out Button; Text : String)
      with Pre => Text'Length <= Label_Capacity;
    --  Show Text, in the debug font of SDL3.Windows.Renderers, scaled to
    --  the density, in the middle.
+
+   procedure Set_Icon (Item : in out Button; To : UI.Icons.Icon);
+   --  Show the icon, in the middle, in place of the label, if the tree has
+   --  icons and the icon can be drawn; the label otherwise.
+
+   function Has_Icon (Item : Button) return Boolean;
 
    function Label (Item : Button) return String;
 
@@ -46,6 +61,9 @@ private
    type Button is new Widget with record
       Text    : String (1 .. Label_Capacity) := [others => ' '];
       Length  : Natural range 0 .. Label_Capacity := 0;
+      Style   : Kind := Normal;
+      Picture : Boolean := False;
+      Which   : UI.Icons.Icon := UI.Icons.Icon'First;
       Down    : Boolean := False;  --  pressed, and not yet let go
       Clicked : Boolean := False;
    end record;

@@ -37,6 +37,20 @@ package UI.Text_Areas is
 
    function Is_Configured (Item : Text_Area) return Boolean;
 
+   procedure Set_Single_Line (Item : in out Text_Area; To : Boolean := True)
+     with Pre => Is_Configured (Item);
+   --  Make it a field for one line: the text is not wrapped, but scrolls
+   --  across to keep the caret in view; the padding is less; Return
+   --  does not break the paragraph, but is kept for Take_Return; line
+   --  feeds typed or pasted become spaces. Use Measure enough for the
+   --  longest line wanted. Do it before the text area is placed.
+
+   function Is_Single_Line (Item : Text_Area) return Boolean;
+
+   procedure Take_Return (Item : in out Text_Area; Pressed : out Boolean);
+   --  Say whether Return has been pressed in it, if it is for one line,
+   --  since this was last called, and forget it.
+
    subtype Document_Access is Texts.Documents.Document_Access;
 
    procedure Attach (Item : in out Text_Area; Doc : not null Document_Access)
@@ -272,7 +286,8 @@ package UI.Text_Areas is
    --  selection. Backspace and Delete delete, with Option a word, with
    --  Command to the end of the line. Command with A selects all; with
    --  X, C and V cuts, copies and pastes, on Board; with Z undoes, and
-   --  with Shift too redoes. Return breaks the paragraph. Escape leaves
+   --  with Shift too redoes. Return breaks the paragraph (unless for one
+   --  line: see Set_Single_Line). Escape leaves
    --  it unfocused. While an input method is composing, it leaves the
    --  keys to it.
    --
@@ -317,6 +332,11 @@ private
       Laid     : Typeset.Layouts.Layout;
       View     : Typeset.Views.View;
       Measure  : Float := 1.0;
+      Single   : Boolean := False;
+      Returned : Boolean := False;
+      Across_Scroll : Float := 0.0;
+      --  For one line: how far its start is left of the padding, in
+      --  pixels.
 
       Left, Top, Width, Height : Float := 0.0;  --  in pixels
       Density  : Float := 1.0;

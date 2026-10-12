@@ -213,6 +213,24 @@ package body UI.Widgets is
       Item.Board := Board'Unchecked_Access;
    end Set_Clipboard;
 
+   procedure Set_Line_Texts
+     (Item : in out Tree; Lines : aliased in out Line_Texts.Drawer) is
+   begin
+      Item.Lines := Lines'Unchecked_Access;
+   end Set_Line_Texts;
+
+   procedure Set_Icons
+     (Item : in out Tree; Library : aliased in out Icons.Library) is
+   begin
+      Item.Pictures := Library'Unchecked_Access;
+   end Set_Icons;
+
+   function Icon_Library (Item : Widget'Class) return Icons_Access is
+     (Item.Owner.Pictures);
+
+   function Text_Lines (Item : Widget'Class) return Line_Texts_Access is
+     (Item.Owner.Lines);
+
    --  Damage
 
    procedure Damage_Box (Item : in out Widget'Class; Part : Pixel_Box) is

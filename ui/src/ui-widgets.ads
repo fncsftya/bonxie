@@ -1,6 +1,8 @@
 with SDL3.Events;
 with SDL3.Windows.Renderers;
 with UI.Clipboards;
+with UI.Icons;
+with UI.Line_Texts;
 with UI.Themes;
 with Yoga.Nodes;
 
@@ -193,6 +195,30 @@ package UI.Widgets is
 
    type Clipboard_Access is access all Clipboards.Clipboard'Class;
 
+   procedure Set_Line_Texts
+     (Item : in out Tree; Lines : aliased in out Line_Texts.Drawer);
+   --  The system font for widgets' single lines of text, labels and
+   --  buttons', drawn from Lines, which must be there as long as the
+   --  tree is used, and after the renderer. Without it they use the
+   --  debug font of SDL3.Windows.Renderers.
+
+   type Line_Texts_Access is access all Line_Texts.Drawer;
+
+   procedure Set_Icons
+     (Item : in out Tree; Library : aliased in out Icons.Library);
+   --  The icons for widgets to draw, as buttons', from Library, which
+   --  must be there as long as the tree is used, and after the renderer.
+
+   type Icons_Access is access all Icons.Library;
+
+   function Icon_Library (Item : Widget'Class) return Icons_Access
+     with Pre => Is_Attached (Item);
+   --  null if the tree has none.
+
+   function Text_Lines (Item : Widget'Class) return Line_Texts_Access
+     with Pre => Is_Attached (Item);
+   --  null if the tree has none.
+
    --  Layout, damage and drawing
 
    procedure Layout
@@ -355,6 +381,8 @@ private
       Density   : Float := 1.0;
       Settled   : Boolean := True;
       Board     : Clipboard_Access;
+      Lines     : Line_Texts_Access;
+      Pictures  : Icons_Access;
 
       Focus     : Widget_Access;
       Hover     : Widget_Access;

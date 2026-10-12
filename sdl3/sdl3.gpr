@@ -24,7 +24,7 @@ project Sdl3 is
 
    --  Propagated to every project that depends on this one.
    package Linker is
-      for Linker_Options use ("-lSDL3");
+      for Linker_Options use ("-lSDL3", "-lSDL3_image");
    end Linker;
 
    package Binder is

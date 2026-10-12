@@ -31,3 +31,6 @@ yoga = { path = "yoga" }
 "*".runtime_checks = "Everything"
 "*".style_checks = "Yes"
 "*".contracts = "Yes"
+
+[[depends-on]]
+ada_sqlite3 = "~0.1.1"

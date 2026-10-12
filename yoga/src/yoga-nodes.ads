@@ -24,6 +24,10 @@ package Yoga.Nodes is
 
    procedure Set_Display (Item : Node; Value : Display_Mode);
 
+   procedure Set_Position_Type (Item : Node; Value : Position_Mode);
+   procedure Set_Position (Item : Node; Side : Edge; Value : Float);
+   --  How far its Side is from its parent's, if it is Absolute.
+
    procedure Set_Flex_Direction (Item : Node; Value : Flex_Direction);
    procedure Set_Justify_Content (Item : Node; Value : Justify);
    procedure Set_Align_Items (Item : Node; Value : Align);

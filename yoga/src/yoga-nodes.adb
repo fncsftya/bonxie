@@ -37,6 +37,18 @@ package body Yoga.Nodes is
       Thin.Node_Free_Recursive (Child.Handle);
    end Delete;
 
+   procedure Set_Position_Type (Item : Node; Value : Position_Mode) is
+   begin
+      Thin.Set_Position_Type
+        (Item.Handle, Thin.YG_Position'Val (Position_Mode'Pos (Value)));
+   end Set_Position_Type;
+
+   procedure Set_Position (Item : Node; Side : Edge; Value : Float) is
+   begin
+      Thin.Set_Position
+        (Item.Handle, Thin.YG_Edge'Val (Edge'Pos (Side)), C (Value));
+   end Set_Position;
+
    procedure Set_Display (Item : Node; Value : Display_Mode) is
    begin
       Thin.Set_Display

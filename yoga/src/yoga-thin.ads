@@ -23,6 +23,7 @@ private package Yoga.Thin is
       All_Edges)
      with Convention => C;
    type YG_Gutter is (Column, Row, All_Gutters) with Convention => C;
+   type YG_Position is (Static, Relative, Absolute) with Convention => C;
    type YG_Display is (Flex, None, Contents) with Convention => C;
 
    function Node_New return Node_Ref
@@ -60,6 +61,11 @@ private package Yoga.Thin is
      with Import, Convention => C, External_Name => "YGNodeStyleSetAlignSelf";
    procedure Set_Flex_Wrap (Node : Node_Ref; V : YG_Wrap)
      with Import, Convention => C, External_Name => "YGNodeStyleSetFlexWrap";
+   procedure Set_Position_Type (Node : Node_Ref; V : YG_Position)
+     with Import, Convention => C,
+          External_Name => "YGNodeStyleSetPositionType";
+   procedure Set_Position (Node : Node_Ref; Side : YG_Edge; V : C_float)
+     with Import, Convention => C, External_Name => "YGNodeStyleSetPosition";
    procedure Set_Display (Node : Node_Ref; V : YG_Display)
      with Import, Convention => C, External_Name => "YGNodeStyleSetDisplay";
    procedure Set_Flex_Grow (Node : Node_Ref; V : C_float)

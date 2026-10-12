@@ -172,6 +172,12 @@ package body SDL3.Windows.Renderers is
         (X => To_C (X), Y => To_C (Y), W => To_C (Width), H => To_C (Height));
    begin
       Set_Color (Item, Value);
+      --  Blended with what is behind, if it is not opaque: SDL_BLENDMODE_BLEND
+      --  is 1, and _NONE 0.
+      Errors.Check
+        (Thin.Set_Render_Draw_Blend_Mode
+           (Item.Handle, (if Value.Alpha < 255 then 1 else 0)),
+         "SDL_SetRenderDrawBlendMode");
       Errors.Check
         (Thin.Render_Fill_Rect (Item.Handle, Rect'Access),
          "SDL_RenderFillRect");

@@ -20,6 +20,10 @@ package Yoga is
 
    type Gutter is (Column, Row, All_Gutters);
 
+   type Position_Mode is (Static, Relative, Absolute);
+   --  Absolute takes no room in its parent's layout, and is placed by its
+   --  edges (Set_Position) from the parent's, over its other children.
+
    type Display_Mode is (Flex, None, Contents);
    --  None takes no room and shows nothing, nor do its children.
 
