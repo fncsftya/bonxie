@@ -71,6 +71,31 @@ package body SDL3.Windows is
       Errors.Check (Done, "SDL_SetWindowTitle");
    end Set_Title;
 
+   procedure Extend_Into_Title_Bar (Item : Window) is
+      use Interfaces.C;
+      use type Interfaces.Unsigned_64;
+      Full_Size_Content : constant := 2 ** 15;  --  NSWindowStyleMask...
+      Title_Hidden      : constant := 1;        --  NSWindowTitleHidden
+      Cocoa_Window : constant System.Address :=
+        Thin.Get_Pointer_Property
+          (Thin.Get_Window_Properties (Item.Handle),
+           To_C ("SDL.window.cocoa.window"), System.Null_Address);
+   begin
+      if Cocoa_Window = System.Null_Address then
+         return;  --  not on macOS
+      end if;
+      Thin.Send_Unsigned
+        (Cocoa_Window, Thin.Selector (To_C ("setStyleMask:")),
+         Thin.Send_Flag (Cocoa_Window, Thin.Selector (To_C ("styleMask")))
+         or Full_Size_Content);
+      Thin.Send_Unsigned
+        (Cocoa_Window, Thin.Selector (To_C ("setTitlebarAppearsTransparent:")),
+         1);
+      Thin.Send_Unsigned
+        (Cocoa_Window, Thin.Selector (To_C ("setTitleVisibility:")),
+         Title_Hidden);
+   end Extend_Into_Title_Bar;
+
    procedure Set_Size (Item : Window; Width, Height : Positive) is
       use Interfaces.C;
    begin

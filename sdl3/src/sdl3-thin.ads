@@ -302,6 +302,29 @@ private package SDL3.Thin is
       return Interfaces.C.C_bool
      with Import, Convention => C, External_Name => "SDL_WaitEventTimeout";
 
+   function Get_Window_Properties (Win : Window) return Interfaces.C.unsigned
+     with Import, Convention => C, External_Name => "SDL_GetWindowProperties";
+
+   function Get_Pointer_Property
+     (Props   : Interfaces.C.unsigned;
+      Name    : Interfaces.C.char_array;
+      Default : System.Address) return System.Address
+     with Import, Convention => C, External_Name => "SDL_GetPointerProperty";
+
+   --  The Objective-C runtime, to reach a window's NSWindow.
+   function Selector (Name : Interfaces.C.char_array) return System.Address
+     with Import, Convention => C, External_Name => "sel_registerName";
+
+   function Send_Flag
+     (Target : System.Address; Sel : System.Address)
+      return Interfaces.Unsigned_64
+     with Import, Convention => C, External_Name => "objc_msgSend";
+
+   procedure Send_Unsigned
+     (Target : System.Address; Sel : System.Address;
+      Value  : Interfaces.Unsigned_64)
+     with Import, Convention => C, External_Name => "objc_msgSend";
+
    function Get_Window_Pixel_Density (Win : Window) return Interfaces.C.C_float
      with Import, Convention => C,
           External_Name => "SDL_GetWindowPixelDensity";

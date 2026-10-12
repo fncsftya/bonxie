@@ -1,4 +1,3 @@
-with SDL3.Windows.Renderers;
 with UI.Themes;
 
 --  How the screens look: the sizes of what is on them, and its colours.
@@ -16,6 +15,10 @@ private package Viewer.Style is
    Window_Width  : constant := 1000;
    Window_Height : constant := 800;
    Toolbar_Size  : constant Float := 32.0;
+   Header_Size   : constant Float := 28.0;
+   Header_Inset  : constant Float := 80.0;
+   --  The header across the top, and what its title leaves clear at the
+   --  left for the window's close, minimise and zoom buttons.
    Margin        : constant Float := 16.0;
    --  Around the text area.
 
@@ -50,6 +53,8 @@ private package Viewer.Style is
    No_Projects : constant String := "No projects yet";
 
    Colors  : constant UI.Themes.Theme := UI.Themes.Light;
-   Toolbar : constant SDL3.Windows.Renderers.Color := (52, 54, 66, 255);
+   Toolbar : constant UI.Themes.Color :=
+     UI.Themes.Mix (Colors.Foreground, Colors.Background, 0.15);
+   --  Dark, from the theme: its text colour, a little toward its ground.
 
 end Viewer.Style;

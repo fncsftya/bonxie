@@ -16,6 +16,7 @@ package body Viewer is
    package Widgets renames UI.Widgets;
    package Editors renames UI.Widgets.Editors;
    package Buttons renames UI.Widgets.Buttons;
+   package Labels renames UI.Widgets.Labels;
 
    use Ada.Strings.Unbounded;
    use type Projects.Id;
@@ -123,6 +124,11 @@ package body Viewer is
    begin
       if Now /= To_String (Item.Shown_Title) then
          SDL3.Windows.Set_Title (Item.Win, Now);
+         Labels.Set_Text
+           (Item.Header_Title,
+            Now (Now'First ..
+                 Now'First - 1
+                 + Natural'Min (Now'Length, Labels.Text_Capacity)));
          Item.Shown_Title := To_Unbounded_String (Now);
       end if;
    end Show_Title;
@@ -137,6 +143,7 @@ package body Viewer is
         (Item.Win, "bonxie", Style.Window_Width, Style.Window_Height,
          Resizable => True, High_Density => True);
       Item.Density := SDL3.Windows.Pixel_Density (Item.Win);
+      SDL3.Windows.Extend_Into_Title_Bar (Item.Win);
       Create (Item.Target, Item.Win);
       Build.Set_Up (Item, Source, File_Name, Projects.Default_Path);
       SDL3.Windows.Start_Text_Input (Item.Win);

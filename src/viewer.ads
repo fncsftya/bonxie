@@ -144,6 +144,10 @@ private
       Widgets      : UI.Widgets.Tree;
       Window_Panel : UI.Widgets.Panels.Panel;
       --  The root, of both screens, one of which is hidden.
+      Header_Panel : UI.Widgets.Panels.Panel;
+      Header_Title : UI.Widgets.Labels.Label;
+      --  Across the top of a window, where its title bar was: under the
+      --  window's own buttons.
 
       Home_Panel     : UI.Widgets.Panels.Panel;
       --  A row: the recent projects, and the actions.

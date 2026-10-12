@@ -39,6 +39,16 @@ package SDL3.Windows is
    procedure Set_Title (Item : Window; Title : String)
      with Pre => Is_Open (Item);
 
+   procedure Extend_Into_Title_Bar (Item : Window)
+     with Pre => Is_Open (Item);
+   --  On macOS, have the window's content fill all of it, under a title
+   --  bar that is transparent and shows no title (draw your own); the
+   --  close, minimise and zoom buttons stay, over the top left corner.
+   --  Nothing elsewhere.
+
+   Title_Bar_Height : constant := 28.0;
+   --  In points: what the content should leave clear at the top.
+
    procedure Set_Size (Item : Window; Width, Height : Positive)
      with Pre => Is_Open (Item);
    --  Ask for the window to be Width x Height points, and wait for it,

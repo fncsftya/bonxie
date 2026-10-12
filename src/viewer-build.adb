@@ -50,6 +50,29 @@ package body Viewer.Build is
       end if;
    end Icon_Directory;
 
+   procedure Build_Header (Item : in out Session);
+   --  Add and style the bar across the top of a window.
+
+   procedure Build_Header (Item : in out Session) is
+      use Yoga.Nodes;
+   begin
+      Widgets.Add (Item.Window_Panel, Item.Header_Panel);
+      Widgets.Add (Item.Header_Panel, Item.Header_Title);
+      Panels.Set_Fill (Item.Header_Panel, Colors.Background);
+      Labels.Set_Style (Item.Header_Title, UI.Line_Texts.Strong);
+      Set_Height
+        (Widgets.Node (Item.Header_Panel), Header_Size * Item.Density);
+      Set_Flex_Direction (Widgets.Node (Item.Header_Panel), Yoga.Row);
+      Set_Align_Items (Widgets.Node (Item.Header_Panel), Yoga.Center);
+      Set_Padding
+        (Widgets.Node (Item.Header_Panel), Yoga.Left,
+         Header_Inset * Item.Density);
+      Set_Flex_Grow (Widgets.Node (Item.Header_Title), 1.0);
+      Set_Width (Widgets.Node (Item.Header_Title), 0.0);
+      Set_Height
+        (Widgets.Node (Item.Header_Title), Close_Height * Item.Density);
+   end Build_Header;
+
    procedure Build_Home (Item : in out Session);
    --  Add and style the home screen's widgets.
 
@@ -255,6 +278,9 @@ package body Viewer.Build is
 
       Widgets.Set_Root (Item.Widgets, Item.Window_Panel);
       Set_Flex_Direction (Widgets.Node (Item.Window_Panel), Yoga.Column);
+      if Item.Windowed then
+         Build_Header (Item);
+      end if;
       Build_Home (Item);
       Build_Project (Item);
       Build_Modal (Item);
