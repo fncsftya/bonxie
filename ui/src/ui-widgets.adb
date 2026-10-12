@@ -592,6 +592,28 @@ package body UI.Widgets is
       Detach (Removing);
    end Remove;
 
+   procedure Raise_To_Front (Item : in out Widget'Class) is
+      Raising : constant Widget_Access := Item'Unchecked_Access;
+      Above   : constant Widget_Access := Item.Parent;
+      Before  : Widget_Access := Above.First;
+   begin
+      if Above.Last = Raising then
+         return;
+      end if;
+      if Before = Raising then
+         Above.First := Item.Next;
+      else
+         while Before.Next /= Raising loop
+            Before := Before.Next;
+         end loop;
+         Before.Next := Item.Next;
+      end if;
+      Above.Last.Next := Raising;
+      Above.Last := Raising;
+      Item.Next := null;
+      Invalidate (Item);
+   end Raise_To_Front;
+
    function Hit (Item : Tree; X, Y : Float) return Widget_Access is
       Found : Widget_Access := null;
       Level : Widget_Access := Item.Root;

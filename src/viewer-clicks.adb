@@ -1,5 +1,7 @@
 with UI.Widgets;
+with Viewer.Canvas_Items;
 with Viewer.Deletion;
+with Viewer.Listing;
 with Viewer.Navigation;
 with Viewer.Recent;
 
@@ -73,6 +75,11 @@ package body Viewer.Clicks is
                end if;
             end loop;
          when Project =>
+            if Item.Showing_List then
+               --  The list is all that takes clicks.
+               Listing.Take (Item);
+               return;
+            end if;
             Buttons.Take_Click (Item.Close_Button, Clicked);
             if Clicked then
                Navigation.Leave (Item);
@@ -83,8 +90,17 @@ package body Viewer.Clicks is
             if Clicked then
                Item.Mode := Canvas;
             end if;
-            --  A placeholder: it does nothing yet.
             Buttons.Take_Click (Item.Tool_Item, Clicked);
+            if Clicked then
+               Canvas_Items.Add (Item);
+               return;
+            end if;
+            Buttons.Take_Click (Item.Tool_List, Clicked);
+            if Clicked then
+               Listing.Open (Item);
+               return;
+            end if;
+            Canvas_Items.Take (Item);
       end case;
    end Take;
 

@@ -1,6 +1,7 @@
 with SDL3.Windows.Renderers;
 with UI.Line_Texts;
 with UI.Widgets;
+with Viewer.Canvas_Items;
 with Viewer.Style;
 
 package body Viewer.Painting is
@@ -12,6 +13,12 @@ package body Viewer.Painting is
    procedure Paint (Item : in out Session) is
    begin
       UI.Line_Texts.Begin_Frame (Item.Lines);
+      if Item.Shown = Project then
+         --  The canvas may be panned or laid out afresh since the items
+         --  were put on it.
+         Widgets.Layout (Item.Widgets, Item.Target);
+         Canvas_Items.Sync (Item);
+      end if;
       --  The target keeps what is drawn on it, offscreen and in a window,
       --  so that only what has changed need be drawn again.
       Widgets.Paint

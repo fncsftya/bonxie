@@ -157,6 +157,13 @@ package UI.Widgets is
    --  added, so that one can be added again, with its children, as
    --  below it was built, and styled again.
 
+   procedure Raise_To_Front (Item : in out Widget'Class)
+     with Pre => Is_Attached (Item) and then Parent_Of (Item) /= null;
+   --  Make it the last of its parent's children: the one drawn over the
+   --  others, and found first where they overlap. Only that order
+   --  changes, not the layout, so it is for widgets placed by their
+   --  edges (Yoga.Absolute).
+
    procedure Set_Visible (Item : in out Widget'Class; To : Boolean)
      with Pre => Is_Attached (Item);
    --  Show it, or hide it, with all of its children: hidden, it takes no

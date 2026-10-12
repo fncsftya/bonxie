@@ -7,7 +7,9 @@ itself (`textarea-*`: typing, caret movement, clicks and drags, selection,
 the clipboard, undo, input methods, blinking, scrolling), and compares each
 picture with `tests/golden/<name>.png`. Tests also check text, as edited
 or saved, with `Goldens.Check_Text`, and documents and layouts without
-drawing (`document-*`, `layout-*`).
+drawing (`document-*`, `layout-*`), and the items of a canvas (`items-*`:
+added, typed in, dragged, sized, minimised, closed, listed and kept in the
+database, by clicks and drags at points of the window).
 The software renderer gives the same pixels every run, so no pixel may
 differ.
 

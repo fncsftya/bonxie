@@ -1,0 +1,25 @@
+--  Tests of the items on a project's canvas, as a person would use them:
+--  added, typed in, moved, sized, minimised, closed, listed and removed,
+--  and kept in the database. See Goldens.
+package Item_Tests is
+
+   procedure Counting_Words;
+   procedure Stored;
+   procedure Added;
+   procedure Typing;
+   procedure Titling;
+   procedure Moving;
+   procedure Sizing;
+   procedure Smallest;
+   procedure Minimizing;
+   procedure Closing;
+   procedure Listing;
+   procedure Removing;
+   procedure Revealing;
+   procedure Scrolling_List;
+   procedure Panning_And_Zooming;
+   procedure Raising;
+   procedure Full;
+   procedure Kept;
+
+end Item_Tests;

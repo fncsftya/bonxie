@@ -21,6 +21,22 @@ private package Viewer.Style is
    Tool_Height   : constant Float := 24.0;
    Tab_Width     : constant Float := 80.0;
 
+   Dock_Height   : constant Float := 40.0;
+   Dock_Inset    : constant Float := 8.0;
+   Dock_Gap      : constant Float := 6.0;
+   --  The dock of minimised items, above the tools bar.
+   Tool_Gap      : constant Float := 6.0;
+   --  Between the items on the tools bar.
+
+   --  The list of items, in points
+
+   List_Width    : constant Float := 440.0;
+   List_Height   : constant Float := 380.0;
+   List_Gap      : constant Float := 6.0;
+   Toggle_Width  : constant Float := 44.0;
+   Remove_Width  : constant Float := 44.0;
+   --  Of the buttons to show or hide an item, and to remove it.
+
    --  The home screen, in points
 
    Home_Margin   : constant Float := 32.0;
@@ -50,6 +66,7 @@ private package Viewer.Style is
    --  Between the Close button and the toolbar's edge.
 
    No_Projects : constant String := "No projects yet";
+   No_Items    : constant String := "No items yet";
 
    Colors  : constant UI.Themes.Theme := UI.Themes.Light;
    Toolbar : constant UI.Themes.Color :=
@@ -58,5 +75,11 @@ private package Viewer.Style is
    Tools_Bar : constant UI.Themes.Color :=
      UI.Themes.Mix (Toolbar, Colors.Background, 0.2);
    --  A lighter shade of the same.
+   Dock : constant UI.Themes.Color :=
+     UI.Themes.Mix (Colors.Background, Colors.Foreground, 0.25);
+   --  Behind the minimised items: between the canvas and the tools bar.
+   Closed_Ink : constant UI.Themes.Color :=
+     UI.Themes.Mix (Colors.Foreground, Colors.Background, 0.55);
+   --  Of the title of an item that is not shown, in the list.
 
 end Viewer.Style;

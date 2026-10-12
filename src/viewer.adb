@@ -4,8 +4,10 @@ with SDL3.Events.Redraws;
 with SDL3.Windows.Renderers;
 with UI.Widgets;
 with Viewer.Build;
+with Viewer.Canvas_Items;
 with Viewer.Clicks;
 with Viewer.Deletion;
+with Viewer.Listing;
 with Viewer.Navigation;
 with Viewer.Painting;
 with Viewer.Style;
@@ -48,11 +50,22 @@ package body Viewer is
    begin
       case Event.Kind is
          when SDL3.Events.Quit =>
+            if Item.Shown = Project then
+               Canvas_Items.Save_All (Item);
+            end if;
             Item.Done := True;
          when SDL3.Events.Redraw =>
             Widgets.Invalidate_All (Item.Widgets);
          when others =>
-            if Item.Deleting /= 0 then
+            if Item.Showing_List then
+               --  The list is all that takes events.
+               if Event.Kind = SDL3.Events.Key_Down
+                 and then Event.Key = SDL3.Events.Key_Escape
+               then
+                  Listing.Close (Item);
+                  return;
+               end if;
+            elsif Item.Deleting /= 0 then
                --  The dialog is all that takes events.
                if Event.Kind = SDL3.Events.Key_Down
                  and then Event.Key = SDL3.Events.Key_Escape
@@ -72,6 +85,9 @@ package body Viewer is
                Widgets.Dispatch (Item.Widgets, Event, Handled);
                Clicks.Take (Item);
                Show_Cursor (Item);
+            end if;
+            if Item.Shown = Project then
+               Canvas_Items.Update (Item, Event.Time);
             end if;
       end case;
    end Handle;
@@ -99,6 +115,48 @@ package body Viewer is
       Name    : String;
       Updated : Projects.Seconds)
      renames Navigation.Keep;
+
+   --  The items
+
+   function Item_Count (Item : Session) return Natural is
+     (Canvas_Items.Count (Item));
+
+   procedure Add_Item
+     (Item : in out Session; Name : String := "Untitled item")
+     renames Canvas_Items.Add;
+
+   function Is_Listing (Item : Session) return Boolean is
+     (Item.Showing_List);
+
+   function Nth (Item : Session; Row : Positive) return Items.Slot;
+   --  The window of the Rowth item.
+
+   function Nth (Item : Session; Row : Positive) return Items.Slot is
+      Slots : Canvas_Items.Slot_List (1 .. Items.Capacity);
+      Found : Natural;
+   begin
+      Canvas_Items.Order (Item, Slots, Found);
+      return Slots (Row);
+   end Nth;
+
+   function Item_Title (Item : Session; Row : Positive) return String is
+     (Projects.Titles.To_String
+        (Items.Windows.Details (Item.Windows (Nth (Item, Row))).Title));
+
+   function Item_Text (Item : Session; Row : Positive) return String is
+     (Items.Windows.Text (Item.Windows (Nth (Item, Row))));
+
+   function Item_Words (Item : Session; Row : Positive) return Natural is
+     (Items.Windows.Words (Item.Windows (Nth (Item, Row))));
+
+   function Item_State (Item : Session; Row : Positive) return Items.States is
+     (Items.Windows.Details (Item.Windows (Nth (Item, Row))).State);
+
+   function Is_Editing_Title (Item : Session; Row : Positive) return Boolean is
+     (Items.Windows.Is_Editing_Title (Item.Windows (Nth (Item, Row))));
+
+   function Item_Frame (Item : Session; Row : Positive) return Items.Frame is
+     (Items.Windows.Details (Item.Windows (Nth (Item, Row))).Where);
 
    function Is_Renaming (Item : Session) return Boolean is
      (Item.Editing /= 0);
@@ -228,6 +286,9 @@ package body Viewer is
    procedure Tick (Item : in out Session; Now : SDL3.Events.Milliseconds) is
    begin
       Widgets.Update (Item.Widgets, Now);
+      if Item.Shown = Project then
+         Canvas_Items.Update (Item, Now);
+      end if;
    end Tick;
 
    procedure Resize (Item : in out Session; Width, Height : Positive) is

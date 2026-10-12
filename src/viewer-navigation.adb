@@ -1,4 +1,5 @@
 with UI.Widgets;
+with Viewer.Canvas_Items;
 with Viewer.Recent;
 
 package body Viewer.Navigation is
@@ -37,6 +38,8 @@ package body Viewer.Navigation is
       Widgets.Set_Visible (Item.Project_Panel, True);
       Widgets.Clear_Focus (Item.Widgets);
       Widgets.Layout (Item.Widgets, Item.Target);
+      --  Once the canvas is laid out, to have an origin.
+      Canvas_Items.Enter (Item);
    end Enter;
 
    procedure Enter_New (Item : in out Session) is
@@ -47,6 +50,9 @@ package body Viewer.Navigation is
 
    procedure Leave (Item : in out Session) is
    begin
+      Canvas_Items.Leave (Item);
+      Item.Showing_List := False;
+      Widgets.Set_Visible (Item.List_Overlay, False);
       Item.Shown := Home;
       Item.Current := 0;
       Widgets.Set_Visible (Item.Project_Panel, False);

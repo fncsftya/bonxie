@@ -15,7 +15,8 @@ package body SDL3.Cursors is
      (case Which is
          when Default => 0,   --  SDL_SYSTEM_CURSOR_DEFAULT
          when Move    => 9,   --  SDL_SYSTEM_CURSOR_MOVE
-         when Pointer => 11); --  SDL_SYSTEM_CURSOR_POINTER
+         when Pointer => 11,  --  SDL_SYSTEM_CURSOR_POINTER
+         when Resize  => 5);  --  SDL_SYSTEM_CURSOR_NWSE_RESIZE
 
    procedure Set (Which : Kind) is
    begin

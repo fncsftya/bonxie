@@ -1,5 +1,7 @@
 with Ada.Command_Line;
 with Ada.Directories;
+with Items.Windows;
+with SDL3.Cursors;
 with UI.Icons;
 with UI.Line_Texts;
 with UI.Themes;
@@ -15,6 +17,7 @@ package body Viewer.Build is
    package Buttons renames UI.Widgets.Buttons;
    package Labels renames UI.Widgets.Labels;
    package Text_Fields renames UI.Widgets.Text_Fields;
+   package Grips renames UI.Widgets.Grips;
 
    use Style;
 
@@ -157,8 +160,10 @@ package body Viewer.Build is
       Widgets.Add (Item.Window_Panel, Item.Project_Panel);
       Widgets.Add (Item.Project_Panel, Item.Content_Panel);
       Widgets.Add (Item.Content_Panel, Item.Canvas_View);
+      Widgets.Add (Item.Project_Panel, Item.Dock_Panel);
       Widgets.Add (Item.Project_Panel, Item.Tools);
       Widgets.Add (Item.Tools, Item.Tool_Item);
+      Widgets.Add (Item.Tools, Item.Tool_List);
       Widgets.Add (Item.Project_Panel, Item.Toolbar_Panel);
       Widgets.Add (Item.Toolbar_Panel, Item.Project_Title);
       Widgets.Add (Item.Toolbar_Panel, Item.Canvas_Tab);
@@ -167,9 +172,12 @@ package body Viewer.Build is
       Buttons.Set_Label (Item.Canvas_Tab, "Canvas");
       Buttons.Set_Selected (Item.Canvas_Tab, True);
       Buttons.Set_Label (Item.Close_Button, "Close");
-      Buttons.Set_Label (Item.Tool_Item, "New Item");
+      Buttons.Set_Label (Item.Tool_Item, "Add Item");
       Buttons.Set_Icon (Item.Tool_Item, UI.Icons.Window);
       Buttons.Set_Captioned (Item.Tool_Item, True);
+      Buttons.Set_Label (Item.Tool_List, "Items");
+      Buttons.Set_Icon (Item.Tool_List, UI.Icons.List);
+      Buttons.Set_Captioned (Item.Tool_List, True);
       Labels.Set_Style (Item.Project_Title, UI.Line_Texts.Strong);
       Labels.Set_Ink (Item.Project_Title, Colors.Background);
 
@@ -187,8 +195,29 @@ package body Viewer.Build is
       Set_Align_Items (Widgets.Node (Item.Tools), Yoga.Center);
       Set_Padding
         (Widgets.Node (Item.Tools), Yoga.Left, Tools_Inset * Item.Density);
+      Set_Gap
+        (Widgets.Node (Item.Tools), Yoga.All_Gutters, Tool_Gap * Item.Density);
       Set_Width (Widgets.Node (Item.Tool_Item), Tool_Width * Item.Density);
       Set_Height (Widgets.Node (Item.Tool_Item), Tool_Height * Item.Density);
+      Set_Width (Widgets.Node (Item.Tool_List), Tool_Width * Item.Density);
+      Set_Height (Widgets.Node (Item.Tool_List), Tool_Height * Item.Density);
+
+      --  The dock of minimised items, above the tools bar, and the
+      --  windows of the items: on the canvas, or as bars in the dock.
+      Panels.Set_Fill (Item.Dock_Panel, Dock);
+      Set_Height (Widgets.Node (Item.Dock_Panel), Dock_Height * Item.Density);
+      Set_Flex_Direction (Widgets.Node (Item.Dock_Panel), Yoga.Row);
+      Set_Align_Items (Widgets.Node (Item.Dock_Panel), Yoga.Center);
+      Set_Padding
+        (Widgets.Node (Item.Dock_Panel), Yoga.Left, Dock_Inset * Item.Density);
+      Set_Gap
+        (Widgets.Node (Item.Dock_Panel), Yoga.All_Gutters,
+         Dock_Gap * Item.Density);
+      for Each of Item.Windows loop
+         Items.Windows.Build
+           (Each, Item.Canvas_View, Item.Dock_Panel, Colors, Toolbar,
+            Item.Density);
+      end loop;
 
       --  The tabs and the Close button at the right, in the middle of the
       --  bar.
@@ -277,6 +306,109 @@ package body Viewer.Build is
         (Widgets.Node (Item.Confirm_Delete), Dialog_Button_Width * Pixels);
    end Build_Modal;
 
+   procedure Build_List (Item : in out Session);
+   --  Add and style the list of items: a dialog over all else.
+
+   procedure Build_List (Item : in out Session) is
+      use Yoga.Nodes;
+      Pixels : constant Float := Item.Density;
+   begin
+      Widgets.Add (Item.Window_Panel, Item.List_Overlay);
+      Widgets.Add (Item.List_Overlay, Item.List_Border);
+      Widgets.Add (Item.List_Border, Item.List_Dialog);
+      Widgets.Add (Item.List_Dialog, Item.List_Head);
+      Widgets.Add (Item.List_Head, Item.List_Heading);
+      Widgets.Add (Item.List_Head, Item.List_Close);
+      Widgets.Add (Item.List_Dialog, Item.List_Scroll);
+      Widgets.Add (Item.List_Scroll, Item.List_Content);
+      Widgets.Add (Item.List_Content, Item.List_None);
+      for Row of Item.List_Rows loop
+         Widgets.Add (Item.List_Content, Row.Panel);
+         Widgets.Add (Row.Panel, Row.Name);
+         Widgets.Add (Row.Name, Row.Caption);
+         Widgets.Add (Row.Panel, Row.Toggle);
+         Widgets.Add (Row.Panel, Row.Remove);
+      end loop;
+
+      Panels.Set_Fill (Item.List_Overlay, UI.Themes.Scrim (Colors));
+      Panels.Set_Fill (Item.List_Border, Colors.Foreground);
+      Panels.Set_Fill (Item.List_Dialog, Colors.Background);
+      Labels.Set_Text (Item.List_Heading, "Items");
+      Labels.Set_Style (Item.List_Heading, UI.Line_Texts.Heading);
+      Buttons.Set_Label (Item.List_Close, "Close");
+      Labels.Set_Text (Item.List_None, No_Items);
+
+      Set_Position_Type (Widgets.Node (Item.List_Overlay), Yoga.Absolute);
+      for Side in Yoga.Left .. Yoga.Bottom loop
+         Set_Position (Widgets.Node (Item.List_Overlay), Side, 0.0);
+      end loop;
+      Set_Flex_Direction (Widgets.Node (Item.List_Overlay), Yoga.Column);
+      Set_Justify_Content (Widgets.Node (Item.List_Overlay), Yoga.Center);
+      Set_Align_Items (Widgets.Node (Item.List_Overlay), Yoga.Center);
+
+      Set_Width (Widgets.Node (Item.List_Border), List_Width * Pixels);
+      Set_Height (Widgets.Node (Item.List_Border), List_Height * Pixels);
+      Set_Padding
+        (Widgets.Node (Item.List_Border), Yoga.All_Edges, Outline * Pixels);
+      Set_Flex_Direction (Widgets.Node (Item.List_Dialog), Yoga.Column);
+      Set_Flex_Grow (Widgets.Node (Item.List_Dialog), 1.0);
+      Set_Padding
+        (Widgets.Node (Item.List_Dialog), Yoga.All_Edges, Dialog_Pad * Pixels);
+      Set_Gap
+        (Widgets.Node (Item.List_Dialog), Yoga.All_Gutters, Gap * Pixels);
+
+      Set_Flex_Direction (Widgets.Node (Item.List_Head), Yoga.Row);
+      Set_Align_Items (Widgets.Node (Item.List_Head), Yoga.Center);
+      Set_Height (Widgets.Node (Item.List_Head), Title_Height * Pixels);
+      Set_Flex_Grow (Widgets.Node (Item.List_Heading), 1.0);
+      Set_Width (Widgets.Node (Item.List_Heading), 0.0);
+      Set_Height (Widgets.Node (Item.List_Heading), Title_Height * Pixels);
+      Set_Width (Widgets.Node (Item.List_Close), Close_Width * Pixels);
+      Set_Height (Widgets.Node (Item.List_Close), Close_Height * Pixels);
+
+      --  The scroller takes what the heading leaves; the rows go in a
+      --  column in it, as tall as they are.
+      Set_Flex_Grow (Widgets.Node (Item.List_Scroll), 1.0);
+      Set_Height (Widgets.Node (Item.List_Scroll), 0.0);
+      Set_Flex_Direction (Widgets.Node (Item.List_Content), Yoga.Column);
+      Set_Flex_Shrink (Widgets.Node (Item.List_Content), 0.0);
+      Set_Gap
+        (Widgets.Node (Item.List_Content), Yoga.All_Gutters,
+         List_Gap * Pixels);
+      Set_Height (Widgets.Node (Item.List_None), Title_Height * Pixels);
+      for Row of Item.List_Rows loop
+         Panels.Set_Fill
+           (Row.Panel,
+            UI.Themes.Mix (Colors.Background, Colors.Foreground, 0.06));
+         Set_Flex_Direction (Widgets.Node (Row.Panel), Yoga.Row);
+         Set_Align_Items (Widgets.Node (Row.Panel), Yoga.Center);
+         Set_Height (Widgets.Node (Row.Panel), Row_Height * Pixels);
+         Set_Flex_Shrink (Widgets.Node (Row.Panel), 0.0);
+         Set_Padding
+           (Widgets.Node (Row.Panel), Yoga.Left, Row_Gap * Pixels);
+         Set_Gap
+           (Widgets.Node (Row.Panel), Yoga.All_Gutters, Row_Gap * Pixels);
+         Set_Flex_Grow (Widgets.Node (Row.Name), 1.0);
+         Set_Width (Widgets.Node (Row.Name), 0.0);
+         Set_Height (Widgets.Node (Row.Name), Row_Height * Pixels);
+         Set_Flex_Direction (Widgets.Node (Row.Name), Yoga.Row);
+         Set_Align_Items (Widgets.Node (Row.Name), Yoga.Center);
+         Set_Padding (Widgets.Node (Row.Name), Yoga.Left, Row_Gap * Pixels);
+         Grips.Set_Wanted_Cursor (Row.Name, SDL3.Cursors.Pointer);
+         Grips.Set_Hover_Outline (Row.Name, Colors.Foreground);
+         Set_Flex_Grow (Widgets.Node (Row.Caption), 1.0);
+         Set_Width (Widgets.Node (Row.Caption), 0.0);
+         Set_Height (Widgets.Node (Row.Caption), Row_Height * Pixels);
+         Set_Width (Widgets.Node (Row.Toggle), Toggle_Width * Pixels);
+         Set_Height (Widgets.Node (Row.Toggle), Row_Height * Pixels);
+         Set_Width (Widgets.Node (Row.Remove), Remove_Width * Pixels);
+         Set_Height (Widgets.Node (Row.Remove), Row_Height * Pixels);
+         Buttons.Set_Label (Row.Remove, "Remove");
+         Buttons.Set_Icon (Row.Remove, UI.Icons.Delete);
+         Buttons.Set_Kind (Row.Remove, Buttons.Danger);
+      end loop;
+   end Build_List;
+
    procedure Set_Up
      (Item       : in out Session;
       Source     : String;
@@ -286,6 +418,7 @@ package body Viewer.Build is
       use Yoga.Nodes;
    begin
       Projects.Open (Item.Store, Store_Path);
+      Items.Prepare (Item.Store);
       Scripts.Load (Item.Script, Source, File_Name);
       Widgets.Set_Density (Item.Widgets, Item.Density);
       Widgets.Set_Line_Texts (Item.Widgets, Item.Lines);
@@ -305,6 +438,7 @@ package body Viewer.Build is
       Build_Home (Item);
       Build_Project (Item);
       Build_Modal (Item);
+      Build_List (Item);
 
       Buttons.Set_Label (Item.Ok_Button, "OK");
       Buttons.Set_Label (Item.Cancel_Button, "Cancel");
@@ -314,6 +448,8 @@ package body Viewer.Build is
       --  It starts at the home screen.
       Widgets.Set_Visible (Item.Project_Panel, False);
       Widgets.Set_Visible (Item.Overlay, False);
+      Widgets.Set_Visible (Item.List_Overlay, False);
+      Widgets.Set_Visible (Item.Dock_Panel, False);
       Recent.Refresh (Item);
       --  Before any event: the widgets must know where they are.
       Widgets.Layout (Item.Widgets, Item.Target);

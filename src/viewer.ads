@@ -1,8 +1,10 @@
+with Items;
 with Projects;
 with SDL3.Cursors;
 with SDL3.Events;
 with SDL3.Windows.Renderers.Images;
 private with Ada.Strings.Unbounded;
+private with Items.Windows;
 private with SDL3.Windows;
 private with Scripts;
 private with Texts.Documents;
@@ -11,9 +13,11 @@ private with UI.Icons;
 private with UI.Line_Texts;
 private with UI.Widgets.Buttons;
 private with UI.Widgets.Canvases;
+private with UI.Widgets.Grips;
 private with UI.Widgets.Labels;
 private with UI.Widgets.Text_Fields;
 private with UI.Widgets.Panels;
+private with UI.Widgets.Scrollers;
 
 --  A window of two screens: the home, with the recent projects and
 --  buttons to start with, and a project, with a toolbar and, above it, the
@@ -116,10 +120,58 @@ package Viewer is
    --  Where the canvas's origin is, in points from the top left of the
    --  canvas.
 
+   --  The items on the project's canvas, in the order they were made
+
+   function Item_Count (Item : Session) return Natural
+     with Pre => Is_Open (Item) and then Screen (Item) = Project;
+   --  How many the project has, whether shown or not.
+
+   procedure Add_Item
+     (Item : in out Session;
+      Name : String := "Untitled item")
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Name'Length <= Projects.Title_Capacity;
+   --  Add one called Name in the middle of the canvas, with the focus in
+   --  its text, as the Add Item button does; none if the project has
+   --  Items.Capacity.
+
+   function Item_Title (Item : Session; Row : Positive) return String
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item);
+
+   function Item_Text (Item : Session; Row : Positive) return String
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item);
+
+   function Item_Words (Item : Session; Row : Positive) return Natural
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item);
+   --  As the status line of the item says.
+
+   function Item_State (Item : Session; Row : Positive) return Items.States
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item);
+
+   function Item_Frame (Item : Session; Row : Positive) return Items.Frame
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item);
+   --  Where it is on the canvas.
+
+   function Is_Editing_Title (Item : Session; Row : Positive) return Boolean
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item);
+   --  Whether the item's title is a field to type in, not text.
+
+   function Is_Listing (Item : Session) return Boolean
+     with Pre => Is_Open (Item);
+   --  Whether the list of the project's items is shown, over the project
+   --  screen.
+
    function Cursor (Item : Session) return SDL3.Cursors.Kind
      with Pre => Is_Open (Item);
    --  The shape the pointer has, from where it was last seen: the arrow,
-   --  or the move cursor while panning the canvas.
+   --  the move cursor while panning the canvas or dragging an item, or the
+   --  resize cursor over the corner of an item.
 
    function Text (Item : Session) return String
      with Pre => Is_Open (Item);
@@ -161,6 +213,20 @@ private
    type Row_Panel_Array is
      array (Row_Array'Range) of UI.Widgets.Panels.Panel;
    type Key_Array is array (Row_Array'Range) of Projects.Id;
+
+   type Item_Row is limited record
+      Panel  : UI.Widgets.Panels.Panel;
+      Name   : UI.Widgets.Grips.Grip;
+      --  The title: clicked, to show the item.
+      Caption : UI.Widgets.Labels.Label;
+      Toggle : UI.Widgets.Buttons.Button;
+      Remove : UI.Widgets.Buttons.Button;
+   end record;
+   --  A row of the list of items: its title, a button to show it on the
+   --  canvas or hide it, and one to remove it.
+
+   type Item_Row_Array is array (Items.Slot) of Item_Row;
+   type Slot_Array is array (Items.Slot) of Items.Slot;
 
    type Session is limited record
       Widgets      : UI.Widgets.Tree;
@@ -228,12 +294,37 @@ private
 
       Canvas_View   : UI.Widgets.Canvases.Canvas;
       --  In the content area, all of it.
+      Dock_Panel    : UI.Widgets.Panels.Panel;
+      --  A bar above the tools, of the bars of the items that are
+      --  minimised: shown only when there are any.
       Tools         : UI.Widgets.Panels.Panel;
       Tool_Item     : UI.Widgets.Buttons.Button;
-      --  The tools of the view: a bar above the toolbar, and its one item.
+      Tool_List     : UI.Widgets.Buttons.Button;
+      --  The tools of the view: a bar above the toolbar. Add Item, and
+      --  the list of items.
 
       Shown        : Screens := Home;
       Store        : Projects.Store;
+
+      Shown_Zoom, Shown_X, Shown_Y : Float := 0.0;
+      --  Of the canvas, as the items' windows have been put by it.
+
+      List_Overlay  : UI.Widgets.Panels.Panel;
+      --  Over the project screen, to grey it out and hold the list of
+      --  items, which is shown when Showing_List.
+      List_Border   : UI.Widgets.Panels.Panel;
+      List_Dialog   : UI.Widgets.Panels.Panel;
+      List_Head     : UI.Widgets.Panels.Panel;
+      List_Heading  : UI.Widgets.Labels.Label;
+      List_Close    : UI.Widgets.Buttons.Button;
+      List_Scroll   : UI.Widgets.Scrollers.Scroller;
+      List_Content  : UI.Widgets.Panels.Panel;
+      List_None     : UI.Widgets.Labels.Label;
+      --  Shown when there are no items.
+      List_Rows     : Item_Row_Array;
+      Row_Slots     : Slot_Array := [others => 1];
+      --  The window of the item each row is of.
+      Showing_List  : Boolean := False;
 
       Script       : aliased Scripts.Script;
       Win          : SDL3.Windows.Window;
@@ -243,6 +334,9 @@ private
       --  after Target, which it draws to
       Lines        : aliased UI.Line_Texts.Drawer;
       --  after Target, which it draws to
+      Windows      : Items.Windows.Window_Array;
+      --  The windows of the project's items: after Target, which they
+      --  draw to.
       Edit_Doc     : aliased Texts.Documents.Document;
       Edit_Field   : UI.Widgets.Text_Fields.Text_Field;
       --  The title being renamed, and the field for it, which is in the

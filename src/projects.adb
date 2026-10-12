@@ -40,6 +40,10 @@ package body Projects is
    function Is_Open (Item : Store) return Boolean is
      (Item.Base /= null and then Ada_Sqlite3.Is_Open (Item.Base.all));
 
+   function Connection
+     (Item : Store) return not null access Ada_Sqlite3.Database is
+     (Item.Base);
+
    procedure Open (Item : in out Store; Path : String := Default_Path) is
    begin
       if Path /= Memory then
@@ -47,6 +51,7 @@ package body Projects is
            (Ada.Directories.Containing_Directory (Path));
       end if;
       Item.Base := new Ada_Sqlite3.Database'(Ada_Sqlite3.Open (Path));
+      Ada_Sqlite3.Execute (Item.Base.all, "PRAGMA foreign_keys = ON");
       Ada_Sqlite3.Execute (Item.Base.all, Schema);
       Ada_Sqlite3.Execute (Item.Base.all, Index);
    end Open;
@@ -127,6 +132,7 @@ package body Projects is
         Ada_Sqlite3.Prepare
           (Item.Base.all, "DELETE FROM projects WHERE id = :id");
    begin
+      --  What refers to the project goes with it (foreign keys).
       --  Also to do, when projects have files: remove them.
       Ada_Sqlite3.Bind_Int64 (Remove, ":id", Long_Integer (Key));
       Ada_Sqlite3.Step (Remove);

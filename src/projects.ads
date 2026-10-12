@@ -1,6 +1,6 @@
 with Ada.Finalization;
 with Ada.Strings.Bounded;
-private with Ada_Sqlite3;
+with Ada_Sqlite3;
 
 --  The projects bonxie keeps, in a SQLite database on disk.
 package Projects is
@@ -59,6 +59,13 @@ package Projects is
    --  the tables, if there are none. Memory for one that is not kept.
 
    function Is_Open (Item : Store) return Boolean;
+
+   function Connection
+     (Item : Store) return not null access Ada_Sqlite3.Database
+     with Pre => Is_Open (Item);
+   --  The open database, for what belongs to projects to be kept in it
+   --  too (see Items). Foreign keys are on: what refers to a project is
+   --  removed with it.
 
    function Create
      (Item        : in out Store;
