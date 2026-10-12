@@ -13,7 +13,6 @@ private with UI.Widgets.Buttons;
 private with UI.Widgets.Canvases;
 private with UI.Widgets.Labels;
 private with UI.Widgets.Text_Fields;
-private with UI.Widgets.Palettes;
 private with UI.Widgets.Panels;
 
 --  A window of two screens: the home, with the recent projects and
@@ -25,7 +24,8 @@ package Viewer is
 
    type Modes is (Canvas);
    --  The views of a project. Canvas, an infinite canvas to pan and zoom,
-   --  with a floating toolbar to drag, is the first, and so the one shown.
+   --  with a toolbar of tools above the main one, is the first, and so the
+   --  one shown.
 
    procedure Run (Source : String; File_Name : String := "");
    --  Open a window, at the home screen, and run until it is closed.
@@ -119,8 +119,7 @@ package Viewer is
    function Cursor (Item : Session) return SDL3.Cursors.Kind
      with Pre => Is_Open (Item);
    --  The shape the pointer has, from where it was last seen: the arrow,
-   --  or the move cursor over the grip of the floating toolbar and while
-   --  panning the canvas.
+   --  or the move cursor while panning the canvas.
 
    function Text (Item : Session) return String
      with Pre => Is_Open (Item);
@@ -229,9 +228,9 @@ private
 
       Canvas_View   : UI.Widgets.Canvases.Canvas;
       --  In the content area, all of it.
-      Tools         : UI.Widgets.Palettes.Palette;
+      Tools         : UI.Widgets.Panels.Panel;
       Tool_Item     : UI.Widgets.Buttons.Button;
-      --  The floating toolbar, over the canvas, and its one item.
+      --  The tools of the view: a bar above the toolbar, and its one item.
 
       Shown        : Screens := Home;
       Store        : Projects.Store;

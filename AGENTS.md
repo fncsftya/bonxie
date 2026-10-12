@@ -33,8 +33,7 @@ From the bottom up; each crate depends only on those before it.
   gives the tree's, from the one holding a press or under the pointer).
   `Canvases` is an infinite canvas to pan (wheel, trackpad, middle
   button) and zoom (Command with the wheel, a pinch, Command with =, -,
-  0); `Palettes` is a small panel that floats over its parent and can be
-  dragged. Widgets can be hidden (`Set_Visible`) or taken out
+  0); Widgets can be hidden (`Set_Visible`) or taken out
   (`Remove`, with their children; build them again top-down). No
   callbacks: widgets are polled (`Take_Click`) and models are pulled in
   `Update`.

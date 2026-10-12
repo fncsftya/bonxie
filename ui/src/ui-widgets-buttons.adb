@@ -5,8 +5,7 @@ package body UI.Widgets.Buttons is
 
    Bevel : constant := 2.0;  --  in points: how wide the edges are
    Icon_Size : constant := 20.0;  --  in points, a side
-   Caption_Height : constant := 14.0;  --  of a label under an icon
-   Caption_Gap : constant := 4.0;      --  between the icon and the label
+   Caption_Gap : constant := 6.0;  --  between an icon and its label
    White : constant Themes.Color := (255, 255, 255, 255);
    --  For an icon on a button of a colour of its own.
 
@@ -118,6 +117,18 @@ package body UI.Widgets.Buttons is
       Invalidate (Item);
    end Hover_Changed;
 
+   function Label_Span (Item : Button; Wide : Float) return Float;
+   --  Of the label, in pixels, as it is drawn: in the one style every
+   --  button's label has, whatever else is on the button.
+
+   function Label_Span (Item : Button; Wide : Float) return Float is
+     (if Item.Length = 0 then 0.0
+      elsif Text_Lines (Item) /= null
+      then UI.Line_Texts.Width
+             (Text_Lines (Item).all, Label (Item), Density (Item),
+              UI.Line_Texts.Strong)
+      else Wide);
+
    overriding procedure Draw
      (Item   : in out Button;
       Target : SDL3.Windows.Renderers.Renderer;
@@ -150,11 +161,15 @@ package body UI.Widgets.Buttons is
       Shift : constant Float :=
         (if Sunk then Density (Item) else 0.0);
       Icon_Drawn : Boolean := False;
+      Text_Left  : Float := 0.0;
       Scale : constant Positive :=
         Positive (Float'Max (1.0, Float'Rounding (Density (Item))));
       Wide  : constant Float :=
         Float (Item.Length * Debug_Text_Size * Scale);
       High  : constant Float := Float (Debug_Text_Size * Scale);
+      Span  : constant Float := Label_Span (Item, Wide);
+      Together : constant Boolean :=
+        Item.Picture and then Item.Captioned and then Item.Length > 0;
    begin
       --  A face with a bevel and no outline: light on its top and left,
       --  shade on its bottom and right, as if it stood out; the other
@@ -171,85 +186,53 @@ package body UI.Widgets.Buttons is
                  Width_Of (Item), Edge);
       Fill_Rect (Target, Dim, Left_Of (Item) + Width_Of (Item) - Edge,
                  Top_Of (Item), Edge, Height_Of (Item));
+      --  The icon, if there is one, and the label, in the middle of the
+      --  button: together, icon first, if it is captioned; otherwise the
+      --  label only where the icon cannot be drawn.
       if Item.Picture and then Icon_Library (Item) /= null then
          declare
             Size : constant Positive :=
               Positive (Float'Rounding (Icon_Size * Density (Item)));
-            Caption : constant Boolean :=
-              Item.Captioned and then Item.Length > 0;
-            --  An icon with its label under it is raised to make room.
-            Raise_By : constant Float :=
-              (if Caption then (Caption_Height + Caption_Gap) / 2.0
-                               * Density (Item)
-               else 0.0);
+            Group_Left : constant Float :=
+              Left_Of (Item)
+              + (Width_Of (Item)
+                 - (if Together
+                    then (Icon_Size + Caption_Gap) * Density (Item) + Span
+                    else Float (Size))) / 2.0;
             Drawn : Boolean;
          begin
             Icons.Draw
               (Icon_Library (Item).all, Target,
                Item.Which,
                (if Item.Style /= Normal then White else Colors.Foreground),
-               Float'Rounding
-                 (Left_Of (Item) + (Width_Of (Item) - Float (Size)) / 2.0
-                  + Shift),
+               Float'Rounding (Group_Left + Shift),
                Float'Rounding
                  (Top_Of (Item) + (Height_Of (Item) - Float (Size)) / 2.0
-                  - Raise_By + Shift),
+                  + Shift),
                Size, Drawn);
             Icon_Drawn := Drawn;
+            Text_Left := Group_Left + (Icon_Size + Caption_Gap)
+                                      * Density (Item);
          end;
       end if;
-      if Icon_Drawn and then not (Item.Captioned and then Item.Length > 0)
-      then
-         null;
-      elsif Icon_Drawn then
-         --  The label under the icon.
-         if Text_Lines (Item) /= null then
-            declare
-               Lines : UI.Line_Texts.Drawer renames Text_Lines (Item).all;
-               Across : constant Float :=
-                 UI.Line_Texts.Width
-                   (Lines, Label (Item), Density (Item),
-                    UI.Line_Texts.Regular);
-            begin
-               UI.Line_Texts.Draw
-                 (Lines, Target, Ink, Label (Item),
-                  Left_Of (Item) + (Width_Of (Item) - Across) / 2.0 + Shift,
-                  Top_Of (Item) + Height_Of (Item) / 2.0
-                  + (Icon_Size + Caption_Gap) / 2.0 * Density (Item)
-                  + Shift,
-                  Density (Item), UI.Line_Texts.Regular);
-            end;
-         else
-            Draw_Text
-              (Target, Ink,
-               Float'Rounding
-                 (Left_Of (Item) + (Width_Of (Item) - Wide) / 2.0 + Shift),
-               Float'Rounding
-                 (Top_Of (Item) + Height_Of (Item) / 2.0
-                  + Caption_Gap / 2.0 * Density (Item) + Shift),
-               Label (Item), Scale);
+      if Item.Length > 0 and then (Together or else not Icon_Drawn) then
+         if not (Together and then Icon_Drawn) then
+            Text_Left :=
+              Left_Of (Item) + (Width_Of (Item) - Span) / 2.0;
          end if;
-      elsif Item.Length > 0 and then Text_Lines (Item) /= null then
-         declare
-            Lines : UI.Line_Texts.Drawer renames Text_Lines (Item).all;
-            Across : constant Float :=
-              UI.Line_Texts.Width
-                (Lines, Label (Item), Density (Item), UI.Line_Texts.Strong);
-         begin
+         if Text_Lines (Item) /= null then
             UI.Line_Texts.Draw
-              (Lines, Target, Ink, Label (Item),
-               Left_Of (Item) + (Width_Of (Item) - Across) / 2.0 + Shift,
+              (Text_Lines (Item).all, Target, Ink, Label (Item),
+               Text_Left + Shift,
                Top_Of (Item) + Height_Of (Item) / 2.0 + Shift,
                Density (Item), UI.Line_Texts.Strong);
-         end;
-      elsif Item.Length > 0 then
-         Draw_Text
-           (Target, Ink,
-            Float'Rounding
-              (Left_Of (Item) + (Width_Of (Item) - Wide) / 2.0 + Shift),
-            Float'Rounding
-              (Top_Of (Item) + (Height_Of (Item) - High) / 2.0 + Shift),
-            Label (Item), Scale);
+         else
+            Draw_Text
+              (Target, Ink, Float'Rounding (Text_Left + Shift),
+               Float'Rounding
+                 (Top_Of (Item) + (Height_Of (Item) - High) / 2.0 + Shift),
+               Label (Item), Scale);
+         end if;
       end if;
    end Draw;
 

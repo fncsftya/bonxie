@@ -35,7 +35,7 @@ package UI.Widgets.Buttons is
    function Has_Icon (Item : Button) return Boolean;
 
    procedure Set_Captioned (Item : in out Button; To : Boolean);
-   --  With an icon, show the label under it, in place of the icon alone.
+   --  With an icon, show the label after it, in place of the icon alone.
 
    procedure Set_Selected (Item : in out Button; To : Boolean);
    --  Show it as pressed in, as the chosen one of a row of tabs; it still

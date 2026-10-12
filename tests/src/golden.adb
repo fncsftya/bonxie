@@ -37,11 +37,10 @@ procedure Golden is
    Default_Height : constant := 480;
    --  In points. The toolbar takes 32 of the height, at the bottom.
 
-   Tools_X : constant Float := 60.0;
-   Tools_Grip_Y : constant Float := 22.0;
-   Tools_Item_Y : constant Float := 58.0;
-   --  In points: the middle of the floating toolbar's grip, and of its
-   --  item, where it starts.
+   Tools_Item_X : constant Float := 64.0;
+   Tools_Item_Y : constant Float := 432.0;
+   --  In points: the middle of the item on the tools bar, above the
+   --  toolbar.
 
    function Wheel
      (Across, Down : Float; X, Y : Float; Command : Boolean := False)
@@ -122,7 +121,7 @@ procedure Golden is
         ("canvas-mode", "CANVAS", Viewer.Modes'Image (Viewer.Mode (Session)));
       --  The origin in the middle, at a zoom of 1.
       Goldens.Check_Text
-        ("canvas-origin", " 360 224",
+        ("canvas-origin", " 360 208",
          Whole (Viewer.Canvas_Origin_X (Session))
          & Whole (Viewer.Canvas_Origin_Y (Session)));
       Goldens.Check_Text
@@ -159,7 +158,7 @@ procedure Golden is
       Start (Session);
       Viewer.Handle (Session, Wheel (-1.0, 2.0, 400.0, 300.0));
       Goldens.Check_Text
-        ("canvas-panned-origin", " 384 272",
+        ("canvas-panned-origin", " 384 256",
          Whole (Viewer.Canvas_Origin_X (Session))
          & Whole (Viewer.Canvas_Origin_Y (Session)));
       Goldens.Check_Text
@@ -184,7 +183,7 @@ procedure Golden is
                   / Viewer.Canvas_Zoom (Session)));
    begin
       Start (Session);
-      Goldens.Check_Text ("canvas-zoom-before", " 140 76", Under_Pointer);
+      Goldens.Check_Text ("canvas-zoom-before", " 140 92", Under_Pointer);
 
       --  Command with the wheel zooms about the pointer, which keeps what
       --  is under it.
@@ -192,7 +191,7 @@ procedure Golden is
         (Session, Wheel (0.0, 3.0, 500.0, 300.0, Command => True));
       Goldens.Check_Text
         ("canvas-zoom-in", " 133", Percent (Viewer.Canvas_Zoom (Session)));
-      Goldens.Check_Text ("canvas-zoom-kept", " 140 76", Under_Pointer);
+      Goldens.Check_Text ("canvas-zoom-kept", " 140 92", Under_Pointer);
       Viewer.Render (Session, Drawn);
       Goldens.Check ("canvas-zoomed-in", Drawn);
 
@@ -200,7 +199,7 @@ procedure Golden is
         (Session, Wheel (0.0, -8.0, 500.0, 300.0, Command => True));
       Goldens.Check_Text
         ("canvas-zoom-out", " 62", Percent (Viewer.Canvas_Zoom (Session)));
-      Goldens.Check_Text ("canvas-zoom-out-kept", " 140 76", Under_Pointer);
+      Goldens.Check_Text ("canvas-zoom-out-kept", " 140 92", Under_Pointer);
       Viewer.Render (Session, Drawn);
       Goldens.Check ("canvas-zoomed-out", Drawn);
    end Canvas_Zoomed;
@@ -220,7 +219,7 @@ procedure Golden is
         ("canvas-keys-reset", " 100", Percent (Viewer.Canvas_Zoom (Session)));
       --  About the middle.
       Goldens.Check_Text
-        ("canvas-keys-origin", " 360 224",
+        ("canvas-keys-origin", " 360 208",
          Whole (Viewer.Canvas_Origin_X (Session))
          & Whole (Viewer.Canvas_Origin_Y (Session)));
 
@@ -240,13 +239,13 @@ procedure Golden is
       Viewer.Handle
         (Session,
          (Kind => Events.Pinch, Scale => 1.5, Mouse_X => 360.0,
-          Mouse_Y => 224.0, others => <>));
+          Mouse_Y => 208.0, others => <>));
       Goldens.Check_Text
         ("canvas-pinch-in", " 150", Percent (Viewer.Canvas_Zoom (Session)));
       Viewer.Handle
         (Session,
          (Kind => Events.Pinch, Scale => 0.5, Mouse_X => 360.0,
-          Mouse_Y => 224.0, others => <>));
+          Mouse_Y => 208.0, others => <>));
       Goldens.Check_Text
         ("canvas-pinch-out", " 75", Percent (Viewer.Canvas_Zoom (Session)));
    end Canvas_Pinched;
@@ -267,7 +266,7 @@ procedure Golden is
       Viewer.Handle (Session, Pointer_At (340.0, 230.0, Held => True));
       Viewer.Handle (Session, Release_Button (1, 340.0, 230.0));
       Goldens.Check_Text
-        ("canvas-left-drag", " 360 224",
+        ("canvas-left-drag", " 360 208",
          Whole (Viewer.Canvas_Origin_X (Session))
          & Whole (Viewer.Canvas_Origin_Y (Session)));
 
@@ -277,7 +276,7 @@ procedure Golden is
       Viewer.Handle (Session, Pointer_At (340.0, 230.0));
       Viewer.Handle (Session, Pointer_At (350.0, 210.0));
       Goldens.Check_Text
-        ("canvas-middle-drag", " 410 234",
+        ("canvas-middle-drag", " 410 218",
          Whole (Viewer.Canvas_Origin_X (Session))
          & Whole (Viewer.Canvas_Origin_Y (Session)));
       Goldens.Check_Text ("canvas-cursor-still-panning", "MOVE", Cursor);
@@ -289,93 +288,39 @@ procedure Golden is
       --  Let go, it follows the pointer no more.
       Viewer.Handle (Session, Pointer_At (400.0, 300.0));
       Goldens.Check_Text
-        ("canvas-after-drag", " 410 234",
+        ("canvas-after-drag", " 410 218",
          Whole (Viewer.Canvas_Origin_X (Session))
          & Whole (Viewer.Canvas_Origin_Y (Session)));
    end Canvas_Dragged;
 
-   --  The floating toolbar
+   --  The tools bar
 
    procedure Tools_Shown is
       Session : Viewer.Session;
-      Drawn   : Images.Image;
       Hovered : Images.Image;
    begin
       Start (Session);
-      Viewer.Render (Session, Drawn);
-      Viewer.Handle (Session, Pointer_At (Tools_X, Tools_Item_Y));
+      Viewer.Handle (Session, Pointer_At (Tools_Item_X, Tools_Item_Y));
       Viewer.Render (Session, Hovered);
       Goldens.Check ("tools-item-hovered", Hovered);
    end Tools_Shown;
 
-   procedure Tools_Dragged is
-      Session : Viewer.Session;
-      Drawn   : Images.Image;
-
-      function Cursor return String is
-        (SDL3.Cursors.Kind'Image (Viewer.Cursor (Session)));
-   begin
-      Start (Session);
-      Viewer.Handle (Session, Pointer_At (Tools_X, Tools_Grip_Y));
-      Goldens.Check_Text ("tools-cursor-grip", "MOVE", Cursor);
-      Viewer.Handle (Session, Pointer_At (Tools_X, Tools_Item_Y));
-      Goldens.Check_Text ("tools-cursor-item", "DEFAULT", Cursor);
-      Viewer.Handle (Session, Pointer_At (Tools_X, Tools_Grip_Y));
-
-      Viewer.Handle (Session, Click (Tools_X, Tools_Grip_Y));
-      Viewer.Handle
-        (Session, Pointer_At (Tools_X + 200.0, Tools_Grip_Y + 130.0, True));
-      Goldens.Check_Text ("tools-cursor-dragging", "MOVE", Cursor);
-      Viewer.Render (Session, Drawn);
-      Goldens.Check ("tools-dragged", Drawn);
-      Viewer.Handle
-        (Session,
-         Release_Button (1, Tools_X + 200.0, Tools_Grip_Y + 130.0));
-
-      --  Where it was left.
-      Viewer.Handle
-        (Session, Pointer_At (Tools_X + 300.0, Tools_Grip_Y + 200.0));
-      Viewer.Render (Session, Drawn);
-      Goldens.Check ("tools-left", Drawn);
-
-      --  Not out of the canvas: not past its edges.
-      Viewer.Handle
-        (Session, Pointer_At (Tools_X + 200.0, Tools_Grip_Y + 130.0));
-      Viewer.Handle (Session, Click (Tools_X + 200.0, Tools_Grip_Y + 130.0));
-      Viewer.Handle (Session, Pointer_At (-500.0, -500.0, True));
-      Viewer.Render (Session, Drawn);
-      Goldens.Check ("tools-top-left", Drawn);
-      Viewer.Handle (Session, Pointer_At (5000.0, 5000.0, True));
-      Viewer.Render (Session, Drawn);
-      Goldens.Check ("tools-bottom-right", Drawn);
-      Viewer.Handle (Session, Release_Button (1, 5000.0, 5000.0));
-   end Tools_Dragged;
-
-   procedure Tools_Over_Canvas is
+   procedure Tools_Item_Click is
       Session : Viewer.Session;
    begin
-      --  Dragging the toolbar does not pan the canvas, nor does a click
-      --  on its item do anything yet.
+      --  A click on the item does nothing yet.
       Start (Session);
-      Viewer.Handle (Session, Pointer_At (Tools_X, Tools_Grip_Y));
-      Viewer.Handle (Session, Click (Tools_X, Tools_Grip_Y));
+      Viewer.Handle (Session, Pointer_At (Tools_Item_X, Tools_Item_Y));
+      Viewer.Handle (Session, Click (Tools_Item_X, Tools_Item_Y));
       Viewer.Handle
-        (Session, Pointer_At (Tools_X + 50.0, Tools_Grip_Y, True));
-      Viewer.Handle
-        (Session, Release_Button (1, Tools_X + 50.0, Tools_Grip_Y));
-      Goldens.Check_Text
-        ("tools-origin-kept", " 360 224",
-         Whole (Viewer.Canvas_Origin_X (Session))
-         & Whole (Viewer.Canvas_Origin_Y (Session)));
-
-      Viewer.Handle (Session, Pointer_At (Tools_X + 50.0, Tools_Item_Y));
-      Viewer.Handle (Session, Click (Tools_X + 50.0, Tools_Item_Y));
-      Viewer.Handle
-        (Session, Release_Button (1, Tools_X + 50.0, Tools_Item_Y));
+        (Session, Release_Button (1, Tools_Item_X, Tools_Item_Y));
       Goldens.Check_Text
         ("tools-item-clicked", "PROJECT",
          Viewer.Screens'Image (Viewer.Screen (Session)));
-   end Tools_Over_Canvas;
+      Goldens.Check_Text
+        ("tools-item-cursor", "DEFAULT",
+         SDL3.Cursors.Kind'Image (Viewer.Cursor (Session)));
+   end Tools_Item_Click;
 
    --  The screens
 
@@ -829,8 +774,7 @@ begin
    Run ("canvas-pinched", Canvas_Pinched'Access);
    Run ("canvas-dragged", Canvas_Dragged'Access);
    Run ("tools-shown", Tools_Shown'Access);
-   Run ("tools-dragged", Tools_Dragged'Access);
-   Run ("tools-over-canvas", Tools_Over_Canvas'Access);
+   Run ("tools-item-click", Tools_Item_Click'Access);
    Run ("home-empty", Home_Empty'Access);
    Run ("home-recent", Home_Recent'Access);
    Run ("home-settings", Home_Settings'Access);

@@ -11,7 +11,6 @@ with Yoga.Nodes;
 package body Viewer.Build is
 
    package Widgets renames UI.Widgets;
-   package Palettes renames UI.Widgets.Palettes;
    package Panels renames UI.Widgets.Panels;
    package Buttons renames UI.Widgets.Buttons;
    package Labels renames UI.Widgets.Labels;
@@ -158,7 +157,7 @@ package body Viewer.Build is
       Widgets.Add (Item.Window_Panel, Item.Project_Panel);
       Widgets.Add (Item.Project_Panel, Item.Content_Panel);
       Widgets.Add (Item.Content_Panel, Item.Canvas_View);
-      Widgets.Add (Item.Content_Panel, Item.Tools);
+      Widgets.Add (Item.Project_Panel, Item.Tools);
       Widgets.Add (Item.Tools, Item.Tool_Item);
       Widgets.Add (Item.Project_Panel, Item.Toolbar_Panel);
       Widgets.Add (Item.Toolbar_Panel, Item.Project_Title);
@@ -180,20 +179,15 @@ package body Viewer.Build is
       Set_Flex_Direction (Widgets.Node (Item.Content_Panel), Yoga.Column);
       Set_Flex_Grow (Widgets.Node (Item.Canvas_View), 1.0);
 
-      --  The floating toolbar is not in the layout: over the canvas, at
-      --  its top left, until it is dragged.
-      Set_Position_Type (Widgets.Node (Item.Tools), Yoga.Absolute);
-      Set_Position
-        (Widgets.Node (Item.Tools), Yoga.Left, Tools_Margin * Item.Density);
-      Set_Position
-        (Widgets.Node (Item.Tools), Yoga.Top, Tools_Margin * Item.Density);
-      Set_Width (Widgets.Node (Item.Tools), Tools_Width * Item.Density);
-      Set_Flex_Direction (Widgets.Node (Item.Tools), Yoga.Column);
+      --  The tools bar, fixed above the toolbar, with its items from the
+      --  left.
+      Panels.Set_Fill (Item.Tools, Tools_Bar);
+      Set_Height (Widgets.Node (Item.Tools), Toolbar_Size * Item.Density);
+      Set_Flex_Direction (Widgets.Node (Item.Tools), Yoga.Row);
+      Set_Align_Items (Widgets.Node (Item.Tools), Yoga.Center);
       Set_Padding
-        (Widgets.Node (Item.Tools), Yoga.All_Edges, Tools_Pad * Item.Density);
-      Set_Padding
-        (Widgets.Node (Item.Tools), Yoga.Top,
-         (Palettes.Grip_Height + 2.0) * Item.Density);
+        (Widgets.Node (Item.Tools), Yoga.Left, Tools_Inset * Item.Density);
+      Set_Width (Widgets.Node (Item.Tool_Item), Tool_Width * Item.Density);
       Set_Height (Widgets.Node (Item.Tool_Item), Tool_Height * Item.Density);
 
       --  The tabs and the Close button at the right, in the middle of the

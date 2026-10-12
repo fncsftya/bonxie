@@ -13,13 +13,12 @@ private package Viewer.Style is
    --  The header across the top, and what its title leaves clear at the
    --  left for the window's close, minimise and zoom buttons.
 
-   --  The canvas, in points
+   --  The tools bar, in points: as high as the toolbar, Toolbar_Size
 
-   Tools_Margin  : constant Float := 16.0;
-   --  Of the floating toolbar from the canvas's top left, to begin with.
-   Tools_Width   : constant Float := 88.0;
-   Tools_Pad     : constant Float := 8.0;
-   Tool_Height   : constant Float := 56.0;
+   Tools_Inset   : constant Float := 8.0;
+   --  From the left edge to the first item.
+   Tool_Width    : constant Float := 112.0;
+   Tool_Height   : constant Float := 24.0;
    Tab_Width     : constant Float := 80.0;
 
    --  The home screen, in points
@@ -56,5 +55,8 @@ private package Viewer.Style is
    Toolbar : constant UI.Themes.Color :=
      UI.Themes.Mix (Colors.Foreground, Colors.Background, 0.15);
    --  Dark, from the theme: its text colour, a little toward its ground.
+   Tools_Bar : constant UI.Themes.Color :=
+     UI.Themes.Mix (Toolbar, Colors.Background, 0.2);
+   --  A lighter shade of the same.
 
 end Viewer.Style;

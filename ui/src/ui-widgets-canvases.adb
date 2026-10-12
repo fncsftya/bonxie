@@ -79,8 +79,7 @@ package body UI.Widgets.Canvases is
    is
       Pixels  : constant Float := Density (Item);
       Part    : constant Pixel_Box := Painting_Part (Item);
-      Surface : constant Themes.Color :=
-        Themes.Mix (Colors.Background, (255, 255, 255, 255), 0.4);
+      Surface : constant Themes.Color := Colors.Background;
       Ink     : constant Themes.Color :=
         Themes.Mix (Surface, Colors.Foreground, 0.3);
       Side    : constant Float :=
