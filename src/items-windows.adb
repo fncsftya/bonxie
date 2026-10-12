@@ -395,15 +395,22 @@ package body Items.Windows is
          Item.Frame_Dirty := True;
          Place (Item, Item.Zoom, Item.Origin_X, Item.Origin_Y);
       end if;
+      if not Item.Resizing then
+         Item.Raw_Width := Item.Details.Where.Width;
+         Item.Raw_Height := Item.Details.Where.Height;
+      end if;
       Grips.Take_Drag (Item.Corner, Across, Down);
       if Across /= 0.0 or else Down /= 0.0 then
+         Item.Raw_Width := Item.Raw_Width + Across / Item.Zoom;
+         Item.Raw_Height := Item.Raw_Height + Down / Item.Zoom;
          Item.Details.Where := Sized
            ((Item.Details.Where with delta
-               Width  => Item.Details.Where.Width + Across / Item.Zoom,
-               Height => Item.Details.Where.Height + Down / Item.Zoom));
+               Width  => Item.Raw_Width,
+               Height => Item.Raw_Height));
          Item.Frame_Dirty := True;
          Place (Item, Item.Zoom, Item.Origin_X, Item.Origin_Y);
       end if;
+      Item.Resizing := Grips.Is_Dragging (Item.Corner);
 
       --  Raised when it starts to be used.
       Used := Is_Dragging (Item)

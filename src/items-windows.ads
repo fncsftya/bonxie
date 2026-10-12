@@ -145,6 +145,10 @@ private
       Frame_Dirty   : Boolean := False;
       --  Moved or sized, and not written.
       Was_Used      : Boolean := False;
+      Resizing      : Boolean := False;
+      Raw_Width, Raw_Height : Float := 0.0;
+      --  While the corner is dragged, the size the cursor asks for, which
+      --  may be under the minimum; the item itself is held at the minimum.
       Pixels : Float := 1.0;
       Zoom, Origin_X, Origin_Y : Float := 1.0;
       Placed_Once : Boolean := False;
