@@ -101,7 +101,9 @@ package body Typeset.Views is
       Width  : Natural;
       Height : Natural;
       Scale  : Float;
-      Settled : Boolean)
+      Settled : Boolean;
+      Rows_From : Float := Float'First;
+      Rows_To   : Float := Float'Last)
    is
       pragma Unreferenced (Width);
       Line_High : constant Float := Layouts.Line_Height (Laid);
@@ -131,7 +133,10 @@ package body Typeset.Views is
                   begin
                      if Line_Y + Line_High * Scale >= Top
                        and then Line_Y <= Top + Float (Height)
+                       and then Line_Y + Line_High * Scale >= Rows_From
+                       and then Line_Y <= Rows_To
                      then
+                        Item.Drawn := Item.Drawn + 1;
                         declare
                            Key      : constant Line_Key :=
                              (Layouts.Layout_Id (Laid, Para), Number);
@@ -180,6 +185,8 @@ package body Typeset.Views is
       end;
       Glyph_Atlas.Flush (Item.Atlas, Target);
    end Draw;
+
+   function Lines_Drawn (Item : View) return Natural is (Item.Drawn);
 
    function Lines_Shaped (Item : View) return Natural is (Item.Shaped);
 

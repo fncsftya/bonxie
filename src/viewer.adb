@@ -4,10 +4,14 @@ with Ada.Text_IO;
 with SDL3.Events.Redraws;
 with SDL3.Windows.Renderers;
 with UI.Themes;
+with UI.Widgets;
+with Yoga.Nodes;
 
 package body Viewer is
 
-   package Text_Areas renames UI.Text_Areas;
+   package Widgets renames UI.Widgets;
+   package Editors renames UI.Widgets.Editors;
+   package Panels renames UI.Widgets.Panels;
 
    use Ada.Strings.Unbounded;
    use type SDL3.Events.Event_Kind;
@@ -43,43 +47,16 @@ package body Viewer is
 
    --  Drawing
 
-   procedure Lay_Out_Window (Item : in out Session);
-   --  Lay out the window's parts to fit its size now.
-
-   procedure Lay_Out_Window (Item : in out Session) is
-      package Nodes renames Yoga.Nodes;
-      Width  : Natural;
-      Height : Natural;
-   begin
-      Output_Size (Item.Target, Width, Height);
-      Nodes.Calculate_Layout (Item.Layout, Float (Width), Float (Height));
-      Text_Areas.Place
-        (Item.Area,
-         Left    => Nodes.Left (Item.Content_Node)
-                    + Nodes.Left (Item.Area_Node),
-         Top     => Nodes.Top (Item.Content_Node)
-                    + Nodes.Top (Item.Area_Node),
-         Width   => Nodes.Width (Item.Area_Node),
-         Height  => Nodes.Height (Item.Area_Node),
-         Density => Item.Density,
-         Zoom    => Item.Zoom);
-   end Lay_Out_Window;
-
    procedure Paint (Item : in out Session);
    --  Draw what is shown, but do not present it.
 
    procedure Paint (Item : in out Session) is
    begin
-      Lay_Out_Window (Item);
-      Clear (Item.Target, Colors.Background);
-      Text_Areas.Draw (Item.Area, Item.Target, Colors, Item.Settled);
-      Fill_Rect
-        (Item.Target, Toolbar,
-         Yoga.Nodes.Left (Item.Toolbar_Node),
-         Yoga.Nodes.Top (Item.Toolbar_Node),
-         Yoga.Nodes.Width (Item.Toolbar_Node),
-         Yoga.Nodes.Height (Item.Toolbar_Node));
-      Item.Dirty := False;
+      --  The target keeps what is drawn on it, offscreen and in a window,
+      --  so that only what has changed need be drawn again.
+      Widgets.Paint
+        (Item.Widgets, Item.Target, Colors,
+         Retained => Keeps_Frame (Item.Target));
    end Paint;
 
    procedure Tell_Input_Method (Item : in out Session);
@@ -89,8 +66,8 @@ package body Viewer is
    procedure Tell_Input_Method (Item : in out Session) is
       X, Y, Width, Height : Float;
    begin
-      if Text_Areas.Is_Focused (Item.Area) then
-         Text_Areas.Caret_Box (Item.Area, X, Y, Width, Height);
+      if Editors.Is_Focused (Item.Area) then
+         Editors.Caret_Box (Item.Area, X, Y, Width, Height);
          declare
             Across : constant Integer := Integer (X / Item.Density);
          begin
@@ -108,7 +85,13 @@ package body Viewer is
    end Tell_Input_Method;
 
    procedure Draw (Item : in out Session) is
+      Resized : Boolean;
    begin
+      --  A window that has changed size has a new image to draw to.
+      Fit (Item.Target, Resized);
+      if Resized then
+         Widgets.Invalidate_All (Item.Widgets);
+      end if;
       Paint (Item);
       Present (Item.Target);
       Tell_Input_Method (Item);
@@ -125,9 +108,10 @@ package body Viewer is
       if Zoom /= Item.Zoom then
          Item.Zoom := Zoom;
          Item.Settled := False;
-         Item.Dirty := True;
+         Widgets.Set_Settled (Item.Widgets, False);
+         Editors.Set_Zoom (Item.Area, Zoom);
          --  Before the next event, which may be over the text.
-         Lay_Out_Window (Item);
+         Widgets.Layout (Item.Widgets, Item.Target);
       end if;
    end Zoom_By;
 
@@ -168,7 +152,7 @@ package body Viewer is
          when SDL3.Events.Quit =>
             Item.Done := True;
          when SDL3.Events.Redraw =>
-            Item.Dirty := True;
+            Widgets.Invalidate_All (Item.Widgets);
          when others =>
             Handle_Zoom (Item, Event, Handled);
             if not Handled and then Event.Kind = SDL3.Events.Key_Down
@@ -177,23 +161,8 @@ package body Viewer is
                Save (Item);
                Handled := True;
             end if;
-            if Handled then
-               null;
-            elsif Item.Windowed then
-               Text_Areas.Handle
-                 (Item.Area, Event, Item.System_Board, Handled);
-            else
-               Text_Areas.Handle (Item.Area, Event, Item.Own_Board, Handled);
-            end if;
-            --  A click elsewhere takes the focus away.
-            if not Handled and then Event.Kind = SDL3.Events.Mouse_Down
-              and then Text_Areas.Is_Focused (Item.Area)
-            then
-               Text_Areas.Set_Focus (Item.Area, False);
-               Handled := True;
-            end if;
-            if Handled then
-               Item.Dirty := True;
+            if not Handled then
+               Widgets.Dispatch (Item.Widgets, Event, Handled);
             end if;
       end case;
    end Handle;
@@ -239,25 +208,36 @@ package body Viewer is
      (Item : in out Session; Source : String; File_Name : String)
    is
       use Yoga.Nodes;
-      Window_Node : constant Node := Root (Item.Layout);
    begin
       Scripts.Load (Item.Script, Source, File_Name);
-      Text_Areas.Configure
-        (Item.Area, Family, Font_Size, Page_Width, Para_Gap);
-      Text_Areas.Attach (Item.Area, Scripts.Document (Item.Script));
-      Text_Areas.Set_Focus (Item.Area, True);
+      Widgets.Set_Density (Item.Widgets, Item.Density);
+      if Item.Windowed then
+         Widgets.Set_Clipboard (Item.Widgets, Item.System_Board);
+      else
+         Widgets.Set_Clipboard (Item.Widgets, Item.Own_Board);
+      end if;
 
-      Item.Content_Node := New_Child (Window_Node);
-      Item.Area_Node := New_Child (Item.Content_Node);
-      Item.Toolbar_Node := New_Child (Window_Node);
-      Set_Flex_Direction (Window_Node, Yoga.Column);
-      Set_Flex_Grow (Item.Content_Node, 1.0);
-      Set_Flex_Direction (Item.Content_Node, Yoga.Column);
-      Set_Padding (Item.Content_Node, Yoga.All_Edges, Margin * Item.Density);
-      Set_Flex_Grow (Item.Area_Node, 1.0);
-      Set_Height (Item.Toolbar_Node, Toolbar_Size * Item.Density);
+      Widgets.Set_Root (Item.Widgets, Item.Window_Panel);
+      Widgets.Add (Item.Window_Panel, Item.Content_Panel);
+      Widgets.Add (Item.Content_Panel, Item.Area);
+      Widgets.Add (Item.Window_Panel, Item.Toolbar_Panel);
+      Panels.Set_Fill (Item.Toolbar_Panel, Toolbar);
+
+      Editors.Configure (Item.Area, Family, Font_Size, Page_Width, Para_Gap);
+      Editors.Attach (Item.Area, Scripts.Document (Item.Script));
+      Widgets.Focus (Item.Area);
+
+      Set_Flex_Direction (Widgets.Node (Item.Window_Panel), Yoga.Column);
+      Set_Flex_Grow (Widgets.Node (Item.Content_Panel), 1.0);
+      Set_Flex_Direction (Widgets.Node (Item.Content_Panel), Yoga.Column);
+      Set_Padding
+        (Widgets.Node (Item.Content_Panel), Yoga.All_Edges,
+         Margin * Item.Density);
+      Set_Flex_Grow (Widgets.Node (Item.Area), 1.0);
+      Set_Height
+        (Widgets.Node (Item.Toolbar_Panel), Toolbar_Size * Item.Density);
       --  Before any event: the text area must know where it is.
-      Lay_Out_Window (Item);
+      Widgets.Layout (Item.Widgets, Item.Target);
    end Set_Up;
 
    procedure Open
@@ -291,8 +271,8 @@ package body Viewer is
          Wake_In
            (Settle_MS - Integer (SDL3.Events.Ticks - Item.Zoomed_At));
       end if;
-      if Text_Areas.Is_Focused (Item.Area) then
-         Wake_In (Integer (Text_Areas.Until_Blink (Item.Area)));
+      if Widgets.Until_Update (Item.Widgets) >= 0 then
+         Wake_In (Widgets.Until_Update (Item.Widgets));
       end if;
 
       if SDL3.Events.Wait (Event, Timeout_MS => Timeout) then
@@ -330,25 +310,21 @@ package body Viewer is
    end Open;
 
    function Is_Open (Item : Session) return Boolean is
-     (Text_Areas.Is_Attached (Item.Area));
+     (Editors.Has_Document (Item.Area));
 
    function Text (Item : Session) return String is
      (Scripts.Text (Item.Script));
 
    procedure Tick (Item : in out Session; Now : SDL3.Events.Milliseconds) is
-      Changed : Boolean;
    begin
-      Text_Areas.Tick (Item.Area, Now, Changed);
-      if Changed then
-         Item.Dirty := True;
-      end if;
+      Widgets.Update (Item.Widgets, Now);
    end Tick;
 
    procedure Settle (Item : in out Session) is
    begin
       if not Item.Settled then
          Item.Settled := True;
-         Item.Dirty := True;
+         Widgets.Set_Settled (Item.Widgets, True);
       end if;
    end Settle;
 
@@ -357,8 +333,9 @@ package body Viewer is
       SDL3.Windows.Renderers.Resize
         (Item.Target,
          Pixels (Width, Item.Density), Pixels (Height, Item.Density));
-      Lay_Out_Window (Item);
-      Item.Dirty := True;
+      --  Which loses what was drawn.
+      Widgets.Invalidate_All (Item.Widgets);
+      Widgets.Layout (Item.Widgets, Item.Target);
    end Resize;
 
    procedure Render
@@ -383,7 +360,7 @@ package body Viewer is
 
       while not Item.Done loop
          Show_Title (Item);
-         if Item.Dirty then
+         if Widgets.Needs_Paint (Item.Widgets) then
             Draw (Item);
          end if;
          Wait_And_Handle (Item);

@@ -7,7 +7,7 @@ licenses = "MIT"
 website = ""
 tags = []
 
-executables = ["bench", "text_area_bench"]
+executables = ["bench", "text_area_bench", "widget_bench"]
 
 [available.'case(os)']
 macos = true
@@ -19,6 +19,7 @@ coretext = "*"
 sdl3 = "*"
 texts = "*"
 typeset = "*"
+yoga = "*"
 
 [[pins]]
 bonxie_ui = { path = "../ui" }

@@ -19,7 +19,20 @@ From the bottom up; each crate depends only on those before it.
   lines, made lazily (a long paragraph only as far as shown), heights as
   running sums (`Typeset.Sums`); drawing it (`Typeset.Views`).
 - `ui` (crate `bonxie_ui`): components. `UI.Text_Areas` is a view of a
-  document the app owns; several may show one document.
+  document the app owns; several may show one document. `UI.Widgets` is
+  a retained tree of widgets (`Panels`, `Buttons`, `Editors`, which wraps
+  a text area) the app owns and adds top-down; Yoga lays them out in
+  pixels. Widgets keep their own state and say when it changes
+  (`Invalidate`); the tree keeps the damage, repaints only that when
+  the target keeps its frame (`Retained`; a window's renderer does, by
+  drawing to an image of its own that `Present` copies, which `Fit`
+  keeps the window's size), and routes events (hit test, focus, capture,
+  hover). A widget can see what part of it is repainted
+  (`Painting_Part`) and skip the rest, as `Editors` does for a blinking
+  caret. Widgets can be hidden (`Set_Visible`) or taken out
+  (`Remove`, with their children; build them again top-down). No
+  callbacks: widgets are polled (`Take_Click`) and models are pulled in
+  `Update`.
 - bonxie (`src/`): the app. `Scripts` owns the document, its file and
   saved state.
 

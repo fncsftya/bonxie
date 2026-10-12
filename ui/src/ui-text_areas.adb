@@ -187,6 +187,7 @@ package body UI.Text_Areas is
       Spacing : Float := 0.0) is
    begin
       Item.Measure := Measure;
+      Item.Caret_Kept := False;
       Layouts.Configure (Item.Laid, Family, Size, Measure, Spacing);
    end Configure;
 
@@ -198,6 +199,7 @@ package body UI.Text_Areas is
    begin
       Item.Doc := Doc;
       Item.Serial := 0;  --  start again
+      Item.Caret_Kept := False;
       Catch_Up (Item);
       Restart_Blink (Item);
    end Attach;
@@ -1092,9 +1094,11 @@ package body UI.Text_Areas is
       From, To    : Position;
       First, Last : Positive;
       Value       : SDL3.Windows.Renderers.Color;
-      Underlined  : Boolean);
+      Underlined  : Boolean;
+      Rows_From, Rows_To : Float);
    --  Mark the text from From to To, in paragraphs First to Last, which
-   --  are laid out: fill behind it, or underline it.
+   --  are laid out: fill behind it, or underline it. Lines wholly outside
+   --  the rows of the target Rows_From to Rows_To are left.
 
    procedure Draw_Range
      (Item        : in out Text_Area;
@@ -1102,7 +1106,8 @@ package body UI.Text_Areas is
       From, To    : Position;
       First, Last : Positive;
       Value       : SDL3.Windows.Renderers.Color;
-      Underlined  : Boolean)
+      Underlined  : Boolean;
+      Rows_From, Rows_To : Float)
    is
       High  : constant Float := Layouts.Line_Height (Item.Laid);
       Shown : constant Float := View_Top (Item);
@@ -1135,8 +1140,20 @@ package body UI.Text_Areas is
                     Text_Top (Item)
                     + (Para_Top + Float (Number - 1) * High - Shown)
                       * Scale (Item);
+                  --  Where the line ends, or the space after the
+                  --  paragraph that a mark running on fills; a little
+                  --  more, for an underline.
+                  Line_Bottom : constant Float :=
+                    (if Number = Lines
+                       and then Layouts.Is_Complete (Item.Laid, Para)
+                     then Text_Top (Item)
+                          + (Para_Top + Layouts.Height (Item.Laid, Para)
+                             - Shown) * Scale (Item)
+                     else Y + High * Scale (Item))
+                    + Underline_Gap * Item.Density;
                begin
-                  if A <= Line.Stop
+                  if Line_Bottom >= Rows_From and then Y <= Rows_To
+                    and then A <= Line.Stop
                     and then (if Underlined then A < B
                               else A < B or else Runs_On)
                   then
@@ -1194,15 +1211,32 @@ package body UI.Text_Areas is
       X, Y, Width, Height : out Float) is
    begin
       Catch_Up (Item);
+      if not (Item.Caret_Kept
+              and then Item.Caret_For = Item.At_Caret
+              and then Item.Caret_Version = Item.Seen
+              and then Item.Caret_Serial = Item.Serial
+              and then Item.Caret_Width = Layouts.Width (Item.Laid))
+      then
+         --  Shaping the line to measure it is the cost: not the top of
+         --  the paragraph, which moves as others are laid out.
+         Item.Caret_Line := Line_Of (Item, Item.At_Caret);
+         Item.Caret_Across := Layouts.Caret_Offset
+           (Item.Laid, Item.Doc.all, Item.At_Caret.Paragraph,
+            Item.Caret_Line, Units (Item, Item.At_Caret));
+         Item.Caret_For := Item.At_Caret;
+         Item.Caret_Version := Item.Seen;
+         Item.Caret_Serial := Item.Serial;
+         Item.Caret_Width := Layouts.Width (Item.Laid);
+         Item.Caret_Kept := True;
+         Item.Caret_Worked := Item.Caret_Worked + 1;
+      end if;
       declare
          Para     : constant Positive := Item.At_Caret.Paragraph;
-         Number   : constant Positive := Line_Of (Item, Item.At_Caret);
+         Number   : constant Positive := Item.Caret_Line;
          High     : constant Float := Layouts.Line_Height (Item.Laid);
          Line_Top : constant Float :=
            Layouts.Top (Item.Laid, Para) + Float (Number - 1) * High;
-         Across   : constant Float := Layouts.Caret_Offset
-           (Item.Laid, Item.Doc.all, Para, Number,
-            Units (Item, Item.At_Caret));
+         Across   : constant Float := Item.Caret_Across;
       begin
          Width := Caret_Width * Item.Density;
          X := Column_Left (Item) + Across * Scale (Item) - Width / 2.0;
@@ -1211,11 +1245,19 @@ package body UI.Text_Areas is
       end;
    end Caret_Box;
 
+   function Lines_Drawn (Item : Text_Area) return Natural is
+     (Views.Lines_Drawn (Item.View));
+
+   function Caret_Measures (Item : Text_Area) return Natural is
+     (Item.Caret_Worked);
+
    procedure Draw
-     (Item    : in out Text_Area;
-      Target  : SDL3.Windows.Renderers.Renderer;
-      Colors  : Themes.Theme;
-      Settled : Boolean := True)
+     (Item      : in out Text_Area;
+      Target    : SDL3.Windows.Renderers.Renderer;
+      Colors    : Themes.Theme;
+      Settled   : Boolean := True;
+      Rows_From : Float := Float'First;
+      Rows_To   : Float := Float'Last)
    is
       use SDL3.Windows.Renderers;
       Edge : constant Float :=
@@ -1227,6 +1269,8 @@ package body UI.Text_Areas is
       Inner_Bottom : constant Integer :=
         Integer (Item.Top + Item.Height - Edge);
       First, Last  : Positive;
+      Outer_Clip   : constant Clip := Current_Clip (Target);
+      --  The owner's, to go back to.
    begin
       Catch_Up (Item);
       Fill_Rect
@@ -1239,7 +1283,7 @@ package body UI.Text_Areas is
          Float (Integer'Max (0, Inner_Bottom - Inner_Top)));
 
       --  Lines part in view run into the padding, but not the outline.
-      Set_Clip
+      Narrow_Clip
         (Target, Inner_Left, Inner_Top,
          Integer'Max (0, Inner_Right - Inner_Left),
          Integer'Max (0, Inner_Bottom - Inner_Top));
@@ -1255,7 +1299,8 @@ package body UI.Text_Areas is
             First, Last,
             (if Item.Focused then Themes.Selection (Colors)
              else Themes.Inactive_Selection (Colors)),
-            Underlined => False);
+            Underlined => False,
+            Rows_From => Rows_From, Rows_To => Rows_To);
       end if;
 
       Views.Draw
@@ -1266,12 +1311,14 @@ package body UI.Text_Areas is
          Width   => Natural (Float'Floor (Text_Width (Item))),
          Height  => Natural (Float'Floor (Text_Height (Item))),
          Scale   => Scale (Item),
-         Settled => Settled);
+         Settled => Settled,
+         Rows_From => Rows_From, Rows_To => Rows_To);
 
       if Item.Composing then
          Draw_Range
            (Item, Target, Item.Composed, Composed_End (Item), First, Last,
-            Colors.Foreground, Underlined => True);
+            Colors.Foreground, Underlined => True,
+            Rows_From => Rows_From, Rows_To => Rows_To);
       end if;
 
       if Is_Caret_Shown (Item) and then not Has_Selection (Item) then
@@ -1283,7 +1330,7 @@ package body UI.Text_Areas is
          end;
       end if;
 
-      Clear_Clip (Target);
+      Restore_Clip (Target, Outer_Clip);
    end Draw;
 
 end UI.Text_Areas;

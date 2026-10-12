@@ -281,13 +281,28 @@ package UI.Text_Areas is
    --  owner, which might unfocus it.
 
    procedure Draw
-     (Item    : in out Text_Area;
-      Target  : SDL3.Windows.Renderers.Renderer;
-      Colors  : Themes.Theme;
-      Settled : Boolean := True)
+     (Item      : in out Text_Area;
+      Target    : SDL3.Windows.Renderers.Renderer;
+      Colors    : Themes.Theme;
+      Settled   : Boolean := True;
+      Rows_From : Float := Float'First;
+      Rows_To   : Float := Float'Last)
      with Pre => Is_Attached (Item);
    --  Draw it where it was placed. Settled says the zoom is not changing:
    --  see Typeset.Views.
+   --
+   --  Only what touches the rows of the target from Rows_From to Rows_To
+   --  is looked at, of the text and of what marks the selection: when
+   --  the target's clip leaves no more to show, as when only the caret
+   --  is to be drawn again, that is all the work there is.
+
+   function Lines_Drawn (Item : Text_Area) return Natural;
+   --  How many lines of text have been drawn, in all, for measuring.
+
+   function Caret_Measures (Item : Text_Area) return Natural;
+   --  How many times the caret's place in its line has been worked out,
+   --  in all, for measuring: it is kept while the caret, the text and
+   --  the width of the lines are as they were, as when it blinks.
 
 private
 
@@ -323,6 +338,18 @@ private
       Composing : Boolean := False;
       Composed  : Position;  --  where the input method's text starts
       Composed_Length : Natural := 0;  --  in bytes
+
+      Caret_Kept    : Boolean := False;
+      Caret_For     : Position;
+      Caret_Version : Texts.Documents.Version := 0;
+      Caret_Serial  : Natural := 0;
+      Caret_Width   : Float := 0.0;
+      Caret_Line    : Positive := 1;
+      Caret_Across  : Float := 0.0;
+      Caret_Worked  : Natural := 0;
+      --  The line the caret is on, and how far across it, in layout
+      --  units, which take shaping to find, as of the position, document
+      --  and width of lines in the other fields.
 
       Now      : SDL3.Events.Milliseconds := 0;
       Since    : SDL3.Events.Milliseconds := 0;

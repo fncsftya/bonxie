@@ -20,4 +20,7 @@ package Yoga is
 
    type Gutter is (Column, Row, All_Gutters);
 
+   type Display_Mode is (Flex, None, Contents);
+   --  None takes no room and shows nothing, nor do its children.
+
 end Yoga;

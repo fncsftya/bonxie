@@ -4,8 +4,8 @@ private with Ada.Strings.Unbounded;
 private with SDL3.Windows;
 private with Scripts;
 private with UI.Clipboards;
-private with UI.Text_Areas;
-private with Yoga.Nodes;
+private with UI.Widgets.Editors;
+private with UI.Widgets.Panels;
 
 --  A window showing a document to edit, scroll and zoom.
 package Viewer is
@@ -74,18 +74,18 @@ package Viewer is
 private
 
    type Session is limited record
-      Layout       : Yoga.Nodes.Tree;
-      --  A column: the content area above the toolbar.
-      Content_Node : Yoga.Nodes.Node;
-      Area_Node    : Yoga.Nodes.Node;  --  in the content area
-      Toolbar_Node : Yoga.Nodes.Node;
+      Widgets      : UI.Widgets.Tree;
+      Window_Panel : UI.Widgets.Panels.Panel;
+      --  The root: a column, of the content area above the toolbar.
+      Content_Panel : UI.Widgets.Panels.Panel;
+      Toolbar_Panel : UI.Widgets.Panels.Panel;
 
       Script       : aliased Scripts.Script;
       Win          : SDL3.Windows.Window;
       Target       : SDL3.Windows.Renderers.Renderer;
       --  after Win: it is destroyed first
-      Area         : UI.Text_Areas.Text_Area;
-      --  and after Target, and Script, which it shows
+      Area         : UI.Widgets.Editors.Editor;
+      --  in the content area, after Target, and Script, which it shows
       Density      : Float := 1.0;
       --  Pixels to a point of the window.
 
@@ -103,8 +103,6 @@ private
       Input_Area   : Integer := Integer'First;
       --  Where the input method was last told the text is, across.
 
-      Dirty        : Boolean := True;
-      --  What is shown is out of date.
       Done         : Boolean := False;
    end record;
 

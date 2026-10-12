@@ -24,8 +24,17 @@ package body SDL3.Windows.Renderers is
          "SDL_SetRenderDrawColor");
    end Set_Color;
 
+   procedure Make_Canvas (Item : in out Renderer; Width, Height : Positive);
+   --  Draw to a new image Width x Height, in place of any there is.
+
+   function Window_Size (Item : Renderer) return Thin.IRect;
+   --  Of the window the renderer is for, in pixels, whatever it draws to.
+
    procedure Create
-     (Item : in out Renderer; Target : Window; VSync : Boolean := True) is
+     (Item       : in out Renderer;
+      Target     : Window;
+      VSync      : Boolean := True;
+      Keep_Frame : Boolean := True) is
    begin
       Finalize (Item);
       Item.Handle := Thin.Create_Renderer (Target.Handle, System.Null_Address);
@@ -36,6 +45,16 @@ package body SDL3.Windows.Renderers is
       Errors.Check
         (Thin.Set_Render_VSync (Item.Handle, (if VSync then 1 else 0)),
          "SDL_SetRenderVSync");
+
+      if Keep_Frame then
+         declare
+            Size : constant Thin.IRect := Window_Size (Item);
+         begin
+            Make_Canvas
+              (Item, Positive'Max (1, Integer (Size.W)),
+               Positive'Max (1, Integer (Size.H)));
+         end;
+      end if;
    end Create;
 
    procedure Create_Offscreen
@@ -59,7 +78,48 @@ package body SDL3.Windows.Renderers is
    function Is_Offscreen (Item : Renderer) return Boolean is
      (Item.Surface /= System.Null_Address);
 
+   function Keeps_Frame (Item : Renderer) return Boolean is
+     (Item.Canvas /= System.Null_Address);
+
+   function Window_Size (Item : Renderer) return Thin.IRect is
+      W, H : aliased Interfaces.C.int;
+   begin
+      Errors.Check
+        (Thin.Get_Window_Output_Size (Item.Handle, W'Access, H'Access),
+         "SDL_GetRenderOutputSize");
+      return (X => 0, Y => 0, W => W, H => H);
+   end Window_Size;
+
+   procedure Fit (Item : in out Renderer; Changed : out Boolean) is
+   begin
+      Changed := False;
+      if Item.Canvas /= System.Null_Address
+        and then Item.Surface = System.Null_Address
+      then
+         declare
+            Size : constant Thin.IRect := Window_Size (Item);
+            Wide : constant Natural := Natural (Size.W);
+            High : constant Natural := Natural (Size.H);
+         begin
+            --  A window with no area, as when it is minimized, is left
+            --  as it was.
+            if Wide > 0 and then High > 0
+              and then (Wide /= Item.Canvas_Width
+                        or else High /= Item.Canvas_Height)
+            then
+               Make_Canvas (Item, Wide, High);
+               Changed := True;
+            end if;
+         end;
+      end if;
+   end Fit;
+
    procedure Resize (Item : in out Renderer; Width, Height : Positive) is
+   begin
+      Make_Canvas (Item, Width, Height);
+   end Resize;
+
+   procedure Make_Canvas (Item : in out Renderer; Width, Height : Positive) is
       Canvas : constant Thin.Texture :=
         Thin.Create_Texture
           (Item.Handle, Thin.Pixel_Format_RGBA32, Thin.Texture_Access_Target,
@@ -74,7 +134,18 @@ package body SDL3.Windows.Renderers is
          Thin.Destroy_Texture (Item.Canvas);
       end if;
       Item.Canvas := Canvas;
-   end Resize;
+      Item.Canvas_Width := Width;
+      Item.Canvas_Height := Height;
+      if Item.Surface = System.Null_Address then
+         --  Drawn to the window as it is, whole.
+         Errors.Check
+           (Thin.Set_Texture_Blend_Mode (Canvas, 0),
+            "SDL_SetTextureBlendMode");
+         Errors.Check
+           (Thin.Set_Texture_Scale_Mode (Canvas, Thin.Scale_Mode_Nearest),
+            "SDL_SetTextureScaleMode");
+      end if;
+   end Make_Canvas;
 
    procedure Output_Size (Item : Renderer; Width, Height : out Natural) is
       W, H : aliased Interfaces.C.int;
@@ -123,6 +194,46 @@ package body SDL3.Windows.Renderers is
          "SDL_SetRenderClipRect");
    end Clear_Clip;
 
+   function Current_Clip (Item : Renderer) return Clip is
+      Rect : aliased Thin.IRect := (others => 0);
+   begin
+      if not Boolean (Thin.Render_Clip_Enabled (Item.Handle)) then
+         return (Enabled => False, others => 0);
+      end if;
+      Errors.Check
+        (Thin.Get_Render_Clip_Rect (Item.Handle, Rect'Address),
+         "SDL_GetRenderClipRect");
+      return (Enabled => True, X => Integer (Rect.X), Y => Integer (Rect.Y),
+              Width => Integer (Rect.W), Height => Integer (Rect.H));
+   end Current_Clip;
+
+   procedure Restore_Clip (Item : Renderer; Value : Clip) is
+   begin
+      if Value.Enabled then
+         Set_Clip (Item, Value.X, Value.Y, Value.Width, Value.Height);
+      else
+         Clear_Clip (Item);
+      end if;
+   end Restore_Clip;
+
+   procedure Narrow_Clip (Item : Renderer; X, Y, Width, Height : Integer) is
+      Was    : constant Clip := Current_Clip (Item);
+      Left   : constant Integer :=
+        (if Was.Enabled then Integer'Max (X, Was.X) else X);
+      Top    : constant Integer :=
+        (if Was.Enabled then Integer'Max (Y, Was.Y) else Y);
+      Right  : constant Integer :=
+        (if Was.Enabled then Integer'Min (X + Width, Was.X + Was.Width)
+         else X + Width);
+      Bottom : constant Integer :=
+        (if Was.Enabled then Integer'Min (Y + Height, Was.Y + Was.Height)
+         else Y + Height);
+   begin
+      Set_Clip
+        (Item, Left, Top,
+         Integer'Max (0, Right - Left), Integer'Max (0, Bottom - Top));
+   end Narrow_Clip;
+
    procedure Draw_Text
      (Item  : Renderer;
       Value : Color;
@@ -131,11 +242,25 @@ package body SDL3.Windows.Renderers is
       Scale : Positive := 1)
    is
       S : constant Interfaces.C.C_float := Interfaces.C.C_float (Scale);
+      Was : constant Clip := Current_Clip (Item);
    begin
       Set_Color (Item, Value);
       --  The debug font has a fixed size; scale the renderer instead.
       Errors.Check
         (Thin.Set_Render_Scale (Item.Handle, S, S), "SDL_SetRenderScale");
+      if Was.Enabled and then Scale > 1 then
+         --  The clip is in the renderer's coordinates, so scaling it
+         --  scaled the clip: put it back, to the pixel inside it.
+         Set_Clip
+           (Item,
+            (Was.X + Scale - 1) / Scale,
+            (Was.Y + Scale - 1) / Scale,
+            Integer'Max
+              (0, (Was.X + Was.Width) / Scale - (Was.X + Scale - 1) / Scale),
+            Integer'Max
+              (0, (Was.Y + Was.Height) / Scale
+                  - (Was.Y + Scale - 1) / Scale));
+      end if;
       Errors.Check
         (Thin.Render_Debug_Text
            (Item.Handle, To_C (X) / S, To_C (Y) / S,
@@ -143,6 +268,7 @@ package body SDL3.Windows.Renderers is
          "SDL_RenderDebugText");
       Errors.Check
         (Thin.Set_Render_Scale (Item.Handle, 1.0, 1.0), "SDL_SetRenderScale");
+      Restore_Clip (Item, Was);
    end Draw_Text;
 
    procedure Save_BMP (Item : Renderer; File_Name : String) is
@@ -164,17 +290,40 @@ package body SDL3.Windows.Renderers is
 
    procedure Present (Item : Renderer) is
    begin
-      Errors.Check (Thin.Render_Present (Item.Handle), "SDL_RenderPresent");
+      if Item.Canvas /= System.Null_Address
+        and then Item.Surface = System.Null_Address
+      then
+         --  What is drawn is in the image: copy it to the window, and
+         --  go on drawing to the image.
+         Errors.Check
+           (Thin.Set_Render_Target (Item.Handle, System.Null_Address),
+            "SDL_SetRenderTarget");
+         Errors.Check
+           (Thin.Render_Texture (Item.Handle, Item.Canvas, null, null),
+            "SDL_RenderTexture");
+         Errors.Check
+           (Thin.Render_Present (Item.Handle), "SDL_RenderPresent");
+         Errors.Check
+           (Thin.Set_Render_Target (Item.Handle, Item.Canvas),
+            "SDL_SetRenderTarget");
+      else
+         Errors.Check
+           (Thin.Render_Present (Item.Handle), "SDL_RenderPresent");
+      end if;
    end Present;
 
    overriding procedure Finalize (Item : in out Renderer) is
    begin
       if Item.Canvas /= System.Null_Address then
-         Errors.Check
-           (Thin.Set_Render_Target (Item.Handle, System.Null_Address),
-            "SDL_SetRenderTarget");
+         --  Not checked: this may be after SDL has gone, and what it
+         --  cannot do then must not raise.
+         if Thin.Set_Render_Target (Item.Handle, System.Null_Address) then
+            null;
+         end if;
          Thin.Destroy_Texture (Item.Canvas);
          Item.Canvas := System.Null_Address;
+         Item.Canvas_Width := 0;
+         Item.Canvas_Height := 0;
       end if;
       if Item.Handle /= System.Null_Address then
          Thin.Destroy_Renderer (Item.Handle);

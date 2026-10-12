@@ -4,13 +4,14 @@ with "coretext.gpr";
 with "sdl3.gpr";
 with "texts.gpr";
 with "typeset.gpr";
+with "yoga.gpr";
 project Bench is
 
    for Source_Dirs use ("src/", "config/");
    for Object_Dir use "obj/" & Bench_Config.Build_Profile;
    for Create_Missing_Dirs use "True";
    for Exec_Dir use "bin";
-   for Main use ("bench.adb", "text_area_bench.adb");
+   for Main use ("bench.adb", "text_area_bench.adb", "widget_bench.adb");
 
    package Compiler is
       for Default_Switches ("Ada") use Bench_Config.Ada_Compiler_Switches &

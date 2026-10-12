@@ -616,4 +616,104 @@ package body Text_Area_Tests is
       Check (Item, "textarea-long-paragraph-end");
    end Long_Paragraph;
 
+   --  Where the caret is drawn is kept while nothing it depends on
+   --  changes, and is as if worked out afresh after anything does.
+
+   procedure Caret_Box_Kept is
+      A, B : Fixture;
+
+      procedure Box (Item : in out Fixture; X, Y : out Float) is
+         Wide, High : Float;
+      begin
+         Text_Areas.Caret_Box (Item.Area, X, Y, Wide, High);
+      end Box;
+
+      function Measures (Item : Fixture) return String is
+        (Natural'Image (Text_Areas.Caret_Measures (Item.Area)));
+
+      procedure Narrow (Item : in out Fixture) is
+      begin
+         Text_Areas.Place
+           (Item.Area,
+            Left    => Float (Margin) * Density,
+            Top     => Float (Margin) * Density,
+            Width   => Float (Width - 2 * Margin - 150) * Density,
+            Height  => Float (Height - 2 * Margin) * Density,
+            Density => Density);
+      end Narrow;
+
+      procedure To_End (Item : in out Fixture) is
+      begin
+         Press (Item, Events.Key_Down_Arrow, Command => True);
+      end To_End;
+
+      procedure Same
+        (Name : String; One, Other : in out Fixture) is
+         X1, Y1, X2, Y2 : Float;
+      begin
+         Box (One, X1, Y1);
+         Box (Other, X2, Y2);
+         Goldens.Check_Text (Name, "TRUE",
+                             Boolean'Image (X1 = X2 and then Y1 = Y2));
+      end Same;
+
+      Phrase  : constant String := "Great skua, bonxie, arctic skua. ";
+      Long    : constant String := Phrase & Phrase & Phrase & Phrase & Phrase;
+      X, Y, X_Then, Y_Then : Float;
+      Blinked : Boolean;
+   begin
+      Open (A, Long);
+      To_End (A);
+      Box (A, X_Then, Y_Then);
+      Goldens.Check_Text ("textarea-caret-box-first", " 1", Measures (A));
+
+      --  Again, and with the time passing, it is not worked out again.
+      Box (A, X, Y);
+      Text_Areas.Tick (A.Area, 600, Blinked);
+      Box (A, X, Y);
+      Goldens.Check_Text ("textarea-caret-box-kept", " 1", Measures (A));
+      Goldens.Check_Text
+        ("textarea-caret-box-same", "TRUE",
+         Boolean'Image (X = X_Then and then Y = Y_Then));
+
+      --  Typing moves it, and it is worked out.
+      Type_In (A, "!");
+      Open (B, Long & "!");
+      To_End (B);
+      Same ("textarea-caret-box-typed", A, B);
+      Goldens.Check_Text
+        ("textarea-caret-box-typed-count", " 2", Measures (A));
+
+      --  The lines wrapping differently moves it.
+      Narrow (A);
+      Narrow (B);
+      Same ("textarea-caret-box-narrowed", A, B);
+      Goldens.Check_Text
+        ("textarea-caret-box-narrowed-count", " 3", Measures (A));
+
+      --  Moving the caret does.
+      Press (A, Events.Key_Left_Arrow, Times => 5);
+      Press (B, Events.Key_Left_Arrow, Times => 5);
+      Same ("textarea-caret-box-moved", A, B);
+
+      --  And so does an edit made through another view of the document,
+      --  which the text area has not seen until it is asked.
+      Docs.Replace (A.Doc, (1, 1), (1, 1), "Skua. ");
+      Docs.Replace (B.Doc, (1, 1), (1, 1), "Skua. ");
+      Same ("textarea-caret-box-edited", A, B);
+      Goldens.Check_Text
+        ("textarea-caret-box-edited-count", " 5", Measures (A));
+      Box (A, X, Y);
+      Goldens.Check_Text
+        ("textarea-caret-box-edited-kept", " 5", Measures (A));
+
+      --  Even when the caret stays at the same place in the paragraph and
+      --  the text before it is as long, but wider.
+      Docs.Replace (A.Doc, (1, 1), (1, 7), "WWWWWW");
+      Docs.Replace (B.Doc, (1, 1), (1, 7), "WWWWWW");
+      Same ("textarea-caret-box-widened", A, B);
+      Goldens.Check_Text
+        ("textarea-caret-box-widened-count", " 6", Measures (A));
+   end Caret_Box_Kept;
+
 end Text_Area_Tests;

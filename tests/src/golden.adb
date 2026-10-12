@@ -8,6 +8,7 @@ with Files;
 with Goldens;
 with Text_Area_Tests;
 with Typeset.Samples;
+with Widget_Tests;
 with Viewer;
 
 --  Draws the viewer, and a text area by itself, in various setups and
@@ -391,6 +392,20 @@ begin
    Run ("textarea-composing", Text_Area_Tests.Composing'Access);
    Run ("textarea-two-views", Text_Area_Tests.Two_Views'Access);
    Run ("textarea-long-paragraph", Text_Area_Tests.Long_Paragraph'Access);
+   Run ("textarea-caret-box", Text_Area_Tests.Caret_Box_Kept'Access);
+
+   Run ("widgets-layout", Widget_Tests.Layout'Access);
+   Run ("widgets-idle", Widget_Tests.Idle'Access);
+   Run ("widgets-buttons", Widget_Tests.Buttons'Access);
+   Run ("widgets-focus", Widget_Tests.Focus'Access);
+   Run ("widgets-damage", Widget_Tests.Damage'Access);
+   Run ("widgets-retained", Widget_Tests.Retained'Access);
+   Run ("widgets-resized", Widget_Tests.Resized'Access);
+   Run ("widgets-walk", Widget_Tests.Tree_Walk'Access);
+   Run ("widgets-caret", Widget_Tests.Caret_Only'Access);
+   Run ("widgets-hiding", Widget_Tests.Hiding'Access);
+   Run ("widgets-removing", Widget_Tests.Removing'Access);
+   Run ("widgets-window", Widget_Tests.Window_Frame'Access);
 
    Ada.Text_IO.Put_Line
      (Ran'Image & " tests:" & Natural'Image (Goldens.Passed)

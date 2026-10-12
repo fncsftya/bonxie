@@ -71,6 +71,18 @@ package body SDL3.Windows is
       Errors.Check (Done, "SDL_SetWindowTitle");
    end Set_Title;
 
+   procedure Set_Size (Item : Window; Width, Height : Positive) is
+      use Interfaces.C;
+   begin
+      Errors.Check
+        (Thin.Set_Window_Size (Item.Handle, int (Width), int (Height)),
+         "SDL_SetWindowSize");
+      --  It may be done by the system a while later.
+      if not Boolean (Thin.Sync_Window (Item.Handle)) then
+         null;  --  not all can say; the caller sees the size it gets
+      end if;
+   end Set_Size;
+
    overriding procedure Finalize (Item : in out Window) is
    begin
       if Item.Handle /= System.Null_Address then

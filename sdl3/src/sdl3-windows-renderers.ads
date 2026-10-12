@@ -17,10 +17,19 @@ package SDL3.Windows.Renderers is
    --  Width and height in pixels of one Draw_Text character at Scale 1.
 
    procedure Create
-     (Item : in out Renderer; Target : Window; VSync : Boolean := True);
+     (Item       : in out Renderer;
+      Target     : Window;
+      VSync      : Boolean := True;
+      Keep_Frame : Boolean := True);
    --  With VSync, Present waits for the display's refresh: no tearing,
    --  and it paces the render loop. Without it frames are as fast as
    --  they can be drawn, as for measuring.
+   --
+   --  With Keep_Frame, drawing is to an image of its own the size of the
+   --  window, which Present copies to it, so that what is drawn stays
+   --  for the next frame, and only what has changed need be drawn
+   --  again; see Keeps_Frame, Fit. Without, the window's own frames are
+   --  swapped, and are not as they were left: draw each one all.
 
    procedure Create_Offscreen
      (Item : in out Renderer; Width, Height : Positive)
@@ -31,13 +40,23 @@ package SDL3.Windows.Renderers is
 
    function Is_Offscreen (Item : Renderer) return Boolean;
 
+   function Keeps_Frame (Item : Renderer) return Boolean;
+   --  Whether what is drawn stays until it is drawn over: of an
+   --  offscreen renderer, and of a window's with Keep_Frame.
+
+   procedure Fit (Item : in out Renderer; Changed : out Boolean);
+   --  Make the image a window's renderer keeps the size of the window,
+   --  if that has changed, which loses what was drawn: Changed says so.
+   --  Do it before drawing a frame. Nothing is done otherwise.
+
    procedure Resize (Item : in out Renderer; Width, Height : Positive)
      with Pre => Is_Offscreen (Item);
    --  Make the image Width x Height, losing what is drawn.
 
    procedure Output_Size
      (Item : Renderer; Width, Height : out Natural);
-   --  Size of the drawable area in pixels.
+   --  Size of the drawable area in pixels: of the image drawn to, which
+   --  Fit makes the window's size.
 
    procedure Clear (Item : Renderer; Value : Color);
 
@@ -54,6 +73,22 @@ package SDL3.Windows.Renderers is
    procedure Clear_Clip (Item : Renderer);
    --  Draw anywhere again.
 
+   --  Clips that nest: to draw into part of a part, whatever clip the
+   --  caller has set.
+
+   type Clip is private;
+   --  The clip rectangle, or none.
+
+   function Current_Clip (Item : Renderer) return Clip;
+
+   procedure Restore_Clip (Item : Renderer; Value : Clip);
+   --  Set the clip to Value, as Current_Clip gave it.
+
+   procedure Narrow_Clip (Item : Renderer; X, Y, Width, Height : Integer)
+     with Pre => Width >= 0 and then Height >= 0;
+   --  Draw only where the clip allows and in the rectangle Width x Height
+   --  pixels with its top left at X, Y, until Restore_Clip.
+
    procedure Draw_Text
      (Item  : Renderer;
       Value : Color;
@@ -68,15 +103,25 @@ package SDL3.Windows.Renderers is
    --  to see it without looking at the screen. Call before Present.
 
    procedure Present (Item : Renderer);
+   --  Show what is drawn in the window; what was drawn is kept if the
+   --  renderer Keeps_Frame.
 
 private
+
+   type Clip is record
+      Enabled : Boolean := False;
+      X, Y, Width, Height : Integer := 0;
+   end record;
 
    type Renderer is new Ada.Finalization.Limited_Controlled with record
       Handle : System.Address := System.Null_Address;
       Surface : System.Address := System.Null_Address;
       Canvas  : System.Address := System.Null_Address;
       --  Offscreen, the surface the renderer is made for, and the texture
-      --  it draws to: a target texture can be resized, a surface not.
+      --  it draws to: a target texture can be resized, a surface not. In
+      --  a window, with Keep_Frame, the texture it draws to, to copy to
+      --  the window.
+      Canvas_Width, Canvas_Height : Natural := 0;
    end record;
 
    overriding procedure Finalize (Item : in out Renderer);

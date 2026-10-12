@@ -31,6 +31,18 @@ package body Yoga.Nodes is
       return (Handle => Child);
    end New_Child;
 
+   procedure Delete (Parent : Node; Child : Node) is
+   begin
+      Thin.Node_Remove_Child (Parent.Handle, Child.Handle);
+      Thin.Node_Free_Recursive (Child.Handle);
+   end Delete;
+
+   procedure Set_Display (Item : Node; Value : Display_Mode) is
+   begin
+      Thin.Set_Display
+        (Item.Handle, Thin.YG_Display'Val (Display_Mode'Pos (Value)));
+   end Set_Display;
+
    procedure Set_Flex_Direction (Item : Node; Value : Flex_Direction) is
    begin
       Thin.Set_Flex_Direction

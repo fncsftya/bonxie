@@ -23,6 +23,7 @@ private package Yoga.Thin is
       All_Edges)
      with Convention => C;
    type YG_Gutter is (Column, Row, All_Gutters) with Convention => C;
+   type YG_Display is (Flex, None, Contents) with Convention => C;
 
    function Node_New return Node_Ref
      with Import, Convention => C, External_Name => "YGNodeNew";
@@ -32,6 +33,9 @@ private package Yoga.Thin is
 
    function Node_Child_Count (Node : Node_Ref) return size_t
      with Import, Convention => C, External_Name => "YGNodeGetChildCount";
+
+   procedure Node_Remove_Child (Node : Node_Ref; Child : Node_Ref)
+     with Import, Convention => C, External_Name => "YGNodeRemoveChild";
 
    procedure Node_Insert_Child
      (Node : Node_Ref; Child : Node_Ref; Index : size_t)
@@ -56,6 +60,8 @@ private package Yoga.Thin is
      with Import, Convention => C, External_Name => "YGNodeStyleSetAlignSelf";
    procedure Set_Flex_Wrap (Node : Node_Ref; V : YG_Wrap)
      with Import, Convention => C, External_Name => "YGNodeStyleSetFlexWrap";
+   procedure Set_Display (Node : Node_Ref; V : YG_Display)
+     with Import, Convention => C, External_Name => "YGNodeStyleSetDisplay";
    procedure Set_Flex_Grow (Node : Node_Ref; V : C_float)
      with Import, Convention => C, External_Name => "YGNodeStyleSetFlexGrow";
    procedure Set_Flex_Shrink (Node : Node_Ref; V : C_float)

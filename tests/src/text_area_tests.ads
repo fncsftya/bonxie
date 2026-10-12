@@ -25,5 +25,6 @@ package Text_Area_Tests is
    procedure Composing;
    procedure Two_Views;
    procedure Long_Paragraph;
+   procedure Caret_Box_Kept;
 
 end Text_Area_Tests;

@@ -220,6 +220,14 @@ private package SDL3.Thin is
      with Import, Convention => C, External_Name => "SDL_SetRenderClipRect";
    --  Of an SDL_Rect; null for none.
 
+   function Get_Render_Clip_Rect
+     (R : Renderer; Rect : System.Address) return Interfaces.C.C_bool
+     with Import, Convention => C, External_Name => "SDL_GetRenderClipRect";
+   --  Fills in an SDL_Rect.
+
+   function Render_Clip_Enabled (R : Renderer) return Interfaces.C.C_bool
+     with Import, Convention => C, External_Name => "SDL_RenderClipEnabled";
+
    function Start_Text_Input (Win : Window) return Interfaces.C.C_bool
      with Import, Convention => C, External_Name => "SDL_StartTextInput";
 
@@ -232,6 +240,13 @@ private package SDL3.Thin is
      (Win : Window; Title : Interfaces.C.Strings.chars_ptr)
       return Interfaces.C.C_bool
      with Import, Convention => C, External_Name => "SDL_SetWindowTitle";
+
+   function Set_Window_Size
+     (Win : Window; W, H : Interfaces.C.int) return Interfaces.C.C_bool
+     with Import, Convention => C, External_Name => "SDL_SetWindowSize";
+
+   function Sync_Window (Win : Window) return Interfaces.C.C_bool
+     with Import, Convention => C, External_Name => "SDL_SyncWindow";
 
    function Set_Clipboard_Text
      (Text : Interfaces.C.Strings.chars_ptr) return Interfaces.C.C_bool
@@ -270,6 +285,11 @@ private package SDL3.Thin is
      with Import, Convention => C,
           External_Name => "SDL_GetCurrentRenderOutputSize";
    --  Of the render target, if there is one.
+
+   function Get_Window_Output_Size
+     (R : Renderer; W, H : access Interfaces.C.int) return Interfaces.C.C_bool
+     with Import, Convention => C, External_Name => "SDL_GetRenderOutputSize";
+   --  Of the window, ignoring any render target.
 
    function Wait_Event_Timeout
      (E : access Event; Timeout_MS : Interfaces.Integer_32)

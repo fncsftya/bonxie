@@ -34,7 +34,9 @@ package Typeset.Views is
       Width  : Natural;
       Height : Natural;
       Scale  : Float;
-      Settled : Boolean)
+      Settled : Boolean;
+      Rows_From : Float := Float'First;
+      Rows_To   : Float := Float'Last)
      with Pre => Layouts.Is_Synced (Laid, Doc) and then Scale > 0.0
                  and then Anchor <= Layouts.Count (Laid);
    --  Draw the page in colour Value into the part of the target Width x
@@ -44,6 +46,13 @@ package Typeset.Views is
    --  is the pixels to a layout unit: the display's density times the
    --  zoom. Settled says the scale is no longer changing. The glyphs are
    --  flushed.
+   --
+   --  Only the lines that touch the rows of the target from Rows_From to
+   --  Rows_To are drawn, for when no more is to show: the rest of the
+   --  page is not looked at.
+
+   function Lines_Drawn (Item : View) return Natural;
+   --  How many lines have been drawn, for measuring.
 
    function Lines_Shaped (Item : View) return Natural;
    --  How many lines have been shaped, for measuring.
@@ -93,6 +102,7 @@ private
       --  A line as shaped, before it is kept: it holds on to its room.
       Frame   : Natural := 0;
       Shaped  : Natural := 0;
+      Drawn   : Natural := 0;
    end record;
 
    overriding procedure Initialize (Item : in out View);

@@ -16,7 +16,13 @@ package Yoga.Nodes is
    function New_Child (Parent : Node) return Node;
    --  Create a node and append it to Parent's children.
 
+   procedure Delete (Parent : Node; Child : Node);
+   --  Take Child, a child of Parent, out of the tree, and free it and
+   --  every node below it. Their handles must not be used again.
+
    --  Style
+
+   procedure Set_Display (Item : Node; Value : Display_Mode);
 
    procedure Set_Flex_Direction (Item : Node; Value : Flex_Direction);
    procedure Set_Justify_Content (Item : Node; Value : Justify);

@@ -39,6 +39,11 @@ package SDL3.Windows is
    procedure Set_Title (Item : Window; Title : String)
      with Pre => Is_Open (Item);
 
+   procedure Set_Size (Item : Window; Width, Height : Positive)
+     with Pre => Is_Open (Item);
+   --  Ask for the window to be Width x Height points, and wait for it,
+   --  if the system will say.
+
 private
 
    type Window is new Ada.Finalization.Limited_Controlled with record
