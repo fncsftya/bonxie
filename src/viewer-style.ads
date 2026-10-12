@@ -1,0 +1,55 @@
+with SDL3.Windows.Renderers;
+with UI.Themes;
+
+--  How the screens look: the sizes of what is on them, and its colours.
+private package Viewer.Style is
+
+   --  The page
+
+   Family     : constant String := "Georgia";
+   Font_Size  : constant Float := 18.0;
+   Page_Width : constant Float := 640.0;  --  layout units
+   Para_Gap   : constant Float := 8.0;
+
+   --  The window
+
+   Window_Width  : constant := 1000;
+   Window_Height : constant := 800;
+   Toolbar_Size  : constant Float := 32.0;
+   Margin        : constant Float := 16.0;
+   --  Around the text area.
+
+   --  The home screen, in points
+
+   Home_Margin   : constant Float := 32.0;
+   Title_Height  : constant Float := 28.0;
+   Row_Height    : constant Float := 36.0;
+   Row_Gap       : constant Float := 8.0;
+   Rename_Width  : constant Float := 44.0;
+   Delete_Width  : constant Float := 44.0;
+   --  Of the buttons with icons.
+   Dialog_Width  : constant Float := 320.0;
+   Dialog_Pad    : constant Float := 24.0;
+   Dialog_Line   : constant Float := 24.0;
+   Dialog_Button_Width  : constant Float := 96.0;
+   Dialog_Button_Height : constant Float := 36.0;
+   Outline       : constant Float := 1.0;
+   Ok_Width      : constant Float := 48.0;
+   Cancel_Width  : constant Float := 64.0;
+   Edit_Size     : constant Float := 14.0;
+   --  Of the text in the field to rename a project.
+   Button_Height : constant Float := 44.0;
+   Action_Width  : constant Float := 240.0;
+   Gap           : constant Float := 12.0;
+   Close_Width   : constant Float := 72.0;
+   Close_Height  : constant Float := 24.0;
+   Bar_Margin    : constant Float := 4.0;
+   Title_Margin  : constant Float := 12.0;
+   --  Between the Close button and the toolbar's edge.
+
+   No_Projects : constant String := "No projects yet";
+
+   Colors  : constant UI.Themes.Theme := UI.Themes.Light;
+   Toolbar : constant SDL3.Windows.Renderers.Color := (52, 54, 66, 255);
+
+end Viewer.Style;

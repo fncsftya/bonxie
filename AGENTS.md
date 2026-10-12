@@ -41,7 +41,12 @@ From the bottom up; each crate depends only on those before it.
   the home (recent projects, each to open, rename or delete, with a
   dialog over it to confirm a deletion; New Project, Settings) and a project (the
   document, and a toolbar with Close). Offscreen sessions keep their
-  projects in memory. Icons are SVG files in `share/bonxie/icons`
+  projects in memory. `Viewer` holds the `Session` and the public API,
+  the event loop and the window's lifecycle; the rest is in its private
+  children: `Style` (sizes, colours), `Build` (widgets, built once),
+  `Painting`, `Zooming`, `Recent` (the list and renaming), `Deletion` (the
+  dialog), `Navigation` (between screens) and `Clicks` (what a click does).
+  Icons are SVG files in `share/bonxie/icons`
   (`UI.Icons`, rasterized by SDL3_image, drawn in one colour as a mask);
   a button with an icon falls back to its label if there is none.
 
