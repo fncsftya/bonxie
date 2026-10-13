@@ -34,6 +34,9 @@ package UI.Widgets.Buttons is
 
    function Has_Icon (Item : Button) return Boolean;
 
+   procedure Set_Swatch (Item : in out Button; To : Themes.Color);
+   --  Show a square of the colour, in the middle, as the button's icon.
+
    procedure Set_Captioned (Item : in out Button; To : Boolean);
    --  With an icon, show the label after it, in place of the icon alone.
 
@@ -73,6 +76,8 @@ private
       Style   : Kind := Normal;
       Picture : Boolean := False;
       Which   : UI.Icons.Icon := UI.Icons.Icon'First;
+      Swatched : Boolean := False;
+      Swatch   : Themes.Color := (0, 0, 0, 255);
       Captioned : Boolean := False;
       Selected  : Boolean := False;
       Down    : Boolean := False;  --  pressed, and not yet let go

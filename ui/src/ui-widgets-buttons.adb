@@ -42,6 +42,15 @@ package body UI.Widgets.Buttons is
       end if;
    end Set_Icon;
 
+   procedure Set_Swatch (Item : in out Button; To : Themes.Color) is
+   begin
+      Item.Swatched := True;
+      Item.Swatch := To;
+      if Is_Attached (Item) then
+         Invalidate (Item);
+      end if;
+   end Set_Swatch;
+
    function Has_Icon (Item : Button) return Boolean is (Item.Picture);
 
    procedure Set_Captioned (Item : in out Button; To : Boolean) is
@@ -189,7 +198,20 @@ package body UI.Widgets.Buttons is
       --  The icon, if there is one, and the label, in the middle of the
       --  button: together, icon first, if it is captioned; otherwise the
       --  label only where the icon cannot be drawn.
-      if Item.Picture and then Icon_Library (Item) /= null then
+      if Item.Swatched then
+         declare
+            Side : constant Float := Icon_Size * 0.5 * Density (Item);
+         begin
+            Fill_Rect
+              (Target, Item.Swatch,
+               Float'Rounding
+                 (Left_Of (Item) + (Width_Of (Item) - Side) / 2.0 + Shift),
+               Float'Rounding
+                 (Top_Of (Item) + (Height_Of (Item) - Side) / 2.0 + Shift),
+               Side, Side);
+            Icon_Drawn := True;
+         end;
+      elsif Item.Picture and then Icon_Library (Item) /= null then
          declare
             Size : constant Positive :=
               Positive (Float'Rounding (Icon_Size * Density (Item)));

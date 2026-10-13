@@ -183,6 +183,30 @@ package body SDL3.Windows.Renderers is
          "SDL_RenderFillRect");
    end Fill_Rect;
 
+   procedure Fill_Rect
+     (Item : Renderer;
+      Value : Color;
+      Blend : Blends;
+      X, Y, Width, Height : Float)
+   is
+      Rect : aliased constant Thin.FRect :=
+        (X => To_C (X), Y => To_C (Y), W => To_C (Width), H => To_C (Height));
+   begin
+      Set_Color (Item, Value);
+      --  SDL_BLENDMODE_NONE is 0, _BLEND 1, _ADD 2 and _MUL 8.
+      Errors.Check
+        (Thin.Set_Render_Draw_Blend_Mode
+           (Item.Handle,
+            (case Blend is
+               when Solid    => (if Value.Alpha < 255 then 1 else 0),
+               when Multiply => 8,
+               when Add      => 2)),
+         "SDL_SetRenderDrawBlendMode");
+      Errors.Check
+        (Thin.Render_Fill_Rect (Item.Handle, Rect'Access),
+         "SDL_RenderFillRect");
+   end Fill_Rect;
+
    procedure Set_Clip (Item : Renderer; X, Y, Width, Height : Integer) is
       use Interfaces.C;
       Rect : aliased constant Thin.IRect :=

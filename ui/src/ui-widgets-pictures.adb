@@ -1,4 +1,37 @@
+with SDL3.Windows.Renderers.Images;
+
 package body UI.Widgets.Pictures is
+
+   function Is_Dark (Path : String) return Boolean;
+   --  Whether the PNG is darker than not, by a sample of its pixels.
+
+   function Is_Dark (Path : String) return Boolean is
+      package Images renames SDL3.Windows.Renderers.Images;
+      Loaded_Image : Images.Image;
+      Total   : Natural := 0;
+      Count   : Natural := 0;
+      Step_X  : Positive;
+      Step_Y  : Positive;
+   begin
+      Images.Load_PNG (Loaded_Image, Path);
+      Step_X := Positive'Max (1, Images.Width (Loaded_Image) / 64);
+      Step_Y := Positive'Max (1, Images.Height (Loaded_Image) / 64);
+      for Y in 0 .. (Images.Height (Loaded_Image) - 1) / Step_Y loop
+         for X in 0 .. (Images.Width (Loaded_Image) - 1) / Step_X loop
+            declare
+               Each : constant SDL3.Windows.Renderers.Color :=
+                 Images.Pixel (Loaded_Image, X * Step_X, Y * Step_Y);
+            begin
+               Total := Total + Natural (Each.Red) + Natural (Each.Green)
+                        + Natural (Each.Blue);
+               Count := Count + 3;
+            end;
+         end loop;
+      end loop;
+      return Total / Count < 128;
+   exception
+      when others => return False;
+   end Is_Dark;
 
    package Textures renames SDL3.Windows.Renderers.Textures;
 
@@ -151,7 +184,7 @@ package body UI.Widgets.Pictures is
    --  Where the picture is, in pixels, as of the last draw.
 
    Highlight : constant SDL3.Windows.Renderers.Color :=
-     (Red => 255, Green => 214, Blue => 0, Alpha => 110);
+     (Red => 255, Green => 214, Blue => 0, Alpha => 255);
 
    function Wide_Of (Item : Picture) return Float is
      (Width_Of (Item) * Item.Zoomed);
@@ -428,6 +461,7 @@ package body UI.Widgets.Pictures is
       if not Item.Loaded then
          begin
             Textures.Create_From_PNG (Item.Pixels, Target, File_Name (Item));
+            Item.Dark := Is_Dark (File_Name (Item));
             Item.Loaded := True;
          exception
             when others =>
@@ -457,6 +491,8 @@ package body UI.Widgets.Pictures is
             begin
                SDL3.Windows.Renderers.Fill_Rect
                  (Target, Highlight,
+                  (if Item.Dark then SDL3.Windows.Renderers.Add
+                   else SDL3.Windows.Renderers.Multiply),
                   Left + Each.Left * Wide,
                   Top + Each.Y * Item.Fitted - High / 2.0,
                   (Each.Right - Each.Left) * Wide, High);

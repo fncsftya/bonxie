@@ -65,6 +65,18 @@ package SDL3.Windows.Renderers is
       Value : Color;
       X, Y, Width, Height : Float);
 
+   type Blends is (Solid, Multiply, Add);
+   --  How a fill meets what is behind: Solid, as Fill_Rect does; Multiply,
+   --  where white takes on the colour and black stays black; Add, where
+   --  black takes on the colour and white stays white.
+
+   procedure Fill_Rect
+     (Item : Renderer;
+      Value : Color;
+      Blend : Blends;
+      X, Y, Width, Height : Float);
+   --  The colour's alpha is not used, unless Solid.
+
    procedure Set_Clip (Item : Renderer; X, Y, Width, Height : Integer)
      with Pre => Width >= 0 and then Height >= 0;
    --  Draw only into the rectangle Width x Height pixels with its top

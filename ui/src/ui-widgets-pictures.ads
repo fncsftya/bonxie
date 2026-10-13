@@ -173,6 +173,7 @@ private
       Name    : String (1 .. Path_Capacity) := [others => ' '];
       Length  : Natural range 0 .. Path_Capacity := 0;
       Loaded  : Boolean := False;
+      Dark    : Boolean := False;  --  the picture is mostly dark
       Failed  : Boolean := False;
       Pixels  : SDL3.Windows.Renderers.Textures.Texture;
       Down    : Float := 0.0;

@@ -300,7 +300,7 @@ package body Items.Windows is
       Buttons.Set_Label (Item.Cursor_Button, "Ptr");
       Buttons.Set_Icon (Item.Cursor_Button, UI.Icons.Cursor);
       Buttons.Set_Label (Item.Marker_Button, "Mark");
-      Buttons.Set_Icon (Item.Marker_Button, UI.Icons.Highlighter);
+      Buttons.Set_Swatch (Item.Marker_Button, (255, 214, 0, 255));
       Buttons.Set_Label (Item.Eraser_Button, "Rub");
       Buttons.Set_Icon (Item.Eraser_Button, UI.Icons.Eraser);
       Buttons.Set_Selected (Item.Cursor_Button, True);
