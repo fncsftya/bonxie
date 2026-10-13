@@ -25,6 +25,7 @@ coretext = { path = "../coretext" }
 sdl3 = { path = "../sdl3" }
 texts = { path = "../texts" }
 typeset = { path = "../typeset" }
+vision = { path = "../vision" }
 webshot = { path = "../webshot" }
 yoga = { path = "../yoga" }
 

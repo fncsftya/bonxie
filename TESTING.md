@@ -12,7 +12,12 @@ added, typed in, dragged, sized, minimised, closed, listed and kept in the
 database, by clicks and drags at points of the window), and sources
 (`sources-*`: a link's picture taken from a page written to
 `/tmp/bonxie-source-page`, so the tests need WebKit but not a network
-beyond one name that does not exist).
+beyond one name that does not exist; `sources-words` reads the text of a
+page's picture with Vision, in the background, and checks the words are
+selected and kept in the database, without a golden, as WebKit's text
+differs between releases), and selecting words over a picture
+(`pictures-*`, with made-up words: dragging, double and triple clicks,
+copying, zooming and scrolling, and reading a page of columns in order).
 The software renderer gives the same pixels every run, so no pixel may
 differ.
 

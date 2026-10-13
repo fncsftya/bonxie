@@ -10,9 +10,18 @@ From the bottom up; each crate depends only on those before it.
 - `sdl3`, `coretext`, `yoga`: bindings. `webshot` (macOS only) takes a
   picture of a web page: an Objective-C shim (`webshot_wk.m`, built with
   Apple's clang) loads it in an offscreen WKWebView and writes the whole
-  length of it, 1024 pixels wide and at most 16384 tall, as a PNG. It is a
+  length of it, 1024 points wide (pictured at twice that in pixels, or fewer
+  for a very long page: at most 16384 tall) and at most 16384 points tall, as a PNG. It is a
   job in a slot, polled (`State`), and goes on only while the main thread
-  runs its run loop, which SDL's event wait does.
+  runs its run loop, which SDL's event wait does. `vision` (macOS only)
+  finds the text in a PNG with Apple's Vision (`VNRecognizeTextRequest`, an
+  Objective-C shim, `vision_ocr.m`), on the file at the size it is: each
+  word, in reading order, with its box as fractions of the picture
+  (`Vision.Recognize`; at most `Max_Words`), put in reading order by
+  `Vision.Layout`, which cuts the lines apart at the gutters between
+  columns and the gaps between bands, and reads down each column in turn. `Vision.Jobs` does it in the
+  background, a task to each slot (the same slots as `Webshot`), polled the
+  same way and taken (`Take`) when `Done`.
 - `typeset`: a layout of a document for one view (`Typeset.Layouts`):
   lines, made lazily (a long paragraph only as far as shown), heights as
   running sums (`Typeset.Sums`); drawing it (`Typeset.Views`).
@@ -35,7 +44,11 @@ From the bottom up; each crate depends only on those before it.
   which says how far the pointer has gone; `Scrollers` scrolls its one
   child with the wheel; `Pictures` shows a PNG as wide as its box
   (or a zoom of that, scrolled across too), scrolled with the wheel (read when
-  first drawn, let go of by `Unload`); `Sliders` is a knob to drag along a
+  first drawn, let go of by `Unload`), and, if told the words in it
+  (`Set_Words`, a `Vision.Result` it does not own), which are selected as
+  text over it: a drag, a double click for a word, a triple for a line,
+  Command with A and C; the words' boxes are fractions of the picture, so
+  they follow its zoom and scroll; `Sliders` is a knob to drag along a
   track, from 0.0 to 1.0. Widgets can be put last of their parent's
   (`Raise_To_Front`, for those placed by their edges), hidden (`Set_Visible`) or taken out
   (`Remove`, with their children; build them again top-down). No
@@ -62,9 +75,17 @@ From the bottom up; each crate depends only on those before it.
   a single line), then the picture, and in its status line a slider (on a log scale) and a button
   that opens a menu of zooms (the zoom is of the picture within its window,
   kept in the item's `zoom`), and Return in the link has `Viewer`
-  start `Webshot` for it. A project
+  start `Webshot` for it. When the picture is taken (or is found
+  without words kept, as in a project from before they were) `Viewer`
+  starts `Vision.Jobs` on it, and the words found are kept in the
+  database, in `item_words` (a row to a word, with the item, so that they
+  go with it; `Items.Save_Words`, `Load_Words`) and stamped on the item
+  (`recognized_at`, and `words_version`, of how they were put in order:
+  those kept by an earlier version are looked for again), so opening the project again loads them and does not
+  look again; a new picture forgets them (`Set_Captured`). A project
   has at most `Items.Capacity` items, a window to each, in the session:
-  a text area is about 124 KB, and a window has two. Together they are
+  a text area is about 124 KB, and a window has two, and a source's has
+  its words, up to about 160 KB. Together they are
   more than the main thread's usual 8 MB of stack, so the executables
   are linked with 64 MB (`-Wl,-stack_size`).
   `Viewer` has two screens, built once and swapped with `Set_Visible`:

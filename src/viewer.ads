@@ -199,6 +199,19 @@ package Viewer is
      with Pre => Is_Open (Item) and then Screen (Item) = Project;
    --  Whether the picture of a page is being taken, for some source.
 
+   function Item_Recognized (Item : Session; Row : Positive) return Natural
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item)
+                 and then Items."=" (Item_Kind (Item, Row), Items.Source);
+   --  How many words of text have been found in the picture of the
+   --  source, to be selected over it.
+
+   function Item_Selected_Text (Item : Session; Row : Positive) return String
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item)
+                 and then Items."=" (Item_Kind (Item, Row), Items.Source);
+   --  What is selected in the picture of the source: what copying gives.
+
    function Item_Words (Item : Session; Row : Positive) return Natural
      with Pre => Is_Open (Item) and then Screen (Item) = Project
                  and then Row <= Item_Count (Item);

@@ -25,5 +25,6 @@ package Item_Tests is
    procedure Kept;
    procedure Source_Windows;
    procedure Source_Pages;
+   procedure Source_Words;
 
 end Item_Tests;

@@ -16,10 +16,18 @@ package Webshot is
    --  could not be, and Message says why.
 
    Page_Width : constant := 1024;
-   --  Pixels wide a page is laid out and drawn.
+   --  Points wide a page is laid out; the picture is up to twice that in
+   --  pixels (see Scale).
 
    Max_Height : constant := 16_384;
-   --  Pixels tall a picture is at most: a long page is cut off.
+   --  Points tall a page is taken to: a longer one is cut off.
+
+   Scale : constant := 2;
+   --  Pixels to a point of the page, as far as that is no more than
+   --  Max_Pixels down the picture: a very long page has fewer.
+
+   Max_Pixels : constant := 16_384;
+   --  Pixels tall a picture is at most, which a GPU texture can be.
 
    procedure Start (Which : Slot; URL : String; File_Name : String)
      with Pre => State (Which) /= Working;
@@ -35,7 +43,7 @@ package Webshot is
 
    function Height (Which : Slot) return Natural
      with Pre => State (Which) = Done;
-   --  Pixels tall the picture is: it is Page_Width wide.
+   --  Pixels tall the picture is.
 
    function Message (Which : Slot) return String
      with Pre => State (Which) = Failed;

@@ -1,8 +1,10 @@
 with Ada.Calendar;
 with Ada.Calendar.Formatting;
+with Ada.Directories;
 with Ada.Strings.Fixed;
 with UI.Widgets;
 with UI.Widgets.Canvases;
+with Vision.Jobs;
 with Webshot;
 
 package body Viewer.Canvas_Items is
@@ -15,6 +17,7 @@ package body Viewer.Canvas_Items is
    use type Items.Id;
    use type Items.Kinds;
    use type Webshot.States;
+   use type Vision.Jobs.States;
 
    Cascade_Step  : constant Float := 24.0;
    Cascade_Count : constant := 6;
@@ -22,7 +25,9 @@ package body Viewer.Canvas_Items is
    --  many, so that they are not all on top of each other.
 
    pragma Assert (Webshot.Slot_Count = Items.Capacity);
-   --  A source's picture is taken in the slot of its window.
+   pragma Assert (Vision.Jobs.Slot_Count = Items.Capacity);
+   --  A source's picture is taken, and its text found, in the slot of its
+   --  window.
 
    function Epoch_Now (Item : Session) return Projects.Seconds is
      (if Item.Pinned_Time > 0 then Item.Pinned_Time else Projects.Seconds
@@ -40,7 +45,8 @@ package body Viewer.Canvas_Items is
    begin
       for Which in Items.Slot loop
          if Is_Source (Item, Which)
-           and then Webshot.State (Which) = Webshot.Working
+           and then (Webshot.State (Which) = Webshot.Working
+                     or else Vision.Jobs.State (Which) = Vision.Jobs.Working)
          then
             return True;
          end if;
@@ -60,6 +66,20 @@ package body Viewer.Canvas_Items is
               then Trimmed else "https://" & Trimmed);
    end Link_Of;
 
+   procedure Start_Recognition (Item : in out Session; Which : Items.Slot);
+   --  Begin to find the words in the source's picture, in the background,
+   --  at the full size it was taken: they are what its window lets be
+   --  selected.
+
+   procedure Start_Recognition (Item : in out Session; Which : Items.Slot) is
+      Key : constant Items.Id :=
+        Windows.Details (Item.Windows (Which)).Key;
+   begin
+      Vision.Jobs.Reset (Which);
+      Vision.Jobs.Start
+        (Which, Items.Image_File (Item.Store, Item.Current, Key));
+   end Start_Recognition;
+
    procedure Start_Capture (Item : in out Session; Which : Items.Slot);
    --  Begin to take the picture of the page the source's text links to.
 
@@ -76,6 +96,7 @@ package body Viewer.Canvas_Items is
          return;
       end if;
       Items.Make_Image_Folder (Item.Store, Item.Current);
+      Vision.Jobs.Reset (Which);
       Webshot.Reset (Which);
       Webshot.Start
         (Which, Link,
@@ -84,6 +105,20 @@ package body Viewer.Canvas_Items is
             Windows.Details (Item.Windows (Which)).Key));
       Windows.Set_Capture (Item.Windows (Which), Windows.Busy);
    end Start_Capture;
+
+   procedure Keep_Recognition (Item : in out Session; Which : Items.Slot);
+   --  Take the words that have been found: write them to the database,
+   --  and give them to the window.
+
+   procedure Keep_Recognition (Item : in out Session; Which : Items.Slot) is
+      Found : Vision.Result;
+      Key   : constant Items.Id :=
+        Windows.Details (Item.Windows (Which)).Key;
+   begin
+      Vision.Jobs.Take (Which, Found);
+      Items.Save_Words (Item.Store, Key, Found, Epoch_Now (Item));
+      Windows.Set_Recognized (Item.Windows (Which), Found);
+   end Keep_Recognition;
 
    procedure Poll_Captures (Item : in out Session);
    --  Take the pictures that have been taken, and say what failed.
@@ -107,12 +142,22 @@ package body Viewer.Canvas_Items is
                      Projects.Touch (Item.Store, Item.Current);
                   end;
                   Webshot.Reset (Which);
+                  Start_Recognition (Item, Which);
                when Webshot.Failed =>
                   Windows.Set_Capture
                     (Item.Windows (Which), Windows.Failed,
                      Detail => Webshot.Message (Which));
                   Webshot.Reset (Which);
                when Webshot.Idle | Webshot.Working =>
+                  null;
+            end case;
+            case Vision.Jobs.State (Which) is
+               when Vision.Jobs.Done =>
+                  Keep_Recognition (Item, Which);
+               when Vision.Jobs.Failed =>
+                  --  The picture still shows, just not as text.
+                  Vision.Jobs.Reset (Which);
+               when Vision.Jobs.Idle | Vision.Jobs.Working =>
                   null;
             end case;
          end if;
@@ -252,6 +297,34 @@ package body Viewer.Canvas_Items is
       end if;
    end Centre_On_Visible;
 
+   procedure Recognize_Kept (Item : in out Session; Which : Items.Slot);
+   --  Of a source with a picture: show the words kept for it, or, if
+   --  there are none (it was made before they were kept, or the program
+   --  stopped before they were found), find them.
+
+   procedure Recognize_Kept (Item : in out Session; Which : Items.Slot) is
+      Key : constant Items.Id :=
+        Windows.Details (Item.Windows (Which)).Key;
+   begin
+      if not Is_Source (Item, Which)
+        or else Windows.Details (Item.Windows (Which)).Captured_At = 0
+      then
+         return;
+      end if;
+      if Items.Has_Words (Item.Store, Key) then
+         declare
+            Found : Vision.Result;
+         begin
+            Items.Load_Words (Item.Store, Key, Found);
+            Windows.Set_Recognized (Item.Windows (Which), Found);
+         end;
+      elsif Ada.Directories.Exists
+              (Items.Image_File (Item.Store, Item.Current, Key))
+      then
+         Start_Recognition (Item, Which);
+      end if;
+   end Recognize_Kept;
+
    procedure Enter (Item : in out Session) is
       Found : Items.Info_List;
    begin
@@ -262,6 +335,7 @@ package body Viewer.Canvas_Items is
             Items.Content (Item.Store, Found.Items (I).Key),
             Items.Image_File
               (Item.Store, Item.Current, Found.Items (I).Key));
+         Recognize_Kept (Item, I);
       end loop;
       Centre_On_Visible (Item);
       Place_All (Item);
@@ -291,6 +365,7 @@ package body Viewer.Canvas_Items is
          if Windows.Is_Assigned (Item.Windows (Which)) then
             Windows.Release (Item.Windows (Which));
             Webshot.Reset (Which);
+            Vision.Jobs.Reset (Which);
          end if;
       end loop;
       Widgets.Set_Visible (Item.Dock_Panel, False);
@@ -339,7 +414,8 @@ package body Viewer.Canvas_Items is
              State => Items.Open,
              Kind  => Kind,
              Captured_At => 0,
-             Zoom  => 1.0),
+             Zoom  => 1.0,
+             Recognized_At => 0),
             "");
          Windows.Place
            (Item.Windows (Free),
@@ -382,6 +458,7 @@ package body Viewer.Canvas_Items is
    procedure Remove (Item : in out Session; Which : Items.Slot) is
    begin
       Webshot.Reset (Which);
+      Vision.Jobs.Reset (Which);
       Items.Delete
         (Item.Store, Windows.Details (Item.Windows (Which)).Key);
       Windows.Release (Item.Windows (Which));

@@ -9,6 +9,7 @@ with UI.Widgets.Pictures;
 with UI.Widgets.Sliders;
 with UI.Widgets.Panels;
 with UI.Widgets.Text_Fields;
+with Vision;
 with UI.Widgets.Editors;
 
 --  What shows one item: a window on the canvas, which can be dragged by
@@ -91,6 +92,22 @@ package Items.Windows is
    --  Say how the source's picture stands, in its status line: Ready
    --  shows the PNG File, read again, as taken at At_Time; Failed says
    --  why, in Detail.
+
+   procedure Set_Recognized
+     (Item : in out Window; Found : Vision.Result)
+     with Pre => Is_Assigned (Item)
+                 and then Details (Item).Kind = Source;
+   --  Say what words are in the source's picture, to be selected as text
+   --  over it. They are of the picture shown: Set_Capture Ready forgets
+   --  them.
+
+   function Recognized_Count (Item : Window) return Natural
+     with Pre => Is_Assigned (Item);
+   --  How many words there are to select; 0 until Set_Recognized.
+
+   function Selected_Text (Item : Window) return String
+     with Pre => Is_Assigned (Item);
+   --  What is selected in the source's picture, as it would be copied.
 
    function Status (Item : Window) return String
      with Pre => Is_Assigned (Item);
@@ -219,6 +236,8 @@ private
       --  Over the picture, hidden until the button is clicked.
       Picture      : UI.Widgets.Pictures.Picture;
       --  Of a source, below its link: what is shown.
+      Recognized   : aliased Vision.Result;
+      --  The words in it, that the picture lets be selected.
       Status_Bar   : UI.Widgets.Panels.Panel;
       Status       : UI.Widgets.Labels.Label;
       Corner       : UI.Widgets.Grips.Grip;

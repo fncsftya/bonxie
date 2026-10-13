@@ -1,4 +1,5 @@
 with Projects;
+with Vision;
 
 --  The items of a project's canvas, kept in the same database as the
 --  projects: a window on the canvas with a title and some text, where it
@@ -55,6 +56,10 @@ package Items is
       Zoom  : Zoom_Level := 1.0;
       --  Of a source: how wide its picture is shown, as a multiple of its
       --  window's width.
+      Recognized_At : Projects.Seconds := 0;
+      --  Of a source: when the text in its picture was found and kept
+      --  (see Save_Words); 0 if it has not been, or the picture was taken
+      --  again since.
    end record;
 
    type Info_Array is array (Positive range <>) of Info;
@@ -119,7 +124,37 @@ package Items is
    procedure Set_Captured
      (Store : in out Projects.Store; Key : Id; At_Time : Projects.Seconds)
      with Pre => Projects.Is_Open (Store);
-   --  Say the picture of a source was taken at At_Time.
+   --  Say the picture of a source was taken at At_Time. The text found in
+   --  the picture before is of another picture: it is forgotten (see
+   --  Clear_Words).
+
+   procedure Save_Words
+     (Store   : in out Projects.Store;
+      Key     : Id;
+      Found   : Vision.Result;
+      At_Time : Projects.Seconds)
+     with Pre => Projects.Is_Open (Store) and then At_Time > 0;
+   --  Keep the words found in the source's picture, in place of any kept
+   --  before, and say that was at At_Time. They are in a table of their
+   --  own, one row to a word, that goes with the item. Nothing is done if
+   --  there is no such item.
+
+   function Has_Words
+     (Store : Projects.Store; Key : Id) return Boolean
+     with Pre => Projects.Is_Open (Store);
+   --  Whether the text of the source's picture has been found and kept,
+   --  even if there was none in it: so that it is not looked for again.
+
+   procedure Load_Words
+     (Store : Projects.Store; Key : Id; Into : in out Vision.Result)
+     with Pre => Projects.Is_Open (Store);
+   --  The words kept for the source, as Save_Words had them; none if
+   --  there are none.
+
+   procedure Clear_Words (Store : in out Projects.Store; Key : Id)
+     with Pre => Projects.Is_Open (Store);
+   --  Forget the words kept for the source, so that they are looked for
+   --  again.
 
    function Image_File
      (Store : Projects.Store; Project : Projects.Id; Key : Id) return String

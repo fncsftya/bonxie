@@ -3,6 +3,7 @@ with Ada.Strings.Fixed;
 with Ada.Text_IO;
 with SDL3.Cursors;
 with SDL3.Events;
+with Vision;
 with Webshot;
 with Goldens;
 with Items.Windows;
@@ -289,7 +290,79 @@ package body Item_Tests is
          Items.Make_Image_Folder (Store, First);
          Ada.Text_IO.Create (File, Ada.Text_IO.Out_File, Picture);
          Ada.Text_IO.Close (File);
+
+         --  The words found in its picture are kept, a row to a word.
+         declare
+            Words : Vision.Result;
+            Again : Vision.Result;
+         begin
+            Check
+              ("words-none", "FALSE",
+               Boolean'Image (Items.Has_Words (Store, Link)));
+            Words.Text (1 .. 10) := "helloworld";
+            Words.Length := 10;
+            Words.Count := 2;
+            Words.Words (1) :=
+              (Line => 1, First => 1, Last => 5,
+               Left => 0.25, Top => 0.5, Width => 0.125, Height => 0.0625);
+            Words.Words (2) :=
+              (Line => 2, First => 6, Last => 10,
+               Left => 0.5, Top => 0.75, Width => 0.25, Height => 0.125);
+            Items.Save_Words (Store, Link, Words, 1_700_000_001);
+            Check
+              ("words-kept", "TRUE",
+               Boolean'Image (Items.Has_Words (Store, Link)));
+            Items.Load_Words (Store, Link, Again);
+            Check
+              ("words-loaded", " 2 10 hello world",
+               Natural'Image (Again.Count) & Natural'Image (Again.Length)
+               & " " & Vision.Image (Again.Words (1), Again) & " "
+               & Vision.Image (Again.Words (2), Again));
+            Check
+              ("words-boxes", "2 TRUE",
+               Ada.Strings.Fixed.Trim
+                 (Natural'Image (Again.Words (2).Line), Ada.Strings.Both)
+               & " "
+               & Boolean'Image
+                   (Again.Words (2).Left = 0.5
+                    and then Again.Words (2).Top = 0.75
+                    and then Again.Words (2).Width = 0.25
+                    and then Again.Words (2).Height = 0.125));
+
+            --  Kept again, they are the new words, not more.
+            Words.Count := 1;
+            Items.Save_Words (Store, Link, Words, 1_700_000_002);
+            Items.Load_Words (Store, Link, Again);
+            Check
+              ("words-replaced", " 1", Natural'Image (Again.Count));
+
+            --  A new picture is of other words.
+            Items.Set_Captured (Store, Link, 1_700_000_003);
+            Items.Load_Words (Store, Link, Again);
+            Check
+              ("words-forgotten", "FALSE 0",
+               Boolean'Image (Items.Has_Words (Store, Link))
+               & Natural'Image (Again.Count));
+
+            --  No words in a picture is something kept too.
+            Words.Count := 0;
+            Words.Length := 0;
+            Items.Save_Words (Store, Link, Words, 1_700_000_004);
+            Check
+              ("words-none-found", "TRUE",
+               Boolean'Image (Items.Has_Words (Store, Link)));
+            Words.Count := 1;
+            Words.Length := 10;
+            Items.Save_Words (Store, Link, Words, 1_700_000_005);
+         end;
          Items.Delete (Store, Link);
+         declare
+            Gone : Vision.Result;
+         begin
+            Items.Load_Words (Store, Link, Gone);
+            Check
+              ("words-deleted", " 0", Natural'Image (Gone.Count));
+         end;
          Check
            ("source-picture-deleted", "FALSE",
             Boolean'Image (Ada.Directories.Exists (Picture)));
@@ -875,6 +948,91 @@ package body Item_Tests is
         ("source-and-note", "NOTE",
          Items.Kinds'Image (Viewer.Item_Kind (Session, 2)));
    end Source_Windows;
+
+   Text_Page : constant String :=
+     "<html><body style='margin:40px;background:white;color:black;"
+     & "font:72px Helvetica'>"
+     & "<p>Bonxies nest on moorland</p>"
+     & "<p>and winter at sea</p>"
+     & "</body></html>";
+   --  Plain large text, which Vision reads the same on any release.
+
+   procedure Source_Words is
+      Session : Viewer.Session;
+      Folder  : constant String := "/tmp/bonxie-source-words";
+      Page    : constant String := Folder & "/page.html";
+      File    : Ada.Text_IO.File_Type;
+      Key     : Projects.Id;
+      Words   : Natural;
+
+      function Has (Text, Part : String) return Boolean is
+        (Ada.Strings.Fixed.Index (Text, Part) > 0);
+
+      procedure Draw is
+         Drawn : Pictures.Image;
+      begin
+         --  What is drawn is not compared: it has the page's text, which
+         --  WebKit draws a little differently from release to release.
+         Viewer.Render (Session, Drawn);
+      end Draw;
+   begin
+      if not Ada.Directories.Exists (Folder) then
+         Ada.Directories.Create_Path (Folder);
+      end if;
+      Ada.Text_IO.Create (File, Ada.Text_IO.Out_File, Page);
+      Ada.Text_IO.Put (File, Text_Page);
+      Ada.Text_IO.Close (File);
+
+      Start (Session);
+      Viewer.Pin_Capture_Time (Session, 1_700_000_000);
+      Key := Viewer.Current_Project (Session);
+      Viewer.Add_Item (Session, "Page", Items.Source);
+      Check
+        ("words-before", " 0",
+         Natural'Image (Viewer.Item_Recognized (Session, 1)));
+
+      --  Once the picture is taken its text is looked for, in the
+      --  background, and the loop goes on until it is found.
+      Capture_From (Session, "file://" & Page);
+      Words := Viewer.Item_Recognized (Session, 1);
+      Check
+        ("words-found", "TRUE", Boolean'Image (Words >= 8));
+
+      --  Selected, from the window, and copied.
+      Draw;
+      Click_On (Session, 300.0, 185.0);
+      Press_Key (Session, Events.Key_A, Command => True);
+      Check
+        ("words-selected", "TRUE",
+         Boolean'Image
+           (Has (Viewer.Item_Selected_Text (Session, 1), "moorland")
+            and then Has (Viewer.Item_Selected_Text (Session, 1), "winter")));
+      Draw;
+
+      --  Kept, so that opening the project again finds them in the
+      --  database and does not look again.
+      Viewer.Close_Project (Session);
+      Viewer.Open_Project (Session, Key);
+      Check
+        ("words-not-looked-for", "FALSE",
+         Boolean'Image (Viewer.Is_Capturing (Session)));
+      Check
+        ("words-kept", Natural'Image (Words),
+         Natural'Image (Viewer.Item_Recognized (Session, 1)));
+      Draw;
+      Click_On (Session, 300.0, 185.0);
+      Press_Key (Session, Events.Key_A, Command => True);
+      Check
+        ("words-kept-selected", "TRUE",
+         Boolean'Image
+           (Has (Viewer.Item_Selected_Text (Session, 1), "moorland")));
+
+      Ada.Directories.Delete_Tree
+        (Ada.Directories.Containing_Directory
+           (Ada.Directories.Containing_Directory
+              (Viewer.Item_Picture_File (Session, 1))));
+      Ada.Directories.Delete_Tree (Folder);
+   end Source_Words;
 
    procedure Source_Pages is
       Session : Viewer.Session;

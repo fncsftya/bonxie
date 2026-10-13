@@ -318,6 +318,31 @@ package body Items.Windows is
    function Status (Item : Window) return String is
      (Labels.Text (Item.Status));
 
+   procedure Set_Recognized
+     (Item : in out Window; Found : Vision.Result) is
+   begin
+      Item.Recognized := Found;
+      UI.Widgets.Pictures.Set_Words
+        (Item.Picture, Item.Recognized'Unchecked_Access);
+   end Set_Recognized;
+
+   procedure Clear_Recognized (Item : in out Window);
+   --  Forget the words, as of a picture that is not the one shown.
+
+   procedure Clear_Recognized (Item : in out Window) is
+   begin
+      UI.Widgets.Pictures.Set_Words (Item.Picture, null);
+      Item.Recognized.Count := 0;
+      Item.Recognized.Length := 0;
+      Item.Recognized.Truncated := False;
+   end Clear_Recognized;
+
+   function Recognized_Count (Item : Window) return Natural is
+     (Item.Recognized.Count);
+
+   function Selected_Text (Item : Window) return String is
+     (UI.Widgets.Pictures.Selected_Text (Item.Picture));
+
    procedure Set_Capture
      (Item   : in out Window;
       To     : Captures;
@@ -332,6 +357,7 @@ package body Items.Windows is
             Labels.Set_Text (Item.Status, "Capturing...");
          when Ready =>
             Item.Details.Captured_At := At_Time;
+            Clear_Recognized (Item);
             UI.Widgets.Pictures.Set_File (Item.Picture, File);
             Labels.Set_Text (Item.Status, "Captured " & Day (At_Time));
          when Failed =>
@@ -451,6 +477,7 @@ package body Items.Windows is
       Widgets.Set_Visible (Item.Title_Field, False);
       Show_Title (Item);
       Show_Kind (Item);
+      Clear_Recognized (Item);
       UI.Widgets.Pictures.Set_File (Item.Picture, "");
       if Of_Item.Kind = Source then
          Set_Zoom (Item, Of_Item.Zoom);
@@ -473,6 +500,7 @@ package body Items.Windows is
 
    procedure Release (Item : in out Window) is
    begin
+      Clear_Recognized (Item);
       UI.Widgets.Pictures.Unload (Item.Picture);
       Widgets.Set_Visible (Item.Frame, False);
       Widgets.Set_Visible (Item.Mini, False);

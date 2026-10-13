@@ -172,6 +172,13 @@ package body Viewer is
    function Is_Capturing (Item : Session) return Boolean is
      (Canvas_Items.Capturing (Item));
 
+   function Item_Recognized (Item : Session; Row : Positive) return Natural is
+     (Items.Windows.Recognized_Count (Item.Windows (Nth (Item, Row))));
+
+   function Item_Selected_Text (Item : Session; Row : Positive) return String
+   is
+     (Items.Windows.Selected_Text (Item.Windows (Nth (Item, Row))));
+
    function Item_Words (Item : Session; Row : Positive) return Natural is
      (Items.Windows.Words (Item.Windows (Nth (Item, Row))));
 

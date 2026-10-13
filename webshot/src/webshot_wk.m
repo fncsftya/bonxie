@@ -11,6 +11,8 @@
 enum { WS_IDLE = 0, WS_WORKING = 1, WS_DONE = 2, WS_FAILED = 3 };
 
 static const NSTimeInterval kLoadTimeout = 45.0;
+static const int kPixelsPerPoint = 2;
+static const int kMaxPixels = 16384;  // a texture's side, at most
 static const NSTimeInterval kSettle = 0.6;  // after load, for late layout
 
 @class WSJob;
@@ -90,7 +92,16 @@ static void finish(int slot, int state, int height, NSString *message)
     self.view.frame = NSMakeRect(0, 0, self.width, high);
     WKSnapshotConfiguration *config = [WKSnapshotConfiguration new];
     config.rect = NSMakeRect(0, 0, self.width, high);
-    config.snapshotWidth = @(self.width);
+    // Twice as many pixels as points, for small text to be read (by Vision)
+    // and drawn well, unless the page is so long that that would be more
+    // pixels than a GPU texture can have down it: then as many as can be.
+    // The snapshot's width is in points, and the picture has the screen's
+    // backing scale (1, 2...) pixels to each: so ask for what gives the
+    // pixels wanted, whichever screen it is.
+    double backing = [NSScreen mainScreen].backingScaleFactor;
+    if (backing < 1.0) backing = 1.0;
+    double scale = MIN((double)kPixelsPerPoint, (double)kMaxPixels / high);
+    config.snapshotWidth = @(self.width * scale / backing);
     __weak WSJob *me = self;
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.3 * NSEC_PER_SEC)),
                    dispatch_get_main_queue(), ^{
