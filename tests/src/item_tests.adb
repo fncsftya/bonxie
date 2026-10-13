@@ -3,6 +3,7 @@ with Ada.Strings.Fixed;
 with Ada.Text_IO;
 with SDL3.Cursors;
 with SDL3.Events;
+with SDL3.Pictures.Jobs;
 with Vision;
 with Webshot;
 with Goldens;
@@ -174,6 +175,11 @@ package body Item_Tests is
    procedure Snap (Session : in out Viewer.Session; Name : String) is
       Drawn : Pictures.Image;
    begin
+      --  A picture is read in the background: draw once to ask for it,
+      --  and again when it is there.
+      Viewer.Render (Session, Drawn);
+      SDL3.Pictures.Jobs.Wait_Until_Idle;
+      Viewer.Handle (Session, (Kind => Events.Redraw, others => <>));
       Viewer.Render (Session, Drawn);
       Goldens.Check (Name, Drawn);
    end Snap;

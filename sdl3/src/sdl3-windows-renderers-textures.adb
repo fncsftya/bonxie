@@ -227,50 +227,21 @@ package body SDL3.Windows.Renderers.Textures is
          raise;
    end Create_Mask_From_SVG;
 
-   procedure Create_From_PNG
-     (Item      : in out Texture;
-      Target    : Renderer;
-      File_Name : String)
-   is
-      use Interfaces.C.Strings;
-      Name   : chars_ptr := New_String (File_Name);
-      Loaded : constant Thin.Surface_Access := Thin.Load_PNG (Name);
-      Plain  : Thin.Surface_Access;
+   procedure Create_From_Decoded
+     (Item   : in out Texture;
+      Target : Renderer;
+      Source : SDL3.Pictures.Decoded) is
    begin
-      Free (Name);
-      if Loaded = null then
-         Errors.Raise_Last_Error ("SDL_LoadPNG " & File_Name);
-      end if;
-      Plain :=
-        (if Loaded.Format = Thin.Pixel_Format_RGBA32 then Loaded
-         else Thin.Convert_Surface (Loaded.all'Address,
-                                    Thin.Pixel_Format_RGBA32));
-      if Plain = null then
-         Thin.Destroy_Surface (Loaded.all'Address);
-         Errors.Raise_Last_Error ("SDL_ConvertSurface");
-      end if;
-      begin
-         --  A picture of a page is opaque, so its colour is as it is
-         --  premultiplied.
-         Create_Premultiplied_RGBA
-           (Item, Target, Positive (Plain.W), Positive (Plain.H),
-            Plain.Pixels, Positive (Plain.Pitch));
-      exception
-         when others =>
-            Thin.Destroy_Surface (Plain.all'Address);
-            if Plain /= Loaded then
-               Thin.Destroy_Surface (Loaded.all'Address);
-            end if;
-            raise;
-      end;
-      Thin.Destroy_Surface (Plain.all'Address);
-      if Plain /= Loaded then
-         Thin.Destroy_Surface (Loaded.all'Address);
-      end if;
+      --  A picture of a page is opaque, so its colour is as it is
+      --  premultiplied.
+      Create_Premultiplied_RGBA
+        (Item, Target, SDL3.Pictures.Width (Source),
+         SDL3.Pictures.Height (Source), SDL3.Pictures.Pixels (Source),
+         SDL3.Pictures.Pitch (Source));
       Errors.Check
         (Thin.Set_Texture_Scale_Mode (Item.Handle, Thin.Scale_Mode_Linear),
          "SDL_SetTextureScaleMode");
-   end Create_From_PNG;
+   end Create_From_Decoded;
 
    procedure Release (Item : in out Texture) is
    begin

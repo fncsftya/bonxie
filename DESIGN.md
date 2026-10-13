@@ -7,7 +7,11 @@ From the bottom up; each crate depends only on those before it.
   edits as one splice, a log of changes for views to catch up with, and
   the undo history (with `Begin_Step`/`End_Step` for app commands). No
   graphics.
-- `sdl3`, `coretext`, `yoga`: bindings. `webshot` (macOS only) takes a
+- `sdl3`, `coretext`, `yoga`: bindings. `SDL3.Pictures` reads a PNG into
+  memory apart from any renderer (and its size from its header alone);
+  `SDL3.Pictures.Jobs` does that on two tasks of its own, those asked for
+  `Urgent` before the others, polled (`State`) and made into a texture on
+  the drawing thread (`Finish`). `webshot` (macOS only) takes a
   picture of a web page: an Objective-C shim (`webshot_wk.m`, built with
   Apple's clang) loads it in an offscreen WKWebView and writes the whole
   length of it, 1024 points wide (pictured at twice that in pixels, or fewer
@@ -58,8 +62,11 @@ From the bottom up; each crate depends only on those before it.
   while the pointer is over it); `Grips` is a place to drag by (a title bar, a corner to size by),
   which says how far the pointer has gone; `Scrollers` scrolls its one
   child with the wheel; `Pictures` shows a PNG as wide as its box
-  (or a zoom of that, scrolled across too), scrolled with the wheel (read when
-  first drawn, let go of by `Unload`), and, if told the words in it
+  (or a zoom of that, scrolled across too), scrolled with the wheel (read in
+  the background, by `SDL3.Pictures.Jobs`, when first drawn or asked for
+  with `Load_Soon`, and let go of by `Unload`; its height is known from the
+  file's header, so the box is the size it will be before the picture
+  arrives), and, if told the words in it
   (`Set_Words`, a `Vision.Result` it does not own), which are selected as
   text over it: a drag, a double click for a word, a triple for a line,
   Command with A and C; the words' boxes are fractions of the picture, so

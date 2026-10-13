@@ -204,7 +204,14 @@ package Items.Windows is
    procedure Set_State (Item : in out Window; To : States)
      with Pre => Is_Assigned (Item), Post => Details (Item).State = To;
    --  Show it as a window, as a bar in the dock, or not at all. Writing
-   --  it is for the application.
+   --  it is for the application. A picture is let go of unless it is a
+   --  window (see Warm).
+
+   procedure Warm (Item : in out Window)
+     with Pre => Is_Assigned (Item);
+   --  Begin to read a source's picture, in the background, if it has one,
+   --  to be there when it is drawn: before the others if it is a window,
+   --  which is drawn now, and after if it is not, for when it is shown.
 
    procedure Place
      (Item : in out Window; Zoom, Origin_X, Origin_Y : Float)

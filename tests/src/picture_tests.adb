@@ -1,4 +1,5 @@
 with SDL3.Events;
+with SDL3.Pictures.Jobs;
 with SDL3.Windows.Renderers;
 with Goldens;
 with UI.Clipboards;
@@ -78,6 +79,10 @@ package body Picture_Tests is
       Pictures.Set_File (Item.Picture, Picture_File);
       Pictures.Set_Words (Item.Picture, Found'Access);
       Widgets.Layout (Item.Tree, Item.Target);
+      Widgets.Paint (Item.Tree, Item.Target, Colors);
+      --  The picture is read in the background, when first drawn.
+      SDL3.Pictures.Jobs.Wait_Until_Idle;
+      Widgets.Invalidate (Item.Picture);
       Widgets.Paint (Item.Tree, Item.Target, Colors);
    end Open;
 

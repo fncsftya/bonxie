@@ -6,8 +6,11 @@ with Vision;
 
 --  A picture from a PNG file, as wide as the box, and as tall as that
 --  makes it, of which the box shows a part: scrolled with the wheel (or a
---  trackpad's two fingers), and by Scroll_To. It is not read until it is
---  drawn, and is let go of again by Unload.
+--  trackpad's two fingers), and by Scroll_To. It is read in the background
+--  (see SDL3.Pictures.Jobs): when it is first drawn, or sooner if asked
+--  (Load_Soon), and let go of again by Unload. Until it is there the box
+--  is drawn empty, but of the size it will be: its height comes from the
+--  file's header, so that nothing moves when it arrives.
 --
 --  The picture is scaled to the box's width, so it zooms with the box,
 --  and a scroll is kept as how far down the picture it is, not in pixels.
@@ -98,8 +101,14 @@ package UI.Widgets.Pictures is
    function Has_Failed (Item : Picture) return Boolean;
    --  Whether the file was there to show but could not be read.
 
+   procedure Load_Soon (Item : in out Picture; Urgent : Boolean);
+   --  Begin to read the picture, if it is not read or being read, so that
+   --  it is there when it is drawn. With Urgent, before those that are
+   --  not: for one that is shown, rather than one that may be.
+
    procedure Unload (Item : in out Picture);
-   --  Give back the picture's memory: it is read again when drawn.
+   --  Give back the picture's memory, and stop reading it: it is read
+   --  again when drawn, or asked for.
 
    function Scrolled (Item : Picture) return Float;
    --  How far down the picture the top of the box is, from 0.0, its top,
@@ -152,6 +161,11 @@ package UI.Widgets.Pictures is
       Target : SDL3.Windows.Renderers.Renderer;
       Colors : Themes.Theme);
 
+   overriding procedure Update
+     (Item : in out Picture; Now : SDL3.Events.Milliseconds);
+
+   overriding function Until_Update (Item : Picture) return Integer;
+
    overriding procedure Handle
      (Item    : in out Picture;
       Event   : SDL3.Events.Event;
@@ -175,6 +189,11 @@ private
       Loaded  : Boolean := False;
       Dark    : Boolean := False;  --  the picture is mostly dark
       Failed  : Boolean := False;
+      Wide    : Natural := 0;
+      High    : Natural := 0;
+      --  The file's size in pixels, from its header: 0 if not known.
+      Job     : Natural := 0;
+      --  The ticket of the picture being read, 0 if none.
       Pixels  : SDL3.Windows.Renderers.Textures.Texture;
       Down    : Float := 0.0;
       --  How far the picture is scrolled, as a fraction of its height.

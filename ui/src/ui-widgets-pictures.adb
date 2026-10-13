@@ -1,39 +1,26 @@
-with SDL3.Windows.Renderers.Images;
+with SDL3.Pictures;
+with SDL3.Pictures.Jobs;
 
 package body UI.Widgets.Pictures is
 
-   function Is_Dark (Path : String) return Boolean;
-   --  Whether the PNG is darker than not, by a sample of its pixels.
-
-   function Is_Dark (Path : String) return Boolean is
-      package Images renames SDL3.Windows.Renderers.Images;
-      Loaded_Image : Images.Image;
-      Total   : Natural := 0;
-      Count   : Natural := 0;
-      Step_X  : Positive;
-      Step_Y  : Positive;
-   begin
-      Images.Load_PNG (Loaded_Image, Path);
-      Step_X := Positive'Max (1, Images.Width (Loaded_Image) / 64);
-      Step_Y := Positive'Max (1, Images.Height (Loaded_Image) / 64);
-      for Y in 0 .. (Images.Height (Loaded_Image) - 1) / Step_Y loop
-         for X in 0 .. (Images.Width (Loaded_Image) - 1) / Step_X loop
-            declare
-               Each : constant SDL3.Windows.Renderers.Color :=
-                 Images.Pixel (Loaded_Image, X * Step_X, Y * Step_Y);
-            begin
-               Total := Total + Natural (Each.Red) + Natural (Each.Green)
-                        + Natural (Each.Blue);
-               Count := Count + 3;
-            end;
-         end loop;
-      end loop;
-      return Total / Count < 128;
-   exception
-      when others => return False;
-   end Is_Dark;
-
    package Textures renames SDL3.Windows.Renderers.Textures;
+   package Jobs renames SDL3.Pictures.Jobs;
+
+   use type Jobs.States;
+
+   Poll : constant := 10;
+   --  Milliseconds between looks for a picture being read.
+
+   procedure Stop_Loading (Item : in out Picture);
+   --  Give up the picture being read, if any.
+
+   procedure Stop_Loading (Item : in out Picture) is
+   begin
+      if Item.Job /= 0 then
+         Jobs.Cancel (Item.Job);
+         Item.Job := 0;
+      end if;
+   end Stop_Loading;
 
    use type SDL3.Events.Event_Kind;
    use type SDL3.Events.Key_Code;
@@ -402,6 +389,7 @@ package body UI.Widgets.Pictures is
 
    procedure Set_File (Item : in out Picture; Path : String) is
    begin
+      Stop_Loading (Item);
       Item.Length := Path'Length;
       Item.Name (1 .. Item.Length) := Path;
       Item.Loaded := False;
@@ -410,6 +398,11 @@ package body UI.Widgets.Pictures is
       Item.Across := 0.0;
       Item.Fitted := 0.0;
       Textures.Release (Item.Pixels);
+      Item.Wide := 0;
+      Item.High := 0;
+      if Path /= "" then
+         SDL3.Pictures.Size (Path, Item.Wide, Item.High);
+      end if;
       Item.Held := False;
       Item.Anchor := 0;
       Item.Head := 0;
@@ -419,8 +412,22 @@ package body UI.Widgets.Pictures is
       end if;
    end Set_File;
 
+   procedure Load_Soon (Item : in out Picture; Urgent : Boolean) is
+   begin
+      if Item.Length = 0 or else Item.Loaded or else Item.Failed then
+         return;
+      elsif Item.Job /= 0 then
+         if Urgent then
+            Jobs.Prioritize (Item.Job);
+         end if;
+      else
+         Jobs.Request (File_Name (Item), Urgent, Item.Job);
+      end if;
+   end Load_Soon;
+
    procedure Unload (Item : in out Picture) is
    begin
+      Stop_Loading (Item);
       Textures.Release (Item.Pixels);
       Item.Loaded := False;
       Item.Failed := False;
@@ -444,6 +451,21 @@ package body UI.Widgets.Pictures is
       end if;
    end Scroll_To;
 
+   overriding procedure Update
+     (Item : in out Picture; Now : SDL3.Events.Milliseconds)
+   is
+      pragma Unreferenced (Now);
+   begin
+      --  It is read; draw it.
+      if Item.Job /= 0 and then Jobs.State (Item.Job) /= Jobs.Working then
+         Invalidate (Item);
+      end if;
+   end Update;
+
+   overriding function Until_Update (Item : Picture) return Integer is
+     (if Item.Job /= 0 and then Jobs.State (Item.Job) = Jobs.Working
+      then Poll else -1);
+
    overriding procedure Draw
      (Item   : in out Picture;
       Target : SDL3.Windows.Renderers.Renderer;
@@ -459,27 +481,42 @@ package body UI.Widgets.Pictures is
          return;
       end if;
       if not Item.Loaded then
-         begin
-            Textures.Create_From_PNG (Item.Pixels, Target, File_Name (Item));
-            Item.Dark := Is_Dark (File_Name (Item));
-            Item.Loaded := True;
-         exception
-            when others =>
-               Item.Failed := True;
-               return;
-         end;
+         Load_Soon (Item, Urgent => True);
+         if Item.Job /= 0 and then Jobs.State (Item.Job) = Jobs.Failed then
+            Stop_Loading (Item);
+            Item.Failed := True;
+            return;
+         elsif Item.Job /= 0 and then Jobs.State (Item.Job) = Jobs.Done then
+            begin
+               Jobs.Finish (Item.Job, Item.Pixels, Target, Item.Dark);
+               Item.Job := 0;
+               Item.Loaded := True;
+            exception
+               when others =>
+                  Item.Job := 0;
+                  Item.Failed := True;
+                  return;
+            end;
+         end if;
       end if;
-      Item.Fitted :=
-        Wide * Float (Textures.Height (Item.Pixels))
-          / Float (Textures.Width (Item.Pixels));
+      --  As tall as it will be, before it is there.
+      if Item.Loaded then
+         Item.Fitted :=
+           Wide * Float (Textures.Height (Item.Pixels))
+             / Float (Textures.Width (Item.Pixels));
+      elsif Item.Wide > 0 then
+         Item.Fitted := Wide * Float (Item.High) / Float (Item.Wide);
+      end if;
       Item.Down :=
         Float'Min (Item.Down, Furthest (Item, Height_Of (Item)));
       Item.Across := Float'Min (Item.Across, 1.0);
-      Textures.Draw_Scaled
-        (Target, Item.Pixels,
-         Left_Of (Item) - Item.Across * Float'Max (0.0, Wide - Box),
-         Top_Of (Item) - Item.Down * Item.Fitted,
-         Wide, Item.Fitted);
+      if Item.Loaded then
+         Textures.Draw_Scaled
+           (Target, Item.Pixels,
+            Left_Of (Item) - Item.Across * Float'Max (0.0, Wide - Box),
+            Top_Of (Item) - Item.Down * Item.Fitted,
+            Wide, Item.Fitted);
+      end if;
       declare
          Left : constant Float := Origin_X (Item);
          Top  : constant Float := Origin_Y (Item);

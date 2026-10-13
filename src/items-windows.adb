@@ -638,6 +638,12 @@ package body Items.Windows is
       Item.Was_Used := False;
    end Set_State;
 
+   procedure Warm (Item : in out Window) is
+   begin
+      UI.Widgets.Pictures.Load_Soon
+        (Item.Picture, Urgent => Item.Details.State = Open);
+   end Warm;
+
    procedure Show_Kind (Item : in out Window);
    --  Make the text area the item's text, or its one line, the link; and
    --  show the picture of a source.

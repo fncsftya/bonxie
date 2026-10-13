@@ -505,6 +505,14 @@ package body Viewer.Canvas_Items is
             end;
          end if;
       end loop;
+      --  The pictures of those shown first, then the others.
+      for Shown in reverse Boolean loop
+         for I in 1 .. Found.Count loop
+            if (Found.Items (I).State = Items.Open) = Shown then
+               Windows.Warm (Item.Windows (I));
+            end if;
+         end loop;
+      end loop;
       Restore_View (Item, Restored);
       if not Restored then
          Centre_On_Visible (Item);
@@ -612,6 +620,7 @@ package body Viewer.Canvas_Items is
      (Item : in out Session; Which : Items.Slot; To : Items.States) is
    begin
       Windows.Set_State (Item.Windows (Which), To);
+      Windows.Warm (Item.Windows (Which));
       Items.Set_State
         (Item.Store, Windows.Details (Item.Windows (Which)).Key, To);
       Windows.Place
