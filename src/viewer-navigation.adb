@@ -1,3 +1,4 @@
+with Ada.Strings.Unbounded;
 with UI.Widgets;
 with Viewer.Canvas_Items;
 with Viewer.Recent;
@@ -19,6 +20,7 @@ package body Viewer.Navigation is
          Name : constant String :=
            (if Found then Projects.Titles.To_String (Result.Title) else "");
       begin
+         Item.Project_Name := Ada.Strings.Unbounded.To_Unbounded_String (Name);
          --  Cut to fit the label.
          Labels.Set_Text
            (Item.Project_Title,

@@ -501,6 +501,8 @@ private
       --  edit panel: after Target, and the document.
       Current      : Projects.Id := 0;
       --  The project shown, at the project screen.
+      Project_Name : Ada.Strings.Unbounded.Unbounded_String;
+      --  Its name, for the window's title.
       Density      : Float := 1.0;
       --  Pixels to a point of the window.
 

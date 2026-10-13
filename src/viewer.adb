@@ -251,7 +251,10 @@ package body Viewer is
    function Title (Item : Session) return String is
      (case Item.Shown is
          when Home    => "bonxie",
-         when Project => Scripts.Title (Item.Script));
+         when Project =>
+           (if Length (Item.Project_Name) > 0
+            then To_String (Item.Project_Name)
+            else Scripts.Title (Item.Script)));
 
    procedure Save (Item : in out Session) is
    begin
