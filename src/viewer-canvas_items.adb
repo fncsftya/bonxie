@@ -338,7 +338,8 @@ package body Viewer.Canvas_Items is
              Where => Where,
              State => Items.Open,
              Kind  => Kind,
-             Captured_At => 0),
+             Captured_At => 0,
+             Zoom  => 1.0),
             "");
          Windows.Place
            (Item.Windows (Free),

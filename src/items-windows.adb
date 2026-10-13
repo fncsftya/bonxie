@@ -1,5 +1,6 @@
 with Ada.Calendar;
 with Ada.Calendar.Formatting;
+with Ada.Numerics.Elementary_Functions;
 with Ada.Strings.Fixed;
 with SDL3.Cursors;
 with UI.Text_Areas;
@@ -16,6 +17,7 @@ package body Items.Windows is
    package Grips renames UI.Widgets.Grips;
    package Editors renames UI.Widgets.Editors;
    package Text_Fields renames UI.Widgets.Text_Fields;
+   package Sliders renames UI.Widgets.Sliders;
 
    use type Docs.Version;
    use type Ada.Calendar.Time;
@@ -24,14 +26,14 @@ package body Items.Windows is
    --  In points
 
    Outline       : constant Float := 1.0;
-   Bar_Height    : constant Float := 32.0;
+   Bar_Height    : constant Float := 24.0;
    Bar_Pad       : constant Float := 8.0;
-   Button_Size   : constant Float := 24.0;
+   Button_Size   : constant Float := 18.0;
    Button_Gap    : constant Float := 4.0;
    Drag_Room     : constant Float := 32.0;
    --  Left of the title field before the buttons, to take hold of.
    Title_Size    : constant Float := 11.0;
-   Title_Height  : constant Float := 26.0;
+   Title_Height  : constant Float := 20.0;
    Text_Size     : constant Float := 14.0;
    Measure       : constant Float := 2000.0;
    Status_Height : constant Float := 22.0;
@@ -42,7 +44,15 @@ package body Items.Windows is
    Mini_Gap      : constant Float := 4.0;
    Mini_Chars    : constant := 16;
    --  How many characters of a title the bar in the dock shows.
+   Zoom_Row_Height : constant Float := 18.0;
+   Zoom_Button_Width : constant Float := 44.0;
+   Zoom_Slider_Width : constant Float := 56.0;
+   Preset_Width  : constant Float := 44.0;
    Label_Height  : constant Float := 20.0;
+
+   Preset_Zooms : constant array (Preset_Index) of Float :=
+     [0.5, 0.75, 1.0, 1.5, 2.0, 3.0];
+   --  The menu's, in two rows of three.
    Url_Height    : constant Float := 30.0;
 
    function Count_Words (Of_Text : String) return Natural is
@@ -75,6 +85,32 @@ package body Items.Windows is
          + Duration (Taken),
          Time_Zone => 0) (1 .. 10));
    --  As YYYY-MM-DD, in UTC.
+
+   function Percent (Zoom : Float) return String is
+     (Ada.Strings.Fixed.Trim
+        (Integer'Image (Integer (Float'Rounding (Zoom * 100.0))),
+         Ada.Strings.Both) & "%");
+
+   function To_Slider (Zoom : Float) return Float is
+     (Float'Min
+        (1.0,
+         Float'Max
+           (0.0,
+            Ada.Numerics.Elementary_Functions.Log (Zoom / Items.Min_Zoom)
+            / Ada.Numerics.Elementary_Functions.Log
+                (Items.Max_Zoom / Items.Min_Zoom))));
+   --  Zooms go by ratios, so the slider is on a logarithmic scale.
+
+   function From_Slider (Along : Float) return Float is
+     (Float'Min
+        (Items.Max_Zoom,
+         Float'Max
+           (Items.Min_Zoom,
+            Float'Rounding
+              (100.0 * Items.Min_Zoom
+               * Ada.Numerics.Elementary_Functions."**"
+                   (Items.Max_Zoom / Items.Min_Zoom, Along)) / 100.0)));
+   --  To whole percents.
 
    function Fitted (Message : String) return String is
      (Message (Message'First ..
@@ -117,6 +153,8 @@ package body Items.Windows is
       Widgets.Add (Item.Frame, Item.Picture);
       Widgets.Add (Item.Frame, Item.Status_Bar);
       Widgets.Add (Item.Status_Bar, Item.Status);
+      Widgets.Add (Item.Status_Bar, Item.Zoom_Slider);
+      Widgets.Add (Item.Status_Bar, Item.Zoom_Button);
       Widgets.Add (Item.Status_Bar, Item.Corner);
       Widgets.Add (Dock, Item.Mini);
       Widgets.Add (Item.Mini, Item.Mini_Title);
@@ -198,6 +236,14 @@ package body Items.Windows is
       Grips.Set_Shape (Item.Corner, Grips.Corner);
       Grips.Set_Wanted_Cursor (Item.Corner, SDL3.Cursors.Resize);
       Size (Item.Corner, Corner_Size, Status_Height);
+      Widgets.Add (Item.Frame, Item.Zoom_Menu);
+      for Row in Item.Menu_Rows'Range loop
+         Widgets.Add (Item.Zoom_Menu, Item.Menu_Rows (Row));
+      end loop;
+      for Which in Item.Menu_Buttons'Range loop
+         Widgets.Add (Item.Menu_Rows (1 + (Which - 1) / 3),
+                      Item.Menu_Buttons (Which));
+      end loop;
 
       --  The bar in the dock.
       Panels.Set_Fill (Item.Mini, Bar);
@@ -219,7 +265,42 @@ package body Items.Windows is
       Size (Item.Restore_Button, Button_Size, Button_Size);
       Size (Item.Mini_Close, Button_Size, Button_Size);
 
+      --  The zoom bar: a slider, and the button for the menu.
+      Set_Gap
+        (Widgets.Node (Item.Status_Bar), Yoga.All_Gutters,
+         Button_Gap * Pixels);
+      Set_Width (Widgets.Node (Item.Zoom_Slider), Zoom_Slider_Width * Pixels);
+      Set_Height (Widgets.Node (Item.Zoom_Slider), Zoom_Row_Height * Pixels);
+      Buttons.Set_Label (Item.Zoom_Button, "100%");
+      Size (Item.Zoom_Button, Zoom_Button_Width, Zoom_Row_Height);
+
+      --  The menu: over the picture, at the right, with the window's
+      --  outline between its buttons.
+      Panels.Set_Fill (Item.Zoom_Menu, Colors.Foreground);
+      Set_Position_Type (Widgets.Node (Item.Zoom_Menu), Yoga.Absolute);
+      Set_Position
+        (Widgets.Node (Item.Zoom_Menu), Yoga.Right,
+         (Corner_Size + Edge) * Pixels);
+      Set_Position
+        (Widgets.Node (Item.Zoom_Menu), Yoga.Bottom,
+         (Status_Height + Edge) * Pixels);
+      Set_Flex_Direction (Widgets.Node (Item.Zoom_Menu), Yoga.Column);
+      Set_Padding (Widgets.Node (Item.Zoom_Menu), Yoga.All_Edges, Edge);
+      Set_Gap (Widgets.Node (Item.Zoom_Menu), Yoga.All_Gutters, Edge);
+      for Row of Item.Menu_Rows loop
+         Set_Flex_Direction (Widgets.Node (Row), Yoga.Row);
+         Set_Gap (Widgets.Node (Row), Yoga.All_Gutters, Edge);
+      end loop;
+      for Which in Item.Menu_Buttons'Range loop
+         Buttons.Set_Label
+           (Item.Menu_Buttons (Which), Percent (Preset_Zooms (Which)));
+         Size (Item.Menu_Buttons (Which), Preset_Width, Zoom_Row_Height);
+      end loop;
+
       Widgets.Set_Visible (Item.Title_Field, False);
+      Widgets.Set_Visible (Item.Zoom_Slider, False);
+      Widgets.Set_Visible (Item.Zoom_Button, False);
+      Widgets.Set_Visible (Item.Zoom_Menu, False);
       Widgets.Set_Visible (Item.Picture, False);
       Widgets.Set_Visible (Item.Frame, False);
       Widgets.Set_Visible (Item.Mini, False);
@@ -258,6 +339,17 @@ package body Items.Windows is
               (Item.Status, Fitted ("Failed: " & Detail));
       end case;
    end Set_Capture;
+
+   procedure Set_Zoom (Item : in out Window; To : Float) is
+   begin
+      if To /= Item.Details.Zoom then
+         Item.Details.Zoom := To;
+         Item.Zoom_Dirty := True;
+      end if;
+      UI.Widgets.Pictures.Set_Zoom (Item.Picture, To);
+      Sliders.Set_Value (Item.Zoom_Slider, To_Slider (To));
+      Buttons.Set_Label (Item.Zoom_Button, Percent (To));
+   end Set_Zoom;
 
    function Box (Item : Window) return Items.Frame is
      ((Left   => Widgets.Left_Of (Item.Frame),
@@ -307,6 +399,7 @@ package body Items.Windows is
    begin
       Item.Details.State := To;
       if To /= Open then
+         Widgets.Set_Visible (Item.Zoom_Menu, False);
          UI.Widgets.Pictures.Unload (Item.Picture);
       end if;
       Widgets.Set_Visible (Item.Frame, To = Open);
@@ -327,6 +420,9 @@ package body Items.Windows is
         (Editors.Area (Item.Body_Text).all, Of_Source);
       Set_Flex_Grow (Node, (if Of_Source then 0.0 else 1.0));
       Set_Height (Node, (if Of_Source then Url_Height * Item.Pixels else 0.0));
+      Widgets.Set_Visible (Item.Zoom_Slider, Of_Source);
+      Widgets.Set_Visible (Item.Zoom_Button, Of_Source);
+      Widgets.Set_Visible (Item.Zoom_Menu, False);
       Widgets.Set_Visible (Item.Picture, Of_Source);
       Widgets.Request_Layout (Item.Body_Text);
    end Show_Kind;
@@ -349,6 +445,7 @@ package body Items.Windows is
       Item.Content_Saved := Docs.State (Item.Content_Doc);
       Item.Content_Seen := Item.Content_Saved;
       Item.Frame_Dirty := False;
+      Item.Zoom_Dirty := False;
       Item.Editing := False;
       Widgets.Set_Visible (Item.Title_Area, True);
       Widgets.Set_Visible (Item.Title_Field, False);
@@ -356,6 +453,8 @@ package body Items.Windows is
       Show_Kind (Item);
       UI.Widgets.Pictures.Set_File (Item.Picture, "");
       if Of_Item.Kind = Source then
+         Set_Zoom (Item, Of_Item.Zoom);
+         Item.Zoom_Dirty := False;
          Item.Content_Version := Docs.Current (Item.Content_Doc);
          if Of_Item.Captured_At > 0 and then Picture_File /= "" then
             Set_Capture
@@ -379,6 +478,7 @@ package body Items.Windows is
       Widgets.Set_Visible (Item.Mini, False);
       Item.Assigned := False;
       Item.Frame_Dirty := False;
+      Item.Zoom_Dirty := False;
       Item.Was_Used := False;
    end Release;
 
@@ -500,6 +600,7 @@ package body Items.Windows is
 
       --  Raised when it starts to be used.
       Used := Is_Dragging (Item)
+        or else Sliders.Is_Dragging (Item.Zoom_Slider)
         or else Item.Editing
         or else Widgets.Has_Focus (Item.Body_Text);
       if Used and then not Item.Was_Used and then Item.Details.State = Open
@@ -528,6 +629,25 @@ package body Items.Windows is
             Action := Capture;
             return;
          end if;
+      end if;
+      if Item.Details.Kind = Source and then Item.Details.State = Open then
+         Sliders.Take_Change (Item.Zoom_Slider, Entered);
+         if Entered then
+            Set_Zoom (Item, From_Slider (Sliders.Value (Item.Zoom_Slider)));
+         end if;
+         Buttons.Take_Click (Item.Zoom_Button, Clicked);
+         if Clicked then
+            Widgets.Set_Visible
+              (Item.Zoom_Menu, not Widgets.Is_Visible (Item.Zoom_Menu));
+            Widgets.Raise_To_Front (Item.Zoom_Menu);
+         end if;
+         for Which in Item.Menu_Buttons'Range loop
+            Buttons.Take_Click (Item.Menu_Buttons (Which), Clicked);
+            if Clicked then
+               Set_Zoom (Item, Preset_Zooms (Which));
+               Widgets.Set_Visible (Item.Zoom_Menu, False);
+            end if;
+         end loop;
       end if;
       if Item.Editing then
          Text_Fields.Take_Return (Item.Title_Field, Entered);
@@ -584,6 +704,14 @@ package body Items.Windows is
       if Item.Frame_Dirty and then not Is_Dragging (Item) then
          Set_Frame (Store, Item.Details.Key, Item.Details.Where);
          Item.Frame_Dirty := False;
+         Wrote := True;
+      end if;
+
+      if Item.Zoom_Dirty
+        and then not Sliders.Is_Dragging (Item.Zoom_Slider)
+      then
+         Items.Set_Zoom (Store, Item.Details.Key, Item.Details.Zoom);
+         Item.Zoom_Dirty := False;
          Wrote := True;
       end if;
 

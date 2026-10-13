@@ -37,6 +37,12 @@ package Items is
         Height => Float'Max (Min_Height, Where.Height));
    --  Where, no smaller than an item may be.
 
+   Min_Zoom : constant Float := 0.25;
+   Max_Zoom : constant Float := 4.0;
+   --  How far a source's picture may be zoomed within its window.
+
+   subtype Zoom_Level is Float range Min_Zoom .. Max_Zoom;
+
    type Info is record
       Key   : Id := 0;
       Title : Projects.Titles.Bounded_String :=
@@ -46,6 +52,9 @@ package Items is
       Kind  : Kinds := Note;
       Captured_At : Projects.Seconds := 0;
       --  Of a source: when its picture was taken; 0 if it has not been.
+      Zoom  : Zoom_Level := 1.0;
+      --  Of a source: how wide its picture is shown, as a multiple of its
+      --  window's width.
    end record;
 
    type Info_Array is array (Positive range <>) of Info;
@@ -101,6 +110,11 @@ package Items is
    procedure Set_State
      (Store : in out Projects.Store; Key : Id; State : States)
      with Pre => Projects.Is_Open (Store);
+
+   procedure Set_Zoom
+     (Store : in out Projects.Store; Key : Id; Zoom : Zoom_Level)
+     with Pre => Projects.Is_Open (Store);
+   --  Of a source: how its picture is zoomed within its window.
 
    procedure Set_Captured
      (Store : in out Projects.Store; Key : Id; At_Time : Projects.Seconds)

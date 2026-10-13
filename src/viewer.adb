@@ -155,6 +155,9 @@ package body Viewer is
    function Item_Status (Item : Session; Row : Positive) return String is
      (Items.Windows.Status (Item.Windows (Nth (Item, Row))));
 
+   function Item_Zoom (Item : Session; Row : Positive) return Float is
+     (Items.Windows.Details (Item.Windows (Nth (Item, Row))).Zoom);
+
    function Item_Picture_File (Item : Session; Row : Positive) return String
    is
      (Items.Image_File

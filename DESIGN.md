@@ -33,8 +33,10 @@ From the bottom up; each crate depends only on those before it.
   button) and zoom (Command with the wheel, a pinch, Command with =, -,
   0); `Grips` is a place to drag by (a title bar, a corner to size by),
   which says how far the pointer has gone; `Scrollers` scrolls its one
-  child with the wheel; `Pictures` shows a PNG as wide as its box,
-  scrolled with the wheel (read when first drawn, let go of by `Unload`). Widgets can be put last of their parent's
+  child with the wheel; `Pictures` shows a PNG as wide as its box
+  (or a zoom of that, scrolled across too), scrolled with the wheel (read when
+  first drawn, let go of by `Unload`); `Sliders` is a knob to drag along a
+  track, from 0.0 to 1.0. Widgets can be put last of their parent's
   (`Raise_To_Front`, for those placed by their edges), hidden (`Set_Visible`) or taken out
   (`Remove`, with their children; build them again top-down). No
   callbacks: widgets are polled (`Take_Click`) and models are pulled in
@@ -57,7 +59,9 @@ From the bottom up; each crate depends only on those before it.
   to be written back, which it does (`Flush`) when the pointer lets go,
   or typing has stopped for a moment, or its focus has left it. A source's
   window has the link in the place of the text (the one text area, set to
-  a single line), then the picture, and Return in the link has `Viewer`
+  a single line), then the picture, and in its status line a slider (on a log scale) and a button
+  that opens a menu of zooms (the zoom is of the picture within its window,
+  kept in the item's `zoom`), and Return in the link has `Viewer`
   start `Webshot` for it. A project
   has at most `Items.Capacity` items, a window to each, in the session:
   a text area is about 124 KB, and a window has two. Together they are

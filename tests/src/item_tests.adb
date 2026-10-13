@@ -28,6 +28,9 @@ package body Item_Tests is
 
    Add_X    : constant Float := 64.0;
    Source_X : constant Float := 182.0;
+   Menu_X   : constant Float := 411.0;
+   Menu_Y   : constant Float := 275.0;
+   --  A zoom's button in the menu of a source's window: 200%.
    List_X   : constant Float := 300.0;
    Tools_Y  : constant Float := 432.0;
    --  The middle of the buttons on the tools bar: Add Item, Add Source,
@@ -906,6 +909,35 @@ package body Item_Tests is
       Move_To (Session, 600.0, 60.0);
       Snap (Session, "source-captured");
 
+      --  Zoomed within the window: by the slider, and from the menu.
+      Check
+        ("source-zoom-start", " 1.00000E+00",
+         Float'Image (Viewer.Item_Zoom (Session, 1)));
+      Click_On (Session, 454.0, 296.0);
+      Snap (Session, "source-menu");
+      Click_On (Session, Menu_X, Menu_Y);
+      Check
+        ("source-zoom-menu", " 2.00000E+00",
+         Float'Image (Viewer.Item_Zoom (Session, 1)));
+      Snap (Session, "source-zoomed");
+
+      --  Dragged part of the way, with the knob held: the zoom it is
+      --  rounded to is not where the knob is, which it must leave alone
+      --  while it is held (this once failed a postcondition).
+      Press (Session, 395.0, 296.0);
+      Move_To (Session, 401.3, 296.0, Held => True);
+      Move_To (Session, 407.7, 296.0, Held => True);
+      Release (Session, 407.7, 296.0);
+      Check
+        ("source-zoom-dragged", "TRUE",
+         Boolean'Image
+           (Viewer.Item_Zoom (Session, 1) > 1.0
+            and then Viewer.Item_Zoom (Session, 1) < 4.0));
+      Click_On (Session, 428.0, 296.0);
+      Check
+        ("source-zoom-slider", " 4.00000E+00",
+         Float'Image (Viewer.Item_Zoom (Session, 1)));
+
       --  Scrolled with the wheel, over the picture.
       Viewer.Handle
         (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_Y => -4.0,
@@ -920,6 +952,9 @@ package body Item_Tests is
         ("source-kept-status", "Captured ",
          Viewer.Item_Status (Session, 1) (1 .. 9));
       Snap (Session, "source-kept");
+      Check
+        ("source-zoom-kept", " 4.00000E+00",
+         Float'Image (Viewer.Item_Zoom (Session, 1)));
 
       --  A page that is not there fails, and says so.
       Viewer.Add_Item (Session, "Nowhere", Items.Source);

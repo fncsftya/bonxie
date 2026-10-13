@@ -179,6 +179,12 @@ package Viewer is
                  and then Row <= Item_Count (Item);
    --  What the status line of the item says.
 
+   function Item_Zoom (Item : Session; Row : Positive) return Float
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item)
+                 and then Items."=" (Item_Kind (Item, Row), Items.Source);
+   --  How far the picture of the item is zoomed within its window.
+
    function Item_Picture_File (Item : Session; Row : Positive) return String
      with Pre => Is_Open (Item) and then Screen (Item) = Project
                  and then Row <= Item_Count (Item);

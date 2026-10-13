@@ -19,7 +19,14 @@ package body Items is
      & "w REAL NOT NULL, h REAL NOT NULL, "
      & "state INTEGER NOT NULL DEFAULT 0, "
      & "kind INTEGER NOT NULL DEFAULT 0, "
-     & "captured_at INTEGER NOT NULL DEFAULT 0)";
+     & "captured_at INTEGER NOT NULL DEFAULT 0, "
+     & "zoom REAL NOT NULL DEFAULT 1.0)";
+
+   Has_Zoom : constant String :=
+     "SELECT count(*) FROM pragma_table_info('items') WHERE name = 'zoom'";
+
+   Add_Zoom : constant String :=
+     "ALTER TABLE items ADD COLUMN zoom REAL NOT NULL DEFAULT 1.0";
 
    Has_Kind : constant String :=
      "SELECT count(*) FROM pragma_table_info('items') WHERE name = 'kind'";
@@ -61,12 +68,26 @@ package body Items is
         and then Ada_Sqlite3.Column_Int (Query, 0) = 0;
    end Lacks_Kind;
 
+   function Lacks_Zoom (Store : Projects.Store) return Boolean;
+   --  Whether the table was made before sources could be zoomed.
+
+   function Lacks_Zoom (Store : Projects.Store) return Boolean is
+      Query : Ada_Sqlite3.Statement :=
+        Ada_Sqlite3.Prepare (DB (Store).all, Has_Zoom);
+   begin
+      return Ada_Sqlite3.Step (Query) = Ada_Sqlite3.ROW
+        and then Ada_Sqlite3.Column_Int (Query, 0) = 0;
+   end Lacks_Zoom;
+
    procedure Prepare (Store : in out Projects.Store) is
    begin
       Ada_Sqlite3.Execute (DB (Store).all, Schema);
       if Lacks_Kind (Store) then
          Ada_Sqlite3.Execute (DB (Store).all, Add_Kind);
          Ada_Sqlite3.Execute (DB (Store).all, Add_Captured);
+      end if;
+      if Lacks_Zoom (Store) then
+         Ada_Sqlite3.Execute (DB (Store).all, Add_Zoom);
       end if;
       Ada_Sqlite3.Execute (DB (Store).all, Index);
    end Prepare;
@@ -106,7 +127,8 @@ package body Items is
       Query : Ada_Sqlite3.Statement :=
         Ada_Sqlite3.Prepare
           (DB (Store).all,
-           "SELECT id, title, x, y, w, h, state, kind, captured_at FROM items "
+           "SELECT id, title, x, y, w, h, state, kind, "
+           & "captured_at, zoom FROM items "
            & "WHERE project_id = :project ORDER BY id LIMIT :limit");
    begin
       Result.Count := 0;
@@ -125,7 +147,10 @@ package body Items is
                       Height => Ada_Sqlite3.Column_Double (Query, 5)),
             State => State_Of (Ada_Sqlite3.Column_Int (Query, 6)),
             Kind  => Kind_Of (Ada_Sqlite3.Column_Int (Query, 7)),
-            Captured_At => Ada_Sqlite3.Column_Int64 (Query, 8));
+            Captured_At => Ada_Sqlite3.Column_Int64 (Query, 8),
+            Zoom  => Float'Min
+              (Max_Zoom,
+               Float'Max (Min_Zoom, Ada_Sqlite3.Column_Double (Query, 9))));
       end loop;
    end Load;
 
@@ -204,6 +229,18 @@ package body Items is
       Ada_Sqlite3.Bind_Int64 (Update, ":id", Long_Integer (Key));
       Ada_Sqlite3.Step (Update);
    end Set_State;
+
+   procedure Set_Zoom
+     (Store : in out Projects.Store; Key : Id; Zoom : Zoom_Level)
+   is
+      Update : Ada_Sqlite3.Statement :=
+        Ada_Sqlite3.Prepare
+          (DB (Store).all, "UPDATE items SET zoom = :zoom WHERE id = :id");
+   begin
+      Ada_Sqlite3.Bind_Double (Update, ":zoom", Zoom);
+      Ada_Sqlite3.Bind_Int64 (Update, ":id", Long_Integer (Key));
+      Ada_Sqlite3.Step (Update);
+   end Set_Zoom;
 
    procedure Set_Captured
      (Store : in out Projects.Store; Key : Id; At_Time : Projects.Seconds)

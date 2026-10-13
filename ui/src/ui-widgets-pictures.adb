@@ -13,6 +13,18 @@ package body UI.Widgets.Pictures is
 
    function Scrolled (Item : Picture) return Float is (Item.Down);
 
+   function Zoom (Item : Picture) return Float is (Item.Zoomed);
+
+   procedure Set_Zoom (Item : in out Picture; To : Float) is
+   begin
+      if To /= Item.Zoomed then
+         Item.Zoomed := To;
+         if Is_Attached (Item) then
+            Invalidate (Item);
+         end if;
+      end if;
+   end Set_Zoom;
+
    procedure Set_File (Item : in out Picture; Path : String) is
    begin
       Item.Length := Path'Length;
@@ -20,6 +32,7 @@ package body UI.Widgets.Pictures is
       Item.Loaded := False;
       Item.Failed := False;
       Item.Down := 0.0;
+      Item.Across := 0.0;
       Item.Fitted := 0.0;
       Textures.Release (Item.Pixels);
       if Is_Attached (Item) then
@@ -55,11 +68,12 @@ package body UI.Widgets.Pictures is
       Target : SDL3.Windows.Renderers.Renderer;
       Colors : Themes.Theme)
    is
-      Wide : constant Float := Width_Of (Item);
+      Box  : constant Float := Width_Of (Item);
+      Wide : constant Float := Box * Item.Zoomed;
    begin
       SDL3.Windows.Renderers.Fill_Rect
         (Target, Themes.Mix (Colors.Background, Colors.Foreground, 0.08),
-         Left_Of (Item), Top_Of (Item), Wide, Height_Of (Item));
+         Left_Of (Item), Top_Of (Item), Box, Height_Of (Item));
       if Item.Length = 0 or else Item.Failed then
          return;
       end if;
@@ -78,9 +92,11 @@ package body UI.Widgets.Pictures is
           / Float (Textures.Width (Item.Pixels));
       Item.Down :=
         Float'Min (Item.Down, Furthest (Item, Height_Of (Item)));
+      Item.Across := Float'Min (Item.Across, 1.0);
       Textures.Draw_Scaled
         (Target, Item.Pixels,
-         Left_Of (Item), Top_Of (Item) - Item.Down * Item.Fitted,
+         Left_Of (Item) - Item.Across * Float'Max (0.0, Wide - Box),
+         Top_Of (Item) - Item.Down * Item.Fitted,
          Wide, Item.Fitted);
    end Draw;
 
@@ -91,6 +107,17 @@ package body UI.Widgets.Pictures is
    begin
       Handled := False;
       if Event.Kind = SDL3.Events.Mouse_Wheel and then Item.Fitted > 0.0 then
+         if Item.Zoomed > 1.0 and then Event.Wheel_X /= 0.0 then
+            Item.Across :=
+              Float'Min
+                (1.0,
+                 Float'Max
+                   (0.0,
+                    Item.Across
+                    - Event.Wheel_X * Points_Per_Notch * Density (Item)
+                      / (Width_Of (Item) * (Item.Zoomed - 1.0))));
+            Invalidate (Item);
+         end if;
          Scroll_To
            (Item,
             Float'Min

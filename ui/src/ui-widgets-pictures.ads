@@ -8,6 +8,8 @@ with SDL3.Windows.Renderers.Textures;
 --
 --  The picture is scaled to the box's width, so it zooms with the box,
 --  and a scroll is kept as how far down the picture it is, not in pixels.
+--  It can also be zoomed within its box (Set_Zoom): at 2.0 it is twice as
+--  wide as the box, and scrolls across as well as down.
 package UI.Widgets.Pictures is
 
    Path_Capacity : constant := 1024;
@@ -41,6 +43,13 @@ package UI.Widgets.Pictures is
    procedure Scroll_To (Item : in out Picture; To : Float)
      with Pre => To in 0.0 .. 1.0;
 
+   procedure Set_Zoom (Item : in out Picture; To : Float)
+     with Pre => To > 0.0, Post => Zoom (Item) = To;
+   --  Show it To times as wide as the box (1.0 to begin with), kept at
+   --  the same place along and down it.
+
+   function Zoom (Item : Picture) return Float;
+
    overriding procedure Draw
      (Item   : in out Picture;
       Target : SDL3.Windows.Renderers.Renderer;
@@ -61,6 +70,10 @@ private
       Pixels  : SDL3.Windows.Renderers.Textures.Texture;
       Down    : Float := 0.0;
       --  How far the picture is scrolled, as a fraction of its height.
+      Zoomed  : Float := 1.0;
+      Across  : Float := 0.0;
+      --  How far across the picture is scrolled, as a fraction of how much
+      --  wider it is than the box.
       Fitted  : Float := 0.0;
       --  The picture's height as of the last draw, in pixels.
    end record;

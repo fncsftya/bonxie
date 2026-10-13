@@ -6,6 +6,7 @@ with UI.Widgets.Buttons;
 with UI.Widgets.Grips;
 with UI.Widgets.Labels;
 with UI.Widgets.Pictures;
+with UI.Widgets.Sliders;
 with UI.Widgets.Panels;
 with UI.Widgets.Text_Fields;
 with UI.Widgets.Editors;
@@ -102,6 +103,14 @@ package Items.Windows is
    function Words (Item : Window) return Natural
      with Pre => Is_Assigned (Item);
 
+   procedure Set_Zoom (Item : in out Window; To : Float)
+     with Pre  => Is_Assigned (Item)
+                  and then Details (Item).Kind = Source
+                  and then To in Items.Min_Zoom .. Items.Max_Zoom,
+          Post => Details (Item).Zoom = To;
+   --  Zoom the source's picture within its window, as its slider and
+   --  menu do: kept by Flush.
+
    procedure Set_State (Item : in out Window; To : States)
      with Pre => Is_Assigned (Item), Post => Details (Item).State = To;
    --  Show it as a window, as a bar in the dock, or not at all. Writing
@@ -152,6 +161,10 @@ private
 
    package Docs renames Texts.Documents;
 
+   subtype Preset_Index is Positive range 1 .. 6;
+   type Panel_Rows is array (1 .. 2) of UI.Widgets.Panels.Panel;
+   type Preset_Buttons is array (Preset_Index) of UI.Widgets.Buttons.Button;
+
    type Window is limited record
       Assigned : Boolean := False;
       Details  : Items.Info;
@@ -170,6 +183,8 @@ private
       Word_Count    : Natural := 0;
       Frame_Dirty   : Boolean := False;
       --  Moved or sized, and not written.
+      Zoom_Dirty    : Boolean := False;
+      --  Zoomed, and not written.
       Was_Used      : Boolean := False;
       Resizing      : Boolean := False;
       Raw_Width, Raw_Height : Float := 0.0;
@@ -194,6 +209,14 @@ private
       Body_Text    : UI.Widgets.Editors.Editor;
       --  The text of a note. Of a source it is one line, its link, which
       --  a text area costs too much to have another of.
+      Zoom_Slider  : UI.Widgets.Sliders.Slider;
+      Zoom_Button  : UI.Widgets.Buttons.Button;
+      --  Of a source, in its status line: a slider to zoom its picture,
+      --  and a button, saying how far, that opens a menu of zooms.
+      Zoom_Menu    : UI.Widgets.Panels.Panel;
+      Menu_Rows    : Panel_Rows;
+      Menu_Buttons : Preset_Buttons;
+      --  Over the picture, hidden until the button is clicked.
       Picture      : UI.Widgets.Pictures.Picture;
       --  Of a source, below its link: what is shown.
       Status_Bar   : UI.Widgets.Panels.Panel;
