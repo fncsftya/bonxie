@@ -219,6 +219,6 @@ private package Viewer.Style is
      [Colors.Bar, Colors.Accent, Colors.Primary, Colors.Danger,
       Source_Inks (1)];
    --  The colours a link between documents can be drawn in: the theme's,
-   --  and a blue. A link to a source is in the source's colour.
+   --  and a blue.
 
 end Viewer.Style;

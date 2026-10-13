@@ -437,8 +437,11 @@ private package SDL3.Thin is
      (Source : System.Address; W, H : Interfaces.C.int)
       return Surface_Access
      with Import, Convention => C, External_Name => "IMG_LoadSizedSVG_IO";
-   --  SDL3_image: the SVG, rasterized to W x H pixels, or null. It closes
-   --  the stream.
+   --  SDL3_image: the SVG, rasterized to W x H pixels, or null. It does not
+   --  close the stream (see Close_IO).
+
+   function Close_IO (Stream : System.Address) return Interfaces.C.C_bool
+     with Import, Convention => C, External_Name => "SDL_CloseIO";
 
    function Load_PNG
      (File : Interfaces.C.Strings.chars_ptr) return Surface_Access

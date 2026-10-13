@@ -167,6 +167,7 @@ package body SDL3.Windows.Renderers.Textures is
       Stream : constant System.Address := Thin.IO_From_File (Name, Mode);
       Loaded : Thin.Surface_Access;
       Plain  : Thin.Surface_Access;
+      Closed : Interfaces.C.C_bool with Unreferenced;
       type Bytes is array (Natural range <>) of Interfaces.Unsigned_8;
       type Bytes_Access is access Bytes;
       procedure Free is new Ada.Unchecked_Deallocation (Bytes, Bytes_Access);
@@ -180,6 +181,7 @@ package body SDL3.Windows.Renderers.Textures is
       Loaded :=
         Thin.Load_Sized_SVG_IO
           (Stream, Interfaces.C.int (Columns), Interfaces.C.int (Rows));
+      Closed := Thin.Close_IO (Stream);  --  the loader leaves it open
       if Loaded = null then
          Errors.Raise_Last_Error ("IMG_LoadSizedSVG_IO " & File_Name);
       end if;
