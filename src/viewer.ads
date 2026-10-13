@@ -1,9 +1,11 @@
 with Items;
+with Preferences;
 with Projects;
 with SDL3.Cursors;
 with SDL3.Events;
 with SDL3.Windows.Renderers.Images;
 private with Ada.Strings.Unbounded;
+private with Downloads;
 private with Items.Readers;
 private with Items.Windows;
 private with Previews;
@@ -14,6 +16,7 @@ private with UI.Clipboards;
 private with UI.Icons;
 private with UI.Line_Texts;
 private with UI.Widgets.Buttons;
+private with UI.Widgets.Checks;
 private with UI.Widgets.Canvases;
 private with UI.Widgets.Editors;
 private with UI.Widgets.Grips;
@@ -22,6 +25,7 @@ private with UI.Widgets.Menus;
 private with UI.Widgets.Text_Fields;
 private with UI.Widgets.Panels;
 private with UI.Widgets.Pins;
+private with UI.Widgets.Progress_Bars;
 private with UI.Widgets.Scrollers;
 
 --  A window of two screens: the home, with the recent projects and
@@ -135,6 +139,31 @@ package Viewer is
    function Row_Title (Item : Session; Row : Positive) return String
      with Pre => Is_Open (Item) and then Row <= Projects.Recent_Count;
    --  What the button of the Rowth project listed shows, "" if none.
+
+   function Is_Settings_Open (Item : Session) return Boolean
+     with Pre => Is_Open (Item);
+   --  Whether the settings are shown, in place of the home screen.
+
+   procedure Open_Settings (Item : in out Session)
+     with Pre  => Is_Open (Item) and then Screen (Item) = Home
+                  and then not Is_Settings_Open (Item),
+          Post => Is_Settings_Open (Item);
+   --  Show the settings, as the Settings button does.
+
+   procedure Close_Settings (Item : in out Session)
+     with Pre  => Is_Open (Item) and then Is_Settings_Open (Item),
+          Post => not Is_Settings_Open (Item);
+   --  Go back to the home screen, as the settings' Close button does.
+
+   function Speech_Model (Item : Session) return Preferences.Speech_Models
+     with Pre => Is_Open (Item);
+   --  What is chosen to turn speech into text.
+
+   procedure Choose_Speech_Model
+     (Item : in out Session; To : Preferences.Speech_Models)
+     with Pre  => Is_Open (Item) and then Is_Settings_Open (Item),
+          Post => Preferences."=" (Speech_Model (Item), To);
+   --  Choose it, as its radio does.
 
    procedure Close_Project (Item : in out Session)
      with Pre  => Is_Open (Item) and then Screen (Item) = Project,
@@ -568,6 +597,39 @@ private
       Confirm_Delete : UI.Widgets.Buttons.Button;
       Deleting       : Projects.Id := 0;
       --  The project the dialog is about, 0 if it is not shown.
+
+      Settings_Panel : UI.Widgets.Panels.Panel;
+      --  A column, in the home screen's place while Showing_Settings: a
+      --  bar across the top, which stays, and below it the form, scrolled.
+      Settings_Bar   : UI.Widgets.Panels.Panel;
+      Settings_Title : UI.Widgets.Labels.Label;
+      Settings_Close : UI.Widgets.Buttons.Button;
+      Settings_Scroll  : UI.Widgets.Scrollers.Scroller;
+      Settings_Content : UI.Widgets.Panels.Panel;
+      --  Centres the form, which is as wide as a page in the writing view.
+      Settings_Form  : UI.Widgets.Panels.Panel;
+      Form_Wide      : Float := 0.0;
+      --  Its width, in points, as last set (see Settings_View.Fit).
+      Speech_Heading : UI.Widgets.Labels.Label;
+      Model_Name     : UI.Widgets.Labels.Label;
+      Model_Native   : UI.Widgets.Checks.Check;
+      Model_Parakeet : UI.Widgets.Checks.Check;
+      --  Speech's one option, Model: a radio for each.
+      Download_Row   : UI.Widgets.Panels.Panel;
+      Download_Button : UI.Widgets.Buttons.Button;
+      Download_State : UI.Widgets.Labels.Label;
+      Download_Bar   : UI.Widgets.Progress_Bars.Progress_Bar;
+      --  Under the radios, with Parakeet chosen: the button to fetch its
+      --  file, enabled only while it is not there, what is the matter with
+      --  it, and, while it comes, how far.
+      Showing_Settings : Boolean := False;
+      Speech_Choice  : Preferences.Speech_Models := Preferences.MacOS;
+      Config_Dir     : Ada.Strings.Unbounded.Unbounded_String;
+      --  Where the settings and the files they need are kept.
+      Persist        : Boolean := False;
+      --  Whether the settings are written there: not offscreen.
+      Download_Seen  : Downloads.States := Downloads.Idle;
+      --  How the download was when the form last showed it.
 
       Project_Panel : UI.Widgets.Panels.Panel;
       --  A column: the toolbar, the content area, and the dock.

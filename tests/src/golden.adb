@@ -1,14 +1,17 @@
 with Ada.Command_Line;
 with Ada.Directories;
+with Ada.Streams.Stream_IO;
 with Ada.Strings.Fixed;
 with Ada.Text_IO;
 with SDL3.Cursors;
 with SDL3.Events;
 with Document_Tests;
+with Downloads;
 with Field_Tests;
 with Goldens;
 with Item_Tests;
 with Picture_Tests;
+with Preferences;
 with Projects;
 with Sheet_Tests;
 with Text_Area_Tests;
@@ -600,24 +603,119 @@ procedure Golden is
       Goldens.Check ("home-recent", Drawn);
    end Home_Recent;
 
+   --  The settings, in the same window: Close is at the right of the bar
+   --  across the top, and the radios of Speech's Model are in the form,
+   --  which is as wide as a page in the writing view.
+   Settings_Close_X : constant Float := Float (Home_Width) - 52.0;
+   Settings_Close_Y : constant Float := 22.0;
+   Model_X          : constant Float := 160.0;
+   Native_Y         : constant Float := 189.0;
+   Parakeet_Y       : constant Float := 225.0;
+
    procedure Home_Settings is
+      use type Preferences.Speech_Models;
       Session : Viewer.Session;
-      Expected, Drawn : Images.Image;
+      Drawn   : Images.Image;
    begin
-      --  Settings does nothing yet.
       Viewer.Open (Session, "", Home_Width, Home_Height);
-      Viewer.Render (Session, Expected);
       Click_On (Session, Actions_X, Settings_Y);
-      --  Not over it, to look as it did.
-      Viewer.Handle (Session, Events.Event'(Kind => Events.Mouse_Move,
-                                            Mouse_X => 1.0, Mouse_Y => 1.0,
-                                            others => <>));
-      Viewer.Render (Session, Drawn);
-      Goldens.Check_Same ("settings-no-change", Expected, Drawn);
+      Goldens.Check_Text
+        ("settings-open", "TRUE",
+         Boolean'Image (Viewer.Is_Settings_Open (Session)));
       Goldens.Check_Text
         ("settings-stays-home", "HOME",
          Viewer.Screens'Image (Viewer.Screen (Session)));
+      Viewer.Render (Session, Drawn);
+      Goldens.Check ("settings-macos", Drawn);
+
+      --  Parakeet's file is to be fetched, if it is not there.
+      Click_On (Session, Model_X, Parakeet_Y);
+      Goldens.Check_Text
+        ("settings-parakeet-chosen", "TRUE",
+         Boolean'Image
+           (Viewer.Speech_Model (Session) = Preferences.Parakeet));
+      Viewer.Render (Session, Drawn);
+      Goldens.Check ("settings-parakeet", Drawn);
+
+      Click_On (Session, Model_X, Native_Y);
+      Goldens.Check_Text
+        ("settings-macos-chosen", "TRUE",
+         Boolean'Image (Viewer.Speech_Model (Session) = Preferences.MacOS));
+
+      --  Escape and Close both leave.
+      Viewer.Handle (Session, Key (Events.Key_Escape));
+      Goldens.Check_Text
+        ("settings-escaped", "FALSE",
+         Boolean'Image (Viewer.Is_Settings_Open (Session)));
+      Click_On (Session, Actions_X, Settings_Y);
+      Click_On (Session, Settings_Close_X, Settings_Close_Y);
+      Goldens.Check_Text
+        ("settings-closed", "FALSE",
+         Boolean'Image (Viewer.Is_Settings_Open (Session)));
    end Home_Settings;
+
+   procedure Fetching is
+      use type Downloads.States;
+      Folder : constant String := "/tmp/bonxie-download-test";
+      Source : constant String := Folder & "/source.bin";
+      Target : constant String := Folder & "/made/here/model.gguf";
+      Bytes  : constant := 3_000_000;
+
+      procedure Wait is
+      begin
+         for Try in 1 .. 200 loop
+            exit when Downloads.State /= Downloads.Running;
+            delay 0.05;
+         end loop;
+      end Wait;
+   begin
+      if Ada.Directories.Exists (Folder) then
+         Ada.Directories.Delete_Tree (Folder);
+      end if;
+      Ada.Directories.Create_Path (Folder);
+      declare
+         File : Ada.Streams.Stream_IO.File_Type;
+         Data : constant Ada.Streams.Stream_Element_Array (1 .. Bytes) :=
+           [others => 7];
+      begin
+         Ada.Streams.Stream_IO.Create
+           (File, Ada.Streams.Stream_IO.Out_File, Source);
+         Ada.Streams.Stream_IO.Write (File, Data);
+         Ada.Streams.Stream_IO.Close (File);
+      end;
+
+      Goldens.Check_Text
+        ("downloads-idle", "IDLE", Downloads.States'Image (Downloads.State));
+      Downloads.Start ("file://" & Source, Target);
+      Goldens.Check_Text
+        ("downloads-started", "TRUE",
+         Boolean'Image (Downloads.State = Downloads.Running));
+      Wait;
+      Goldens.Check_Text
+        ("downloads-done", "DONE",
+         Downloads.States'Image (Downloads.State));
+      Goldens.Check_Text
+        ("downloads-fraction", "TRUE",
+         Boolean'Image (Downloads.Fraction = 1.0));
+      Goldens.Check_Text
+        ("downloads-size", Integer'Image (Bytes),
+         Ada.Directories.File_Size'Image (Ada.Directories.Size (Target)));
+      Goldens.Check_Text
+        ("downloads-no-part", "FALSE",
+         Boolean'Image (Ada.Directories.Exists (Target & ".part")));
+
+      Downloads.Reset;
+      Downloads.Start ("file://" & Folder & "/nothing.bin", Target & "2");
+      Wait;
+      Goldens.Check_Text
+        ("downloads-failed", "FAILED",
+         Downloads.States'Image (Downloads.State));
+      Goldens.Check_Text
+        ("downloads-failed-leaves-nothing", "FALSE",
+         Boolean'Image (Ada.Directories.Exists (Target & "2")));
+      Downloads.Reset;
+      Ada.Directories.Delete_Tree (Folder);
+   end Fetching;
 
    procedure New_And_Close is
       Session : Viewer.Session;
@@ -840,6 +938,7 @@ begin
    Run ("home-empty", Home_Empty'Access);
    Run ("home-recent", Home_Recent'Access);
    Run ("home-settings", Home_Settings'Access);
+   Run ("downloads-fetching", Fetching'Access);
    Run ("home-new-and-close", New_And_Close'Access);
    Run ("home-open-listed", Open_Listed'Access);
    Run ("home-rename", Renaming'Access);

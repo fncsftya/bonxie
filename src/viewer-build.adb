@@ -1,8 +1,10 @@
 with Ada.Command_Line;
 with Ada.Directories;
+with Ada.Strings.Unbounded;
 with CoreText.Fonts;
 with Items.Readers;
 with Items.Windows;
+with Preferences;
 with SDL3.Cursors;
 with UI.Boxes;
 with UI.Icons;
@@ -27,6 +29,7 @@ package body Viewer.Build is
    package Grips renames UI.Widgets.Grips;
    package Scrollers renames UI.Widgets.Scrollers;
    package Editors renames UI.Widgets.Editors;
+   package Checks renames UI.Widgets.Checks;
    package Themes renames UI.Themes;
 
    use Style;
@@ -719,6 +722,136 @@ package body Viewer.Build is
       Widgets.Set_Visible (Item.Pane, False);
    end Build_Write;
 
+   procedure Build_Settings (Item : in out Session);
+   --  Add and style the settings: a bar across the top that stays, and the
+   --  form, as wide as a page in the writing view, centred and scrolled.
+
+   procedure Build_Settings (Item : in out Session) is
+      use Yoga.Nodes;
+      Pixels : constant Float := Item.Density;
+      Offset : constant Float := UI.Boxes.Offset (Pixels);
+
+      procedure Line (Part : in out Widgets.Widget'Class; High : Float) is
+      begin
+         Set_Height (Widgets.Node (Part), High * Pixels);
+         Set_Flex_Shrink (Widgets.Node (Part), 0.0);
+      end Line;
+
+      procedure Radio (Part : in out Checks.Check; Name : String) is
+      begin
+         Checks.Set_Kind (Part, Checks.Radio);
+         Checks.Set_Label (Part, Name);
+         Line (Part, Settings_Line);
+      end Radio;
+   begin
+      Widgets.Add (Item.Window_Panel, Item.Settings_Panel);
+      Widgets.Add (Item.Settings_Panel, Item.Settings_Bar);
+      Widgets.Add (Item.Settings_Bar, Item.Settings_Title);
+      Widgets.Add (Item.Settings_Bar, Item.Settings_Close);
+      Widgets.Add (Item.Settings_Panel, Item.Settings_Scroll);
+      Widgets.Add (Item.Settings_Scroll, Item.Settings_Content);
+      Widgets.Add (Item.Settings_Content, Item.Settings_Form);
+      Widgets.Add (Item.Settings_Form, Item.Speech_Heading);
+      Widgets.Add (Item.Settings_Form, Item.Model_Name);
+      Widgets.Add (Item.Settings_Form, Item.Model_Native);
+      Widgets.Add (Item.Settings_Form, Item.Model_Parakeet);
+      Widgets.Add (Item.Settings_Form, Item.Download_Row);
+      Widgets.Add (Item.Download_Row, Item.Download_Button);
+      Widgets.Add (Item.Download_Row, Item.Download_State);
+      Widgets.Add (Item.Settings_Form, Item.Download_Bar);
+
+      Set_Flex_Direction (Widgets.Node (Item.Settings_Panel), Yoga.Column);
+      Set_Flex_Grow (Widgets.Node (Item.Settings_Panel), 1.0);
+      Panels.Set_Fill (Item.Settings_Panel, Desk);
+
+      --  The bar, outside what scrolls, so that it stays: the title at the
+      --  left (clear of the window's own buttons) and Close at the right.
+      Panels.Set_Fill (Item.Settings_Bar, Toolbar);
+      Line (Item.Settings_Bar, Toolbar_Size);
+      Set_Flex_Direction (Widgets.Node (Item.Settings_Bar), Yoga.Row);
+      Set_Align_Items (Widgets.Node (Item.Settings_Bar), Yoga.Center);
+      Set_Padding
+        (Widgets.Node (Item.Settings_Bar), Yoga.Left,
+         (if Item.Windowed then Header_Inset else Bar_Inset) * Pixels);
+      Set_Padding
+        (Widgets.Node (Item.Settings_Bar), Yoga.Right, Bar_Inset * Pixels);
+      Labels.Set_Text (Item.Settings_Title, "Settings");
+      Labels.Set_Style (Item.Settings_Title, UI.Line_Texts.Heading);
+      Labels.Set_Ink (Item.Settings_Title, Themes.White);
+      Set_Flex_Grow (Widgets.Node (Item.Settings_Title), 1.0);
+      Set_Width (Widgets.Node (Item.Settings_Title), 0.0);
+      Set_Height (Widgets.Node (Item.Settings_Title), Tab_Height * Pixels);
+      Buttons.Set_Label (Item.Settings_Close, "Close");
+      Buttons.Set_Icon (Item.Settings_Close, UI.Icons.Close);
+      Buttons.Set_Captioned (Item.Settings_Close, True);
+      Buttons.Set_Kind (Item.Settings_Close, Buttons.Quiet);
+      Set_Width (Widgets.Node (Item.Settings_Close), Items_Width * Pixels);
+      Set_Height (Widgets.Node (Item.Settings_Close), Tab_Height * Pixels);
+      Set_Flex_Shrink (Widgets.Node (Item.Settings_Close), 0.0);
+
+      --  The form, on a page of its own, in the middle.
+      Set_Flex_Grow (Widgets.Node (Item.Settings_Scroll), 1.0);
+      Set_Height (Widgets.Node (Item.Settings_Scroll), 0.0);
+      Set_Flex_Direction (Widgets.Node (Item.Settings_Content), Yoga.Column);
+      Set_Flex_Shrink (Widgets.Node (Item.Settings_Content), 0.0);
+      Set_Align_Items (Widgets.Node (Item.Settings_Content), Yoga.Center);
+      Set_Padding
+        (Widgets.Node (Item.Settings_Content), Yoga.All_Edges,
+         Page_Margin * Pixels);
+      Panels.Set_Fill (Item.Settings_Form, Paper);
+      Panels.Set_Border (Item.Settings_Form, Colors.Border);
+      Panels.Set_Shadow (Item.Settings_Form, Colors.Shadow);
+      Set_Flex_Direction (Widgets.Node (Item.Settings_Form), Yoga.Column);
+      Set_Flex_Shrink (Widgets.Node (Item.Settings_Form), 0.0);
+      Set_Width (Widgets.Node (Item.Settings_Form), Page_Width * Pixels);
+      Item.Form_Wide := Page_Width;
+      Set_Padding
+        (Widgets.Node (Item.Settings_Form), Yoga.All_Edges,
+         Dialog_Pad * Pixels);
+      Set_Padding
+        (Widgets.Node (Item.Settings_Form), Yoga.Right,
+         Dialog_Pad * Pixels + Offset);
+      Set_Padding
+        (Widgets.Node (Item.Settings_Form), Yoga.Bottom,
+         Dialog_Pad * Pixels + Offset);
+      Set_Gap
+        (Widgets.Node (Item.Settings_Form), Yoga.All_Gutters,
+         Row_Gap * Pixels);
+
+      --  Speech: its one option, Model.
+      Labels.Set_Text (Item.Speech_Heading, "SPEECH");
+      Labels.Set_Style (Item.Speech_Heading, UI.Line_Texts.Caption);
+      Line (Item.Speech_Heading, Heading_Height);
+      Labels.Set_Text (Item.Model_Name, "Model");
+      Labels.Set_Style (Item.Model_Name, UI.Line_Texts.Strong);
+      Line (Item.Model_Name, Settings_Line);
+      Radio (Item.Model_Native, "MacOS");
+      Radio (Item.Model_Parakeet, "Parakeet");
+
+      Set_Flex_Direction (Widgets.Node (Item.Download_Row), Yoga.Row);
+      Set_Align_Items (Widgets.Node (Item.Download_Row), Yoga.Center);
+      Line (Item.Download_Row, Download_Height);
+      Set_Margin
+        (Widgets.Node (Item.Download_Row), Yoga.Top, Gap * Pixels);
+      Set_Gap
+        (Widgets.Node (Item.Download_Row), Yoga.All_Gutters, Gap * Pixels);
+      Buttons.Set_Label (Item.Download_Button, "Download");
+      Buttons.Set_Kind (Item.Download_Button, Buttons.Primary);
+      Set_Width
+        (Widgets.Node (Item.Download_Button), Download_Width * Pixels);
+      Set_Height
+        (Widgets.Node (Item.Download_Button), Download_Height * Pixels);
+      Set_Flex_Shrink (Widgets.Node (Item.Download_Button), 0.0);
+      Labels.Set_Ink (Item.Download_State, Quiet_Ink);
+      Set_Flex_Grow (Widgets.Node (Item.Download_State), 1.0);
+      Set_Width (Widgets.Node (Item.Download_State), 0.0);
+      Set_Height
+        (Widgets.Node (Item.Download_State), Download_Height * Pixels);
+      Line (Item.Download_Bar, Progress_Height);
+      Widgets.Set_Visible (Item.Download_Bar, False);
+      Widgets.Set_Visible (Item.Settings_Panel, False);
+   end Build_Settings;
+
    procedure Build_Dialog_Bar
      (Item  : in out Session;
       Bar   : in out Panels.Panel;
@@ -959,6 +1092,15 @@ package body Viewer.Build is
       Projects.Open (Item.Store, Store_Path);
       Items.Prepare (Item.Store);
       Scripts.Load (Item.Script, Source, File_Name);
+      Item.Config_Dir :=
+        Ada.Strings.Unbounded.To_Unbounded_String
+          (Preferences.Config_Directory (Store_Path));
+      Item.Persist := Store_Path /= Projects.Memory;
+      if Item.Persist then
+         Item.Speech_Choice :=
+           Preferences.Load_Speech_Model
+             (Ada.Strings.Unbounded.To_String (Item.Config_Dir));
+      end if;
       Widgets.Set_Density (Item.Widgets, Item.Density);
       Widgets.Set_Line_Texts (Item.Widgets, Item.Lines);
       Widgets.Set_Icons (Item.Widgets, Item.Pictures);
@@ -979,6 +1121,7 @@ package body Viewer.Build is
       Build_Project (Item);
       Build_Write (Item);
       Build_Tray (Item);
+      Build_Settings (Item);
       Build_Modal (Item);
       Build_List (Item);
 

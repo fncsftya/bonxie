@@ -15,6 +15,7 @@ with Viewer.Deletion;
 with Viewer.Listing;
 with Viewer.Navigation;
 with Viewer.Painting;
+with Viewer.Settings_View;
 with Viewer.Style;
 with Viewer.Writing;
 
@@ -63,7 +64,15 @@ package body Viewer is
          when SDL3.Events.Redraw =>
             Widgets.Invalidate_All (Item.Widgets);
          when others =>
-            if Item.Showing_List then
+            if Item.Showing_Settings then
+               --  Escape leaves the settings, as their Close button does.
+               if Event.Kind = SDL3.Events.Key_Down
+                 and then Event.Key = SDL3.Events.Key_Escape
+               then
+                  Settings_View.Close (Item);
+                  return;
+               end if;
+            elsif Item.Showing_List then
                --  The list is all that takes events.
                if Event.Kind = SDL3.Events.Key_Down
                  and then Event.Key = SDL3.Events.Key_Escape
@@ -126,6 +135,22 @@ package body Viewer is
 
    procedure Close_Project (Item : in out Session)
      renames Navigation.Leave;
+
+   function Is_Settings_Open (Item : Session) return Boolean is
+     (Item.Showing_Settings);
+
+   procedure Open_Settings (Item : in out Session)
+     renames Settings_View.Open;
+
+   procedure Close_Settings (Item : in out Session)
+     renames Settings_View.Close;
+
+   function Speech_Model (Item : Session) return Preferences.Speech_Models is
+     (Item.Speech_Choice);
+
+   procedure Choose_Speech_Model
+     (Item : in out Session; To : Preferences.Speech_Models)
+     renames Settings_View.Choose;
 
    procedure Add_Project
      (Item    : in out Session;
@@ -411,6 +436,10 @@ package body Viewer is
       if Item.Shown = Project and then Canvas_Items.Capturing (Item) then
          Wake_In (Capture_Poll);
       end if;
+      --  So is the file for the speech model: look at how far on it is.
+      if Settings_View.Downloading (Item) then
+         Wake_In (Capture_Poll);
+      end if;
 
       if SDL3.Events.Wait (Event, Timeout_MS => Timeout) then
          Handle (Item, Event);
@@ -461,6 +490,9 @@ package body Viewer is
       Widgets.Update (Item.Widgets, Now);
       if Item.Shown = Project then
          Canvas_Items.Update (Item, Now);
+      end if;
+      if Item.Showing_Settings then
+         Settings_View.Update (Item);
       end if;
    end Tick;
 
@@ -557,6 +589,8 @@ package body Viewer is
          Wait_And_Handle (Item);
       end loop;
       Save_Geometry (Item);
+      --  Not to go on fetching what no one will use.
+      Downloads.Cancel;
    end Run;
 
 end Viewer;

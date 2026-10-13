@@ -138,6 +138,15 @@ From the bottom up; each crate depends only on those before it.
   its words, up to about 160 KB. Together they are
   more than the main thread's usual 8 MB of stack, so the executables
   are linked with 64 MB (`-Wl,-stack_size`).
+  `Preferences` keeps what the user has chosen at
+  `<config>/bonxie/settings` (for now, the speech model: MacOS or Parakeet)
+  and says where the file Parakeet needs is kept
+  (`<config>/bonxie/speech/model.gguf`). `Downloads` fetches a file on a
+  task of its own, one at a time (it runs `curl`, so redirects and TLS are
+  its business), to a `.part` file beside the name it is given, moved into
+  place only when whole; it is polled (`State`, `Fraction`, from the size of
+  the `.part` file and the length the server gave) and cancelled when the
+  program ends.
   `Viewer` has two screens, built once and swapped with `Set_Visible`:
   the home (a sidebar with New Project and Settings; the recent projects
   as cards, each with a picture of its canvas (`Previews`, a widget of the
@@ -157,8 +166,14 @@ From the bottom up; each crate depends only on those before it.
   `Painting`, `Recent` (the list and renaming), `Deletion` (the
   dialog), `Navigation` (between screens), `Clicks` (what a click does),
   `Canvas_Items` (the windows of a project's items: loading, adding,
-  keeping them where the canvas has them, writing them) and `Listing`
-  (the list of items).
+  keeping them where the canvas has them, writing them) `Listing`
+  (the list of items) and `Settings_View`. Settings take the home screen's
+  place (its Settings button; Close at the right of a bar across the top
+  that stays while the form scrolls, or Escape): a form as wide as a page in
+  the writing view, centred, with a Speech section whose one option, Model,
+  is a radio of MacOS and Parakeet. With Parakeet chosen there is a Download
+  button, enabled only while the file is not there (else a label says the
+  model is available) and a progress bar while it comes.
   A note's status line has a button to dictate: it starts `Speech.Jobs` in
   the slot of its window (`Viewer.Canvas_Items`) and becomes a stop button;
   stopped, what was heard is put in the note by `Items.Windows.Add_Dictation`:

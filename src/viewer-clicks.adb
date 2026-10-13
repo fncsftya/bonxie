@@ -7,6 +7,7 @@ with Viewer.Listing;
 with Viewer.Navigation;
 with Viewer.Writing;
 with Viewer.Recent;
+with Viewer.Settings_View;
 
 package body Viewer.Clicks is
 
@@ -24,6 +25,10 @@ package body Viewer.Clicks is
       --  Only the screen that is shown can have been clicked.
       case Item.Shown is
          when Home =>
+            if Item.Showing_Settings then
+               Settings_View.Take (Item);
+               return;
+            end if;
             Buttons.Take_Click (Item.New_Button, Clicked);
             if Clicked then
                Navigation.Enter_New (Item);
@@ -44,8 +49,11 @@ package body Viewer.Clicks is
                end if;
                return;
             end if;
-            --  Settings: nothing yet.
             Buttons.Take_Click (Item.Settings_Button, Clicked);
+            if Clicked then
+               Settings_View.Open (Item);
+               return;
+            end if;
             if Item.Editing /= 0 then
                declare
                   Entered : Boolean;

@@ -114,6 +114,14 @@ private package Viewer.Style is
    No_Documents : constant String := "No documents yet";
    No_Sources   : constant String := "No sources yet";
 
+   --  The settings, in points
+
+   Settings_Line   : constant Float := 28.0;
+   --  A line of the form: a name, a radio.
+   Download_Height : constant Float := 34.0;
+   Download_Width  : constant Float := 112.0;
+   Progress_Height : constant Float := 12.0;
+
    --  The home screen, in points
 
    Home_Side_Width : constant Float := 218.0;
