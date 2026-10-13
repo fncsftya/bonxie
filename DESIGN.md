@@ -56,7 +56,7 @@ From the bottom up; each crate depends only on those before it.
   the box shows and the pointer is over them: thicker near the pointer, and
   dragged (or pressed beside) to scroll, given the mouse events first; a widget draws what goes over
   its children in `Draw_Over`; `Sliders` is a knob to drag along a
-  track, from 0.0 to 1.0. Widgets can be put last of their parent's
+  track, from 0.0 to 1.0; `Progress_Bars` is a bar filled from the left, from 0.0 to 1.0, told how far on a job is. Widgets can be put last of their parent's
   (`Raise_To_Front`, for those placed by their edges), hidden (`Set_Visible`) or taken out
   (`Remove`, with their children; build them again top-down). No
   callbacks: widgets are polled (`Take_Click`) and models are pulled in
@@ -88,7 +88,7 @@ From the bottom up; each crate depends only on those before it.
   window puts the highlighter away. The marks are kept in the database
   (`item_marks`, a row to a mark, with the item; `Items.Save_Marks`,
   `Load_Marks`) and forgotten with a new picture. Return in the link has `Viewer`
-  start `Webshot` for it. When the picture is taken (or is found
+  start `Webshot` for it, and, while it is taken, a bar along the foot of the status line shows how far on it is (`Webshot.Progress`: the page's load, then the settling and the snapshot). A source still called "Untitled source" takes the title of the page (`Webshot.Page_Title`) when its picture is taken. When the picture is taken (or is found
   without words kept, as in a project from before they were) `Viewer`
   starts `Vision.Jobs` on it, and the words found are kept in the
   database, in `item_words` (a row to a word, with the item, so that they

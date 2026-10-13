@@ -6,6 +6,7 @@ with UI.Widgets.Buttons;
 with UI.Widgets.Grips;
 with UI.Widgets.Labels;
 with UI.Widgets.Pictures;
+with UI.Widgets.Progress_Bars;
 with UI.Widgets.Sliders;
 with UI.Widgets.Panels;
 with UI.Widgets.Text_Fields;
@@ -94,6 +95,18 @@ package Items.Windows is
    --  Say how the source's picture stands, in its status line: Ready
    --  shows the PNG File, read again, as taken at At_Time; Failed says
    --  why, in Detail.
+
+   procedure Set_Title_Text (Item : in out Window; To : String)
+     with Pre => Is_Assigned (Item) and then To'Length <= 64;
+   --  Replace the title as if typed, to be written with the rest.
+
+   procedure Set_Progress (Item : in out Window; To : Float)
+     with Pre => Is_Assigned (Item)
+                 and then Details (Item).Kind = Source
+                 and then To in 0.0 .. 1.0;
+   --  Say how far on the picture is, while the capture is Busy: shown as
+   --  a bar along the foot of the status line, which any other state of
+   --  Set_Capture puts away.
 
    procedure Set_Recognized
      (Item : in out Window; Found : Vision.Result)
@@ -270,6 +283,8 @@ private
       Recognized   : aliased Vision.Result;
       --  The words in it, that the picture lets be selected.
       Status_Bar   : UI.Widgets.Panels.Panel;
+      Progress     : UI.Widgets.Progress_Bars.Progress_Bar;
+      --  Along the foot of the status line while the picture is taken.
       Status       : UI.Widgets.Labels.Label;
       Corner       : UI.Widgets.Grips.Grip;
 

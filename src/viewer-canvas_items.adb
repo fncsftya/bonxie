@@ -123,6 +123,42 @@ package body Viewer.Canvas_Items is
       Windows.Set_Recognized (Item.Windows (Which), Found);
    end Keep_Recognition;
 
+   procedure Name_From_Page (Item : in out Session; Which : Items.Slot);
+   --  Give a source still called Untitled_Source the title of its page.
+
+   procedure Name_From_Page (Item : in out Session; Which : Items.Slot) is
+      Raw  : String := Webshot.Page_Title (Which);
+      Last : Natural := 0;
+   begin
+      for C of Raw loop
+         if C in ASCII.NUL .. ' ' then
+            C := ' ';
+         end if;
+      end loop;
+      declare
+         Page : constant String :=
+           Ada.Strings.Fixed.Trim (Raw, Ada.Strings.Both);
+      begin
+         Last := Natural'Min (Page'Length, Projects.Title_Capacity);
+         --  Not in the middle of a UTF-8 character.
+         while Last > 0 and then Last < Page'Length
+           and then Character'Pos (Page (Page'First + Last))
+                    in 16#80# .. 16#BF#
+         loop
+            Last := Last - 1;
+         end loop;
+         if Last > 0
+           and then Projects.Titles.To_String
+                      (Windows.Details (Item.Windows (Which)).Title)
+                    = Untitled_Source
+         then
+            Windows.Set_Title_Text
+              (Item.Windows (Which),
+               Page (Page'First .. Page'First + Last - 1));
+         end if;
+      end;
+   end Name_From_Page;
+
    procedure Poll_Captures (Item : in out Session);
    --  Take the pictures that have been taken, and say what failed.
 
@@ -137,6 +173,7 @@ package body Viewer.Canvas_Items is
                        Windows.Details (Item.Windows (Which)).Key;
                      Time : constant Projects.Seconds := Epoch_Now (Item);
                   begin
+                     Name_From_Page (Item, Which);
                      Items.Set_Captured (Item.Store, Key, Time);
                      Windows.Set_Capture
                        (Item.Windows (Which), Windows.Ready,
@@ -151,7 +188,10 @@ package body Viewer.Canvas_Items is
                     (Item.Windows (Which), Windows.Failed,
                      Detail => Webshot.Message (Which));
                   Webshot.Reset (Which);
-               when Webshot.Idle | Webshot.Working =>
+               when Webshot.Working =>
+                  Windows.Set_Progress
+                    (Item.Windows (Which), Webshot.Progress (Which));
+               when Webshot.Idle =>
                   null;
             end case;
             case Vision.Jobs.State (Which) is

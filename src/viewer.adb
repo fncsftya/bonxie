@@ -389,22 +389,25 @@ package body Viewer is
       & "/window");
 
    procedure Restore_Geometry (Item : in out Session) is
-      Saved : constant String := Files.Read (Geometry_Path);
       Value : array (1 .. 4) of Integer;
-      First : Positive := Saved'First;
-      Last  : Natural;
    begin
-      for V of Value loop
-         while First <= Saved'Last and then Saved (First) = ' ' loop
-            First := First + 1;
+      declare
+         Saved : constant String := Files.Read (Geometry_Path);
+         First : Positive := Saved'First;
+         Last  : Natural;
+      begin
+         for V of Value loop
+            while First <= Saved'Last and then Saved (First) = ' ' loop
+               First := First + 1;
+            end loop;
+            Last := First;
+            while Last < Saved'Last and then Saved (Last + 1) /= ' ' loop
+               Last := Last + 1;
+            end loop;
+            V := Integer'Value (Saved (First .. Last));
+            First := Last + 1;
          end loop;
-         Last := First;
-         while Last < Saved'Last and then Saved (Last + 1) /= ' ' loop
-            Last := Last + 1;
-         end loop;
-         V := Integer'Value (Saved (First .. Last));
-         First := Last + 1;
-      end loop;
+      end;
       if Value (3) > 0 and then Value (4) > 0 then
          SDL3.Windows.Set_Size (Item.Win, Value (3), Value (4));
          SDL3.Windows.Set_Position (Item.Win, Value (1), Value (2));

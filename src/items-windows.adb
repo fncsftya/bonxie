@@ -49,6 +49,7 @@ package body Items.Windows is
    Zoom_Row_Height : constant Float := 18.0;
    Zoom_Button_Width : constant Float := 44.0;
    Zoom_Slider_Width : constant Float := 56.0;
+   Progress_Height   : constant Float := 3.0;
    Preset_Width  : constant Float := 44.0;
    Tools_Width   : constant Float := 3.0 * Button_Size + 2.0 * Button_Gap;
    Label_Height  : constant Float := 20.0;
@@ -163,6 +164,7 @@ package body Items.Windows is
       Widgets.Add (Item.Status_Bar, Item.Zoom_Slider);
       Widgets.Add (Item.Status_Bar, Item.Zoom_Button);
       Widgets.Add (Item.Status_Bar, Item.Corner);
+      Widgets.Add (Item.Status_Bar, Item.Progress);
       Widgets.Add (Dock, Item.Mini);
       Widgets.Add (Item.Mini, Item.Mini_Area);
       Widgets.Add (Item.Mini_Area, Item.Mini_Title);
@@ -278,6 +280,14 @@ package body Items.Windows is
       Buttons.Set_Icon (Item.Mini_Close, UI.Icons.Close);
       Size (Item.Mini_Close, Button_Size, Button_Size);
 
+      --  The progress bar, along the foot of the status line.
+      Set_Position_Type (Widgets.Node (Item.Progress), Yoga.Absolute);
+      Set_Position (Widgets.Node (Item.Progress), Yoga.Left, 0.0);
+      Set_Position (Widgets.Node (Item.Progress), Yoga.Right, 0.0);
+      Set_Position (Widgets.Node (Item.Progress), Yoga.Bottom, 0.0);
+      Set_Height
+        (Widgets.Node (Item.Progress), Progress_Height * Pixels);
+
       --  The tools, in the middle of the status line (see Place).
       Set_Position_Type (Widgets.Node (Item.Tools), Yoga.Absolute);
       Set_Position
@@ -335,6 +345,7 @@ package body Items.Windows is
       Widgets.Set_Visible (Item.Zoom_Button, False);
       Widgets.Set_Visible (Item.Zoom_Menu, False);
       Widgets.Set_Visible (Item.Picture, False);
+      Widgets.Set_Visible (Item.Progress, False);
       Widgets.Set_Visible (Item.Frame, False);
       Widgets.Set_Visible (Item.Mini, False);
    end Build;
@@ -415,6 +426,19 @@ package body Items.Windows is
    function Selected_Text (Item : Window) return String is
      (UI.Widgets.Pictures.Selected_Text (Item.Picture));
 
+   procedure Set_Title_Text (Item : in out Window; To : String) is
+   begin
+      Docs.Replace
+        (Item.Title_Doc, (Paragraph => 1, Index => 1),
+         Docs.Text_End (Item.Title_Doc), To);
+      --  Poll shows it, as it does what is typed.
+   end Set_Title_Text;
+
+   procedure Set_Progress (Item : in out Window; To : Float) is
+   begin
+      UI.Widgets.Progress_Bars.Set_Value (Item.Progress, To);
+   end Set_Progress;
+
    procedure Set_Capture
      (Item   : in out Window;
       To     : Captures;
@@ -422,6 +446,10 @@ package body Items.Windows is
       Detail : String := "";
       At_Time : Projects.Seconds := 0) is
    begin
+      Widgets.Set_Visible (Item.Progress, To = Busy);
+      if To = Busy then
+         UI.Widgets.Progress_Bars.Set_Value (Item.Progress, 0.0);
+      end if;
       case To is
          when Waiting =>
             Labels.Set_Text (Item.Status, "Press Return to capture");

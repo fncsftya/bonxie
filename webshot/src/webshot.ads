@@ -45,6 +45,15 @@ package Webshot is
      with Pre => State (Which) = Done;
    --  Pixels tall the picture is.
 
+   function Progress (Which : Slot) return Float
+     with Post => Progress'Result in 0.0 .. 1.0;
+   --  How far on a Working job is, as a fraction: the page's load, then
+   --  the settling and the snapshot. 1.0 when Done, 0.0 otherwise.
+
+   function Page_Title (Which : Slot) return String
+     with Pre => State (Which) = Done;
+   --  The title of the page that was loaded; empty if it has none.
+
    function Message (Which : Slot) return String
      with Pre => State (Which) = Failed;
 

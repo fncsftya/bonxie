@@ -17,6 +17,13 @@ package body Webshot is
    function WS_Height (Which : Interfaces.C.int) return Interfaces.C.int
      with Import, Convention => C, External_Name => "ws_height";
 
+   function WS_Progress (Which : Interfaces.C.int) return Interfaces.C.int
+     with Import, Convention => C, External_Name => "ws_progress";
+
+   function WS_Title
+     (Which : Interfaces.C.int) return Interfaces.C.Strings.chars_ptr
+     with Import, Convention => C, External_Name => "ws_title";
+
    function WS_Message
      (Which : Interfaces.C.int) return Interfaces.C.Strings.chars_ptr
      with Import, Convention => C, External_Name => "ws_message";
@@ -54,6 +61,13 @@ package body Webshot is
 
    function Height (Which : Slot) return Natural is
      (Natural (WS_Height (Index (Which))));
+
+   function Progress (Which : Slot) return Float is
+     (Float'Min
+        (1.0, Float'Max (0.0, Float (WS_Progress (Index (Which))) / 100.0)));
+
+   function Page_Title (Which : Slot) return String is
+     (Interfaces.C.Strings.Value (WS_Title (Index (Which))));
 
    function Message (Which : Slot) return String is
      (Interfaces.C.Strings.Value (WS_Message (Index (Which))));

@@ -20,7 +20,9 @@ static const NSTimeInterval kSettle = 0.6;  // after load, for late layout
 static WSJob *jobs[WS_JOBS];
 static int states[WS_JOBS];
 static int heights[WS_JOBS];
+static double phases[WS_JOBS];  // how far on, 0..1, once the page is loaded
 static char messages[WS_JOBS][WS_MESSAGE];
+static char titles[WS_JOBS][WS_MESSAGE];  // of the page, once Done
 
 static void finish(int slot, int state, int height, NSString *message)
 {
@@ -50,6 +52,7 @@ static void finish(int slot, int state, int height, NSString *message)
 
 - (void)webView:(WKWebView *)view didFinishNavigation:(WKNavigation *)nav
 {
+    phases[self.slot] = 0.8;
     __weak WSJob *me = self;
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(kSettle * NSEC_PER_SEC)),
                    dispatch_get_main_queue(), ^{ [me measure]; });
@@ -73,6 +76,7 @@ static void finish(int slot, int state, int height, NSString *message)
 - (void)measure
 {
     if (self.finished) return;
+    phases[self.slot] = 0.9;
     NSString *script =
         @"Math.max(document.documentElement.scrollHeight,"
          "document.body ? document.body.scrollHeight : 0)";
@@ -126,6 +130,7 @@ static void finish(int slot, int state, int height, NSString *message)
                 return;
             }
             again.finished = YES;
+            strlcpy(titles[again.slot], again.view.title.UTF8String ?: "", WS_MESSAGE);
             finish(again.slot, WS_DONE, (int)CGImageGetHeight(cg), @"");
         }];
     });
@@ -154,6 +159,8 @@ int ws_start(int slot, const char *url, const char *path, int width, int max_hei
     job.view.navigationDelegate = job;
     jobs[slot] = job;
     states[slot] = WS_WORKING;
+    titles[slot][0] = 0;
+    phases[slot] = 0;
     messages[slot][0] = 0;
     if ([target isFileURL]) {
         [job.view loadFileURL:target allowingReadAccessToURL:[target URLByDeletingLastPathComponent]];
@@ -178,6 +185,19 @@ void ws_pump(int milliseconds)
 int ws_state(int slot) { return slot >= 0 && slot < WS_JOBS ? states[slot] : WS_IDLE; }
 int ws_height(int slot) { return slot >= 0 && slot < WS_JOBS ? heights[slot] : 0; }
 const char *ws_message(int slot) { return slot >= 0 && slot < WS_JOBS ? messages[slot] : ""; }
+// Percent done: the page's load is the first four fifths, then the wait
+// for late layout, the measure and the snapshot.
+int ws_progress(int slot)
+{
+    if (slot < 0 || slot >= WS_JOBS) return 0;
+    if (states[slot] == WS_DONE) return 100;
+    if (states[slot] != WS_WORKING) return 0;
+    double done = phases[slot];
+    WSJob *job = jobs[slot];
+    if (job && done < 0.8) done = MAX(done, job.view.estimatedProgress * 0.8);
+    return (int)(done * 100.0);
+}
+const char *ws_title(int slot) { return slot >= 0 && slot < WS_JOBS ? titles[slot] : ""; }
 void ws_reset(int slot)
 {
     if (slot < 0 || slot >= WS_JOBS) return;
@@ -185,5 +205,7 @@ void ws_reset(int slot)
     jobs[slot] = nil;
     states[slot] = WS_IDLE;
     heights[slot] = 0;
+    phases[slot] = 0;
     messages[slot][0] = 0;
+    titles[slot][0] = 0;
 }
