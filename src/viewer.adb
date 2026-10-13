@@ -179,6 +179,13 @@ package body Viewer is
    function Item_Text (Item : Session; Row : Positive) return String is
      (Items.Windows.Text (Item.Windows (Nth (Item, Row))));
 
+   procedure Dictate_Into
+     (Item : in out Session; Row : Positive; Said : String)
+   is
+   begin
+      Items.Windows.Add_Dictation (Item.Windows (Nth (Item, Row)), Said);
+   end Dictate_Into;
+
    function Item_Kind (Item : Session; Row : Positive) return Items.Kinds is
      (Items.Windows.Details (Item.Windows (Nth (Item, Row))).Kind);
 

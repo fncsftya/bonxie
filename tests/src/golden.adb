@@ -781,6 +781,8 @@ begin
    Run ("items-stored", Item_Tests.Stored'Access);
    Run ("items-added", Item_Tests.Added'Access);
    Run ("items-typing", Item_Tests.Typing'Access);
+   Run ("items-dictating", Item_Tests.Dictating'Access);
+   Run ("items-dictating-empty", Item_Tests.Dictating_Into_Empty'Access);
    Run ("items-title", Item_Tests.Titling'Access);
    Run ("items-moving", Item_Tests.Moving'Access);
    Run ("items-sizing", Item_Tests.Sizing'Access);

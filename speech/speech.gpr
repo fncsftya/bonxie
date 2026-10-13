@@ -1,0 +1,63 @@
+with "config/speech_config.gpr";
+project Speech is
+
+   for Library_Name use "speech_ada";
+   for Library_Version use
+     Project'Library_Name & ".so." & Speech_Config.Crate_Version;
+
+   for Languages use ("Ada", "C");
+   --  The C is Swift (speech_swift.swift): SpeechAnalyzer can be reached
+   --  from Swift alone, so it gives Ada a C interface. Alire has no
+   --  configuration for Swift, so it is built as if it were C, by swiftc.
+   for Source_Dirs use ("src/", "config/");
+   for Object_Dir use "obj/" & Speech_Config.Build_Profile;
+   for Create_Missing_Dirs use "True";
+   for Library_Dir use "lib";
+
+   package Naming is
+      for Body_Suffix ("C") use ".swift";
+   end Naming;
+
+   Swift_SDK := external
+     ("SPEECH_SDK", "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk");
+   --  Where the Swift libraries to link with are: in the SDK that GCC
+   --  links with, unless that is Xcode's, and SPEECH_SDK says so.
+
+   type Library_Type_Type is ("relocatable", "static", "static-pic");
+   Library_Type : Library_Type_Type :=
+     external ("SPEECH_LIBRARY_TYPE", external ("LIBRARY_TYPE", "static"));
+   for Library_Kind use Library_Type;
+
+   package Compiler is
+      for Default_Switches ("Ada") use Speech_Config.Ada_Compiler_Switches &
+        ("-gnatwh",          --  local declarations hiding others
+         "-gnatVa",          --  validity checks everywhere
+         "-fstack-check",    --  detect stack overflow
+         "-fstack-protector-strong",
+         "-mmacosx-version-min=26.0");
+      for Driver ("C") use Project'Project_Dir & "swiftc.sh";
+      for Default_Switches ("C") use
+        ("-parse-as-library", "-swift-version", "5", "-O");
+   end Compiler;
+
+   --  Propagated to every project that depends on this one. The plist is
+   --  embedded in the program, as a program that is not in a bundle needs
+   --  it to ask for the microphone.
+   package Linker is
+      for Linker_Options use
+        ("-framework", "Speech",
+         "-framework", "AVFoundation",
+         "-framework", "Foundation",
+         "-mmacosx-version-min=26.0",
+         "-L" & Swift_SDK & "/usr/lib/swift",
+         "-Wl,-rpath,/usr/lib/swift",
+         "-Wl,-no_implicit_dylibs",
+         "-Wl,-sectcreate,__TEXT,__info_plist," & Project'Project_Dir
+         & "Info.plist");
+   end Linker;
+
+   package Binder is
+      for Switches ("Ada") use ("-Es"); --  Symbolic traceback
+   end Binder;
+
+end Speech;

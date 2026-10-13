@@ -190,6 +190,15 @@ package Viewer is
      with Pre => Is_Open (Item) and then Screen (Item) = Project
                  and then Row <= Item_Count (Item);
 
+   procedure Dictate_Into
+     (Item : in out Session; Row : Positive; Said : String)
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item)
+                 and then Items."=" (Item_Kind (Item, Row), Items.Note);
+   --  Put Said in the note's text, as what was dictated is when the
+   --  microphone is stopped (see Items.Windows.Add_Dictation): for tests,
+   --  which cannot speak.
+
    function Item_Kind (Item : Session; Row : Positive) return Items.Kinds
      with Pre => Is_Open (Item) and then Screen (Item) = Project
                  and then Row <= Item_Count (Item);

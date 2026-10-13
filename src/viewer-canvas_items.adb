@@ -5,6 +5,7 @@ with Ada.Strings.Fixed;
 with UI.Widgets;
 with UI.Widgets.Canvases;
 with UI.Widgets.Pictures;
+with Speech.Jobs;
 with Viewer.Links;
 with Vision.Jobs;
 with Webshot;
@@ -22,6 +23,8 @@ package body Viewer.Canvas_Items is
    use type Items.Kinds;
    use type Webshot.States;
    use type Vision.Jobs.States;
+   use type Speech.Jobs.States;
+   use type Windows.Dictations;
 
    Cascade_Step  : constant Float := 24.0;
    Cascade_Count : constant := 6;
@@ -30,8 +33,9 @@ package body Viewer.Canvas_Items is
 
    pragma Assert (Webshot.Slot_Count = Items.Capacity);
    pragma Assert (Vision.Jobs.Slot_Count = Items.Capacity);
-   --  A source's picture is taken, and its text found, in the slot of its
-   --  window.
+   pragma Assert (Speech.Jobs.Slot_Count = Items.Capacity);
+   --  A source's picture is taken, and its text found, and a note is
+   --  dictated into, in the slot of its window.
 
    function Epoch_Now (Item : Session) return Projects.Seconds is
      (if Item.Pinned_Time > 0 then Item.Pinned_Time else Projects.Seconds
@@ -48,6 +52,13 @@ package body Viewer.Canvas_Items is
    function Capturing (Item : Session) return Boolean is
    begin
       for Which in Items.Slot loop
+         if Windows.Is_Assigned (Item.Windows (Which))
+           and then Speech.Jobs.State (Which)
+                    in Speech.Jobs.Starting | Speech.Jobs.Listening
+                       | Speech.Jobs.Finishing
+         then
+            return True;
+         end if;
          if Is_Source (Item, Which)
            and then (Webshot.State (Which) = Webshot.Working
                      or else Vision.Jobs.State (Which) = Vision.Jobs.Working)
@@ -57,6 +68,70 @@ package body Viewer.Canvas_Items is
       end loop;
       return False;
    end Capturing;
+
+   procedure Toggle_Dictation (Item : in out Session; Which : Items.Slot);
+   --  The note's button was clicked: start listening, in the background,
+   --  or stop, so that what was heard is made text and put in the note
+   --  (see Poll_Dictation).
+
+   procedure Toggle_Dictation (Item : in out Session; Which : Items.Slot) is
+   begin
+      case Speech.Jobs.State (Which) is
+         when Speech.Jobs.Idle | Speech.Jobs.Done | Speech.Jobs.Failed =>
+            Speech.Jobs.Reset (Which);
+            Speech.Jobs.Start (Which);
+            Windows.Set_Dictation (Item.Windows (Which), Windows.Preparing);
+         when Speech.Jobs.Starting | Speech.Jobs.Listening =>
+            Speech.Jobs.Stop (Which);
+            Windows.Set_Dictation
+              (Item.Windows (Which), Windows.Transcribing);
+         when Speech.Jobs.Finishing =>
+            null;
+      end case;
+   end Toggle_Dictation;
+
+   procedure Poll_Dictation (Item : in out Session);
+   --  Show how dictating stands, and put in a note what has been heard.
+
+   procedure Poll_Dictation (Item : in out Session) is
+      Heard : Speech.Transcript;
+   begin
+      for Which in Items.Slot loop
+         if Windows.Is_Assigned (Item.Windows (Which))
+           and then Windows.Details (Item.Windows (Which)).Kind = Items.Note
+         then
+            declare
+               Each : Windows.Window renames Item.Windows (Which);
+               procedure Show (To : Windows.Dictations) is
+               begin
+                  if Windows.Dictation (Each) /= To then
+                     Windows.Set_Dictation (Each, To);
+                  end if;
+               end Show;
+            begin
+               case Speech.Jobs.State (Which) is
+                  when Speech.Jobs.Idle =>
+                     null;
+                  when Speech.Jobs.Starting =>
+                     Show (Windows.Preparing);
+                  when Speech.Jobs.Listening =>
+                     Show (Windows.Listening);
+                     Windows.Set_Level (Each, Speech.Jobs.Loudness (Which));
+                  when Speech.Jobs.Finishing =>
+                     Show (Windows.Transcribing);
+                  when Speech.Jobs.Done =>
+                     Speech.Jobs.Take (Which, Heard);
+                     Windows.Set_Dictation (Each, Windows.Silent);
+                     Windows.Add_Dictation (Each, Speech.Image (Heard));
+                  when Speech.Jobs.Failed =>
+                     Windows.Set_Dictation
+                       (Each, Windows.Failed, Speech.Jobs.Message (Which));
+                     Speech.Jobs.Reset (Which);
+               end case;
+            end;
+         end if;
+      end loop;
+   end Poll_Dictation;
 
    function Link_Of (Typed : String) return String;
    --  What was typed, as a link: with https:// if it has no scheme.
@@ -466,6 +541,7 @@ package body Viewer.Canvas_Items is
             Windows.Release (Item.Windows (Which));
             Webshot.Reset (Which);
             Vision.Jobs.Reset (Which);
+            Speech.Jobs.Reset (Which);
          end if;
       end loop;
       Widgets.Set_Visible (Item.Dock_Panel, False);
@@ -564,6 +640,7 @@ package body Viewer.Canvas_Items is
    begin
       Webshot.Reset (Which);
       Vision.Jobs.Reset (Which);
+      Speech.Jobs.Reset (Which);
       Items.Delete
         (Item.Store, Windows.Details (Item.Windows (Which)).Key);
       Windows.Release (Item.Windows (Which));
@@ -590,6 +667,8 @@ package body Viewer.Canvas_Items is
                   Set_State (Item, Which, Items.Closed);
                when Windows.Capture =>
                   Start_Capture (Item, Which);
+               when Windows.Speak =>
+                  Toggle_Dictation (Item, Which);
             end case;
          end if;
       end loop;
@@ -630,6 +709,7 @@ package body Viewer.Canvas_Items is
    begin
       Sync (Item);
       Poll_Captures (Item);
+      Poll_Dictation (Item);
       for Each of Item.Windows loop
          if Windows.Is_Assigned (Each) then
             Windows.Flush

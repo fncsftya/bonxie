@@ -32,6 +32,10 @@ package UI.Widgets.Buttons is
    --  Show the icon, in the middle, in place of the label, if the tree has
    --  icons and the icon can be drawn; the label otherwise.
 
+   procedure Set_Icon_Size (Item : in out Button; Points : Float)
+     with Pre => Points > 0.0;
+   --  Draw the icon Points a side, not the usual size.
+
    function Has_Icon (Item : Button) return Boolean;
 
    procedure Set_Swatch (Item : in out Button; To : Themes.Color);
@@ -76,6 +80,7 @@ private
       Style   : Kind := Normal;
       Picture : Boolean := False;
       Which   : UI.Icons.Icon := UI.Icons.Icon'First;
+      Icon_Points : Float := 0.0;  --  0.0: the usual size
       Swatched : Boolean := False;
       Swatch   : Themes.Color := (0, 0, 0, 255);
       Captioned : Boolean := False;

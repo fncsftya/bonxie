@@ -42,6 +42,16 @@ package body UI.Widgets.Buttons is
       end if;
    end Set_Icon;
 
+   procedure Set_Icon_Size (Item : in out Button; Points : Float) is
+   begin
+      if Item.Icon_Points /= Points then
+         Item.Icon_Points := Points;
+         if Is_Attached (Item) then
+            Invalidate (Item);
+         end if;
+      end if;
+   end Set_Icon_Size;
+
    procedure Set_Swatch (Item : in out Button; To : Themes.Color) is
    begin
       Item.Swatched := True;
@@ -213,13 +223,15 @@ package body UI.Widgets.Buttons is
          end;
       elsif Item.Picture and then Icon_Library (Item) /= null then
          declare
+            Points : constant Float :=
+              (if Item.Icon_Points > 0.0 then Item.Icon_Points else Icon_Size);
             Size : constant Positive :=
-              Positive (Float'Rounding (Icon_Size * Density (Item)));
+              Positive (Float'Rounding (Points * Density (Item)));
             Group_Left : constant Float :=
               Left_Of (Item)
               + (Width_Of (Item)
                  - (if Together
-                    then (Icon_Size + Caption_Gap) * Density (Item) + Span
+                    then (Points + Caption_Gap) * Density (Item) + Span
                     else Float (Size))) / 2.0;
             Drawn : Boolean;
          begin
@@ -233,7 +245,7 @@ package body UI.Widgets.Buttons is
                   + Shift),
                Size, Drawn);
             Icon_Drawn := Drawn;
-            Text_Left := Group_Left + (Icon_Size + Caption_Gap)
+            Text_Left := Group_Left + (Points + Caption_Gap)
                                       * Density (Item);
          end;
       end if;

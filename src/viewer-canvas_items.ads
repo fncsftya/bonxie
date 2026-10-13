@@ -27,8 +27,8 @@ private package Viewer.Canvas_Items is
    --  room for one.
 
    function Capturing (Item : Session) return Boolean;
-   --  Whether a source's picture is being taken: the loop is to look at
-   --  it again soon.
+   --  Whether a source's picture is being taken, or a note's dictation is
+   --  being heard, readied or made text: the loop is to look at it again soon.
 
    procedure Take (Item : in out Session)
      with Pre => Screen (Item) = Project;

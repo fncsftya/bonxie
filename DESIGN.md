@@ -22,6 +22,17 @@ From the bottom up; each crate depends only on those before it.
   columns and the gaps between bands, and reads down each column in turn. `Vision.Jobs` does it in the
   background, a task to each slot (the same slots as `Webshot`), polled the
   same way and taken (`Take`) when `Done`.
+  `speech` (macOS 26 or later; the program is linked to need it) turns what
+  the microphone hears into text with Apple's `SpeechAnalyzer`, on-device.
+  That API is Swift only, so `speech_swift.swift` gives Ada a C interface
+  (`sp_begin`, `sp_end`); Alire has no Swift configuration, so gprbuild is
+  told it is C, and `swiftc.sh` passes it on to `swiftc`. The Swift runtime
+  is linked from the SDK (`SPEECH_SDK` says where, if not the Command Line
+  Tools'), and an `Info.plist` with the microphone's usage description is
+  embedded in the program. `Speech.Begin_Listening`/`End_Listening` wait,
+  so `Speech.Jobs` does them in a task to each slot (as `Vision.Jobs`):
+  `Start`, then `Stop`, polled (`State`: starting, listening, finishing,
+  done) and taken (`Take`) when `Done`.
 - `typeset`: a layout of a document for one view (`Typeset.Layouts`):
   lines, made lazily (a long paragraph only as far as shown), heights as
   running sums (`Typeset.Sums`); drawing it (`Typeset.Views`).
@@ -121,6 +132,11 @@ From the bottom up; each crate depends only on those before it.
   `Canvas_Items` (the windows of a project's items: loading, adding,
   keeping them where the canvas has them, writing them) and `Listing`
   (the list of items).
+  A note's status line has a button to dictate: it starts `Speech.Jobs` in
+  the slot of its window (`Viewer.Canvas_Items`) and becomes a stop button;
+  stopped, what was heard is put in the note by `Items.Windows.Add_Dictation`:
+  at the caret if the text is focused, else as a new paragraph after the
+  text (or as the text, if there is none).
   Items are linked, visually, by `Viewer.Links`: a pin in the middle of each
   side of every open window, shown while the pointer is over the window.
   Dragging from one shows the pins of the other windows and a ghost line to

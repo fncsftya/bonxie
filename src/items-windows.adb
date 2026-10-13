@@ -51,6 +51,9 @@ package body Items.Windows is
    Zoom_Slider_Width : constant Float := 56.0;
    Progress_Height   : constant Float := 3.0;
    Preset_Width  : constant Float := 44.0;
+   Speak_Icon_Size : constant Float := 12.0;
+   Level_Steps   : constant Float := 20.0;
+   --  How many sizes of the bar that shows how loud the speech is.
    Tools_Width   : constant Float := 3.0 * Button_Size + 2.0 * Button_Gap;
    Label_Height  : constant Float := 20.0;
 
@@ -161,6 +164,7 @@ package body Items.Windows is
       Widgets.Add (Item.Tools, Item.Cursor_Button);
       Widgets.Add (Item.Tools, Item.Marker_Button);
       Widgets.Add (Item.Tools, Item.Eraser_Button);
+      Widgets.Add (Item.Status_Bar, Item.Speak_Button);
       Widgets.Add (Item.Status_Bar, Item.Zoom_Slider);
       Widgets.Add (Item.Status_Bar, Item.Zoom_Button);
       Widgets.Add (Item.Status_Bar, Item.Corner);
@@ -316,6 +320,17 @@ package body Items.Windows is
       Set_Height (Widgets.Node (Item.Zoom_Slider), Zoom_Row_Height * Pixels);
       Buttons.Set_Label (Item.Zoom_Button, "100%");
       Size (Item.Zoom_Button, Zoom_Button_Width, Zoom_Row_Height);
+
+      --  The button to dictate, of a note.
+      Buttons.Set_Label (Item.Speak_Button, "Mic");
+      Buttons.Set_Icon (Item.Speak_Button, UI.Icons.Microphone);
+      Size (Item.Speak_Button, Button_Size, Zoom_Row_Height);
+      Buttons.Set_Icon_Size (Item.Speak_Button, Speak_Icon_Size);
+      --  In the middle of the status line, as the tools are (see Place).
+      Set_Position_Type (Widgets.Node (Item.Speak_Button), Yoga.Absolute);
+      Set_Position
+        (Widgets.Node (Item.Speak_Button), Yoga.Top,
+         (Status_Height - Zoom_Row_Height) / 2.0 * Pixels);
 
       --  The menu: over the picture, at the right, with the window's
       --  outline between its buttons.
@@ -523,9 +538,92 @@ package body Items.Windows is
       Item.Content_Version := Docs.Current (Item.Content_Doc);
       if Item.Details.Kind = Note then
          Item.Word_Count := Count_Words (Docs.Whole (Item.Content_Doc));
-         Labels.Set_Text (Item.Status, Status_Text (Item.Word_Count));
+         --  A failure to dictate is told until the text is changed; what
+         --  is going on is told while it is.
+         if Item.Dictating in Silent | Failed then
+            Item.Dictating := Silent;
+            Labels.Set_Text (Item.Status, Status_Text (Item.Word_Count));
+         end if;
       end if;
    end Show_Words;
+
+   function Dictation (Item : Window) return Dictations is
+     (Item.Dictating);
+
+   procedure Set_Dictation
+     (Item   : in out Window;
+      To     : Dictations;
+      Detail : String := "") is
+   begin
+      Item.Dictating := To;
+      Widgets.Set_Visible (Item.Progress, To = Listening);
+      UI.Widgets.Progress_Bars.Set_Value (Item.Progress, 0.0);
+      Buttons.Set_Icon
+        (Item.Speak_Button,
+         (if To in Preparing | Listening
+          then UI.Icons.Stop else UI.Icons.Microphone));
+      Buttons.Set_Label
+        (Item.Speak_Button,
+         (if To in Preparing | Listening then "Stop" else "Mic"));
+      case To is
+         when Silent =>
+            Labels.Set_Text (Item.Status, Status_Text (Item.Word_Count));
+         when Preparing =>
+            Labels.Set_Text (Item.Status, "Getting ready...");
+         when Listening =>
+            Labels.Set_Text (Item.Status, "Listening...");
+         when Transcribing =>
+            Labels.Set_Text (Item.Status, "Transcribing...");
+         when Failed =>
+            Labels.Set_Text
+              (Item.Status, Fitted ("Could not dictate: " & Detail));
+      end case;
+   end Set_Dictation;
+
+   procedure Set_Level (Item : in out Window; To : Float) is
+      Stepped : constant Float :=
+        Float'Rounding (To * Level_Steps) / Level_Steps;
+   begin
+      if Item.Dictating = Listening
+        and then UI.Widgets.Progress_Bars.Value (Item.Progress) /= Stepped
+      then
+         UI.Widgets.Progress_Bars.Set_Value (Item.Progress, Stepped);
+      end if;
+   end Set_Level;
+
+   procedure Add_Dictation (Item : in out Window; Said : String) is
+      Area : UI.Text_Areas.Text_Area renames Editors.Area (Item.Body_Text).all;
+      Doc  : Docs.Document renames Item.Content_Doc;
+      Spoken : String := Said;
+   begin
+      --  Paragraphs are made by line feeds alone.
+      for C of Spoken loop
+         if C = ASCII.CR then
+            C := ' ';
+         end if;
+      end loop;
+      if Spoken = "" then
+         return;
+      end if;
+      if Widgets.Has_Focus (Item.Body_Text) then
+         --  At the caret, not over what is selected.
+         UI.Text_Areas.Select_Range
+           (Area, UI.Text_Areas.Caret (Area), UI.Text_Areas.Caret (Area));
+         UI.Text_Areas.Insert (Area, Spoken);
+      else
+         declare
+            After : constant Texts.Position := Docs.Text_End (Doc);
+            --  An empty last paragraph is filled, not left as a gap.
+            Blank : constant Boolean :=
+              Docs.Byte_Length (Doc, Docs.Count (Doc)) = 0;
+         begin
+            Docs.Begin_Step (Doc);
+            Docs.Replace
+              (Doc, After, After, (if Blank then "" else [ASCII.LF]) & Spoken);
+            Docs.End_Step (Doc);
+         end;
+      end if;
+   end Add_Dictation;
 
    procedure Set_State (Item : in out Window; To : States) is
    begin
@@ -553,6 +651,7 @@ package body Items.Windows is
         (Editors.Area (Item.Body_Text).all, Of_Source);
       Set_Flex_Grow (Node, (if Of_Source then 0.0 else 1.0));
       Set_Height (Node, (if Of_Source then Url_Height * Item.Pixels else 0.0));
+      Widgets.Set_Visible (Item.Speak_Button, not Of_Source);
       Widgets.Set_Visible (Item.Tools, Of_Source);
       Widgets.Set_Visible (Item.Zoom_Slider, Of_Source);
       Widgets.Set_Visible (Item.Zoom_Button, Of_Source);
@@ -587,6 +686,7 @@ package body Items.Windows is
       Docs.Load
         (Item.Title_Doc, Projects.Titles.To_String (Of_Item.Title));
       Docs.Load (Item.Content_Doc, Saved_Text);
+      Item.Dictating := Silent;
       Text_Fields.Attach (Item.Title_Field, Item.Title_Doc'Unchecked_Access);
       Editors.Attach (Item.Body_Text, Item.Content_Doc'Unchecked_Access);
       Item.Title_Saved := Docs.State (Item.Title_Doc);
@@ -644,6 +744,7 @@ package body Items.Windows is
       Item.Zoom_Dirty := False;
       Item.Scroll_Pending := False;
       Item.Was_Used := False;
+      Item.Dictating := Silent;
    end Release;
 
    procedure Place
@@ -684,6 +785,12 @@ package body Items.Windows is
               ((Float'Rounding (Where.Width * Zoom * Pixels)
                 - 2.0 * Float'Max (1.0, Float'Rounding (Outline * Pixels))
                 - Tools_Width * Pixels) / 2.0));
+         Set_Position
+           (Widgets.Node (Item.Speak_Button), Yoga.Left,
+            Float'Rounding
+              ((Float'Rounding (Where.Width * Zoom * Pixels)
+                - 2.0 * Float'Max (1.0, Float'Rounding (Outline * Pixels))
+                - Button_Size * Pixels) / 2.0));
          Widgets.Request_Layout (Item.Frame);
       end if;
    end Place;
@@ -848,6 +955,14 @@ package body Items.Windows is
          Text_Fields.Take_Return (Item.Title_Field, Entered);
          if Entered or else not Widgets.Has_Focus (Item.Title_Field) then
             End_Edit (Item);
+         end if;
+      end if;
+
+      if Item.Details.Kind = Note and then Item.Details.State = Open then
+         Buttons.Take_Click (Item.Speak_Button, Clicked);
+         if Clicked then
+            Action := Speak;
+            return;
          end if;
       end if;
 

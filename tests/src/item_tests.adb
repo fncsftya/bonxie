@@ -464,6 +464,45 @@ package body Item_Tests is
          Viewer.Item_Text (Session, 1));
    end Typing;
 
+   procedure Dictating is
+      Session : Viewer.Session;
+   begin
+      Start_With_One (Session);
+
+      --  Focused, with a caret: it goes in at the caret, and keeps what
+      --  is selected.
+      Type_In (Session, "ac");
+      Press_Key (Session, Events.Key_Left_Arrow);
+      Viewer.Dictate_Into (Session, 1, "b");
+      Check ("dictate-at-caret", "abc", Viewer.Item_Text (Session, 1));
+
+      --  Not focused: a new paragraph after the text.
+      Click_On (Session, 600.0, 60.0);
+      Viewer.Dictate_Into (Session, 1, "next line");
+      Check
+        ("dictate-new-paragraph", "abc" & ASCII.LF & "next line",
+         Viewer.Item_Text (Session, 1));
+
+      --  Nothing said, nothing added.
+      Viewer.Dictate_Into (Session, 1, "");
+      Check
+        ("dictate-nothing", "abc" & ASCII.LF & "next line",
+         Viewer.Item_Text (Session, 1));
+      Move_To (Session, 610.0, 70.0);
+      Check
+        ("dictate-words", " 3",
+         Natural'Image (Viewer.Item_Words (Session, 1)));
+   end Dictating;
+
+   procedure Dictating_Into_Empty is
+      Session : Viewer.Session;
+   begin
+      Start_With_One (Session);
+      Click_On (Session, 600.0, 60.0);
+      Viewer.Dictate_Into (Session, 1, "first");
+      Check ("dictate-into-empty", "first", Viewer.Item_Text (Session, 1));
+   end Dictating_Into_Empty;
+
    procedure Titling is
       Session : Viewer.Session;
    begin

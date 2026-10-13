@@ -32,9 +32,15 @@ package Items.Windows is
 
    type Window_Array is array (Slot) of Window;
 
-   type Actions is (None, Minimize, Restore, Close, Capture);
+   type Actions is (None, Minimize, Restore, Close, Capture, Speak);
    --  What a window's buttons ask for, and, of a source, Return in its
-   --  link's field: to take the picture of the page.
+   --  link's field: to take the picture of the page. Speak is the button
+   --  of a note that starts or stops dictating into it.
+
+   type Dictations is (Silent, Preparing, Listening, Transcribing, Failed);
+   --  Of a note: not dictating (or it was taken), the microphone is being
+   --  readied, it is listening, what was heard is being made text, or
+   --  that could not be done.
 
    type Captures is (Waiting, Busy, Ready, Failed);
    --  Of a source: there is no picture yet, it is being taken, it is
@@ -95,6 +101,33 @@ package Items.Windows is
    --  Say how the source's picture stands, in its status line: Ready
    --  shows the PNG File, read again, as taken at At_Time; Failed says
    --  why, in Detail.
+
+   function Dictation (Item : Window) return Dictations
+     with Pre => Is_Assigned (Item);
+
+   procedure Set_Dictation
+     (Item   : in out Window;
+      To     : Dictations;
+      Detail : String := "")
+     with Pre  => Is_Assigned (Item) and then Details (Item).Kind = Note,
+          Post => Dictation (Item) = To;
+   --  Say how dictating stands: the button is a stop button while it is
+   --  Preparing or Listening, and the status line says what is going on
+   --  (a Failed one says why, in Detail, until the text is next
+   --  changed).
+
+   procedure Set_Level (Item : in out Window; To : Float)
+     with Pre => Is_Assigned (Item) and then Details (Item).Kind = Note
+                 and then To in 0.0 .. 1.0;
+   --  Say how loud what is heard is, while Listening: shown as a bar
+   --  along the foot of the status line, filled to that far.
+
+   procedure Add_Dictation (Item : in out Window; Said : String)
+     with Pre => Is_Assigned (Item) and then Details (Item).Kind = Note;
+   --  Put Said in the note's text, as one edit, to be undone together.
+   --  If the text is focused, it goes in at the caret (what is selected
+   --  is kept); if it has none yet, it is the text; otherwise it is a
+   --  new paragraph after the last.
 
    procedure Set_Title_Text (Item : in out Window; To : String)
      with Pre => Is_Assigned (Item) and then To'Length <= 64;
@@ -279,6 +312,9 @@ private
       Zoom_Button  : UI.Widgets.Buttons.Button;
       --  Of a source, in its status line: a slider to zoom its picture,
       --  and a button, saying how far, that opens a menu of zooms.
+      Speak_Button : UI.Widgets.Buttons.Button;
+      --  Of a note, in its status line: starts and stops dictating.
+      Dictating    : Dictations := Silent;
       Tools        : UI.Widgets.Panels.Panel;
       Cursor_Button : UI.Widgets.Buttons.Button;
       Marker_Button : UI.Widgets.Buttons.Button;

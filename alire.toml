@@ -13,6 +13,7 @@ executables = ["bonxie"]
 bonxie_ui = "*"
 coretext = "*"
 sdl3 = "*"
+speech = "*"
 texts = "*"
 typeset = "*"
 vision = "*"
@@ -23,6 +24,7 @@ yoga = "*"
 bonxie_ui = { path = "ui" }
 coretext = { path = "coretext" }
 sdl3 = { path = "sdl3" }
+speech = { path = "speech" }
 texts = { path = "texts" }
 typeset = { path = "typeset" }
 vision = { path = "vision" }
