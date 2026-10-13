@@ -218,6 +218,13 @@ package body UI.Text_Areas is
    function Is_Configured (Item : Text_Area) return Boolean is
      (Layouts.Is_Configured (Item.Laid));
 
+   procedure Set_Shared
+     (Item   : in out Text_Area;
+      Shared : not null Shared_Access) is
+   begin
+      Views.Set_Shared (Item.View, Shared);
+   end Set_Shared;
+
    procedure Set_Single_Line (Item : in out Text_Area; To : Boolean := True)
    is
    begin

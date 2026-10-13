@@ -21,6 +21,13 @@ package body UI.Widgets.Editors is
    function Is_Configured (Item : Editor) return Boolean is
      (Text_Areas.Is_Configured (Item.Text));
 
+   procedure Set_Shared
+     (Item   : in out Editor;
+      Shared : not null Shared_Access) is
+   begin
+      Text_Areas.Set_Shared (Item.Text, Shared);
+   end Set_Shared;
+
    procedure Attach
      (Item : in out Editor; Doc : not null Texts.Documents.Document_Access) is
    begin

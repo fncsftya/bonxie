@@ -53,6 +53,14 @@ package Items.Windows is
    function Count_Words (Of_Text : String) return Natural;
    --  Of runs of anything but spaces, tabs and line breaks.
 
+   subtype Shared_Access is UI.Widgets.Editors.Shared_Access;
+
+   procedure Set_Shared
+     (Item   : in out Window;
+      Shared : not null Shared_Access);
+   --  Direct the window's body and title editors to share font registry
+   --  and glyph atlas.
+
    procedure Build
      (Item    : in out Window;
       Canvas  : in out UI.Widgets.Widget'Class;

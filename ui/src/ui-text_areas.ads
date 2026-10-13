@@ -4,8 +4,8 @@ with Texts.Documents;
 with UI.Clipboards;
 with UI.Scrollbars;
 with UI.Themes;
+with Typeset.Views;
 private with Typeset.Layouts;
-private with Typeset.Views;
 
 --  A box to edit a document in: a view of it, which the application
 --  owns, and which other views may show and edit too. It wraps the
@@ -37,6 +37,13 @@ package UI.Text_Areas is
    --  than Measure, with Spacing between paragraphs.
 
    function Is_Configured (Item : Text_Area) return Boolean;
+
+   subtype Shared_Access is Typeset.Views.Shared_Access;
+
+   procedure Set_Shared
+     (Item   : in out Text_Area;
+      Shared : not null Shared_Access);
+   --  Direct Item's view to share font registry and glyph atlas.
 
    procedure Set_Single_Line (Item : in out Text_Area; To : Boolean := True)
      with Pre => Is_Configured (Item);

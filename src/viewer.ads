@@ -12,6 +12,7 @@ private with Previews;
 private with SDL3.Windows;
 private with Scripts;
 private with Texts.Documents;
+private with Typeset.Views;
 private with UI.Clipboards;
 private with UI.Icons;
 private with UI.Line_Texts;
@@ -748,6 +749,8 @@ private
       --  after Target, which it draws to
       Lines        : aliased UI.Line_Texts.Drawer;
       --  after Target, which it draws to
+      Doc_Resources : aliased Typeset.Views.Shared_Resources;
+      --  after Target, which its atlas draws to
       Windows      : Items.Windows.Window_Array;
       --  The windows of the project's items: after Target, which they
       --  draw to.

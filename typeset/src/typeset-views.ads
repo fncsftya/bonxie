@@ -51,6 +51,21 @@ package Typeset.Views is
    --  Rows_To are drawn, for when no more is to show: the rest of the
    --  page is not looked at.
 
+   type Shared_Resources is limited record
+      Reg   : aliased CoreText.Shaping.Registry;
+      Atlas : aliased Glyph_Atlas.Atlas;
+   end record;
+   --  Shared font registry and glyph atlas that can be used across
+   --  multiple views drawing to the same target renderer.
+
+   type Shared_Access is access all Shared_Resources;
+
+   procedure Set_Shared
+     (Item   : in out View;
+      Shared : not null Shared_Access);
+   --  Direct Item to shape and rasterize into Shared, sharing glyphs
+   --  and font handles with other views using the same resources.
+
    function Lines_Drawn (Item : View) return Natural;
    --  How many lines have been drawn, for measuring.
 
@@ -90,8 +105,9 @@ private
    --  copied to the other, which becomes active, and the rest dropped.
 
    type View is new Ada.Finalization.Limited_Controlled with record
-      Reg     : CoreText.Shaping.Registry;
-      Atlas   : Glyph_Atlas.Atlas;
+      Shared  : Shared_Access := null;
+      Reg     : aliased CoreText.Shaping.Registry;
+      Atlas   : aliased Glyph_Atlas.Atlas;
       Lines   : Line_Maps.Map
                   (Capacity => Lines_Kept,
                    Modulus  => Line_Maps.Default_Modulus (Lines_Kept));

@@ -33,6 +33,13 @@ package UI.Widgets.Editors is
 
    function Is_Configured (Item : Editor) return Boolean;
 
+   subtype Shared_Access is UI.Text_Areas.Shared_Access;
+
+   procedure Set_Shared
+     (Item   : in out Editor;
+      Shared : not null Shared_Access);
+   --  Direct Item's text area to share font registry and glyph atlas.
+
    procedure Attach
      (Item : in out Editor; Doc : not null Texts.Documents.Document_Access)
      with Pre => Is_Configured (Item), Post => Has_Document (Item);

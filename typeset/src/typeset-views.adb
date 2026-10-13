@@ -88,6 +88,13 @@ package body Typeset.Views is
       end;
    end Keep;
 
+   procedure Set_Shared
+     (Item   : in out View;
+      Shared : not null Shared_Access) is
+   begin
+      Item.Shared := Shared;
+   end Set_Shared;
+
    procedure Draw
      (Item   : in out View;
       Laid   : in out Layouts.Layout;
@@ -110,9 +117,17 @@ package body Typeset.Views is
       Ascent    : constant Float := Layouts.Ascent (Laid);
       Font_Size : constant Float := Layouts.Font_Size (Laid);
       First, Last : Positive;
+      Reg_Ref   : constant not null access CoreText.Shaping.Registry :=
+        (if Item.Shared /= null
+         then Item.Shared.Reg'Unchecked_Access
+         else Item.Reg'Unchecked_Access);
+      Atlas_Ref : constant not null access Glyph_Atlas.Atlas :=
+        (if Item.Shared /= null
+         then Item.Shared.Atlas'Unchecked_Access
+         else Item.Atlas'Unchecked_Access);
    begin
       Item.Frame := Item.Frame + 1;
-      Glyph_Atlas.Begin_Frame (Item.Atlas);
+      Glyph_Atlas.Begin_Frame (Atlas_Ref.all);
 
       Layouts.Visible
         (Laid, Doc, Anchor, Offset, Float (Height) / Scale, First, Last);
@@ -147,7 +162,7 @@ package body Typeset.Views is
                         begin
                            if not Line_Maps.Has_Element (Position) then
                               Layouts.Shape_Line
-                                (Laid, Doc, Item.Reg, Para, Number,
+                                (Laid, Doc, Reg_Ref.all, Para, Number,
                                  Item.Scratch);
                               Item.Shaped := Item.Shaped + 1;
                               Keep (Item, Key, Position);
@@ -160,7 +175,7 @@ package body Typeset.Views is
                               begin
                                  Line.Used := Item.Frame;
                                  Glyph_Atlas.Draw
-                                   (Item.Atlas, Item.Reg, Target,
+                                   (Atlas_Ref.all, Reg_Ref.all, Target,
                                     Item.Slabs (Item.Active)
                                       (Line.First
                                        .. Line.First + Line.Count - 1),
@@ -171,7 +186,8 @@ package body Typeset.Views is
                               end;
                            else
                               Glyph_Atlas.Draw
-                                (Item.Atlas, Item.Reg, Target, Item.Scratch,
+                                (Atlas_Ref.all, Reg_Ref.all, Target,
+                                 Item.Scratch,
                                  X => Left, Baseline => Baseline,
                                  Scale => Scale, Size => Font_Size * Scale,
                                  Value => Value, Settled => Settled);
@@ -183,7 +199,7 @@ package body Typeset.Views is
             end;
          end loop;
       end;
-      Glyph_Atlas.Flush (Item.Atlas, Target);
+      Glyph_Atlas.Flush (Atlas_Ref.all, Target);
    end Draw;
 
    function Lines_Drawn (Item : View) return Natural is (Item.Drawn);
@@ -191,7 +207,13 @@ package body Typeset.Views is
    function Lines_Shaped (Item : View) return Natural is (Item.Shaped);
 
    function Glyphs_Made (Item : View) return Natural is
-     (Glyph_Atlas.Glyphs_Made (Item.Atlas));
+   begin
+      if Item.Shared /= null then
+         return Glyph_Atlas.Glyphs_Made (Item.Shared.Atlas);
+      else
+         return Glyph_Atlas.Glyphs_Made (Item.Atlas);
+      end if;
+   end Glyphs_Made;
 
    overriding procedure Initialize (Item : in out View) is
    begin

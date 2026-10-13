@@ -407,6 +407,8 @@ package body Viewer.Build is
         (Widgets.Node (Item.Dock_Content), Yoga.All_Gutters,
          Dock_Gap * Pixels);
       for Each of Item.Windows loop
+         Items.Windows.Set_Shared
+           (Each, Item.Doc_Resources'Unchecked_Access);
          Items.Windows.Build
            (Each, Item.Canvas_View, Item.Dock_Content, Colors, Toolbar,
             Pixels);
@@ -656,6 +658,8 @@ package body Viewer.Build is
          Set_Flex_Grow (Widgets.Node (Each.Heading), 1.0);
          Set_Width (Widgets.Node (Each.Heading), 0.0);
          Set_Height (Widgets.Node (Each.Heading), Page_Head * Pixels);
+         Text_Fields.Set_Shared
+           (Each.Title_Field, Item.Doc_Resources'Unchecked_Access);
          Text_Fields.Configure
            (Each.Title_Field, UI.Line_Texts.Interface_Font,
             UI.Line_Texts.Heading_Size);
@@ -693,6 +697,8 @@ package body Viewer.Build is
          Set_Padding
            (Widgets.Node (Each.Sheet), Yoga.Bottom,
             (Page_Top - Page_Text_Inset) * Pixels + Offset);
+         Editors.Set_Shared
+           (Each.Text, Item.Doc_Resources'Unchecked_Access);
          Editors.Configure
            (Each.Text, UI.Line_Texts.Serif, Page_Text_Size, 2000.0,
             Spacing => 0.35 * Page_Text_Size);
@@ -1128,6 +1134,8 @@ package body Viewer.Build is
       Buttons.Set_Label (Item.Ok_Button, "OK");
       Buttons.Set_Kind (Item.Ok_Button, Buttons.Primary);
       Buttons.Set_Label (Item.Cancel_Button, "Cancel");
+      Text_Fields.Set_Shared
+        (Item.Edit_Field, Item.Doc_Resources'Unchecked_Access);
       Text_Fields.Configure
         (Item.Edit_Field, UI.Line_Texts.Interface_Font, Edit_Size);
 

@@ -124,6 +124,14 @@ package body Items.Windows is
                + Natural'Min (Message'Length, Labels.Text_Capacity)));
    --  As much as a label takes.
 
+   procedure Set_Shared
+     (Item   : in out Window;
+      Shared : not null Shared_Access) is
+   begin
+      Text_Fields.Set_Shared (Item.Title_Field, Shared);
+      Editors.Set_Shared (Item.Body_Text, Shared);
+   end Set_Shared;
+
    procedure Build
      (Item    : in out Window;
       Canvas  : in out Widgets.Widget'Class;
