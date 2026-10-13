@@ -3,7 +3,9 @@ with SDL3.Events;
 with SDL3.Windows.Renderers;
 
 --  A slider to drag: a track with a knob on it, whose place along the
---  track is a value from 0.0, at the left, to 1.0, at the right.
+--  track is a value from 0.0, at the left, to 1.0, at the right. The
+--  track is a groove, sunk into what it is on; the knob stands up from
+--  it, bevelled, and is pressed in while it is held.
 --
 --  A press of the left button on it moves the knob to the pointer, and
 --  starts a drag, which lasts until the button is let go, wherever the

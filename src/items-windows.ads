@@ -367,7 +367,12 @@ private
       Close_Button : UI.Widgets.Buttons.Button;
       Body_Text    : UI.Widgets.Editors.Editor;
       --  The text of a note. Of a source it is one line, its link, which
-      --  a text area costs too much to have another of.
+      --  a text area costs too much to have another of: a field with an
+      --  icon of a link before it, a hint while it is empty, and room at
+      --  its right for Fetch_Button.
+      Fetch_Button : UI.Widgets.Buttons.Button;
+      --  Of a source whose picture has not been taken, over the right of
+      --  its link: takes it, as Return does.
       Zoom_Slider  : UI.Widgets.Sliders.Slider;
       Zoom_Button  : UI.Widgets.Buttons.Button;
       --  Of a source, in its status line: a slider to zoom its picture,

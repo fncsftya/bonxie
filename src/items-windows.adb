@@ -67,6 +67,10 @@ package body Items.Windows is
      [0.5, 0.75, 1.0, 1.5, 2.0, 3.0];
    --  The menu's, in two rows of three.
    Url_Height    : constant Float := 30.0;
+   Fetch_Width   : constant Float := 40.0;
+   Fetch_Height  : constant Float := 22.0;
+   Fetch_Inset   : constant Float := 4.0;
+   --  The button to take the picture of a link, at the right of it.
    Compact_Below : constant Float := 0.75;
    --  Under this zoom a window shows only what it says: no status line,
    --  and a source no link.
@@ -266,6 +270,7 @@ package body Items.Windows is
       Grips.Set_Wanted_Cursor (Item.Corner, SDL3.Cursors.Resize);
       Size (Item.Corner, Corner_Size, Status_Height);
       Widgets.Add (Item.Frame, Item.Zoom_Menu);
+      Widgets.Add (Item.Frame, Item.Fetch_Button);
       for Row in Item.Menu_Rows'Range loop
          Widgets.Add (Item.Zoom_Menu, Item.Menu_Rows (Row));
       end loop;
@@ -320,7 +325,7 @@ package body Items.Windows is
       Buttons.Set_Label (Item.Cursor_Button, "Ptr");
       Buttons.Set_Icon (Item.Cursor_Button, UI.Icons.Cursor);
       Buttons.Set_Label (Item.Marker_Button, "Mark");
-      Buttons.Set_Swatch (Item.Marker_Button, Colors.Marker);
+      Buttons.Set_Icon (Item.Marker_Button, UI.Icons.Highlighter);
       Buttons.Set_Label (Item.Eraser_Button, "Rub");
       Buttons.Set_Icon (Item.Eraser_Button, UI.Icons.Eraser);
       Buttons.Set_Selected (Item.Cursor_Button, True);
@@ -371,7 +376,18 @@ package body Items.Windows is
          Size (Item.Menu_Buttons (Which), Preset_Width, Zoom_Row_Height);
       end loop;
 
+      --  Over the right of the link, which leaves room for it (see
+      --  Show_Fetch); its top is put by Fit_Zoom.
+      Buttons.Set_Label (Item.Fetch_Button, "Add");
+      Buttons.Set_Kind (Item.Fetch_Button, Buttons.Primary);
+      Size (Item.Fetch_Button, Fetch_Width, Fetch_Height);
+      Set_Position_Type (Widgets.Node (Item.Fetch_Button), Yoga.Absolute);
+      Set_Position
+        (Widgets.Node (Item.Fetch_Button), Yoga.Right,
+         Edge + UI.Boxes.Offset (Pixels) + Fetch_Inset * Pixels);
+
       Widgets.Set_Visible (Item.Title_Field, False);
+      Widgets.Set_Visible (Item.Fetch_Button, False);
       Widgets.Set_Visible (Item.Tools, False);
       Widgets.Set_Visible (Item.Zoom_Slider, False);
       Widgets.Set_Visible (Item.Zoom_Button, False);
@@ -509,6 +525,24 @@ package body Items.Windows is
       UI.Widgets.Progress_Bars.Set_Value (Item.Progress, To);
    end Set_Progress;
 
+   procedure Show_Fetch (Item : in out Window);
+   --  Show the button to take the picture of a source's link, and leave
+   --  room for it, while there is none and the link is shown.
+
+   procedure Show_Fetch (Item : in out Window) is
+      Wanted : constant Boolean :=
+        Item.Details.Kind = Source and then Item.Details.Captured_At = 0
+        and then Item.Zoom >= Compact_Below;
+   begin
+      if Wanted /= Widgets.Is_Visible (Item.Fetch_Button) then
+         Widgets.Set_Visible (Item.Fetch_Button, Wanted);
+         UI.Text_Areas.Set_Trail
+           (Editors.Area (Item.Body_Text).all,
+            (if Wanted then Fetch_Width + Fetch_Inset else 0.0));
+         Widgets.Request_Layout (Item.Body_Text);
+      end if;
+   end Show_Fetch;
+
    procedure Set_Capture
      (Item   : in out Window;
       To     : Captures;
@@ -531,6 +565,7 @@ package body Items.Windows is
             UI.Widgets.Pictures.Clear_Marks (Item.Picture);
             UI.Widgets.Pictures.Set_File (Item.Picture, File);
             Labels.Set_Text (Item.Status, "Captured " & Day (At_Time));
+            Show_Fetch (Item);
          when Failed =>
             Labels.Set_Text
               (Item.Status, Fitted ("Failed: " & Detail));
@@ -810,6 +845,12 @@ package body Items.Windows is
       Set_Margin
         (Widgets.Node (Item.Tag), Yoga.Right, Tag_Gap * Chrome * Pixels);
       Labels.Set_Scale (Item.Title_Label, Chrome);
+      Set_Position
+        (Widgets.Node (Item.Fetch_Button), Yoga.Top,
+         Float'Max (1.0, Float'Rounding (Outline * Pixels))
+         + (Bar_Height * Chrome + (Url_Height - Fetch_Height) / 2.0)
+           * Pixels);
+      Show_Fetch (Item);
       Widgets.Request_Layout (Item.Frame);
    end Fit_Zoom;
 
@@ -838,6 +879,13 @@ package body Items.Windows is
       Widgets.Set_Visible (Item.Tag, Of_Source);
       UI.Text_Areas.Set_Single_Line
         (Editors.Area (Item.Body_Text).all, Of_Source);
+      if Of_Source then
+         Editors.Set_Icon (Item.Body_Text, UI.Icons.Link);
+         Editors.Set_Placeholder (Item.Body_Text, "https://");
+      else
+         Editors.Clear_Icon (Item.Body_Text);
+         Editors.Set_Placeholder (Item.Body_Text, "");
+      end if;
       Set_Flex_Grow (Node, (if Of_Source then 0.0 else 1.0));
       Set_Height (Node, (if Of_Source then Url_Height * Item.Pixels else 0.0));
       Widgets.Set_Visible (Item.Speak_Button, not Of_Source);
@@ -1118,7 +1166,8 @@ package body Items.Windows is
       if Item.Details.Kind = Source and then Item.Details.State = Open then
          UI.Text_Areas.Take_Return
            (Editors.Area (Item.Body_Text).all, Entered);
-         if Entered then
+         Buttons.Take_Click (Item.Fetch_Button, Clicked);
+         if Entered or else Clicked then
             Action := Capture;
             return;
          end if;

@@ -34,18 +34,33 @@ sidebar, behind the pages), card tint #D6DCD9 (status lines, a card's
 foot). Button grey #A9B1AD. Slate bars #4F5B56 (the top bar, the windows'
 title bars, the tray).
 
-Green #27722D (the main, positive action, as New project), red #C62828
-(what cannot be undone, as deleting), active orange #E5A15F (what is
-chosen or typed in: a tab, a tool, the ring round a window), highlight
-yellow #FFD428, source-tag blue #2563D4 (the first of the sources'
-colours, `Style.Source_Inks`).
+Green #27722D (the main action, as New project, Add source, OK), grey
+#A9B1AD (every other button), red #C62828 (what cannot be undone, as
+deleting), active orange #E5A15F (what is chosen or switched on: a tab, a
+tool, a toggle, the ring round a window; and the caret), highlight yellow
+#FFD428, blue #2563D4 (the ring of the keyboard's focus, as round a field
+being typed in; and the first of the sources' colours,
+`Style.Source_Inks`). Ink #111111.
 
 Border #8A928E, shadow #AEB6B2.
 
 Shape: no border radius anywhere; 1px borders; shadows only solid and
 offset (3px 3px 0), never blurred or a gradient (`UI.Boxes`: the shadow is
 inside a box's own bounds, so pad what is in it clear of the right and
-foot). Buttons are flat: a face and an outline, no bevel.
+foot).
+
+Controls stand up (`UI.Boxes.Draw_Raised`): a face, outlined, bevelled
+(a light 1px edge at its top and left, a dark one at its foot and right:
+`Themes.Highlight`, `Themes.Shade`; flat colours) and a small solid shadow
+(2px 2px, `Themes.Drop`), as `inset 1px 1px 0 light, inset -1px -1px 0
+dark, 2px 2px 0 shadow`. Pressed, the insets swap, the shadow goes and the
+face moves 1px down and right; a toggle that is on stays pressed, in
+orange. Turned off, a control is flat and dull (`Themes.Dull`). Grooves and
+the boxes to tick are sunk (the bevel the other way). Fields are white,
+outlined; with the focus, outlined in blue, 2px; invalid, in red.
+
+The widgets, in `ui/src`, are drawn on one board by the `sheet-*` tests
+(`tests/golden/sheet-board.png`), as the design's Widgets sheet shows them.
 
 Type: Newsreader (serif) for documents and sources' text and display
 titles, Instrument Sans for the interface (`UI.Line_Texts`). Both are in

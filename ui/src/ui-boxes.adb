@@ -74,4 +74,68 @@ package body UI.Boxes is
       end if;
    end Draw;
 
+   procedure Bevel
+     (Target  : SDL3.Windows.Renderers.Renderer;
+      Face    : Themes.Color;
+      Left, Top, Width, Height : Float;
+      Density : Float;
+      Sunken  : Boolean := False)
+   is
+      Thick : constant Float := Edge (Density);
+      Lit   : constant Themes.Color :=
+        (if Sunken then Themes.Shade (Face) else Themes.Highlight (Face));
+      Dim   : constant Themes.Color :=
+        (if Sunken then Themes.Highlight (Face) else Themes.Shade (Face));
+   begin
+      if Width < 2.0 * Thick or else Height < 2.0 * Thick then
+         return;
+      end if;
+      --  The foot and right over the ends of the top and left, as a
+      --  light from the top left falls.
+      Fill_Rect (Target, Lit, Left, Top, Width, Thick);
+      Fill_Rect (Target, Lit, Left, Top, Thick, Height);
+      Fill_Rect (Target, Dim, Left, Top + Height - Thick, Width, Thick);
+      Fill_Rect (Target, Dim, Left + Width - Thick, Top, Thick, Height);
+   end Bevel;
+
+   procedure Raised_Face
+     (Item    : Raised_Look;
+      Left, Top, Width, Height : Float;
+      Density : Float;
+      Face_Left, Face_Top, Face_Width, Face_Height : out Float)
+   is
+      Room  : constant Float := Lift (Density);
+      Moved : constant Float :=
+        (if Item.Pressed and then not Item.Flat then Shift (Density)
+         else 0.0);
+   begin
+      Face_Left := Left + Moved;
+      Face_Top := Top + Moved;
+      Face_Width := Float'Max (0.0, Width - Room);
+      Face_Height := Float'Max (0.0, Height - Room);
+   end Raised_Face;
+
+   procedure Draw_Raised
+     (Target  : SDL3.Windows.Renderers.Renderer;
+      Item    : Raised_Look;
+      Left, Top, Width, Height : Float;
+      Density : Float)
+   is
+      Thick : constant Float := Edge (Density);
+      Room  : constant Float := Lift (Density);
+      X, Y, Wide, High : Float;
+   begin
+      Raised_Face (Item, Left, Top, Width, Height, Density, X, Y, Wide, High);
+      if not Item.Pressed and then not Item.Flat then
+         Fill_Rect (Target, Item.Drop, Left + Room, Top + Room, Wide, High);
+      end if;
+      Fill_Rect (Target, Item.Face, X, Y, Wide, High);
+      Outline (Target, Item.Border, X, Y, Wide, High, Thick);
+      if not Item.Flat then
+         Bevel (Target, Item.Face, X + Thick, Y + Thick,
+                Wide - 2.0 * Thick, High - 2.0 * Thick, Density,
+                Sunken => Item.Pressed);
+      end if;
+   end Draw_Raised;
+
 end UI.Boxes;

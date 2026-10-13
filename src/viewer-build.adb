@@ -174,13 +174,11 @@ package body Viewer.Build is
       Buttons.Set_Icon (Item.New_Button, UI.Icons.Plus);
       Buttons.Set_Captioned (Item.New_Button, True);
       Buttons.Set_Kind (Item.New_Button, Buttons.Primary);
-      Buttons.Set_Raised (Item.New_Button, True);
       Set_Height (Widgets.Node (Item.New_Button), Action_Height * Pixels);
       Set_Flex_Grow (Widgets.Node (Item.Side_Room), 1.0);
       Buttons.Set_Label (Item.Settings_Button, "Settings");
       Buttons.Set_Icon (Item.Settings_Button, UI.Icons.Settings);
       Buttons.Set_Captioned (Item.Settings_Button, True);
-      Buttons.Set_Raised (Item.Settings_Button, True);
       Set_Height
         (Widgets.Node (Item.Settings_Button), Action_Height * Pixels);
       Panels.Set_Fill (Item.Home_Rule, Colors.Border);
@@ -501,6 +499,7 @@ package body Viewer.Build is
             --  Each row casts a shadow, inside its box: it is that much
             --  taller, and the gap less.
             Grips.Set_Fill (Each.Row, Row_Fill);
+            Grips.Set_Hover_Fill (Each.Row, Row_Hover);
             Grips.Set_Border (Each.Row, Colors.Border);
             Grips.Set_Shadow (Each.Row, Side_Fill);
             Grips.Set_Wanted_Cursor (Each.Row, SDL3.Cursors.Pointer);
@@ -576,23 +575,8 @@ package body Viewer.Build is
            (Each, Item.Write_View, Colors, Toolbar, Pixels);
       end loop;
       Widgets.Add (Item.Write_View, Item.Menu);
-      Widgets.Add (Item.Menu, Item.Menu_None);
-      for Each of Item.Menu_Rows loop
-         Widgets.Add (Item.Menu, Each);
-         Set_Height (Widgets.Node (Each), Index_Height * Pixels);
-         Set_Width (Widgets.Node (Each), Menu_Width * Pixels);
-      end loop;
-      Panels.Set_Fill (Item.Menu, Colors.Border);
-      Panels.Set_Shadow (Item.Menu, Colors.Shadow);
       Set_Position_Type (Widgets.Node (Item.Menu), Yoga.Absolute);
-      Set_Flex_Direction (Widgets.Node (Item.Menu), Yoga.Column);
-      Set_Padding (Widgets.Node (Item.Menu), Yoga.All_Edges, Edge);
-      Set_Padding (Widgets.Node (Item.Menu), Yoga.Right, Edge + Offset);
-      Set_Padding (Widgets.Node (Item.Menu), Yoga.Bottom, Edge + Offset);
-      Set_Gap (Widgets.Node (Item.Menu), Yoga.All_Gutters, Edge);
-      Labels.Set_Text (Item.Menu_None, "No linked sources");
-      Set_Width (Widgets.Node (Item.Menu_None), Menu_Width * Pixels);
-      Set_Height (Widgets.Node (Item.Menu_None), Index_Height * Pixels);
+      Set_Width (Widgets.Node (Item.Menu), Menu_Width * Pixels);
       Widgets.Set_Visible (Item.Menu, False);
       Items.Readers.Build
         (Item.Pane_Reader, Item.Pane_Body, Colors, Toolbar, Pixels,
@@ -677,9 +661,7 @@ package body Viewer.Build is
          Set_Height (Widgets.Node (Each.Title_Field), Title_Height * Pixels);
          Widgets.Set_Visible (Each.Title_Field, False);
          Buttons.Set_Label (Each.Sources_Button, "Sources");
-         Buttons.Set_Icon (Each.Sources_Button, UI.Icons.Link);
-         Buttons.Set_Icon_Size (Each.Sources_Button, Mic_Icon_Size);
-         Buttons.Set_Captioned (Each.Sources_Button, True);
+         Buttons.Set_Dropdown (Each.Sources_Button, True);
          Set_Width
            (Widgets.Node (Each.Sources_Button), Sources_Width * Pixels);
          Set_Height
@@ -737,6 +719,70 @@ package body Viewer.Build is
       Widgets.Set_Visible (Item.Pane, False);
    end Build_Write;
 
+   procedure Build_Dialog_Bar
+     (Item  : in out Session;
+      Bar   : in out Panels.Panel;
+      Named : in out Labels.Label;
+      Close : in out Buttons.Button;
+      Name  : String);
+   --  Style the dark bar across the top of a dialog, as a window's: its
+   --  title, white, and a small button to close it, at the right.
+
+   procedure Build_Dialog_Bar
+     (Item  : in out Session;
+      Bar   : in out Panels.Panel;
+      Named : in out Labels.Label;
+      Close : in out Buttons.Button;
+      Name  : String)
+   is
+      use Yoga.Nodes;
+      Pixels : constant Float := Item.Density;
+   begin
+      Panels.Set_Fill (Bar, Toolbar);
+      Set_Flex_Direction (Widgets.Node (Bar), Yoga.Row);
+      Set_Align_Items (Widgets.Node (Bar), Yoga.Center);
+      Set_Height (Widgets.Node (Bar), Dialog_Bar_Height * Pixels);
+      Set_Flex_Shrink (Widgets.Node (Bar), 0.0);
+      Set_Padding
+        (Widgets.Node (Bar), Yoga.Horizontal, Dialog_Bar_Pad * Pixels);
+      Labels.Set_Text (Named, Name);
+      Labels.Set_Style (Named, UI.Line_Texts.Strong);
+      Labels.Set_Ink (Named, Themes.White);
+      Set_Flex_Grow (Widgets.Node (Named), 1.0);
+      Set_Width (Widgets.Node (Named), 0.0);
+      Set_Height (Widgets.Node (Named), Dialog_Bar_Height * Pixels);
+      Buttons.Set_Label (Close, "Close");
+      Buttons.Set_Icon (Close, UI.Icons.Close);
+      Buttons.Set_Icon_Size (Close, Dialog_Close_Icon);
+      Set_Width (Widgets.Node (Close), Dialog_Close_Size * Pixels);
+      Set_Height (Widgets.Node (Close), Dialog_Close_Size * Pixels);
+      Set_Flex_Shrink (Widgets.Node (Close), 0.0);
+   end Build_Dialog_Bar;
+
+   procedure Build_Border
+     (Item : in out Session; Border : in out Panels.Panel);
+   --  Style the outline round a dialog, which casts a shadow it leaves
+   --  room for.
+
+   procedure Build_Border
+     (Item : in out Session; Border : in out Panels.Panel)
+   is
+      use Yoga.Nodes;
+      Pixels : constant Float := Item.Density;
+   begin
+      Panels.Set_Fill (Border, Colors.Border);
+      Panels.Set_Shadow (Border, Colors.Shadow);
+      Set_Flex_Direction (Widgets.Node (Border), Yoga.Column);
+      Set_Padding
+        (Widgets.Node (Border), Yoga.All_Edges, UI.Boxes.Edge (Pixels));
+      Set_Padding
+        (Widgets.Node (Border), Yoga.Right,
+         UI.Boxes.Edge (Pixels) + UI.Boxes.Offset (Pixels));
+      Set_Padding
+        (Widgets.Node (Border), Yoga.Bottom,
+         UI.Boxes.Edge (Pixels) + UI.Boxes.Offset (Pixels));
+   end Build_Border;
+
    procedure Build_Modal (Item : in out Session);
    --  Add and style the dialog to confirm a deletion: over all else.
 
@@ -746,26 +792,33 @@ package body Viewer.Build is
    begin
       Widgets.Add (Item.Window_Panel, Item.Overlay);
       Widgets.Add (Item.Overlay, Item.Dialog_Border);
+      Widgets.Add (Item.Dialog_Border, Item.Dialog_Bar);
+      Widgets.Add (Item.Dialog_Bar, Item.Dialog_Title);
+      Widgets.Add (Item.Dialog_Bar, Item.Dialog_Close);
       Widgets.Add (Item.Dialog_Border, Item.Dialog);
       Widgets.Add (Item.Dialog, Item.Confirm_Message);
-      Widgets.Add (Item.Dialog, Item.Confirm_Name);
       Widgets.Add (Item.Dialog, Item.Confirm_Note);
-      Widgets.Add (Item.Dialog, Item.Confirm_Buttons);
+      Widgets.Add (Item.Dialog_Border, Item.Dialog_Rule);
+      Widgets.Add (Item.Dialog_Border, Item.Confirm_Buttons);
       Widgets.Add (Item.Confirm_Buttons, Item.Confirm_Cancel);
       Widgets.Add (Item.Confirm_Buttons, Item.Confirm_Delete);
 
       Panels.Set_Fill (Item.Overlay, UI.Themes.Scrim (Colors));
-      Panels.Set_Fill (Item.Dialog_Border, Colors.Border);
-      Panels.Set_Shadow (Item.Dialog_Border, Colors.Shadow);
-      Panels.Set_Fill (Item.Dialog, Colors.Background);
-      Labels.Set_Text (Item.Confirm_Message, "Delete this project?");
+      Build_Border (Item, Item.Dialog_Border);
+      Build_Dialog_Bar
+        (Item, Item.Dialog_Bar, Item.Dialog_Title, Item.Dialog_Close,
+         "Delete project");
+      Panels.Set_Fill (Item.Dialog, Paper);
       Labels.Set_Text (Item.Confirm_Note, "This cannot be undone.");
       Buttons.Set_Label (Item.Confirm_Cancel, "Cancel");
       Buttons.Set_Label (Item.Confirm_Delete, "Delete");
+      Buttons.Set_Icon (Item.Confirm_Delete, UI.Icons.Delete);
+      Buttons.Set_Icon_Size (Item.Confirm_Delete, Mic_Icon_Size);
+      Buttons.Set_Captioned (Item.Confirm_Delete, True);
       Buttons.Set_Kind (Item.Confirm_Delete, Buttons.Danger);
-      Labels.Set_Style (Item.Confirm_Message, UI.Line_Texts.Heading);
-      Labels.Set_Style (Item.Confirm_Name, UI.Line_Texts.Strong);
-      Labels.Set_Ink (Item.Confirm_Note, Quiet_Ink);
+      Panels.Set_Fill (Item.Dialog_Rule, Colors.Border);
+      Set_Height (Widgets.Node (Item.Dialog_Rule), UI.Boxes.Edge (Pixels));
+      Panels.Set_Fill (Item.Confirm_Buttons, Colors.Tint);
 
       --  Not in the layout of the screens: over them, all of the window,
       --  with the dialog in the middle.
@@ -778,30 +831,24 @@ package body Viewer.Build is
       Set_Align_Items (Widgets.Node (Item.Overlay), Yoga.Center);
 
       Set_Width (Widgets.Node (Item.Dialog_Border), Dialog_Width * Pixels);
-      Set_Padding
-        (Widgets.Node (Item.Dialog_Border), Yoga.All_Edges,
-         UI.Boxes.Edge (Pixels));
-      Set_Padding
-        (Widgets.Node (Item.Dialog_Border), Yoga.Right,
-         UI.Boxes.Edge (Pixels) + UI.Boxes.Offset (Pixels));
-      Set_Padding
-        (Widgets.Node (Item.Dialog_Border), Yoga.Bottom,
-         UI.Boxes.Edge (Pixels) + UI.Boxes.Offset (Pixels));
       Set_Flex_Direction (Widgets.Node (Item.Dialog), Yoga.Column);
       Set_Padding
         (Widgets.Node (Item.Dialog), Yoga.All_Edges, Dialog_Pad * Pixels);
-      Set_Gap (Widgets.Node (Item.Dialog), Yoga.All_Gutters, Gap * Pixels);
       Set_Height (Widgets.Node (Item.Confirm_Message), Dialog_Line * Pixels);
-      Set_Height (Widgets.Node (Item.Confirm_Name), Dialog_Line * Pixels);
       Set_Height (Widgets.Node (Item.Confirm_Note), Dialog_Line * Pixels);
 
       Set_Flex_Direction (Widgets.Node (Item.Confirm_Buttons), Yoga.Row);
       Set_Justify_Content (Widgets.Node (Item.Confirm_Buttons), Yoga.Flex_End);
-      Set_Height
-        (Widgets.Node (Item.Confirm_Buttons), Dialog_Button_Height * Pixels);
+      Set_Padding
+        (Widgets.Node (Item.Confirm_Buttons), Yoga.All_Edges,
+         Dialog_Foot_Pad * Pixels);
       Set_Gap
         (Widgets.Node (Item.Confirm_Buttons), Yoga.All_Gutters,
          Row_Gap * Pixels);
+      Set_Height
+        (Widgets.Node (Item.Confirm_Cancel), Dialog_Button_Height * Pixels);
+      Set_Height
+        (Widgets.Node (Item.Confirm_Delete), Dialog_Button_Height * Pixels);
       Set_Width
         (Widgets.Node (Item.Confirm_Cancel), Dialog_Button_Width * Pixels);
       Set_Width
@@ -817,10 +864,10 @@ package body Viewer.Build is
    begin
       Widgets.Add (Item.Window_Panel, Item.List_Overlay);
       Widgets.Add (Item.List_Overlay, Item.List_Border);
-      Widgets.Add (Item.List_Border, Item.List_Dialog);
-      Widgets.Add (Item.List_Dialog, Item.List_Head);
+      Widgets.Add (Item.List_Border, Item.List_Head);
       Widgets.Add (Item.List_Head, Item.List_Heading);
       Widgets.Add (Item.List_Head, Item.List_Close);
+      Widgets.Add (Item.List_Border, Item.List_Dialog);
       Widgets.Add (Item.List_Dialog, Item.List_Scroll);
       Widgets.Add (Item.List_Scroll, Item.List_Content);
       Widgets.Add (Item.List_Content, Item.List_None);
@@ -833,12 +880,10 @@ package body Viewer.Build is
       end loop;
 
       Panels.Set_Fill (Item.List_Overlay, UI.Themes.Scrim (Colors));
-      Panels.Set_Fill (Item.List_Border, Colors.Border);
-      Panels.Set_Shadow (Item.List_Border, Colors.Shadow);
-      Panels.Set_Fill (Item.List_Dialog, Colors.Background);
-      Labels.Set_Text (Item.List_Heading, "Items");
-      Labels.Set_Style (Item.List_Heading, UI.Line_Texts.Heading);
-      Buttons.Set_Label (Item.List_Close, "Close");
+      Build_Border (Item, Item.List_Border);
+      Build_Dialog_Bar
+        (Item, Item.List_Head, Item.List_Heading, Item.List_Close, "Items");
+      Panels.Set_Fill (Item.List_Dialog, Paper);
       Labels.Set_Text (Item.List_None, No_Items);
 
       Set_Position_Type (Widgets.Node (Item.List_Overlay), Yoga.Absolute);
@@ -851,33 +896,14 @@ package body Viewer.Build is
 
       Set_Width (Widgets.Node (Item.List_Border), List_Width * Pixels);
       Set_Height (Widgets.Node (Item.List_Border), List_Height * Pixels);
-      Set_Padding
-        (Widgets.Node (Item.List_Border), Yoga.All_Edges,
-         UI.Boxes.Edge (Pixels));
-      Set_Padding
-        (Widgets.Node (Item.List_Border), Yoga.Right,
-         UI.Boxes.Edge (Pixels) + UI.Boxes.Offset (Pixels));
-      Set_Padding
-        (Widgets.Node (Item.List_Border), Yoga.Bottom,
-         UI.Boxes.Edge (Pixels) + UI.Boxes.Offset (Pixels));
       Set_Flex_Direction (Widgets.Node (Item.List_Dialog), Yoga.Column);
       Set_Flex_Grow (Widgets.Node (Item.List_Dialog), 1.0);
+      Set_Height (Widgets.Node (Item.List_Dialog), 0.0);
       Set_Padding
         (Widgets.Node (Item.List_Dialog), Yoga.All_Edges, Dialog_Pad * Pixels);
-      Set_Gap
-        (Widgets.Node (Item.List_Dialog), Yoga.All_Gutters, Gap * Pixels);
 
-      Set_Flex_Direction (Widgets.Node (Item.List_Head), Yoga.Row);
-      Set_Align_Items (Widgets.Node (Item.List_Head), Yoga.Center);
-      Set_Height (Widgets.Node (Item.List_Head), Title_Height * Pixels);
-      Set_Flex_Grow (Widgets.Node (Item.List_Heading), 1.0);
-      Set_Width (Widgets.Node (Item.List_Heading), 0.0);
-      Set_Height (Widgets.Node (Item.List_Heading), Title_Height * Pixels);
-      Set_Width (Widgets.Node (Item.List_Close), Close_Width * Pixels);
-      Set_Height (Widgets.Node (Item.List_Close), Close_Height * Pixels);
-
-      --  The scroller takes what the heading leaves; the rows go in a
-      --  column in it, as tall as they are.
+      --  The scroller takes what the bar leaves; the rows go in a column
+      --  in it, as tall as they are.
       Set_Flex_Grow (Widgets.Node (Item.List_Scroll), 1.0);
       Set_Height (Widgets.Node (Item.List_Scroll), 0.0);
       Set_Flex_Direction (Widgets.Node (Item.List_Content), Yoga.Column);
@@ -885,7 +911,7 @@ package body Viewer.Build is
       --  Room at the right for the scroll bar.
       Set_Padding
         (Widgets.Node (Item.List_Content), Yoga.Right,
-         (UI.Scrollbars.Near_Thickness + 2.0 * UI.Scrollbars.Margin) * Pixels);
+         UI.Scrollbars.Thickness * Pixels);
       Set_Gap
         (Widgets.Node (Item.List_Content), Yoga.All_Gutters,
          List_Gap * Pixels);
@@ -957,6 +983,7 @@ package body Viewer.Build is
       Build_List (Item);
 
       Buttons.Set_Label (Item.Ok_Button, "OK");
+      Buttons.Set_Kind (Item.Ok_Button, Buttons.Primary);
       Buttons.Set_Label (Item.Cancel_Button, "Cancel");
       Text_Fields.Configure
         (Item.Edit_Field, UI.Line_Texts.Interface_Font, Edit_Size);

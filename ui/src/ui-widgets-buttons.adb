@@ -4,12 +4,15 @@ with UI.Boxes;
 package body UI.Widgets.Buttons is
 
    use type SDL3.Events.Event_Kind;
+   use type SDL3.Events.Key_Code;
    use SDL3.Windows.Renderers;
 
    Icon_Size : constant := 16.0;  --  in points, a side
    Caption_Gap : constant := 7.0;  --  between an icon and its label
    Badge_Size : constant := 16.0;  --  in points, a side
    Badge_Gap  : constant := 6.0;   --  between the label and the badge
+   Caret_Size : constant := 10.0;  --  in points, a side, of a dropdown's
+   Ring_Width : constant := 2.0;   --  in points, of the ring of the focus
    White : constant Themes.Color := Themes.White;
    --  For an icon on a button of a colour of its own.
 
@@ -67,16 +70,6 @@ package body UI.Widgets.Buttons is
 
    function Has_Icon (Item : Button) return Boolean is (Item.Picture);
 
-   procedure Set_Raised (Item : in out Button; To : Boolean) is
-   begin
-      if To /= Item.Raised then
-         Item.Raised := To;
-         if Is_Attached (Item) then
-            Invalidate (Item);
-         end if;
-      end if;
-   end Set_Raised;
-
    procedure Set_Badge (Item : in out Button; Count : Natural) is
    begin
       if Count /= Item.Badge then
@@ -109,6 +102,56 @@ package body UI.Widgets.Buttons is
 
    function Is_Selected (Item : Button) return Boolean is (Item.Selected);
 
+   procedure Set_Dropdown (Item : in out Button; To : Boolean) is
+   begin
+      if To /= Item.Dropdown then
+         Item.Dropdown := To;
+         if Is_Attached (Item) then
+            Invalidate (Item);
+         end if;
+      end if;
+   end Set_Dropdown;
+
+   function Is_Dropdown (Item : Button) return Boolean is (Item.Dropdown);
+
+   procedure Set_Enabled (Item : in out Button; To : Boolean) is
+   begin
+      if To /= Item.Enabled then
+         Item.Enabled := To;
+         if not To then
+            Item.Down := False;
+            Item.Clicked := False;
+            if Is_Attached (Item) and then Has_Focus (Item) then
+               Release_Focus (Item);
+            end if;
+         end if;
+         if Is_Attached (Item) then
+            Invalidate (Item);
+         end if;
+      end if;
+   end Set_Enabled;
+
+   function Is_Enabled (Item : Button) return Boolean is (Item.Enabled);
+
+   procedure Set_Focusable (Item : in out Button; To : Boolean) is
+   begin
+      Item.Focusable := To;
+      if not To and then Is_Attached (Item) and then Has_Focus (Item) then
+         Release_Focus (Item);
+      end if;
+   end Set_Focusable;
+
+   overriding function Accepts_Focus (Item : Button) return Boolean is
+     (Item.Focusable and then Item.Enabled);
+
+   overriding procedure Focus_Changed
+     (Item : in out Button; Focused : Boolean)
+   is
+      pragma Unreferenced (Focused);
+   begin
+      Invalidate (Item);
+   end Focus_Changed;
+
    function Kind_Of (Item : Button) return Kind is (Item.Style);
 
    function Label (Item : Button) return String is
@@ -133,7 +176,20 @@ package body UI.Widgets.Buttons is
                   Event.Mouse_Y * Density (Item));
    begin
       Handled := False;
+      if not Item.Enabled then
+         return;
+      end if;
       case Event.Kind is
+         when SDL3.Events.Key_Down =>
+            --  Only with the focus: keys come to others as shortcuts.
+            if Has_Focus (Item)
+              and then (Event.Key = SDL3.Events.Key_Return
+                        or else Event.Key = SDL3.Events.Key_Space)
+              and then not Event.Command
+            then
+               Item.Clicked := True;
+               Handled := True;
+            end if;
          when SDL3.Events.Mouse_Down =>
             if Event.Button = 1 and then Over then
                Item.Down := True;
@@ -177,44 +233,48 @@ package body UI.Widgets.Buttons is
       Target : SDL3.Windows.Renderers.Renderer;
       Colors : Themes.Theme)
    is
-      Pixels : constant Float := Density (Item);
-      Pressed : constant Boolean := Is_Pressed (Item);
-      Hovered : constant Boolean := Is_Hovered (Item);
+      Pixels  : constant Float := Density (Item);
+      Edge    : constant Float := UI.Boxes.Edge (Pixels);
+      Pressed : constant Boolean := Item.Enabled and then Is_Pressed (Item);
+      Hovered : constant Boolean := Item.Enabled and then Is_Hovered (Item);
+      Toggled : constant Boolean := Item.Selected and then not Item.Dropdown;
+      --  Pressed in, in the accent; an open dropdown is in its own face.
       Base  : constant Themes.Color :=
         (case Item.Style is
             when Primary => Colors.Primary,
             when Danger  => Colors.Danger,
             when Normal | Quiet =>
-              (if Item.Selected then Colors.Accent else Colors.Face));
+              (if Toggled then Colors.Accent else Colors.Face));
       Face  : constant Themes.Color :=
-        (if Pressed then Themes.Mix (Base, Colors.Foreground, 0.18)
+        (if not Item.Enabled then Themes.Dull (Colors, Base)
+         elsif Pressed then Themes.Mix (Base, Colors.Foreground, 0.12)
          elsif not Hovered then Base
          elsif Item.Style in Primary | Danger
-         then Themes.Mix (Base, Colors.Foreground, 0.12)
+         then Themes.Mix (Base, White, 0.12)
          else Themes.Mix (Base, White, 0.22));
       Ink   : constant Themes.Color :=
         (case Item.Style is
-            when Primary | Danger => White,
+            when Primary | Danger =>
+              (if Item.Enabled then White else Themes.Mix (White, Face, 0.3)),
             when Quiet =>
               (if Hovered or else Item.Selected then White
                else Themes.Mix (Colors.Face, White, 0.35)),
-            when Normal => Colors.Foreground);
-      Look  : constant UI.Boxes.Look :=
-        (Filled   => Item.Style /= Quiet,
-         Fill     => Face,
-         Bordered => Item.Style /= Quiet,
-         Border   =>
-           (if Item.Style = Normal and then not Item.Selected
-            then Colors.Border
-            else Themes.Mix (Base, Colors.Foreground, 0.3)),
-         Dashed   => False,
-         Shadowed => Item.Raised,
-         Shadow   => Colors.Shadow);
-      Off   : constant Float := UI.Boxes.Inset (Look, Pixels);
-      Wide_Box : constant Float := Width_Of (Item) - Off;
-      High_Box : constant Float := Height_Of (Item) - Off;
-      Shift : constant Float :=
-        (if Pressed then Float'Rounding (Pixels) else 0.0);
+            when Normal =>
+              (if Item.Enabled then Colors.Foreground
+               else Themes.Mix (Colors.Foreground, Face, 0.6)));
+      Border : constant Themes.Color :=
+        (if Item.Style = Normal and then not Toggled then Colors.Border
+         else Themes.Mix (Base, Colors.Foreground, 0.3));
+      Look  : constant UI.Boxes.Raised_Look :=
+        (Face    => Face,
+         Border  =>
+           (if Item.Enabled then Border else Themes.Dull (Colors, Border)),
+         Drop    => Themes.Drop (Colors),
+         Pressed => Pressed or else Item.Selected,
+         Flat    => not Item.Enabled);
+      Left, Top, Wide_Box, High_Box : Float;
+      --  The face, which what is on it goes with.
+      Caret_Room : Float := 0.0;
       Icon_Drawn : Boolean := False;
       Text_Left  : Float := 0.0;
       Scale : constant Positive :=
@@ -231,9 +291,62 @@ package body UI.Widgets.Buttons is
       Badge_Room : constant Float :=
         (if Badged then (Badge_Gap + Badge_Size) * Pixels else 0.0);
    begin
-      UI.Boxes.Draw
-        (Target, Look, Left_Of (Item), Top_Of (Item), Width_Of (Item),
-         Height_Of (Item), Pixels);
+      if Item.Style = Quiet then
+         --  No face: what is on it goes down and right as it is pressed.
+         declare
+            Moved : constant Float :=
+              (if Pressed then UI.Boxes.Shift (Pixels) else 0.0);
+         begin
+            Left := Left_Of (Item) + Moved;
+            Top := Top_Of (Item) + Moved;
+            Wide_Box := Width_Of (Item);
+            High_Box := Height_Of (Item);
+         end;
+      else
+         UI.Boxes.Draw_Raised
+           (Target, Look, Left_Of (Item), Top_Of (Item), Width_Of (Item),
+            Height_Of (Item), Pixels);
+         UI.Boxes.Raised_Face
+           (Look, Left_Of (Item), Top_Of (Item), Width_Of (Item),
+            Height_Of (Item), Pixels, Left, Top, Wide_Box, High_Box);
+         if Item.Focusable and then Has_Focus (Item) then
+            UI.Boxes.Outline
+              (Target, Colors.Focus, Left, Top, Wide_Box, High_Box,
+               Float'Max (1.0, Float'Rounding (Ring_Width * Pixels)));
+         end if;
+      end if;
+
+      --  A dropdown's caret, in a square of its own at the right, a groove
+      --  between it and the rest; up while it is open.
+      if Item.Dropdown and then Item.Style /= Quiet then
+         Caret_Room := Float'Rounding (High_Box);
+         declare
+            Line : constant Float := Left + Wide_Box - Caret_Room;
+            Size : constant Positive :=
+              Positive (Float'Rounding (Caret_Size * Pixels));
+            Drawn : Boolean;
+         begin
+            Fill_Rect
+              (Target, Themes.Shade (Face), Line, Top + 2.0 * Edge, Edge,
+               High_Box - 4.0 * Edge);
+            Fill_Rect
+              (Target, Themes.Highlight (Face), Line + Edge, Top + 2.0 * Edge,
+               Edge, High_Box - 4.0 * Edge);
+            if Icon_Library (Item) /= null then
+               Icons.Draw
+                 (Icon_Library (Item).all, Target,
+                  (if Item.Selected then UI.Icons.Chevron_Up
+                   else UI.Icons.Chevron_Down),
+                  Ink,
+                  Float'Rounding
+                    (Line + Edge + (Caret_Room - Edge - Float (Size)) / 2.0),
+                  Float'Rounding (Top + (High_Box - Float (Size)) / 2.0),
+                  Size, Drawn);
+            end if;
+         end;
+         Wide_Box := Wide_Box - Caret_Room;
+      end if;
+
       --  The icon, if there is one, and the label, in the middle of the
       --  face: together, icon first, if it is captioned; otherwise the
       --  label only where the icon cannot be drawn.
@@ -243,10 +356,8 @@ package body UI.Widgets.Buttons is
          begin
             Fill_Rect
               (Target, Item.Swatch,
-               Float'Rounding
-                 (Left_Of (Item) + (Wide_Box - Side) / 2.0 + Shift),
-               Float'Rounding
-                 (Top_Of (Item) + (High_Box - Side) / 2.0 + Shift),
+               Float'Rounding (Left + (Wide_Box - Side) / 2.0),
+               Float'Rounding (Top + (High_Box - Side) / 2.0),
                Side, Side);
             Icon_Drawn := True;
          end;
@@ -257,7 +368,7 @@ package body UI.Widgets.Buttons is
             Size : constant Positive :=
               Positive (Float'Rounding (Points * Pixels));
             Group_Left : constant Float :=
-              Left_Of (Item)
+              Left
               + (Wide_Box
                  - (if Together
                     then (Points + Caption_Gap) * Pixels + Span + Badge_Room
@@ -267,9 +378,8 @@ package body UI.Widgets.Buttons is
             Icons.Draw
               (Icon_Library (Item).all, Target,
                Item.Which, Ink,
-               Float'Rounding (Group_Left + Shift),
-               Float'Rounding
-                 (Top_Of (Item) + (High_Box - Float (Size)) / 2.0 + Shift),
+               Float'Rounding (Group_Left),
+               Float'Rounding (Top + (High_Box - Float (Size)) / 2.0),
                Size, Drawn);
             Icon_Drawn := Drawn;
             Text_Left := Group_Left + (Points + Caption_Gap) * Pixels;
@@ -277,20 +387,17 @@ package body UI.Widgets.Buttons is
       end if;
       if Item.Length > 0 and then (Together or else not Icon_Drawn) then
          if not (Together and then Icon_Drawn) then
-            Text_Left :=
-              Left_Of (Item) + (Wide_Box - Span - Badge_Room) / 2.0;
+            Text_Left := Left + (Wide_Box - Span - Badge_Room) / 2.0;
          end if;
          if Text_Lines (Item) /= null then
             UI.Line_Texts.Draw
               (Text_Lines (Item).all, Target, Ink, Label (Item),
-               Text_Left + Shift,
-               Top_Of (Item) + High_Box / 2.0 + Shift,
+               Text_Left, Top + High_Box / 2.0,
                Pixels, UI.Line_Texts.Strong);
          else
             Draw_Text
-              (Target, Ink, Float'Rounding (Text_Left + Shift),
-               Float'Rounding
-                 (Top_Of (Item) + (High_Box - High) / 2.0 + Shift),
+              (Target, Ink, Float'Rounding (Text_Left),
+               Float'Rounding (Top + (High_Box - High) / 2.0),
                Label (Item), Scale);
          end if;
          --  The count, white in a dark square, after the label.
@@ -299,20 +406,22 @@ package body UI.Widgets.Buttons is
                Count : constant String :=
                  Ada.Strings.Fixed.Trim (Item.Badge'Image, Ada.Strings.Both);
                Side  : constant Float := Float'Rounding (Badge_Size * Pixels);
-               Left  : constant Float :=
-                 Float'Rounding
-                   (Text_Left + Span + Badge_Gap * Pixels + Shift);
-               Top   : constant Float :=
-                 Float'Rounding
-                   (Top_Of (Item) + (High_Box - Side) / 2.0 + Shift);
+               Left_Edge : constant Float :=
+                 Float'Rounding (Text_Left + Span + Badge_Gap * Pixels);
+               Top_Edge  : constant Float :=
+                 Float'Rounding (Top + (High_Box - Side) / 2.0);
             begin
-               Fill_Rect (Target, Colors.Bar, Left, Top, Side, Side);
+               Fill_Rect
+                 (Target,
+                  (if Item.Enabled then Colors.Bar
+                   else Themes.Dull (Colors, Colors.Bar)),
+                  Left_Edge, Top_Edge, Side, Side);
                UI.Line_Texts.Draw
                  (Text_Lines (Item).all, Target, White, Count,
-                  Left + (Side - UI.Line_Texts.Width
-                                   (Text_Lines (Item).all, Count, Pixels,
-                                    UI.Line_Texts.Strong)) / 2.0,
-                  Top + Side / 2.0, Pixels, UI.Line_Texts.Strong);
+                  Left_Edge + (Side - UI.Line_Texts.Width
+                                        (Text_Lines (Item).all, Count, Pixels,
+                                         UI.Line_Texts.Strong)) / 2.0,
+                  Top_Edge + Side / 2.0, Pixels, UI.Line_Texts.Strong);
             end;
          end if;
       end if;

@@ -38,8 +38,8 @@ package body Write_Tests is
 
    Sources_Button_X : constant Float := 597.0;
    Bar_Y : constant Float := 82.0;
-   Menu_Item_X : constant Float := 545.0;
-   Menu_Item_Y : constant Float := 111.5;
+   Menu_Item_X : constant Float := 500.0;
+   Menu_Item_Y : constant Float := 138.0;
    --  The first page's Sources button, above it, and the first item of the
    --  menu under it.
 

@@ -558,16 +558,54 @@ package body Viewer.Canvas_Items is
       Widgets.Set_Visible (Item.Dock_Panel, False);
    end Leave;
 
+   procedure Make
+     (Item : in out Session;
+      Name : String;
+      Kind : Items.Kinds;
+      Made : out Natural);
+   --  Add, saying which window it is in: 0 if none was free.
+
    procedure Add
      (Item : in out Session;
       Name : String := Untitled;
       Kind : Items.Kinds := Items.Note)
    is
+      Made : Natural;
+   begin
+      Make (Item, Name, Kind, Made);
+   end Add;
+
+   procedure Add_Linked_Source (Item : in out Session; To : Items.Slot) is
+      Made  : Natural;
+      Added : Boolean;
+   begin
+      Make (Item, Untitled_Source, Items.Source, Made);
+      if Made /= 0 then
+         Items.Add_Link
+           (Item.Store,
+            (From      => Windows.Details (Item.Windows (To)).Key,
+             To        => Windows.Details (Item.Windows (Made)).Key,
+             From_Side => Items.Right,
+             To_Side   => Items.Left,
+             others    => <>),
+            Added);
+         if Added then
+            Links.Reload (Item);
+         end if;
+      end if;
+   end Add_Linked_Source;
+
+   procedure Make
+     (Item : in out Session;
+      Name : String;
+      Kind : Items.Kinds;
+      Made : out Natural)
+   is
       View   : UI.Widgets.Canvases.Canvas renames Item.Canvas_View;
       Pixels : constant Float := Widgets.Density (Item.Widgets);
-      Made   : constant Natural := Count (Item);
+      Before : constant Natural := Count (Item);
       Step   : constant Float :=
-        Float (Made mod Cascade_Count) * Cascade_Step;
+        Float (Before mod Cascade_Count) * Cascade_Step;
       Middle_X : constant Float :=
         Canvases.To_Canvas_X (View, Widgets.Width_Of (View) / Pixels / 2.0);
       Middle_Y : constant Float :=
@@ -588,6 +626,7 @@ package body Viewer.Canvas_Items is
             Free := Which;
          end if;
       end loop;
+      Made := Free;
       if Free = 0 then
          return;
       end if;
@@ -620,7 +659,7 @@ package body Viewer.Canvas_Items is
          end if;
          Writing.Added (Item, Free);
       end;
-   end Add;
+   end Make;
 
    procedure Set_State
      (Item : in out Session; Which : Items.Slot; To : Items.States) is

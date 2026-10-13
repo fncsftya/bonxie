@@ -1,10 +1,12 @@
+with UI.Boxes;
+
 package body UI.Widgets.Sliders is
 
    use type SDL3.Events.Event_Kind;
    use SDL3.Windows.Renderers;
 
-   Knob_Points  : constant Float := 8.0;
-   Track_Points : constant Float := 3.0;
+   Knob_Points  : constant Float := 9.0;
+   Track_Points : constant Float := 4.0;
    --  The knob's width, and the track's thickness, in points.
 
    function Knob_Width (Item : Slider) return Float is
@@ -107,21 +109,35 @@ package body UI.Widgets.Sliders is
       Target : SDL3.Windows.Renderers.Renderer;
       Colors : Themes.Theme)
    is
-      Left  : constant Float := Left_Of (Item);
-      High  : constant Float := Height_Of (Item);
-      Thick : constant Float :=
-        Float'Max (1.0, Float'Rounding (Track_Points * Density (Item)));
-      Wide  : constant Float := Knob_Width (Item);
-      Knob  : constant Float := Left + Item.Fraction * Travel (Item);
-      Face  : constant Themes.Color :=
-        (if Item.Held or else Is_Hovered (Item)
-         then Colors.Accent else Colors.Bar);
+      Pixels : constant Float := Density (Item);
+      Left   : constant Float := Left_Of (Item);
+      High   : constant Float := Height_Of (Item);
+      Thick  : constant Float :=
+        Float'Max (2.0, Float'Rounding (Track_Points * Pixels));
+      Wide   : constant Float := Knob_Width (Item);
+      Knob   : constant Float :=
+        Float'Rounding (Left + Item.Fraction * Travel (Item));
+      Groove : constant Themes.Color :=
+        Themes.Mix (Colors.Background, Colors.Foreground, 0.12);
+      Groove_Top : constant Float :=
+        Top_Of (Item) + Float'Rounding ((High - Thick) / 2.0);
    begin
-      Fill_Rect
-        (Target, Colors.Bar,
-         Left, Top_Of (Item) + Float'Rounding ((High - Thick) / 2.0),
-         Width_Of (Item), Thick);
-      Fill_Rect (Target, Face, Knob, Top_Of (Item), Wide, High);
+      --  The groove, the light falling into it from the top left.
+      Fill_Rect (Target, Groove, Left, Groove_Top, Width_Of (Item), Thick);
+      UI.Boxes.Bevel
+        (Target, Groove, Left, Groove_Top, Width_Of (Item), Thick, Pixels,
+         Sunken => True);
+      UI.Boxes.Draw_Raised
+        (Target,
+         (Face    =>
+            (if Is_Hovered (Item) and then not Item.Held
+             then Themes.Mix (Colors.Face, Themes.White, 0.22)
+             else Colors.Face),
+          Border  => Colors.Border,
+          Drop    => Themes.Drop (Colors),
+          Pressed => Item.Held,
+          Flat    => False),
+         Knob, Top_Of (Item), Wide, High, Pixels);
    end Draw;
 
 end UI.Widgets.Sliders;

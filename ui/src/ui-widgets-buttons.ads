@@ -4,10 +4,18 @@ with UI.Icons;
 
 --  A button to click, with a short label.
 --
+--  It stands up from what it is on (see UI.Boxes.Draw_Raised): a face,
+--  outlined, with a bevel and a small solid shadow; pressed, the bevel
+--  turns over, the shadow goes, and the face goes down and to the right.
+--  A toggle that is on (Set_Selected) stays pressed in, in the theme's
+--  accent. Turned off (Set_Enabled), it is flat and faint, and takes no
+--  events.
+--
 --  It is pressed by the left button over it, and clicked by that button
 --  let go over it; the application takes the click. It does not take the
---  focus, so that clicking it does not take it from what is being typed
---  into.
+--  focus, unless it is made to (Set_Focusable), so that clicking it does
+--  not take it from what is being typed into; with the focus, it has a
+--  ring in the theme's focus colour, and Return or Space clicks it.
 package UI.Widgets.Buttons is
 
    Label_Capacity : constant := 32;
@@ -16,10 +24,10 @@ package UI.Widgets.Buttons is
    type Button is new Widget with private;
 
    type Kind is (Normal, Primary, Danger, Quiet);
-   --  Normal has the theme's face, outlined; Primary is in the theme's
-   --  primary colour, for the main action; Danger in its danger colour,
-   --  for what cannot be undone. Quiet has no face, only its icon and
-   --  label, in a light ink, for a dark bar.
+   --  Normal has the theme's face, grey, for most things; Primary is in
+   --  the theme's primary colour, green, for the main action; Danger in
+   --  its danger colour, red, for what cannot be undone. Quiet has no
+   --  face, only its icon and label, in a light ink, for a dark bar.
 
    procedure Set_Kind (Item : in out Button; To : Kind);
 
@@ -43,10 +51,6 @@ package UI.Widgets.Buttons is
    procedure Set_Swatch (Item : in out Button; To : Themes.Color);
    --  Show a square of the colour, in the middle, as the button's icon.
 
-   procedure Set_Raised (Item : in out Button; To : Boolean);
-   --  Cast a solid shadow, inside its box (see UI.Boxes), as a button
-   --  that stands on its own does.
-
    procedure Set_Badge (Item : in out Button; Count : Natural);
    --  Show Count in a dark square after the label, as how many there are
    --  of what it opens; none if 0.
@@ -55,10 +59,26 @@ package UI.Widgets.Buttons is
    --  With an icon, show the label after it, in place of the icon alone.
 
    procedure Set_Selected (Item : in out Button; To : Boolean);
-   --  Show it as pressed in, as the chosen one of a row of tabs; it still
-   --  takes clicks.
+   --  Show it as pressed in, in the accent, as a toggle that is on, or
+   --  the chosen one of a row of tabs; it still takes clicks. A dropdown
+   --  so is open: pressed in, in its own face, its caret turned up.
 
    function Is_Selected (Item : Button) return Boolean;
+
+   procedure Set_Dropdown (Item : in out Button; To : Boolean);
+   --  Show a caret at its right, in a part of its own, a line between it
+   --  and the label: as of a button that opens a menu.
+
+   function Is_Dropdown (Item : Button) return Boolean;
+
+   procedure Set_Enabled (Item : in out Button; To : Boolean);
+   --  Turn it on, or off: off, it is flat and faint, cannot be pressed
+   --  or clicked, and does not take the focus. It is on to begin with.
+
+   function Is_Enabled (Item : Button) return Boolean;
+
+   procedure Set_Focusable (Item : in out Button; To : Boolean);
+   --  Let it take the focus, by a click or from the application.
 
    function Label (Item : Button) return String;
 
@@ -82,6 +102,11 @@ package UI.Widgets.Buttons is
    overriding procedure Hover_Changed
      (Item : in out Button; Hovered : Boolean);
 
+   overriding function Accepts_Focus (Item : Button) return Boolean;
+
+   overriding procedure Focus_Changed
+     (Item : in out Button; Focused : Boolean);
+
 private
 
    type Button is new Widget with record
@@ -94,9 +119,11 @@ private
       Swatched : Boolean := False;
       Swatch   : Themes.Color := (0, 0, 0, 255);
       Captioned : Boolean := False;
-      Raised    : Boolean := False;
       Badge     : Natural := 0;
       Selected  : Boolean := False;
+      Dropdown  : Boolean := False;
+      Enabled   : Boolean := True;
+      Focusable : Boolean := False;
       Down    : Boolean := False;  --  pressed, and not yet let go
       Clicked : Boolean := False;
    end record;

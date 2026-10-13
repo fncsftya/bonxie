@@ -77,16 +77,17 @@ package body Item_Tests is
    Dock_Close_X : constant Float := 195.0;
    Dock_Y    : constant Float := 460.0;
 
-   --  The list of items: a dialog 440 x 380 in the middle. Its rows are 36
-   --  high, from 115, with the button to show or hide the item, and the
-   --  one to remove it, at the right.
+   --  The list of items: a dialog 440 x 380 in the middle, under a dark
+   --  bar with the button to close it at its right. Its rows are 36 high,
+   --  from 105, with the button to show or hide the item, and the one to
+   --  remove it, at the right.
    Toggle_X : constant Float := 482.0;
    Remove_X : constant Float := 530.0;
-   List_Close_X : constant Float := 516.0;
-   List_Close_Y : constant Float := 89.0;
+   List_Close_X : constant Float := 558.0;
+   List_Close_Y : constant Float := 65.0;
 
    function Row_Y (Row : Positive) return Float is
-     (115.0 + Float (Row - 1) * 42.0 + 18.0);
+     (105.0 + Float (Row - 1) * 42.0 + 18.0);
 
    function Whole (Value : Float) return String is
      (Integer'Image (Integer (Float'Rounding (Value))));

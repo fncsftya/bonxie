@@ -3,27 +3,30 @@ with SDL3.Windows.Renderers;
 with UI.Themes;
 
 --  The bar that shows how much of something taller (or wider) than its box
---  is in view, and where, and that can be dragged: a thumb along the box's
---  right edge (or bottom), for scrolled views to draw over what they show
---  and to give their mouse events to first.
+--  is in view, and where, and that can be dragged: along the box's right
+--  edge (or bottom), for scrolled views to draw over what they show and to
+--  give their mouse events to first.
 --
---  It is shown only while the pointer is over the view (Set_Pane), or
---  while the thumb is held, and is thicker while the pointer is near it,
---  or holds it. It is solid, so that drawing it again changes nothing.
---  Pressing on the thumb holds it, to drag; pressing on the track beside
---  it moves the thumb there, and holds it.
+--  It is a trough with a button at each end, an arrow on each, and a thumb
+--  in it that stands up, bevelled, as a button does. It is shown only
+--  while the pointer is over the view (Set_Pane), or while it is held. It
+--  is solid, so that drawing it again changes nothing. Pressing on the
+--  thumb holds it, to drag; pressing on the trough beside it moves the
+--  thumb there, and holds it; pressing an arrow scrolls a step that way,
+--  and the arrow is pressed in until it is let go.
 package UI.Scrollbars is
 
-   Thickness : constant Float := 4.0;
-   Near_Thickness : constant Float := 7.0;
-   Margin    : constant Float := 2.0;
+   Thickness : constant Float := 12.0;
    Shortest  : constant Float := 16.0;
-   --  In points: how thick the thumb is, and how thick when the pointer is
-   --  near, how far it is from the edge, and how short it may be.
+   --  In points: how thick the bar is (and how long each of its buttons),
+   --  and how short the thumb may be.
+
+   Step_Fraction : constant Float := 0.125;
+   --  Of what is shown: how far a press of an arrow scrolls.
 
    type Bar is private;
-   --  The state of one bar: whether it is shown, whether the pointer is
-   --  near it, and whether it is held.
+   --  The state of one bar: whether it is shown, and whether its thumb, or
+   --  one of its arrows, is held.
 
    type Metrics is record
       Left, Top, Width, Height : Float := 0.0;
@@ -66,9 +69,12 @@ package UI.Scrollbars is
 
 private
 
+   type Arrow is (None, Back, Ahead);
+   --  Of the buttons at the ends: up (or left), and down (or right).
+
    type Bar is record
       Pane     : Boolean := False;
-      Near     : Boolean := False;
+      Pressing : Arrow := None;
       Grabbing : Boolean := False;
       Grab     : Float := 0.0;
       --  While held: how far along the thumb it was taken, in pixels.

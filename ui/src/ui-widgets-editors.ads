@@ -1,6 +1,7 @@
 with SDL3.Events;
 with SDL3.Windows.Renderers;
 with Texts.Documents;
+with UI.Icons;
 with UI.Text_Areas;
 
 --  A text area (see UI.Text_Areas) as a widget: it is placed by the
@@ -8,6 +9,12 @@ with UI.Text_Areas;
 --  events by the tree, with the tree's clipboard. It is drawn again when
 --  anything it shows changes, including its document, which the
 --  application may change.
+--
+--  As a field it is white, outlined; with the focus, the outline is the
+--  theme's focus colour, and thicker. It can say that what is in it will
+--  not do (outlined in the danger colour), be turned off (tinted, faint,
+--  and taking nothing), show a hint while it is empty, and an icon before
+--  a single line.
 --
 --  Declare it after the renderer it is drawn to, and after the document
 --  it shows.
@@ -38,9 +45,36 @@ package UI.Widgets.Editors is
    --  Make the text Zoom times its size.
 
    procedure Set_Paper (Item : in out Editor; To : Themes.Color);
-   --  Draw on To, not the theme's background.
+   --  Draw on To, not white.
 
    function Zoom (Item : Editor) return Float;
+
+   procedure Set_Invalid (Item : in out Editor; To : Boolean);
+   --  Outline it in the danger colour, as of what will not do, until it
+   --  is said to be valid again. The focus's outline is over it.
+
+   function Is_Invalid (Item : Editor) return Boolean;
+
+   procedure Set_Enabled (Item : in out Editor; To : Boolean);
+   --  Turn it on, or off: off, it is tinted, its text faint, and it takes
+   --  no events nor the focus. It is on to begin with.
+
+   function Is_Enabled (Item : Editor) return Boolean;
+
+   Hint_Capacity : constant := 32;
+
+   procedure Set_Placeholder (Item : in out Editor; Text : String)
+     with Pre => Text'Length <= Hint_Capacity;
+   --  Show Text, faint, where its text begins, while it has none: a hint
+   --  of what to put in it. None to begin with.
+
+   procedure Set_Icon (Item : in out Editor; To : UI.Icons.Icon)
+     with Pre => Is_Configured (Item)
+                 and then UI.Text_Areas.Is_Single_Line (Area (Item).all);
+   --  Show the icon, faint, before its single line, leaving room for it.
+
+   procedure Clear_Icon (Item : in out Editor);
+   --  Show none, and leave no room for it.
 
    function Is_Focused (Item : Editor) return Boolean;
 
@@ -88,6 +122,12 @@ private
       Zoomed  : Float := 1.0;
       Has_Paper : Boolean := False;
       Paper     : Themes.Color := (0, 0, 0, 255);
+      Invalid   : Boolean := False;
+      Enabled   : Boolean := True;
+      Hint      : String (1 .. Hint_Capacity) := [others => ' '];
+      Hint_Length : Natural range 0 .. Hint_Capacity := 0;
+      Iconed    : Boolean := False;
+      Which     : UI.Icons.Icon := UI.Icons.Icon'First;
       Shown   : Texts.Documents.Version := 0;
       Shown_Serial : Natural := 0;
       --  Of the document, as of the last time it was drawn or seen to be

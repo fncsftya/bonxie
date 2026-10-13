@@ -48,6 +48,24 @@ package UI.Text_Areas is
 
    function Is_Single_Line (Item : Text_Area) return Boolean;
 
+   procedure Set_Lead (Item : in out Text_Area; Points : Float)
+     with Pre => Points >= 0.0;
+   --  Leave Points at the left of a field for one line, before its text,
+   --  as for an icon its owner draws there. None to begin with.
+
+   procedure Set_Trail (Item : in out Text_Area; Points : Float)
+     with Pre => Points >= 0.0;
+   --  Leave Points at the right of a field for one line, after its text,
+   --  as for a button its owner puts there. None to begin with.
+
+   function Lead_Left (Item : Text_Area) return Float;
+   function Line_Left (Item : Text_Area) return Float;
+   function Line_Middle (Item : Text_Area) return Float;
+   --  Where the room left before a single line begins (see Set_Lead),
+   --  where the first line begins, and the middle of its height, in
+   --  pixels from the top left of the target, as of its place: for its
+   --  owner to draw beside it, as a hint in a field that is empty.
+
    procedure Set_Grows (Item : in out Text_Area; To : Boolean := True)
      with Pre => Is_Configured (Item);
    --  Make it as tall as its text, for its owner to size it so (see
@@ -369,6 +387,8 @@ private
       Grows    : Boolean := False;
       Returned : Boolean := False;
       Across_Scroll : Float := 0.0;
+      Lead     : Float := 0.0;  --  in points: see Set_Lead
+      Trail    : Float := 0.0;  --  in points: see Set_Trail
       --  For one line: how far its start is left of the padding, in
       --  pixels.
 

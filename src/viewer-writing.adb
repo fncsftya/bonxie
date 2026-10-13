@@ -8,6 +8,7 @@ with UI.Widgets.Buttons;
 with UI.Widgets.Editors;
 with UI.Widgets.Grips;
 with UI.Widgets.Labels;
+with UI.Widgets.Menus;
 with UI.Widgets.Panels;
 with UI.Widgets.Pictures;
 with UI.Widgets.Scrollers;
@@ -23,6 +24,7 @@ package body Viewer.Writing is
    package Editors renames UI.Widgets.Editors;
    package Grips renames UI.Widgets.Grips;
    package Labels renames UI.Widgets.Labels;
+   package Menus renames UI.Widgets.Menus;
    package Pictures renames UI.Widgets.Pictures;
    package Scrollers renames UI.Widgets.Scrollers;
    package Text_Fields renames UI.Widgets.Text_Fields;
@@ -161,11 +163,13 @@ package body Viewer.Writing is
          (if Chosen then UI.Line_Texts.Strong else UI.Line_Texts.Regular));
       if Chosen then
          Grips.Set_Fill (Row.Row, Style.Row_Open);
+         Grips.Set_Hover_Fill (Row.Row, Style.Row_Open);
          Grips.Set_Shadow (Row.Row, Style.Colors.Shadow);
       else
          --  Its shadow is the ground: unseen, but the face is the same
          --  size.
          Grips.Set_Fill (Row.Row, Style.Row_Fill);
+         Grips.Set_Hover_Fill (Row.Row, Style.Row_Hover);
          Grips.Set_Shadow (Row.Row, Style.Side_Fill);
       end if;
    end Choose_Row;
@@ -437,22 +441,65 @@ package body Viewer.Writing is
 
    procedure Close_Menu (Item : in out Session) is
    begin
+      if Item.Menu_Page /= 0 then
+         Buttons.Set_Selected
+           (Item.Pages (Item.Menu_Page).Sources_Button, False);
+      end if;
       Item.Menu_Page := 0;
       Widgets.Set_Visible (Item.Menu, False);
    end Close_Menu;
 
+   Heading_Words : constant String := "LINKED TO ";
+
+   function Heading_For (Name : String) return String;
+   --  The menu's heading: of the document's title, in capitals (of the
+   --  letters of ASCII: the bytes of others are left as they are), as
+   --  much of it as fits, cut where a character begins.
+
+   function Heading_For (Name : String) return String is
+      Room : constant Natural :=
+        Natural'Min (Name'Length, Menus.Text_Capacity - Heading_Words'Length);
+      Last : Natural := Name'First - 1 + Room;
+      Shown : String := Name;
+   begin
+      while Last >= Name'First and then Last < Name'Last
+        and then Character'Pos (Name (Last + 1)) in 16#80# .. 16#BF#
+      loop
+         Last := Last - 1;
+      end loop;
+      for C of Shown loop
+         if C in 'a' .. 'z' then
+            C := Character'Val (Character'Pos (C) - 32);
+         end if;
+      end loop;
+      return Heading_Words & Shown (Shown'First .. Last);
+   end Heading_For;
+
+   Rows_Before : constant := 1;
+   --  The heading, before the boxes of the sources.
+
+   function Add_Row (Item : Session) return Positive is
+     (Rows_Before + Natural'Max (1, Item.Menu_Count) + 2);
+   --  After the boxes (or the note that there are none), and a line.
+
    procedure Open_Menu (Item : in out Session; Rank : Positive);
    --  Show the menu of the sources the Rankth page's document is linked
-   --  to, under its button; or put it away, if it is shown already.
+   --  to, under its button, which looks pressed in while it is shown; or
+   --  put it away, if it is shown already.
 
    procedure Open_Menu (Item : in out Session; Rank : Positive) is
+      Which_Doc : constant Items.Slot := Item.Write_Order (Rank);
       Key : constant Items.Id :=
-        Windows.Details (Item.Windows (Item.Write_Order (Rank))).Key;
+        Windows.Details (Item.Windows (Which_Doc)).Key;
    begin
       if Item.Menu_Page = Rank then
          Close_Menu (Item);
          return;
       end if;
+      Close_Menu (Item);
+      Menus.Clear (Item.Menu);
+      Menus.Add
+        (Item.Menu, Menus.Heading, Heading_For (Title_Of (Item, Which_Doc)));
       Item.Menu_Count := 0;
       for Row in 1 .. Item.Source_Total loop
          declare
@@ -463,18 +510,25 @@ package body Viewer.Writing is
             then
                Item.Menu_Count := Item.Menu_Count + 1;
                Item.Menu_Slots (Item.Menu_Count) := Which;
-               Buttons.Set_Label
-                 (Item.Menu_Rows (Item.Menu_Count),
-                  Fitted (Title_Of (Item, Which)));
+               Menus.Add
+                 (Item.Menu, Menus.Check, Fitted (Title_Of (Item, Which)),
+                  Checked => Item.Pinned_Slot = Which);
+               Menus.Set_Swatch
+                 (Item.Menu, Menus.Row_Count (Item.Menu),
+                  Canvas_Items.Source_Ink (Item, Which));
             end if;
          end;
       end loop;
-      for Row in Items.Slot loop
-         Widgets.Set_Visible (Item.Menu_Rows (Row), Row <= Item.Menu_Count);
-      end loop;
-      Widgets.Set_Visible (Item.Menu_None, Item.Menu_Count = 0);
+      if Item.Menu_Count = 0 then
+         Menus.Add (Item.Menu, Menus.Note, "No linked sources");
+      end if;
+      Menus.Add (Item.Menu, Menus.Separator);
+      Menus.Add (Item.Menu, Menus.Action, "Add source", Menus.Primary);
+      Menus.Set_Icon (Item.Menu, Menus.Row_Count (Item.Menu), UI.Icons.Plus);
+      pragma Assert (Menus.Row_Count (Item.Menu) = Add_Row (Item));
       Item.Menu_Page := Rank;
       Item.Menu_Left := -1.0E9;
+      Buttons.Set_Selected (Item.Pages (Rank).Sources_Button, True);
       Widgets.Set_Visible (Item.Menu, True);
       Widgets.Raise_To_Front (Item.Menu);
    end Open_Menu;
@@ -864,15 +918,40 @@ package body Viewer.Writing is
          Canvas_Items.Add (Item, Canvas_Items.Untitled_Document);
          return;
       end if;
-      for Row in 1 .. Item.Menu_Count loop
-         Buttons.Take_Click (Item.Menu_Rows (Row), Clicked);
-         if Clicked then
-            Pin (Item, Item.Menu_Slots (Row));
-            Close_Menu (Item);
-            Refresh (Item);
-            return;
+      declare
+         Chosen : Natural;
+      begin
+         Menus.Take_Choice (Item.Menu, Chosen);
+         if Item.Menu_Page /= 0 and then Chosen /= 0 then
+            if Chosen = Add_Row (Item) then
+               --  On the canvas, where its address can be typed.
+               declare
+                  Document : constant Items.Slot :=
+                    Item.Write_Order (Item.Menu_Page);
+               begin
+                  Close_Menu (Item);
+                  Show (Item, Canvas);
+                  Canvas_Items.Add_Linked_Source (Item, Document);
+               end;
+               return;
+            elsif Chosen - Rows_Before in 1 .. Item.Menu_Count then
+               --  Ticked, it is pinned; ticked again, it is let go.
+               declare
+                  Which : constant Items.Slot :=
+                    Item.Menu_Slots (Chosen - Rows_Before);
+               begin
+                  if Item.Pinned_Slot = Which then
+                     Unpin (Item, Reopen => False);
+                  else
+                     Pin (Item, Which);
+                  end if;
+               end;
+               Close_Menu (Item);
+               Refresh (Item);
+               return;
+            end if;
          end if;
-      end loop;
+      end;
       for Rank in 1 .. Item.Write_Count loop
          Take_Rename (Item, Rank);
          Buttons.Take_Click (Item.Pages (Rank).Sources_Button, Clicked);
@@ -1070,19 +1149,25 @@ package body Viewer.Writing is
          Widgets.Layout (Item.Widgets, Item.Target);
       end loop;
 
-      --  The menu stays under its button, its right edge in line with the
-      --  button's, as the pages are scrolled.
+      --  The menu stays under its button, its left edge in line with the
+      --  button's (or as far left as keeps it in the view), as the pages
+      --  are scrolled.
       if Item.Menu_Page /= 0 then
          declare
             Button : Buttons.Button renames
               Item.Pages (Item.Menu_Page).Sources_Button;
             Left   : constant Float :=
-              (Widgets.Left_Of (Button) + Widgets.Width_Of (Button)
-               - Widgets.Left_Of (Item.Write_View)) / Pixels
-              - Style.Menu_Width;
+              Float'Max
+                (0.0,
+                 Float'Min
+                   ((Widgets.Left_Of (Button)
+                     - Widgets.Left_Of (Item.Write_View)) / Pixels,
+                    Widgets.Width_Of (Item.Write_View) / Pixels
+                    - Style.Menu_Width - Style.Reader_Margin));
             Top    : constant Float :=
               (Widgets.Top_Of (Button) + Widgets.Height_Of (Button)
-               - Widgets.Top_Of (Item.Write_View)) / Pixels;
+               - Widgets.Top_Of (Item.Write_View)) / Pixels
+              + Style.Menu_Gap;
          begin
             if Left /= Item.Menu_Left or else Top /= Item.Menu_Top then
                Item.Menu_Left := Left;

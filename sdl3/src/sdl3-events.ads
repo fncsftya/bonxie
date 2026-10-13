@@ -19,6 +19,7 @@ package SDL3.Events is
    Key_Backspace : constant Key_Code := 16#08#;
    Key_Return    : constant Key_Code := 16#0D#;
    Key_Escape    : constant Key_Code := 16#1B#;
+   Key_Space     : constant Key_Code := 16#20#;
    Key_Delete    : constant Key_Code := 16#7F#;
    Key_Minus     : constant Key_Code := 16#2D#;
    Key_Equals    : constant Key_Code := 16#3D#;

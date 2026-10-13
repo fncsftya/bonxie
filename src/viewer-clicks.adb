@@ -36,6 +36,9 @@ package body Viewer.Clicks is
                   return;
                end if;
                Buttons.Take_Click (Item.Confirm_Cancel, Clicked);
+               if not Clicked then
+                  Buttons.Take_Click (Item.Dialog_Close, Clicked);
+               end if;
                if Clicked then
                   Deletion.Close (Item);
                end if;

@@ -44,7 +44,19 @@ From the bottom up; each crate depends only on those before it.
   document the app owns; several may show one document. `UI.Widgets` is
   a retained tree of widgets (`Panels`, `Buttons`, `Labels`, `Editors`,
   which wraps a text area, and `Text_Fields`, an editor of one line) the
-  app owns and adds top-down; Yoga lays them out in pixels. Widgets keep their own state and say when it changes
+  app owns and adds top-down. Buttons stand up, bevelled, with a small
+  solid shadow (`UI.Boxes.Draw_Raised`), are pressed in while held, and
+  stay so, in the accent, as a toggle that is on (`Set_Selected`); one can
+  be turned off (`Set_Enabled`), take the focus and be clicked by Return or
+  Space (`Set_Focusable`), or be a dropdown, with a caret in a part of its
+  own (`Set_Dropdown`; selected, it is open). An editor can be invalid,
+  turned off, show a hint while empty (`Set_Placeholder`) and an icon
+  before a single line (`Set_Icon`, which leaves room for it, as
+  `Text_Areas.Set_Trail` does at the right). Besides: `Checks` (a box to
+  tick, or a radio), `Switches`, `Selects` (a field that opens a menu),
+  `Menus` (rows of headings, actions, boxes, lines and notes, which says
+  the row clicked: `Take_Choice`), `Chips`, `Badges` (a count, or a tag),
+  `Tooltips` and `Toasts`; Yoga lays them out in pixels. Widgets keep their own state and say when it changes
   (`Invalidate`); the tree keeps the damage, repaints only that when
   the target keeps its frame (`Retained`; a window's renderer does, by
   drawing to an image of its own that `Present` copies, which `Fit`
@@ -73,10 +85,11 @@ From the bottom up; each crate depends only on those before it.
   they follow its zoom and scroll. With the highlighter as its tool
   (`Set_Tool`) a drag marks it instead: a translucent band along the line
   pressed on, kept like the words' boxes as fractions of the picture (up to
-  `Max_Marks`), and counted by `Marks_Version`; `Scrollbars` is the thin bar that `Scrollers`, `Pictures` (across too,
+  `Max_Marks`), and counted by `Marks_Version`; `Scrollbars` is the bar that `Scrollers`, `Pictures` (across too,
   when zoomed) and `Text_Areas` show along their edge when there is more than
-  the box shows and the pointer is over them: thicker near the pointer, and
-  dragged (or pressed beside) to scroll, given the mouse events first; a widget draws what goes over
+  the box shows and the pointer is over them: a trough with an arrow button
+  at each end, which scrolls a step, and a bevelled thumb, dragged (or
+  pressed beside) to scroll, given the mouse events first; a widget draws what goes over
   its children in `Draw_Over`; `Sliders` is a knob to drag along a
   track, from 0.0 to 1.0; `Progress_Bars` is a bar filled from the left, from 0.0 to 1.0, told how far on a job is. Widgets can be put last of their parent's
   (`Raise_To_Front`, for those placed by their edges), hidden (`Set_Visible`) or taken out
@@ -103,7 +116,9 @@ From the bottom up; each crate depends only on those before it.
   to be written back, which it does (`Flush`) when the pointer lets go,
   or typing has stopped for a moment, or its focus has left it. A source's
   window has the link in the place of the text (the one text area, set to
-  a single line), then the picture, and in its status line a slider (on a log scale) and a button
+  a single line, with an icon of a link, a hint of https:// while it is
+  empty, and, until its picture is taken, an Add button, which does what
+  Return does), then the picture, and in its status line a slider (on a log scale) and a button
   that opens a menu of zooms (the zoom is of the picture within its window,
   kept in the item's `zoom`), and, in the middle of the status line, buttons for the cursor, the
   highlighter and the eraser of its marks (a source's window is wider, for room); a click outside the
@@ -164,8 +179,11 @@ From the bottom up; each crate depends only on those before it.
   not scroll or take the wheel, so the column of pages scrolls as one;
   `Content_Height` is what `Writing.Fit` sizes it by, after each layout, and
   it keeps the caret in view). Above each page, outside it, are the document's
-  title, a Sources menu (the sources the document is linked to on the canvas,
-  how many on the button; choosing one pins it) and a button to dictate into
+  title, a Sources dropdown (how many sources the document is linked to on
+  the canvas on the button; its menu has a box for each, ticked for the one
+  pinned: ticking one pins it, unticking lets it go; and Add Source, which
+  goes to the canvas and makes a source linked to the document, whose
+  address can then be typed) and a button to dictate into
   it; below it, how many words it has; after the last, a button to add one. A page is a second view
   of the document the item's window on the canvas owns
   (`Items.Windows.Content_Document`), so what is typed in either is in

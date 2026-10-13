@@ -18,6 +18,7 @@ private with UI.Widgets.Canvases;
 private with UI.Widgets.Editors;
 private with UI.Widgets.Grips;
 private with UI.Widgets.Labels;
+private with UI.Widgets.Menus;
 private with UI.Widgets.Text_Fields;
 private with UI.Widgets.Panels;
 private with UI.Widgets.Pins;
@@ -443,9 +444,6 @@ private
 
    type Pin_Places is array (Items.Slot, Items.Sides) of Float;
 
-   type Menu_Button_Array is
-     array (Items.Slot) of UI.Widgets.Buttons.Button;
-
    type Doc_Page is limited record
       Box     : UI.Widgets.Panels.Panel;
       --  A column: the bar above, and the page.
@@ -457,7 +455,8 @@ private
       --  In its place while it is renamed, on the title of the window.
       Renaming : Boolean := False;
       Sources_Button : UI.Widgets.Buttons.Button;
-      --  Opens the menu of the sources the document is linked to.
+      --  A dropdown: opens the menu of the sources the document is
+      --  linked to, and shows how many.
       Mic_Button : UI.Widgets.Buttons.Button;
       --  Starts and stops dictating into the document.
       Sheet   : UI.Widgets.Panels.Panel;
@@ -553,11 +552,18 @@ private
       --  Over both screens, to grey them out and hold the dialog, which
       --  is shown to confirm deleting a project.
       Dialog_Border  : UI.Widgets.Panels.Panel;
+      Dialog_Bar     : UI.Widgets.Panels.Panel;
+      Dialog_Title   : UI.Widgets.Labels.Label;
+      Dialog_Close   : UI.Widgets.Buttons.Button;
+      --  A dark bar across its top, as a window's: its title, and a
+      --  button to close it, as Cancel does.
       Dialog         : UI.Widgets.Panels.Panel;
       Confirm_Message : UI.Widgets.Labels.Label;
-      Confirm_Name   : UI.Widgets.Labels.Label;
       Confirm_Note   : UI.Widgets.Labels.Label;
+      Dialog_Rule    : UI.Widgets.Panels.Panel;
       Confirm_Buttons : UI.Widgets.Panels.Panel;
+      --  The white body, saying what is to be deleted, a line, and a
+      --  tinted foot with the buttons.
       Confirm_Cancel : UI.Widgets.Buttons.Button;
       Confirm_Delete : UI.Widgets.Buttons.Button;
       Deleting       : Projects.Id := 0;
@@ -612,16 +618,17 @@ private
       Pane_Body     : UI.Widgets.Panels.Panel;
       --  At the right, the full height of the view, shown while a source
       --  is pinned; the edge is dragged to size it.
-      Menu          : UI.Widgets.Panels.Panel;
-      Menu_Rows     : Menu_Button_Array;
-      Menu_None     : UI.Widgets.Labels.Label;
+      Menu          : UI.Widgets.Menus.Menu;
       --  Over the pages, hidden until a document's Sources button is
-      --  clicked: a row for each source it is linked to.
+      --  clicked: a heading, a box for each source the document is linked
+      --  to, ticked if it is the one pinned (or a note that there are
+      --  none), a line, and Add Source.
       Menu_Page     : Natural := 0;
       --  The page the menu is of, 0 if it is not shown.
       Menu_Slots    : Slot_Array := [others => 1];
       Menu_Count    : Natural := 0;
-      --  The windows of the sources the rows are of.
+      --  The windows of the sources the boxes are of, from the second
+      --  row.
       Menu_Left, Menu_Top : Float := -1.0E9;
       --  Where it was last put, in points of the writing view.
       Pane_Wide     : Float := 0.0;
@@ -656,10 +663,12 @@ private
       --  Over the project screen, to grey it out and hold the list of
       --  items, which is shown when Showing_List.
       List_Border   : UI.Widgets.Panels.Panel;
-      List_Dialog   : UI.Widgets.Panels.Panel;
       List_Head     : UI.Widgets.Panels.Panel;
       List_Heading  : UI.Widgets.Labels.Label;
       List_Close    : UI.Widgets.Buttons.Button;
+      --  A dark bar across its top, as a window's: its title, and a
+      --  button to close it.
+      List_Dialog   : UI.Widgets.Panels.Panel;
       List_Scroll   : UI.Widgets.Scrollers.Scroller;
       List_Content  : UI.Widgets.Panels.Panel;
       List_None     : UI.Widgets.Labels.Label;

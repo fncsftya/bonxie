@@ -1,4 +1,5 @@
 with SDL3.Windows.Renderers;
+with UI.Icons;
 
 --  A line of text to read, on the left of its box, in the middle of its
 --  height. It takes no events.
@@ -36,6 +37,9 @@ package UI.Widgets.Labels is
    --  Put the text at the right of its box, rather than at the left (in
    --  the system font), as a count at the end of a row.
 
+   procedure Set_Icon (Item : in out Label; To : UI.Icons.Icon);
+   --  Show the icon before the text, in its ink, if the tree has icons.
+
    procedure Set_Ink (Item : in out Label; To : Themes.Color);
    --  Show it in To, rather than the theme's foreground: as on a dark
    --  bar.
@@ -56,6 +60,8 @@ private
       Trailing : Boolean := False;
       Ink     : Themes.Color := (0, 0, 0, 255);
       Scaled  : Float := 1.0;
+      Iconed  : Boolean := False;
+      Which   : UI.Icons.Icon := UI.Icons.Icon'First;
       Fit_Width  : Float := -1.0;
       Fit_Length : Natural range 0 .. Text_Capacity := 0;
       Fit_Cut    : Boolean := False;

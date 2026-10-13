@@ -10,6 +10,7 @@ with Goldens;
 with Item_Tests;
 with Picture_Tests;
 with Projects;
+with Sheet_Tests;
 with Text_Area_Tests;
 with Widget_Tests;
 with Viewer;
@@ -894,6 +895,9 @@ begin
    Run ("widgets-hiding", Widget_Tests.Hiding'Access);
    Run ("widgets-removing", Widget_Tests.Removing'Access);
    Run ("widgets-window", Widget_Tests.Window_Frame'Access);
+   Run ("sheet-board", Sheet_Tests.Board'Access);
+   Run ("sheet-states", Sheet_Tests.States'Access);
+   Run ("sheet-behaviour", Sheet_Tests.Behaviour'Access);
 
    Ada.Text_IO.Put_Line
      (Ran'Image & " tests:" & Natural'Image (Goldens.Passed)

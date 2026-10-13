@@ -70,6 +70,27 @@ package body UI.Widgets.Grips is
       end if;
    end Set_Hover_Outline;
 
+   procedure Set_Hover_Fill (Item : in out Grip; Value : Themes.Color) is
+   begin
+      if not Item.Hover_Filled or else Item.Hover_Fill /= Value then
+         Item.Hover_Filled := True;
+         Item.Hover_Fill := Value;
+         if Is_Attached (Item) and then Is_Hovered (Item) then
+            Invalidate (Item);
+         end if;
+      end if;
+   end Set_Hover_Fill;
+
+   procedure Clear_Hover_Fill (Item : in out Grip) is
+   begin
+      if Item.Hover_Filled then
+         Item.Hover_Filled := False;
+         if Is_Attached (Item) and then Is_Hovered (Item) then
+            Invalidate (Item);
+         end if;
+      end if;
+   end Clear_Hover_Fill;
+
    procedure Take_Click (Item : in out Grip; Clicked : out Boolean) is
    begin
       Clicked := Item.Clicked;
@@ -87,7 +108,7 @@ package body UI.Widgets.Grips is
    is
       pragma Unreferenced (Hovered);
    begin
-      if Item.Outlined then
+      if Item.Outlined or else Item.Hover_Filled then
          Invalidate (Item);
       end if;
    end Hover_Changed;
@@ -167,8 +188,12 @@ package body UI.Widgets.Grips is
       Base : constant Float := Top_Of (Item) + Height_Of (Item) - 2.0 * Side;
    begin
       UI.Boxes.Draw
-        (Target, Item.Look, Left_Of (Item), Top_Of (Item), Width_Of (Item),
-         Height_Of (Item), Density (Item));
+        (Target,
+         (if Item.Hover_Filled and then Is_Hovered (Item)
+          then (Item.Look with delta Fill => Item.Hover_Fill)
+          else Item.Look),
+         Left_Of (Item), Top_Of (Item), Width_Of (Item), Height_Of (Item),
+         Density (Item));
       if Item.Outlined and then Is_Hovered (Item) then
          declare
             Off : constant Float :=

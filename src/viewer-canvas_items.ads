@@ -30,6 +30,12 @@ private package Viewer.Canvas_Items is
    --  Make an item called Name in the middle of the canvas, if there is
    --  room for one.
 
+   procedure Add_Linked_Source (Item : in out Session; To : Items.Slot)
+     with Pre => Screen (Item) = Project
+                 and then Items.Windows.Is_Assigned (Item.Windows (To));
+   --  Make a source, as Add does, linked to the item of the window To,
+   --  from its right to the source's left.
+
    function Capturing (Item : Session) return Boolean;
    --  Whether a source's picture is being taken, or a note's dictation is
    --  being heard, readied or made text: the loop is to look at it again soon.

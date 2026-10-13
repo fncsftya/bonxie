@@ -45,6 +45,12 @@ package UI.Widgets.Grips is
    --  Draw an outline of a point round its box, in Value, while the
    --  pointer is over it or what is in it: to show it can be used.
 
+   procedure Set_Hover_Fill (Item : in out Grip; Value : Themes.Color);
+   --  Fill its face with Value, not its fill, while the pointer is over it
+   --  or what is in it, as a row of a list does.
+
+   procedure Clear_Hover_Fill (Item : in out Grip);
+
    procedure Take_Click (Item : in out Grip; Clicked : out Boolean);
    --  Say whether the button has been let go over it, after a press on
    --  it, since this was last called, and forget it.
@@ -88,6 +94,8 @@ private
       Wanted  : SDL3.Cursors.Kind := SDL3.Cursors.Move;
       Outlined : Boolean := False;
       Outline_Color : Themes.Color := (0, 0, 0, 255);
+      Hover_Filled  : Boolean := False;
+      Hover_Fill    : Themes.Color := (0, 0, 0, 255);
       Clicked : Boolean := False;
       Doubled : Boolean := False;
       Held    : Boolean := False;

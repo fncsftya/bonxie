@@ -21,7 +21,12 @@ and pinned, its highlights shared with the canvas's window, which like
 `sources-pages` needs WebKit), and highlighting a picture (the tools in the status line, erasing, marks kept, put away
 by the cursor or a click outside), and selecting words over a picture
 (`pictures-*`, with made-up words: dragging, double and triple clicks,
-copying, zooming and scrolling, and reading a page of columns in order).
+copying, zooming and scrolling, and reading a page of columns in order),
+and the widgets as the design's sheet shows them (`sheet-*`: every kind on
+one board, pressed, focused and hovered states, and what each does with
+clicks and keys). The `picture-*` tests read `golden/textarea-typing.png`
+as their picture: when that changes, run `UPDATE_GOLDEN=1 bin/golden
+picture` again after updating the rest.
 The software renderer gives the same pixels every run, so no pixel may
 differ.
 

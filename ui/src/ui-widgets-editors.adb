@@ -2,6 +2,10 @@ package body UI.Widgets.Editors is
 
    package Docs renames Texts.Documents;
 
+   Icon_Size : constant Float := 12.0;
+   Icon_Room : constant Float := 18.0;
+   --  In points: of the icon before a single line, and the room it is in.
+
    use type Docs.Version;
 
    procedure Configure
@@ -44,6 +48,63 @@ package body UI.Widgets.Editors is
          end if;
       end if;
    end Set_Zoom;
+
+   procedure Set_Invalid (Item : in out Editor; To : Boolean) is
+   begin
+      if To /= Item.Invalid then
+         Item.Invalid := To;
+         if Is_Attached (Item) then
+            Invalidate (Item);
+         end if;
+      end if;
+   end Set_Invalid;
+
+   function Is_Invalid (Item : Editor) return Boolean is (Item.Invalid);
+
+   procedure Set_Enabled (Item : in out Editor; To : Boolean) is
+   begin
+      if To /= Item.Enabled then
+         Item.Enabled := To;
+         if Is_Attached (Item) then
+            if not To and then Has_Focus (Item) then
+               Release_Focus (Item);
+            end if;
+            Invalidate (Item);
+         end if;
+      end if;
+   end Set_Enabled;
+
+   function Is_Enabled (Item : Editor) return Boolean is (Item.Enabled);
+
+   procedure Set_Placeholder (Item : in out Editor; Text : String) is
+   begin
+      Item.Hint_Length := Text'Length;
+      Item.Hint (1 .. Text'Length) := Text;
+      if Is_Attached (Item) then
+         Invalidate (Item);
+      end if;
+   end Set_Placeholder;
+
+   procedure Set_Icon (Item : in out Editor; To : UI.Icons.Icon) is
+   begin
+      Item.Iconed := True;
+      Item.Which := To;
+      Text_Areas.Set_Lead (Item.Text, Icon_Room);
+      if Is_Attached (Item) then
+         Invalidate (Item);
+      end if;
+   end Set_Icon;
+
+   procedure Clear_Icon (Item : in out Editor) is
+   begin
+      if Item.Iconed then
+         Item.Iconed := False;
+         Text_Areas.Set_Lead (Item.Text, 0.0);
+         if Is_Attached (Item) then
+            Invalidate (Item);
+         end if;
+      end if;
+   end Clear_Icon;
 
    function Is_Focused (Item : Editor) return Boolean is
      (Text_Areas.Is_Focused (Item.Text));
@@ -89,15 +150,55 @@ package body UI.Widgets.Editors is
          --  Of the lines, only those the part to draw touches.
          declare
             Part  : constant Pixel_Box := Painting_Part (Item);
-            Paper : constant Themes.Theme :=
-              (if Item.Has_Paper
-               then (Colors with delta Background => Item.Paper)
-               else Colors);
+            Paper : constant Themes.Color :=
+              (if not Item.Enabled then Colors.Tint
+               elsif Item.Has_Paper then Item.Paper
+               else Themes.White);
+            Shown : constant Themes.Theme :=
+              (Colors with delta
+                 Background => Paper,
+                 Foreground =>
+                   (if Item.Enabled then Colors.Foreground
+                    else Themes.Quiet (Colors)),
+                 Border     =>
+                   (if Item.Invalid then Colors.Danger else Colors.Border));
+            Faint : constant Themes.Color :=
+              Themes.Mix (Colors.Foreground, Paper, 0.55);
+            Pixels : constant Float := Density (Item);
          begin
             Text_Areas.Draw
-              (Item.Text, Target, Paper, Is_Settled (Item),
+              (Item.Text, Target, Shown, Is_Settled (Item),
                Rows_From => Float (Part.Top),
                Rows_To   => Float (Part.Top + Part.Height));
+            if Item.Hint_Length > 0 and then Text_Lines (Item) /= null
+              and then Docs.Count (Text_Areas.Document (Item.Text).all) = 1
+              and then Docs.Length (Text_Areas.Document (Item.Text).all, 1)
+                       = 0
+            then
+               UI.Line_Texts.Draw
+                 (Text_Lines (Item).all, Target, Faint,
+                  Item.Hint (1 .. Item.Hint_Length),
+                  Text_Areas.Line_Left (Item.Text),
+                  Text_Areas.Line_Middle (Item.Text),
+                  Pixels * Item.Zoomed);
+            end if;
+            if Item.Iconed and then Icon_Library (Item) /= null then
+               declare
+                  Size  : constant Positive :=
+                    Positive (Float'Rounding (Icon_Size * Pixels));
+                  Drawn : Boolean;
+               begin
+                  UI.Icons.Draw
+                    (Icon_Library (Item).all, Target, Item.Which, Faint,
+                     Float'Rounding
+                       (Text_Areas.Lead_Left (Item.Text)
+                        + (Icon_Room - Icon_Size) / 2.0 * Pixels),
+                     Float'Rounding
+                       (Text_Areas.Line_Middle (Item.Text)
+                        - Float (Size) / 2.0),
+                     Size, Drawn);
+               end;
+            end if;
          end;
          Item.Shown := Docs.Current (Text_Areas.Document (Item.Text).all);
          Item.Shown_Serial :=
@@ -111,7 +212,7 @@ package body UI.Widgets.Editors is
       Handled : out Boolean) is
    begin
       Handled := False;
-      if Has_Document (Item) then
+      if Has_Document (Item) and then Item.Enabled then
          Text_Areas.Handle (Item.Text, Event, Clipboard (Item).all, Handled);
          declare
             Changed : Boolean;
@@ -169,7 +270,7 @@ package body UI.Widgets.Editors is
       then Integer (Text_Areas.Until_Blink (Item.Text)) else -1);
 
    overriding function Accepts_Focus (Item : Editor) return Boolean is
-     (Has_Document (Item));
+     (Has_Document (Item) and then Item.Enabled);
 
    overriding procedure Hover_Changed
      (Item : in out Editor; Hovered : Boolean) is

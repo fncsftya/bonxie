@@ -86,12 +86,14 @@ private package Viewer.Style is
    Page_Gap        : constant Float := 22.0;
    Page_Head       : constant Float := 40.0;
    Page_Foot       : constant Float := 26.0;
-   Sources_Width   : constant Float := 96.0;
+   Sources_Width   : constant Float := 120.0;
    Bar_Button_Height : constant Float := 26.0;
    Mic_Width       : constant Float := Bar_Button_Height;
    Mic_Icon_Size   : constant Float := 13.0;
    --  The button to dictate is as tall as the Sources button.
-   Menu_Width      : constant Float := 200.0;
+   Menu_Width      : constant Float := 240.0;
+   Menu_Gap        : constant Float := 2.0;
+   --  The menu of a page's sources, below its button.
    Page_Text_Size  : constant Float := 17.0;
    Page_Text_Inset : constant Float := 12.0;
    --  The padding of a text area.
@@ -136,6 +138,13 @@ private package Viewer.Style is
    Row_Height    : constant Float := 36.0;
    Row_Gap       : constant Float := 8.0;
    Dialog_Width  : constant Float := 320.0;
+   Dialog_Bar_Height : constant Float := 30.0;
+   Dialog_Bar_Pad    : constant Float := 8.0;
+   Dialog_Close_Size : constant Float := 18.0;
+   Dialog_Close_Icon : constant Float := 11.0;
+   Dialog_Foot_Pad   : constant Float := 10.0;
+   --  The dark bar across the top of a dialog, its button to close it,
+   --  and the padding of the foot, round its buttons.
    Dialog_Pad    : constant Float := 24.0;
    Dialog_Line   : constant Float := 24.0;
    Dialog_Button_Width  : constant Float := 96.0;
@@ -145,8 +154,6 @@ private package Viewer.Style is
    Edit_Size     : constant Float := 14.0;
    --  Of the text in the field to rename a project.
    Gap           : constant Float := 12.0;
-   Close_Width   : constant Float := 72.0;
-   Close_Height  : constant Float := 26.0;
 
    No_Projects : constant String := "No projects yet";
    No_Items    : constant String := "No items yet";
@@ -164,8 +171,11 @@ private package Viewer.Style is
    --  Of the writing view's sidebar.
    Row_Fill : constant UI.Themes.Color := Colors.Face;
    Row_Open : constant UI.Themes.Color := Paper;
+   Row_Hover : constant UI.Themes.Color :=
+     UI.Themes.Mix (Colors.Face, UI.Themes.White, 0.3);
    --  A row of a list; the one chosen: a source that is open, or a
-   --  document that is being put elsewhere in the order.
+   --  document that is being put elsewhere in the order; and one under
+   --  the pointer.
    Edge_Fill : constant UI.Themes.Color := Colors.Border;
    Closed_Ink : constant UI.Themes.Color :=
      UI.Themes.Mix (Colors.Foreground, Colors.Background, 0.55);

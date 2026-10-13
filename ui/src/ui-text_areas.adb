@@ -38,6 +38,16 @@ package body UI.Text_Areas is
    function Inset (Item : Text_Area) return Float is
      ((if Item.Single then Line_Padding else Padding) * Item.Density);
 
+   function Lead_Room (Item : Text_Area) return Float is
+     (if Item.Single then Float'Rounding (Item.Lead * Item.Density)
+      else 0.0);
+   --  Before a single line, in pixels: see Set_Lead.
+
+   function Trail_Room (Item : Text_Area) return Float is
+     (if Item.Single then Float'Rounding (Item.Trail * Item.Density)
+      else 0.0);
+   --  After a single line, in pixels: see Set_Trail.
+
    function Text_Top (Item : Text_Area) return Float is
      (if Item.Single
       then Item.Top + Float'Max
@@ -48,7 +58,10 @@ package body UI.Text_Areas is
    --  A line for one line is in the middle of its height.
 
    function Text_Width (Item : Text_Area) return Float is
-     (Float'Max (0.0, Item.Width - 2.0 * Inset (Item)));
+     (Float'Max
+        (0.0,
+         Item.Width - 2.0 * Inset (Item) - Lead_Room (Item)
+         - Trail_Room (Item)));
 
    function Text_Height (Item : Text_Area) return Float is
      (Float'Max (0.0, Item.Height - 2.0 * Inset (Item)));
@@ -60,7 +73,8 @@ package body UI.Text_Areas is
    --  How wide its lines may be, in layout units.
 
    function Column_Left (Item : Text_Area) return Float is
-     (if Item.Single then Item.Left + Inset (Item) - Item.Across_Scroll
+     (if Item.Single
+      then Item.Left + Inset (Item) + Lead_Room (Item) - Item.Across_Scroll
       else Item.Left + Inset (Item)
       + Float'Max
           (0.0, (Text_Width (Item) - Column (Item) * Scale (Item)) / 2.0));
@@ -216,6 +230,25 @@ package body UI.Text_Areas is
    function Is_Single_Line (Item : Text_Area) return Boolean is
      (Item.Single);
 
+   procedure Set_Lead (Item : in out Text_Area; Points : Float) is
+   begin
+      Item.Lead := Points;
+   end Set_Lead;
+
+   procedure Set_Trail (Item : in out Text_Area; Points : Float) is
+   begin
+      Item.Trail := Points;
+   end Set_Trail;
+
+   function Lead_Left (Item : Text_Area) return Float is
+     (Item.Left + Inset (Item));
+
+   function Line_Left (Item : Text_Area) return Float is
+     (Column_Left (Item));
+
+   function Line_Middle (Item : Text_Area) return Float is
+     (Text_Top (Item) + Layouts.Line_Height (Item.Laid) * Scale (Item) / 2.0);
+
    procedure Set_Grows (Item : in out Text_Area; To : Boolean := True) is
    begin
       Item.Grows := To;
@@ -370,8 +403,10 @@ package body UI.Text_Areas is
       if Item.Single and then Item.Width > 0.0 then
          declare
             X, Y, Wide, Tall : Float;
-            Least : constant Float := Item.Left + Inset (Item);
-            Most  : constant Float := Item.Left + Item.Width - Inset (Item);
+            Least : constant Float :=
+              Item.Left + Inset (Item) + Lead_Room (Item);
+            Most  : constant Float :=
+              Item.Left + Item.Width - Inset (Item) - Trail_Room (Item);
          begin
             Caret_Box (Item, X, Y, Wide, Tall);
             if X < Least then
@@ -1440,13 +1475,15 @@ package body UI.Text_Areas is
         Integer (Item.Left + Item.Width - Edge);
       Inner_Bottom : constant Integer :=
         Integer (Item.Top + Item.Height - Edge);
+      Lead         : constant Integer := Integer (Lead_Room (Item));
+      Trail        : constant Integer := Integer (Trail_Room (Item));
       First, Last  : Positive;
       Outer_Clip   : constant Clip := Current_Clip (Target);
       --  The owner's, to go back to.
    begin
       Catch_Up (Item);
       Fill_Rect
-        (Target, (if Item.Focused then Colors.Accent else Colors.Border),
+        (Target, (if Item.Focused then Colors.Focus else Colors.Border),
          Item.Left, Item.Top, Item.Width, Item.Height);
       Fill_Rect
         (Target, Colors.Background,
@@ -1454,10 +1491,11 @@ package body UI.Text_Areas is
          Float (Integer'Max (0, Inner_Right - Inner_Left)),
          Float (Integer'Max (0, Inner_Bottom - Inner_Top)));
 
-      --  Lines part in view run into the padding, but not the outline.
+      --  Lines part in view run into the padding, but not the outline,
+      --  nor what is before a single line.
       Narrow_Clip
-        (Target, Inner_Left, Inner_Top,
-         Integer'Max (0, Inner_Right - Inner_Left),
+        (Target, Inner_Left + Lead, Inner_Top,
+         Integer'Max (0, Inner_Right - Inner_Left - Lead - Trail),
          Integer'Max (0, Inner_Bottom - Inner_Top));
 
       --  What is shown, laid out, as the view will draw it.
