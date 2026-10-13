@@ -2,6 +2,8 @@ with Ada.Calendar;
 with Ada.Calendar.Formatting;
 with Ada.Directories;
 with Ada.Strings.Fixed;
+with Ada.Strings.Unbounded;
+with Preferences;
 with UI.Widgets;
 with UI.Widgets.Canvases;
 with UI.Widgets.Pictures;
@@ -20,6 +22,7 @@ package body Viewer.Canvas_Items is
    package Windows renames Items.Windows;
 
    use type Items.States;
+   use type Preferences.Speech_Models;
    use type UI.Widgets.Pictures.Tools;
    use type Items.Id;
    use type Projects.Id;
@@ -77,8 +80,28 @@ package body Viewer.Canvas_Items is
       case Speech.Jobs.State (Which) is
          when Speech.Jobs.Idle | Speech.Jobs.Done | Speech.Jobs.Failed =>
             Speech.Jobs.Reset (Which);
-            Speech.Jobs.Start (Which);
-            Windows.Set_Dictation (Item.Windows (Which), Windows.Preparing);
+            declare
+               Model_File : constant String :=
+                 Preferences.Speech_Model_File
+                   (Ada.Strings.Unbounded.To_String (Item.Config_Dir));
+            begin
+               if Item.Speech_Choice = Preferences.Parakeet then
+                  if Ada.Directories.Exists (Model_File) then
+                     Speech.Jobs.Start
+                       (Which, Speech.Jobs.Model, Model_File);
+                     Windows.Set_Dictation
+                       (Item.Windows (Which), Windows.Preparing);
+                  else
+                     Windows.Set_Dictation
+                       (Item.Windows (Which), Windows.Failed,
+                        "The Parakeet model is not downloaded (Settings)");
+                  end if;
+               else
+                  Speech.Jobs.Start (Which);
+                  Windows.Set_Dictation
+                    (Item.Windows (Which), Windows.Preparing);
+               end if;
+            end;
          when Speech.Jobs.Starting | Speech.Jobs.Listening =>
             Speech.Jobs.Stop (Which);
             Windows.Set_Dictation

@@ -4,6 +4,13 @@
 --  of what was said to be made text) while the caller goes on. The
 --  caller polls (State), says when to stop (Stop), and takes the text
 --  when it is Done. The text is kept in the slot until Take.
+--
+--  Two engines can do the listening: the system's (SpeechAnalyzer) or a
+--  model in a GGUF file (Transcribe). The model's task hears the
+--  microphone as 16 kHz mono (Speech.Capture) from the first moment, and
+--  feeds it to the model as it comes, so that Heard_So_Far has the words
+--  as they are worked out; the model is loaded meanwhile, so what is said
+--  while it loads is not lost, only late.
 package Speech.Jobs is
 
    Slot_Count : constant := Max_Sessions;
@@ -20,13 +27,22 @@ package Speech.Jobs is
    subtype Open is States range Starting .. Listening;
    --  Not yet stopped: Stop ends it.
 
-   Max_Message : constant := 160;
+   type Engines is (System, Model);
 
-   procedure Start (Which : Slot)
-     with Pre  => State (Which) in Idle | Done | Failed,
+   Max_Message : constant := 160;
+   Max_Path    : constant := 1024;
+
+   procedure Start
+     (Which      : Slot;
+      Engine     : Engines := System;
+      Model_File : String  := "")
+     with Pre  => State (Which) in Idle | Done | Failed
+                  and then Model_File'Length <= Max_Path
+                  and then (Engine = System or else Model_File /= ""),
           Post => State (Which) in Starting | Listening | Failed;
-   --  Begin to listen. If a job that was reset is still running in the
-   --  slot, this waits for it.
+   --  Begin to listen, with the engine; Model_File is the model's, for
+   --  Model. If a job that was reset is still running in the slot, this
+   --  waits for it.
 
    procedure Stop (Which : Slot)
      with Pre => State (Which) in Open;

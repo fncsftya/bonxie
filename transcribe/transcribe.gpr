@@ -1,0 +1,45 @@
+with "config/transcribe_config.gpr";
+project Transcribe is
+
+   for Library_Name use "transcribe_ada";
+   for Library_Version use
+     Project'Library_Name & ".so." & Transcribe_Config.Crate_Version;
+
+   for Source_Dirs use ("src/", "config/");
+   for Object_Dir use "obj/" & Transcribe_Config.Build_Profile;
+   for Create_Missing_Dirs use "True";
+   for Library_Dir use "lib";
+
+   type Library_Type_Type is ("relocatable", "static", "static-pic");
+   Library_Type : Library_Type_Type :=
+     external
+       ("TRANSCRIBE_LIBRARY_TYPE", external ("LIBRARY_TYPE", "static"));
+   for Library_Kind use Library_Type;
+
+   package Compiler is
+      for Default_Switches ("Ada") use Transcribe_Config.Ada_Compiler_Switches &
+        ("-gnatwh",          --  local declarations hiding others
+         "-gnatVa",          --  validity checks everywhere
+         "-fstack-check",    --  detect stack overflow
+         "-fstack-protector-strong");
+   end Compiler;
+
+   --  transcribe.cpp and ggml, built by native/build.sh (Alire runs it
+   --  after fetching the crate), with the frameworks Metal needs.
+   --  Propagated to every project that depends on this one.
+   package Linker is
+      for Linker_Options use
+        ("-L" & Project'Project_Dir & "native/lib",
+         "-ltranscribe", "-lggml", "-lggml-cpu", "-lggml-metal",
+         "-lggml-base", "-lc++",
+         "-framework", "Accelerate",
+         "-framework", "Foundation",
+         "-framework", "Metal",
+         "-framework", "MetalKit");
+   end Linker;
+
+   package Binder is
+      for Switches ("Ada") use ("-Es"); --  Symbolic traceback
+   end Binder;
+
+end Transcribe;

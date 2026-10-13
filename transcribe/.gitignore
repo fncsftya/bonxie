@@ -1,0 +1,8 @@
+/obj/
+/lib/
+/alire/
+/config/
+/native/build/
+/native/lib/
+/tests/obj/
+/tests/bin/

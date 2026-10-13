@@ -1,4 +1,5 @@
 with "config/speech_config.gpr";
+with "transcribe.gpr";
 project Speech is
 
    for Library_Name use "speech_ada";

@@ -37,6 +37,28 @@ From the bottom up; each crate depends only on those before it.
   so `Speech.Jobs` does them in a task to each slot (as `Vision.Jobs`):
   `Start`, then `Stop`, polled (`State`: starting, listening, finishing,
   done) and taken (`Take`) when `Done`.
+  `speech` can instead use a model (`Speech.Jobs.Start (Slot, Model, File)`):
+  `Speech.Capture` (more of `speech_swift.swift`: `sp_cap_*`) hears the
+  microphone and converts it to 16 kHz mono floats in the audio tap, as it
+  arrives, into a bounded buffer (two minutes); the slot's task drains it
+  into `Transcribe.Sessions` (streaming) every 50 ms, publishing the text so
+  far for `Heard_So_Far` and, once stopped, the rest and `Finalize_Stream`
+  for `Take`. The microphone is heard from the start, while the model loads
+  (a second or so), so nothing said then is lost, only late. Stop and Reset
+  are seen by the task polling, not by an entry. `Viewer.Canvas_Items.
+  Toggle_Dictation` picks the engine: Parakeet if chosen in Settings (and
+  its file is there, else the note's status line says it is not), else
+  MacOS.
+- `transcribe`: Ada bindings to `transcribe.cpp` (the git submodule
+  `transcribe/transcribe.cpp`). `native/build.sh` (run by Alire after the
+  crate is fetched, and again when the submodule moves) builds it and ggml as
+  static libraries into `native/lib` with cmake, Metal on; the crate's
+  project links them and the frameworks they need. `Transcribe.Sessions` is
+  a model and its stream (`Open`, `Begin_Stream`, `Feed`, `Text`,
+  `Finalize_Stream`): the C structs it reads are checked against the
+  library's own sizes, the library's log is ignored, and text is copied out
+  at once (the library's pointers last only until the next feed).
+  `transcribe/tests/stream_wav` feeds a WAV through a model in chunks.
 - `typeset`: a layout of a document for one view (`Typeset.Layouts`):
   lines, made lazily (a long paragraph only as far as shown), heights as
   running sums (`Typeset.Sums`); drawing it (`Typeset.Views`).

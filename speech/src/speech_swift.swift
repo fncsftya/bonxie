@@ -259,3 +259,154 @@ public func sp_end(
         return 1
     }
 }
+
+// ---------------------------------------------------------------------
+// Capture: the microphone, as 16 kHz mono samples, for a model that wants
+// them (and does not take 44.1 kHz stereo). The converting is done here,
+// in the audio tap, as the sound arrives; the samples wait in a buffer for
+// sp_cap_read, which may be called from any thread. The buffer holds the
+// last capLimit samples, so that a reader that is late (loading a model)
+// loses the oldest rather than the program its memory.
+
+private let capRate: Double = 16_000
+private let capLimit = 16_000 * 120
+
+private final class Capture: @unchecked Sendable {
+    let engine = AVAudioEngine()
+    let lock = NSLock()
+    var samples: [Float] = []
+    var level: Float = 0
+}
+
+private let capLock = NSLock()
+private var captures: [Int32: Capture] = [:]
+
+private func startCapture(_ capture: Capture) async throws {
+    guard await AVAudioApplication.requestRecordPermission() else {
+        throw Failure(why: "Microphone use was not allowed")
+    }
+    guard let format = AVAudioFormat(
+        commonFormat: .pcmFormatFloat32, sampleRate: capRate, channels: 1, interleaved: false)
+    else {
+        throw Failure(why: "No audio format for speech")
+    }
+    let input = capture.engine.inputNode
+    let heard = input.outputFormat(forBus: 0)
+    guard heard.sampleRate > 0, let converter = AVAudioConverter(from: heard, to: format)
+    else {
+        throw Failure(why: "No microphone")
+    }
+    input.installTap(onBus: 0, bufferSize: 1024, format: heard) { buffer, _ in
+        let room = AVAudioFrameCount(Double(buffer.frameLength) * capRate / heard.sampleRate) + 1024
+        guard let made = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: room) else {
+            return
+        }
+        var given = false
+        var problem: NSError?
+        converter.convert(to: made, error: &problem) { _, status in
+            if given {
+                status.pointee = .noDataNow
+                return nil
+            }
+            given = true
+            status.pointee = .haveData
+            return buffer
+        }
+        guard problem == nil, made.frameLength > 0, let data = made.floatChannelData?[0]
+        else {
+            return
+        }
+        let count = Int(made.frameLength)
+        var sum: Float = 0
+        for index in 0..<count { sum += data[index] * data[index] }
+        let loud = min(1, (sum / Float(count)).squareRoot() * 12)
+        capture.lock.lock()
+        capture.level = max(loud, capture.level * 0.7)
+        capture.samples.append(contentsOf: UnsafeBufferPointer(start: data, count: count))
+        if capture.samples.count > capLimit {
+            capture.samples.removeFirst(capture.samples.count - capLimit)
+        }
+        capture.lock.unlock()
+    }
+    capture.engine.prepare()
+    try capture.engine.start()
+}
+
+// 1 if the microphone is being heard; 0 if not, and message says why. Waits
+// for leave to use the microphone: not for the main thread.
+@_cdecl("sp_cap_begin")
+public func sp_cap_begin(_ number: Int32, _ message: UnsafeMutablePointer<CChar>, _ room: Int32)
+    -> Int32
+{
+    message[0] = 0
+    let capture = Capture()
+    capLock.lock()
+    let taken = captures[number] != nil
+    if !taken { captures[number] = capture }
+    capLock.unlock()
+    if taken {
+        say("Already listening", message, room)
+        return 0
+    }
+    let outcome = finish { try await startCapture(capture) }
+    if case .failure(let error) = outcome {
+        capture.engine.stop()
+        capture.engine.inputNode.removeTap(onBus: 0)
+        capLock.lock()
+        captures[number] = nil
+        capLock.unlock()
+        say(reason(error), message, room)
+        return 0
+    }
+    return 1
+}
+
+// Take up to room samples from those waiting; how many were taken (0 if
+// none, or if the session is not open).
+@_cdecl("sp_cap_read")
+public func sp_cap_read(_ number: Int32, _ out: UnsafeMutablePointer<Float>, _ room: Int32)
+    -> Int32
+{
+    capLock.lock()
+    let found = captures[number]
+    capLock.unlock()
+    guard let capture = found else { return 0 }
+    capture.lock.lock()
+    defer { capture.lock.unlock() }
+    let count = min(Int(room), capture.samples.count)
+    for index in 0..<count { out[index] = capture.samples[index] }
+    capture.samples.removeFirst(count)
+    return Int32(count)
+}
+
+// How loud the microphone is, of an open session, from 0 to 1.
+@_cdecl("sp_cap_level")
+public func sp_cap_level(_ number: Int32) -> Float {
+    capLock.lock()
+    let found = captures[number]
+    capLock.unlock()
+    guard let capture = found else { return 0 }
+    capture.lock.lock()
+    defer { capture.lock.unlock() }
+    return capture.level
+}
+
+// Stop hearing; what has been heard stays to be read.
+@_cdecl("sp_cap_stop")
+public func sp_cap_stop(_ number: Int32) {
+    capLock.lock()
+    let found = captures[number]
+    capLock.unlock()
+    guard let capture = found else { return }
+    capture.engine.stop()
+    capture.engine.inputNode.removeTap(onBus: 0)
+}
+
+// Stop, and forget the session and anything unread.
+@_cdecl("sp_cap_close")
+public func sp_cap_close(_ number: Int32) {
+    sp_cap_stop(number)
+    capLock.lock()
+    captures[number] = nil
+    capLock.unlock()
+}

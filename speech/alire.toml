@@ -11,6 +11,12 @@ tags = []
 macos = true
 '...' = false
 
+[[depends-on]]
+transcribe = "*"
+
+[[pins]]
+transcribe = { path = "../transcribe" }
+
 [build-switches]
 "*".ada_version = "Ada2022"
 "*".compile_checks = "Errors"
