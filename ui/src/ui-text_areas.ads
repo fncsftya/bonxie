@@ -48,6 +48,20 @@ package UI.Text_Areas is
 
    function Is_Single_Line (Item : Text_Area) return Boolean;
 
+   procedure Set_Grows (Item : in out Text_Area; To : Boolean := True)
+     with Pre => Is_Configured (Item);
+   --  Make it as tall as its text, for its owner to size it so (see
+   --  Content_Height) and to scroll, as a page in a column of them: it
+   --  does not scroll, has no scroll bar, and leaves the wheel to its
+   --  owner. It has no outline.
+
+   function Is_Growing (Item : Text_Area) return Boolean;
+
+   function Content_Height (Item : in out Text_Area) return Float
+     with Pre => Is_Attached (Item);
+   --  How tall it needs to be to show all its text at the width it was
+   --  last placed at, in points: every paragraph is laid out.
+
    procedure Take_Return (Item : in out Text_Area; Pressed : out Boolean);
    --  Say whether Return has been pressed in it, if it is for one line,
    --  since this was last called, and forget it.
@@ -352,6 +366,7 @@ private
       View     : Typeset.Views.View;
       Measure  : Float := 1.0;
       Single   : Boolean := False;
+      Grows    : Boolean := False;
       Returned : Boolean := False;
       Across_Scroll : Float := 0.0;
       --  For one line: how far its start is left of the padding, in

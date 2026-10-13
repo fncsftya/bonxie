@@ -1,21 +1,25 @@
 with Items;
 with UI.Widgets;
+with UI.Widgets.Grips;
 with Viewer.Canvas_Items;
 with Viewer.Deletion;
 with Viewer.Listing;
 with Viewer.Navigation;
+with Viewer.Writing;
 with Viewer.Recent;
 
 package body Viewer.Clicks is
 
    package Widgets renames UI.Widgets;
    package Buttons renames UI.Widgets.Buttons;
+   package Grips renames UI.Widgets.Grips;
    package Text_Fields renames UI.Widgets.Text_Fields;
 
    use type Projects.Id;
 
    procedure Take (Item : in out Session) is
       Clicked : Boolean;
+      Plus    : Boolean;
    begin
       --  Only the screen that is shown can have been clicked.
       case Item.Shown is
@@ -56,19 +60,30 @@ package body Viewer.Clicks is
                   return;
                end if;
             end if;
-            for I in Item.Recent_Rows'Range loop
-               if Widgets.Is_Shown (Item.Recent_Rows (I)) then
-                  Buttons.Take_Click (Item.Recent_Rows (I), Clicked);
+            Grips.Take_Click (Item.New_Card, Clicked);
+            Buttons.Take_Click (Item.New_Card_Plus, Plus);
+            if Clicked or else Plus then
+               Navigation.Enter_New (Item);
+               return;
+            end if;
+            for I in Item.Cards'Range loop
+               if Widgets.Is_Shown (Item.Cards (I).Panel) then
+                  Grips.Take_Click (Item.Cards (I).Peek, Clicked);
+                  if not Clicked
+                    and then Widgets.Is_Shown (Item.Cards (I).Name)
+                  then
+                     Grips.Take_Click (Item.Cards (I).Name, Clicked);
+                  end if;
                   if Clicked then
                      Navigation.Enter (Item, Item.Row_Keys (I));
                      return;
                   end if;
-                  Buttons.Take_Click (Item.Rename_Buttons (I), Clicked);
+                  Buttons.Take_Click (Item.Cards (I).Rename, Clicked);
                   if Clicked then
                      Recent.Begin_Rename (Item, I);
                      return;
                   end if;
-                  Buttons.Take_Click (Item.Delete_Buttons (I), Clicked);
+                  Buttons.Take_Click (Item.Cards (I).Delete, Clicked);
                   if Clicked then
                      Deletion.Confirm (Item, I);
                      return;
@@ -86,14 +101,23 @@ package body Viewer.Clicks is
                Navigation.Leave (Item);
                return;
             end if;
-            --  The only view, and shown already.
             Buttons.Take_Click (Item.Canvas_Tab, Clicked);
             if Clicked then
-               Item.Mode := Canvas;
+               Writing.Show (Item, Canvas);
+               return;
+            end if;
+            Buttons.Take_Click (Item.Write_Tab, Clicked);
+            if Clicked then
+               Writing.Show (Item, Write);
+               return;
             end if;
             Buttons.Take_Click (Item.Tool_Item, Clicked);
             if Clicked then
-               Canvas_Items.Add (Item);
+               if Item.Mode = Write then
+                  Canvas_Items.Add (Item, Canvas_Items.Untitled_Document);
+               else
+                  Canvas_Items.Add (Item);
+               end if;
                return;
             end if;
             Buttons.Take_Click (Item.Tool_Source, Clicked);
@@ -108,6 +132,9 @@ package body Viewer.Clicks is
                return;
             end if;
             Canvas_Items.Take (Item);
+            if Item.Mode = Write then
+               Writing.Take (Item);
+            end if;
       end case;
    end Take;
 

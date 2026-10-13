@@ -15,9 +15,11 @@ package UI.Widgets.Buttons is
 
    type Button is new Widget with private;
 
-   type Kind is (Normal, Primary, Danger);
-   --  Primary is in the theme's primary colour, for the main action;
-   --  Danger in its danger colour, for what cannot be undone.
+   type Kind is (Normal, Primary, Danger, Quiet);
+   --  Normal has the theme's face, outlined; Primary is in the theme's
+   --  primary colour, for the main action; Danger in its danger colour,
+   --  for what cannot be undone. Quiet has no face, only its icon and
+   --  label, in a light ink, for a dark bar.
 
    procedure Set_Kind (Item : in out Button; To : Kind);
 
@@ -40,6 +42,14 @@ package UI.Widgets.Buttons is
 
    procedure Set_Swatch (Item : in out Button; To : Themes.Color);
    --  Show a square of the colour, in the middle, as the button's icon.
+
+   procedure Set_Raised (Item : in out Button; To : Boolean);
+   --  Cast a solid shadow, inside its box (see UI.Boxes), as a button
+   --  that stands on its own does.
+
+   procedure Set_Badge (Item : in out Button; Count : Natural);
+   --  Show Count in a dark square after the label, as how many there are
+   --  of what it opens; none if 0.
 
    procedure Set_Captioned (Item : in out Button; To : Boolean);
    --  With an icon, show the label after it, in place of the icon alone.
@@ -84,6 +94,8 @@ private
       Swatched : Boolean := False;
       Swatch   : Themes.Color := (0, 0, 0, 255);
       Captioned : Boolean := False;
+      Raised    : Boolean := False;
+      Badge     : Natural := 0;
       Selected  : Boolean := False;
       Down    : Boolean := False;  --  pressed, and not yet let go
       Clicked : Boolean := False;

@@ -1,9 +1,11 @@
 with UI.Icons;
+with UI.Themes;
 with UI.Widgets;
 with UI.Widgets.Buttons;
 with UI.Widgets.Canvases;
 with UI.Widgets.Panels;
 with UI.Widgets.Pins;
+with Viewer.Canvas_Items;
 with Viewer.Style;
 with Yoga.Nodes;
 
@@ -21,6 +23,7 @@ package body Viewer.Links is
    use type Items.States;
    use type Items.Strokes;
    use type Items.Endings;
+   use type Items.Kinds;
 
    pragma Assert (Canvases.Max_Lines >= Items.Max_Links);
 
@@ -497,7 +500,19 @@ package body Viewer.Links is
    --  Set the lines of the links and of the drag, and show the handle and
    --  the toolbar of the link selected, where it is.
 
+   function Is_Source (Item : Session; Which : Items.Slot) return Boolean is
+     (Windows.Details (Item.Windows (Which)).Kind = Items.Source);
+
    procedure Draw_Lines (Item : in out Session; Changed : in out Boolean) is
+
+      function Ink_Of
+        (Each : Items.Link; From, To : Items.Slot) return UI.Themes.Color is
+        (if Is_Source (Item, From) then Canvas_Items.Source_Ink (Item, From)
+         elsif Is_Source (Item, To) then Canvas_Items.Source_Ink (Item, To)
+         else Style.Link_Inks (Each.Color));
+      --  A link to a source is in the source's colour, that the documents
+      --  citing it are seen to; others, in the colour chosen for them.
+
       Lines : Canvases.Line_Array (1 .. Items.Max_Links);
       Count : Natural := 0;
       Chosen : Natural := 0;
@@ -528,7 +543,7 @@ package body Viewer.Links is
                                    when Items.Dots   => Canvases.Dotted,
                                    when Items.Dashed => Canvases.Dashed),
                      Arrow  => Each.Ending = Items.Arrow,
-                     Ink    => Style.Link_Inks (Each.Color));
+                     Ink    => Ink_Of (Each, From, To));
                   if Each.Key = Item.Link_Key then
                      Chosen := Number;
                      Target := B;

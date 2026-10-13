@@ -1,6 +1,7 @@
 with SDL3.Cursors;
 with SDL3.Events;
 with SDL3.Windows.Renderers;
+private with UI.Boxes;
 
 --  A place to take hold of and drag, as a window's title bar to move it
 --  or its corner to size it. It has no state of the thing it moves: it
@@ -25,6 +26,17 @@ package UI.Widgets.Grips is
    --  Fill its box with Value, behind what is in it, which it is drawn
    --  with: a bar to drag by, and the widgets on it. By default it fills
    --  with nothing.
+
+   procedure Set_Border
+     (Item : in out Grip; Value : Themes.Color; Dashed : Boolean := False);
+   --  Outline its face a point wide in Value, in dashes if Dashed.
+
+   procedure Clear_Border (Item : in out Grip);
+
+   procedure Set_Shadow (Item : in out Grip; Value : Themes.Color);
+   --  Cast a solid shadow in Value, inside its box (see UI.Boxes).
+
+   procedure Clear_Shadow (Item : in out Grip);
 
    procedure Set_Wanted_Cursor (Item : in out Grip; To : SDL3.Cursors.Kind);
    --  The pointer's shape over it, and while it is dragged.
@@ -72,8 +84,7 @@ private
 
    type Grip is new Widget with record
       Form    : Shape := Bar;
-      Filled  : Boolean := False;
-      Color   : Themes.Color := (0, 0, 0, 255);
+      Look    : UI.Boxes.Look;
       Wanted  : SDL3.Cursors.Kind := SDL3.Cursors.Move;
       Outlined : Boolean := False;
       Outline_Color : Themes.Color := (0, 0, 0, 255);

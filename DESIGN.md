@@ -57,7 +57,7 @@ From the bottom up; each crate depends only on those before it.
   button) and zoom (Command with the wheel, a pinch, Command with =, -,
   0), and draws lines between places on it (`Set_Lines`, in canvas units,
   under what is on it) and a faint one being dragged out (`Set_Ghost`, over
-  it); `Pins` is a small round handle to press and drag from, and to let go
+  it); `Pins` is a small square handle to press and drag from, and to let go
   on (`Set_Accepting` says it may be, and it is then drawn with a border
   while the pointer is over it); `Grips` is a place to drag by (a title bar, a corner to size by),
   which says how far the pointer has gone; `Scrollers` scrolls its one
@@ -124,13 +124,18 @@ From the bottom up; each crate depends only on those before it.
   more than the main thread's usual 8 MB of stack, so the executables
   are linked with 64 MB (`-Wl,-stack_size`).
   `Viewer` has two screens, built once and swapped with `Set_Visible`:
-  the home (recent projects, each to open, rename or delete, with a
-  dialog over it to confirm a deletion; New Project, Settings) and a project (the
-  canvas, with its items' windows as children, so that the wheel pans
-  it from anywhere but the text; a dock above the tools bar of
-  the minimised items; the tools bar, with Add Item, Add Source and Items, which
-  shows a dialog of a scrolling list of the items, each to show or hide
-  or remove, or to click the title of, to go to it; and a toolbar with Close). Offscreen sessions keep their
+  the home (a sidebar with New Project and Settings; the recent projects
+  as cards, each with a picture of its canvas (`Previews`, a widget of the
+  app's own), how many documents and sources it has, and buttons to rename
+  or delete it, with a dialog over it to confirm a deletion; and after them
+  the outline of a card, to make one) and a project (a toolbar across the
+  top: the way back to the projects, the project's name, the tabs in the
+  middle, and Items at the right, which shows a dialog of a scrolling list
+  of the items, each to show or hide or remove, or to click the title of,
+  to go to it; the canvas, with its items' windows as children, so that the
+  wheel pans it from anywhere but the text; a tray over the foot of the
+  canvas, in the middle, with Add Document and Add Source; and a dock below
+  it of the minimised items). Offscreen sessions keep their
   projects in memory. `Viewer` holds the `Session` and the public API,
   the event loop and the window's lifecycle; the rest is in its private
   children: `Style` (sizes, colours), `Build` (widgets, built once),
@@ -144,6 +149,43 @@ From the bottom up; each crate depends only on those before it.
   stopped, what was heard is put in the note by `Items.Windows.Add_Dictation`:
   at the caret if the text is focused, else as a new paragraph after the
   text (or as the text, if there is none).
+  While it listens, what has been heard so far (`Speech.Jobs.Heard_So_Far`:
+  the settled words and the provisional ones, from SpeechAnalyzer's volatile
+  results) is shown in the note as it comes, by
+  `Items.Windows.Set_Live_Dictation`, in the same place, in both the canvas's
+  window and Write's page (they share the document). These edits are not
+  recorded, so undo never sees them; `Add_Dictation` (or a failure) takes
+  them back first, so the final text is the one step. If anything else
+  changes the text meanwhile, the live text is left as it is and not updated.
+  `Viewer` has a second view of a project, Write (`Viewer.Writing`, with
+  tabs in the middle of the toolbar to choose between it and the canvas). In
+  it the items that are not sources are Documents, each on a white page
+  (`UI.Text_Areas.Set_Grows`: a text area as tall as its text, which does
+  not scroll or take the wheel, so the column of pages scrolls as one;
+  `Content_Height` is what `Writing.Fit` sizes it by, after each layout, and
+  it keeps the caret in view). Above each page, outside it, are the document's
+  title, a Sources menu (the sources the document is linked to on the canvas,
+  how many on the button; choosing one pins it) and a button to dictate into
+  it; below it, how many words it has; after the last, a button to add one. A page is a second view
+  of the document the item's window on the canvas owns
+  (`Items.Windows.Content_Document`), so what is typed in either is in
+  both, and the canvas's window writes it (`Hold_Typing` says it is being
+  typed in elsewhere, to write it once it has been left alone for a
+  moment). The sidebar, at the left, has two scrolling lists: the
+  documents (with a button to add one), each row with how many words it
+  has, a row to drag to put a document elsewhere in the order
+  (`Items.Save_Order`, `Load_Order`: the `position` column of `items`; those
+  never put come last, in the order they were made), or to click to go to
+  its page; and the sources, a row to click to open or close the source's
+  window here. That window is an `Items.Readers.Reader`, not the item's window
+  on the canvas: where it is, whether it is open, its zoom and scroll are
+  of this view only and are not kept; the picture and the words found in it
+  are the same files and rows, and the highlights are shared:
+  `Writing.Update` makes those of the reader and of the window on the canvas
+  the same, whichever was marked, and keeps them in the database. A source's
+  window has a pin button, which puts it in the pane at the right (a
+  `Reader` that fills it; one at a time, with an edge to size it by) in
+  place of its window.
   Items are linked, visually, by `Viewer.Links`: a pin in the middle of each
   side of every open window, shown while the pointer is over the window.
   Dragging from one shows the pins of the other windows and a ghost line to

@@ -16,16 +16,50 @@ package body UI.Widgets.Grips is
       end if;
    end Set_Shape;
 
-   procedure Set_Fill (Item : in out Grip; Value : Themes.Color) is
+   procedure Restyle (Item : in out Grip; To : UI.Boxes.Look);
+   --  Look like To, drawn again if that is not how it looks.
+
+   procedure Restyle (Item : in out Grip; To : UI.Boxes.Look) is
+      use type UI.Boxes.Look;
    begin
-      if not Item.Filled or else Item.Color /= Value then
-         Item.Filled := True;
-         Item.Color := Value;
+      if To /= Item.Look then
+         Item.Look := To;
          if Is_Attached (Item) then
             Invalidate (Item);
          end if;
       end if;
+   end Restyle;
+
+   procedure Set_Fill (Item : in out Grip; Value : Themes.Color) is
+   begin
+      Restyle (Item, (Item.Look with delta Filled => True, Fill => Value));
    end Set_Fill;
+
+   procedure Set_Border
+     (Item : in out Grip; Value : Themes.Color; Dashed : Boolean := False)
+   is
+   begin
+      Restyle
+        (Item,
+         (Item.Look with delta
+            Bordered => True, Border => Value, Dashed => Dashed));
+   end Set_Border;
+
+   procedure Clear_Border (Item : in out Grip) is
+   begin
+      Restyle (Item, (Item.Look with delta Bordered => False));
+   end Clear_Border;
+
+   procedure Set_Shadow (Item : in out Grip; Value : Themes.Color) is
+   begin
+      Restyle
+        (Item, (Item.Look with delta Shadowed => True, Shadow => Value));
+   end Set_Shadow;
+
+   procedure Clear_Shadow (Item : in out Grip) is
+   begin
+      Restyle (Item, (Item.Look with delta Shadowed => False));
+   end Clear_Shadow;
 
    procedure Set_Hover_Outline (Item : in out Grip; Value : Themes.Color) is
    begin
@@ -132,26 +166,18 @@ package body UI.Widgets.Grips is
       Edge : constant Float := Left_Of (Item) + Width_Of (Item) - 2.0 * Side;
       Base : constant Float := Top_Of (Item) + Height_Of (Item) - 2.0 * Side;
    begin
-      if Item.Filled then
-         Fill_Rect
-           (Target, Item.Color,
-            Left_Of (Item), Top_Of (Item), Width_Of (Item),
-            Height_Of (Item));
-      end if;
+      UI.Boxes.Draw
+        (Target, Item.Look, Left_Of (Item), Top_Of (Item), Width_Of (Item),
+         Height_Of (Item), Density (Item));
       if Item.Outlined and then Is_Hovered (Item) then
          declare
-            Line : constant Float := Float'Max (1.0, Density (Item));
-            Left : constant Float := Left_Of (Item);
-            Top  : constant Float := Top_Of (Item);
-            Wide : constant Float := Width_Of (Item);
-            High : constant Float := Height_Of (Item);
+            Off : constant Float :=
+              UI.Boxes.Inset (Item.Look, Density (Item));
          begin
-            Fill_Rect (Target, Item.Outline_Color, Left, Top, Wide, Line);
-            Fill_Rect (Target, Item.Outline_Color,
-                       Left, Top + High - Line, Wide, Line);
-            Fill_Rect (Target, Item.Outline_Color, Left, Top, Line, High);
-            Fill_Rect (Target, Item.Outline_Color,
-                       Left + Wide - Line, Top, Line, High);
+            UI.Boxes.Outline
+              (Target, Item.Outline_Color, Left_Of (Item), Top_Of (Item),
+               Width_Of (Item) - Off, Height_Of (Item) - Off,
+               UI.Boxes.Edge (Density (Item)));
          end;
       end if;
       if Item.Form = Corner then

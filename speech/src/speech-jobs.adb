@@ -183,6 +183,16 @@ package body Speech.Jobs is
      (if Board.Stand (Which) = Listening
       then Speech.Level (Which) else 0.0);
 
+   procedure Heard_So_Far (Which : Slot; Into : in out Transcript) is
+   begin
+      if Board.Stand (Which) = Listening then
+         Speech.Peek (Which, Into);
+      else
+         Into.Length := 0;
+         Into.Truncated := False;
+      end if;
+   end Heard_So_Far;
+
    function Message (Which : Slot) return String is (Board.Said_Why (Which));
 
    procedure Take (Which : Slot; Into : in out Transcript) is

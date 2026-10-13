@@ -16,22 +16,43 @@ package UI.Line_Texts is
    System_UI : constant String := ".AppleSystemUIFont";
    --  CoreText's name for the font of the system's user interface.
 
-   Bold_System_UI     : constant String := ".AppleSystemUIFontBold";
-   Semibold_System_UI : constant String := ".AppleSystemUIFontDemi";
+   Interface_Font : constant String := "InstrumentSans-Regular";
+   Interface_Semibold : constant String := "InstrumentSans-Regular_SemiBold";
+   Interface_Bold : constant String := "InstrumentSans-Regular_Bold";
+   --  Instrument Sans, the face of the interface, in its weights: the
+   --  application registers it (CoreText.Fonts.Register); without it,
+   --  CoreText puts another sans serif in its place.
 
-   type Style is (Regular, Strong, Heading);
+   Serif : constant String := "Newsreader";
+   --  Newsreader, the face of what is written and read: documents, and
+   --  display type.
+
+   type Style is (Regular, Strong, Heading, Display, Caption);
    --  Regular is the size of the text of a window, in the regular weight;
    --  Strong is the same size, and heavier, as of buttons; Heading is
-   --  larger, and heavier still.
+   --  larger, and heavier still; Display is larger again, in the serif,
+   --  as the title of a screen; Caption is small and heavy, as the name
+   --  of a list.
 
    Regular_Size : constant := 13.0;
-   Heading_Size : constant := 20.0;
+   Heading_Size : constant := 16.0;
+   Display_Size : constant := 30.0;
+   Caption_Size : constant := 11.0;
    --  In points.
 
    function Size (Of_Style : Style) return Float is
      (case Of_Style is
          when Regular | Strong => Regular_Size,
-         when Heading          => Heading_Size);
+         when Heading          => Heading_Size,
+         when Display          => Display_Size,
+         when Caption          => Caption_Size);
+
+   function Face_Name (Of_Style : Style) return String is
+     (case Of_Style is
+         when Regular           => Interface_Font,
+         when Strong | Caption  => Interface_Semibold,
+         when Heading           => Interface_Bold,
+         when Display           => Serif);
 
    type Drawer is limited private;
 

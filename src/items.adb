@@ -1,6 +1,7 @@
 with Ada.Directories;
 with Ada.Strings;
 with Ada.Strings.Fixed;
+with Ada.Numerics.Elementary_Functions;
 with Ada_Sqlite3;
 
 package body Items is
@@ -102,8 +103,37 @@ package body Items is
    Add_Captured : constant String :=
      "ALTER TABLE items ADD COLUMN captured_at INTEGER NOT NULL DEFAULT 0";
 
+   Add_Position : constant String :=
+     "ALTER TABLE items ADD COLUMN position INTEGER NOT NULL DEFAULT 0";
+
+   Has_Position : constant String :=
+     "SELECT count(*) FROM pragma_table_info('items') WHERE name = 'position'";
+
    Index : constant String :=
      "CREATE INDEX IF NOT EXISTS items_project ON items (project_id, id)";
+
+   function Percent (Zoom : Float) return String is
+     (Ada.Strings.Fixed.Trim
+        (Integer'Image (Integer (Float'Rounding (Zoom * 100.0))),
+         Ada.Strings.Both) & "%");
+
+   function To_Slider (Zoom : Float) return Float is
+     (Float'Min
+        (1.0,
+         Float'Max
+           (0.0,
+            Ada.Numerics.Elementary_Functions.Log (Zoom / Min_Zoom)
+            / Ada.Numerics.Elementary_Functions.Log (Max_Zoom / Min_Zoom))));
+
+   function From_Slider (Along : Float) return Float is
+     (Float'Min
+        (Max_Zoom,
+         Float'Max
+           (Min_Zoom,
+            Float'Rounding
+              (100.0 * Min_Zoom
+               * Ada.Numerics.Elementary_Functions."**"
+                   (Max_Zoom / Min_Zoom, Along)) / 100.0)));
 
    function DB (Store : Projects.Store)
       return not null access Ada_Sqlite3.Database is
@@ -225,6 +255,16 @@ package body Items is
       if Lacks_Words_Version (Store) then
          Ada_Sqlite3.Execute (DB (Store).all, Add_Words_Version);
       end if;
+      declare
+         Query : Ada_Sqlite3.Statement :=
+           Ada_Sqlite3.Prepare (DB (Store).all, Has_Position);
+      begin
+         if Ada_Sqlite3.Step (Query) = Ada_Sqlite3.ROW
+           and then Ada_Sqlite3.Column_Int (Query, 0) = 0
+         then
+            Ada_Sqlite3.Execute (DB (Store).all, Add_Position);
+         end if;
+      end;
       Ada_Sqlite3.Execute (DB (Store).all, Words_Schema);
       Ada_Sqlite3.Execute (DB (Store).all, Marks_Schema);
       Ada_Sqlite3.Execute (DB (Store).all, Links_Schema);
@@ -302,6 +342,48 @@ package body Items is
                Float'Max (0.0, Ada_Sqlite3.Column_Double (Query, 12))));
       end loop;
    end Load;
+
+   procedure Load_Order
+     (Store   : Projects.Store;
+      Project : Projects.Id;
+      Result  : out Id_List)
+   is
+      --  Those never put (position 0) come after those that were.
+      Query : Ada_Sqlite3.Statement :=
+        Ada_Sqlite3.Prepare
+          (DB (Store).all,
+           "SELECT id FROM items WHERE project_id = :project "
+           & "ORDER BY position = 0, position, id LIMIT :limit");
+   begin
+      Result.Count := 0;
+      Ada_Sqlite3.Bind_Int64 (Query, ":project", Long_Integer (Project));
+      Ada_Sqlite3.Bind_Int (Query, ":limit", Capacity);
+      while Ada_Sqlite3.Step (Query) = Ada_Sqlite3.ROW loop
+         pragma Assert (Result.Count < Capacity);
+         Result.Count := Result.Count + 1;
+         Result.Keys (Result.Count) :=
+           Id (Ada_Sqlite3.Column_Int64 (Query, 0));
+      end loop;
+   end Load_Order;
+
+   procedure Save_Order
+     (Store : in out Projects.Store; Keys : Id_Array) is
+   begin
+      for Place in Keys'Range loop
+         declare
+            Update : Ada_Sqlite3.Statement :=
+              Ada_Sqlite3.Prepare
+                (DB (Store).all,
+                 "UPDATE items SET position = :position WHERE id = :id");
+         begin
+            Ada_Sqlite3.Bind_Int
+              (Update, ":position", Place - Keys'First + 1);
+            Ada_Sqlite3.Bind_Int64
+              (Update, ":id", Long_Integer (Keys (Place)));
+            Ada_Sqlite3.Step (Update);
+         end;
+      end loop;
+   end Save_Order;
 
    function Count
      (Store : Projects.Store; Project : Projects.Id) return Natural

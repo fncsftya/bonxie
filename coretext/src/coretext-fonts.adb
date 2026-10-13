@@ -58,6 +58,24 @@ package body CoreText.Fonts is
       end if;
    end Open;
 
+   procedure Register (Path : String; Registered : out Boolean) is
+      Bytes : aliased constant String := Path;
+      Where : Thin.Ref :=
+        Thin.CF_URL_Create_From_File_System_Representation
+          (Thin.Null_Ref, Bytes'Address, Interfaces.C.long (Bytes'Length),
+           Thin.C_False);
+   begin
+      if Where = Thin.Null_Ref then
+         Registered := False;
+         return;
+      end if;
+      Registered :=
+        Boolean
+          (Thin.CT_Font_Manager_Register_Fonts_For_URL
+             (Where, Thin.Font_Manager_Scope_Process, System.Null_Address));
+      Core.Release (Where);
+   end Register;
+
    procedure Close (Item : in out Font) is
    begin
       Core.Release (Item.Attrs);

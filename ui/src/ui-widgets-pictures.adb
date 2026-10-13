@@ -170,9 +170,6 @@ package body UI.Widgets.Pictures is
 
    --  Where the picture is, in pixels, as of the last draw.
 
-   Highlight : constant SDL3.Windows.Renderers.Color :=
-     (Red => 255, Green => 214, Blue => 0, Alpha => 255);
-
    function Wide_Of (Item : Picture) return Float is
      (Width_Of (Item) * Item.Zoomed);
 
@@ -475,7 +472,7 @@ package body UI.Widgets.Pictures is
       Wide : constant Float := Box * Item.Zoomed;
    begin
       SDL3.Windows.Renderers.Fill_Rect
-        (Target, Themes.Mix (Colors.Background, Colors.Foreground, 0.08),
+        (Target, Themes.White,
          Left_Of (Item), Top_Of (Item), Box, Height_Of (Item));
       if Item.Length = 0 or else Item.Failed then
          return;
@@ -527,7 +524,7 @@ package body UI.Widgets.Pictures is
                Each : Mark renames Item.Marked (Index);
             begin
                SDL3.Windows.Renderers.Fill_Rect
-                 (Target, Highlight,
+                 (Target, Colors.Marker,
                   (if Item.Dark then SDL3.Windows.Renderers.Add
                    else SDL3.Windows.Renderers.Multiply),
                   Left + Each.Left * Wide,

@@ -3,6 +3,7 @@ with UI.Line_Texts;
 with UI.Widgets;
 with Viewer.Canvas_Items;
 with Viewer.Style;
+with Viewer.Writing;
 
 package body Viewer.Painting is
 
@@ -18,6 +19,9 @@ package body Viewer.Painting is
          --  were put on it.
          Widgets.Layout (Item.Widgets, Item.Target);
          Canvas_Items.Sync (Item);
+         if Item.Mode = Write then
+            Writing.Fit (Item);
+         end if;
       end if;
       --  The target keeps what is drawn on it, offscreen and in a window,
       --  so that only what has changed need be drawn again.

@@ -7,24 +7,47 @@ private package Viewer.Style is
 
    Window_Width  : constant := 1000;
    Window_Height : constant := 800;
-   Toolbar_Size  : constant Float := 32.0;
    Header_Size   : constant Float := 28.0;
    Header_Inset  : constant Float := 80.0;
-   --  The header across the top, and what its title leaves clear at the
-   --  left for the window's close, minimise and zoom buttons.
+   --  Of a window's own title bar, which the screens leave clear at the
+   --  top, and of its close, minimise and zoom buttons at the left.
 
-   --  The tools, in points
+   --  The bar across the top of a project, in points
 
+   Toolbar_Size  : constant Float := 44.0;
+   Bar_Inset     : constant Float := 12.0;
+   --  At each end of the bar.
+   Back_Width    : constant Float := 92.0;
+   Bar_Rule_Height : constant Float := 22.0;
+   --  The line between the way back and the project's name.
+   Name_Gap      : constant Float := 10.0;
+   Tab_Width     : constant Float := 72.0;
+   Tab_Height    : constant Float := 26.0;
+   Tab_Gap       : constant Float := 5.0;
+   Items_Width   : constant Float := 80.0;
+
+   --  The tray of tools over the canvas, at the foot, in points
+
+   Tray_Pad      : constant Float := 6.0;
+   Tray_Gap      : constant Float := 6.0;
+   Tray_Foot     : constant Float := 18.0;
+   --  Between it and the foot of the canvas.
+   Tool_Height   : constant Float := 31.0;
+   Wide_Tool_Width : constant Float := 132.0;
+   --  Of the tool to add a document, whose name is longer.
    Tool_Width    : constant Float := 112.0;
-   Tool_Height   : constant Float := 24.0;
-   Tab_Width     : constant Float := 80.0;
+   Tray_Width    : constant Float :=
+     Wide_Tool_Width + Tool_Width + Tray_Gap + 2.0 * Tray_Pad
+     + UI.Themes.Shadow_Offset;
+   Tray_Height   : constant Float :=
+     Tool_Height + 2.0 * Tray_Pad + UI.Themes.Shadow_Offset;
+   --  With its shadow, which is inside its box.
 
    Dock_Height   : constant Float := 40.0;
    Dock_Inset    : constant Float := 8.0;
    Dock_Gap      : constant Float := 6.0;
-   --  The dock of minimised items, above the toolbar.
+   --  The dock of minimised items, at the foot of the canvas.
    Tool_Gap      : constant Float := 6.0;
-   --  Between the tools.
 
    --  The list of items, in points
 
@@ -35,47 +58,138 @@ private package Viewer.Style is
    Remove_Width  : constant Float := 44.0;
    --  Of the buttons to show or hide an item, and to remove it.
 
+   --  The writing view, in points
+
+   Sidebar_Width   : constant Float := 206.0;
+   Sidebar_Margin  : constant Float := 0.0;
+   Sidebar_Pad     : constant Float := 11.0;
+   Sidebar_Gap     : constant Float := 8.0;
+   Heading_Height  : constant Float := 22.0;
+   Heading_Top     : constant Float := 14.0;
+   --  Above the name of each list.
+   Add_Size        : constant Float := 22.0;
+   --  The button to add a document, at the right of the name of the list.
+   Index_Height    : constant Float := 31.0;
+   Index_Gap       : constant Float := 7.0;
+   --  A row of the lists in the sidebar, and between them.
+   Index_Pitch     : constant Float := Index_Height + Index_Gap;
+   Index_Pad       : constant Float := 10.0;
+   Count_Width     : constant Float := 32.0;
+   --  Of the count of a document's words, at the right of its row.
+   Tag_Size        : constant Float := 8.0;
+   --  The square of a source's colour, in its row.
+   Page_Width      : constant Float := 562.0;
+   Page_Min_Width  : constant Float := 160.0;
+   Page_Min_Height : constant Float := 240.0;
+   Page_Margin     : constant Float := 40.0;
+   --  Round the pages, in the view, and inside each at the sides.
+   Page_Gap        : constant Float := 22.0;
+   Page_Head       : constant Float := 40.0;
+   Page_Foot       : constant Float := 26.0;
+   Sources_Width   : constant Float := 96.0;
+   Bar_Button_Height : constant Float := 26.0;
+   Mic_Width       : constant Float := Bar_Button_Height;
+   Mic_Icon_Size   : constant Float := 13.0;
+   --  The button to dictate is as tall as the Sources button.
+   Menu_Width      : constant Float := 200.0;
+   Page_Text_Size  : constant Float := 17.0;
+   Page_Text_Inset : constant Float := 12.0;
+   --  The padding of a text area.
+   Page_Top        : constant Float := 28.0;
+   --  Above the text, in the page.
+   Pane_Default    : constant Float := 420.0;
+   Pane_Share      : constant Float := 0.4;
+   Pane_Least      : constant Float := 260.0;
+   Pane_Edge_Width : constant Float := 6.0;
+   --  The pane of the pinned source, and the edge to size it by: it starts
+   --  as wide as that, or that share of the view if less.
+   Reader_Cascade  : constant Float := 24.0;
+   Reader_Count    : constant := 5;
+   --  Each source opened is put this far down and left of the last, for so
+   --  many.
+   Reader_Margin   : constant Float := 24.0;
+
+   No_Documents : constant String := "No documents yet";
+   No_Sources   : constant String := "No sources yet";
+
    --  The home screen, in points
 
-   Home_Margin   : constant Float := 32.0;
+   Home_Side_Width : constant Float := 218.0;
+   Side_Pad      : constant Float := 19.0;
+   Logo_Height   : constant Float := 44.0;
+   Logo_Mark     : constant Float := 10.0;
+   --  The green square before the name.
+   Logo_Gap      : constant Float := 22.0;
+   Action_Height : constant Float := 36.0;
+   Home_Margin   : constant Float := 44.0;
    Title_Height  : constant Float := 28.0;
+   Display_Height : constant Float := 52.0;
+   Card_Width    : constant Float := 330.0;
+   Card_Height   : constant Float := 212.0;
+   Card_Gap      : constant Float := 22.0;
+   Thumb_Height  : constant Float := 138.0;
+   Card_Pad      : constant Float := 14.0;
+   Card_Button   : constant Float := 31.0;
+   Card_Title_Height : constant Float := 22.0;
+   Card_Meta_Height  : constant Float := 18.0;
+   Plus_Size     : constant Float := 34.0;
    Row_Height    : constant Float := 36.0;
    Row_Gap       : constant Float := 8.0;
-   Rename_Width  : constant Float := 44.0;
-   Delete_Width  : constant Float := 44.0;
-   --  Of the buttons with icons.
    Dialog_Width  : constant Float := 320.0;
    Dialog_Pad    : constant Float := 24.0;
    Dialog_Line   : constant Float := 24.0;
    Dialog_Button_Width  : constant Float := 96.0;
-   Dialog_Button_Height : constant Float := 36.0;
-   Outline       : constant Float := 1.0;
+   Dialog_Button_Height : constant Float := 34.0;
    Ok_Width      : constant Float := 48.0;
    Cancel_Width  : constant Float := 64.0;
    Edit_Size     : constant Float := 14.0;
    --  Of the text in the field to rename a project.
-   Button_Height : constant Float := 44.0;
-   Action_Width  : constant Float := 240.0;
    Gap           : constant Float := 12.0;
    Close_Width   : constant Float := 72.0;
-   Close_Height  : constant Float := 24.0;
-   Bar_Margin    : constant Float := 4.0;
-   Title_Margin  : constant Float := 12.0;
-   --  Between the Close button and the toolbar's edge.
+   Close_Height  : constant Float := 26.0;
 
    No_Projects : constant String := "No projects yet";
    No_Items    : constant String := "No items yet";
 
    Colors  : constant UI.Themes.Theme := UI.Themes.Light;
-   Toolbar : constant UI.Themes.Color :=
-     UI.Themes.Mix (Colors.Foreground, Colors.Background, 0.15);
-   --  Dark, from the theme: its text colour, a little toward its ground.
-   Dock : constant UI.Themes.Color :=
-     UI.Themes.Mix (Colors.Background, Colors.Foreground, 0.25);
-   --  Behind the minimised items: between the canvas and the toolbar.
+   Toolbar : constant UI.Themes.Color := Colors.Bar;
+   --  The dark bars: across the top, and of the windows' titles.
+   Mid_Panel : constant UI.Themes.Color := (16#B8#, 16#C0#, 16#BB#, 255);
+   --  Behind the pages, and of the home screen's sidebar.
+   Dock : constant UI.Themes.Color := Mid_Panel;
+   --  Behind the minimised items.
+   Desk : constant UI.Themes.Color := Mid_Panel;
+   Paper : constant UI.Themes.Color := UI.Themes.White;
+   Side_Fill : constant UI.Themes.Color := Colors.Background;
+   --  Of the writing view's sidebar.
+   Row_Fill : constant UI.Themes.Color := Colors.Face;
+   Row_Open : constant UI.Themes.Color := Paper;
+   --  A row of a list; the one chosen: a source that is open, or a
+   --  document that is being put elsewhere in the order.
+   Edge_Fill : constant UI.Themes.Color := Colors.Border;
    Closed_Ink : constant UI.Themes.Color :=
      UI.Themes.Mix (Colors.Foreground, Colors.Background, 0.55);
    --  Of the title of an item that is not shown, in the list.
+   Quiet_Ink : constant UI.Themes.Color :=
+     UI.Themes.Mix (Colors.Foreground, Colors.Background, 0.35);
+   --  Of what is said of something, after its name: a count.
+   Rule_Ink : constant UI.Themes.Color :=
+     UI.Themes.Mix (Colors.Bar, UI.Themes.White, 0.3);
+   --  A line on the dark bar.
+
+   Source_Inks : constant array (1 .. 8) of UI.Themes.Color :=
+     [(16#25#, 16#63#, 16#D4#, 255),   --  blue
+      (16#27#, 16#72#, 16#2D#, 255),   --  green
+      (16#C6#, 16#28#, 16#28#, 255),   --  red
+      (16#7A#, 16#4E#, 16#B8#, 255),   --  violet
+      (16#0E#, 16#7C#, 16#7B#, 255),   --  teal
+      (16#B4#, 16#5A#, 16#09#, 255),   --  rust
+      (16#A2#, 16#3B#, 16#72#, 255),   --  plum
+      (16#5B#, 16#6B#, 16#2F#, 255)];  --  olive
+   --  Of the sources, in the order they were made, and round again.
+
+   function Source_Ink (Rank : Natural) return UI.Themes.Color is
+     (Source_Inks (1 + (Integer'Max (1, Rank) - 1) mod Source_Inks'Length));
 
    --  The toolbar of a selected link, in points
 
@@ -92,8 +206,9 @@ private package Viewer.Style is
    --  Below the lower end of the link, and centred across it.
 
    Link_Inks : constant array (Items.Link_Colors) of UI.Themes.Color :=
-     [Colors.Foreground, Colors.Accent, Colors.Primary, Colors.Danger,
-      (16#15#, 16#65#, 16#C0#, 255)];
-   --  The colours a link can be drawn in: the theme's, and a blue.
+     [Colors.Bar, Colors.Accent, Colors.Primary, Colors.Danger,
+      Source_Inks (1)];
+   --  The colours a link between documents can be drawn in: the theme's,
+   --  and a blue. A link to a source is in the source's colour.
 
 end Viewer.Style;

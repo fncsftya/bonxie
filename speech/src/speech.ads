@@ -43,6 +43,12 @@ package Speech is
    --  listening) to 1.0: it falls away between sounds. Cheap, and may be
    --  called from any thread.
 
+   procedure Peek (Which : Session; Into : in out Transcript);
+   --  What has been heard so far in an open session, as text: the words
+   --  that are settled, then those still being worked out, which a later
+   --  Peek may change. Empty if the session is not open. Cheap enough to
+   --  call every frame, and from any thread.
+
    procedure End_Listening
      (Which   : Session;
       Into    : in out Transcript;

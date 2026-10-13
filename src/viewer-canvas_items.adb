@@ -7,8 +7,11 @@ with UI.Widgets.Canvases;
 with UI.Widgets.Pictures;
 with Speech.Jobs;
 with Viewer.Links;
+with Viewer.Style;
+with Viewer.Writing;
 with Vision.Jobs;
 with Webshot;
+with Yoga.Nodes;
 
 package body Viewer.Canvas_Items is
 
@@ -69,11 +72,6 @@ package body Viewer.Canvas_Items is
       return False;
    end Capturing;
 
-   procedure Toggle_Dictation (Item : in out Session; Which : Items.Slot);
-   --  The note's button was clicked: start listening, in the background,
-   --  or stop, so that what was heard is made text and put in the note
-   --  (see Poll_Dictation).
-
    procedure Toggle_Dictation (Item : in out Session; Which : Items.Slot) is
    begin
       case Speech.Jobs.State (Which) is
@@ -117,6 +115,8 @@ package body Viewer.Canvas_Items is
                   when Speech.Jobs.Listening =>
                      Show (Windows.Listening);
                      Windows.Set_Level (Each, Speech.Jobs.Loudness (Which));
+                     Speech.Jobs.Heard_So_Far (Which, Heard);
+                     Windows.Set_Live_Dictation (Each, Speech.Image (Heard));
                   when Speech.Jobs.Finishing =>
                      Show (Windows.Transcribing);
                   when Speech.Jobs.Done =>
@@ -197,6 +197,7 @@ package body Viewer.Canvas_Items is
       Vision.Jobs.Take (Which, Found);
       Items.Save_Words (Item.Store, Key, Found, Epoch_Now (Item));
       Windows.Set_Recognized (Item.Windows (Which), Found);
+      Writing.Words_Found (Item, Which, Found);
    end Keep_Recognition;
 
    procedure Name_From_Page (Item : in out Session; Which : Items.Slot);
@@ -255,6 +256,7 @@ package body Viewer.Canvas_Items is
                        (Item.Windows (Which), Windows.Ready,
                         Items.Image_File (Item.Store, Item.Current, Key),
                         At_Time => Time);
+                     Writing.Picture_Taken (Item, Which);
                      Projects.Touch (Item.Store, Item.Current);
                   end;
                   Webshot.Reset (Which);
@@ -324,15 +326,13 @@ package body Viewer.Canvas_Items is
       end loop;
    end Order;
 
-   procedure Show_Dock (Item : in out Session);
-   --  Show the dock if any item is minimised.
-
    procedure Show_Dock (Item : in out Session) is
       Any : Boolean := False;
    begin
       for Each of Item.Windows loop
          if Windows.Is_Assigned (Each)
            and then Windows.Details (Each).State = Items.Minimized
+           and then Item.Mode = Canvas
          then
             Any := True;
          end if;
@@ -520,6 +520,9 @@ package body Viewer.Canvas_Items is
       Place_All (Item);
       Show_Dock (Item);
       Widgets.Layout (Item.Widgets, Item.Target);
+      --  The tray, in the middle of the canvas as it is laid out now.
+      Sync (Item);
+      Widgets.Layout (Item.Widgets, Item.Target);
       Links.Enter (Item);
       Links.Update (Item);
    end Enter;
@@ -612,7 +615,10 @@ package body Viewer.Canvas_Items is
             Canvases.Origin_Y (View));
          Touch (Item);
          Widgets.Layout (Item.Widgets, Item.Target);
-         Windows.Focus_Text (Item.Windows (Free));
+         if Item.Mode = Canvas then
+            Windows.Focus_Text (Item.Windows (Free));
+         end if;
+         Writing.Added (Item, Free);
       end;
    end Add;
 
@@ -647,6 +653,7 @@ package body Viewer.Canvas_Items is
 
    procedure Remove (Item : in out Session; Which : Items.Slot) is
    begin
+      Writing.Removed (Item, Which);
       Webshot.Reset (Which);
       Vision.Jobs.Reset (Which);
       Speech.Jobs.Reset (Which);
@@ -704,7 +711,19 @@ package body Viewer.Canvas_Items is
    end Pressed;
 
    procedure Sync (Item : in out Session) is
+      Pixels : constant Float := Widgets.Density (Item.Widgets);
+      Middle : constant Float :=
+        Float'Rounding
+          ((Widgets.Width_Of (Item.Content_Panel)
+            - Style.Tray_Width * Pixels) / 2.0);
    begin
+      --  The tray of tools, in the middle of the foot.
+      if Middle /= Item.Tray_Left then
+         Item.Tray_Left := Middle;
+         Yoga.Nodes.Set_Position
+           (Widgets.Node (Item.Tools), Yoga.Left, Middle);
+         Widgets.Request_Layout (Item.Tools);
+      end if;
       if Canvases.Zoom (Item.Canvas_View) /= Item.Shown_Zoom
         or else Canvases.Origin_X (Item.Canvas_View) /= Item.Shown_X
         or else Canvases.Origin_Y (Item.Canvas_View) /= Item.Shown_Y
@@ -713,12 +732,37 @@ package body Viewer.Canvas_Items is
       end if;
    end Sync;
 
+   function Source_Ink
+     (Item : Session; Which : Items.Slot) return UI.Themes.Color
+   is
+      Key  : constant Items.Id := Windows.Details (Item.Windows (Which)).Key;
+      Rank : Natural := 0;
+   begin
+      for Each of Item.Windows loop
+         if Windows.Is_Assigned (Each)
+           and then Windows.Details (Each).Kind = Items.Source
+           and then Windows.Details (Each).Key <= Key
+         then
+            Rank := Rank + 1;
+         end if;
+      end loop;
+      return Style.Source_Ink (Rank);
+   end Source_Ink;
+
    procedure Update (Item : in out Session; Now : SDL3.Events.Milliseconds) is
       Wrote, Any : Boolean := False;
    begin
       Sync (Item);
+      for Which in Items.Slot loop
+         if Windows.Is_Assigned (Item.Windows (Which))
+           and then Windows.Details (Item.Windows (Which)).Kind = Items.Source
+         then
+            Windows.Set_Tag (Item.Windows (Which), Source_Ink (Item, Which));
+         end if;
+      end loop;
       Poll_Captures (Item);
       Poll_Dictation (Item);
+      Writing.Update (Item);
       for Each of Item.Windows loop
          if Windows.Is_Assigned (Each) then
             Windows.Flush

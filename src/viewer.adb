@@ -16,12 +16,12 @@ with Viewer.Listing;
 with Viewer.Navigation;
 with Viewer.Painting;
 with Viewer.Style;
+with Viewer.Writing;
 
 package body Viewer is
 
    package Widgets renames UI.Widgets;
    package Canvases renames UI.Widgets.Canvases;
-   package Buttons renames UI.Widgets.Buttons;
    package Labels renames UI.Widgets.Labels;
 
    use Ada.Strings.Unbounded;
@@ -92,6 +92,7 @@ package body Viewer is
                  and then Event.Kind = SDL3.Events.Mouse_Down
                then
                   Canvas_Items.Pressed (Item, Event.Mouse_X, Event.Mouse_Y);
+                  Writing.Pressed (Item, Event.Mouse_X, Event.Mouse_Y);
                end if;
                Widgets.Dispatch (Item.Widgets, Event, Handled);
                Clicks.Take (Item);
@@ -108,6 +109,11 @@ package body Viewer is
    function Screen (Item : Session) return Screens is (Item.Shown);
 
    function Mode (Item : Session) return Modes is (Item.Mode);
+
+   procedure Set_Mode (Item : in out Session; To : Modes) is
+   begin
+      Writing.Show (Item, To);
+   end Set_Mode;
 
    function Current_Project (Item : Session) return Projects.Id is
      (Item.Current);
@@ -172,12 +178,75 @@ package body Viewer is
       return Slots (Row);
    end Nth;
 
+   function Document_Count (Item : Session) return Natural is
+     (Item.Write_Count);
+
+   function Document_Title (Item : Session; Row : Positive) return String is
+     (Projects.Titles.To_String
+        (Items.Windows.Details
+           (Item.Windows (Item.Write_Order (Row))).Title));
+
+   procedure Move_Document (Item : in out Session; From, To : Positive) is
+   begin
+      Writing.Move (Item, From, To);
+   end Move_Document;
+
+   function Source_Count (Item : Session) return Natural is
+     (Item.Source_Total);
+
+   function Source_Title (Item : Session; Row : Positive) return String is
+     (Projects.Titles.To_String
+        (Items.Windows.Details
+           (Item.Windows (Item.Source_Order (Row))).Title));
+
+   function Source_Is_Open (Item : Session; Row : Positive) return Boolean is
+     (Item.Pinned_Slot = Item.Source_Order (Row)
+      or else Items."=" (Items.Readers.Details
+                           (Item.Readers (Item.Source_Order (Row))).State,
+                         Items.Open));
+
+   function Source_Marks (Item : Session; Row : Positive) return Natural is
+      Kept : Items.Mark_List;
+   begin
+      Items.Readers.Get_Marks
+        (Item.Readers (Item.Source_Order (Row)), Kept);
+      return Kept.Count;
+   end Source_Marks;
+
+   function Pinned_Source (Item : Session) return Natural is
+   begin
+      for Row in 1 .. Item.Source_Total loop
+         if Item.Source_Order (Row) = Item.Pinned_Slot then
+            return Row;
+         end if;
+      end loop;
+      return 0;
+   end Pinned_Source;
+
+   procedure Link_Items (Item : in out Session; From, To : Positive) is
+      Added : Boolean;
+   begin
+      Items.Add_Link
+        (Item.Store,
+         (From => Items.Windows.Details (Item.Windows (Nth (Item, From))).Key,
+          To   => Items.Windows.Details (Item.Windows (Nth (Item, To))).Key,
+          others => <>),
+         Added);
+      Links.Reload (Item);
+   end Link_Items;
+
    function Item_Title (Item : Session; Row : Positive) return String is
      (Projects.Titles.To_String
         (Items.Windows.Details (Item.Windows (Nth (Item, Row))).Title));
 
    function Item_Text (Item : Session; Row : Positive) return String is
      (Items.Windows.Text (Item.Windows (Nth (Item, Row))));
+
+   procedure Dictate_Live
+     (Item : in out Session; Row : Positive; Said : String) is
+   begin
+      Items.Windows.Set_Live_Dictation (Item.Windows (Nth (Item, Row)), Said);
+   end Dictate_Live;
 
    procedure Dictate_Into
      (Item : in out Session; Row : Positive; Said : String)
@@ -250,7 +319,7 @@ package body Viewer is
      (Item.Deleting /= 0);
 
    function Row_Title (Item : Session; Row : Positive) return String is
-     (if Row <= Item.Listed.Count then Buttons.Label (Item.Recent_Rows (Row))
+     (if Row <= Item.Listed.Count then Labels.Text (Item.Cards (Row).Title)
       else "");
 
    --  The file

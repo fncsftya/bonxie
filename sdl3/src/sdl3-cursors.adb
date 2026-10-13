@@ -17,7 +17,8 @@ package body SDL3.Cursors is
          when Move    => 9,   --  SDL_SYSTEM_CURSOR_MOVE
          when Pointer => 11,  --  SDL_SYSTEM_CURSOR_POINTER
          when Resize  => 5,   --  SDL_SYSTEM_CURSOR_NWSE_RESIZE
-         when Crosshair => 3); --  SDL_SYSTEM_CURSOR_CROSSHAIR
+         when Crosshair => 3,   --  SDL_SYSTEM_CURSOR_CROSSHAIR
+         when Resize_Across => 7); --  SDL_SYSTEM_CURSOR_EW_RESIZE
 
    procedure Set (Which : Kind) is
    begin

@@ -1,6 +1,8 @@
 --  The items on the project's canvas: their windows, which are loaded
 --  from the database when the project is entered, kept in step with the
 --  canvas as it is panned and zoomed, and written back as they change.
+with UI.Themes;
+
 private package Viewer.Canvas_Items is
 
    type Slot_List is array (Positive range <>) of Items.Slot;
@@ -17,6 +19,8 @@ private package Viewer.Canvas_Items is
 
    Untitled_Source : constant String := "Untitled source";
 
+   Untitled_Document : constant String := "Untitled document";
+
    procedure Add
      (Item : in out Session;
       Name : String := Untitled;
@@ -29,6 +33,12 @@ private package Viewer.Canvas_Items is
    function Capturing (Item : Session) return Boolean;
    --  Whether a source's picture is being taken, or a note's dictation is
    --  being heard, readied or made text: the loop is to look at it again soon.
+
+   procedure Toggle_Dictation (Item : in out Session; Which : Items.Slot)
+     with Pre => Items.Windows.Is_Assigned (Item.Windows (Which));
+   --  The note's button was clicked, here or in the writing view: start
+   --  listening, in the background, or stop, so that what was heard is
+   --  made text and put in the note.
 
    procedure Take (Item : in out Session)
      with Pre => Screen (Item) = Project;
@@ -69,6 +79,19 @@ private package Viewer.Canvas_Items is
    procedure Remove (Item : in out Session; Which : Items.Slot)
      with Pre => Items.Windows.Is_Assigned (Item.Windows (Which));
    --  Remove the item for good.
+
+   procedure Show_Dock (Item : in out Session);
+   --  Show the dock if any item is minimised, and the canvas is shown.
+
+   function Source_Ink
+     (Item : Session; Which : Items.Slot) return UI.Themes.Color
+     with Pre => Items.Windows.Is_Assigned (Item.Windows (Which))
+                 and then Items."="
+                            (Items.Windows.Details (Item.Windows (Which)).Kind,
+                             Items.Source);
+   --  The colour of the source, which its window, its row in the writing
+   --  view and its links are shown in: by its place among the project's
+   --  sources, the earliest made first (see Style.Source_Ink).
 
    function Count (Item : Session) return Natural;
    --  How many items there are.

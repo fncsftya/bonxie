@@ -18,6 +18,12 @@ package CoreText.Fonts is
    --  Item first if it is open. CoreText substitutes a fallback for an
    --  unknown name; Family_Name reports the face actually chosen.
 
+   procedure Register (Path : String; Registered : out Boolean);
+   --  Make the fonts in the file at Path (a TrueType or OpenType file)
+   --  known to this process, so that Open finds them by name. Registered
+   --  says whether they were: not if the file cannot be read, nor if it
+   --  has been registered already (its fonts are known, all the same).
+
    procedure Close (Item : in out Font)
      with Post => not Is_Open (Item);
 

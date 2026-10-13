@@ -24,6 +24,14 @@ package body Speech is
    function SP_Level (Number : Interfaces.C.int) return Interfaces.C.C_float
      with Import, Convention => C, External_Name => "sp_level";
 
+   function SP_Peek
+     (Number      : Interfaces.C.int;
+      Text        : System.Address;
+      Text_Room   : Interfaces.C.int;
+      Text_Length : out Interfaces.C.int;
+      Cut         : out Interfaces.C.int) return Interfaces.C.int
+     with Import, Convention => C, External_Name => "sp_peek";
+
    function Level (Which : Session) return Float is
      (Float'Min
         (1.0, Float'Max (0.0, Float (SP_Level (Interfaces.C.int (Which))))));
@@ -67,6 +75,23 @@ package body Speech is
          Say (Raw, Message, Last);
       end if;
    end Begin_Listening;
+
+   procedure Peek (Which : Session; Into : in out Transcript) is
+      Length : Interfaces.C.int;
+      Cut    : Interfaces.C.int;
+      Open   : constant Interfaces.C.int :=
+        SP_Peek
+          (Interfaces.C.int (Which),
+           Into.Text'Address, Text_Capacity, Length, Cut);
+   begin
+      if Open = 1 and then Length in 0 .. Text_Capacity then
+         Into.Length := Natural (Length);
+         Into.Truncated := Cut /= 0;
+      else
+         Into.Length := 0;
+         Into.Truncated := False;
+      end if;
+   end Peek;
 
    procedure End_Listening
      (Which   : Session;

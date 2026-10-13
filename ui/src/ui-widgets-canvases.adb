@@ -9,9 +9,9 @@ package body UI.Widgets.Canvases is
    Points_Per_Notch : constant Float := 24.0;
    --  How far a notch of the wheel pans.
    Zoom_Per_Notch   : constant Float := 1.1;
-   Grid             : constant Float := 32.0;
+   Grid             : constant Float := 16.0;
    --  Between dots, in canvas units, at least; more as it zooms out.
-   Closest          : constant Float := 14.0;
+   Closest          : constant Float := 12.0;
    --  The nearest the dots are drawn, in points.
    Dot              : constant Float := 1.5;
    --  A dot's side, in points.
@@ -68,15 +68,17 @@ package body UI.Widgets.Canvases is
       end if;
    end Zoom_By;
 
-   Link_Width   : constant Float := 2.0;
+   Link_Width   : constant Float := 1.5;
    --  A line's width, in points.
+   End_Size     : constant Float := 5.0;
+   --  The side of the square at each end of a line, in points.
    Ghost_Alpha  : constant := 90;
    Halo_Width   : constant Float := 8.0;
    Halo_Alpha   : constant := 110;
    Reach        : constant Float := 6.0;
    --  How far from a line, in points, a press selects it.
-   Dash_Length  : constant Float := 8.0;
-   Gap_Length   : constant Float := 5.0;
+   Dash_Length  : constant Float := 5.0;
+   Gap_Length   : constant Float := 4.0;
    Dot_Gap      : constant Float := 5.0;
    Head_Length  : constant Float := 12.0;
    Head_Angle   : constant Float := 0.5;
@@ -320,6 +322,18 @@ package body UI.Widgets.Canvases is
                Place := Place + Dot_Gap * Pixels;
             end loop;
       end case;
+      --  A small square where it joins at each end; an arrowhead, if it
+      --  has one, in place of the square at the To end.
+      declare
+         Side : constant Float := Float'Rounding (End_Size * Pixels);
+      begin
+         Fill_Rect (Target, Style.Ink, Float'Rounding (From_X - Side / 2.0),
+                    Float'Rounding (From_Y - Side / 2.0), Side, Side);
+         if not Style.Arrow then
+            Fill_Rect (Target, Style.Ink, Float'Rounding (To_X - Side / 2.0),
+                       Float'Rounding (To_Y - Side / 2.0), Side, Side);
+         end if;
+      end;
       if Style.Arrow then
          for Arm in 0 .. 1 loop
             declare
@@ -349,8 +363,7 @@ package body UI.Widgets.Canvases is
       Pixels  : constant Float := Density (Item);
       Part    : constant Pixel_Box := Painting_Part (Item);
       Surface : constant Themes.Color := Colors.Background;
-      Ink     : constant Themes.Color :=
-        Themes.Mix (Surface, Colors.Foreground, 0.3);
+      Ink     : constant Themes.Color := Colors.Border;
       Side    : constant Float :=
         Float'Max (1.0, Float'Rounding (Dot * Pixels));
       Step    : Float := Grid;

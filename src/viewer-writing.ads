@@ -1,0 +1,68 @@
+with Vision;
+
+--  The writing view: the items that are not sources, as documents, each
+--  on a white page, one after another; beside them a list of the
+--  documents, to put in another order, and of the sources, to open and
+--  close; and the sources' windows over them, one of which may be pinned
+--  in a pane at the right.
+--
+--  A page shows the text of an item's window on the canvas, which writes
+--  it: what is typed in either is in both. A source's window here is not
+--  its window on the canvas (see Items.Readers), but its highlights are
+--  the same.
+private package Viewer.Writing is
+
+   procedure Enter (Item : in out Session)
+     with Pre => Screen (Item) = Project;
+   --  Make the lists, pages and windows of the items there are: once the
+   --  canvas's windows are made.
+
+   procedure Leave (Item : in out Session);
+   --  Let go of the windows, and the pinned source.
+
+   procedure Show (Item : in out Session; To : Modes)
+     with Pre => Screen (Item) = Project;
+   --  Show the view: the writing view in place of the canvas, or back.
+
+   procedure Added (Item : in out Session; Which : Items.Slot)
+     with Pre => Items.Windows.Is_Assigned (Item.Windows (Which));
+   --  The item has been made: list it, and give it a page or a window.
+
+   procedure Removed (Item : in out Session; Which : Items.Slot);
+   --  The item is to be taken out of the lists, and its page or windows
+   --  let go. Call it before its window is released.
+
+   procedure Picture_Taken (Item : in out Session; Which : Items.Slot)
+     with Pre => Items.Windows.Is_Assigned (Item.Windows (Which));
+   --  The source's picture is a new one: show it in its windows here too.
+
+   procedure Words_Found
+     (Item : in out Session; Which : Items.Slot; Found : Vision.Result);
+   --  The words in the source's picture have been found.
+
+   procedure Move (Item : in out Session; From, To : Positive)
+     with Pre => From <= Item.Write_Count and then To <= Item.Write_Count;
+   --  Put the From-th page at the To-th, and keep the order.
+
+   procedure Take (Item : in out Session)
+     with Pre => Screen (Item) = Project and then Item.Mode = Write;
+   --  Do what the lists, the sources' windows and the pane were clicked
+   --  or dragged for.
+
+   procedure Pressed (Item : in out Session; X, Y : Float)
+     with Pre => Screen (Item) = Project;
+   --  The pointer was pressed at X, Y, in points of the window: the
+   --  highlighter of a source's window here is put away if that is
+   --  outside it.
+
+   procedure Update (Item : in out Session)
+     with Pre => Screen (Item) = Project;
+   --  Keep the titles, the highlights and the text being typed in step
+   --  with the canvas's windows.
+
+   procedure Fit (Item : in out Session)
+     with Pre => Screen (Item) = Project and then Item.Mode = Write;
+   --  Size the pages to their text and the window, once it is laid out,
+   --  and bring the caret into view.
+
+end Viewer.Writing;

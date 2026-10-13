@@ -47,6 +47,17 @@ package Items is
 
    subtype Zoom_Level is Float range Min_Zoom .. Max_Zoom;
 
+   function Percent (Zoom : Float) return String;
+   --  A zoom as a whole number of percents, as "150%".
+
+   function To_Slider (Zoom : Float) return Float;
+   --  Where a zoom is along a slider, from 0.0 to 1.0. Zooms go by ratios,
+   --  so the slider is on a logarithmic scale.
+
+   function From_Slider (Along : Float) return Float
+     with Post => From_Slider'Result in Min_Zoom .. Max_Zoom;
+   --  The zoom a place along a slider is, to whole percents.
+
    Max_Marks : constant := 256;
    --  Of one source's picture.
 
@@ -133,6 +144,14 @@ package Items is
    end record;
    --  Items (1 .. Count), the earliest made first.
 
+   type Id_Array is array (Positive range <>) of Id;
+
+   type Id_List is record
+      Count : Natural range 0 .. Capacity := 0;
+      Keys  : Id_Array (1 .. Capacity) := [others => 0];
+   end record;
+   --  Keys (1 .. Count).
+
    procedure Prepare (Store : in out Projects.Store)
      with Pre => Projects.Is_Open (Store);
    --  Make the table, if there is none: once, after the store is opened.
@@ -154,6 +173,20 @@ package Items is
       Result  : out Info_List)
      with Pre => Projects.Is_Open (Store);
    --  The project's items, but for their text: see Content.
+
+   procedure Load_Order
+     (Store   : Projects.Store;
+      Project : Projects.Id;
+      Result  : out Id_List)
+     with Pre => Projects.Is_Open (Store);
+   --  The project's items, in the order the writing view lists them: as
+   --  they were put by Save_Order, those since made after, the earliest
+   --  made first.
+
+   procedure Save_Order
+     (Store : in out Projects.Store; Keys : Id_Array)
+     with Pre => Projects.Is_Open (Store);
+   --  Keep Keys as the order of the items they are of.
 
    function Count
      (Store : Projects.Store; Project : Projects.Id) return Natural

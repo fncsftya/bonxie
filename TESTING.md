@@ -15,7 +15,10 @@ database, by clicks and drags at points of the window), and sources
 beyond one name that does not exist; `sources-words` reads the text of a
 page's picture with Vision, in the background, and checks the words are
 selected and kept in the database, without a golden, as WebKit's text
-differs between releases), and highlighting a picture (the tools in the status line, erasing, marks kept, put away
+differs between releases), the writing view (`write-*`: documents on pages, dragged into another
+order and kept, typed on a page and seen on the canvas, a source opened
+and pinned, its highlights shared with the canvas's window, which like
+`sources-pages` needs WebKit), and highlighting a picture (the tools in the status line, erasing, marks kept, put away
 by the cursor or a click outside), and selecting words over a picture
 (`pictures-*`, with made-up words: dragging, double and triple clicks,
 copying, zooming and scrolling, and reading a page of columns in order).

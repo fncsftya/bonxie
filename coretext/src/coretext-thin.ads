@@ -142,7 +142,25 @@ private package CoreText.Thin is
      with Import, Convention => C,
           External_Name => "CFArrayGetValueAtIndex";
 
+   function CF_URL_Create_From_File_System_Representation
+     (Allocator   : Ref;
+      Buffer      : System.Address;
+      Length      : long;
+      Directory   : C_bool) return Ref
+     with Import, Convention => C,
+          External_Name => "CFURLCreateFromFileSystemRepresentation";
+
    --  CoreText
+
+   Font_Manager_Scope_Process : constant Interfaces.Unsigned_32 := 1;
+   --  kCTFontManagerScopeProcess
+
+   function CT_Font_Manager_Register_Fonts_For_URL
+     (Font_URL : Ref;
+      Scope    : Interfaces.Unsigned_32;
+      Failure  : System.Address) return C_bool
+     with Import, Convention => C,
+          External_Name => "CTFontManagerRegisterFontsForURL";
 
    function CT_Font_Manager_Family_Names return Ref
      with Import, Convention => C,

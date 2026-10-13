@@ -115,10 +115,10 @@ package body UI.Widgets.Sliders is
       Knob  : constant Float := Left + Item.Fraction * Travel (Item);
       Face  : constant Themes.Color :=
         (if Item.Held or else Is_Hovered (Item)
-         then Colors.Accent else Colors.Foreground);
+         then Colors.Accent else Colors.Bar);
    begin
       Fill_Rect
-        (Target, Themes.Mix (Colors.Background, Colors.Foreground, 0.35),
+        (Target, Colors.Bar,
          Left, Top_Of (Item) + Float'Rounding ((High - Thick) / 2.0),
          Width_Of (Item), Thick);
       Fill_Rect (Target, Face, Knob, Top_Of (Item), Wide, High);

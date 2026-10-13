@@ -23,12 +23,7 @@ package body UI.Line_Texts is
 
       if not CoreText.Fonts.Is_Open (Item.Faces (Using)) then
          CoreText.Fonts.Open
-           (Item.Faces (Using),
-            (case Using is
-                when Regular => System_UI,
-                when Strong  => Semibold_System_UI,
-                when Heading => Bold_System_UI),
-            Size (Using));
+           (Item.Faces (Using), Face_Name (Using), Size (Using));
       end if;
       CoreText.Strings.Set (Item.Source, Text);
       declare

@@ -1,12 +1,16 @@
+with Ada.Strings.Fixed;
+with UI.Boxes;
+
 package body UI.Widgets.Buttons is
 
    use type SDL3.Events.Event_Kind;
    use SDL3.Windows.Renderers;
 
-   Bevel : constant := 2.0;  --  in points: how wide the edges are
-   Icon_Size : constant := 20.0;  --  in points, a side
-   Caption_Gap : constant := 6.0;  --  between an icon and its label
-   White : constant Themes.Color := (255, 255, 255, 255);
+   Icon_Size : constant := 16.0;  --  in points, a side
+   Caption_Gap : constant := 7.0;  --  between an icon and its label
+   Badge_Size : constant := 16.0;  --  in points, a side
+   Badge_Gap  : constant := 6.0;   --  between the label and the badge
+   White : constant Themes.Color := Themes.White;
    --  For an icon on a button of a colour of its own.
 
    procedure Set_Label (Item : in out Button; Text : String) is
@@ -62,6 +66,26 @@ package body UI.Widgets.Buttons is
    end Set_Swatch;
 
    function Has_Icon (Item : Button) return Boolean is (Item.Picture);
+
+   procedure Set_Raised (Item : in out Button; To : Boolean) is
+   begin
+      if To /= Item.Raised then
+         Item.Raised := To;
+         if Is_Attached (Item) then
+            Invalidate (Item);
+         end if;
+      end if;
+   end Set_Raised;
+
+   procedure Set_Badge (Item : in out Button; Count : Natural) is
+   begin
+      if Count /= Item.Badge then
+         Item.Badge := Count;
+         if Is_Attached (Item) then
+            Invalidate (Item);
+         end if;
+      end if;
+   end Set_Badge;
 
    procedure Set_Captioned (Item : in out Button; To : Boolean) is
    begin
@@ -153,71 +177,76 @@ package body UI.Widgets.Buttons is
       Target : SDL3.Windows.Renderers.Renderer;
       Colors : Themes.Theme)
    is
-      Edge  : constant Float := Bevel * Density (Item);
-      Sunk  : constant Boolean := Is_Pressed (Item) or else Item.Selected;
+      Pixels : constant Float := Density (Item);
+      Pressed : constant Boolean := Is_Pressed (Item);
+      Hovered : constant Boolean := Is_Hovered (Item);
+      Base  : constant Themes.Color :=
+        (case Item.Style is
+            when Primary => Colors.Primary,
+            when Danger  => Colors.Danger,
+            when Normal | Quiet =>
+              (if Item.Selected then Colors.Accent else Colors.Face));
       Face  : constant Themes.Color :=
-        (if Item.Style /= Normal
-         then Themes.Mix
-                ((if Item.Style = Danger then Colors.Danger
-                  else Colors.Primary),
-                 Colors.Foreground,
-                 (if Is_Pressed (Item) then 0.35
-                  elsif Is_Hovered (Item) then 0.15 else 0.0))
-         elsif Sunk
-         then Themes.Mix (Colors.Background, Colors.Accent, 0.5)
-         else Themes.Mix
-                (Colors.Background, Colors.Foreground,
-                 (if Is_Hovered (Item) then 0.25 else 0.12)));
+        (if Pressed then Themes.Mix (Base, Colors.Foreground, 0.18)
+         elsif not Hovered then Base
+         elsif Item.Style in Primary | Danger
+         then Themes.Mix (Base, Colors.Foreground, 0.12)
+         else Themes.Mix (Base, White, 0.22));
       Ink   : constant Themes.Color :=
-        (if Item.Style /= Normal then Colors.Background
-         else Colors.Foreground);
-      Lit   : constant Themes.Color :=
-        (if Sunk then Themes.Shade (Face)
-         else Themes.Highlight (Face));
-      Dim   : constant Themes.Color :=
-        (if Sunk then Themes.Highlight (Face)
-         else Themes.Shade (Face));
+        (case Item.Style is
+            when Primary | Danger => White,
+            when Quiet =>
+              (if Hovered or else Item.Selected then White
+               else Themes.Mix (Colors.Face, White, 0.35)),
+            when Normal => Colors.Foreground);
+      Look  : constant UI.Boxes.Look :=
+        (Filled   => Item.Style /= Quiet,
+         Fill     => Face,
+         Bordered => Item.Style /= Quiet,
+         Border   =>
+           (if Item.Style = Normal and then not Item.Selected
+            then Colors.Border
+            else Themes.Mix (Base, Colors.Foreground, 0.3)),
+         Dashed   => False,
+         Shadowed => Item.Raised,
+         Shadow   => Colors.Shadow);
+      Off   : constant Float := UI.Boxes.Inset (Look, Pixels);
+      Wide_Box : constant Float := Width_Of (Item) - Off;
+      High_Box : constant Float := Height_Of (Item) - Off;
       Shift : constant Float :=
-        (if Sunk then Density (Item) else 0.0);
+        (if Pressed then Float'Rounding (Pixels) else 0.0);
       Icon_Drawn : Boolean := False;
       Text_Left  : Float := 0.0;
       Scale : constant Positive :=
-        Positive (Float'Max (1.0, Float'Rounding (Density (Item))));
+        Positive (Float'Max (1.0, Float'Rounding (Pixels)));
       Wide  : constant Float :=
         Float (Item.Length * Debug_Text_Size * Scale);
       High  : constant Float := Float (Debug_Text_Size * Scale);
       Span  : constant Float := Label_Span (Item, Wide);
       Together : constant Boolean :=
         Item.Picture and then Item.Captioned and then Item.Length > 0;
+      Badged : constant Boolean :=
+        Item.Badge > 0 and then Item.Length > 0
+        and then Text_Lines (Item) /= null;
+      Badge_Room : constant Float :=
+        (if Badged then (Badge_Gap + Badge_Size) * Pixels else 0.0);
    begin
-      --  A face with a bevel and no outline: light on its top and left,
-      --  shade on its bottom and right, as if it stood out; the other
-      --  way round, pressed in, with the label moved with it.
-      Fill_Rect
-        (Target, Face,
-         Left_Of (Item), Top_Of (Item), Width_Of (Item), Height_Of (Item));
-      Fill_Rect (Target, Lit, Left_Of (Item), Top_Of (Item),
-                 Width_Of (Item), Edge);
-      Fill_Rect (Target, Lit, Left_Of (Item), Top_Of (Item),
-                 Edge, Height_Of (Item));
-      Fill_Rect (Target, Dim, Left_Of (Item),
-                 Top_Of (Item) + Height_Of (Item) - Edge,
-                 Width_Of (Item), Edge);
-      Fill_Rect (Target, Dim, Left_Of (Item) + Width_Of (Item) - Edge,
-                 Top_Of (Item), Edge, Height_Of (Item));
+      UI.Boxes.Draw
+        (Target, Look, Left_Of (Item), Top_Of (Item), Width_Of (Item),
+         Height_Of (Item), Pixels);
       --  The icon, if there is one, and the label, in the middle of the
-      --  button: together, icon first, if it is captioned; otherwise the
+      --  face: together, icon first, if it is captioned; otherwise the
       --  label only where the icon cannot be drawn.
       if Item.Swatched then
          declare
-            Side : constant Float := Icon_Size * 0.5 * Density (Item);
+            Side : constant Float := 10.0 * Pixels;
          begin
             Fill_Rect
               (Target, Item.Swatch,
                Float'Rounding
-                 (Left_Of (Item) + (Width_Of (Item) - Side) / 2.0 + Shift),
+                 (Left_Of (Item) + (Wide_Box - Side) / 2.0 + Shift),
                Float'Rounding
-                 (Top_Of (Item) + (Height_Of (Item) - Side) / 2.0 + Shift),
+                 (Top_Of (Item) + (High_Box - Side) / 2.0 + Shift),
                Side, Side);
             Icon_Drawn := True;
          end;
@@ -226,46 +255,65 @@ package body UI.Widgets.Buttons is
             Points : constant Float :=
               (if Item.Icon_Points > 0.0 then Item.Icon_Points else Icon_Size);
             Size : constant Positive :=
-              Positive (Float'Rounding (Points * Density (Item)));
+              Positive (Float'Rounding (Points * Pixels));
             Group_Left : constant Float :=
               Left_Of (Item)
-              + (Width_Of (Item)
+              + (Wide_Box
                  - (if Together
-                    then (Points + Caption_Gap) * Density (Item) + Span
+                    then (Points + Caption_Gap) * Pixels + Span + Badge_Room
                     else Float (Size))) / 2.0;
             Drawn : Boolean;
          begin
             Icons.Draw
               (Icon_Library (Item).all, Target,
-               Item.Which,
-               (if Item.Style /= Normal then White else Colors.Foreground),
+               Item.Which, Ink,
                Float'Rounding (Group_Left + Shift),
                Float'Rounding
-                 (Top_Of (Item) + (Height_Of (Item) - Float (Size)) / 2.0
-                  + Shift),
+                 (Top_Of (Item) + (High_Box - Float (Size)) / 2.0 + Shift),
                Size, Drawn);
             Icon_Drawn := Drawn;
-            Text_Left := Group_Left + (Points + Caption_Gap)
-                                      * Density (Item);
+            Text_Left := Group_Left + (Points + Caption_Gap) * Pixels;
          end;
       end if;
       if Item.Length > 0 and then (Together or else not Icon_Drawn) then
          if not (Together and then Icon_Drawn) then
             Text_Left :=
-              Left_Of (Item) + (Width_Of (Item) - Span) / 2.0;
+              Left_Of (Item) + (Wide_Box - Span - Badge_Room) / 2.0;
          end if;
          if Text_Lines (Item) /= null then
             UI.Line_Texts.Draw
               (Text_Lines (Item).all, Target, Ink, Label (Item),
                Text_Left + Shift,
-               Top_Of (Item) + Height_Of (Item) / 2.0 + Shift,
-               Density (Item), UI.Line_Texts.Strong);
+               Top_Of (Item) + High_Box / 2.0 + Shift,
+               Pixels, UI.Line_Texts.Strong);
          else
             Draw_Text
               (Target, Ink, Float'Rounding (Text_Left + Shift),
                Float'Rounding
-                 (Top_Of (Item) + (Height_Of (Item) - High) / 2.0 + Shift),
+                 (Top_Of (Item) + (High_Box - High) / 2.0 + Shift),
                Label (Item), Scale);
+         end if;
+         --  The count, white in a dark square, after the label.
+         if Badged then
+            declare
+               Count : constant String :=
+                 Ada.Strings.Fixed.Trim (Item.Badge'Image, Ada.Strings.Both);
+               Side  : constant Float := Float'Rounding (Badge_Size * Pixels);
+               Left  : constant Float :=
+                 Float'Rounding
+                   (Text_Left + Span + Badge_Gap * Pixels + Shift);
+               Top   : constant Float :=
+                 Float'Rounding
+                   (Top_Of (Item) + (High_Box - Side) / 2.0 + Shift);
+            begin
+               Fill_Rect (Target, Colors.Bar, Left, Top, Side, Side);
+               UI.Line_Texts.Draw
+                 (Text_Lines (Item).all, Target, White, Count,
+                  Left + (Side - UI.Line_Texts.Width
+                                   (Text_Lines (Item).all, Count, Pixels,
+                                    UI.Line_Texts.Strong)) / 2.0,
+                  Top + Side / 2.0, Pixels, UI.Line_Texts.Strong);
+            end;
          end if;
       end if;
    end Draw;

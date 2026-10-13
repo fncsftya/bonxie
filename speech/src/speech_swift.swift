@@ -26,6 +26,12 @@ private final class Listening: @unchecked Sendable {
     // How loud it is now, 0...1, falling away between sounds: written by
     // the audio thread, read by sp_level (a stale value does no harm).
     var level: Float = 0
+    // What has been said so far: the results that are final, and the
+    // latest that is not (which the next result replaces). Written by
+    // the collecting task, read by sp_peek.
+    let heard = NSLock()
+    var finals = ""
+    var provisional = ""
 }
 
 private let lock = NSLock()
@@ -70,7 +76,7 @@ private func start(_ session: Listening) async throws {
         throw Failure(why: "Speech is not supported in this language")
     }
     let transcriber = SpeechTranscriber(
-        locale: locale, transcriptionOptions: [], reportingOptions: [],
+        locale: locale, transcriptionOptions: [], reportingOptions: [.volatileResults],
         attributeOptions: [])
     if let request = try await AssetInventory.assetInstallationRequest(
         supporting: [transcriber])
@@ -118,11 +124,18 @@ private func start(_ session: Listening) async throws {
         }
     }
     session.collected = Task {
-        var text = ""
-        for try await result in transcriber.results where result.isFinal {
-            text += String(result.text.characters) + " "
+        for try await result in transcriber.results {
+            let said = String(result.text.characters)
+            session.heard.withLock {
+                if result.isFinal {
+                    session.finals += said + " "
+                    session.provisional = ""
+                } else {
+                    session.provisional = said
+                }
+            }
         }
-        return text
+        return session.heard.withLock { session.finals }
     }
     let analyzer = SpeechAnalyzer(modules: [transcriber])
     session.analyzer = analyzer
@@ -174,6 +187,42 @@ public func sp_level(_ number: Int32) -> Float {
     return found?.level ?? 0
 }
 
+// Copy words into text, as many as fit, not cutting a UTF-8 character.
+private func copy(
+    _ words: String, _ text: UnsafeMutablePointer<CChar>, _ room: Int32,
+    _ length: UnsafeMutablePointer<Int32>, _ truncated: UnsafeMutablePointer<Int32>
+) {
+    var bytes = Array(words.utf8)
+    if bytes.count > Int(room) {
+        bytes = Array(bytes[0..<Int(room)])
+        // Not in the middle of a UTF-8 character.
+        while let last = bytes.last, last & 0xC0 == 0x80 { bytes.removeLast() }
+        if let last = bytes.last, last & 0x80 != 0 { bytes.removeLast() }
+        truncated.pointee = 1
+    }
+    for (index, byte) in bytes.enumerated() { text[index] = CChar(bitPattern: byte) }
+    length.pointee = Int32(bytes.count)
+}
+
+// What has been said so far in an open session, final or not yet: 1 if
+// the session is open (maybe with nothing said), else 0.
+@_cdecl("sp_peek")
+public func sp_peek(
+    _ number: Int32, _ text: UnsafeMutablePointer<CChar>, _ textRoom: Int32,
+    _ length: UnsafeMutablePointer<Int32>, _ truncated: UnsafeMutablePointer<Int32>
+) -> Int32 {
+    length.pointee = 0
+    truncated.pointee = 0
+    lock.lock()
+    let found = sessions[number]
+    lock.unlock()
+    guard let session = found else { return 0 }
+    let words = session.heard.withLock { session.finals + session.provisional }
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+    copy(words, text, textRoom, length, truncated)
+    return 1
+}
+
 // 1 if it finished (maybe with nothing said); 0 if not, and message says why.
 @_cdecl("sp_end")
 public func sp_end(
@@ -203,16 +252,7 @@ public func sp_end(
         return 0
     case .success(let said):
         let words = said.trimmingCharacters(in: .whitespacesAndNewlines)
-        var bytes = Array(words.utf8)
-        if bytes.count > Int(textRoom) {
-            bytes = Array(bytes[0..<Int(textRoom)])
-            // Not in the middle of a UTF-8 character.
-            while let last = bytes.last, last & 0xC0 == 0x80 { bytes.removeLast() }
-            if let last = bytes.last, last & 0x80 != 0 { bytes.removeLast() }
-            truncated.pointee = 1
-        }
-        for (index, byte) in bytes.enumerated() { text[index] = CChar(bitPattern: byte) }
-        length.pointee = Int32(bytes.count)
+        copy(words, text, textRoom, length, truncated)
         return 1
     }
 }

@@ -82,6 +82,11 @@ package Items.Windows is
 
    function Details (Item : Window) return Items.Info
      with Pre => Is_Assigned (Item);
+
+   procedure Set_Tag (Item : in out Window; To : UI.Themes.Color)
+     with Pre => Is_Assigned (Item) and then Details (Item).Kind = Source;
+   --  Show the source's colour, in a square before its title, as its
+   --  links and its rows elsewhere have it.
    --  As the window has it now: the title as edited, where it has been
    --  moved and sized to.
 
@@ -128,6 +133,15 @@ package Items.Windows is
    --  If the text is focused, it goes in at the caret (what is selected
    --  is kept); if it has none yet, it is the text; otherwise it is a
    --  new paragraph after the last.
+
+   procedure Set_Live_Dictation (Item : in out Window; Said : String)
+     with Pre => Is_Assigned (Item) and then Details (Item).Kind = Note;
+   --  Show what has been heard so far, while Listening, in the note's
+   --  text, where Add_Dictation will put it: each call replaces the last
+   --  Said. These edits are not recorded (they cannot be undone), and
+   --  Add_Dictation, or a failure, takes them back before the final text
+   --  goes in. If the text is changed by anything else while it is
+   --  shown, it is left as it is, and no more is shown.
 
    procedure Set_Title_Text (Item : in out Window; To : String)
      with Pre => Is_Assigned (Item) and then To'Length <= 64;
@@ -192,6 +206,36 @@ package Items.Windows is
 
    function Words (Item : Window) return Natural
      with Pre => Is_Assigned (Item);
+
+   function Title_Document
+     (Item : in out Window) return Texts.Documents.Document_Access
+     with Pre => Is_Assigned (Item);
+   --  The title of the item, for another view to edit: the window sees
+   --  its changes, and writes them.
+
+   function Content_Document
+     (Item : in out Window) return Texts.Documents.Document_Access
+     with Pre => Is_Assigned (Item);
+   --  The text of the item, for another view to show and edit: the window
+   --  sees its changes, and writes them.
+
+   procedure Hold_Typing (Item : in out Window; To : Boolean);
+   --  Say the text is being typed in, in another view, so that Flush
+   --  leaves writing it until it has been left alone for a moment, as it
+   --  does when its own text is focused.
+
+   function Marks_Version (Item : Window) return Natural
+     with Pre => Is_Assigned (Item) and then Details (Item).Kind = Source;
+   --  A number that changes when the highlights on the source's picture
+   --  do.
+
+   function Is_Marking (Item : Window) return Boolean
+     with Pre => Is_Assigned (Item) and then Details (Item).Kind = Source;
+   --  Whether the highlighter is being dragged.
+
+   procedure Get_Marks (Item : Window; Into : out Items.Mark_List)
+     with Pre => Is_Assigned (Item) and then Details (Item).Kind = Source;
+   --  The highlights the source's picture has.
 
    procedure Set_Zoom (Item : in out Window; To : Float)
      with Pre  => Is_Assigned (Item)
@@ -292,11 +336,18 @@ private
       Marks_Saved   : Natural := 0;
       --  The picture's Marks_Version when its highlights were written.
       Was_Used      : Boolean := False;
+      Held          : Boolean := False;
+      --  Typed in elsewhere: see Hold_Typing.
       Resizing      : Boolean := False;
       Raw_Width, Raw_Height : Float := 0.0;
       --  While the corner is dragged, the size the cursor asks for, which
       --  may be under the minimum; the item itself is held at the minimum.
       Pixels : Float := 1.0;
+      Ring_Ink : UI.Themes.Color := (0, 0, 0, 255);
+      --  Round the window while it is typed in.
+      Face_Of : Kinds := Note;
+      --  What the text area's font is for: a note's text, or a source's
+      --  link.
       Zoom, Origin_X, Origin_Y : Float := 1.0;
       Placed_Once : Boolean := False;
 
@@ -305,6 +356,8 @@ private
       --  status line.
       Title_Bar    : UI.Widgets.Grips.Grip;
       Title_Area   : UI.Widgets.Grips.Grip;
+      Tag          : UI.Widgets.Panels.Panel;
+      --  Of a source, before its title: a square of its colour.
       Title_Label  : UI.Widgets.Labels.Label;
       --  The title as text, in the place the field takes to edit it.
       Editing      : Boolean := False;
@@ -322,6 +375,16 @@ private
       Speak_Button : UI.Widgets.Buttons.Button;
       --  Of a note, in its status line: starts and stops dictating.
       Dictating    : Dictations := Silent;
+      Live_Shown   : Boolean := False;
+      Live_Lost    : Boolean := False;
+      Live_Break   : Boolean := False;
+      Live_From    : Texts.Position;
+      Live_To      : Texts.Position;
+      Live_Seen    : Docs.Version := 0;
+      --  Of a note: the text of what is being said is in the document
+      --  from Live_From to Live_To (after a line feed, if Live_Break),
+      --  as of version Live_Seen. Live_Lost: it was changed by something
+      --  else, so it is left alone.
       Tools        : UI.Widgets.Panels.Panel;
       Cursor_Button : UI.Widgets.Buttons.Button;
       Marker_Button : UI.Widgets.Buttons.Button;

@@ -40,6 +40,10 @@ package Speech.Jobs is
      with Post => Loudness'Result in 0.0 .. 1.0;
    --  How loud what is heard is, while Listening (see Speech.Level).
 
+   procedure Heard_So_Far (Which : Slot; Into : in out Transcript);
+   --  What has been heard so far, while Listening (see Speech.Peek):
+   --  Into is empty at any other time.
+
    function Message (Which : Slot) return String
      with Pre  => State (Which) = Failed,
           Post => Message'Result'Length <= Max_Message;

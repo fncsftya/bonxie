@@ -9,6 +9,7 @@ package Item_Tests is
    procedure Typing;
    procedure Dictating;
    procedure Dictating_Into_Empty;
+   procedure Dictating_Live;
    procedure Titling;
    procedure Moving;
    procedure Sizing;

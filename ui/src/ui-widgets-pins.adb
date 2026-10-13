@@ -110,14 +110,15 @@ package body UI.Widgets.Pins is
                           ((if Aimed then Target_Edge else Edge) * Pixels));
       Ring   : constant Themes.Color :=
         (if Aimed or else Item.Held or else Is_Hovered (Item)
-         then Colors.Accent else Colors.Foreground);
+         then Colors.Accent else Colors.Bar);
       Face   : constant Themes.Color :=
         (if Item.Held then Colors.Accent else (255, 255, 255, 255));
    begin
-      Fill_Circle (Target, Ring, Left_Of (Item) + Radius,
-                   Top_Of (Item) + Radius, Radius);
-      Fill_Circle (Target, Face, Left_Of (Item) + Radius,
-                   Top_Of (Item) + Radius, Radius - Border);
+      --  Square, as every box is.
+      Fill_Rect (Target, Ring, Left_Of (Item), Top_Of (Item),
+                 2.0 * Radius, 2.0 * Radius);
+      Fill_Rect (Target, Face, Left_Of (Item) + Border, Top_Of (Item) + Border,
+                 2.0 * (Radius - Border), 2.0 * (Radius - Border));
    end Draw;
 
    overriding function Cursor (Item : Pin) return SDL3.Cursors.Kind is

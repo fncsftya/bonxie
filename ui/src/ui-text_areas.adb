@@ -216,6 +216,27 @@ package body UI.Text_Areas is
    function Is_Single_Line (Item : Text_Area) return Boolean is
      (Item.Single);
 
+   procedure Set_Grows (Item : in out Text_Area; To : Boolean := True) is
+   begin
+      Item.Grows := To;
+      Item.Anchor := 1;
+      Item.Offset := 0.0;
+   end Set_Grows;
+
+   function Is_Growing (Item : Text_Area) return Boolean is (Item.Grows);
+
+   function Content_Height (Item : in out Text_Area) return Float is
+   begin
+      Catch_Up (Item);
+      for Para in 1 .. Layouts.Count (Item.Laid) loop
+         if not Layouts.Is_Complete (Item.Laid, Para) then
+            Layouts.Lay_Out (Item.Laid, Item.Doc.all, Para);
+         end if;
+      end loop;
+      return Layouts.Total_Height (Item.Laid) * Item.Zoom
+        + 2.0 * Padding;
+   end Content_Height;
+
    procedure Take_Return (Item : in out Text_Area; Pressed : out Boolean) is
    begin
       Pressed := Item.Returned;
@@ -312,6 +333,9 @@ package body UI.Text_Areas is
    procedure Scroll (Item : in out Text_Area; By : Float) is
    begin
       Catch_Up (Item);
+      if Item.Grows then
+         return;  --  its owner scrolls
+      end if;
       Layouts.Scroll (Item.Laid, Item.Anchor, Item.Offset, By, Extent (Item));
    end Scroll;
 
@@ -320,6 +344,9 @@ package body UI.Text_Areas is
    procedure Scroll_To (Item : in out Text_Area; Top : Float) is
    begin
       Catch_Up (Item);
+      if Item.Grows then
+         return;
+      end if;
       Item.Anchor := 1;
       Item.Offset := 0.0;
       Layouts.Scroll (Item.Laid, Item.Anchor, Item.Offset, Top, Extent (Item));
@@ -1154,7 +1181,7 @@ package body UI.Text_Areas is
       Catch_Up (Item);
       Item.Now := SDL3.Events.Milliseconds'Max (Item.Now, Event.Time);
       Handled := False;
-      if not Item.Single
+      if not Item.Single and then not Item.Grows
         and then Event.Kind in Events.Mouse_Down | Events.Mouse_Move
                              | Events.Mouse_Up
       then
@@ -1201,7 +1228,9 @@ package body UI.Text_Areas is
                Release (Item);
             end if;
          when Events.Mouse_Wheel =>
-            if not Event.Command and then Contains (Item, X, Y) then
+            if not Item.Grows and then not Event.Command
+              and then Contains (Item, X, Y)
+            then
                Scroll
                  (Item,
                   -Event.Wheel_Y * Lines_Per_Notch
@@ -1402,7 +1431,9 @@ package body UI.Text_Areas is
    is
       use SDL3.Windows.Renderers;
       Edge : constant Float :=
-        (if Item.Focused then Focus_Outline else Outline) * Item.Density;
+        (if Item.Grows then 0.0
+         elsif Item.Focused then Focus_Outline else Outline) * Item.Density;
+      --  A page has no outline.
       Inner_Left   : constant Integer := Integer (Item.Left + Edge);
       Inner_Top    : constant Integer := Integer (Item.Top + Edge);
       Inner_Right  : constant Integer :=
@@ -1415,7 +1446,7 @@ package body UI.Text_Areas is
    begin
       Catch_Up (Item);
       Fill_Rect
-        (Target, (if Item.Focused then Colors.Accent else Colors.Foreground),
+        (Target, (if Item.Focused then Colors.Accent else Colors.Border),
          Item.Left, Item.Top, Item.Width, Item.Height);
       Fill_Rect
         (Target, Colors.Background,

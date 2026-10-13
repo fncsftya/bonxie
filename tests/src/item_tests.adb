@@ -24,58 +24,69 @@ package body Item_Tests is
 
    Width  : constant := 720;
    Height : constant := 480;
-   --  Of the window, in points. The canvas is 416 high above the tools bar
-   --  and the toolbar, 32 each, so its middle, where the origin starts and
-   --  items are added, is at 360, 208.
+   --  Of the window, in points. The canvas is 436 high below the toolbar,
+   --  44, so its middle, where the origin starts and items are added, is
+   --  at 360, 262.
 
-   Add_X    : constant Float := 242.0;
-   Source_X : constant Float := 360.0;
-   Menu_X   : constant Float := 451.0;
-   Marker_X : constant Float := 360.0;
-   Eraser_X : constant Float := 382.0;
-   Cursor_X : constant Float := 338.0;
-   Status_Y : constant Float := 312.0;
-   Menu_Y   : constant Float := 291.0;
+   Add_X    : constant Float := 299.5;
+   Source_X : constant Float := 427.5;
+   Tools_Y  : constant Float := 440.5;
+   --  The middle of the buttons in the tray over the foot of the canvas:
+   --  Add Document and Add Source.
+   List_X   : constant Float := 668.0;
+   List_Y   : constant Float := 22.0;
+   --  Items, at the right of the toolbar.
+
+   --  A source's window is 360 x 200, from 180, 162 to 540, 362; its status
+   --  line is the 26 above the foot of it, less the shadow.
+   Menu_X   : constant Float := 493.0;
+   Marker_X : constant Float := 357.5;
+   Eraser_X : constant Float := 379.5;
+   Cursor_X : constant Float := 335.5;
+   Status_Y : constant Float := 346.0;
+   Preset_X : constant Float := 452.0;
+   Preset_Y : constant Float := 323.5;
    --  A zoom's button in the menu of a source's window: 200%.
-   List_X   : constant Float := 478.0;
-   Tools_Y  : constant Float := 464.0;
-   --  The middle of the buttons on the tools bar: Add Item, Add Source,
-   --  and Items.
+   Slider_X : constant Float := 433.0;
+   Slider_End_X : constant Float := 466.0;
+   --  Along its slider, and near its end.
+   Picture_Y : constant Float := 242.0;
+   --  In the picture, below the link.
 
    --  A new item is 280 x 200 on the canvas, with its middle at its origin,
-   --  which is at 360, 208 on the screen: from 220, 108 to 500, 308. Its
-   --  bar is 32 high, with the title field from the left, and the buttons
-   --  at the right.
+   --  which is at 360, 262 on the screen: from 220, 162 to 500, 362 (less
+   --  the shadow, 3, at the right and the foot). Its bar is 28 high, with
+   --  the title from the left, and the buttons at the right.
    Title_X  : constant Float := 260.0;
-   Bar_Y    : constant Float := 141.0;
-   Hold_X   : constant Float := 420.0;
+   Bar_Y    : constant Float := 177.0;
+   Hold_X   : constant Float := 428.0;
    --  Where the bar can be held: between the title and the buttons.
-   Minimize_X : constant Float := 451.0;
-   Close_X    : constant Float := 479.0;
-   Corner_X   : constant Float := 490.0;
-   Corner_Y   : constant Float := 312.0;
+   Minimize_X : constant Float := 459.0;
+   Close_X    : constant Float := 481.0;
+   Corner_X   : constant Float := 488.0;
+   Corner_Y   : constant Float := 346.0;
    --  The corner to size it by, in the status line.
    Text_X   : constant Float := 300.0;
-   Text_Y   : constant Float := 216.0;
+   Text_Y   : constant Float := 254.0;
    --  In the text.
 
-   --  The bar in the dock, when the item is minimised: from 8, 382, with
+   --  The bar in the dock, when the item is minimised: from 8, 446, with
    --  the title to click to restore it, and the button to close it, at the
    --  right.
    Restore_X : constant Float := 80.0;
-   Dock_Close_X : constant Float := 192.0;
-   Dock_Y    : constant Float := 428.0;
+   Dock_Close_X : constant Float := 195.0;
+   Dock_Y    : constant Float := 460.0;
 
    --  The list of items: a dialog 440 x 380 in the middle. Its rows are 36
-   --  high, from 111, with the button to show or hide the item, and the
+   --  high, from 115, with the button to show or hide the item, and the
    --  one to remove it, at the right.
-   Toggle_X : constant Float := 485.0;
-   Remove_X : constant Float := 533.0;
-   List_Close_X : constant Float := 519.0;
+   Toggle_X : constant Float := 482.0;
+   Remove_X : constant Float := 530.0;
+   List_Close_X : constant Float := 516.0;
    List_Close_Y : constant Float := 89.0;
 
    function Row_Y (Row : Positive) return Float is
-     (111.0 + Float (Row - 1) * 42.0 + 18.0);
+     (115.0 + Float (Row - 1) * 42.0 + 18.0);
 
    function Whole (Value : Float) return String is
      (Integer'Image (Integer (Float'Rounding (Value))));
@@ -509,6 +520,55 @@ package body Item_Tests is
       Check ("dictate-into-empty", "first", Viewer.Item_Text (Session, 1));
    end Dictating_Into_Empty;
 
+   procedure Dictating_Live is
+      Session : Viewer.Session;
+   begin
+      Start_With_One (Session);
+
+      --  Not focused: what is heard shows as a new paragraph, and each
+      --  hearing replaces the last.
+      Type_In (Session, "abc");
+      Click_On (Session, 600.0, 60.0);
+      Viewer.Dictate_Live (Session, 1, "");
+      Check ("live-nothing", "abc", Viewer.Item_Text (Session, 1));
+      Viewer.Dictate_Live (Session, 1, "hel");
+      Check
+        ("live-first", "abc" & ASCII.LF & "hel",
+         Viewer.Item_Text (Session, 1));
+      Viewer.Dictate_Live (Session, 1, "hello wor");
+      Check
+        ("live-grown", "abc" & ASCII.LF & "hello wor",
+         Viewer.Item_Text (Session, 1));
+      Viewer.Dictate_Live (Session, 1, "hello world");
+      Viewer.Dictate_Live (Session, 1, "hello world");
+
+      --  What is finally heard takes its place.
+      Viewer.Dictate_Into (Session, 1, "Hello, world.");
+      Check
+        ("live-final", "abc" & ASCII.LF & "Hello, world.",
+         Viewer.Item_Text (Session, 1));
+
+      --  Focused, it shows at the caret, and the final text is one step
+      --  to undo, back to the text before.
+      Click_On (Session, Text_X, Text_Y);
+      for Step in 1 .. 30 loop
+         Press_Key (Session, Events.Key_Right_Arrow);
+      end loop;
+      Viewer.Dictate_Live (Session, 1, " and");
+      Viewer.Dictate_Live (Session, 1, " and more");
+      Check
+        ("live-at-caret", "abc" & ASCII.LF & "Hello, world. and more",
+         Viewer.Item_Text (Session, 1));
+      Viewer.Dictate_Into (Session, 1, " and more.");
+      Check
+        ("live-final-at-caret", "abc" & ASCII.LF & "Hello, world. and more.",
+         Viewer.Item_Text (Session, 1));
+      Press_Key (Session, Events.Key_Z, Command => True);
+      Check
+        ("live-undone", "abc" & ASCII.LF & "Hello, world.",
+         Viewer.Item_Text (Session, 1));
+   end Dictating_Live;
+
    procedure Titling is
       Session : Viewer.Session;
    begin
@@ -663,7 +723,7 @@ package body Item_Tests is
       Start_With_One (Session);
       Click_On (Session, Add_X, Tools_Y);
       Click_On (Session, Close_X + 24.0, Bar_Y + 24.0);
-      Click_On (Session, List_X, Tools_Y);
+      Click_On (Session, List_X, List_Y);
       Check
         ("list-shown", "TRUE", Boolean'Image (Viewer.Is_Listing (Session)));
       Move_To (Session, 600.0, 60.0);
@@ -675,7 +735,7 @@ package body Item_Tests is
    begin
       Start_With_One (Session);
       Click_On (Session, Close_X, Bar_Y);
-      Click_On (Session, List_X, Tools_Y);
+      Click_On (Session, List_X, List_Y);
 
       --  Shown again from the list.
       Click_On (Session, Toggle_X, Row_Y (1));
@@ -702,7 +762,7 @@ package body Item_Tests is
       Click_On (Session, List_Close_X, List_Close_Y);
       Check
         ("list-closed", "FALSE", Boolean'Image (Viewer.Is_Listing (Session)));
-      Click_On (Session, List_X, Tools_Y);
+      Click_On (Session, List_X, List_Y);
       Press_Key (Session, Events.Key_Escape);
       Check
         ("list-escaped", "FALSE", Boolean'Image (Viewer.Is_Listing (Session)));
@@ -722,7 +782,7 @@ package body Item_Tests is
         (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_X => -20.0,
                                 Wheel_Y => -10.0, Mouse_X => 650.0,
                                 Mouse_Y => 60.0, others => <>));
-      Click_On (Session, List_X, Tools_Y);
+      Click_On (Session, List_X, List_Y);
       Move_To (Session, 300.0, Row_Y (1));
       Snap (Session, "list-title-hovered");
 
@@ -748,8 +808,8 @@ package body Item_Tests is
             Where : constant Items.Frame := Viewer.Item_Frame (Session, I);
          begin
             Click_On
-              (Session, 360.0 + Where.Left + Where.Width - 49.0,
-               224.0 + Where.Top + 17.0);
+              (Session, 360.0 + Where.Left + Where.Width - 41.0,
+               262.0 + Where.Top + 15.0);
          end;
       end loop;
       Move_To (Session, 360.0, Dock_Y);
@@ -773,7 +833,7 @@ package body Item_Tests is
       for I in 1 .. 9 loop
          Viewer.Add_Item (Session, "Item" & Natural'Image (I));
       end loop;
-      Click_On (Session, List_X, Tools_Y);
+      Click_On (Session, List_X, List_Y);
       Move_To (Session, 360.0, 240.0);
       Snap (Session, "list-long");
       Viewer.Handle
@@ -843,8 +903,8 @@ package body Item_Tests is
       Move_To (Session, 650.0, 60.0);
 
       --  Moved at that zoom, by as much of the canvas as it is on screen.
-      Press (Session, 260.0, 160.0);
-      Release (Session, 260.0, 160.0);
+      Press (Session, 260.0, 198.0);
+      Release (Session, 260.0, 198.0);
 
       --  The view is kept with the project: opening it again is at the
       --  same zoom, and the same place.
@@ -928,12 +988,12 @@ package body Item_Tests is
       Compare;
 
       --  By amounts that are not whole pixels.
-      Press (Session, 270.3, 145.7);
-      Move_To (Session, 275.77, 150.31, Held => True);
+      Press (Session, 270.3, 183.7);
+      Move_To (Session, 275.77, 188.31, Held => True);
       Compare;
-      Move_To (Session, 281.13, 153.93, Held => True);
+      Move_To (Session, 281.13, 191.93, Held => True);
       Compare;
-      Release (Session, 281.13, 153.93);
+      Release (Session, 281.13, 191.93);
       Viewer.Handle
         (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_X => -0.37,
                                 Wheel_Y => 0.21, Mouse_X => 650.0,
@@ -942,7 +1002,7 @@ package body Item_Tests is
       Viewer.Handle
         (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_Y => 0.7,
                                 Command => True, Mouse_X => 301.3,
-                                Mouse_Y => 197.9, others => <>));
+                                Mouse_Y => 235.9, others => <>));
       Compare;
       Move_To (Session, 400.0, 400.0);
       Compare;
@@ -1039,9 +1099,9 @@ package body Item_Tests is
       Key     : Projects.Id;
 
       Source_Pin_X : constant Float := 350.0;
-      Source_Pin_Y : constant Float := 224.0;
+      Source_Pin_Y : constant Float := 262.0;
       Target_Pin_X : constant Float := 364.0;
-      Target_Pin_Y : constant Float := 308.0;
+      Target_Pin_Y : constant Float := 346.0;
       --  After the first is moved 150 left, and the second 120 right and 60
       --  down: the middle of the right side of the first, and of the left
       --  side of the second (the canvas starts 16 down).
@@ -1103,7 +1163,7 @@ package body Item_Tests is
       Snap (Session, "links-kept");
 
       --  They go with an item.
-      Click_On (Session, List_X, Tools_Y);
+      Click_On (Session, List_X, List_Y);
       Click_On (Session, Remove_X, Row_Y (2));
       Check ("links-removed", " 0", Count (Viewer.Link_Count (Session)));
    end Linking;
@@ -1113,19 +1173,19 @@ package body Item_Tests is
       Key     : Projects.Id;
 
       Source_Pin_X : constant Float := 350.0;
-      Source_Pin_Y : constant Float := 224.0;
+      Source_Pin_Y : constant Float := 262.0;
       Target_Pin_X : constant Float := 364.0;
-      Target_Pin_Y : constant Float := 308.0;
+      Target_Pin_Y : constant Float := 346.0;
       Line_X       : constant Float := 357.0;
-      Line_Y       : constant Float := 266.0;
+      Line_Y       : constant Float := 304.0;
       --  Halfway along it, between the windows.
       Top_Pin_X    : constant Float := 504.0;
-      Top_Pin_Y    : constant Float := 208.0;
+      Top_Pin_Y    : constant Float := 246.0;
       --  The middle of the top side of the second window.
 
       --  The toolbar is under the lower end of the line, 294 wide: its
       --  buttons are 22, 2 apart, in three groups 6 further apart.
-      Tool_Y   : constant Float := 337.0;
+      Tool_Y   : constant Float := 375.0;
       Dash_X   : constant Float := 279.0;
       Arrow_X  : constant Float := 333.0;
       Orange_X : constant Float := 387.0;
@@ -1205,7 +1265,7 @@ package body Item_Tests is
       --  Backspace deletes it; so does its toolbar's button.
       Press_Key (Session, Events.Key_Backspace);
       Check ("link-edit-not-yet", " 1", Text (Viewer.Link_Count (Session)));
-      Click_On (Session, 357.0, 223.0);
+      Click_On (Session, 357.0, 261.0);
       Press_Key (Session, Events.Key_Backspace);
       Check ("link-edit-backspace", " 0", Text (Viewer.Link_Count (Session)));
       Make_Link;
@@ -1318,7 +1378,7 @@ package body Item_Tests is
 
       --  Selected, from the window, and copied.
       Draw;
-      Click_On (Session, 300.0, 185.0);
+      Click_On (Session, 300.0, Picture_Y);
       Press_Key (Session, Events.Key_A, Command => True);
       Check
         ("words-selected", "TRUE",
@@ -1338,7 +1398,7 @@ package body Item_Tests is
         ("words-kept", Natural'Image (Words),
          Natural'Image (Viewer.Item_Recognized (Session, 1)));
       Draw;
-      Click_On (Session, 300.0, 185.0);
+      Click_On (Session, 300.0, Picture_Y);
       Press_Key (Session, Events.Key_A, Command => True);
       Check
         ("words-kept-selected", "TRUE",
@@ -1390,7 +1450,7 @@ package body Item_Tests is
       Check
         ("source-cursor-first", "FALSE",
          Boolean'Image (Viewer.Item_Highlighting (Session, 1)));
-      Drag (Session, 300.0, 200.0, 400.0, 200.0);
+      Drag (Session, 300.0, Picture_Y, 400.0, Picture_Y);
       Check
         ("source-no-mark", " 0",
          Natural'Image (Viewer.Item_Marks (Session, 1)));
@@ -1398,10 +1458,10 @@ package body Item_Tests is
       Check
         ("source-marker-chosen", "TRUE",
          Boolean'Image (Viewer.Item_Highlighting (Session, 1)));
-      Drag (Session, 300.0, 200.0, 400.0, 200.0);
+      Drag (Session, 300.0, Picture_Y, 400.0, Picture_Y);
       Check
         ("source-mark", " 1", Natural'Image (Viewer.Item_Marks (Session, 1)));
-      Click_On (Session, 340.0, 230.0);
+      Click_On (Session, 340.0, Picture_Y + 30.0);
       Check
         ("source-click-no-mark", " 1",
          Natural'Image (Viewer.Item_Marks (Session, 1)));
@@ -1412,16 +1472,16 @@ package body Item_Tests is
       Check
         ("source-eraser-chosen", "TRUE",
          Boolean'Image (Viewer.Item_Erasing (Session, 1)));
-      Click_On (Session, 340.0, 230.0);
+      Click_On (Session, 340.0, Picture_Y + 30.0);
       Check
         ("source-erase-miss", " 1",
          Natural'Image (Viewer.Item_Marks (Session, 1)));
-      Click_On (Session, 350.0, 200.0);
+      Click_On (Session, 350.0, Picture_Y);
       Check
         ("source-erased", " 0",
          Natural'Image (Viewer.Item_Marks (Session, 1)));
       Click_On (Session, Marker_X, Status_Y);
-      Drag (Session, 300.0, 200.0, 400.0, 200.0);
+      Drag (Session, 300.0, Picture_Y, 400.0, Picture_Y);
       Check
         ("source-marked-again", " 1",
          Natural'Image (Viewer.Item_Marks (Session, 1)));
@@ -1441,9 +1501,9 @@ package body Item_Tests is
       Check
         ("source-zoom-start", " 1.00000E+00",
          Float'Image (Viewer.Item_Zoom (Session, 1)));
-      Click_On (Session, 494.0, 312.0);
+      Click_On (Session, Menu_X, Status_Y);
       Snap (Session, "source-menu");
-      Click_On (Session, Menu_X, Menu_Y);
+      Click_On (Session, Preset_X, Preset_Y);
       Check
         ("source-zoom-menu", " 2.00000E+00",
          Float'Image (Viewer.Item_Zoom (Session, 1)));
@@ -1452,16 +1512,16 @@ package body Item_Tests is
       --  Dragged part of the way, with the knob held: the zoom it is
       --  rounded to is not where the knob is, which it must leave alone
       --  while it is held (this once failed a postcondition).
-      Press (Session, 435.0, 312.0);
-      Move_To (Session, 441.3, 296.0, Held => True);
-      Move_To (Session, 447.7, 296.0, Held => True);
-      Release (Session, 447.7, 312.0);
+      Press (Session, Slider_X, Status_Y);
+      Move_To (Session, Slider_X + 6.3, Status_Y - 16.0, Held => True);
+      Move_To (Session, Slider_X + 12.7, Status_Y - 16.0, Held => True);
+      Release (Session, Slider_X + 12.7, Status_Y);
       Check
         ("source-zoom-dragged", "TRUE",
          Boolean'Image
            (Viewer.Item_Zoom (Session, 1) > 1.0
             and then Viewer.Item_Zoom (Session, 1) < 4.0));
-      Click_On (Session, 468.0, 312.0);
+      Click_On (Session, Slider_End_X, Status_Y);
       Check
         ("source-zoom-slider", " 4.00000E+00",
          Float'Image (Viewer.Item_Zoom (Session, 1)));
@@ -1469,7 +1529,7 @@ package body Item_Tests is
       --  Scrolled with the wheel, over the picture.
       Viewer.Handle
         (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_Y => -4.0,
-                                Mouse_X => 360.0, Mouse_Y => 220.0,
+                                Mouse_X => 360.0, Mouse_Y => 262.0,
                                 others => <>));
       Snap (Session, "source-scrolled");
       Check

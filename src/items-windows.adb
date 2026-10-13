@@ -1,8 +1,8 @@
 with Ada.Calendar;
 with Ada.Calendar.Formatting;
-with Ada.Numerics.Elementary_Functions;
 with Ada.Strings.Fixed;
 with SDL3.Cursors;
+with UI.Boxes;
 with UI.Text_Areas;
 with UI.Icons;
 with UI.Line_Texts;
@@ -28,25 +28,31 @@ package body Items.Windows is
    --  In points
 
    Outline       : constant Float := 1.0;
-   Bar_Height    : constant Float := 24.0;
-   Bar_Pad       : constant Float := 8.0;
+   Bar_Height    : constant Float := 28.0;
+   Bar_Pad       : constant Float := 6.0;
    Button_Size   : constant Float := 18.0;
+   Bar_Icon_Size : constant Float := 11.0;
+   Tag_Size      : constant Float := 9.0;
+   Tag_Gap       : constant Float := 7.0;
+   --  The square of a source's colour before its title, and after it.
    Button_Gap    : constant Float := 4.0;
    Drag_Room     : constant Float := 32.0;
    --  Left of the title field before the buttons, to take hold of.
-   Title_Size    : constant Float := 11.0;
+   Title_Size    : constant Float := 12.0;
    Title_Height  : constant Float := 20.0;
-   Text_Size     : constant Float := 14.0;
+   Text_Size     : constant Float := 15.0;
+   Link_Size     : constant Float := 12.0;
+   --  Of the text of a note, in the serif, and of the link of a source.
    Measure       : constant Float := 2000.0;
-   Status_Height : constant Float := 22.0;
-   Status_Pad    : constant Float := 8.0;
+   Status_Height : constant Float := 26.0;
+   Status_Pad    : constant Float := 10.0;
    Corner_Size   : constant Float := 18.0;
    Mini_Width    : constant Float := 200.0;
    Mini_Height   : constant Float := 28.0;
    Mini_Gap      : constant Float := 4.0;
    Mini_Chars    : constant := 16;
    --  How many characters of a title the bar in the dock shows.
-   Zoom_Row_Height : constant Float := 18.0;
+   Zoom_Row_Height : constant Float := 19.0;
    Zoom_Button_Width : constant Float := 44.0;
    Zoom_Slider_Width : constant Float := 56.0;
    Progress_Height   : constant Float := 3.0;
@@ -93,37 +99,20 @@ package body Items.Windows is
       & (if Number = 1 then " word" else " words"));
 
    function Day (Taken : Projects.Seconds) return String is
-     (Ada.Calendar.Formatting.Image
-        (Ada.Calendar.Formatting.Time_Of (1970, 1, 1, Time_Zone => 0)
-         + Duration (Taken),
-         Time_Zone => 0) (1 .. 10));
-   --  As YYYY-MM-DD, in UTC.
-
-   function Percent (Zoom : Float) return String is
-     (Ada.Strings.Fixed.Trim
-        (Integer'Image (Integer (Float'Rounding (Zoom * 100.0))),
-         Ada.Strings.Both) & "%");
-
-   function To_Slider (Zoom : Float) return Float is
-     (Float'Min
-        (1.0,
-         Float'Max
-           (0.0,
-            Ada.Numerics.Elementary_Functions.Log (Zoom / Items.Min_Zoom)
-            / Ada.Numerics.Elementary_Functions.Log
-                (Items.Max_Zoom / Items.Min_Zoom))));
-   --  Zooms go by ratios, so the slider is on a logarithmic scale.
-
-   function From_Slider (Along : Float) return Float is
-     (Float'Min
-        (Items.Max_Zoom,
-         Float'Max
-           (Items.Min_Zoom,
-            Float'Rounding
-              (100.0 * Items.Min_Zoom
-               * Ada.Numerics.Elementary_Functions."**"
-                   (Items.Max_Zoom / Items.Min_Zoom, Along)) / 100.0)));
-   --  To whole percents.
+      Image : constant String :=
+        Ada.Calendar.Formatting.Image
+          (Ada.Calendar.Formatting.Time_Of (1970, 1, 1, Time_Zone => 0)
+           + Duration (Taken),
+           Time_Zone => 0);
+      Months : constant array (1 .. 12) of String (1 .. 3) :=
+        ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+         "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      Date  : constant Positive := Positive'Value (Image (9 .. 10));
+   begin
+      return Ada.Strings.Fixed.Trim (Date'Image, Ada.Strings.Both) & " "
+        & Months (Positive'Value (Image (6 .. 7))) & " " & Image (1 .. 4);
+   end Day;
+   --  As 13 Oct 2026, in UTC.
 
    function Fitted (Message : String) return String is
      (Message (Message'First ..
@@ -157,6 +146,7 @@ package body Items.Windows is
       Widgets.Add (Canvas, Item.Frame);
       Widgets.Add (Item.Frame, Item.Title_Bar);
       Widgets.Add (Item.Title_Bar, Item.Title_Area);
+      Widgets.Add (Item.Title_Area, Item.Tag);
       Widgets.Add (Item.Title_Area, Item.Title_Label);
       Widgets.Add (Item.Title_Bar, Item.Title_Field);
       Widgets.Add (Item.Title_Bar, Item.Spacer);
@@ -182,11 +172,21 @@ package body Items.Windows is
 
       --  The window: an outline round a column of the bar, the text and
       --  the status line, placed by its edges on the canvas.
-      Panels.Set_Fill (Item.Frame, Colors.Foreground);
+      --  Its outline is its fill, round what is in it; its shadow is
+      --  inside its box, at the right and the foot.
+      Item.Ring_Ink := Colors.Accent;
+      Panels.Set_Fill (Item.Frame, Colors.Border);
+      Panels.Set_Shadow (Item.Frame, Colors.Shadow);
       Set_Position_Type (Widgets.Node (Item.Frame), Yoga.Absolute);
       Set_Flex_Direction (Widgets.Node (Item.Frame), Yoga.Column);
+      Set_Padding (Widgets.Node (Item.Frame), Yoga.Left, Edge);
+      Set_Padding (Widgets.Node (Item.Frame), Yoga.Top, Edge);
       Set_Padding
-        (Widgets.Node (Item.Frame), Yoga.All_Edges, Edge);
+        (Widgets.Node (Item.Frame), Yoga.Right,
+         Edge + UI.Boxes.Offset (Pixels));
+      Set_Padding
+        (Widgets.Node (Item.Frame), Yoga.Bottom,
+         Edge + UI.Boxes.Offset (Pixels));
 
       Grips.Set_Fill (Item.Title_Bar, Bar);
       Set_Height (Widgets.Node (Item.Title_Bar), Bar_Height * Pixels);
@@ -198,7 +198,7 @@ package body Items.Windows is
         (Widgets.Node (Item.Title_Bar), Yoga.All_Gutters,
          Button_Gap * Pixels);
       Text_Fields.Configure
-        (Item.Title_Field, UI.Line_Texts.System_UI, Title_Size);
+        (Item.Title_Field, UI.Line_Texts.Interface_Font, Title_Size);
       Set_Flex_Grow (Widgets.Node (Item.Title_Field), 1.0);
       Set_Width (Widgets.Node (Item.Title_Field), 0.0);
       Set_Height (Widgets.Node (Item.Title_Field), Title_Height * Pixels);
@@ -216,8 +216,12 @@ package body Items.Windows is
       Set_Align_Items (Widgets.Node (Item.Title_Area), Yoga.Center);
       Set_Padding
         (Widgets.Node (Item.Title_Area), Yoga.Left, Bar_Pad * Pixels);
+      Panels.Set_Fill (Item.Tag, Colors.Bar);
+      Size (Item.Tag, Tag_Size, Tag_Size);
+      Set_Flex_Shrink (Widgets.Node (Item.Tag), 0.0);
+      Set_Margin (Widgets.Node (Item.Tag), Yoga.Right, Tag_Gap * Pixels);
       Labels.Set_Style (Item.Title_Label, UI.Line_Texts.Strong);
-      Labels.Set_Ink (Item.Title_Label, Colors.Background);
+      Labels.Set_Ink (Item.Title_Label, UI.Themes.White);
       Set_Flex_Grow (Widgets.Node (Item.Title_Label), 1.0);
       Set_Width (Widgets.Node (Item.Title_Label), 0.0);
       Set_Height (Widgets.Node (Item.Title_Label), Label_Height * Pixels);
@@ -227,11 +231,13 @@ package body Items.Windows is
       Buttons.Set_Icon (Item.Minimize_Button, UI.Icons.Minimize);
       Buttons.Set_Label (Item.Close_Button, "Close");
       Buttons.Set_Icon (Item.Close_Button, UI.Icons.Close);
+      Buttons.Set_Icon_Size (Item.Minimize_Button, Bar_Icon_Size);
+      Buttons.Set_Icon_Size (Item.Close_Button, Bar_Icon_Size);
       Size (Item.Minimize_Button, Button_Size, Button_Size);
       Size (Item.Close_Button, Button_Size, Button_Size);
 
       Editors.Configure
-        (Item.Body_Text, UI.Line_Texts.System_UI, Text_Size, Measure);
+        (Item.Body_Text, UI.Line_Texts.Serif, Text_Size, Measure);
       Editors.Set_Paper (Item.Body_Text, (255, 255, 255, 255));
       Set_Flex_Grow (Widgets.Node (Item.Body_Text), 1.0);
       --  Its own outline is the window's at the sides.
@@ -242,9 +248,12 @@ package body Items.Windows is
       Set_Flex_Grow (Widgets.Node (Item.Picture), 1.0);
       Set_Height (Widgets.Node (Item.Picture), 0.0);
 
-      Panels.Set_Fill
-        (Item.Status_Bar,
-         UI.Themes.Mix (Colors.Background, Colors.Foreground, 0.08));
+      --  Its outline over the window's at the sides and the foot, a line
+      --  between it and what is above.
+      Panels.Set_Fill (Item.Status_Bar, Colors.Tint);
+      Panels.Set_Border (Item.Status_Bar, Colors.Border);
+      Set_Margin (Widgets.Node (Item.Status_Bar), Yoga.Horizontal, -Edge);
+      Set_Margin (Widgets.Node (Item.Status_Bar), Yoga.Bottom, -Edge);
       Set_Height (Widgets.Node (Item.Status_Bar), Status_Height * Pixels);
       Set_Flex_Direction (Widgets.Node (Item.Status_Bar), Yoga.Row);
       Set_Align_Items (Widgets.Node (Item.Status_Bar), Yoga.Center);
@@ -283,12 +292,13 @@ package body Items.Windows is
       Set_Padding
         (Widgets.Node (Item.Mini_Area), Yoga.Left, Bar_Pad * Pixels);
       Labels.Set_Style (Item.Mini_Title, UI.Line_Texts.Strong);
-      Labels.Set_Ink (Item.Mini_Title, Colors.Background);
+      Labels.Set_Ink (Item.Mini_Title, UI.Themes.White);
       Set_Flex_Grow (Widgets.Node (Item.Mini_Title), 1.0);
       Set_Width (Widgets.Node (Item.Mini_Title), 0.0);
       Set_Height (Widgets.Node (Item.Mini_Title), Label_Height * Pixels);
       Buttons.Set_Label (Item.Mini_Close, "Close");
       Buttons.Set_Icon (Item.Mini_Close, UI.Icons.Close);
+      Buttons.Set_Icon_Size (Item.Mini_Close, Bar_Icon_Size);
       Size (Item.Mini_Close, Button_Size, Button_Size);
 
       --  The progress bar, along the foot of the status line.
@@ -310,7 +320,7 @@ package body Items.Windows is
       Buttons.Set_Label (Item.Cursor_Button, "Ptr");
       Buttons.Set_Icon (Item.Cursor_Button, UI.Icons.Cursor);
       Buttons.Set_Label (Item.Marker_Button, "Mark");
-      Buttons.Set_Swatch (Item.Marker_Button, (255, 214, 0, 255));
+      Buttons.Set_Swatch (Item.Marker_Button, Colors.Marker);
       Buttons.Set_Label (Item.Eraser_Button, "Rub");
       Buttons.Set_Icon (Item.Eraser_Button, UI.Icons.Eraser);
       Buttons.Set_Selected (Item.Cursor_Button, True);
@@ -340,7 +350,7 @@ package body Items.Windows is
 
       --  The menu: over the picture, at the right, with the window's
       --  outline between its buttons.
-      Panels.Set_Fill (Item.Zoom_Menu, Colors.Foreground);
+      Panels.Set_Fill (Item.Zoom_Menu, Colors.Border);
       Set_Position_Type (Widgets.Node (Item.Zoom_Menu), Yoga.Absolute);
       Set_Position
         (Widgets.Node (Item.Zoom_Menu), Yoga.Right,
@@ -374,12 +384,50 @@ package body Items.Windows is
 
    function Is_Assigned (Item : Window) return Boolean is (Item.Assigned);
 
+   procedure Set_Tag (Item : in out Window; To : UI.Themes.Color) is
+   begin
+      Panels.Set_Fill (Item.Tag, To);
+   end Set_Tag;
+
    function Details (Item : Window) return Items.Info is (Item.Details);
 
    function Text (Item : Window) return String is
      (Docs.Whole (Item.Content_Doc));
 
    function Words (Item : Window) return Natural is (Item.Word_Count);
+
+   function Title_Document
+     (Item : in out Window) return Texts.Documents.Document_Access is
+     (Item.Title_Doc'Unchecked_Access);
+
+   function Content_Document
+     (Item : in out Window) return Texts.Documents.Document_Access is
+     (Item.Content_Doc'Unchecked_Access);
+
+   procedure Hold_Typing (Item : in out Window; To : Boolean) is
+   begin
+      Item.Held := To;
+   end Hold_Typing;
+
+   function Marks_Version (Item : Window) return Natural is
+     (UI.Widgets.Pictures.Marks_Version (Item.Picture));
+
+   function Is_Marking (Item : Window) return Boolean is
+     (UI.Widgets.Pictures.Is_Marking (Item.Picture));
+
+   procedure Get_Marks (Item : Window; Into : out Items.Mark_List) is
+   begin
+      Into.Count := UI.Widgets.Pictures.Mark_Count (Item.Picture);
+      for Index in 1 .. Into.Count loop
+         declare
+            Each : constant UI.Widgets.Pictures.Mark :=
+              UI.Widgets.Pictures.Mark_At (Item.Picture, Index);
+         begin
+            Into.Marks (Index) :=
+              (Left => Each.Left, Right => Each.Right, Y => Each.Y);
+         end;
+      end loop;
+   end Get_Marks;
 
    function Status (Item : Window) return String is
      (Labels.Text (Item.Status));
@@ -553,6 +601,21 @@ package body Items.Windows is
       end if;
    end Show_Words;
 
+   procedure Take_Back_Live (Item : in out Window);
+   --  Remove the text shown while listening, if it can be.
+
+   procedure Take_Back_Live (Item : in out Window) is
+      Doc : Docs.Document renames Item.Content_Doc;
+   begin
+      if Item.Live_Shown and then not Item.Live_Lost then
+         pragma Assert (Docs.Current (Doc) = Item.Live_Seen);
+         Docs.Replace
+           (Doc, Item.Live_From, Item.Live_To, "", Recorded => False);
+      end if;
+      Item.Live_Shown := False;
+      Item.Live_Lost := False;
+   end Take_Back_Live;
+
    function Dictation (Item : Window) return Dictations is
      (Item.Dictating);
 
@@ -561,6 +624,9 @@ package body Items.Windows is
       To     : Dictations;
       Detail : String := "") is
    begin
+      if To = Failed then
+         Take_Back_Live (Item);
+      end if;
       Item.Dictating := To;
       Widgets.Set_Visible (Item.Progress, To = Listening);
       UI.Widgets.Progress_Bars.Set_Value (Item.Progress, 0.0);
@@ -597,17 +663,65 @@ package body Items.Windows is
       end if;
    end Set_Level;
 
+   function One_Line_Feeds (Said : String) return String;
+   --  Said as it goes in a note: paragraphs are made by line feeds alone.
+
+   function One_Line_Feeds (Said : String) return String is
+   begin
+      return Spoken : String := Said do
+         for C of Spoken loop
+            if C = ASCII.CR then
+               C := ' ';
+            end if;
+         end loop;
+      end return;
+   end One_Line_Feeds;
+
+   procedure Set_Live_Dictation (Item : in out Window; Said : String) is
+      Area   : UI.Text_Areas.Text_Area
+        renames Editors.Area (Item.Body_Text).all;
+      Doc    : Docs.Document renames Item.Content_Doc;
+      Spoken : constant String := One_Line_Feeds (Said);
+   begin
+      if Item.Live_Shown and then Docs.Current (Doc) /= Item.Live_Seen then
+         Item.Live_Lost := True;
+      end if;
+      if Item.Live_Lost then
+         return;
+      end if;
+      if not Item.Live_Shown then
+         if Spoken = "" then
+            return;
+         end if;
+         if Widgets.Has_Focus (Item.Body_Text) then
+            Item.Live_From := UI.Text_Areas.Caret (Area);
+            Item.Live_Break := False;
+         else
+            Item.Live_From := Docs.Text_End (Doc);
+            Item.Live_Break := Docs.Byte_Length (Doc, Docs.Count (Doc)) /= 0;
+         end if;
+         Item.Live_To := Item.Live_From;
+         Item.Live_Shown := True;
+      end if;
+      declare
+         Shown : constant String :=
+           (if Item.Live_Break then [ASCII.LF] else "") & Spoken;
+      begin
+         if Docs.Between (Doc, Item.Live_From, Item.Live_To) /= Shown then
+            Docs.Replace
+              (Doc, Item.Live_From, Item.Live_To, Shown, Recorded => False);
+            Item.Live_To := Texts.End_After (Item.Live_From, Shown);
+            Item.Live_Seen := Docs.Current (Doc);
+         end if;
+      end;
+   end Set_Live_Dictation;
+
    procedure Add_Dictation (Item : in out Window; Said : String) is
       Area : UI.Text_Areas.Text_Area renames Editors.Area (Item.Body_Text).all;
       Doc  : Docs.Document renames Item.Content_Doc;
-      Spoken : String := Said;
+      Spoken : constant String := One_Line_Feeds (Said);
    begin
-      --  Paragraphs are made by line feeds alone.
-      for C of Spoken loop
-         if C = ASCII.CR then
-            C := ' ';
-         end if;
-      end loop;
+      Take_Back_Live (Item);
       if Spoken = "" then
          return;
       end if;
@@ -692,6 +806,9 @@ package body Items.Windows is
          Bar_Pad * Chrome * Pixels);
       Size (Item.Minimize_Button, Button_Size, Button_Size);
       Size (Item.Close_Button, Button_Size, Button_Size);
+      Size (Item.Tag, Tag_Size, Tag_Size);
+      Set_Margin
+        (Widgets.Node (Item.Tag), Yoga.Right, Tag_Gap * Chrome * Pixels);
       Labels.Set_Scale (Item.Title_Label, Chrome);
       Widgets.Request_Layout (Item.Frame);
    end Fit_Zoom;
@@ -705,6 +822,20 @@ package body Items.Windows is
       Of_Source : constant Boolean := Item.Details.Kind = Source;
       Node : constant Yoga.Nodes.Node := Widgets.Node (Item.Body_Text);
    begin
+      --  A note's text is in the serif; a source's link, in the face of
+      --  the interface.
+      if Item.Face_Of /= Item.Details.Kind then
+         Item.Face_Of := Item.Details.Kind;
+         if Of_Source then
+            Editors.Configure
+              (Item.Body_Text, UI.Line_Texts.Interface_Font, Link_Size,
+               Measure);
+         else
+            Editors.Configure
+              (Item.Body_Text, UI.Line_Texts.Serif, Text_Size, Measure);
+         end if;
+      end if;
+      Widgets.Set_Visible (Item.Tag, Of_Source);
       UI.Text_Areas.Set_Single_Line
         (Editors.Area (Item.Body_Text).all, Of_Source);
       Set_Flex_Grow (Node, (if Of_Source then 0.0 else 1.0));
@@ -746,6 +877,8 @@ package body Items.Windows is
         (Item.Title_Doc, Projects.Titles.To_String (Of_Item.Title));
       Docs.Load (Item.Content_Doc, Saved_Text);
       Item.Dictating := Silent;
+      Item.Live_Shown := False;
+      Item.Live_Lost := False;
       Text_Fields.Attach (Item.Title_Field, Item.Title_Doc'Unchecked_Access);
       Editors.Attach (Item.Body_Text, Item.Content_Doc'Unchecked_Access);
       Item.Title_Saved := Docs.State (Item.Title_Doc);
@@ -804,6 +937,8 @@ package body Items.Windows is
       Item.Scroll_Pending := False;
       Item.Was_Used := False;
       Item.Dictating := Silent;
+      Item.Live_Shown := False;
+      Item.Live_Lost := False;
    end Release;
 
    procedure Place
@@ -844,12 +979,14 @@ package body Items.Windows is
             Float'Rounding
               ((Float'Rounding (Where.Width * Zoom * Pixels)
                 - 2.0 * Float'Max (1.0, Float'Rounding (Outline * Pixels))
+                - UI.Boxes.Offset (Pixels)
                 - Tools_Width * Pixels) / 2.0));
          Set_Position
            (Widgets.Node (Item.Speak_Button), Yoga.Left,
             Float'Rounding
               ((Float'Rounding (Where.Width * Zoom * Pixels)
                 - 2.0 * Float'Max (1.0, Float'Rounding (Outline * Pixels))
+                - UI.Boxes.Offset (Pixels)
                 - Button_Size * Pixels) / 2.0));
          Widgets.Request_Layout (Item.Frame);
       end if;
@@ -958,6 +1095,12 @@ package body Items.Windows is
          Widgets.Raise_To_Front (Item.Frame);
       end if;
       Item.Was_Used := Used;
+      --  A ring round the window being typed in.
+      if Item.Editing or else Widgets.Has_Focus (Item.Body_Text) then
+         Panels.Set_Ring (Item.Frame, Item.Ring_Ink);
+      else
+         Panels.Clear_Ring (Item.Frame);
+      end if;
 
       --  What was typed.
       if Docs.Current (Item.Title_Doc) /= Item.Title_Version then
@@ -1061,7 +1204,8 @@ package body Items.Windows is
       Content_Now : constant Natural := Docs.State (Item.Content_Doc);
       Typing      : constant Boolean :=
         Widgets.Has_Focus (Item.Title_Field)
-        or else Widgets.Has_Focus (Item.Body_Text);
+        or else Widgets.Has_Focus (Item.Body_Text)
+        or else Item.Held;
    begin
       Wrote := False;
       if Title_Now /= Item.Title_Seen or else Content_Now /= Item.Content_Seen
@@ -1116,16 +1260,7 @@ package body Items.Windows is
          declare
             Kept : Items.Mark_List;
          begin
-            Kept.Count := UI.Widgets.Pictures.Mark_Count (Item.Picture);
-            for Index in 1 .. Kept.Count loop
-               declare
-                  Each : constant UI.Widgets.Pictures.Mark :=
-                    UI.Widgets.Pictures.Mark_At (Item.Picture, Index);
-               begin
-                  Kept.Marks (Index) :=
-                    (Left => Each.Left, Right => Each.Right, Y => Each.Y);
-               end;
-            end loop;
+            Get_Marks (Item, Kept);
             Items.Save_Marks (Store, Item.Details.Key, Kept);
          end;
          Item.Marks_Saved := UI.Widgets.Pictures.Marks_Version (Item.Picture);
