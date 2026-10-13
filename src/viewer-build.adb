@@ -7,6 +7,7 @@ with UI.Line_Texts;
 with UI.Scrollbars;
 with UI.Themes;
 with UI.Widgets;
+with UI.Widgets.Scrollers;
 with Viewer.Recent;
 with Viewer.Style;
 with Yoga.Nodes;
@@ -19,6 +20,7 @@ package body Viewer.Build is
    package Labels renames UI.Widgets.Labels;
    package Text_Fields renames UI.Widgets.Text_Fields;
    package Grips renames UI.Widgets.Grips;
+   package Scrollers renames UI.Widgets.Scrollers;
 
    use Style;
 
@@ -162,14 +164,17 @@ package body Viewer.Build is
       Widgets.Add (Item.Project_Panel, Item.Content_Panel);
       Widgets.Add (Item.Content_Panel, Item.Canvas_View);
       Widgets.Add (Item.Project_Panel, Item.Dock_Panel);
-      Widgets.Add (Item.Project_Panel, Item.Tools);
+      Widgets.Add (Item.Dock_Panel, Item.Dock_Scroll);
+      Widgets.Add (Item.Dock_Scroll, Item.Dock_Content);
+      Widgets.Add (Item.Project_Panel, Item.Toolbar_Panel);
+      Widgets.Add (Item.Toolbar_Panel, Item.Project_Title);
+      Widgets.Add (Item.Toolbar_Panel, Item.Tools);
       Widgets.Add (Item.Tools, Item.Tool_Item);
       Widgets.Add (Item.Tools, Item.Tool_Source);
       Widgets.Add (Item.Tools, Item.Tool_List);
-      Widgets.Add (Item.Project_Panel, Item.Toolbar_Panel);
-      Widgets.Add (Item.Toolbar_Panel, Item.Project_Title);
-      Widgets.Add (Item.Toolbar_Panel, Item.Canvas_Tab);
-      Widgets.Add (Item.Toolbar_Panel, Item.Close_Button);
+      Widgets.Add (Item.Toolbar_Panel, Item.Toolbar_End);
+      Widgets.Add (Item.Toolbar_End, Item.Canvas_Tab);
+      Widgets.Add (Item.Toolbar_End, Item.Close_Button);
       Panels.Set_Fill (Item.Toolbar_Panel, Toolbar);
       Buttons.Set_Label (Item.Canvas_Tab, "Canvas");
       Buttons.Set_Selected (Item.Canvas_Tab, True);
@@ -192,16 +197,17 @@ package body Viewer.Build is
       Set_Flex_Direction (Widgets.Node (Item.Content_Panel), Yoga.Column);
       Set_Flex_Grow (Widgets.Node (Item.Canvas_View), 1.0);
 
-      --  The tools bar, fixed above the toolbar, with its items from the
-      --  left.
-      Panels.Set_Fill (Item.Tools, Tools_Bar);
-      Set_Height (Widgets.Node (Item.Tools), Toolbar_Size * Item.Density);
+      --  The tools, in the middle of the toolbar: the title and the
+      --  tabs and Close button on each side take equal shares.
       Set_Flex_Direction (Widgets.Node (Item.Tools), Yoga.Row);
       Set_Align_Items (Widgets.Node (Item.Tools), Yoga.Center);
-      Set_Padding
-        (Widgets.Node (Item.Tools), Yoga.Left, Tools_Inset * Item.Density);
       Set_Gap
         (Widgets.Node (Item.Tools), Yoga.All_Gutters, Tool_Gap * Item.Density);
+      Set_Flex_Direction (Widgets.Node (Item.Toolbar_End), Yoga.Row);
+      Set_Align_Items (Widgets.Node (Item.Toolbar_End), Yoga.Center);
+      Set_Justify_Content (Widgets.Node (Item.Toolbar_End), Yoga.Flex_End);
+      Set_Flex_Grow (Widgets.Node (Item.Toolbar_End), 1.0);
+      Set_Width (Widgets.Node (Item.Toolbar_End), 0.0);
       Set_Width (Widgets.Node (Item.Tool_Item), Tool_Width * Item.Density);
       Set_Height (Widgets.Node (Item.Tool_Item), Tool_Height * Item.Density);
       Set_Width (Widgets.Node (Item.Tool_Source), Tool_Width * Item.Density);
@@ -210,20 +216,30 @@ package body Viewer.Build is
       Set_Width (Widgets.Node (Item.Tool_List), Tool_Width * Item.Density);
       Set_Height (Widgets.Node (Item.Tool_List), Tool_Height * Item.Density);
 
-      --  The dock of minimised items, above the tools bar, and the
+      --  The dock of minimised items, above the toolbar, and the
       --  windows of the items: on the canvas, or as bars in the dock.
       Panels.Set_Fill (Item.Dock_Panel, Dock);
       Set_Height (Widgets.Node (Item.Dock_Panel), Dock_Height * Item.Density);
       Set_Flex_Direction (Widgets.Node (Item.Dock_Panel), Yoga.Row);
-      Set_Align_Items (Widgets.Node (Item.Dock_Panel), Yoga.Center);
+      Scrollers.Set_Across (Item.Dock_Scroll, True);
+      Set_Flex_Direction (Widgets.Node (Item.Dock_Scroll), Yoga.Row);
+      Set_Flex_Grow (Widgets.Node (Item.Dock_Scroll), 1.0);
+      Set_Width (Widgets.Node (Item.Dock_Scroll), 0.0);
+      Set_Flex_Direction (Widgets.Node (Item.Dock_Content), Yoga.Row);
+      Set_Flex_Shrink (Widgets.Node (Item.Dock_Content), 0.0);
+      Set_Align_Items (Widgets.Node (Item.Dock_Content), Yoga.Center);
       Set_Padding
-        (Widgets.Node (Item.Dock_Panel), Yoga.Left, Dock_Inset * Item.Density);
+        (Widgets.Node (Item.Dock_Content), Yoga.Left,
+         Dock_Inset * Item.Density);
+      Set_Padding
+        (Widgets.Node (Item.Dock_Content), Yoga.Right,
+         Dock_Inset * Item.Density);
       Set_Gap
-        (Widgets.Node (Item.Dock_Panel), Yoga.All_Gutters,
+        (Widgets.Node (Item.Dock_Content), Yoga.All_Gutters,
          Dock_Gap * Item.Density);
       for Each of Item.Windows loop
          Items.Windows.Build
-           (Each, Item.Canvas_View, Item.Dock_Panel, Colors, Toolbar,
+           (Each, Item.Canvas_View, Item.Dock_Content, Colors, Toolbar,
             Item.Density);
       end loop;
 

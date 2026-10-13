@@ -27,17 +27,17 @@ package body Item_Tests is
    --  and the toolbar, 32 each, so its middle, where the origin starts and
    --  items are added, is at 360, 208.
 
-   Add_X    : constant Float := 64.0;
-   Source_X : constant Float := 182.0;
+   Add_X    : constant Float := 242.0;
+   Source_X : constant Float := 360.0;
    Menu_X   : constant Float := 451.0;
    Marker_X : constant Float := 360.0;
    Eraser_X : constant Float := 382.0;
    Cursor_X : constant Float := 338.0;
-   Status_Y : constant Float := 296.0;
-   Menu_Y   : constant Float := 275.0;
+   Status_Y : constant Float := 312.0;
+   Menu_Y   : constant Float := 291.0;
    --  A zoom's button in the menu of a source's window: 200%.
-   List_X   : constant Float := 300.0;
-   Tools_Y  : constant Float := 432.0;
+   List_X   : constant Float := 478.0;
+   Tools_Y  : constant Float := 464.0;
    --  The middle of the buttons on the tools bar: Add Item, Add Source,
    --  and Items.
 
@@ -46,23 +46,23 @@ package body Item_Tests is
    --  bar is 32 high, with the title field from the left, and the buttons
    --  at the right.
    Title_X  : constant Float := 260.0;
-   Bar_Y    : constant Float := 125.0;
+   Bar_Y    : constant Float := 141.0;
    Hold_X   : constant Float := 420.0;
    --  Where the bar can be held: between the title and the buttons.
    Minimize_X : constant Float := 451.0;
    Close_X    : constant Float := 479.0;
    Corner_X   : constant Float := 490.0;
-   Corner_Y   : constant Float := 296.0;
+   Corner_Y   : constant Float := 312.0;
    --  The corner to size it by, in the status line.
    Text_X   : constant Float := 300.0;
-   Text_Y   : constant Float := 200.0;
+   Text_Y   : constant Float := 216.0;
    --  In the text.
 
    --  The bar in the dock, when the item is minimised: from 8, 382, with
-   --  the button to restore it, and the one to close it, at the right.
-   Restore_X : constant Float := 164.0;
+   --  the title to click to restore it, and the button to close it, at the right.
+   Restore_X : constant Float := 80.0;
    Dock_Close_X : constant Float := 192.0;
-   Dock_Y    : constant Float := 396.0;
+   Dock_Y    : constant Float := 428.0;
 
    --  The list of items: a dialog 440 x 380 in the middle. Its rows are 36
    --  high, from 111, with the button to show or hide the item, and the
@@ -679,6 +679,36 @@ package body Item_Tests is
       Snap (Session, "list-revealed");
    end Revealing;
 
+   procedure Scrolling_Dock is
+      Session : Viewer.Session;
+   begin
+      Start (Session);
+      --  Five bars, 200 wide, are wider than the window: each is
+      --  minimised in turn, by the button at the right of its bar.
+      for I in 1 .. 5 loop
+         Viewer.Add_Item (Session, "Item" & Natural'Image (I));
+         declare
+            Where : constant Items.Frame := Viewer.Item_Frame (Session, I);
+         begin
+            Click_On
+              (Session, 360.0 + Where.Left + Where.Width - 49.0,
+               224.0 + Where.Top + 17.0);
+         end;
+      end loop;
+      Move_To (Session, 360.0, Dock_Y);
+      Snap (Session, "dock-long");
+      Viewer.Handle
+        (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_Y => -40.0,
+                                Mouse_X => 360.0, Mouse_Y => Dock_Y,
+                                others => <>));
+      Snap (Session, "dock-long-end");
+      Viewer.Handle
+        (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_X => 40.0,
+                                Mouse_X => 360.0, Mouse_Y => Dock_Y,
+                                others => <>));
+      Snap (Session, "dock-long-start");
+   end Scrolling_Dock;
+
    procedure Scrolling_List is
       Session : Viewer.Session;
    begin
@@ -1156,7 +1186,7 @@ package body Item_Tests is
       Check
         ("source-zoom-start", " 1.00000E+00",
          Float'Image (Viewer.Item_Zoom (Session, 1)));
-      Click_On (Session, 494.0, 296.0);
+      Click_On (Session, 494.0, 312.0);
       Snap (Session, "source-menu");
       Click_On (Session, Menu_X, Menu_Y);
       Check
@@ -1167,16 +1197,16 @@ package body Item_Tests is
       --  Dragged part of the way, with the knob held: the zoom it is
       --  rounded to is not where the knob is, which it must leave alone
       --  while it is held (this once failed a postcondition).
-      Press (Session, 435.0, 296.0);
+      Press (Session, 435.0, 312.0);
       Move_To (Session, 441.3, 296.0, Held => True);
       Move_To (Session, 447.7, 296.0, Held => True);
-      Release (Session, 447.7, 296.0);
+      Release (Session, 447.7, 312.0);
       Check
         ("source-zoom-dragged", "TRUE",
          Boolean'Image
            (Viewer.Item_Zoom (Session, 1) > 1.0
             and then Viewer.Item_Zoom (Session, 1) < 4.0));
-      Click_On (Session, 468.0, 296.0);
+      Click_On (Session, 468.0, 312.0);
       Check
         ("source-zoom-slider", " 4.00000E+00",
          Float'Image (Viewer.Item_Zoom (Session, 1)));

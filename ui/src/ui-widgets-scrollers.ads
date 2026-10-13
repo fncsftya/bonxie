@@ -17,6 +17,11 @@ package UI.Widgets.Scrollers is
 
    type Scroller is new Widget with private;
 
+   procedure Set_Across (Item : in out Scroller; Across : Boolean);
+   --  Make it scroll a row, wider than the box, along its bottom edge
+   --  (the offset is then how far the child has moved left), rather than
+   --  a column. A vertical wheel moves it too.
+
    function Offset (Item : Scroller) return Float;
    --  How far the child has been moved up, in points: 0 when its top is
    --  at the top of the box.
@@ -44,6 +49,7 @@ private
 
    type Scroller is new Widget with record
       Moved : Float := 0.0;
+      Across : Boolean := False;
       Bar   : Scrollbars.Bar;
    end record;
 

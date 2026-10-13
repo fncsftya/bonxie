@@ -164,8 +164,8 @@ package body Items.Windows is
       Widgets.Add (Item.Status_Bar, Item.Zoom_Button);
       Widgets.Add (Item.Status_Bar, Item.Corner);
       Widgets.Add (Dock, Item.Mini);
-      Widgets.Add (Item.Mini, Item.Mini_Title);
-      Widgets.Add (Item.Mini, Item.Restore_Button);
+      Widgets.Add (Item.Mini, Item.Mini_Area);
+      Widgets.Add (Item.Mini_Area, Item.Mini_Title);
       Widgets.Add (Item.Mini, Item.Mini_Close);
 
       --  The window: an outline round a column of the bar, the text and
@@ -257,19 +257,25 @@ package body Items.Windows is
       Size (Item.Mini, Mini_Width, Mini_Height);
       Set_Flex_Direction (Widgets.Node (Item.Mini), Yoga.Row);
       Set_Align_Items (Widgets.Node (Item.Mini), Yoga.Center);
-      Set_Padding (Widgets.Node (Item.Mini), Yoga.Left, Bar_Pad * Pixels);
       Set_Padding (Widgets.Node (Item.Mini), Yoga.Right, Mini_Gap * Pixels);
       Set_Gap (Widgets.Node (Item.Mini), Yoga.All_Gutters, Mini_Gap * Pixels);
+      --  The whole title is to click, to bring the window back.
+      Grips.Set_Hover_Outline (Item.Mini_Area, Colors.Background);
+      Grips.Set_Wanted_Cursor (Item.Mini_Area, SDL3.Cursors.Pointer);
+      Set_Flex_Grow (Widgets.Node (Item.Mini_Area), 1.0);
+      Set_Width (Widgets.Node (Item.Mini_Area), 0.0);
+      Set_Height (Widgets.Node (Item.Mini_Area), Mini_Height * Pixels);
+      Set_Flex_Direction (Widgets.Node (Item.Mini_Area), Yoga.Row);
+      Set_Align_Items (Widgets.Node (Item.Mini_Area), Yoga.Center);
+      Set_Padding
+        (Widgets.Node (Item.Mini_Area), Yoga.Left, Bar_Pad * Pixels);
       Labels.Set_Style (Item.Mini_Title, UI.Line_Texts.Strong);
       Labels.Set_Ink (Item.Mini_Title, Colors.Background);
       Set_Flex_Grow (Widgets.Node (Item.Mini_Title), 1.0);
       Set_Width (Widgets.Node (Item.Mini_Title), 0.0);
       Set_Height (Widgets.Node (Item.Mini_Title), Label_Height * Pixels);
-      Buttons.Set_Label (Item.Restore_Button, "Show");
-      Buttons.Set_Icon (Item.Restore_Button, UI.Icons.Restore);
       Buttons.Set_Label (Item.Mini_Close, "Close");
       Buttons.Set_Icon (Item.Mini_Close, UI.Icons.Close);
-      Size (Item.Restore_Button, Button_Size, Button_Size);
       Size (Item.Mini_Close, Button_Size, Button_Size);
 
       --  The tools, in the middle of the status line (see Place).
@@ -788,7 +794,7 @@ package body Items.Windows is
             Action := Close;
          end if;
       elsif Item.Details.State = Minimized then
-         Buttons.Take_Click (Item.Restore_Button, Clicked);
+         Grips.Take_Click (Item.Mini_Area, Clicked);
          if Clicked then
             Action := Restore;
             return;

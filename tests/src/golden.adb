@@ -39,8 +39,8 @@ procedure Golden is
    Default_Height : constant := 480;
    --  In points. The toolbar takes 32 of the height, at the bottom.
 
-   Tools_Item_X : constant Float := 64.0;
-   Tools_Item_Y : constant Float := 432.0;
+   Tools_Item_X : constant Float := 242.0;
+   Tools_Item_Y : constant Float := 464.0;
    --  In points: the middle of the item on the tools bar, above the
    --  toolbar.
 
@@ -123,7 +123,7 @@ procedure Golden is
         ("canvas-mode", "CANVAS", Viewer.Modes'Image (Viewer.Mode (Session)));
       --  The origin in the middle, at a zoom of 1.
       Goldens.Check_Text
-        ("canvas-origin", " 360 208",
+        ("canvas-origin", " 360 224",
          Whole (Viewer.Canvas_Origin_X (Session))
          & Whole (Viewer.Canvas_Origin_Y (Session)));
       Goldens.Check_Text
@@ -160,7 +160,7 @@ procedure Golden is
       Start (Session);
       Viewer.Handle (Session, Wheel (-1.0, 2.0, 400.0, 300.0));
       Goldens.Check_Text
-        ("canvas-panned-origin", " 384 256",
+        ("canvas-panned-origin", " 384 272",
          Whole (Viewer.Canvas_Origin_X (Session))
          & Whole (Viewer.Canvas_Origin_Y (Session)));
       Goldens.Check_Text
@@ -185,7 +185,7 @@ procedure Golden is
                   / Viewer.Canvas_Zoom (Session)));
    begin
       Start (Session);
-      Goldens.Check_Text ("canvas-zoom-before", " 140 92", Under_Pointer);
+      Goldens.Check_Text ("canvas-zoom-before", " 140 76", Under_Pointer);
 
       --  Command with the wheel zooms about the pointer, which keeps what
       --  is under it.
@@ -193,7 +193,7 @@ procedure Golden is
         (Session, Wheel (0.0, 3.0, 500.0, 300.0, Command => True));
       Goldens.Check_Text
         ("canvas-zoom-in", " 133", Percent (Viewer.Canvas_Zoom (Session)));
-      Goldens.Check_Text ("canvas-zoom-kept", " 140 92", Under_Pointer);
+      Goldens.Check_Text ("canvas-zoom-kept", " 140 76", Under_Pointer);
       Viewer.Render (Session, Drawn);
       Goldens.Check ("canvas-zoomed-in", Drawn);
 
@@ -201,7 +201,7 @@ procedure Golden is
         (Session, Wheel (0.0, -8.0, 500.0, 300.0, Command => True));
       Goldens.Check_Text
         ("canvas-zoom-out", " 62", Percent (Viewer.Canvas_Zoom (Session)));
-      Goldens.Check_Text ("canvas-zoom-out-kept", " 140 92", Under_Pointer);
+      Goldens.Check_Text ("canvas-zoom-out-kept", " 140 76", Under_Pointer);
       Viewer.Render (Session, Drawn);
       Goldens.Check ("canvas-zoomed-out", Drawn);
    end Canvas_Zoomed;
@@ -221,7 +221,7 @@ procedure Golden is
         ("canvas-keys-reset", " 100", Percent (Viewer.Canvas_Zoom (Session)));
       --  About the middle.
       Goldens.Check_Text
-        ("canvas-keys-origin", " 360 208",
+        ("canvas-keys-origin", " 360 224",
          Whole (Viewer.Canvas_Origin_X (Session))
          & Whole (Viewer.Canvas_Origin_Y (Session)));
 
@@ -268,7 +268,7 @@ procedure Golden is
       Viewer.Handle (Session, Pointer_At (340.0, 230.0, Held => True));
       Viewer.Handle (Session, Release_Button (1, 340.0, 230.0));
       Goldens.Check_Text
-        ("canvas-left-drag", " 360 208",
+        ("canvas-left-drag", " 360 224",
          Whole (Viewer.Canvas_Origin_X (Session))
          & Whole (Viewer.Canvas_Origin_Y (Session)));
 
@@ -278,7 +278,7 @@ procedure Golden is
       Viewer.Handle (Session, Pointer_At (340.0, 230.0));
       Viewer.Handle (Session, Pointer_At (350.0, 210.0));
       Goldens.Check_Text
-        ("canvas-middle-drag", " 410 218",
+        ("canvas-middle-drag", " 410 234",
          Whole (Viewer.Canvas_Origin_X (Session))
          & Whole (Viewer.Canvas_Origin_Y (Session)));
       Goldens.Check_Text ("canvas-cursor-still-panning", "MOVE", Cursor);
@@ -290,7 +290,7 @@ procedure Golden is
       --  Let go, it follows the pointer no more.
       Viewer.Handle (Session, Pointer_At (400.0, 300.0));
       Goldens.Check_Text
-        ("canvas-after-drag", " 410 218",
+        ("canvas-after-drag", " 410 234",
          Whole (Viewer.Canvas_Origin_X (Session))
          & Whole (Viewer.Canvas_Origin_Y (Session)));
    end Canvas_Dragged;
@@ -790,6 +790,7 @@ begin
    Run ("items-list", Item_Tests.Listing'Access);
    Run ("items-removing", Item_Tests.Removing'Access);
    Run ("items-revealing", Item_Tests.Revealing'Access);
+   Run ("items-dock-scrolling", Item_Tests.Scrolling_Dock'Access);
    Run ("items-list-scrolling", Item_Tests.Scrolling_List'Access);
    Run ("items-panning-zooming", Item_Tests.Panning_And_Zooming'Access);
    Run ("items-raising", Item_Tests.Raising'Access);

@@ -11,23 +11,34 @@ package body UI.Widgets.Scrollers is
       Width   => Width_Of (Item), Height => Height_Of (Item),
       Density => Density (Item),
       Start   => Item.Moved * Density (Item),
-      Shown   => Height_Of (Item),
-      Total   => (if Child_Count (Item) = 1
-                  then Height_Of (Child_At (Item, 1).all) else 0.0),
-      Horizontal => False);
+      Shown   => (if Item.Across then Width_Of (Item) else Height_Of (Item)),
+      Total   => (if Child_Count (Item) /= 1 then 0.0
+                  elsif Item.Across then Width_Of (Child_At (Item, 1).all)
+                  else Height_Of (Child_At (Item, 1).all)),
+      Horizontal => Item.Across);
+
+   procedure Set_Across (Item : in out Scroller; Across : Boolean) is
+   begin
+      Item.Across := Across;
+   end Set_Across;
 
    procedure Scroll_To (Item : in out Scroller; To : Float) is
       Child  : constant Widget_Access := Child_At (Item, 1);
       Pixels : constant Float := Density (Item);
       Hidden : constant Float :=
-        Float'Max (0.0, (Height_Of (Child.all) - Height_Of (Item)) / Pixels);
+        Float'Max
+          (0.0,
+           (if Item.Across
+            then Width_Of (Child.all) - Width_Of (Item)
+            else Height_Of (Child.all) - Height_Of (Item)) / Pixels);
       --  How much of the child is out of the box.
       Wanted : constant Float := Float'Min (Hidden, Float'Max (0.0, To));
    begin
       if Wanted /= Item.Moved then
          Item.Moved := Wanted;
          Yoga.Nodes.Set_Position
-           (Node (Child.all), Yoga.Top, -Wanted * Pixels);
+           (Node (Child.all), (if Item.Across then Yoga.Left else Yoga.Top),
+            -Wanted * Pixels);
          Request_Layout (Item);
       end if;
    end Scroll_To;
@@ -81,7 +92,11 @@ package body UI.Widgets.Scrollers is
       if Event.Kind = SDL3.Events.Mouse_Wheel
         and then Child_Count (Item) = 1
       then
-         Scroll_To (Item, Item.Moved - Event.Wheel_Y * Points_Per_Notch);
+         Scroll_To
+           (Item,
+            Item.Moved
+            - (if Item.Across and then Event.Wheel_X /= 0.0
+               then Event.Wheel_X else Event.Wheel_Y) * Points_Per_Notch);
          Handled := True;
       end if;
    end Handle;

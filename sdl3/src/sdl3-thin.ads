@@ -262,6 +262,18 @@ private package SDL3.Thin is
      (Win : Window; W, H : Interfaces.C.int) return Interfaces.C.C_bool
      with Import, Convention => C, External_Name => "SDL_SetWindowSize";
 
+   function Set_Window_Position
+     (Win : Window; X, Y : Interfaces.C.int) return Interfaces.C.C_bool
+     with Import, Convention => C, External_Name => "SDL_SetWindowPosition";
+
+   function Get_Window_Position
+     (Win : Window; X, Y : out Interfaces.C.int) return Interfaces.C.C_bool
+     with Import, Convention => C, External_Name => "SDL_GetWindowPosition";
+
+   function Get_Window_Size
+     (Win : Window; W, H : out Interfaces.C.int) return Interfaces.C.C_bool
+     with Import, Convention => C, External_Name => "SDL_GetWindowSize";
+
    function Sync_Window (Win : Window) return Interfaces.C.C_bool
      with Import, Convention => C, External_Name => "SDL_SyncWindow";
 

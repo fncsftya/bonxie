@@ -13,10 +13,8 @@ private package Viewer.Style is
    --  The header across the top, and what its title leaves clear at the
    --  left for the window's close, minimise and zoom buttons.
 
-   --  The tools bar, in points: as high as the toolbar, Toolbar_Size
+   --  The tools, in points
 
-   Tools_Inset   : constant Float := 8.0;
-   --  From the left edge to the first item.
    Tool_Width    : constant Float := 112.0;
    Tool_Height   : constant Float := 24.0;
    Tab_Width     : constant Float := 80.0;
@@ -24,9 +22,9 @@ private package Viewer.Style is
    Dock_Height   : constant Float := 40.0;
    Dock_Inset    : constant Float := 8.0;
    Dock_Gap      : constant Float := 6.0;
-   --  The dock of minimised items, above the tools bar.
+   --  The dock of minimised items, above the toolbar.
    Tool_Gap      : constant Float := 6.0;
-   --  Between the items on the tools bar.
+   --  Between the tools.
 
    --  The list of items, in points
 
@@ -72,12 +70,9 @@ private package Viewer.Style is
    Toolbar : constant UI.Themes.Color :=
      UI.Themes.Mix (Colors.Foreground, Colors.Background, 0.15);
    --  Dark, from the theme: its text colour, a little toward its ground.
-   Tools_Bar : constant UI.Themes.Color :=
-     UI.Themes.Mix (Toolbar, Colors.Background, 0.2);
-   --  A lighter shade of the same.
    Dock : constant UI.Themes.Color :=
      UI.Themes.Mix (Colors.Background, Colors.Foreground, 0.25);
-   --  Behind the minimised items: between the canvas and the tools bar.
+   --  Behind the minimised items: between the canvas and the toolbar.
    Closed_Ink : constant UI.Themes.Color :=
      UI.Themes.Mix (Colors.Foreground, Colors.Background, 0.55);
    --  Of the title of an item that is not shown, in the list.

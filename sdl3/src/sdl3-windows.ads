@@ -54,6 +54,16 @@ package SDL3.Windows is
    --  Ask for the window to be Width x Height points, and wait for it,
    --  if the system will say.
 
+   procedure Get_Geometry
+     (Item : Window; X, Y, Width, Height : out Integer; Found : out Boolean)
+     with Pre => Is_Open (Item);
+   --  Where the window is, in points from the top left of the desktop,
+   --  and how big. Not Found if the system cannot say.
+
+   procedure Set_Position (Item : Window; X, Y : Integer)
+     with Pre => Is_Open (Item);
+   --  Ask for the window's top left to be at X, Y.
+
 private
 
    type Window is new Ada.Finalization.Limited_Controlled with record

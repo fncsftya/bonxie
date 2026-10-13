@@ -1,6 +1,8 @@
+with Ada.Directories;
 with Ada.Environment_Variables;
 with Ada.Exceptions;
 with Ada.Text_IO;
+with Files;
 with SDL3.Events.Redraws;
 with SDL3.Windows.Renderers;
 with UI.Widgets;
@@ -380,6 +382,53 @@ package body Viewer is
       SDL3.Windows.Renderers.Images.Read (Result, Item.Target);
    end Render;
 
+   --  Where the window was left
+
+   function Geometry_Path return String is
+     (Ada.Directories.Containing_Directory (Projects.Default_Path)
+      & "/window");
+
+   procedure Restore_Geometry (Item : in out Session) is
+      Saved : constant String := Files.Read (Geometry_Path);
+      Value : array (1 .. 4) of Integer;
+      First : Positive := Saved'First;
+      Last  : Natural;
+   begin
+      for V of Value loop
+         while First <= Saved'Last and then Saved (First) = ' ' loop
+            First := First + 1;
+         end loop;
+         Last := First;
+         while Last < Saved'Last and then Saved (Last + 1) /= ' ' loop
+            Last := Last + 1;
+         end loop;
+         V := Integer'Value (Saved (First .. Last));
+         First := Last + 1;
+      end loop;
+      if Value (3) > 0 and then Value (4) > 0 then
+         SDL3.Windows.Set_Size (Item.Win, Value (3), Value (4));
+         SDL3.Windows.Set_Position (Item.Win, Value (1), Value (2));
+      end if;
+   exception
+      when others =>
+         null;  --  none kept, or unreadable: stay as made
+   end Restore_Geometry;
+
+   procedure Save_Geometry (Item : Session) is
+      X, Y, W, H : Integer;
+      Found      : Boolean;
+   begin
+      SDL3.Windows.Get_Geometry (Item.Win, X, Y, W, H, Found);
+      if Found then
+         Files.Write
+           (Geometry_Path,
+            X'Image & Y'Image & W'Image & H'Image);
+      end if;
+   exception
+      when others =>
+         null;  --  losing the place of the window is not worth a crash
+   end Save_Geometry;
+
    procedure Run (Source : String; File_Name : String := "") is
       Item    : aliased Session;
       Watcher : Redraws.Watch;  --  ends before Item does
@@ -389,6 +438,7 @@ package body Viewer is
          VSync => Ada.Environment_Variables.Exists ("BONXIE_VSYNC")
                   and then Ada.Environment_Variables.Value
                              ("BONXIE_VSYNC") = "1");
+      Restore_Geometry (Item);
 
       --  The redraw watch also draws: the OS blocks the event loop
       --  during a live resize, and only repainting from inside the event
@@ -402,6 +452,7 @@ package body Viewer is
          end if;
          Wait_And_Handle (Item);
       end loop;
+      Save_Geometry (Item);
    end Run;
 
 end Viewer;

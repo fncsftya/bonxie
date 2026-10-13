@@ -108,6 +108,30 @@ package body SDL3.Windows is
       end if;
    end Set_Size;
 
+   procedure Get_Geometry
+     (Item : Window; X, Y, Width, Height : out Integer; Found : out Boolean)
+   is
+      use Interfaces.C;
+      PX, PY, W, H : int := 0;
+   begin
+      Found :=
+        Boolean (Thin.Get_Window_Position (Item.Handle, PX, PY))
+        and then Boolean (Thin.Get_Window_Size (Item.Handle, W, H))
+        and then W > 0 and then H > 0;
+      X := Integer (PX);
+      Y := Integer (PY);
+      Width := Integer (W);
+      Height := Integer (H);
+   end Get_Geometry;
+
+   procedure Set_Position (Item : Window; X, Y : Integer) is
+      use Interfaces.C;
+   begin
+      Errors.Check
+        (Thin.Set_Window_Position (Item.Handle, int (X), int (Y)),
+         "SDL_SetWindowPosition");
+   end Set_Position;
+
    overriding procedure Finalize (Item : in out Window) is
    begin
       if Item.Handle /= System.Null_Address then

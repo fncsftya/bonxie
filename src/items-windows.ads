@@ -275,8 +275,9 @@ private
 
       Mini         : UI.Widgets.Panels.Panel;
       --  In the dock.
+      Mini_Area    : UI.Widgets.Grips.Grip;
+      --  Over the title: clicked, it asks to Restore the window.
       Mini_Title   : UI.Widgets.Labels.Label;
-      Restore_Button : UI.Widgets.Buttons.Button;
       Mini_Close   : UI.Widgets.Buttons.Button;
    end record;
 

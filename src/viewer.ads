@@ -377,21 +377,26 @@ private
       Canvas_Tab    : UI.Widgets.Buttons.Button;
       --  A tab for each view, in a row before the Close button.
       Close_Button  : UI.Widgets.Buttons.Button;
-      --  On the right of the toolbar.
+      --  On the right of the toolbar, with the tabs, in Toolbar_End.
+      Toolbar_End   : UI.Widgets.Panels.Panel;
       Mode          : Modes := Canvas;
       --  The view shown: its tab is selected.
 
       Canvas_View   : UI.Widgets.Canvases.Canvas;
       --  In the content area, all of it.
       Dock_Panel    : UI.Widgets.Panels.Panel;
+      Dock_Scroll   : UI.Widgets.Scrollers.Scroller;
+      Dock_Content  : UI.Widgets.Panels.Panel;
+      --  The bars sit in a row in Dock_Content, which scrolls across
+      --  when they are wider than the window.
       --  A bar above the tools, of the bars of the items that are
       --  minimised: shown only when there are any.
       Tools         : UI.Widgets.Panels.Panel;
       Tool_Item     : UI.Widgets.Buttons.Button;
       Tool_Source   : UI.Widgets.Buttons.Button;
       Tool_List     : UI.Widgets.Buttons.Button;
-      --  The tools of the view: a bar above the toolbar. Add Item, Add
-      --  Source, and the list of items.
+      --  The tools of the view, in the middle of the toolbar: Add Item,
+      --  Add Source, and the list of items.
 
       Shown        : Screens := Home;
       Store        : Projects.Store;

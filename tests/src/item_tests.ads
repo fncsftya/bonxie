@@ -16,6 +16,7 @@ package Item_Tests is
    procedure Listing;
    procedure Removing;
    procedure Revealing;
+   procedure Scrolling_Dock;
    procedure Scrolling_List;
    procedure Panning_And_Zooming;
    procedure Raising;
