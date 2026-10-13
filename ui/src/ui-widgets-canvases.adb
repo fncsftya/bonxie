@@ -62,11 +62,18 @@ package body UI.Widgets.Canvases is
    Link_Width   : constant Float := 2.0;
    --  A line's width, in points.
    Ghost_Alpha  : constant := 90;
-   Line_Alpha   : constant := 200;
+   Halo_Width   : constant Float := 8.0;
+   Halo_Alpha   : constant := 110;
+   Reach        : constant Float := 6.0;
+   --  How far from a line, in points, a press selects it.
+   Dash_Length  : constant Float := 8.0;
+   Gap_Length   : constant Float := 5.0;
+   Dot_Gap      : constant Float := 5.0;
+   Head_Length  : constant Float := 12.0;
+   Head_Angle   : constant Float := 0.5;
+   --  The arrowhead's arms, in points and radians.
 
-   function Same (A, B : Line) return Boolean is
-     (A.From_X = B.From_X and then A.From_Y = B.From_Y
-      and then A.To_X = B.To_X and then A.To_Y = B.To_Y);
+   function Same (A, B : Line) return Boolean is (A = B);
 
    function Screen_X (Item : Canvas; X : Float) return Float is
      (Left_Of (Item) + (Item.Across + X * Item.Scale) * Density (Item));
@@ -141,13 +148,16 @@ package body UI.Widgets.Canvases is
      (From_X => Screen_X (Item, Item.Ghost_From.From_X),
       From_Y => Screen_Y (Item, Item.Ghost_From.From_Y),
       To_X   => Item.Ghost_From.To_X * Density (Item),
-      To_Y   => Item.Ghost_From.To_Y * Density (Item));
+      To_Y   => Item.Ghost_From.To_Y * Density (Item),
+      others => <>);
    --  The ghost, in pixels from the top left of the target.
 
    procedure Set_Ghost
      (Item : in out Canvas; From_X, From_Y : Float; To_X, To_Y : Float)
    is
-      Now : constant Line := (From_X, From_Y, To_X, To_Y);
+      Now : constant Line :=
+        (From_X => From_X, From_Y => From_Y, To_X => To_X, To_Y => To_Y,
+         others => <>);
    begin
       if not Item.Ghosted or else not Same (Item.Ghost_From, Now) then
          if Item.Ghosted then
@@ -181,6 +191,67 @@ package body UI.Widgets.Canvases is
       end if;
    end Clear_Ghost;
 
+   function Selected (Item : Canvas) return Natural is (Item.Chosen);
+
+   procedure Set_Selected (Item : in out Canvas; Tag : Natural) is
+   begin
+      if Tag /= Item.Chosen then
+         Item.Chosen := Tag;
+         if Is_Attached (Item) then
+            Invalidate (Item);
+         end if;
+      end if;
+   end Set_Selected;
+
+   procedure Take_Selection
+     (Item : in out Canvas; Changed : out Boolean; Tag : out Natural) is
+   begin
+      Changed := Item.Chosen_Changed;
+      Tag := Item.Chosen;
+      Item.Chosen_Changed := False;
+   end Take_Selection;
+
+   procedure Take_Delete (Item : in out Canvas; Asked : out Boolean) is
+   begin
+      Asked := Item.Delete_Asked;
+      Item.Delete_Asked := False;
+   end Take_Delete;
+
+   function Line_At (Item : Canvas; X, Y : Float) return Natural;
+   --  The Tag of the line within reach of the pixel X, Y, the nearest, if
+   --  any; 0 if none.
+
+   function Line_At (Item : Canvas; X, Y : Float) return Natural is
+      Pixels : constant Float := Density (Item);
+      Best   : Float := Reach * Pixels;
+      Found  : Natural := 0;
+   begin
+      for Each of Item.Lines (1 .. Item.Line_Count) loop
+         declare
+            X0 : constant Float := Screen_X (Item, Each.From_X);
+            Y0 : constant Float := Screen_Y (Item, Each.From_Y);
+            Dx : constant Float := Screen_X (Item, Each.To_X) - X0;
+            Dy : constant Float := Screen_Y (Item, Each.To_Y) - Y0;
+            Square : constant Float := Dx * Dx + Dy * Dy;
+            --  How far along, from 0.0 to 1.0, the nearest point is.
+            Along : constant Float :=
+              (if Square > 0.0
+               then Float'Max (0.0, Float'Min
+                      (1.0, ((X - X0) * Dx + (Y - Y0) * Dy) / Square))
+               else 0.0);
+            Gap : constant Float :=
+              Ada.Numerics.Elementary_Functions.Sqrt
+                ((X - X0 - Along * Dx) ** 2 + (Y - Y0 - Along * Dy) ** 2);
+         begin
+            if Each.Tag /= 0 and then Gap <= Best then
+               Best := Gap;
+               Found := Each.Tag;
+            end if;
+         end;
+      end loop;
+      return Found;
+   end Line_At;
+
    function Has_Ghost (Item : Canvas) return Boolean is (Item.Ghosted);
 
    overriding procedure Placed
@@ -195,6 +266,71 @@ package body UI.Widgets.Canvases is
          Item.Down := Height / Density (Item) / 2.0;
       end if;
    end Placed;
+
+   procedure Stroke
+     (Target : SDL3.Windows.Renderers.Renderer;
+      Style  : Line;
+      From_X, From_Y, To_X, To_Y : Float;
+      Pixels : Float)
+   is
+      Wide   : constant Float := Link_Width * Pixels;
+      Dx     : constant Float := To_X - From_X;
+      Dy     : constant Float := To_Y - From_Y;
+      Length : constant Float :=
+        Ada.Numerics.Elementary_Functions.Sqrt (Dx * Dx + Dy * Dy);
+      Along_X : constant Float := (if Length > 0.0 then Dx / Length else 1.0);
+      Along_Y : constant Float := (if Length > 0.0 then Dy / Length else 0.0);
+
+      procedure Part (From, To : Float) is
+      begin
+         Draw_Line
+           (Target, Style.Ink,
+            From_X + Along_X * From, From_Y + Along_Y * From,
+            From_X + Along_X * To, From_Y + Along_Y * To, Wide);
+      end Part;
+
+      Place : Float := 0.0;
+   begin
+      if Length < 0.5 then
+         return;
+      end if;
+      case Style.Dash is
+         when Solid =>
+            Part (0.0, Length);
+         when Dashed =>
+            while Place < Length loop
+               Part (Place, Float'Min (Length, Place + Dash_Length * Pixels));
+               Place := Place + (Dash_Length + Gap_Length) * Pixels;
+            end loop;
+         when Dotted =>
+            while Place <= Length loop
+               Fill_Circle
+                 (Target, Style.Ink,
+                  From_X + Along_X * Place, From_Y + Along_Y * Place,
+                  Wide * 0.75);
+               Place := Place + Dot_Gap * Pixels;
+            end loop;
+      end case;
+      if Style.Arrow then
+         for Arm in 0 .. 1 loop
+            declare
+               Turn : constant Float := Float (2 * Arm - 1);
+               Cos : constant Float :=
+                 Ada.Numerics.Elementary_Functions.Cos (Head_Angle);
+               Sin : constant Float :=
+                 Turn * Ada.Numerics.Elementary_Functions.Sin (Head_Angle);
+               --  Back along the line, turned a little to either side.
+               Back_X : constant Float := -(Along_X * Cos - Along_Y * Sin);
+               Back_Y : constant Float := -(Along_Y * Cos + Along_X * Sin);
+            begin
+               Draw_Line
+                 (Target, Style.Ink, To_X, To_Y,
+                  To_X + Back_X * Head_Length * Pixels,
+                  To_Y + Back_Y * Head_Length * Pixels, Wide);
+            end;
+         end loop;
+      end if;
+   end Stroke;
 
    overriding procedure Draw
      (Item   : in out Canvas;
@@ -246,19 +382,23 @@ package body UI.Widgets.Canvases is
       end;
 
       --  Lines joining what is on it, under that.
-      declare
-         Stroke : constant Themes.Color :=
-           (Colors.Foreground.Red, Colors.Foreground.Green,
-            Colors.Foreground.Blue, Line_Alpha);
-      begin
-         for Each of Item.Lines (1 .. Item.Line_Count) loop
-            Draw_Line
-              (Target, Stroke,
-               Screen_X (Item, Each.From_X), Screen_Y (Item, Each.From_Y),
-               Screen_X (Item, Each.To_X), Screen_Y (Item, Each.To_Y),
-               Float'Max (1.0, Link_Width * Pixels));
-         end loop;
-      end;
+      for Each of Item.Lines (1 .. Item.Line_Count) loop
+         declare
+            From_X : constant Float := Screen_X (Item, Each.From_X);
+            From_Y : constant Float := Screen_Y (Item, Each.From_Y);
+            To_X   : constant Float := Screen_X (Item, Each.To_X);
+            To_Y   : constant Float := Screen_Y (Item, Each.To_Y);
+         begin
+            if Each.Tag /= 0 and then Each.Tag = Item.Chosen then
+               Draw_Line
+                 (Target,
+                  (Colors.Accent.Red, Colors.Accent.Green,
+                   Colors.Accent.Blue, Halo_Alpha),
+                  From_X, From_Y, To_X, To_Y, Halo_Width * Pixels);
+            end if;
+            Stroke (Target, Each, From_X, From_Y, To_X, To_Y, Pixels);
+         end;
+      end loop;
    end Draw;
 
    overriding procedure Draw_Over
@@ -312,7 +452,25 @@ package body UI.Widgets.Canvases is
             Handled := True;
 
          when SDL3.Events.Mouse_Down =>
-            if Event.Button = Middle_Button
+            if Event.Button = 1
+              and then Item.Owner /= null
+              and then Hit (Item.Owner.all, Event.Mouse_X * Pixels,
+                            Event.Mouse_Y * Pixels)
+                       = Widget'Class (Item)'Unrestricted_Access
+            then
+               --  On the canvas itself, not on what is over it.
+               declare
+                  Tag : constant Natural :=
+                    Line_At (Item, Event.Mouse_X * Pixels,
+                             Event.Mouse_Y * Pixels);
+               begin
+                  if Tag /= Item.Chosen then
+                     Set_Selected (Item, Tag);
+                     Item.Chosen_Changed := True;
+                  end if;
+                  Handled := Tag /= 0;
+               end;
+            elsif Event.Button = Middle_Button
               and then Contains
                          (Item, Event.Mouse_X * Pixels, Event.Mouse_Y * Pixels)
             then
@@ -340,7 +498,19 @@ package body UI.Widgets.Canvases is
             end if;
 
          when SDL3.Events.Key_Down =>
-            if Event.Command then
+            if not Event.Command and then Item.Chosen /= 0
+              and then (Event.Key = SDL3.Events.Key_Backspace
+                        or else Event.Key = SDL3.Events.Key_Delete)
+            then
+               Item.Delete_Asked := True;
+               Handled := True;
+            elsif not Event.Command and then Item.Chosen /= 0
+              and then Event.Key = SDL3.Events.Key_Escape
+            then
+               Set_Selected (Item, 0);
+               Item.Chosen_Changed := True;
+               Handled := True;
+            elsif Event.Command then
                Handled := True;
                if Event.Key = SDL3.Events.Key_Equals then
                   Zoom_By (Item, Zoom_Per_Notch, Wide / 2.0, High / 2.0);

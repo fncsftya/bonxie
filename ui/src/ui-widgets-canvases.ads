@@ -46,8 +46,16 @@ package UI.Widgets.Canvases is
 
    Max_Lines : constant := 128;
 
+   type Dashes is (Solid, Dotted, Dashed);
+
    type Line is record
       From_X, From_Y, To_X, To_Y : Float := 0.0;
+      Tag   : Natural := 0;
+      --  What the application calls it, to be told which is selected.
+      Dash  : Dashes := Solid;
+      Arrow : Boolean := False;
+      --  An arrowhead at the To end.
+      Ink   : Themes.Color := (0, 0, 0, 255);
    end record;
    --  A straight line between two places, in canvas units.
 
@@ -59,6 +67,22 @@ package UI.Widgets.Canvases is
    --  under what is on it, in place of any before. Setting what it has
    --  already damages nothing; a line that has moved damages the box
    --  round where it was and where it is.
+
+   function Selected (Item : Canvas) return Natural;
+   --  The Tag of the line selected, 0 if none: a press on a line, where
+   --  nothing else is, selects it; a press on the canvas where there is no
+   --  line, or Escape, selects none. A selected line is drawn with a halo.
+
+   procedure Set_Selected (Item : in out Canvas; Tag : Natural);
+
+   procedure Take_Selection
+     (Item : in out Canvas; Changed : out Boolean; Tag : out Natural);
+   --  Say whether a press or Escape has changed which line is selected
+   --  since this was last called, and which it is now, and forget it.
+
+   procedure Take_Delete (Item : in out Canvas; Asked : out Boolean);
+   --  Say whether Backspace or Delete was pressed while a line was
+   --  selected since this was last called, and forget it.
 
    procedure Set_Ghost
      (Item : in out Canvas; From_X, From_Y : Float; To_X, To_Y : Float);
@@ -104,6 +128,9 @@ private
       --  Where the pointer was, in points, while it pans.
       Line_Count : Natural range 0 .. Max_Lines := 0;
       Lines      : Line_Array (1 .. Max_Lines);
+      Chosen     : Natural := 0;
+      Chosen_Changed : Boolean := False;
+      Delete_Asked   : Boolean := False;
       Ghosted    : Boolean := False;
       Ghost_From : Line;
       --  The ghost: From_X, From_Y are in canvas units, To_X, To_Y in

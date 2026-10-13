@@ -802,6 +802,7 @@ begin
    Run ("pictures-columns", Picture_Tests.Columns'Access);
    Run ("pictures-following", Picture_Tests.Following_The_Picture'Access);
    Run ("items-linking", Item_Tests.Linking'Access);
+   Run ("items-link-editing", Item_Tests.Editing_Links'Access);
    Run ("sources-window", Item_Tests.Source_Windows'Access);
    Run ("sources-pages", Item_Tests.Source_Pages'Access);
    Run ("sources-words", Item_Tests.Source_Words'Access);

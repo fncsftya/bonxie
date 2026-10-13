@@ -128,6 +128,12 @@ From the bottom up; each crate depends only on those before it.
   line from a side of one to a side of the other, kept in the database
   (`item_links`, which goes with its items; `Items.Add_Link`, `Load_Links`),
   at most one between two items, and drawn by the canvas under the windows.
+  A press on a link's line (`Canvases` finds it, within a few points) selects
+  it: it gets a halo, a pin over its target end to drag to another pin (of
+  any window but the one it starts from; `Items.Move_Link`), and a toolbar
+  below it to choose its stroke (solid, dots, dashes), its end (plain,
+  arrow) and its colour (one of five), kept with the link
+  (`Items.Set_Link_Style`), and to delete it, as Backspace does.
   Icons are SVG files in `share/bonxie/icons`
   (`UI.Icons`, rasterized by SDL3_image, drawn in one colour as a mask);
   a button with an icon falls back to its label if there is none.

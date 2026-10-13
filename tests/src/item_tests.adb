@@ -1049,6 +1049,114 @@ package body Item_Tests is
       Check ("links-removed", " 0", Count (Viewer.Link_Count (Session)));
    end Linking;
 
+   procedure Editing_Links is
+      Session : Viewer.Session;
+      Key     : Projects.Id;
+
+      Source_Pin_X : constant Float := 350.0;
+      Source_Pin_Y : constant Float := 224.0;
+      Target_Pin_X : constant Float := 364.0;
+      Target_Pin_Y : constant Float := 308.0;
+      Line_X       : constant Float := 357.0;
+      Line_Y       : constant Float := 266.0;
+      --  Halfway along it, between the windows.
+      Top_Pin_X    : constant Float := 504.0;
+      Top_Pin_Y    : constant Float := 208.0;
+      --  The middle of the top side of the second window.
+
+      --  The toolbar is under the lower end of the line, 294 wide: its
+      --  buttons are 22, 2 apart, in three groups 6 further apart.
+      Tool_Y   : constant Float := 337.0;
+      Dash_X   : constant Float := 279.0;
+      Arrow_X  : constant Float := 333.0;
+      Orange_X : constant Float := 387.0;
+      Delete_X : constant Float := 489.0;
+
+      function Text (Value : Natural) return String is
+        (Natural'Image (Value));
+
+      procedure Make_Link is
+      begin
+         Move_To (Session, 200.0, 250.0);
+         Press (Session, Source_Pin_X, Source_Pin_Y);
+         Move_To (Session, Target_Pin_X, Target_Pin_Y, Held => True);
+         Release (Session, Target_Pin_X, Target_Pin_Y);
+         Move_To (Session, 650.0, 60.0);
+      end Make_Link;
+   begin
+      Start_With_One (Session);
+      Key := Viewer.Current_Project (Session);
+      Drag (Session, Hold_X, Bar_Y, Hold_X - 150.0, Bar_Y);
+      Click_On (Session, Add_X, Tools_Y);
+      Drag (Session, Hold_X + 24.0, Bar_Y + 24.0,
+            Hold_X + 144.0, Bar_Y + 84.0);
+      Make_Link;
+      Check ("link-edit-made", " 1", Text (Viewer.Link_Count (Session)));
+      Check ("link-edit-default",
+             "SOLID PLAIN  1 LEFT",
+             Viewer.Link_Description (Session, 1));
+
+      --  A press on the line selects it, and on nothing else does not.
+      Check ("link-edit-unselected", "FALSE",
+             Boolean'Image (Viewer.Link_Selected (Session)));
+      Click_On (Session, Line_X, Line_Y);
+      Check ("link-edit-selected", "TRUE",
+             Boolean'Image (Viewer.Link_Selected (Session)));
+      Snap (Session, "link-selected");
+
+      --  Its style, kept.
+      Click_On (Session, Dash_X, Tool_Y);
+      Click_On (Session, Arrow_X, Tool_Y);
+      Click_On (Session, Orange_X, Tool_Y);
+      Check ("link-edit-styled", "DASHED ARROW  2 LEFT",
+             Viewer.Link_Description (Session, 1));
+      Snap (Session, "link-styled");
+      Viewer.Close_Project (Session);
+      Viewer.Open_Project (Session, Key);
+      Check ("link-edit-style-kept", "DASHED ARROW  2 LEFT",
+             Viewer.Link_Description (Session, 1));
+      Move_To (Session, 650.0, 60.0);
+      Snap (Session, "link-style-kept");
+
+      --  Its target end dragged to another pin: the pins of the window it
+      --  starts from are not shown.
+      Click_On (Session, Line_X, Line_Y);
+      Move_To (Session, Target_Pin_X, Target_Pin_Y);
+      Press (Session, Target_Pin_X, Target_Pin_Y);
+      Move_To (Session, Top_Pin_X, Top_Pin_Y, Held => True);
+      Check ("link-edit-moving-pins", " 4",
+             Text (Viewer.Pin_Count (Session)));
+      Snap (Session, "link-moving");
+      Release (Session, Top_Pin_X, Top_Pin_Y);
+      Check ("link-edit-moved", "DASHED ARROW  2 TOP",
+             Viewer.Link_Description (Session, 1));
+      Check ("link-edit-moved-count", " 1",
+             Text (Viewer.Link_Count (Session)));
+
+      --  Let go on nothing, it stays.
+      Move_To (Session, 650.0, 60.0);
+      Check ("link-edit-still-selected", "TRUE",
+             Boolean'Image (Viewer.Link_Selected (Session)));
+
+      --  A press on the canvas puts it away.
+      Click_On (Session, 600.0, 60.0);
+      Check ("link-edit-deselected", "FALSE",
+             Boolean'Image (Viewer.Link_Selected (Session)));
+
+      --  Backspace deletes it; so does its toolbar's button.
+      Press_Key (Session, Events.Key_Backspace);
+      Check ("link-edit-not-yet", " 1", Text (Viewer.Link_Count (Session)));
+      Click_On (Session, 357.0, 223.0);
+      Press_Key (Session, Events.Key_Backspace);
+      Check ("link-edit-backspace", " 0", Text (Viewer.Link_Count (Session)));
+      Make_Link;
+      Click_On (Session, Line_X, Line_Y);
+      Click_On (Session, Delete_X, Tool_Y);
+      Check ("link-edit-deleted", " 0", Text (Viewer.Link_Count (Session)));
+      Check ("link-edit-deleted-selection", "FALSE",
+             Boolean'Image (Viewer.Link_Selected (Session)));
+   end Editing_Links;
+
    --  Sources
 
    Whole_Page : constant String :=

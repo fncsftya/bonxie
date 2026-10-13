@@ -25,6 +25,7 @@ package body Viewer is
    package Labels renames UI.Widgets.Labels;
 
    use Ada.Strings.Unbounded;
+   use type Items.Id;
    use type Projects.Id;
    use type SDL3.Events.Event_Kind;
    use type SDL3.Events.Key_Code;
@@ -133,6 +134,20 @@ package body Viewer is
 
    function Link_Count (Item : Session) return Natural is
      (Item.Link_Set.Count);
+
+   function Link_Selected (Item : Session) return Boolean is
+     (Item.Link_Key /= 0);
+
+   function Link_Description
+     (Item : Session; Number : Positive) return String
+   is
+      Each : Items.Link renames Item.Link_Set.Links (Number);
+   begin
+      return Items.Strokes'Image (Each.Stroke) & ' '
+        & Items.Endings'Image (Each.Ending) & ' '
+        & Integer'Image (Each.Color) & ' '
+        & Items.Sides'Image (Each.To_Side);
+   end Link_Description;
 
    function Pin_Count (Item : Session) return Natural is
      (Links.Shown_Pins (Item));

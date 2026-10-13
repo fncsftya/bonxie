@@ -77,4 +77,23 @@ private package Viewer.Style is
      UI.Themes.Mix (Colors.Foreground, Colors.Background, 0.55);
    --  Of the title of an item that is not shown, in the list.
 
+   --  The toolbar of a selected link, in points
+
+   Link_Button_Size : constant Float := 22.0;
+   Link_Bar_Gap     : constant Float := 2.0;
+   Link_Bar_Pad     : constant Float := 4.0;
+   Link_Group_Gap   : constant Float := 6.0;
+   --  Added between the groups of buttons.
+   Link_Bar_Width   : constant Float :=
+     11.0 * Link_Button_Size + 10.0 * Link_Bar_Gap + 4.0 * Link_Group_Gap
+     + 2.0 * Link_Bar_Pad;
+   Link_Bar_Height  : constant Float := Link_Button_Size + 2.0 * Link_Bar_Pad;
+   Link_Bar_Offset  : constant Float := 14.0;
+   --  Below the lower end of the link, and centred across it.
+
+   Link_Inks : constant array (Items.Link_Colors) of UI.Themes.Color :=
+     [Colors.Foreground, Colors.Accent, Colors.Primary, Colors.Danger,
+      (16#15#, 16#65#, 16#C0#, 255)];
+   --  The colours a link can be drawn in: the theme's, and a blue.
+
 end Viewer.Style;

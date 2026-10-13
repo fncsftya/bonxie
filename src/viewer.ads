@@ -157,6 +157,17 @@ package Viewer is
      with Pre => Is_Open (Item) and then Screen (Item) = Project;
    --  How many links there are between the project's items.
 
+   function Link_Selected (Item : Session) return Boolean
+     with Pre => Is_Open (Item) and then Screen (Item) = Project;
+   --  Whether a link is selected.
+
+   function Link_Description
+     (Item : Session; Number : Positive) return String
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Number <= Link_Count (Item);
+   --  How the link is drawn and where it ends, as words: its stroke, its
+   --  end, its colour's number, and the side it ends on.
+
    function Pin_Count (Item : Session) return Natural
      with Pre => Is_Open (Item) and then Screen (Item) = Project;
    --  How many pins, to drag a link from, are shown.
@@ -330,6 +341,13 @@ private
      array (Items.Slot, Items.Sides) of aliased UI.Widgets.Pins.Pin;
    --  The handles to link items by: four round each window.
 
+   type Stroke_Button_Array is
+     array (Items.Strokes) of UI.Widgets.Buttons.Button;
+   type End_Button_Array is
+     array (Items.Endings) of UI.Widgets.Buttons.Button;
+   type Color_Button_Array is
+     array (Items.Link_Colors) of UI.Widgets.Buttons.Button;
+
    type Pin_Places is array (Items.Slot, Items.Sides) of Float;
 
    type Session is limited record
@@ -455,6 +473,22 @@ private
       Pin_Left, Pin_Top : Pin_Places := [others => [others => -1.0E9]];
       --  Where each was last put, in pixels, to put it again only if it
       --  moves.
+      Link_Handle  : UI.Widgets.Pins.Pin;
+      --  Over the target end of the selected link, to drag it to another
+      --  pin by.
+      Link_Bar     : UI.Widgets.Panels.Panel;
+      Stroke_Buttons : Stroke_Button_Array;
+      End_Buttons    : End_Button_Array;
+      Color_Buttons  : Color_Button_Array;
+      Delete_Link    : UI.Widgets.Buttons.Button;
+      --  Beside the selected link: how it is drawn, and to delete it.
+      Link_Key     : Items.Id := 0;
+      --  The link selected, 0 if none.
+      Link_Moving  : Boolean := False;
+      --  Whether the target end of the selected link is being dragged,
+      --  rather than a new link from a pin.
+      Handle_Left, Handle_Top, Bar_Left, Bar_Top : Float := -1.0E9;
+      --  Where they were last put, in pixels.
       Link_Set     : Items.Link_List;
       --  The links between the project's items.
       Link_From    : Natural := 0;

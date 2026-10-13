@@ -25,6 +25,7 @@ package Item_Tests is
    procedure Full;
    procedure Kept;
    procedure Linking;
+   procedure Editing_Links;
    procedure Source_Windows;
    procedure Source_Pages;
    procedure Source_Words;
