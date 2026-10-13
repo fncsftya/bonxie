@@ -273,9 +273,15 @@ package body Typeset.Glyph_Atlas is
       Sub     : Natural) return Slot
    is
       Key    : constant Interfaces.Unsigned_64 := Key_Of (Font, Id, Size, Sub);
-      Found  : Slot_Index := Index_Of (Item, Key);
+      Found  : Slot_Index;
       Result : Slot;
    begin
+      if Item.Slots = null then
+         --  Made at the first glyph, not with the atlas: a view drawing
+         --  from a shared atlas never looks in its own.
+         Item.Slots := new Slot_Table;
+      end if;
+      Found := Index_Of (Item, Key);
       if Item.Slots (Found).Key = Key then
          return Item.Slots (Found).Spot;
       end if;
@@ -436,11 +442,6 @@ package body Typeset.Glyph_Atlas is
    function Glyphs_Made (Item : Atlas) return Natural is (Item.Made);
 
    function Pages_Used (Item : Atlas) return Natural is (Item.Count);
-
-   overriding procedure Initialize (Item : in out Atlas) is
-   begin
-      Item.Slots := new Slot_Table;
-   end Initialize;
 
    overriding procedure Finalize (Item : in out Atlas) is
    begin

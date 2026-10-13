@@ -343,8 +343,13 @@ package body Speech.Jobs is
       end loop;
    end Worker;
 
-   Workers : array (Slot) of Worker;
+   type Worker_Access is access Worker;
+
+   Workers : array (Slot) of Worker_Access := [others => null];
    --  One to a slot, so that starting a job never waits for another's.
+   --  Made when the slot is first started: a task costs its stack, and
+   --  most slots are never used. Only a slot that has been started has
+   --  a job to stop or reset, so its task is there.
 
    procedure Start
      (Which      : Slot;
@@ -354,6 +359,9 @@ package body Speech.Jobs is
       Job : Natural;
    begin
       Board.Begin_Job (Which, Engine, Job);
+      if Workers (Which) = null then
+         Workers (Which) := new Worker;
+      end if;
       Workers (Which).Run (Which, Job, Engine, Model_File);
    end Start;
 

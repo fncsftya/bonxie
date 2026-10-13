@@ -107,13 +107,20 @@ package body Vision.Jobs is
       end loop;
    end Worker;
 
-   Workers : array (Slot) of Worker;
+   type Worker_Access is access Worker;
+
+   Workers : array (Slot) of Worker_Access := [others => null];
    --  One to a slot, so that starting a job never waits for another's.
+   --  Made when the slot is first started: a task costs its stack, and
+   --  most slots are never used.
 
    procedure Start (Which : Slot; File_Name : String) is
       Job : Natural;
    begin
       Board.Begin_Job (Which, Job);
+      if Workers (Which) = null then
+         Workers (Which) := new Worker;
+      end if;
       Workers (Which).Run (Which, Job, File_Name);
    end Start;
 

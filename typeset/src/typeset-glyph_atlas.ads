@@ -20,11 +20,13 @@ package Typeset.Glyph_Atlas is
    --  Declare it after the Renderer it draws to, so that its textures
    --  are destroyed first, and always draw it to the same Renderer.
 
-   Page_Size : constant := 2048;
+   Page_Size : constant := 1024;
    --  Pixels a side of a page of the atlas.
 
-   Max_Pages : constant := 4;
-   --  When all are full, the least recently drawn from is emptied.
+   Max_Pages : constant := 8;
+   --  When all are full, the least recently drawn from is emptied. Pages
+   --  are made as they are needed, so the atlas holds 4 MB of texture
+   --  for each page in use, at most 32 MB.
 
    Slots_Kept : constant := 2 ** 16;
    --  Room to know where this many glyphs are, drawn or blank; it is
@@ -126,7 +128,6 @@ private
       Scratch : CoreText.Shaping.Glyphs.Image;
    end record;
 
-   overriding procedure Initialize (Item : in out Atlas);
    overriding procedure Finalize (Item : in out Atlas);
 
 end Typeset.Glyph_Atlas;
