@@ -78,7 +78,7 @@ private package Viewer.Style is
    --  Of the count of a document's words, at the right of its row.
    Tag_Size        : constant Float := 8.0;
    --  The square of a source's colour, in its row.
-   Page_Width      : constant Float := 562.0;
+   Page_Width      : constant Float := 760.0;
    Page_Min_Width  : constant Float := 160.0;
    Page_Min_Height : constant Float := 240.0;
    Page_Margin     : constant Float := 40.0;
