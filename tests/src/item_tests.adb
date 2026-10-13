@@ -828,6 +828,20 @@ package body Item_Tests is
       Move_To (Session, 650.0, 60.0);
       Snap (Session, "item-zoomed-out");
 
+      --  Further out, a window is compact: a smaller bar, and no status
+      --  line. Zoomed back, it has them again.
+      Viewer.Handle
+        (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_Y => -6.0,
+                                Command => True, Mouse_X => 300.0,
+                                Mouse_Y => 200.0, others => <>));
+      Move_To (Session, 650.0, 60.0);
+      Snap (Session, "item-compact");
+      Viewer.Handle
+        (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_Y => 6.0,
+                                Command => True, Mouse_X => 300.0,
+                                Mouse_Y => 200.0, others => <>));
+      Move_To (Session, 650.0, 60.0);
+
       --  Moved at that zoom, by as much of the canvas as it is on screen.
       Press (Session, 260.0, 160.0);
       Release (Session, 260.0, 160.0);

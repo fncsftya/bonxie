@@ -22,6 +22,11 @@ package UI.Widgets.Labels is
 
    function Style (Item : Label) return Line_Texts.Style;
 
+   procedure Set_Scale (Item : in out Label; To : Float)
+     with Pre => To > 0.0;
+   --  Show the text at To times its size (1.0 to begin with), in the
+   --  system font: as a title is smaller over a canvas zoomed out.
+
    procedure Set_Ink (Item : in out Label; To : Themes.Color);
    --  Show it in To, rather than the theme's foreground: as on a dark
    --  bar.
@@ -39,6 +44,7 @@ private
       Using   : Line_Texts.Style := Line_Texts.Regular;
       Inked   : Boolean := False;
       Ink     : Themes.Color := (0, 0, 0, 255);
+      Scaled  : Float := 1.0;
    end record;
 
 end UI.Widgets.Labels;

@@ -35,6 +35,16 @@ package body UI.Widgets.Labels is
       end if;
    end Set_Ink;
 
+   procedure Set_Scale (Item : in out Label; To : Float) is
+   begin
+      if To /= Item.Scaled then
+         Item.Scaled := To;
+         if Is_Attached (Item) then
+            Invalidate (Item);
+         end if;
+      end if;
+   end Set_Scale;
+
    function Style (Item : Label) return Line_Texts.Style is (Item.Using);
 
    function Text (Item : Label) return String is
@@ -55,7 +65,7 @@ package body UI.Widgets.Labels is
          Line_Texts.Draw
            (Text_Lines (Item).all, Target, Ink, Text (Item),
             Left_Of (Item), Top_Of (Item) + Height_Of (Item) / 2.0,
-            Density (Item), Item.Using);
+            Density (Item) * Item.Scaled, Item.Using);
       elsif Item.Length > 0 then
          Draw_Text
            (Target, Ink,

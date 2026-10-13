@@ -107,7 +107,7 @@ From the bottom up; each crate depends only on those before it.
   that opens a menu of zooms (the zoom is of the picture within its window,
   kept in the item's `zoom`), and, in the middle of the status line, buttons for the cursor, the
   highlighter and the eraser of its marks (a source's window is wider, for room); a click outside the
-  window puts the highlighter away. The marks are kept in the database
+  window puts the highlighter away. Zoomed out under 0.75 a window is compact: no status line (so no corner to size by; zoom in to do that), and a source no link, only the title and the content; and its bar and title shrink with the zoom, down to 0.6, so the title is not large over the text. The marks are kept in the database
   (`item_marks`, a row to a mark, with the item; `Items.Save_Marks`,
   `Load_Marks`) and forgotten with a new picture. Return in the link has `Viewer`
   start `Webshot` for it, and, while it is taken, a bar along the foot of the status line shows how far on it is (`Webshot.Progress`: the page's load, then the settling and the snapshot). A source still called "Untitled source" takes the title of the page (`Webshot.Page_Title`) when its picture is taken. When the picture is taken (or is found

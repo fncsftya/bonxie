@@ -61,6 +61,12 @@ package body Items.Windows is
      [0.5, 0.75, 1.0, 1.5, 2.0, 3.0];
    --  The menu's, in two rows of three.
    Url_Height    : constant Float := 30.0;
+   Compact_Below : constant Float := 0.75;
+   --  Under this zoom a window shows only what it says: no status line,
+   --  and a source no link.
+   Min_Chrome    : constant Float := 0.6;
+   --  How small the bar of a window gets, as a part of its size, when
+   --  zoomed out, so that its title is not large over the text.
 
    function Count_Words (Of_Text : String) return Natural is
       Total  : Natural := 0;
@@ -644,6 +650,52 @@ package body Items.Windows is
         (Item.Picture, Urgent => Item.Details.State = Open);
    end Warm;
 
+   procedure Fit_Zoom (Item : in out Window);
+   --  Show what the zoom leaves room for: compact, the bar is smaller and
+   --  there is no status line, nor link in a source.
+
+   procedure Fit_Zoom (Item : in out Window) is
+      use Yoga.Nodes;
+      Chrome : constant Float :=
+        Float'Min (1.0, Float'Max (Min_Chrome, Item.Zoom));
+      Pixels : constant Float := Item.Pixels;
+      Narrow : constant Boolean := Item.Zoom < Compact_Below;
+      Of_Source : constant Boolean := Item.Details.Kind = Source;
+
+      procedure Size (Part : in out Widgets.Widget'Class; Wide, High : Float)
+      is
+      begin
+         Set_Width (Widgets.Node (Part), Wide * Chrome * Pixels);
+         Set_Height (Widgets.Node (Part), High * Chrome * Pixels);
+      end Size;
+   begin
+      Widgets.Set_Visible (Item.Status_Bar, not Narrow);
+      Widgets.Set_Visible (Item.Body_Text, not (Narrow and then Of_Source));
+      Set_Height (Widgets.Node (Item.Title_Bar), Bar_Height * Chrome * Pixels);
+      Set_Height
+        (Widgets.Node (Item.Title_Field), Title_Height * Chrome * Pixels);
+      Set_Height
+        (Widgets.Node (Item.Title_Area), Title_Height * Chrome * Pixels);
+      Set_Height
+        (Widgets.Node (Item.Title_Label), Label_Height * Chrome * Pixels);
+      Set_Margin
+        (Widgets.Node (Item.Title_Field), Yoga.Right,
+         Drag_Room * Chrome * Pixels);
+      Set_Margin
+        (Widgets.Node (Item.Title_Area), Yoga.Right,
+         Drag_Room * Chrome * Pixels);
+      Set_Padding
+        (Widgets.Node (Item.Title_Bar), Yoga.Horizontal,
+         Bar_Pad * Chrome * Pixels);
+      Set_Padding
+        (Widgets.Node (Item.Title_Area), Yoga.Left,
+         Bar_Pad * Chrome * Pixels);
+      Size (Item.Minimize_Button, Button_Size, Button_Size);
+      Size (Item.Close_Button, Button_Size, Button_Size);
+      Labels.Set_Scale (Item.Title_Label, Chrome);
+      Widgets.Request_Layout (Item.Frame);
+   end Fit_Zoom;
+
    procedure Show_Kind (Item : in out Window);
    --  Make the text area the item's text, or its one line, the link; and
    --  show the picture of a source.
@@ -663,6 +715,7 @@ package body Items.Windows is
       Widgets.Set_Visible (Item.Zoom_Button, Of_Source);
       Widgets.Set_Visible (Item.Zoom_Menu, False);
       Widgets.Set_Visible (Item.Picture, Of_Source);
+      Fit_Zoom (Item);
       Widgets.Request_Layout (Item.Body_Text);
    end Show_Kind;
 
@@ -765,6 +818,7 @@ package body Items.Windows is
       Item.Origin_Y := Origin_Y;
       Item.Placed_Once := True;
       if Item.Assigned and then Item.Details.State = Open then
+         Fit_Zoom (Item);
          --  On whole pixels, so that its edges, and the borders in them,
          --  are the same wherever it is.
          Set_Position
