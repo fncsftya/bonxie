@@ -127,13 +127,11 @@ private package Viewer.Style is
    Home_Side_Width : constant Float := 218.0;
    Side_Pad      : constant Float := 19.0;
    Logo_Height   : constant Float := 44.0;
-   Logo_Mark     : constant Float := 10.0;
-   --  The green square before the name.
+   --  The name and the title of the projects, which share a line.
    Logo_Gap      : constant Float := 22.0;
    Action_Height : constant Float := 36.0;
    Home_Margin   : constant Float := 44.0;
    Title_Height  : constant Float := 28.0;
-   Display_Height : constant Float := 52.0;
    Card_Width    : constant Float := 330.0;
    Card_Height   : constant Float := 212.0;
    Card_Gap      : constant Float := 22.0;

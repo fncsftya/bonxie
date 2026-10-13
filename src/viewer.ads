@@ -545,7 +545,6 @@ private
       --  A row: the sidebar of actions, and the recent projects.
       Home_Side      : UI.Widgets.Panels.Panel;
       Logo           : UI.Widgets.Panels.Panel;
-      Logo_Mark      : UI.Widgets.Panels.Panel;
       Logo_Name      : UI.Widgets.Labels.Label;
       New_Button     : UI.Widgets.Buttons.Button;
       Side_Room      : UI.Widgets.Panels.Panel;

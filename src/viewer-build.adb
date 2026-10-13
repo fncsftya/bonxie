@@ -1,7 +1,6 @@
 with Ada.Command_Line;
 with Ada.Directories;
 with Ada.Strings.Unbounded;
-with CoreText.Fonts;
 with Items.Readers;
 with Items.Windows;
 with Preferences;
@@ -65,29 +64,6 @@ package body Viewer.Build is
       end if;
    end Share_Directory;
 
-   procedure Register_Fonts;
-   --  Make the faces of share/bonxie/fonts known, for the widgets and the
-   --  documents to be drawn in: once, for the process.
-
-   procedure Register_Fonts is
-      Folder : constant String := Share_Directory ("fonts");
-      Search : Ada.Directories.Search_Type;
-      Found  : Ada.Directories.Directory_Entry_Type;
-      Done   : Boolean;
-   begin
-      if Folder = "" then
-         return;
-      end if;
-      Ada.Directories.Start_Search (Search, Folder, "*.ttf");
-      while Ada.Directories.More_Entries (Search) loop
-         Ada.Directories.Get_Next_Entry (Search, Found);
-         --  Registered already, as by another session, is as well.
-         CoreText.Fonts.Register
-           (Ada.Directories.Full_Name (Found), Done);
-      end loop;
-      Ada.Directories.End_Search (Search);
-   end Register_Fonts;
-
    procedure Build_Header (Item : in out Session);
    --  Add and style the bar across the top of a window.
 
@@ -123,7 +99,6 @@ package body Viewer.Build is
       Widgets.Add (Item.Window_Panel, Item.Home_Panel);
       Widgets.Add (Item.Home_Panel, Item.Home_Side);
       Widgets.Add (Item.Home_Side, Item.Logo);
-      Widgets.Add (Item.Logo, Item.Logo_Mark);
       Widgets.Add (Item.Logo, Item.Logo_Name);
       Widgets.Add (Item.Home_Side, Item.New_Button);
       Widgets.Add (Item.Home_Side, Item.Side_Room);
@@ -165,10 +140,6 @@ package body Viewer.Build is
       Set_Align_Items (Widgets.Node (Item.Logo), Yoga.Center);
       Set_Height (Widgets.Node (Item.Logo), Logo_Height * Pixels);
       Set_Margin (Widgets.Node (Item.Logo), Yoga.Bottom, Logo_Gap * Pixels);
-      Set_Padding (Widgets.Node (Item.Logo), Yoga.Left, 3.0 * Pixels);
-      Panels.Set_Fill (Item.Logo_Mark, Colors.Primary);
-      Size (Item.Logo_Mark, Logo_Mark, Logo_Mark);
-      Set_Margin (Widgets.Node (Item.Logo_Mark), Yoga.Right, 13.0 * Pixels);
       Labels.Set_Text (Item.Logo_Name, "bonxie");
       Labels.Set_Style (Item.Logo_Name, UI.Line_Texts.Display);
       Set_Flex_Grow (Widgets.Node (Item.Logo_Name), 1.0);
@@ -188,20 +159,21 @@ package body Viewer.Build is
       Set_Width (Widgets.Node (Item.Home_Rule), UI.Boxes.Edge (Pixels));
       Set_Flex_Shrink (Widgets.Node (Item.Home_Rule), 0.0);
 
-      --  The projects: a title, and the cards in rows that wrap.
+      --  The projects: a title, and the cards in rows that wrap. The title
+      --  is on the line of the name, as the same height from the same top.
       Set_Flex_Direction (Widgets.Node (Item.Recent_Panel), Yoga.Column);
       Set_Flex_Grow (Widgets.Node (Item.Recent_Panel), 1.0);
       Set_Width (Widgets.Node (Item.Recent_Panel), 0.0);
       Set_Padding
         (Widgets.Node (Item.Recent_Panel), Yoga.Top,
-         (Home_Margin + Top) * Pixels);
+         (Side_Pad + Top) * Pixels);
       Set_Padding
         (Widgets.Node (Item.Recent_Panel), Yoga.Left, Home_Margin * Pixels);
       Labels.Set_Text (Item.Recent_Title, "Recent projects");
       Labels.Set_Style (Item.Recent_Title, UI.Line_Texts.Display);
-      Set_Height (Widgets.Node (Item.Recent_Title), Display_Height * Pixels);
+      Set_Height (Widgets.Node (Item.Recent_Title), Logo_Height * Pixels);
       Set_Margin
-        (Widgets.Node (Item.Recent_Title), Yoga.Bottom, Gap * Pixels);
+        (Widgets.Node (Item.Recent_Title), Yoga.Bottom, Logo_Gap * Pixels);
       Set_Flex_Grow (Widgets.Node (Item.Cards_Scroll), 1.0);
       Set_Height (Widgets.Node (Item.Cards_Scroll), 0.0);
       Set_Flex_Direction (Widgets.Node (Item.Cards_Content), Yoga.Row);
@@ -1117,7 +1089,6 @@ package body Viewer.Build is
          Widgets.Set_Clipboard (Item.Widgets, Item.Own_Board);
       end if;
 
-      Register_Fonts;
       Widgets.Set_Root (Item.Widgets, Item.Window_Panel);
       Set_Flex_Direction (Widgets.Node (Item.Window_Panel), Yoga.Column);
       if Item.Windowed then

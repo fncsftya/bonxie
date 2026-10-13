@@ -13,26 +13,22 @@ with Typeset.Glyph_Atlas;
 --  renderer.
 package UI.Line_Texts is
 
-   System_UI : constant String := ".AppleSystemUIFont";
-   --  CoreText's name for the font of the system's user interface.
+   Interface_Font : constant String := ".AppleSystemUIFont";
+   Interface_Medium : constant String := ".AppleSystemUIFontMedium";
+   Interface_Bold : constant String := ".AppleSystemUIFontBold";
+   --  The system's user interface font, in its weights: CoreText's names
+   --  for them, as the interface of macOS draws.
 
-   Interface_Font : constant String := "InstrumentSans-Regular";
-   Interface_Semibold : constant String := "InstrumentSans-Regular_SemiBold";
-   Interface_Bold : constant String := "InstrumentSans-Regular_Bold";
-   --  Instrument Sans, the face of the interface, in its weights: the
-   --  application registers it (CoreText.Fonts.Register); without it,
-   --  CoreText puts another sans serif in its place.
-
-   Serif : constant String := "Newsreader";
-   --  Newsreader, the face of what is written and read: documents, and
-   --  display type.
+   Serif : constant String := "Georgia";
+   --  Georgia, a serif that ships with macOS: the face of what is written
+   --  and read, and of the display type of a screen.
 
    type Style is (Regular, Strong, Heading, Display, Caption);
    --  Regular is the size of the text of a window, in the regular weight;
    --  Strong is the same size, and heavier, as of buttons; Heading is
-   --  larger, and heavier still; Display is larger again, in the serif,
-   --  as the title of a screen; Caption is small and heavy, as the name
-   --  of a list.
+   --  larger, and heavier still; Display is larger again, in the serif, as
+   --  the title of a screen; Caption is small and heavy, as the name of a
+   --  list.
 
    Regular_Size : constant := 13.0;
    Heading_Size : constant := 16.0;
@@ -50,7 +46,7 @@ package UI.Line_Texts is
    function Face_Name (Of_Style : Style) return String is
      (case Of_Style is
          when Regular           => Interface_Font,
-         when Strong | Caption  => Interface_Semibold,
+         when Strong | Caption  => Interface_Medium,
          when Heading           => Interface_Bold,
          when Display           => Serif);
 

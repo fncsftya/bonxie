@@ -1,5 +1,3 @@
-with Ada.Directories;
-with CoreText.Fonts;
 with SDL3.Events;
 with SDL3.Windows.Renderers;
 with Texts.Documents;
@@ -43,20 +41,6 @@ package body Sheet_Tests is
 
    Density : constant Float := 2.0;
 
-   procedure Register_Fonts is
-      procedure Register (Name : String) is
-         Path : constant String := "../share/bonxie/fonts/" & Name;
-         Done : Boolean;
-      begin
-         if Ada.Directories.Exists (Path) then
-            CoreText.Fonts.Register (Path, Done);
-         end if;
-      end Register;
-   begin
-      Register ("InstrumentSans.ttf");
-      Register ("Newsreader.ttf");
-   end Register_Fonts;
-
    type Icon_List is array (Positive range <>) of UI.Icons.Icon;
 
    Bare_Icons : constant Icon_List :=
@@ -79,7 +63,6 @@ package body Sheet_Tests is
 
    procedure Open (Item : in out Base; Wide, High : Positive) is
    begin
-      Register_Fonts;
       Renderers.Create_Offscreen
         (Item.Target,
          Positive (Float (Wide) * Density), Positive (Float (High) * Density));

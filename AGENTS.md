@@ -62,9 +62,9 @@ outlined; with the focus, outlined in blue, 2px; invalid, in red.
 The widgets, in `ui/src`, are drawn on one board by the `sheet-*` tests
 (`tests/golden/sheet-board.png`), as the design's Widgets sheet shows them.
 
-Type: Newsreader (serif) for documents and sources' text and display
-titles, Instrument Sans for the interface (`UI.Line_Texts`). Both are in
-`share/bonxie/fonts` and registered at start-up.
+Type: Georgia (serif) for documents, sources' text and the display titles
+of a screen, and the system's user interface font for the interface
+(`UI.Line_Texts`). Both ship with macOS, so no fonts are bundled.
 
 Each source has a colour, by its place among the project's sources
 (`Canvas_Items.Source_Ink`); it shows in the Write sidebar, in the square

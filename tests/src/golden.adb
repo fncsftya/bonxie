@@ -381,7 +381,7 @@ procedure Golden is
    function Card_Left (Row : Positive) return Float is
      (263.0 + Float ((Row - 1) mod 2) * 352.0);
    function Card_Top (Row : Positive) return Float is
-     (108.0 + Float ((Row - 1) / 2) * 234.0);
+     (85.0 + Float ((Row - 1) / 2) * 234.0);
    --  Of a project's card, in points: two to a row, below the title.
 
    function Open_X (Row : Positive) return Float is (Card_Left (Row) + 165.0);
