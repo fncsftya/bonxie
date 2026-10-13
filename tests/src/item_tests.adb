@@ -704,6 +704,12 @@ package body Item_Tests is
                                 Mouse_X => 360.0, Mouse_Y => 240.0,
                                 others => <>));
       Snap (Session, "list-long-start");
+
+      --  Dragging the bar scrolls it, too.
+      Move_To (Session, 551.0, 130.0);
+      Snap (Session, "list-long-bar-near");
+      Drag (Session, 551.0, 130.0, 551.0, 300.0);
+      Snap (Session, "list-long-bar-dragged");
    end Scrolling_List;
 
    procedure Panning_And_Zooming is

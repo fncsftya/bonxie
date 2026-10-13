@@ -20,6 +20,7 @@ package Text_Area_Tests is
    procedure Undo_Typing;
    procedure Words;
    procedure Dragged;
+   procedure Scroll_Bar;
    procedure Inactive_Selection;
    procedure Blinking;
    procedure Composing;

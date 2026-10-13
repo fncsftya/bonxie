@@ -1,6 +1,7 @@
 with SDL3.Cursors;
 with SDL3.Events;
 with SDL3.Windows.Renderers.Textures;
+with UI.Scrollbars;
 with Vision;
 
 --  A picture from a PNG file, as wide as the box, and as tall as that
@@ -152,6 +153,9 @@ package UI.Widgets.Pictures is
 
    overriding function Accepts_Focus (Item : Picture) return Boolean;
 
+   overriding procedure Hover_Changed
+     (Item : in out Picture; Hovered : Boolean);
+
    overriding procedure Focus_Changed
      (Item : in out Picture; Focused : Boolean);
 
@@ -182,6 +186,9 @@ private
       Marked  : Mark_Array (1 .. Max_Marks + 1);
       Marks   : Natural range 0 .. Max_Marks := 0;
       Version : Natural := 0;
+      Down_Bar   : Scrollbars.Bar;
+      Across_Bar : Scrollbars.Bar;
+      --  The bars down its side and along its foot.
       Marking : Boolean := False;
       Started : Float := 0.0;
       --  While a mark is made, where along the picture it began, of its

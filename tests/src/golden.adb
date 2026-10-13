@@ -833,6 +833,7 @@ begin
    Run ("textarea-undo-typing", Text_Area_Tests.Undo_Typing'Access);
    Run ("textarea-words", Text_Area_Tests.Words'Access);
    Run ("textarea-dragged", Text_Area_Tests.Dragged'Access);
+   Run ("textarea-bar", Text_Area_Tests.Scroll_Bar'Access);
    Run ("textarea-inactive-selection",
         Text_Area_Tests.Inactive_Selection'Access);
    Run ("textarea-blink", Text_Area_Tests.Blinking'Access);

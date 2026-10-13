@@ -2,6 +2,7 @@ with SDL3.Events;
 with SDL3.Windows.Renderers;
 with Texts.Documents;
 with UI.Clipboards;
+with UI.Scrollbars;
 with UI.Themes;
 private with Typeset.Layouts;
 private with Typeset.Views;
@@ -264,6 +265,15 @@ package UI.Text_Areas is
    --  Move what is shown By layout units down the text (up, if negative),
    --  but not past either end. The caret stays where it is.
 
+   procedure Set_Hovered (Item : in out Text_Area; Hovered : Boolean);
+   --  Say whether the pointer is over it, which shows the scroll bar (it
+   --  is told so by mouse moves in it, but not when the pointer leaves).
+
+   procedure Take_Bar_Change
+     (Item : in out Text_Area; Changed : out Boolean);
+   --  Whether the scroll bar has changed how it looks, since last asked,
+   --  so that it is to be drawn again.
+
    --  Events
 
    procedure Handle
@@ -278,7 +288,8 @@ package UI.Text_Areas is
    --  The mouse: a left click in it focuses it and places the caret (with
    --  Shift, extends the selection; two select a word, three a
    --  paragraph), and dragging selects. The wheel over it scrolls, unless
-   --  Command is held.
+   --  Command is held. So does dragging its scroll bar, along its right
+   --  edge (not for one line), which is shown while the pointer is over it.
    --
    --  Focused, it takes typing and input methods' text. The arrow keys
    --  move the caret, with Option by words or paragraphs, with Command to
@@ -354,6 +365,8 @@ private
       --  was before it moved so.
       Focused  : Boolean := False;
       Dragging : Boolean := False;
+      Bar      : Scrollbars.Bar;
+      Bar_Dirty : Boolean := False;
 
       Composing : Boolean := False;
       Composed  : Position;  --  where the input method's text starts

@@ -4,6 +4,7 @@ with Items.Windows;
 with SDL3.Cursors;
 with UI.Icons;
 with UI.Line_Texts;
+with UI.Scrollbars;
 with UI.Themes;
 with UI.Widgets;
 with Viewer.Recent;
@@ -379,6 +380,10 @@ package body Viewer.Build is
       Set_Height (Widgets.Node (Item.List_Scroll), 0.0);
       Set_Flex_Direction (Widgets.Node (Item.List_Content), Yoga.Column);
       Set_Flex_Shrink (Widgets.Node (Item.List_Content), 0.0);
+      --  Room at the right for the scroll bar.
+      Set_Padding
+        (Widgets.Node (Item.List_Content), Yoga.Right,
+         (UI.Scrollbars.Near_Thickness + 2.0 * UI.Scrollbars.Margin) * Pixels);
       Set_Gap
         (Widgets.Node (Item.List_Content), Yoga.All_Gutters,
          List_Gap * Pixels);

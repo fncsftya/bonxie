@@ -102,9 +102,14 @@ package body UI.Widgets.Editors is
       Handled := False;
       if Has_Document (Item) then
          Text_Areas.Handle (Item.Text, Event, Clipboard (Item).all, Handled);
-         if Handled then
-            Invalidate (Item);
-         end if;
+         declare
+            Changed : Boolean;
+         begin
+            Text_Areas.Take_Bar_Change (Item.Text, Changed);
+            if Handled or else Changed then
+               Invalidate (Item);
+            end if;
+         end;
          --  Escape, for one, leaves it unfocused.
          if Has_Focus (Item) and then not Is_Focused (Item) then
             Release_Focus (Item);
@@ -154,6 +159,15 @@ package body UI.Widgets.Editors is
 
    overriding function Accepts_Focus (Item : Editor) return Boolean is
      (Has_Document (Item));
+
+   overriding procedure Hover_Changed
+     (Item : in out Editor; Hovered : Boolean) is
+   begin
+      if Has_Document (Item) then
+         Text_Areas.Set_Hovered (Item.Text, Hovered);
+         Invalidate (Item);
+      end if;
+   end Hover_Changed;
 
    overriding procedure Focus_Changed
      (Item : in out Editor; Focused : Boolean) is

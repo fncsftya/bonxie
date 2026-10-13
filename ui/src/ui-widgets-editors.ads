@@ -60,6 +60,9 @@ package UI.Widgets.Editors is
       Target : SDL3.Windows.Renderers.Renderer;
       Colors : Themes.Theme);
 
+   overriding procedure Hover_Changed
+     (Item : in out Editor; Hovered : Boolean);
+
    overriding procedure Handle
      (Item    : in out Editor;
       Event   : SDL3.Events.Event;

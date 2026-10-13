@@ -360,6 +360,8 @@ package body UI.Widgets is
             Paint_Widget (Child.all, Target, Colors, Box);
             Child := Child.Next;
          end loop;
+         Painting.Paint_Box := Box;
+         Draw_Over (Painting, Target, Colors);
          Renderers.Restore_Clip (Target, Outer);
       end;
    end Paint_Widget;

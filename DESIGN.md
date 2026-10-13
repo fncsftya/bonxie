@@ -51,7 +51,11 @@ From the bottom up; each crate depends only on those before it.
   they follow its zoom and scroll. With the highlighter as its tool
   (`Set_Tool`) a drag marks it instead: a translucent band along the line
   pressed on, kept like the words' boxes as fractions of the picture (up to
-  `Max_Marks`), and counted by `Marks_Version`; `Sliders` is a knob to drag along a
+  `Max_Marks`), and counted by `Marks_Version`; `Scrollbars` is the thin bar that `Scrollers`, `Pictures` (across too,
+  when zoomed) and `Text_Areas` show along their edge when there is more than
+  the box shows and the pointer is over them: thicker near the pointer, and
+  dragged (or pressed beside) to scroll, given the mouse events first; a widget draws what goes over
+  its children in `Draw_Over`; `Sliders` is a knob to drag along a
   track, from 0.0 to 1.0. Widgets can be put last of their parent's
   (`Raise_To_Front`, for those placed by their edges), hidden (`Set_Visible`) or taken out
   (`Remove`, with their children; build them again top-down). No

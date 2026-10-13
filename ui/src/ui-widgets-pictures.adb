@@ -146,6 +146,25 @@ package body UI.Widgets.Pictures is
    function Wide_Of (Item : Picture) return Float is
      (Width_Of (Item) * Item.Zoomed);
 
+   function Down_Metrics (Item : Picture) return Scrollbars.Metrics is
+     (Left    => Left_Of (Item), Top => Top_Of (Item),
+      Width   => Width_Of (Item), Height => Height_Of (Item),
+      Density => Density (Item),
+      Start   => Item.Down * Item.Fitted,
+      Shown   => Height_Of (Item),
+      Total   => Item.Fitted,
+      Horizontal => False);
+
+   function Across_Metrics (Item : Picture) return Scrollbars.Metrics is
+     (Left    => Left_Of (Item), Top => Top_Of (Item),
+      Width   => Width_Of (Item), Height => Height_Of (Item),
+      Density => Density (Item),
+      Start   =>
+        Item.Across * Float'Max (0.0, Wide_Of (Item) - Width_Of (Item)),
+      Shown   => Width_Of (Item),
+      Total   => Wide_Of (Item),
+      Horizontal => True);
+
    function Origin_X (Item : Picture) return Float is
      (Left_Of (Item)
       - Item.Across * Float'Max (0.0, Wide_Of (Item) - Width_Of (Item)));
@@ -453,7 +472,50 @@ package body UI.Widgets.Pictures is
             end loop;
          end;
       end if;
+      Scrollbars.Draw (Item.Down_Bar, Target, Colors, Down_Metrics (Item));
+      Scrollbars.Draw
+        (Item.Across_Bar, Target, Colors, Across_Metrics (Item));
    end Draw;
+
+   overriding procedure Hover_Changed
+     (Item : in out Picture; Hovered : Boolean) is
+   begin
+      Scrollbars.Set_Pane (Item.Down_Bar, Hovered);
+      Scrollbars.Set_Pane (Item.Across_Bar, Hovered);
+      Invalidate (Item);
+   end Hover_Changed;
+
+   procedure Handle_Bars
+     (Item    : in out Picture;
+      Event   : SDL3.Events.Event;
+      Handled : out Boolean)
+   is
+      Moved, Changed, Other_Changed : Boolean;
+      Other_Taken, Other_Moved : Boolean;
+      To, Other_To : Float;
+   begin
+      Scrollbars.Handle
+        (Item.Down_Bar, Event, Down_Metrics (Item), Handled, Moved, To,
+         Changed);
+      if Moved then
+         Scroll_To
+           (Item, Float'Min (1.0, Float'Max (0.0, To / Item.Fitted)));
+      end if;
+      Scrollbars.Handle
+        (Item.Across_Bar, Event, Across_Metrics (Item), Other_Taken,
+         Other_Moved, Other_To, Other_Changed);
+      if Other_Moved then
+         Item.Across :=
+           Float'Min
+             (1.0,
+              Float'Max
+                (0.0, Other_To / (Wide_Of (Item) - Width_Of (Item))));
+      end if;
+      Handled := Handled or else Other_Taken;
+      if Changed or else Moved or else Other_Changed or else Other_Moved then
+         Invalidate (Item);
+      end if;
+   end Handle_Bars;
 
    overriding procedure Handle
      (Item    : in out Picture;
@@ -461,6 +523,16 @@ package body UI.Widgets.Pictures is
       Handled : out Boolean) is
    begin
       Handled := False;
+      if Item.Fitted > 0.0
+        and then Event.Kind in SDL3.Events.Mouse_Down
+                             | SDL3.Events.Mouse_Move
+                             | SDL3.Events.Mouse_Up
+      then
+         Handle_Bars (Item, Event, Handled);
+         if Handled then
+            return;
+         end if;
+      end if;
       if Item.Chosen /= Pointer and then Item.Fitted > 0.0 then
          Handle_Marking (Item, Event, Handled);
          if Handled then

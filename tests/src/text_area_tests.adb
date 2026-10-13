@@ -425,6 +425,51 @@ package body Text_Area_Tests is
       Check_Text ("textarea-line-delete-forward", Item, "");
    end Words;
 
+   procedure Scroll_Bar is
+      Item : Fixture;
+   begin
+      --  Not shown until the pointer is over the text.
+      Open (Item, Sample, Focus => False);
+      Check (Item, "textarea-bar-hidden");
+
+      --  Shown, and thicker with the pointer near it.
+      Send (Item,
+            (Kind => Events.Mouse_Move, Mouse_X => 200.0, Mouse_Y => 100.0,
+             others => <>),
+            Taken => False);
+      Check (Item, "textarea-bar");
+      Send (Item,
+            (Kind => Events.Mouse_Move, Mouse_X => 344.0, Mouse_Y => 100.0,
+             others => <>),
+            Taken => False);
+      Check (Item, "textarea-bar-near");
+
+      --  Dragging the thumb scrolls, and selects nothing.
+      Send (Item,
+            (Kind => Events.Mouse_Down, Button => 1, Clicks => 1,
+             Mouse_X => 344.0, Mouse_Y => 20.0, others => <>));
+      Send (Item,
+            (Kind => Events.Mouse_Move, Left_Held => True,
+             Mouse_X => 344.0, Mouse_Y => 110.0, others => <>));
+      Send (Item,
+            (Kind => Events.Mouse_Up, Button => 1,
+             Mouse_X => 344.0, Mouse_Y => 110.0, others => <>));
+      Check (Item, "textarea-bar-dragged");
+
+      --  Pressing on the track beside it takes the thumb there.
+      Send (Item,
+            (Kind => Events.Mouse_Down, Button => 1, Clicks => 1,
+             Mouse_X => 344.0, Mouse_Y => 175.0, others => <>));
+      Send (Item,
+            (Kind => Events.Mouse_Up, Button => 1,
+             Mouse_X => 344.0, Mouse_Y => 175.0, others => <>));
+      Check (Item, "textarea-bar-track");
+
+      --  Gone when the pointer leaves.
+      Text_Areas.Set_Hovered (Item.Area, False);
+      Check (Item, "textarea-bar-left");
+   end Scroll_Bar;
+
    procedure Dragged is
       Item : Fixture;
    begin

@@ -8,6 +8,7 @@ package body UI.Text_Areas is
    package Events renames SDL3.Events;
 
    use type Events.Key_Code;
+   use type Events.Event_Kind;
    use type Docs.Version;
    use type Texts.Position;
    use type Docs.Document_Access;
@@ -1099,6 +1100,38 @@ package body UI.Text_Areas is
       end if;
    end Handle_Key;
 
+   function Bar_Metrics (Item : Text_Area) return Scrollbars.Metrics is
+      Edge : constant Float :=
+        (if Item.Focused then Focus_Outline else Outline) * Item.Density;
+   begin
+      return
+        (Left    => Float (Integer (Item.Left + Edge)),
+         Top     => Float (Integer (Item.Top + Edge)),
+         Width   => Float'Max
+                      (0.0, Float (Integer (Item.Left + Item.Width - Edge))
+                            - Float (Integer (Item.Left + Edge))),
+         Height  => Float'Max
+                      (0.0, Float (Integer (Item.Top + Item.Height - Edge))
+                            - Float (Integer (Item.Top + Edge))),
+         Density => Item.Density,
+         Start   => View_Top (Item),
+         Shown   => Extent (Item),
+         Total   => Layouts.Total_Height (Item.Laid),
+         Horizontal => False);
+   end Bar_Metrics;
+
+   procedure Set_Hovered (Item : in out Text_Area; Hovered : Boolean) is
+   begin
+      Scrollbars.Set_Pane (Item.Bar, Hovered);
+   end Set_Hovered;
+
+   procedure Take_Bar_Change
+     (Item : in out Text_Area; Changed : out Boolean) is
+   begin
+      Changed := Item.Bar_Dirty;
+      Item.Bar_Dirty := False;
+   end Take_Bar_Change;
+
    procedure Handle
      (Item    : in out Text_Area;
       Event   : Events.Event;
@@ -1111,6 +1144,34 @@ package body UI.Text_Areas is
       Catch_Up (Item);
       Item.Now := SDL3.Events.Milliseconds'Max (Item.Now, Event.Time);
       Handled := False;
+      if not Item.Single
+        and then Event.Kind in Events.Mouse_Down | Events.Mouse_Move
+                             | Events.Mouse_Up
+      then
+         declare
+            Dragged, Changed : Boolean;
+            To : Float;
+            Before : constant Boolean := Scrollbars.Is_Shown (Item.Bar);
+         begin
+            if Event.Kind = Events.Mouse_Move then
+               Scrollbars.Set_Pane (Item.Bar, Contains (Item, X, Y));
+            end if;
+            Scrollbars.Handle
+              (Item.Bar, Event, Bar_Metrics (Item), Handled, Dragged, To,
+               Changed);
+            if Dragged then
+               Scroll (Item, To - View_Top (Item));
+            end if;
+            if Changed or else Dragged
+              or else Before /= Scrollbars.Is_Shown (Item.Bar)
+            then
+               Item.Bar_Dirty := True;
+            end if;
+            if Handled then
+               return;
+            end if;
+         end;
+      end if;
       case Event.Kind is
          when Events.Mouse_Down =>
             if Event.Button = 1 and then Contains (Item, X, Y) then
@@ -1398,6 +1459,10 @@ package body UI.Text_Areas is
             Caret_Box (Item, X, Y, Wide, High);
             Fill_Rect (Target, Colors.Accent, X, Y, Wide, High);
          end;
+      end if;
+
+      if not Item.Single then
+         Scrollbars.Draw (Item.Bar, Target, Colors, Bar_Metrics (Item));
       end if;
 
       Restore_Clip (Target, Outer_Clip);

@@ -83,6 +83,13 @@ package UI.Widgets is
    --  fill its box. Often only a part of it is to be drawn: see
    --  Painting_Part.
 
+   procedure Draw_Over
+     (Item   : in out Widget;
+      Target : SDL3.Windows.Renderers.Renderer;
+      Colors : Themes.Theme) is null;
+   --  Draw what goes over its children, in its box, as Draw does: a
+   --  scroll bar, say, which they must not hide.
+
    procedure Handle
      (Item    : in out Widget;
       Event   : SDL3.Events.Event;
