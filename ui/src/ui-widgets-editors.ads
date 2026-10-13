@@ -37,6 +37,9 @@ package UI.Widgets.Editors is
      with Pre => To > 0.0;
    --  Make the text Zoom times its size.
 
+   procedure Set_Paper (Item : in out Editor; To : Themes.Color);
+   --  Draw on To, not the theme's background.
+
    function Zoom (Item : Editor) return Float;
 
    function Is_Focused (Item : Editor) return Boolean;
@@ -83,6 +86,8 @@ private
    type Editor is new Widget with record
       Text    : aliased UI.Text_Areas.Text_Area;
       Zoomed  : Float := 1.0;
+      Has_Paper : Boolean := False;
+      Paper     : Themes.Color := (0, 0, 0, 255);
       Shown   : Texts.Documents.Version := 0;
       Shown_Serial : Natural := 0;
       --  Of the document, as of the last time it was drawn or seen to be

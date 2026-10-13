@@ -73,6 +73,13 @@ package body UI.Widgets.Editors is
       end if;
    end Placed;
 
+   procedure Set_Paper (Item : in out Editor; To : Themes.Color) is
+   begin
+      Item.Has_Paper := True;
+      Item.Paper := To;
+      Invalidate (Item);
+   end Set_Paper;
+
    overriding procedure Draw
      (Item   : in out Editor;
       Target : SDL3.Windows.Renderers.Renderer;
@@ -81,10 +88,14 @@ package body UI.Widgets.Editors is
       if Has_Document (Item) then
          --  Of the lines, only those the part to draw touches.
          declare
-            Part : constant Pixel_Box := Painting_Part (Item);
+            Part  : constant Pixel_Box := Painting_Part (Item);
+            Paper : constant Themes.Theme :=
+              (if Item.Has_Paper
+               then (Colors with delta Background => Item.Paper)
+               else Colors);
          begin
             Text_Areas.Draw
-              (Item.Text, Target, Colors, Is_Settled (Item),
+              (Item.Text, Target, Paper, Is_Settled (Item),
                Rows_From => Float (Part.Top),
                Rows_To   => Float (Part.Top + Part.Height));
          end;

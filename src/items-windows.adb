@@ -222,6 +222,7 @@ package body Items.Windows is
 
       Editors.Configure
         (Item.Body_Text, UI.Line_Texts.System_UI, Text_Size, Measure);
+      Editors.Set_Paper (Item.Body_Text, (255, 255, 255, 255));
       Set_Flex_Grow (Widgets.Node (Item.Body_Text), 1.0);
       --  Its own outline is the window's at the sides.
       Set_Margin
