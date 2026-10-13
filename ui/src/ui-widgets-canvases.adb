@@ -59,6 +59,130 @@ package body UI.Widgets.Canvases is
       end if;
    end Zoom_By;
 
+   Link_Width   : constant Float := 2.0;
+   --  A line's width, in points.
+   Ghost_Alpha  : constant := 90;
+   Line_Alpha   : constant := 200;
+
+   function Same (A, B : Line) return Boolean is
+     (A.From_X = B.From_X and then A.From_Y = B.From_Y
+      and then A.To_X = B.To_X and then A.To_Y = B.To_Y);
+
+   function Screen_X (Item : Canvas; X : Float) return Float is
+     (Left_Of (Item) + (Item.Across + X * Item.Scale) * Density (Item));
+
+   function Screen_Y (Item : Canvas; Y : Float) return Float is
+     (Top_Of (Item) + (Item.Down + Y * Item.Scale) * Density (Item));
+   --  A place on the canvas, in pixels from the top left of the target.
+
+   procedure Damage_Between
+     (Item : in out Canvas; X0, Y0, X1, Y1 : Float);
+   --  Draw again the box in pixels round the line from X0, Y0 to X1, Y1.
+
+   procedure Damage_Between
+     (Item : in out Canvas; X0, Y0, X1, Y1 : Float)
+   is
+      Room : constant Float := Link_Width * Density (Item) + 2.0;
+      Left : constant Float := Float'Min (X0, X1) - Room;
+      Top  : constant Float := Float'Min (Y0, Y1) - Room;
+   begin
+      Invalidate
+        (Item,
+         (Left   => Integer (Float'Floor (Left)),
+          Top    => Integer (Float'Floor (Top)),
+          Width  => Integer (Float'Ceiling
+                               (Float'Max (X0, X1) + Room - Left)),
+          Height => Integer (Float'Ceiling
+                               (Float'Max (Y0, Y1) + Room - Top))));
+   end Damage_Between;
+
+   procedure Set_Lines (Item : in out Canvas; Lines : Line_Array) is
+   begin
+      for Number in Lines'Range loop
+         declare
+            Was : constant Boolean :=
+              Number - Lines'First + 1 <= Item.Line_Count;
+            Old : constant Line :=
+              (if Was then Item.Lines (Number - Lines'First + 1)
+               else Lines (Number));
+         begin
+            if not Was or else not Same (Old, Lines (Number)) then
+               if Was and then Is_Attached (Item) then
+                  Damage_Between
+                    (Item, Screen_X (Item, Old.From_X),
+                     Screen_Y (Item, Old.From_Y),
+                     Screen_X (Item, Old.To_X), Screen_Y (Item, Old.To_Y));
+               end if;
+               if Is_Attached (Item) then
+                  Damage_Between
+                    (Item, Screen_X (Item, Lines (Number).From_X),
+                     Screen_Y (Item, Lines (Number).From_Y),
+                     Screen_X (Item, Lines (Number).To_X),
+                     Screen_Y (Item, Lines (Number).To_Y));
+               end if;
+            end if;
+         end;
+      end loop;
+      --  Those that are gone.
+      for Number in Lines'Length + 1 .. Item.Line_Count loop
+         if Is_Attached (Item) then
+            Damage_Between
+              (Item, Screen_X (Item, Item.Lines (Number).From_X),
+               Screen_Y (Item, Item.Lines (Number).From_Y),
+               Screen_X (Item, Item.Lines (Number).To_X),
+               Screen_Y (Item, Item.Lines (Number).To_Y));
+         end if;
+      end loop;
+      Item.Line_Count := Lines'Length;
+      Item.Lines (1 .. Lines'Length) := Lines;
+   end Set_Lines;
+
+   function Ghost_End (Item : Canvas) return Line is
+     (From_X => Screen_X (Item, Item.Ghost_From.From_X),
+      From_Y => Screen_Y (Item, Item.Ghost_From.From_Y),
+      To_X   => Item.Ghost_From.To_X * Density (Item),
+      To_Y   => Item.Ghost_From.To_Y * Density (Item));
+   --  The ghost, in pixels from the top left of the target.
+
+   procedure Set_Ghost
+     (Item : in out Canvas; From_X, From_Y : Float; To_X, To_Y : Float)
+   is
+      Now : constant Line := (From_X, From_Y, To_X, To_Y);
+   begin
+      if not Item.Ghosted or else not Same (Item.Ghost_From, Now) then
+         if Item.Ghosted then
+            declare
+               Was : constant Line := Ghost_End (Item);
+            begin
+               Damage_Between
+                 (Item, Was.From_X, Was.From_Y, Was.To_X, Was.To_Y);
+            end;
+         end if;
+         Item.Ghosted := True;
+         Item.Ghost_From := Now;
+         declare
+            Here : constant Line := Ghost_End (Item);
+         begin
+            Damage_Between
+              (Item, Here.From_X, Here.From_Y, Here.To_X, Here.To_Y);
+         end;
+      end if;
+   end Set_Ghost;
+
+   procedure Clear_Ghost (Item : in out Canvas) is
+   begin
+      if Item.Ghosted then
+         declare
+            Was : constant Line := Ghost_End (Item);
+         begin
+            Item.Ghosted := False;
+            Damage_Between (Item, Was.From_X, Was.From_Y, Was.To_X, Was.To_Y);
+         end;
+      end if;
+   end Clear_Ghost;
+
+   function Has_Ghost (Item : Canvas) return Boolean is (Item.Ghosted);
+
    overriding procedure Placed
      (Item : in out Canvas; Left, Top, Width, Height : Float)
    is
@@ -120,7 +244,41 @@ package body UI.Widgets.Canvases is
             end loop;
          end loop;
       end;
+
+      --  Lines joining what is on it, under that.
+      declare
+         Stroke : constant Themes.Color :=
+           (Colors.Foreground.Red, Colors.Foreground.Green,
+            Colors.Foreground.Blue, Line_Alpha);
+      begin
+         for Each of Item.Lines (1 .. Item.Line_Count) loop
+            Draw_Line
+              (Target, Stroke,
+               Screen_X (Item, Each.From_X), Screen_Y (Item, Each.From_Y),
+               Screen_X (Item, Each.To_X), Screen_Y (Item, Each.To_Y),
+               Float'Max (1.0, Link_Width * Pixels));
+         end loop;
+      end;
    end Draw;
+
+   overriding procedure Draw_Over
+     (Item   : in out Canvas;
+      Target : SDL3.Windows.Renderers.Renderer;
+      Colors : Themes.Theme) is
+   begin
+      if Item.Ghosted then
+         declare
+            Here : constant Line := Ghost_End (Item);
+         begin
+            Draw_Line
+              (Target,
+               (Colors.Foreground.Red, Colors.Foreground.Green,
+                Colors.Foreground.Blue, Ghost_Alpha),
+               Here.From_X, Here.From_Y, Here.To_X, Here.To_Y,
+               Float'Max (1.0, Link_Width * Density (Item)));
+         end;
+      end if;
+   end Draw_Over;
 
    overriding procedure Handle
      (Item    : in out Canvas;

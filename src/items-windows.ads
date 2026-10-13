@@ -153,6 +153,10 @@ package Items.Windows is
      with Pre => Is_Assigned (Item);
    --  Where its window is on the screen, in pixels, as of the last layout.
 
+   function Is_Hovered (Item : Window) return Boolean;
+   --  Whether the pointer is over its window on the canvas, or something
+   --  in it.
+
    function Words (Item : Window) return Natural
      with Pre => Is_Assigned (Item);
 

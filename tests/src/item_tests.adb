@@ -973,6 +973,82 @@ package body Item_Tests is
       Snap (Session, "item-kept");
    end Kept;
 
+   --  Links
+
+   procedure Linking is
+      Session : Viewer.Session;
+      Key     : Projects.Id;
+
+      Source_Pin_X : constant Float := 350.0;
+      Source_Pin_Y : constant Float := 224.0;
+      Target_Pin_X : constant Float := 364.0;
+      Target_Pin_Y : constant Float := 308.0;
+      --  After the first is moved 150 left, and the second 120 right and 60
+      --  down: the middle of the right side of the first, and of the left
+      --  side of the second (the canvas starts 16 down).
+
+      function Count (Value : Natural) return String is
+        (Natural'Image (Value));
+   begin
+      Start_With_One (Session);
+      Key := Viewer.Current_Project (Session);
+      Drag (Session, Hold_X, Bar_Y, Hold_X - 150.0, Bar_Y);
+      Click_On (Session, Add_X, Tools_Y);
+      Drag (Session, Hold_X + 24.0, Bar_Y + 24.0,
+            Hold_X + 144.0, Bar_Y + 84.0);
+      Check ("links-first", "-290-100 280 200", Item_Place (Session, 1));
+      Check ("links-second", " 4-16 280 200", Item_Place (Session, 2));
+
+      --  Pins are shown while the pointer is over a window.
+      Move_To (Session, 600.0, 60.0);
+      Check ("links-none-away", " 0", Count (Viewer.Pin_Count (Session)));
+      Move_To (Session, 200.0, 250.0);
+      Check ("links-four", " 4", Count (Viewer.Pin_Count (Session)));
+      Move_To (Session, Source_Pin_X, Source_Pin_Y);
+      Check ("links-pin-hovered", " 4", Count (Viewer.Pin_Count (Session)));
+      Check ("links-pin-cursor", "POINTER",
+             SDL3.Cursors.Kind'Image (Viewer.Cursor (Session)));
+
+      --  Let go on nothing, there is no link.
+      Press (Session, Source_Pin_X, Source_Pin_Y);
+      Check ("links-dragging-pins", " 5", Count (Viewer.Pin_Count (Session)));
+      Move_To (Session, 500.0, 120.0, Held => True);
+      Release (Session, 500.0, 120.0);
+      Check ("links-nothing", " 0", Count (Viewer.Link_Count (Session)));
+
+      --  Dragged to a pin of the other window, there is.
+      Move_To (Session, 200.0, 250.0);
+      Press (Session, Source_Pin_X, Source_Pin_Y);
+      Move_To (Session, 400.0, 250.0, Held => True);
+      Move_To (Session, Target_Pin_X, Target_Pin_Y, Held => True);
+      Snap (Session, "links-dragging");
+      Release (Session, Target_Pin_X, Target_Pin_Y);
+      Check ("links-made", " 1", Count (Viewer.Link_Count (Session)));
+      Move_To (Session, 600.0, 60.0);
+      Check ("links-pins-away", " 0", Count (Viewer.Pin_Count (Session)));
+      Snap (Session, "links-made");
+
+      --  Not twice between the same two, nor back to the same window.
+      Move_To (Session, 300.0, 250.0);
+      Press (Session, Target_Pin_X, Target_Pin_Y);
+      Move_To (Session, Source_Pin_X, 150.0, Held => True);
+      Release (Session, Source_Pin_X, 150.0);
+      Move_To (Session, Source_Pin_X, 150.0);
+      Check ("links-not-twice", " 1", Count (Viewer.Link_Count (Session)));
+
+      --  Kept.
+      Viewer.Close_Project (Session);
+      Viewer.Open_Project (Session, Key);
+      Check ("links-kept", " 1", Count (Viewer.Link_Count (Session)));
+      Move_To (Session, 650.0, 60.0);
+      Snap (Session, "links-kept");
+
+      --  They go with an item.
+      Click_On (Session, List_X, Tools_Y);
+      Click_On (Session, Remove_X, Row_Y (2));
+      Check ("links-removed", " 0", Count (Viewer.Link_Count (Session)));
+   end Linking;
+
    --  Sources
 
    Whole_Page : constant String :=

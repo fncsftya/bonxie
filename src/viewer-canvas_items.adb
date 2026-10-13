@@ -5,6 +5,7 @@ with Ada.Strings.Fixed;
 with UI.Widgets;
 with UI.Widgets.Canvases;
 with UI.Widgets.Pictures;
+with Viewer.Links;
 with Vision.Jobs;
 with Webshot;
 
@@ -436,6 +437,8 @@ package body Viewer.Canvas_Items is
       Place_All (Item);
       Show_Dock (Item);
       Widgets.Layout (Item.Widgets, Item.Target);
+      Links.Enter (Item);
+      Links.Update (Item);
    end Enter;
 
    procedure Save_All (Item : in out Session) is
@@ -457,6 +460,7 @@ package body Viewer.Canvas_Items is
    procedure Leave (Item : in out Session) is
    begin
       Save_All (Item);
+      Links.Leave (Item);
       for Which in Items.Slot loop
          if Windows.Is_Assigned (Item.Windows (Which)) then
             Windows.Release (Item.Windows (Which));
@@ -563,6 +567,7 @@ package body Viewer.Canvas_Items is
       Items.Delete
         (Item.Store, Windows.Details (Item.Windows (Which)).Key);
       Windows.Release (Item.Windows (Which));
+      Links.Reload (Item);
       Touch (Item);
       Show_Dock (Item);
       Widgets.Layout (Item.Widgets, Item.Target);
@@ -635,6 +640,7 @@ package body Viewer.Canvas_Items is
       if Any then
          Touch (Item);
       end if;
+      Links.Update (Item);
    end Update;
 
 end Viewer.Canvas_Items;

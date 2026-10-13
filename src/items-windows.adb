@@ -485,6 +485,10 @@ package body Items.Windows is
        Width  => Widgets.Width_Of (Item.Frame),
        Height => Widgets.Height_Of (Item.Frame)));
 
+   function Is_Hovered (Item : Window) return Boolean is
+     (Item.Assigned and then Item.Details.State = Open
+      and then Widgets.Is_Hovered (Item.Frame));
+
    procedure Show_Title (Item : in out Window);
    --  Take the title as edited, for the item and the bar in the dock.
 

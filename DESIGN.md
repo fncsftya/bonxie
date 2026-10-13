@@ -40,7 +40,11 @@ From the bottom up; each crate depends only on those before it.
   gives the tree's, from the one holding a press or under the pointer).
   `Canvases` is an infinite canvas to pan (wheel, trackpad, middle
   button) and zoom (Command with the wheel, a pinch, Command with =, -,
-  0); `Grips` is a place to drag by (a title bar, a corner to size by),
+  0), and draws lines between places on it (`Set_Lines`, in canvas units,
+  under what is on it) and a faint one being dragged out (`Set_Ghost`, over
+  it); `Pins` is a small round handle to press and drag from, and to let go
+  on (`Set_Accepting` says it may be, and it is then drawn with a border
+  while the pointer is over it); `Grips` is a place to drag by (a title bar, a corner to size by),
   which says how far the pointer has gone; `Scrollers` scrolls its one
   child with the wheel; `Pictures` shows a PNG as wide as its box
   (or a zoom of that, scrolled across too), scrolled with the wheel (read when
@@ -117,6 +121,13 @@ From the bottom up; each crate depends only on those before it.
   `Canvas_Items` (the windows of a project's items: loading, adding,
   keeping them where the canvas has them, writing them) and `Listing`
   (the list of items).
+  Items are linked, visually, by `Viewer.Links`: a pin in the middle of each
+  side of every open window, shown while the pointer is over the window.
+  Dragging from one shows the pins of the other windows and a ghost line to
+  the pointer; letting go on one of them joins the two items. A link is a
+  line from a side of one to a side of the other, kept in the database
+  (`item_links`, which goes with its items; `Items.Add_Link`, `Load_Links`),
+  at most one between two items, and drawn by the canvas under the windows.
   Icons are SVG files in `share/bonxie/icons`
   (`UI.Icons`, rasterized by SDL3_image, drawn in one colour as a mask);
   a button with an icon falls back to its label if there is none.

@@ -232,6 +232,11 @@ private package SDL3.Thin is
      (R : Renderer; Rect : access constant FRect) return Interfaces.C.C_bool
      with Import, Convention => C, External_Name => "SDL_RenderFillRect";
 
+   function Render_Line
+     (R : Renderer; X1, Y1, X2, Y2 : Interfaces.C.C_float)
+      return Interfaces.C.C_bool
+     with Import, Convention => C, External_Name => "SDL_RenderLine";
+
    function Set_Render_Clip_Rect
      (R : Renderer; Rect : System.Address) return Interfaces.C.C_bool
      with Import, Convention => C, External_Name => "SDL_SetRenderClipRect";

@@ -24,6 +24,7 @@ package Item_Tests is
    procedure Fractional_Density;
    procedure Full;
    procedure Kept;
+   procedure Linking;
    procedure Source_Windows;
    procedure Source_Pages;
    procedure Source_Words;

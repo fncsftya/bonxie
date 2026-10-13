@@ -67,6 +67,16 @@ package body Items is
      & "x0 REAL NOT NULL, x1 REAL NOT NULL, y REAL NOT NULL, "
      & "PRIMARY KEY (item_id, seq)) WITHOUT ROWID";
 
+   Links_Schema : constant String :=
+     "CREATE TABLE IF NOT EXISTS item_links ("
+     & "id INTEGER PRIMARY KEY, "
+     & "from_id INTEGER NOT NULL "
+     & "REFERENCES items (id) ON DELETE CASCADE, "
+     & "to_id INTEGER NOT NULL "
+     & "REFERENCES items (id) ON DELETE CASCADE, "
+     & "from_side INTEGER NOT NULL, to_side INTEGER NOT NULL, "
+     & "CHECK (from_id <> to_id))";
+
    Has_Recognized : constant String :=
      "SELECT count(*) FROM pragma_table_info('items') "
      & "WHERE name = 'recognized_at'";
@@ -191,6 +201,7 @@ package body Items is
       end if;
       Ada_Sqlite3.Execute (DB (Store).all, Words_Schema);
       Ada_Sqlite3.Execute (DB (Store).all, Marks_Schema);
+      Ada_Sqlite3.Execute (DB (Store).all, Links_Schema);
       Ada_Sqlite3.Execute (DB (Store).all, Index);
    end Prepare;
 
@@ -571,6 +582,75 @@ package body Items is
       return (if Ada_Sqlite3.Step (Query) = Ada_Sqlite3.ROW
               then Projects.Id (Ada_Sqlite3.Column_Int64 (Query, 0)) else 0);
    end Owner;
+
+   function Side_Of (Code : Integer) return Sides is
+     (if Code in 0 .. Sides'Pos (Sides'Last)
+      then Sides'Val (Code) else Top);
+
+   function Is_Linked
+     (Store : Projects.Store; A, B : Id) return Boolean
+   is
+      Query : Ada_Sqlite3.Statement :=
+        Ada_Sqlite3.Prepare
+          (DB (Store).all,
+           "SELECT count(*) FROM item_links "
+           & "WHERE (from_id = :a AND to_id = :b) "
+           & "OR (from_id = :b AND to_id = :a)");
+   begin
+      Ada_Sqlite3.Bind_Int64 (Query, ":a", Long_Integer (A));
+      Ada_Sqlite3.Bind_Int64 (Query, ":b", Long_Integer (B));
+      return Ada_Sqlite3.Step (Query) = Ada_Sqlite3.ROW
+        and then Ada_Sqlite3.Column_Int (Query, 0) > 0;
+   end Is_Linked;
+
+   procedure Add_Link
+     (Store : in out Projects.Store; Made : Link; Added : out Boolean) is
+   begin
+      Added := not Is_Linked (Store, Made.From, Made.To);
+      if Added then
+         declare
+            Insert : Ada_Sqlite3.Statement :=
+              Ada_Sqlite3.Prepare
+                (DB (Store).all,
+                 "INSERT INTO item_links "
+                 & "(from_id, to_id, from_side, to_side) "
+                 & "VALUES (:from, :to, :from_side, :to_side)");
+         begin
+            Ada_Sqlite3.Bind_Int64 (Insert, ":from", Long_Integer (Made.From));
+            Ada_Sqlite3.Bind_Int64 (Insert, ":to", Long_Integer (Made.To));
+            Ada_Sqlite3.Bind_Int
+              (Insert, ":from_side", Sides'Pos (Made.From_Side));
+            Ada_Sqlite3.Bind_Int
+              (Insert, ":to_side", Sides'Pos (Made.To_Side));
+            Ada_Sqlite3.Step (Insert);
+         end;
+      end if;
+   end Add_Link;
+
+   procedure Load_Links
+     (Store   : Projects.Store;
+      Project : Projects.Id;
+      Result  : out Link_List)
+   is
+      Query : Ada_Sqlite3.Statement :=
+        Ada_Sqlite3.Prepare
+          (DB (Store).all,
+           "SELECT l.from_id, l.to_id, l.from_side, l.to_side "
+           & "FROM item_links l JOIN items i ON i.id = l.from_id "
+           & "WHERE i.project_id = :project ORDER BY l.id LIMIT :limit");
+   begin
+      Result.Count := 0;
+      Ada_Sqlite3.Bind_Int64 (Query, ":project", Long_Integer (Project));
+      Ada_Sqlite3.Bind_Int (Query, ":limit", Max_Links);
+      while Ada_Sqlite3.Step (Query) = Ada_Sqlite3.ROW loop
+         Result.Count := Result.Count + 1;
+         Result.Links (Result.Count) :=
+           (From      => Id (Ada_Sqlite3.Column_Int64 (Query, 0)),
+            To        => Id (Ada_Sqlite3.Column_Int64 (Query, 1)),
+            From_Side => Side_Of (Ada_Sqlite3.Column_Int (Query, 2)),
+            To_Side   => Side_Of (Ada_Sqlite3.Column_Int (Query, 3)));
+      end loop;
+   end Load_Links;
 
    procedure Delete (Store : in out Projects.Store; Key : Id) is
       Project : constant Projects.Id := Owner (Store, Key);

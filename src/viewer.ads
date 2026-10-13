@@ -17,6 +17,7 @@ private with UI.Widgets.Grips;
 private with UI.Widgets.Labels;
 private with UI.Widgets.Text_Fields;
 private with UI.Widgets.Panels;
+private with UI.Widgets.Pins;
 private with UI.Widgets.Scrollers;
 
 --  A window of two screens: the home, with the recent projects and
@@ -151,6 +152,14 @@ package Viewer is
    function Item_Count (Item : Session) return Natural
      with Pre => Is_Open (Item) and then Screen (Item) = Project;
    --  How many the project has, whether shown or not.
+
+   function Link_Count (Item : Session) return Natural
+     with Pre => Is_Open (Item) and then Screen (Item) = Project;
+   --  How many links there are between the project's items.
+
+   function Pin_Count (Item : Session) return Natural
+     with Pre => Is_Open (Item) and then Screen (Item) = Project;
+   --  How many pins, to drag a link from, are shown.
 
    procedure Add_Item
      (Item : in out Session;
@@ -317,6 +326,12 @@ private
    type Item_Row_Array is array (Items.Slot) of Item_Row;
    type Slot_Array is array (Items.Slot) of Items.Slot;
 
+   type Pin_Grid is
+     array (Items.Slot, Items.Sides) of aliased UI.Widgets.Pins.Pin;
+   --  The handles to link items by: four round each window.
+
+   type Pin_Places is array (Items.Slot, Items.Sides) of Float;
+
    type Session is limited record
       Widgets      : UI.Widgets.Tree;
       Window_Panel : UI.Widgets.Panels.Panel;
@@ -435,6 +450,17 @@ private
       Windows      : Items.Windows.Window_Array;
       --  The windows of the project's items: after Target, which they
       --  draw to.
+      Pins         : Pin_Grid;
+      --  On the canvas, over the windows, shown where the pointer is.
+      Pin_Left, Pin_Top : Pin_Places := [others => [others => -1.0E9]];
+      --  Where each was last put, in pixels, to put it again only if it
+      --  moves.
+      Link_Set     : Items.Link_List;
+      --  The links between the project's items.
+      Link_From    : Natural := 0;
+      Link_From_Side : Items.Sides := Items.Top;
+      --  The window and side of the pin a line is being dragged from;
+      --  0 if none is.
       Edit_Doc     : aliased Texts.Documents.Document;
       Edit_Field   : UI.Widgets.Text_Fields.Text_Field;
       --  The title being renamed, and the field for it, which is in the

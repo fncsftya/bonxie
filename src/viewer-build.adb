@@ -8,6 +8,7 @@ with UI.Scrollbars;
 with UI.Themes;
 with UI.Widgets;
 with UI.Widgets.Scrollers;
+with Viewer.Links;
 with Viewer.Recent;
 with Viewer.Style;
 with Yoga.Nodes;
@@ -242,6 +243,7 @@ package body Viewer.Build is
            (Each, Item.Canvas_View, Item.Dock_Content, Colors, Toolbar,
             Item.Density);
       end loop;
+      Links.Build (Item);
 
       --  The tabs and the Close button at the right, in the middle of the
       --  bar.

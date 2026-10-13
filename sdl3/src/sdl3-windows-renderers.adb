@@ -1,3 +1,4 @@
+with Ada.Numerics.Elementary_Functions;
 with Interfaces.C;
 with Interfaces.C.Strings;
 with SDL3.Errors;
@@ -206,6 +207,147 @@ package body SDL3.Windows.Renderers is
         (Thin.Render_Fill_Rect (Item.Handle, Rect'Access),
          "SDL_RenderFillRect");
    end Fill_Rect;
+
+   function Vertex
+     (X, Y : Float; Value : Color; Alpha : Float) return Thin.Vertex is
+     (X => To_C (X), Y => To_C (Y),
+      Red => To_C (Float (Value.Red) / 255.0),
+      Green => To_C (Float (Value.Green) / 255.0),
+      Blue => To_C (Float (Value.Blue) / 255.0),
+      Alpha => To_C (Alpha * Float (Value.Alpha) / 255.0),
+      U => 0.0, V => 0.0);
+   --  A corner of a shape, Alpha of the colour's own.
+
+   procedure Draw_Triangles
+     (Item     : Renderer;
+      Vertices : System.Address;
+      Count    : Natural;
+      Indices  : System.Address;
+      Used     : Natural);
+   --  Blend the triangles over what is behind: Vertices is the first of
+   --  Count, Indices of Used.
+
+   procedure Draw_Triangles
+     (Item     : Renderer;
+      Vertices : System.Address;
+      Count    : Natural;
+      Indices  : System.Address;
+      Used     : Natural) is
+   begin
+      Errors.Check
+        (Thin.Set_Render_Draw_Blend_Mode (Item.Handle, 1),
+         "SDL_SetRenderDrawBlendMode");
+      Errors.Check
+        (Thin.Render_Geometry
+           (Item.Handle, System.Null_Address, Vertices,
+            Interfaces.C.int (Count), Indices,
+            Interfaces.C.int (Used)),
+         "SDL_RenderGeometry");
+   end Draw_Triangles;
+
+   procedure Draw_Line
+     (Item : Renderer;
+      Value : Color;
+      From_X, From_Y, To_X, To_Y : Float;
+      Width : Float := 1.0)
+   is
+      Dx      : constant Float := To_X - From_X;
+      Dy      : constant Float := To_Y - From_Y;
+      Length  : constant Float := Ada.Numerics.Elementary_Functions.Sqrt
+                                    (Dx * Dx + Dy * Dy);
+      Across_X : constant Float :=
+        (if Length > 0.0 then -Dy / Length else 0.0);
+      Across_Y : constant Float :=
+        (if Length > 0.0 then Dx / Length else 1.0);
+      Core    : constant Float := Float'Max (0.0, Width / 2.0 - 0.5);
+      Outer   : constant Float := Width / 2.0 + 0.5;
+      --  The solid part's half width, and where it has faded out: a pixel
+      --  across, so that the edges are smooth.
+      Offsets : constant array (1 .. 4) of Float :=
+        [-Outer, -Core, Core, Outer];
+      Fades   : constant array (1 .. 4) of Float := [0.0, 1.0, 1.0, 0.0];
+      Corners : array (1 .. 8) of Thin.Vertex;
+      Order   : array (1 .. 18) of Interfaces.C.int;
+      Used    : Natural := 0;
+   begin
+      for Step in 1 .. 4 loop
+         Corners (Step) :=
+           Vertex (From_X + Offsets (Step) * Across_X,
+                   From_Y + Offsets (Step) * Across_Y,
+                   Value, Fades (Step));
+         Corners (Step + 4) :=
+           Vertex (To_X + Offsets (Step) * Across_X,
+                   To_Y + Offsets (Step) * Across_Y,
+                   Value, Fades (Step));
+      end loop;
+      for Strip in 0 .. 2 loop
+         declare
+            Quad : constant array (1 .. 6) of Natural :=
+              [Strip, Strip + 1, Strip + 4,
+               Strip + 1, Strip + 5, Strip + 4];
+         begin
+            for Index of Quad loop
+               Used := Used + 1;
+               Order (Used) := Interfaces.C.int (Index);
+            end loop;
+         end;
+      end loop;
+      Draw_Triangles
+        (Item, Corners (1)'Address, 8, Order (1)'Address, Used);
+   end Draw_Line;
+
+   procedure Fill_Circle
+     (Item : Renderer;
+      Value : Color;
+      Centre_X, Centre_Y, Radius : Float)
+   is
+      Segments : constant := 48;
+      Inner    : constant Float := Float'Max (0.0, Radius - 0.5);
+      Outer    : constant Float := Radius + 0.5;
+      --  Solid to Inner, faded out by Outer.
+      Corners  : array (1 .. 1 + 2 * Segments) of Thin.Vertex;
+      Order    : array (1 .. 9 * Segments) of Interfaces.C.int;
+      Used     : Natural := 0;
+
+      procedure Triangle (A, B, C : Positive) is
+      begin
+         Order (Used + 1) := Interfaces.C.int (A - 1);
+         Order (Used + 2) := Interfaces.C.int (B - 1);
+         Order (Used + 3) := Interfaces.C.int (C - 1);
+         Used := Used + 3;
+      end Triangle;
+   begin
+      Corners (1) := Vertex (Centre_X, Centre_Y, Value, 1.0);
+      for Step in 0 .. Segments - 1 loop
+         declare
+            Angle : constant Float :=
+              2.0 * Ada.Numerics.Pi * Float (Step) / Float (Segments);
+            Cos   : constant Float :=
+              Ada.Numerics.Elementary_Functions.Cos (Angle);
+            Sin   : constant Float :=
+              Ada.Numerics.Elementary_Functions.Sin (Angle);
+         begin
+            Corners (2 + Step) :=
+              Vertex (Centre_X + Inner * Cos, Centre_Y + Inner * Sin,
+                      Value, 1.0);
+            Corners (2 + Segments + Step) :=
+              Vertex (Centre_X + Outer * Cos, Centre_Y + Outer * Sin,
+                      Value, 0.0);
+         end;
+      end loop;
+      for Step in 0 .. Segments - 1 loop
+         declare
+            Next : constant Natural := (Step + 1) mod Segments;
+         begin
+            Triangle (1, 2 + Step, 2 + Next);
+            Triangle (2 + Step, 2 + Segments + Step, 2 + Next);
+            Triangle (2 + Next, 2 + Segments + Step, 2 + Segments + Next);
+         end;
+      end loop;
+      Draw_Triangles
+        (Item, Corners (1)'Address, Corners'Length, Order (1)'Address,
+         Used);
+   end Fill_Circle;
 
    procedure Set_Clip (Item : Renderer; X, Y, Width, Height : Integer) is
       use Interfaces.C;

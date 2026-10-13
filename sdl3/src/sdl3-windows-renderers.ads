@@ -77,6 +77,23 @@ package SDL3.Windows.Renderers is
       X, Y, Width, Height : Float);
    --  The colour's alpha is not used, unless Solid.
 
+   procedure Draw_Line
+     (Item : Renderer;
+      Value : Color;
+      From_X, From_Y, To_X, To_Y : Float;
+      Width : Float := 1.0)
+     with Pre => Width > 0.0;
+   --  A straight line Width pixels wide, its edges smoothed, blended with
+   --  what is behind by the colour's alpha.
+
+   procedure Fill_Circle
+     (Item : Renderer;
+      Value : Color;
+      Centre_X, Centre_Y, Radius : Float)
+     with Pre => Radius > 0.0;
+   --  A disc, its edge smoothed, blended with what is behind by the
+   --  colour's alpha.
+
    procedure Set_Clip (Item : Renderer; X, Y, Width, Height : Integer)
      with Pre => Width >= 0 and then Height >= 0;
    --  Draw only into the rectangle Width x Height pixels with its top

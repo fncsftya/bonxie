@@ -65,6 +65,29 @@ package Items is
    end record;
    --  Marks (1 .. Count), the earliest made first.
 
+   type Sides is (Top, Right, Bottom, Left);
+   --  The edges of an item's window, a link joining at the middle of one.
+
+   type Link is record
+      From, To : Id := 0;
+      From_Side, To_Side : Sides := Top;
+   end record;
+   --  A line between two items of a project, from the middle of one side
+   --  of the window of From to the middle of one of To. An item has no
+   --  link to itself, and two items at most one between them (in either
+   --  direction).
+
+   Max_Links : constant := Capacity * (Capacity - 1) / 2;
+   --  Of one project: one to each pair of its items.
+
+   type Link_Array is array (Positive range <>) of Link;
+
+   type Link_List is record
+      Count : Natural range 0 .. Max_Links := 0;
+      Links : Link_Array (1 .. Max_Links);
+   end record;
+   --  Links (1 .. Count), the earliest made first.
+
    type Info is record
       Key   : Id := 0;
       Title : Projects.Titles.Bounded_String :=
@@ -218,6 +241,24 @@ package Items is
    procedure Make_Image_Folder
      (Store : Projects.Store; Project : Projects.Id)
      with Pre => Projects.Is_Open (Store);
+
+   function Is_Linked
+     (Store : Projects.Store; A, B : Id) return Boolean
+     with Pre => Projects.Is_Open (Store);
+   --  Whether there is a link between the items, whichever way round.
+
+   procedure Add_Link
+     (Store : in out Projects.Store; Made : Link; Added : out Boolean)
+     with Pre => Projects.Is_Open (Store) and then Made.From /= Made.To;
+   --  Keep a link, if the items are not linked already, and say whether
+   --  it was. They must be items of one project.
+
+   procedure Load_Links
+     (Store   : Projects.Store;
+      Project : Projects.Id;
+      Result  : out Link_List)
+     with Pre => Projects.Is_Open (Store);
+   --  The links between the project's items. They go with the items.
 
    procedure Delete (Store : in out Projects.Store; Key : Id)
      with Pre => Projects.Is_Open (Store);

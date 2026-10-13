@@ -9,6 +9,7 @@ with UI.Widgets;
 with UI.Widgets.Pictures;
 with Viewer.Build;
 with Viewer.Canvas_Items;
+with Viewer.Links;
 with Viewer.Clicks;
 with Viewer.Deletion;
 with Viewer.Listing;
@@ -129,6 +130,12 @@ package body Viewer is
 
    function Item_Count (Item : Session) return Natural is
      (Canvas_Items.Count (Item));
+
+   function Link_Count (Item : Session) return Natural is
+     (Item.Link_Set.Count);
+
+   function Pin_Count (Item : Session) return Natural is
+     (Links.Shown_Pins (Item));
 
    procedure Add_Item
      (Item : in out Session;

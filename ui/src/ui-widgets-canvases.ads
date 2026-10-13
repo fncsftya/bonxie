@@ -44,10 +44,41 @@ package UI.Widgets.Canvases is
    function To_Canvas_Y (Item : Canvas; Point : Float) return Float;
    --  The canvas unit at Point points from the left or top of the box.
 
+   Max_Lines : constant := 128;
+
+   type Line is record
+      From_X, From_Y, To_X, To_Y : Float := 0.0;
+   end record;
+   --  A straight line between two places, in canvas units.
+
+   type Line_Array is array (Positive range <>) of Line;
+
+   procedure Set_Lines (Item : in out Canvas; Lines : Line_Array)
+     with Pre => Lines'Length <= Max_Lines;
+   --  Draw these lines, joining things on the canvas, over the canvas but
+   --  under what is on it, in place of any before. Setting what it has
+   --  already damages nothing; a line that has moved damages the box
+   --  round where it was and where it is.
+
+   procedure Set_Ghost
+     (Item : in out Canvas; From_X, From_Y : Float; To_X, To_Y : Float);
+   --  Draw a faint line over everything on the canvas, as of one being
+   --  dragged out: from a place on the canvas (in canvas units) to the
+   --  pointer (in points of the window).
+
+   procedure Clear_Ghost (Item : in out Canvas);
+
+   function Has_Ghost (Item : Canvas) return Boolean;
+
    overriding procedure Placed
      (Item : in out Canvas; Left, Top, Width, Height : Float);
 
    overriding procedure Draw
+     (Item   : in out Canvas;
+      Target : SDL3.Windows.Renderers.Renderer;
+      Colors : Themes.Theme);
+
+   overriding procedure Draw_Over
      (Item   : in out Canvas;
       Target : SDL3.Windows.Renderers.Renderer;
       Colors : Themes.Theme);
@@ -71,6 +102,12 @@ private
       Panning : Boolean := False;
       Last_X, Last_Y : Float := 0.0;
       --  Where the pointer was, in points, while it pans.
+      Line_Count : Natural range 0 .. Max_Lines := 0;
+      Lines      : Line_Array (1 .. Max_Lines);
+      Ghosted    : Boolean := False;
+      Ghost_From : Line;
+      --  The ghost: From_X, From_Y are in canvas units, To_X, To_Y in
+      --  points of the window.
    end record;
 
 end UI.Widgets.Canvases;
