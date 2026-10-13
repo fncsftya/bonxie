@@ -3,7 +3,7 @@ description = "Ada bindings for CoreText text shaping and rasterization (macOS o
 version = "0.1.0-dev"
 
 authors = ["Matt Rawcliffe"]
-licenses = "MIT"
+licenses = "GPL-3.0-only"
 website = ""
 tags = []
 
