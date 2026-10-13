@@ -75,9 +75,9 @@ private func start(_ session: Listening) async throws {
     else {
         throw Failure(why: "Speech is not supported in this language")
     }
-    let transcriber = SpeechTranscriber(
-        locale: locale, transcriptionOptions: [], reportingOptions: [.volatileResults],
-        attributeOptions: [])
+    // The progressive preset reports volatile results as soon as they are
+    // guessed (.fastResults), not at a pause.
+    let transcriber = SpeechTranscriber(locale: locale, preset: .progressiveTranscription)
     if let request = try await AssetInventory.assetInstallationRequest(
         supporting: [transcriber])
     {
@@ -88,6 +88,11 @@ private func start(_ session: Listening) async throws {
     else {
         throw Failure(why: "No audio format for speech")
     }
+    let analyzer = SpeechAnalyzer(
+        modules: [transcriber], options: .init(priority: .userInitiated, modelRetention: .lingering))
+    session.analyzer = analyzer
+    // Load the model now, so that the first words do not wait for it.
+    try await analyzer.prepareToAnalyze(in: format)
     let input = session.engine.inputNode
     let heard = input.outputFormat(forBus: 0)
     guard heard.sampleRate > 0, let converter = AVAudioConverter(from: heard, to: format)
@@ -96,7 +101,7 @@ private func start(_ session: Listening) async throws {
     }
     let (stream, feed) = AsyncStream.makeStream(of: AnalyzerInput.self)
     session.feed = feed
-    input.installTap(onBus: 0, bufferSize: 4096, format: heard) { buffer, _ in
+    input.installTap(onBus: 0, bufferSize: 1024, format: heard) { buffer, _ in
         let room = AVAudioFrameCount(
             Double(buffer.frameLength) * format.sampleRate / heard.sampleRate) + 1024
         guard let made = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: room) else {
@@ -123,7 +128,7 @@ private func start(_ session: Listening) async throws {
             feed.yield(AnalyzerInput(buffer: made))
         }
     }
-    session.collected = Task {
+    session.collected = Task(priority: .userInitiated) {
         for try await result in transcriber.results {
             let said = String(result.text.characters)
             session.heard.withLock {
@@ -137,8 +142,6 @@ private func start(_ session: Listening) async throws {
         }
         return session.heard.withLock { session.finals }
     }
-    let analyzer = SpeechAnalyzer(modules: [transcriber])
-    session.analyzer = analyzer
     try await analyzer.start(inputSequence: stream)
     session.engine.prepare()
     try session.engine.start()
