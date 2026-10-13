@@ -13,7 +13,7 @@ project Bench is
    for Create_Missing_Dirs use "True";
    for Exec_Dir use "bin";
    for Main use ("bench.adb", "text_area_bench.adb", "widget_bench.adb",
-                    "item_bench.adb", "open_bench.adb");
+                 "item_bench.adb", "open_bench.adb", "write_bench.adb");
 
    package Compiler is
       for Default_Switches ("Ada") use Bench_Config.Ada_Compiler_Switches &
