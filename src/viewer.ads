@@ -827,6 +827,11 @@ private
       Shown_Title  : Ada.Strings.Unbounded.Unbounded_String;
 
       Windowed     : Boolean := False;
+      Moving       : Boolean := False;
+      --  Whether a press on the bar is moving the window, from where the
+      --  pointer and the window were when it was pressed.
+      Grab_X, Grab_Y       : Float := 0.0;
+      Grab_Left, Grab_Top  : Integer := 0;
       System_Board : UI.Clipboards.System_Clipboard;
       Own_Board    : UI.Clipboards.Memory_Clipboard;
       --  The clipboard used offscreen.

@@ -8,8 +8,9 @@ private package Viewer.Style is
    Window_Width  : constant := 1000;
    Window_Height : constant := 800;
    Header_Size   : constant Float := 28.0;
-   --  Of a window's own title bar: the screens leave it clear at the top,
-   --  where its close, minimise and zoom buttons and its drag are.
+   Header_Inset  : constant Float := 80.0;
+   --  Of a window's own title bar, which the screens leave clear at the
+   --  top, and of its close, minimise and zoom buttons at the left.
 
    --  The bar across the top of a project, in points
 

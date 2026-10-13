@@ -64,6 +64,20 @@ package SDL3.Windows is
      with Pre => Is_Open (Item);
    --  Ask for the window's top left to be at X, Y.
 
+   procedure Set_Movable (Item : Window; Movable : Boolean)
+     with Pre => Is_Open (Item);
+   --  On macOS, whether the system moves the window when its title bar is
+   --  dragged. Off, the content has the whole top of the window, and the
+   --  program moves the window itself with Set_Position. Nothing elsewhere.
+
+   procedure Global_Pointer (X, Y : out Float);
+   --  Where the pointer is on the desktop, in points.
+
+   procedure Zoom (Item : Window)
+     with Pre => Is_Open (Item);
+   --  On macOS, zoom the window as its title bar's double click does: to
+   --  its largest size, or back. Nothing elsewhere.
+
 private
 
    type Window is new Ada.Finalization.Limited_Controlled with record

@@ -71,15 +71,20 @@ package body SDL3.Windows is
       Errors.Check (Done, "SDL_SetWindowTitle");
    end Set_Title;
 
+   function Windows_Cocoa (Item : Window) return System.Address is
+      use Interfaces.C;
+   begin
+      return Thin.Get_Pointer_Property
+        (Thin.Get_Window_Properties (Item.Handle),
+         To_C ("SDL.window.cocoa.window"), System.Null_Address);
+   end Windows_Cocoa;
+
    procedure Extend_Into_Title_Bar (Item : Window) is
       use Interfaces.C;
       use type Interfaces.Unsigned_64;
       Full_Size_Content : constant := 2 ** 15;  --  NSWindowStyleMask...
       Title_Hidden      : constant := 1;        --  NSWindowTitleHidden
-      Cocoa_Window : constant System.Address :=
-        Thin.Get_Pointer_Property
-          (Thin.Get_Window_Properties (Item.Handle),
-           To_C ("SDL.window.cocoa.window"), System.Null_Address);
+      Cocoa_Window : constant System.Address := Windows_Cocoa (Item);
    begin
       if Cocoa_Window = System.Null_Address then
          return;  --  not on macOS
@@ -95,6 +100,39 @@ package body SDL3.Windows is
         (Cocoa_Window, Thin.Selector (To_C ("setTitleVisibility:")),
          Title_Hidden);
    end Extend_Into_Title_Bar;
+
+   procedure Set_Movable (Item : Window; Movable : Boolean) is
+      use Interfaces.C;
+      Cocoa : constant System.Address := Windows_Cocoa (Item);
+   begin
+      if Cocoa /= System.Null_Address then
+         Thin.Send_Unsigned
+           (Cocoa, Thin.Selector (To_C ("setMovable:")),
+            (if Movable then 1 else 0));
+      end if;
+   end Set_Movable;
+
+   procedure Zoom (Item : Window) is
+      use Interfaces.C;
+      Cocoa : constant System.Address := Windows_Cocoa (Item);
+   begin
+      if Cocoa /= System.Null_Address then
+         --  performZoom: takes the sender, which is not needed: nil.
+         Thin.Send_Unsigned
+           (Cocoa, Thin.Selector (To_C ("performZoom:")), 0);
+      end if;
+   end Zoom;
+
+   procedure Global_Pointer (X, Y : out Float) is
+      use Interfaces.C;
+      PX, PY : aliased C_float := 0.0;
+      Ignored : constant Interfaces.Unsigned_32 :=
+        Thin.Get_Global_Mouse_State (PX'Access, PY'Access);
+      pragma Unreferenced (Ignored);
+   begin
+      X := Float (PX);
+      Y := Float (PY);
+   end Global_Pointer;
 
    procedure Set_Size (Item : Window; Width, Height : Positive) is
       use Interfaces.C;

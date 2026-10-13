@@ -52,6 +52,66 @@ package body Viewer is
       end if;
    end Show_Cursor;
 
+   --  Moving the window
+
+   function In_Title_Strip (Item : Session; Y : Float) return Boolean is
+     (Y >= 0.0
+      and then Y < (if Item.Shown = Project or else Item.Showing_Settings
+                    then Style.Toolbar_Size
+                    else Style.Header_Size));
+   --  Whether a point is in the bar across the top, or over the home
+   --  screen, where the window is moved from. The window has no native
+   --  title bar drag (see Open_Window), so this is what moves it.
+
+   procedure Track_Window
+     (Item  : in out Session;
+      Event : SDL3.Events.Event;
+      Taken : Boolean)
+   is
+      Width, Height : Integer;
+      Found         : Boolean;
+   begin
+      case Event.Kind is
+         when SDL3.Events.Mouse_Down =>
+            --  A press on a button is for the button, not for a drag.
+            if Event.Button = 1 and then not Taken
+              and then In_Title_Strip (Item, Event.Mouse_Y)
+            then
+               if Event.Clicks >= 2 then
+                  SDL3.Windows.Zoom (Item.Win);  --  as a title bar does
+               else
+                  SDL3.Windows.Get_Geometry
+                    (Item.Win, Item.Grab_Left, Item.Grab_Top, Width, Height,
+                     Found);
+                  if Found then
+                     SDL3.Windows.Global_Pointer (Item.Grab_X, Item.Grab_Y);
+                     Item.Moving := True;
+                  end if;
+               end if;
+            end if;
+         when SDL3.Events.Mouse_Move =>
+            if Item.Moving then
+               declare
+                  X, Y : Float;
+               begin
+                  SDL3.Windows.Global_Pointer (X, Y);
+                  SDL3.Windows.Set_Position
+                    (Item.Win,
+                     Item.Grab_Left
+                     + Integer (Float'Rounding (X - Item.Grab_X)),
+                     Item.Grab_Top
+                     + Integer (Float'Rounding (Y - Item.Grab_Y)));
+               end;
+            end if;
+         when SDL3.Events.Mouse_Up =>
+            if Event.Button = 1 then
+               Item.Moving := False;
+            end if;
+         when others =>
+            null;
+      end case;
+   end Track_Window;
+
    procedure Handle (Item : in out Session; Event : SDL3.Events.Event) is
       Handled : Boolean := False;
    begin
@@ -104,6 +164,9 @@ package body Viewer is
                   Writing.Pressed (Item, Event.Mouse_X, Event.Mouse_Y);
                end if;
                Widgets.Dispatch (Item.Widgets, Event, Handled);
+               if Item.Windowed then
+                  Track_Window (Item, Event, Handled);
+               end if;
                Clicks.Take (Item);
                Show_Cursor (Item);
             end if;
@@ -404,6 +467,9 @@ package body Viewer is
          Resizable => True, High_Density => True, Hidden => Hidden);
       Item.Density := SDL3.Windows.Pixel_Density (Item.Win);
       SDL3.Windows.Extend_Into_Title_Bar (Item.Win);
+      --  The bar is dragged by the program (see Track_Window), not by the
+      --  system, so that its buttons are only clicked.
+      SDL3.Windows.Set_Movable (Item.Win, False);
       Create (Item.Target, Item.Win, VSync => VSync);
       Build.Set_Up (Item, Source, File_Name, Store);
       SDL3.Windows.Start_Text_Input (Item.Win);

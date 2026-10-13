@@ -95,7 +95,8 @@ package body Viewer.Build is
       use Yoga.Nodes;
    begin
       --  Not shown: the screens leave room for the window's own buttons
-      --  (Header_Size above every screen), and its title is the window's.
+      --  (Header_Size above the home screen, Header_Inset at the left of
+      --  the toolbar), and its title is the window's.
       Widgets.Add (Item.Window_Panel, Item.Header_Panel);
       Widgets.Add (Item.Header_Panel, Item.Header_Title);
       Set_Height
@@ -336,10 +337,6 @@ package body Viewer.Build is
       Widgets.Add (Item.Dock_Scroll, Item.Dock_Content);
 
       Set_Flex_Direction (Widgets.Node (Item.Project_Panel), Yoga.Column);
-      --  Below the window's own title bar, which is clear for it to drag by.
-      Set_Padding
-        (Widgets.Node (Item.Project_Panel), Yoga.Top,
-         (if Item.Windowed then Header_Size else 0.0) * Pixels);
       Set_Flex_Grow (Widgets.Node (Item.Project_Panel), 1.0);
       Set_Flex_Grow (Widgets.Node (Item.Content_Panel), 1.0);
       Set_Flex_Direction (Widgets.Node (Item.Content_Panel), Yoga.Column);
@@ -357,7 +354,7 @@ package body Viewer.Build is
       Set_Align_Items (Widgets.Node (Item.Toolbar_Panel), Yoga.Center);
       Set_Padding
         (Widgets.Node (Item.Toolbar_Panel), Yoga.Left,
-         Bar_Inset * Pixels);
+         (if Item.Windowed then Header_Inset else Bar_Inset) * Pixels);
       Set_Padding
         (Widgets.Node (Item.Toolbar_Panel), Yoga.Right, Bar_Inset * Pixels);
       Side (Item.Toolbar_Start, Yoga.Flex_Start);
@@ -770,9 +767,6 @@ package body Viewer.Build is
       Widgets.Add (Item.Settings_Form, Item.Download_Bar);
 
       Set_Flex_Direction (Widgets.Node (Item.Settings_Panel), Yoga.Column);
-      Set_Padding
-        (Widgets.Node (Item.Settings_Panel), Yoga.Top,
-         (if Item.Windowed then Header_Size else 0.0) * Pixels);
       Set_Flex_Grow (Widgets.Node (Item.Settings_Panel), 1.0);
       Panels.Set_Fill (Item.Settings_Panel, Desk);
 
@@ -784,7 +778,7 @@ package body Viewer.Build is
       Set_Align_Items (Widgets.Node (Item.Settings_Bar), Yoga.Center);
       Set_Padding
         (Widgets.Node (Item.Settings_Bar), Yoga.Left,
-         Bar_Inset * Pixels);
+         (if Item.Windowed then Header_Inset else Bar_Inset) * Pixels);
       Set_Padding
         (Widgets.Node (Item.Settings_Bar), Yoga.Right, Bar_Inset * Pixels);
       Labels.Set_Text (Item.Settings_Title, "Settings");

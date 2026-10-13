@@ -385,6 +385,10 @@ private package SDL3.Thin is
      (X, Y : access Interfaces.C.C_float) return Interfaces.Unsigned_32
      with Import, Convention => C, External_Name => "SDL_GetMouseState";
 
+   function Get_Global_Mouse_State
+     (X, Y : access Interfaces.C.C_float) return Interfaces.Unsigned_32
+     with Import, Convention => C, External_Name => "SDL_GetGlobalMouseState";
+
    type Cursor is new System.Address;
 
    function Create_System_Cursor (Id : Interfaces.C.int) return Cursor
