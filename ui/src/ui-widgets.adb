@@ -781,7 +781,8 @@ package body UI.Widgets is
             | SDL3.Events.Text_Editing =>
             Dispatch_Keys (Item, Event, Handled);
 
-         when SDL3.Events.Quit | SDL3.Events.Redraw | SDL3.Events.Other =>
+         when SDL3.Events.Quit | SDL3.Events.Redraw
+            | SDL3.Events.Theme_Changed | SDL3.Events.Other =>
             null;
       end case;
    end Dispatch;

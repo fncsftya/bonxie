@@ -50,7 +50,7 @@ package UI.Widgets.Menus is
      with Pre => Row <= Row_Count (Item);
 
    procedure Set_Swatch
-     (Item : in out Menu; Row : Positive; To : Themes.Color)
+     (Item : in out Menu; Row : Positive; To : Themes.Slot)
      with Pre => Row <= Row_Count (Item);
 
    procedure Set_Checked (Item : in out Menu; Row : Positive; To : Boolean)
@@ -101,7 +101,7 @@ private
       Iconed   : Boolean := False;
       Which    : UI.Icons.Icon := UI.Icons.Icon'First;
       Swatched : Boolean := False;
-      Swatch   : Themes.Color := (0, 0, 0, 255);
+      Swatch   : Themes.Slot := Themes.Primary;
    end record;
 
    type Line_Array is array (1 .. Row_Capacity) of Line;

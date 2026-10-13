@@ -136,8 +136,7 @@ package body Items.Windows is
      (Item    : in out Window;
       Canvas  : in out Widgets.Widget'Class;
       Dock    : in out Widgets.Widget'Class;
-      Colors  : UI.Themes.Theme;
-      Bar     : UI.Themes.Color;
+      Bar     : UI.Themes.Slot;
       Density : Float)
    is
       use Yoga.Nodes;
@@ -186,9 +185,9 @@ package body Items.Windows is
       --  the status line, placed by its edges on the canvas.
       --  Its outline is its fill, round what is in it; its shadow is
       --  inside its box, at the right and the foot.
-      Item.Ring_Ink := Colors.Accent;
-      Panels.Set_Fill (Item.Frame, Colors.Border);
-      Panels.Set_Shadow (Item.Frame, Colors.Shadow);
+      Item.Ring_Ink := UI.Themes.Accent;
+      Panels.Set_Fill (Item.Frame, UI.Themes.Border);
+      Panels.Set_Shadow (Item.Frame, UI.Themes.Shadow);
       Set_Position_Type (Widgets.Node (Item.Frame), Yoga.Absolute);
       Set_Flex_Direction (Widgets.Node (Item.Frame), Yoga.Column);
       Set_Padding (Widgets.Node (Item.Frame), Yoga.Left, Edge);
@@ -218,7 +217,7 @@ package body Items.Windows is
         (Widgets.Node (Item.Title_Field), Yoga.Right, Drag_Room * Pixels);
       --  The title is text, in the field's place, until it is to be
       --  edited.
-      Grips.Set_Hover_Outline (Item.Title_Area, Colors.Background);
+      Grips.Set_Hover_Outline (Item.Title_Area, UI.Themes.Background);
       Set_Flex_Grow (Widgets.Node (Item.Title_Area), 1.0);
       Set_Width (Widgets.Node (Item.Title_Area), 0.0);
       Set_Height (Widgets.Node (Item.Title_Area), Title_Height * Pixels);
@@ -228,12 +227,12 @@ package body Items.Windows is
       Set_Align_Items (Widgets.Node (Item.Title_Area), Yoga.Center);
       Set_Padding
         (Widgets.Node (Item.Title_Area), Yoga.Left, Bar_Pad * Pixels);
-      Panels.Set_Fill (Item.Tag, Colors.Bar);
+      Panels.Set_Fill (Item.Tag, UI.Themes.Bar);
       Size (Item.Tag, Tag_Size, Tag_Size);
       Set_Flex_Shrink (Widgets.Node (Item.Tag), 0.0);
       Set_Margin (Widgets.Node (Item.Tag), Yoga.Right, Tag_Gap * Pixels);
       Labels.Set_Style (Item.Title_Label, UI.Line_Texts.Strong);
-      Labels.Set_Ink (Item.Title_Label, UI.Themes.White);
+      Labels.Set_Ink (Item.Title_Label, UI.Themes.Bar_Ink);
       Set_Flex_Grow (Widgets.Node (Item.Title_Label), 1.0);
       Set_Width (Widgets.Node (Item.Title_Label), 0.0);
       Set_Height (Widgets.Node (Item.Title_Label), Label_Height * Pixels);
@@ -250,7 +249,7 @@ package body Items.Windows is
 
       Editors.Configure
         (Item.Body_Text, UI.Line_Texts.Serif, Text_Size, Measure);
-      Editors.Set_Paper (Item.Body_Text, (255, 255, 255, 255));
+      Editors.Set_Paper (Item.Body_Text, UI.Themes.Page);
       Set_Flex_Grow (Widgets.Node (Item.Body_Text), 1.0);
       --  Its own outline is the window's at the sides.
       Set_Margin
@@ -262,8 +261,8 @@ package body Items.Windows is
 
       --  Its outline over the window's at the sides and the foot, a line
       --  between it and what is above.
-      Panels.Set_Fill (Item.Status_Bar, Colors.Tint);
-      Panels.Set_Border (Item.Status_Bar, Colors.Border);
+      Panels.Set_Fill (Item.Status_Bar, UI.Themes.Tint);
+      Panels.Set_Border (Item.Status_Bar, UI.Themes.Border);
       Set_Margin (Widgets.Node (Item.Status_Bar), Yoga.Horizontal, -Edge);
       Set_Margin (Widgets.Node (Item.Status_Bar), Yoga.Bottom, -Edge);
       Set_Height (Widgets.Node (Item.Status_Bar), Status_Height * Pixels);
@@ -295,7 +294,7 @@ package body Items.Windows is
       Set_Padding (Widgets.Node (Item.Mini), Yoga.Right, Mini_Gap * Pixels);
       Set_Gap (Widgets.Node (Item.Mini), Yoga.All_Gutters, Mini_Gap * Pixels);
       --  The whole title is to click, to bring the window back.
-      Grips.Set_Hover_Outline (Item.Mini_Area, Colors.Background);
+      Grips.Set_Hover_Outline (Item.Mini_Area, UI.Themes.Background);
       Grips.Set_Wanted_Cursor (Item.Mini_Area, SDL3.Cursors.Pointer);
       Set_Flex_Grow (Widgets.Node (Item.Mini_Area), 1.0);
       Set_Width (Widgets.Node (Item.Mini_Area), 0.0);
@@ -305,7 +304,7 @@ package body Items.Windows is
       Set_Padding
         (Widgets.Node (Item.Mini_Area), Yoga.Left, Bar_Pad * Pixels);
       Labels.Set_Style (Item.Mini_Title, UI.Line_Texts.Strong);
-      Labels.Set_Ink (Item.Mini_Title, UI.Themes.White);
+      Labels.Set_Ink (Item.Mini_Title, UI.Themes.Bar_Ink);
       Set_Flex_Grow (Widgets.Node (Item.Mini_Title), 1.0);
       Set_Width (Widgets.Node (Item.Mini_Title), 0.0);
       Set_Height (Widgets.Node (Item.Mini_Title), Label_Height * Pixels);
@@ -363,7 +362,7 @@ package body Items.Windows is
 
       --  The menu: over the picture, at the right, with the window's
       --  outline between its buttons.
-      Panels.Set_Fill (Item.Zoom_Menu, Colors.Border);
+      Panels.Set_Fill (Item.Zoom_Menu, UI.Themes.Border);
       Set_Position_Type (Widgets.Node (Item.Zoom_Menu), Yoga.Absolute);
       Set_Position
         (Widgets.Node (Item.Zoom_Menu), Yoga.Right,
@@ -408,7 +407,7 @@ package body Items.Windows is
 
    function Is_Assigned (Item : Window) return Boolean is (Item.Assigned);
 
-   procedure Set_Tag (Item : in out Window; To : UI.Themes.Color) is
+   procedure Set_Tag (Item : in out Window; To : UI.Themes.Slot) is
    begin
       Panels.Set_Fill (Item.Tag, To);
    end Set_Tag;

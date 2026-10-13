@@ -70,7 +70,7 @@ package body Widget_Tests is
       Widgets.Add (Item.Bar, Item.Third);
       Widgets.Add (Item.Root, Item.Page);
 
-      Panels.Set_Fill (Item.Bar, (52, 54, 66, 255));
+      Panels.Set_Fill_Color (Item.Bar, (52, 54, 66, 255));
       UI.Widgets.Buttons.Set_Label (Item.First, "One");
       UI.Widgets.Buttons.Set_Label (Item.Second, "Two");
       UI.Widgets.Buttons.Set_Label (Item.Third, "Three");
@@ -424,10 +424,10 @@ package body Widget_Tests is
 
       --  A panel's colour, set to what it is, damages nothing; changed,
       --  only it.
-      Panels.Set_Fill (Item.Bar, (52, 54, 66, 255));
+      Panels.Set_Fill_Color (Item.Bar, (52, 54, 66, 255));
       Check_Flag ("widgets-damage-same-fill", False,
                   Widgets.Needs_Paint (Item.Tree));
-      Panels.Set_Fill (Item.Bar, (80, 60, 40, 255));
+      Panels.Set_Fill_Color (Item.Bar, (80, 60, 40, 255));
       Goldens.Check_Text
         ("widgets-damage-fill", "0,0 720x64",
          Text_Of (Widgets.Damage (Item.Tree)));
@@ -709,7 +709,7 @@ package body Widget_Tests is
       Nodes.Set_Padding
         (Widgets.Node (Item.Bar), Yoga.All_Edges, 4.0 * Density);
       Nodes.Set_Width (Widgets.Node (Item.Third), 80.0 * Density);
-      Panels.Set_Fill (Item.Bar, (52, 54, 66, 255));
+      Panels.Set_Fill_Color (Item.Bar, (52, 54, 66, 255));
       Widgets.Layout (Item.Tree, Item.Target);
       Check_Box ("widgets-removing-rebuilt", "8,8 160x48", Item.Third);
       Check_Painted (Item, "widgets-removing-rebuilt");
@@ -771,13 +771,13 @@ package body Widget_Tests is
       Nodes.Set_Flex_Direction (Widgets.Node (Root), Yoga.Row);
       Nodes.Set_Width (Widgets.Node (Side), 100.0);
       Nodes.Set_Flex_Grow (Widgets.Node (Main), 1.0);
-      Panels.Set_Fill (Side, (52, 54, 66, 255));
-      Panels.Set_Fill (Main, (200, 120, 40, 255));
+      Panels.Set_Fill_Color (Side, (52, 54, 66, 255));
+      Panels.Set_Fill_Color (Main, (200, 120, 40, 255));
       Frame;
 
       --  A change drawn after the frame went to the window draws only
       --  that, over what the last frame left.
-      Panels.Set_Fill (Side, (40, 80, 120, 255));
+      Panels.Set_Fill_Color (Side, (40, 80, 120, 255));
       Goldens.Check_Text
         ("widgets-window-damage", "0,0 100x200",
          Text_Of (Widgets.Damage (Tree)));

@@ -7,6 +7,7 @@ with UI.Widgets.Buttons;
 with UI.Widgets.Checks;
 with UI.Widgets.Labels;
 with UI.Widgets.Progress_Bars;
+with SDL3.Events;
 with Viewer.Style;
 with Yoga.Nodes;
 
@@ -20,6 +21,7 @@ package body Viewer.Settings_View is
 
    use type Downloads.States;
    use type Preferences.Speech_Models;
+   use type Preferences.Theme_Choices;
 
    function Config (Item : Session) return String is
      (Ada.Strings.Unbounded.To_String (Item.Config_Dir));
@@ -75,6 +77,12 @@ package body Viewer.Settings_View is
    begin
       Checks.Set_Checked (Item.Model_Native, not Parakeet);
       Checks.Set_Checked (Item.Model_Parakeet, Parakeet);
+      Checks.Set_Checked
+        (Item.Theme_Light, Item.Theme_Chosen = Preferences.Light);
+      Checks.Set_Checked
+        (Item.Theme_Dark, Item.Theme_Chosen = Preferences.Dark);
+      Checks.Set_Checked
+        (Item.Theme_System, Item.Theme_Chosen = Preferences.System);
       Widgets.Set_Visible (Item.Download_Row, Parakeet);
       Widgets.Set_Visible (Item.Download_Bar, Parakeet and then Running);
       Buttons.Set_Enabled
@@ -123,12 +131,59 @@ package body Viewer.Settings_View is
       end if;
    end Choose;
 
+   procedure Choose_Appearance
+     (Item : in out Session; To : Preferences.Theme_Choices) is
+   begin
+      Item.Theme_Chosen := To;
+      if Item.Persist then
+         begin
+            Preferences.Save_Theme (Config (Item), To);
+         exception
+            when others =>
+               null;  --  the choice holds for now; it is not worth a crash
+         end;
+      end if;
+      Apply_Theme (Item);
+      if Item.Showing_Settings then
+         Refresh (Item);
+      end if;
+   end Choose_Appearance;
+
+   procedure Apply_Theme (Item : in out Session) is
+      Dark : constant Boolean :=
+        (case Item.Theme_Chosen is
+            when Preferences.Light  => False,
+            when Preferences.Dark   => True,
+            when Preferences.System => SDL3.Events.System_Is_Dark);
+   begin
+      Viewer.Style.Use_Dark (Dark);
+      if Dark /= Item.Dark_Shown then
+         Item.Dark_Shown := Dark;
+         Widgets.Invalidate_All (Item.Widgets);
+      end if;
+   end Apply_Theme;
+
    procedure Take (Item : in out Session) is
       Clicked : Boolean;
    begin
       Buttons.Take_Click (Item.Settings_Close, Clicked);
       if Clicked then
          Close (Item);
+         return;
+      end if;
+      Checks.Take_Change (Item.Theme_Light, Clicked);
+      if Clicked then
+         Choose_Appearance (Item, Preferences.Light);
+         return;
+      end if;
+      Checks.Take_Change (Item.Theme_Dark, Clicked);
+      if Clicked then
+         Choose_Appearance (Item, Preferences.Dark);
+         return;
+      end if;
+      Checks.Take_Change (Item.Theme_System, Clicked);
+      if Clicked then
+         Choose_Appearance (Item, Preferences.System);
          return;
       end if;
       Checks.Take_Change (Item.Model_Native, Clicked);

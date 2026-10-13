@@ -59,7 +59,7 @@ package body UI.Widgets.Buttons is
       end if;
    end Set_Icon_Size;
 
-   procedure Set_Swatch (Item : in out Button; To : Themes.Color) is
+   procedure Set_Swatch (Item : in out Button; To : Themes.Slot) is
    begin
       Item.Swatched := True;
       Item.Swatch := To;
@@ -239,6 +239,10 @@ package body UI.Widgets.Buttons is
       Hovered : constant Boolean := Item.Enabled and then Is_Hovered (Item);
       Toggled : constant Boolean := Item.Selected and then not Item.Dropdown;
       --  Pressed in, in the accent; an open dropdown is in its own face.
+      --  A plain face, not toggled, has the theme's own tones for its
+      --  states; the others are made from their base.
+      Plain : constant Boolean :=
+        Item.Style in Normal | Quiet and then not Toggled;
       Base  : constant Themes.Color :=
         (case Item.Style is
             when Primary => Colors.Primary,
@@ -247,11 +251,27 @@ package body UI.Widgets.Buttons is
               (if Toggled then Colors.Accent else Colors.Face));
       Face  : constant Themes.Color :=
         (if not Item.Enabled then Themes.Dull (Colors, Base)
-         elsif Pressed then Themes.Mix (Base, Colors.Foreground, 0.12)
+         elsif Pressed then
+           (if Plain then Colors.Face_Pressed
+            else Themes.Mix (Base, Colors.Foreground, 0.12))
          elsif not Hovered then Base
+         elsif Plain then Colors.Face_Hover
          elsif Item.Style in Primary | Danger
          then Themes.Mix (Base, White, 0.12)
          else Themes.Mix (Base, White, 0.22));
+      --  At rest, the bevel is the theme's own; a face that is pressed or
+      --  under the pointer has its bevel made from the face it shows.
+      Resting : constant Boolean := not Pressed and then not Hovered;
+      Lit    : constant Themes.Color :=
+        (if Resting and then Plain then Colors.Face_Light
+         elsif Resting and then Item.Style = Primary then Colors.Primary_Light
+         elsif Resting and then Item.Style = Danger then Colors.Danger_Light
+         else Themes.Highlight (Face));
+      Shaded : constant Themes.Color :=
+        (if Resting and then Plain then Colors.Face_Shade
+         elsif Resting and then Item.Style = Primary then Colors.Primary_Shade
+         elsif Resting and then Item.Style = Danger then Colors.Danger_Shade
+         else Themes.Shade (Face));
       Ink   : constant Themes.Color :=
         (case Item.Style is
             when Primary | Danger =>
@@ -260,16 +280,20 @@ package body UI.Widgets.Buttons is
               (if Hovered or else Item.Selected then White
                else Themes.Mix (Colors.Face, White, 0.35)),
             when Normal =>
-              (if Item.Enabled then Colors.Foreground
+              (if Item.Enabled then
+                 (if Toggled then Colors.On_Accent else Colors.Foreground)
                else Themes.Mix (Colors.Foreground, Face, 0.6)));
       Border : constant Themes.Color :=
-        (if Item.Style = Normal and then not Toggled then Colors.Border
+        (if Item.Style = Normal and then not Toggled then Colors.Face_Edge
          else Themes.Mix (Base, Colors.Foreground, 0.3));
       Look  : constant UI.Boxes.Raised_Look :=
         (Face    => Face,
+         Edges_Given => True,
+         Lit     => Lit,
+         Shaded  => Shaded,
          Border  =>
            (if Item.Enabled then Border else Themes.Dull (Colors, Border)),
-         Drop    => Themes.Drop (Colors),
+         Drop    => Colors.Drop_Shadow,
          Pressed => Pressed or else Item.Selected,
          Flat    => not Item.Enabled);
       Left, Top, Wide_Box, High_Box : Float;
@@ -355,7 +379,7 @@ package body UI.Widgets.Buttons is
             Side : constant Float := 10.0 * Pixels;
          begin
             Fill_Rect
-              (Target, Item.Swatch,
+              (Target, Themes.Resolve (Colors, Item.Swatch),
                Float'Rounding (Left + (Wide_Box - Side) / 2.0),
                Float'Rounding (Top + (High_Box - Side) / 2.0),
                Side, Side);

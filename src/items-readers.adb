@@ -48,8 +48,7 @@ package body Items.Readers is
    procedure Build
      (Item    : in out Reader;
       Parent  : in out Widgets.Widget'Class;
-      Colors  : UI.Themes.Theme;
-      Bar     : UI.Themes.Color;
+      Bar     : UI.Themes.Slot;
       Density : Float;
       Pinned  : Boolean := False)
    is
@@ -88,13 +87,13 @@ package body Items.Readers is
 
       --  An outline round a column of the bar, the picture and the status
       --  line: placed by its edges, or filling its parent.
-      Panels.Set_Fill (Item.Frame, Colors.Border);
+      Panels.Set_Fill (Item.Frame, UI.Themes.Border);
       Set_Flex_Direction (Widgets.Node (Item.Frame), Yoga.Column);
       Set_Padding (Widgets.Node (Item.Frame), Yoga.All_Edges, Edge);
       --  A window casts a shadow, inside its box at the right and foot;
       --  the pane does not.
       if not Pinned then
-         Panels.Set_Shadow (Item.Frame, Colors.Shadow);
+         Panels.Set_Shadow (Item.Frame, UI.Themes.Shadow);
          Set_Padding
            (Widgets.Node (Item.Frame), Yoga.Right,
             Edge + UI.Boxes.Offset (Pixels));
@@ -121,13 +120,13 @@ package body Items.Readers is
       if Pinned then
          Grips.Set_Wanted_Cursor (Item.Title_Bar, SDL3.Cursors.Default);
       end if;
-      Panels.Set_Fill (Item.Tag, Colors.Bar);
+      Panels.Set_Fill (Item.Tag, UI.Themes.Bar);
       Size (Item.Tag, Tag_Size, Tag_Size);
       Set_Flex_Shrink (Widgets.Node (Item.Tag), 0.0);
       Set_Margin
         (Widgets.Node (Item.Tag), Yoga.Right, (Tag_Gap - Button_Gap) * Pixels);
       Labels.Set_Style (Item.Title_Label, UI.Line_Texts.Strong);
-      Labels.Set_Ink (Item.Title_Label, UI.Themes.White);
+      Labels.Set_Ink (Item.Title_Label, UI.Themes.Bar_Ink);
       Set_Flex_Grow (Widgets.Node (Item.Title_Label), 1.0);
       Set_Width (Widgets.Node (Item.Title_Label), 0.0);
       Set_Height (Widgets.Node (Item.Title_Label), Label_Height * Pixels);
@@ -144,8 +143,8 @@ package body Items.Readers is
       Set_Flex_Grow (Widgets.Node (Item.Picture), 1.0);
       Set_Height (Widgets.Node (Item.Picture), 0.0);
 
-      Panels.Set_Fill (Item.Status_Bar, Colors.Tint);
-      Panels.Set_Border (Item.Status_Bar, Colors.Border);
+      Panels.Set_Fill (Item.Status_Bar, UI.Themes.Tint);
+      Panels.Set_Border (Item.Status_Bar, UI.Themes.Border);
       Set_Margin (Widgets.Node (Item.Status_Bar), Yoga.Horizontal, -Edge);
       Set_Margin (Widgets.Node (Item.Status_Bar), Yoga.Bottom, -Edge);
       Set_Height (Widgets.Node (Item.Status_Bar), Status_Height * Pixels);
@@ -187,7 +186,7 @@ package body Items.Readers is
 
    function Is_Assigned (Item : Reader) return Boolean is (Item.Assigned);
 
-   procedure Set_Tag (Item : in out Reader; To : UI.Themes.Color) is
+   procedure Set_Tag (Item : in out Reader; To : UI.Themes.Slot) is
    begin
       Panels.Set_Fill (Item.Tag, To);
    end Set_Tag;

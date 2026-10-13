@@ -48,7 +48,7 @@ package UI.Widgets.Buttons is
 
    function Has_Icon (Item : Button) return Boolean;
 
-   procedure Set_Swatch (Item : in out Button; To : Themes.Color);
+   procedure Set_Swatch (Item : in out Button; To : Themes.Slot);
    --  Show a square of the colour, in the middle, as the button's icon.
 
    procedure Set_Badge (Item : in out Button; Count : Natural);
@@ -117,7 +117,7 @@ private
       Which   : UI.Icons.Icon := UI.Icons.Icon'First;
       Icon_Points : Float := 0.0;  --  0.0: the usual size
       Swatched : Boolean := False;
-      Swatch   : Themes.Color := (0, 0, 0, 255);
+      Swatch   : Themes.Slot := Themes.Primary;
       Captioned : Boolean := False;
       Badge     : Natural := 0;
       Selected  : Boolean := False;

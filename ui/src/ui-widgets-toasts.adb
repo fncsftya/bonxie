@@ -147,7 +147,7 @@ package body UI.Widgets.Toasts is
           Border   => Colors.Border,
           Dashed   => False,
           Shadowed => True,
-          Shadow   => Themes.Drop (Colors)),
+          Shadow   => Colors.Drop_Shadow),
          Left_Of (Item), Top_Of (Item), Width_Of (Item), Height_Of (Item),
          Pixels);
       Fill_Rect
@@ -167,7 +167,10 @@ package body UI.Widgets.Toasts is
                   then Themes.Mix (Colors.Face, Themes.White, 0.22)
                   else Colors.Face),
                Border  => Colors.Border,
-               Drop    => Themes.Drop (Colors),
+               Edges_Given => False,
+               Lit => (0, 0, 0, 255),
+               Shaded => (0, 0, 0, 255),
+               Drop    => Colors.Drop_Shadow,
                Pressed => Item.Down and then Item.Over,
                Flat    => False);
             X, Y, W, H : Float;

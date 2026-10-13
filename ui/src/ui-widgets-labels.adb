@@ -1,5 +1,7 @@
 package body UI.Widgets.Labels is
 
+   use type Themes.Slot;
+
    use SDL3.Windows.Renderers;
 
    Icon_Size : constant Float := 12.0;
@@ -47,7 +49,7 @@ package body UI.Widgets.Labels is
       end if;
    end Set_Icon;
 
-   procedure Set_Ink (Item : in out Label; To : Themes.Color) is
+   procedure Set_Ink (Item : in out Label; To : Themes.Slot) is
    begin
       if not Item.Inked or else Item.Ink /= To then
          Item.Inked := True;
@@ -159,7 +161,8 @@ package body UI.Widgets.Labels is
         Positive (Float'Max (1.0, Float'Rounding (Density (Item))));
       High  : constant Float := Float (Debug_Text_Size * Scale);
       Ink   : constant Themes.Color :=
-        (if Item.Inked then Item.Ink else Colors.Foreground);
+        (if Item.Inked then Themes.Resolve (Colors, Item.Ink)
+         else Colors.Foreground);
    begin
       if Item.Length > 0 and then Text_Lines (Item) /= null then
          if Item.Fit_Width /= Width_Of (Item) then

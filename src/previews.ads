@@ -17,7 +17,7 @@ package Previews is
    type Card is record
       Where : Items.Frame;
       Kind  : Items.Kinds := Items.Note;
-      Ink   : UI.Themes.Color := (0, 0, 0, 255);
+      Ink   : UI.Themes.Slot := UI.Themes.Foreground;
       --  Of a source: its colour.
    end record;
 

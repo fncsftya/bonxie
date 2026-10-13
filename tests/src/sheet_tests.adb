@@ -72,7 +72,7 @@ package body Sheet_Tests is
       UI.Icons.Set_Directory (Item.Icons, "../share/bonxie/icons");
       Widgets.Set_Icons (Item.Tree, Item.Icons);
       Widgets.Set_Root (Item.Tree, Item.Root);
-      Panels.Set_Fill (Item.Root, Colors.Background);
+      Panels.Set_Fill (Item.Root, UI.Themes.Background);
       Nodes.Set_Flex_Direction (Widgets.Node (Item.Root), Yoga.Column);
       Nodes.Set_Padding
         (Widgets.Node (Item.Root), Yoga.All_Edges, 20.0 * Density);
@@ -366,10 +366,10 @@ package body Sheet_Tests is
       Named (6, "CHIPS", 36.0);
       Put (Item.Rows (6), Item.Chip_A, 136.0, 22.0);
       UI.Widgets.Chips.Set_Label (Item.Chip_A, "Codeless Code");
-      UI.Widgets.Chips.Set_Swatch (Item.Chip_A, Colors.Primary);
+      UI.Widgets.Chips.Set_Swatch (Item.Chip_A, UI.Themes.Primary);
       Put (Item.Rows (6), Item.Chip_B, 104.0, 22.0);
       UI.Widgets.Chips.Set_Label (Item.Chip_B, "Ten steps");
-      UI.Widgets.Chips.Set_Swatch (Item.Chip_B, Colors.Focus);
+      UI.Widgets.Chips.Set_Swatch (Item.Chip_B, UI.Themes.Focus);
       Put (Item.Rows (6), Item.Count, 16.0, 16.0);
       UI.Widgets.Badges.Set_Count (Item.Count, 2);
       Put (Item.Rows (6), Item.Tag, 120.0, 18.0);
@@ -396,9 +396,9 @@ package body Sheet_Tests is
       Menus.Add (Item.Drop_Menu, Menus.Heading, "LINKED TO INTRO");
       Menus.Add (Item.Drop_Menu, Menus.Check, "Ten steps towards happiness",
                  Checked => True);
-      Menus.Set_Swatch (Item.Drop_Menu, 2, Colors.Focus);
+      Menus.Set_Swatch (Item.Drop_Menu, 2, UI.Themes.Focus);
       Menus.Add (Item.Drop_Menu, Menus.Check, "Codeless Code");
-      Menus.Set_Swatch (Item.Drop_Menu, 3, Colors.Primary);
+      Menus.Set_Swatch (Item.Drop_Menu, 3, UI.Themes.Primary);
       Menus.Add (Item.Drop_Menu, Menus.Separator);
       Menus.Add (Item.Drop_Menu, Menus.Action, "Add source", Menus.Primary);
       Menus.Set_Icon (Item.Drop_Menu, 5, UI.Icons.Plus);
@@ -412,7 +412,7 @@ package body Sheet_Tests is
       Menus.Set_Icon (Item.Context, 4, UI.Icons.Delete);
       Put (Item.Rows (7), Item.Scroll, 110.0, 120.0);
       Widgets.Add (Item.Scroll, Item.Long);
-      Panels.Set_Fill (Item.Long, UI.Themes.White);
+      Panels.Set_Fill (Item.Long, UI.Themes.Page);
       Nodes.Set_Height (Widgets.Node (Item.Long), 360.0 * Density);
       Nodes.Set_Flex_Shrink (Widgets.Node (Item.Long), 0.0);
 

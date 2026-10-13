@@ -22,18 +22,18 @@ package UI.Widgets.Grips is
 
    procedure Set_Shape (Item : in out Grip; To : Shape);
 
-   procedure Set_Fill (Item : in out Grip; Value : Themes.Color);
+   procedure Set_Fill (Item : in out Grip; Value : Themes.Slot);
    --  Fill its box with Value, behind what is in it, which it is drawn
    --  with: a bar to drag by, and the widgets on it. By default it fills
    --  with nothing.
 
    procedure Set_Border
-     (Item : in out Grip; Value : Themes.Color; Dashed : Boolean := False);
+     (Item : in out Grip; Value : Themes.Slot; Dashed : Boolean := False);
    --  Outline its face a point wide in Value, in dashes if Dashed.
 
    procedure Clear_Border (Item : in out Grip);
 
-   procedure Set_Shadow (Item : in out Grip; Value : Themes.Color);
+   procedure Set_Shadow (Item : in out Grip; Value : Themes.Slot);
    --  Cast a solid shadow in Value, inside its box (see UI.Boxes).
 
    procedure Clear_Shadow (Item : in out Grip);
@@ -41,11 +41,11 @@ package UI.Widgets.Grips is
    procedure Set_Wanted_Cursor (Item : in out Grip; To : SDL3.Cursors.Kind);
    --  The pointer's shape over it, and while it is dragged.
 
-   procedure Set_Hover_Outline (Item : in out Grip; Value : Themes.Color);
+   procedure Set_Hover_Outline (Item : in out Grip; Value : Themes.Slot);
    --  Draw an outline of a point round its box, in Value, while the
    --  pointer is over it or what is in it: to show it can be used.
 
-   procedure Set_Hover_Fill (Item : in out Grip; Value : Themes.Color);
+   procedure Set_Hover_Fill (Item : in out Grip; Value : Themes.Slot);
    --  Fill its face with Value, not its fill, while the pointer is over it
    --  or what is in it, as a row of a list does.
 
@@ -90,12 +90,15 @@ private
 
    type Grip is new Widget with record
       Form    : Shape := Bar;
-      Look    : UI.Boxes.Look;
+      Look    : UI.Boxes.Look;  --  its flags; its colours are the slots below
+      Fill_Slot   : Themes.Slot := Themes.Page;
+      Border_Slot : Themes.Slot := Themes.Border;
+      Shadow_Slot : Themes.Slot := Themes.Shadow;
       Wanted  : SDL3.Cursors.Kind := SDL3.Cursors.Move;
       Outlined : Boolean := False;
-      Outline_Color : Themes.Color := (0, 0, 0, 255);
+      Outline_Color : Themes.Slot := Themes.Border;
       Hover_Filled  : Boolean := False;
-      Hover_Fill    : Themes.Color := (0, 0, 0, 255);
+      Hover_Fill    : Themes.Slot := Themes.Face;
       Clicked : Boolean := False;
       Doubled : Boolean := False;
       Held    : Boolean := False;

@@ -1293,7 +1293,8 @@ package body UI.Text_Areas is
             if not Item.Composing then
                Handle_Key (Item, Event, Board, Handled);
             end if;
-         when Events.Quit | Events.Pinch | Events.Redraw | Events.Other =>
+         when Events.Quit | Events.Pinch | Events.Redraw
+            | Events.Theme_Changed | Events.Other =>
             null;
       end case;
    end Handle;

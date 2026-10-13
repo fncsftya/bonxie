@@ -90,7 +90,7 @@ private package Viewer.Canvas_Items is
    --  Show the dock if any item is minimised, and the canvas is shown.
 
    function Source_Ink
-     (Item : Session; Which : Items.Slot) return UI.Themes.Color
+     (Item : Session; Which : Items.Slot) return UI.Themes.Slot
      with Pre => Items.Windows.Is_Assigned (Item.Windows (Which))
                  and then Items."="
                             (Items.Windows.Details (Item.Windows (Which)).Kind,

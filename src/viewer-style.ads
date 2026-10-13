@@ -164,47 +164,52 @@ private package Viewer.Style is
    No_Projects : constant String := "No projects yet";
    No_Items    : constant String := "No items yet";
 
-   Colors  : constant UI.Themes.Theme := UI.Themes.Light;
-   Toolbar : constant UI.Themes.Color := Colors.Bar;
+   --  The colours. Widgets keep slots of the theme (as Toolbar and
+   --  Mid_Panel), resolved as they are drawn, so that the window changes
+   --  theme without being built again; what is drawn at once takes Colors,
+   --  the theme in use.
+
+   Active : UI.Themes.Theme := UI.Themes.Light;
+   --  The theme of the window shown: Light, or Dark, as Use_Dark says.
+
+   function Colors return UI.Themes.Theme is (Active);
+
+   procedure Use_Dark (Dark : Boolean)
+     with Post => UI.Themes."=" (Colors, (if Dark then UI.Themes.Dark
+                                          else UI.Themes.Light));
+   --  Draw in the dark theme, or in the light.
+
+   Toolbar : constant UI.Themes.Slot := UI.Themes.Bar;
    --  The dark bars: across the top, and of the windows' titles.
-   Mid_Panel : constant UI.Themes.Color := (16#B8#, 16#C0#, 16#BB#, 255);
+   Mid_Panel : constant UI.Themes.Slot := UI.Themes.Rail;
    --  Behind the pages, and of the home screen's sidebar.
-   Dock : constant UI.Themes.Color := Mid_Panel;
+   Dock : constant UI.Themes.Slot := UI.Themes.Dock;
    --  Behind the minimised items.
-   Desk : constant UI.Themes.Color := Mid_Panel;
-   Paper : constant UI.Themes.Color := UI.Themes.White;
-   Side_Fill : constant UI.Themes.Color := Colors.Background;
+   Desk : constant UI.Themes.Slot := UI.Themes.Rail;
+   Paper : constant UI.Themes.Slot := UI.Themes.Page;
+   Side_Fill : constant UI.Themes.Slot := UI.Themes.Background;
    --  Of the writing view's sidebar.
-   Row_Fill : constant UI.Themes.Color := Colors.Face;
-   Row_Open : constant UI.Themes.Color := Paper;
-   Row_Hover : constant UI.Themes.Color :=
-     UI.Themes.Mix (Colors.Face, UI.Themes.White, 0.3);
+   Row_Fill : constant UI.Themes.Slot := UI.Themes.Face;
+   Row_Open : constant UI.Themes.Slot := UI.Themes.Page;
+   Row_Hover : constant UI.Themes.Slot := UI.Themes.Hover_Row;
    --  A row of a list; the one chosen: a source that is open, or a
    --  document that is being put elsewhere in the order; and one under
    --  the pointer.
-   Edge_Fill : constant UI.Themes.Color := Colors.Border;
-   Closed_Ink : constant UI.Themes.Color :=
-     UI.Themes.Mix (Colors.Foreground, Colors.Background, 0.55);
+   Edge_Fill : constant UI.Themes.Slot := UI.Themes.Border;
+   Closed_Ink : constant UI.Themes.Slot := UI.Themes.Closed;
    --  Of the title of an item that is not shown, in the list.
-   Quiet_Ink : constant UI.Themes.Color :=
-     UI.Themes.Mix (Colors.Foreground, Colors.Background, 0.35);
+   Quiet_Ink : constant UI.Themes.Slot := UI.Themes.Hint;
    --  Of what is said of something, after its name: a count.
-   Rule_Ink : constant UI.Themes.Color :=
-     UI.Themes.Mix (Colors.Bar, UI.Themes.White, 0.3);
+   Rule_Ink : constant UI.Themes.Slot := UI.Themes.Rule;
    --  A line on the dark bar.
 
-   Source_Inks : constant array (1 .. 8) of UI.Themes.Color :=
-     [(16#25#, 16#63#, 16#D4#, 255),   --  blue
-      (16#27#, 16#72#, 16#2D#, 255),   --  green
-      (16#C6#, 16#28#, 16#28#, 255),   --  red
-      (16#7A#, 16#4E#, 16#B8#, 255),   --  violet
-      (16#0E#, 16#7C#, 16#7B#, 255),   --  teal
-      (16#B4#, 16#5A#, 16#09#, 255),   --  rust
-      (16#A2#, 16#3B#, 16#72#, 255),   --  plum
-      (16#5B#, 16#6B#, 16#2F#, 255)];  --  olive
+   Source_Inks : constant array (1 .. 8) of UI.Themes.Slot :=
+     [UI.Themes.Source_1, UI.Themes.Source_2, UI.Themes.Source_3,
+      UI.Themes.Source_4, UI.Themes.Source_5, UI.Themes.Source_6,
+      UI.Themes.Source_7, UI.Themes.Source_8];
    --  Of the sources, in the order they were made, and round again.
 
-   function Source_Ink (Rank : Natural) return UI.Themes.Color is
+   function Source_Ink (Rank : Natural) return UI.Themes.Slot is
      (Source_Inks (1 + (Integer'Max (1, Rank) - 1) mod Source_Inks'Length));
 
    --  The toolbar of a selected link, in points
@@ -221,9 +226,9 @@ private package Viewer.Style is
    Link_Bar_Offset  : constant Float := 14.0;
    --  Below the lower end of the link, and centred across it.
 
-   Link_Inks : constant array (Items.Link_Colors) of UI.Themes.Color :=
-     [Colors.Bar, Colors.Accent, Colors.Primary, Colors.Danger,
-      Source_Inks (1)];
+   Link_Inks : constant array (Items.Link_Colors) of UI.Themes.Slot :=
+     [UI.Themes.Bar, UI.Themes.Accent, UI.Themes.Primary, UI.Themes.Danger,
+      UI.Themes.Source_1];
    --  The colours a link between documents can be drawn in: the theme's,
    --  and a blue.
 

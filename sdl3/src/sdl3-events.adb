@@ -9,6 +9,7 @@ package body SDL3.Events is
    use type Interfaces.Unsigned_32;
    use type Interfaces.Unsigned_64;
    use type Interfaces.Integer_32;
+   use type Interfaces.C.int;
    use type Interfaces.C.Strings.chars_ptr;
 
    Control_Or_Command : constant Interfaces.Unsigned_16 := 16#0CC0#;
@@ -113,6 +114,8 @@ package body SDL3.Events is
             Item.Key := Key.Key;
             Set_Modifiers (Item, Key.Modifiers);
          end;
+      elsif Raw.Kind = Thin.Event_Theme_Changed then
+         Item.Kind := Theme_Changed;
       elsif Raw.Kind = Thin.Event_Text_Input then
          Item.Kind := Text_Input;
          Set_Text (Item, To_Text (Raw).Text);
@@ -204,5 +207,8 @@ package body SDL3.Events is
                   (Raw'Access, Interfaces.Integer_32 (Timeout_MS)))
         and then Decode (Raw, Item);
    end Wait;
+
+   function System_Is_Dark return Boolean is
+     (Thin.Get_System_Theme = 2);
 
 end SDL3.Events;

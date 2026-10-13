@@ -28,6 +28,7 @@ private package SDL3.Thin is
    Event_Window_Exposed           : constant Event_Type := 16#204#;
    Event_Window_Resized           : constant Event_Type := 16#206#;
    Event_Window_Pixel_Size_Changed : constant Event_Type := 16#207#;
+   Event_Theme_Changed : constant Event_Type := 16#108#;
 
    --  SDL_Event is a 128-byte union whose first member is the type.
    type Event is record
@@ -296,6 +297,10 @@ private package SDL3.Thin is
    function Get_Ticks return Interfaces.Unsigned_64
      with Import, Convention => C, External_Name => "SDL_GetTicks";
    --  Milliseconds since SDL started.
+
+   --  SDL_SystemTheme: 0 unknown, 1 light, 2 dark.
+   function Get_System_Theme return Interfaces.C.int
+     with Import, Convention => C, External_Name => "SDL_GetSystemTheme";
 
    function Render_Present (R : Renderer) return Interfaces.C.C_bool
      with Import, Convention => C, External_Name => "SDL_RenderPresent";

@@ -16,6 +16,17 @@ private package Viewer.Settings_View is
      with Post => Preferences."=" (Item.Speech_Choice, To);
    --  Choose what turns speech into text, and keep the choice.
 
+   procedure Choose_Appearance
+     (Item : in out Session; To : Preferences.Theme_Choices)
+     with Post => Preferences."=" (Item.Theme_Chosen, To);
+   --  Choose the appearance of the windows, and keep the choice. The
+   --  windows are drawn in it now (see Apply_Theme).
+
+   procedure Apply_Theme (Item : in out Session);
+   --  Draw in the theme the choice makes now: the system's, for System,
+   --  which may have changed. Whatever is drawn is drawn again if the
+   --  theme has changed.
+
    procedure Take (Item : in out Session)
      with Pre => Item.Showing_Settings;
    --  Act on what has been clicked in the form.

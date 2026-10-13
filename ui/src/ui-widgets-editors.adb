@@ -141,7 +141,7 @@ package body UI.Widgets.Editors is
       end if;
    end Placed;
 
-   procedure Set_Paper (Item : in out Editor; To : Themes.Color) is
+   procedure Set_Paper (Item : in out Editor; To : Themes.Slot) is
    begin
       Item.Has_Paper := True;
       Item.Paper := To;
@@ -159,8 +159,8 @@ package body UI.Widgets.Editors is
             Part  : constant Pixel_Box := Painting_Part (Item);
             Paper : constant Themes.Color :=
               (if not Item.Enabled then Colors.Tint
-               elsif Item.Has_Paper then Item.Paper
-               else Themes.White);
+               elsif Item.Has_Paper then Themes.Resolve (Colors, Item.Paper)
+               else Colors.Page);
             Shown : constant Themes.Theme :=
               (Colors with delta
                  Background => Paper,

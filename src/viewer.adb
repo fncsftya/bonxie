@@ -28,6 +28,7 @@ package body Viewer is
    use Ada.Strings.Unbounded;
    use type Items.Id;
    use type Projects.Id;
+   use type Preferences.Theme_Choices;
    use type SDL3.Events.Event_Kind;
    use type SDL3.Events.Key_Code;
    use type SDL3.Cursors.Kind;
@@ -123,6 +124,11 @@ package body Viewer is
             Item.Done := True;
          when SDL3.Events.Redraw =>
             Widgets.Invalidate_All (Item.Widgets);
+         when SDL3.Events.Theme_Changed =>
+            --  Only the system's appearance can change by itself.
+            if Item.Theme_Chosen = Preferences.System then
+               Settings_View.Apply_Theme (Item);
+            end if;
          when others =>
             if Item.Showing_Settings then
                --  Escape leaves the settings, as their Close button does.
@@ -214,6 +220,15 @@ package body Viewer is
    procedure Choose_Speech_Model
      (Item : in out Session; To : Preferences.Speech_Models)
      renames Settings_View.Choose;
+
+   function Theme_Choice (Item : Session) return Preferences.Theme_Choices is
+     (Item.Theme_Chosen);
+
+   procedure Choose_Theme
+     (Item : in out Session; To : Preferences.Theme_Choices)
+     renames Settings_View.Choose_Appearance;
+
+   function Is_Dark (Item : Session) return Boolean is (Item.Dark_Shown);
 
    procedure Add_Project
      (Item    : in out Session;
@@ -472,6 +487,7 @@ package body Viewer is
       SDL3.Windows.Set_Movable (Item.Win, False);
       Create (Item.Target, Item.Win, VSync => VSync);
       Build.Set_Up (Item, Source, File_Name, Store);
+      Settings_View.Apply_Theme (Item);
       SDL3.Windows.Start_Text_Input (Item.Win);
    end Open_Window;
 
@@ -534,6 +550,7 @@ package body Viewer is
       Create_Offscreen
         (Item.Target, Pixels (Width, Density), Pixels (Height, Density));
       Build.Set_Up (Item, Source, File_Name, Projects.Memory);
+      Settings_View.Apply_Theme (Item);
    end Open;
 
    function Is_Open (Item : Session) return Boolean is

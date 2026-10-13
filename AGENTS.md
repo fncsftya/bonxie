@@ -27,7 +27,18 @@ See TESTING.md
 
 ## UI Theme
 
-The tokens are `UI.Themes.Light`; the app's own are in `Viewer.Style`.
+The tokens are `UI.Themes.Light` and `UI.Themes.Dark`; the app's own are
+in `Viewer.Style`. Each theme is a record of colours (the dark one is the
+spec's dark palette). A widget never keeps a `Themes.Color`: it keeps a
+`Themes.Slot` (a role, as `Page` or `Rail`), resolved with the theme it is
+drawn in, so a window changes theme without being built again. `Colors`
+in `Viewer.Style` is the theme in use. The light theme's derived tones
+are computed from its base colours exactly as they were before the dark
+theme, and the goldens hold the light theme pixel for pixel, so a change
+to a light colour changes the goldens.
+
+Dark is chosen in Settings (Light, Dark, or System, which follows the
+system's appearance and updates when it changes).
 
 Panels: light #C6CFCB (the ground), mid #B8C0BB (the home screen's
 sidebar, behind the pages), card tint #D6DCD9 (status lines, a card's

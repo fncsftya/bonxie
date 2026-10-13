@@ -101,8 +101,9 @@ package body UI.Scrollbars is
          Fill_Rect (Target, Colors.Face, X, Y, W, H);
          UI.Boxes.Outline (Target, Colors.Border, X, Y, W, H, Edge);
          UI.Boxes.Bevel
-           (Target, Colors.Face, X + Edge, Y + Edge, W - 2.0 * Edge,
-            H - 2.0 * Edge, Within.Density, Sunken => Pressed);
+           (Target, Themes.Highlight (Colors.Face), Themes.Shade (Colors.Face),
+            X + Edge, Y + Edge, W - 2.0 * Edge, H - 2.0 * Edge,
+            Within.Density, Sunken => Pressed);
       end Raised;
 
       procedure Arrow_On (From : Float; Which : Arrow) is

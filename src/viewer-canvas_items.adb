@@ -795,7 +795,7 @@ package body Viewer.Canvas_Items is
    end Sync;
 
    function Source_Ink
-     (Item : Session; Which : Items.Slot) return UI.Themes.Color
+     (Item : Session; Which : Items.Slot) return UI.Themes.Slot
    is
       Key  : constant Items.Id := Windows.Details (Item.Windows (Which)).Key;
       Rank : Natural := 0;

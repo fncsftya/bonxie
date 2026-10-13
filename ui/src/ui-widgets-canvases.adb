@@ -281,9 +281,11 @@ package body UI.Widgets.Canvases is
    procedure Stroke
      (Target : SDL3.Windows.Renderers.Renderer;
       Style  : Line;
+      Colors : Themes.Theme;
       From_X, From_Y, To_X, To_Y : Float;
       Pixels : Float)
    is
+      Ink : constant Themes.Color := Themes.Resolve (Colors, Style.Ink);
       Wide   : constant Float := Link_Width * Pixels;
       Dx     : constant Float := To_X - From_X;
       Dy     : constant Float := To_Y - From_Y;
@@ -295,7 +297,7 @@ package body UI.Widgets.Canvases is
       procedure Part (From, To : Float) is
       begin
          Draw_Line
-           (Target, Style.Ink,
+           (Target, Ink,
             From_X + Along_X * From, From_Y + Along_Y * From,
             From_X + Along_X * To, From_Y + Along_Y * To, Wide);
       end Part;
@@ -316,7 +318,7 @@ package body UI.Widgets.Canvases is
          when Dotted =>
             while Place <= Length loop
                Fill_Circle
-                 (Target, Style.Ink,
+                 (Target, Ink,
                   From_X + Along_X * Place, From_Y + Along_Y * Place,
                   Wide * 0.75);
                Place := Place + Dot_Gap * Pixels;
@@ -327,10 +329,10 @@ package body UI.Widgets.Canvases is
       declare
          Side : constant Float := Float'Rounding (End_Size * Pixels);
       begin
-         Fill_Rect (Target, Style.Ink, Float'Rounding (From_X - Side / 2.0),
+         Fill_Rect (Target, Ink, Float'Rounding (From_X - Side / 2.0),
                     Float'Rounding (From_Y - Side / 2.0), Side, Side);
          if not Style.Arrow then
-            Fill_Rect (Target, Style.Ink, Float'Rounding (To_X - Side / 2.0),
+            Fill_Rect (Target, Ink, Float'Rounding (To_X - Side / 2.0),
                        Float'Rounding (To_Y - Side / 2.0), Side, Side);
          end if;
       end;
@@ -347,7 +349,7 @@ package body UI.Widgets.Canvases is
                Back_Y : constant Float := -(Along_Y * Cos + Along_X * Sin);
             begin
                Draw_Line
-                 (Target, Style.Ink, To_X, To_Y,
+                 (Target, Ink, To_X, To_Y,
                   To_X + Back_X * Head_Length * Pixels,
                   To_Y + Back_Y * Head_Length * Pixels, Wide);
             end;
@@ -418,7 +420,7 @@ package body UI.Widgets.Canvases is
                    Colors.Accent.Blue, Halo_Alpha),
                   From_X, From_Y, To_X, To_Y, Halo_Width * Pixels);
             end if;
-            Stroke (Target, Each, From_X, From_Y, To_X, To_Y, Pixels);
+            Stroke (Target, Each, Colors, From_X, From_Y, To_X, To_Y, Pixels);
          end;
       end loop;
    end Draw;

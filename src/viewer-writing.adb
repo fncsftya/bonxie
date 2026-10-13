@@ -1,3 +1,4 @@
+with UI.Themes;
 with Ada.Strings.Fixed;
 with Texts.Documents;
 with UI.Icons;
@@ -164,7 +165,7 @@ package body Viewer.Writing is
       if Chosen then
          Grips.Set_Fill (Row.Row, Style.Row_Open);
          Grips.Set_Hover_Fill (Row.Row, Style.Row_Open);
-         Grips.Set_Shadow (Row.Row, Style.Colors.Shadow);
+         Grips.Set_Shadow (Row.Row, UI.Themes.Shadow);
       else
          --  Its shadow is the ground: unseen, but the face is the same
          --  size.

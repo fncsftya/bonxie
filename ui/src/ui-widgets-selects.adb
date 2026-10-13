@@ -135,7 +135,10 @@ package body UI.Widgets.Selects is
          Border  =>
            (if Item.Enabled then Colors.Border
             else Themes.Dull (Colors, Colors.Border)),
-         Drop    => Themes.Drop (Colors),
+         Edges_Given => False,
+         Lit => (0, 0, 0, 255),
+         Shaded => (0, 0, 0, 255),
+         Drop    => Colors.Drop_Shadow,
          Pressed => Pressed,
          Flat    => not Item.Enabled);
       X, Y, W, H : Float;

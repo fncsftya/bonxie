@@ -86,7 +86,7 @@ package body UI.Widgets.Menus is
    end Set_Icon;
 
    procedure Set_Swatch
-     (Item : in out Menu; Row : Positive; To : Themes.Color) is
+     (Item : in out Menu; Row : Positive; To : Themes.Slot) is
    begin
       Item.Rows (Row).Swatched := True;
       Item.Rows (Row).Swatch := To;
@@ -228,7 +228,7 @@ package body UI.Widgets.Menus is
          Border   => Colors.Border,
          Dashed   => False,
          Shadowed => True,
-         Shadow   => Themes.Drop (Colors));
+         Shadow   => Colors.Drop_Shadow);
       Inner_Left  : constant Float := Left_Of (Item) + Edge;
       Inner_Width : constant Float :=
         Width_Of (Item) - UI.Boxes.Inset (Look, Pixels) - 2.0 * Edge;
@@ -249,8 +249,8 @@ package body UI.Widgets.Menus is
                   when others =>
                     (case Each.Shade is
                         when Plain   => Colors.Foreground,
-                        when Primary => Colors.Primary,
-                        when Danger  => Colors.Danger));
+                        when Primary => Colors.Primary_Ink,
+                        when Danger  => Colors.Danger_Ink));
             Using  : constant UI.Line_Texts.Style :=
               (case Each.Kind is
                   when Heading => UI.Line_Texts.Caption,
@@ -324,7 +324,7 @@ package body UI.Widgets.Menus is
                   null;
             end case;
             if Each.Swatched and then Each.Kind /= Separator then
-               Square (Swatch_Size, Each.Swatch);
+               Square (Swatch_Size, Themes.Resolve (Colors, Each.Swatch));
                After := After + (Swatch_Size + Gap) * Pixels;
             end if;
             if Each.Length > 0 and then Text_Lines (Item) /= null then

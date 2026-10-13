@@ -134,8 +134,9 @@ package body UI.Widgets.Switches is
          Left, Top, Wide, High, Edge);
       if Item.Enabled then
          UI.Boxes.Bevel
-           (Target, Track, Left + Edge, Top + Edge, Wide - 2.0 * Edge,
-            High - 2.0 * Edge, Pixels, Sunken => True);
+           (Target, Themes.Highlight (Track), Themes.Shade (Track),
+            Left + Edge, Top + Edge, Wide - 2.0 * Edge, High - 2.0 * Edge,
+            Pixels, Sunken => True);
       end if;
       --  The knob, standing up in it, at the end it is turned to.
       declare
@@ -155,9 +156,9 @@ package body UI.Widgets.Switches is
             X, Top + Inner, Knob_Wide, Knob_High, Edge);
          if Item.Enabled then
             UI.Boxes.Bevel
-              (Target, Face, X + Edge, Top + Inner + Edge,
-               Knob_Wide - 2.0 * Edge, Knob_High - 2.0 * Edge, Pixels,
-               Sunken => Pressed);
+              (Target, Themes.Highlight (Face), Themes.Shade (Face),
+               X + Edge, Top + Inner + Edge, Knob_Wide - 2.0 * Edge,
+               Knob_High - 2.0 * Edge, Pixels, Sunken => Pressed);
          end if;
       end;
       if Item.Length > 0 and then Text_Lines (Item) /= null then

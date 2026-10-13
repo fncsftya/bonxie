@@ -65,8 +65,7 @@ package Items.Windows is
      (Item    : in out Window;
       Canvas  : in out UI.Widgets.Widget'Class;
       Dock    : in out UI.Widgets.Widget'Class;
-      Colors  : UI.Themes.Theme;
-      Bar     : UI.Themes.Color;
+      Bar     : UI.Themes.Slot;
       Density : Float);
    --  Add the window's widgets, hidden: its window to the canvas, its
    --  bar to the dock, both in the tree already. Do it once, before the
@@ -91,7 +90,7 @@ package Items.Windows is
    function Details (Item : Window) return Items.Info
      with Pre => Is_Assigned (Item);
 
-   procedure Set_Tag (Item : in out Window; To : UI.Themes.Color)
+   procedure Set_Tag (Item : in out Window; To : UI.Themes.Slot)
      with Pre => Is_Assigned (Item) and then Details (Item).Kind = Source;
    --  Show the source's colour, in a square before its title, as its
    --  links and its rows elsewhere have it.
@@ -351,7 +350,7 @@ private
       --  While the corner is dragged, the size the cursor asks for, which
       --  may be under the minimum; the item itself is held at the minimum.
       Pixels : Float := 1.0;
-      Ring_Ink : UI.Themes.Color := (0, 0, 0, 255);
+      Ring_Ink : UI.Themes.Slot := UI.Themes.Accent;
       --  Round the window while it is typed in.
       Face_Of : Kinds := Note;
       --  What the text area's font is for: a note's text, or a source's

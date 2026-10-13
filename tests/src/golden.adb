@@ -609,11 +609,17 @@ procedure Golden is
    Settings_Close_X : constant Float := Float (Home_Width) - 52.0;
    Settings_Close_Y : constant Float := 22.0;
    Model_X          : constant Float := 160.0;
-   Native_Y         : constant Float := 189.0;
-   Parakeet_Y       : constant Float := 225.0;
+   --  Display's radios come first in the form, then Speech's, which is
+   --  set apart from them by Heading_Top.
+   Light_Y          : constant Float := 189.0;
+   Dark_Y           : constant Float := 225.0;
+   System_Y         : constant Float := 261.0;
+   Native_Y         : constant Float := 377.0;
+   Parakeet_Y       : constant Float := 413.0;
 
    procedure Home_Settings is
       use type Preferences.Speech_Models;
+      use type Preferences.Theme_Choices;
       Session : Viewer.Session;
       Drawn   : Images.Image;
    begin
@@ -627,6 +633,29 @@ procedure Golden is
          Viewer.Screens'Image (Viewer.Screen (Session)));
       Viewer.Render (Session, Drawn);
       Goldens.Check ("settings-macos", Drawn);
+
+      --  Dark draws the whole window in the dark theme, and Light goes
+      --  back to it.
+      Click_On (Session, Model_X, Dark_Y);
+      Goldens.Check_Text
+        ("settings-dark-chosen", "TRUE",
+         Boolean'Image (Viewer.Theme_Choice (Session) = Preferences.Dark
+                        and then Viewer.Is_Dark (Session)));
+      Viewer.Render (Session, Drawn);
+      Goldens.Check ("settings-dark", Drawn);
+
+      Click_On (Session, Model_X, Light_Y);
+      Goldens.Check_Text
+        ("settings-light-chosen", "TRUE",
+         Boolean'Image (Viewer.Theme_Choice (Session) = Preferences.Light
+                        and then not Viewer.Is_Dark (Session)));
+
+      --  System follows the machine, which is not drawn here: Light again.
+      Click_On (Session, Model_X, System_Y);
+      Goldens.Check_Text
+        ("settings-system-chosen", "TRUE",
+         Boolean'Image (Viewer.Theme_Choice (Session) = Preferences.System));
+      Click_On (Session, Model_X, Light_Y);
 
       --  Parakeet's file is to be fetched, if it is not there.
       Click_On (Session, Model_X, Parakeet_Y);
@@ -716,6 +745,60 @@ procedure Golden is
       Downloads.Reset;
       Ada.Directories.Delete_Tree (Folder);
    end Fetching;
+
+   --  The dark theme over the home screen, and a new project's screen.
+   procedure Dark_Screens is
+      Session : Viewer.Session;
+      Drawn   : Images.Image;
+   begin
+      Viewer.Open (Session, "Bonxie", Home_Width, Home_Height);
+      Viewer.Add_Project (Session, "Episode 1", Hour);
+      Viewer.Choose_Theme (Session, Preferences.Dark);
+      Viewer.Render (Session, Drawn);
+      Goldens.Check ("home-dark", Drawn);
+
+      Click_On (Session, Actions_X, New_Y);
+      Viewer.Render (Session, Drawn);
+      Goldens.Check ("project-dark", Drawn);
+   end Dark_Screens;
+
+   --  The choices are kept in one file, each on its own line, so that
+   --  saving one keeps the others.
+   procedure Preferences_Kept is
+      Config : constant String := "/tmp/bonxie-preferences-test";
+      use type Preferences.Speech_Models;
+      use type Preferences.Theme_Choices;
+   begin
+      if Ada.Directories.Exists (Config) then
+         Ada.Directories.Delete_Tree (Config);
+      end if;
+      Goldens.Check_Text
+        ("preferences-none", "SYSTEM",
+         Preferences.Theme_Choices'Image (Preferences.Load_Theme (Config)));
+
+      Preferences.Save_Speech_Model (Config, Preferences.Parakeet);
+      Preferences.Save_Theme (Config, Preferences.Dark);
+      Goldens.Check_Text
+        ("preferences-dark-kept", "TRUE",
+         Boolean'Image (Preferences.Load_Theme (Config) = Preferences.Dark
+                        and then Preferences.Load_Speech_Model (Config)
+                                 = Preferences.Parakeet));
+
+      Preferences.Save_Speech_Model (Config, Preferences.MacOS);
+      Goldens.Check_Text
+        ("preferences-speech-kept", "TRUE",
+         Boolean'Image (Preferences.Load_Theme (Config) = Preferences.Dark
+                        and then Preferences.Load_Speech_Model (Config)
+                                 = Preferences.MacOS));
+
+      Preferences.Save_Theme (Config, Preferences.System);
+      Goldens.Check_Text
+        ("preferences-system-kept", "TRUE",
+         Boolean'Image (Preferences.Load_Theme (Config) = Preferences.System
+                        and then Preferences.Load_Speech_Model (Config)
+                                 = Preferences.MacOS));
+      Ada.Directories.Delete_Tree (Config);
+   end Preferences_Kept;
 
    procedure New_And_Close is
       Session : Viewer.Session;
@@ -938,6 +1021,8 @@ begin
    Run ("home-empty", Home_Empty'Access);
    Run ("home-recent", Home_Recent'Access);
    Run ("home-settings", Home_Settings'Access);
+   Run ("home-dark", Dark_Screens'Access);
+   Run ("preferences-kept", Preferences_Kept'Access);
    Run ("downloads-fetching", Fetching'Access);
    Run ("home-new-and-close", New_And_Close'Access);
    Run ("home-open-listed", Open_Listed'Access);

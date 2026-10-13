@@ -1,3 +1,4 @@
+with UI.Themes;
 with UI.Icons;
 with UI.Widgets;
 with Viewer.Canvas_Items;
@@ -43,7 +44,7 @@ package body Viewer.Listing is
                Labels.Set_Ink
                  (Item.List_Rows (Row).Caption,
                   (if Closed then Style.Closed_Ink
-                   else Style.Colors.Foreground));
+                   else UI.Themes.Foreground));
                --  What a click does: show it if it is closed.
                Buttons.Set_Label
                  (Item.List_Rows (Row).Toggle,

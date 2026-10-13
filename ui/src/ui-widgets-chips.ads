@@ -17,7 +17,7 @@ package UI.Widgets.Chips is
 
    function Label (Item : Chip) return String;
 
-   procedure Set_Swatch (Item : in out Chip; To : Themes.Color);
+   procedure Set_Swatch (Item : in out Chip; To : Themes.Slot);
    --  Show a square of the colour before the label.
 
    procedure Take_Close (Item : in out Chip; Closed : out Boolean);
@@ -43,7 +43,7 @@ private
       Text     : String (1 .. Label_Capacity) := [others => ' '];
       Length   : Natural range 0 .. Label_Capacity := 0;
       Swatched : Boolean := False;
-      Swatch   : Themes.Color := (0, 0, 0, 255);
+      Swatch   : Themes.Slot := Themes.Primary;
       Down     : Boolean := False;  --  pressed on the cross
       Over     : Boolean := False;  --  the pointer is over the cross
       Closed   : Boolean := False;

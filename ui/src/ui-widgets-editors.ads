@@ -51,7 +51,7 @@ package UI.Widgets.Editors is
      with Pre => To > 0.0;
    --  Make the text Zoom times its size.
 
-   procedure Set_Paper (Item : in out Editor; To : Themes.Color);
+   procedure Set_Paper (Item : in out Editor; To : Themes.Slot);
    --  Draw on To, not white.
 
    function Zoom (Item : Editor) return Float;
@@ -128,7 +128,7 @@ private
       Text    : aliased UI.Text_Areas.Text_Area;
       Zoomed  : Float := 1.0;
       Has_Paper : Boolean := False;
-      Paper     : Themes.Color := (0, 0, 0, 255);
+      Paper     : Themes.Slot := Themes.Page;
       Invalid   : Boolean := False;
       Enabled   : Boolean := True;
       Hint      : String (1 .. Hint_Capacity) := [others => ' '];

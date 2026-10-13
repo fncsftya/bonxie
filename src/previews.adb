@@ -121,8 +121,9 @@ package body Previews is
                      H + UI.Boxes.Offset (Pixels / 2.0), Pixels / 2.0);
                   if Inner > 0.0 then
                      if Each.Kind = Items.Source then
-                        Fill_Rect (Target, Each.Ink, Title_Left,
-                                   T + Pad, Mark, Mark);
+                        Fill_Rect
+                          (Target, UI.Themes.Resolve (Colors, Each.Ink),
+                           Title_Left, T + Pad, Mark, Mark);
                         Title_Left := Title_Left + Mark + Pad / 2.0;
                      end if;
                      Fill_Rect

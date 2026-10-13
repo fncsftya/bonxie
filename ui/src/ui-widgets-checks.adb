@@ -55,7 +55,7 @@ package body UI.Widgets.Checks is
 
    function Is_Checked (Item : Check) return Boolean is (Item.Checked);
 
-   procedure Set_Swatch (Item : in out Check; To : Themes.Color) is
+   procedure Set_Swatch (Item : in out Check; To : Themes.Slot) is
    begin
       Item.Swatched := True;
       Item.Swatch := To;
@@ -141,7 +141,7 @@ package body UI.Widgets.Checks is
       Paper  : constant Themes.Color :=
         (if not Item.Enabled then Colors.Tint
          elsif Item.Down and then Is_Hovered (Item) then Colors.Background
-         else Themes.White);
+         else Colors.Page);
       Ink    : constant Themes.Color :=
         (if Item.Enabled then Colors.Foreground else Themes.Quiet (Colors));
       Ring   : constant Themes.Color :=
@@ -194,8 +194,9 @@ package body UI.Widgets.Checks is
          begin
             Fill_Rect
               (Target,
-               (if Item.Enabled then Item.Swatch
-                else Themes.Dull (Colors, Item.Swatch)),
+               (if Item.Enabled then Themes.Resolve (Colors, Item.Swatch)
+                else Themes.Dull
+                  (Colors, Themes.Resolve (Colors, Item.Swatch))),
                After, Float'Rounding (Top + (Side - Square) / 2.0),
                Square, Square);
             After := After + Square + Gap * Pixels;

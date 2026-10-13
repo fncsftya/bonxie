@@ -40,7 +40,7 @@ package UI.Widgets.Labels is
    procedure Set_Icon (Item : in out Label; To : UI.Icons.Icon);
    --  Show the icon before the text, in its ink, if the tree has icons.
 
-   procedure Set_Ink (Item : in out Label; To : Themes.Color);
+   procedure Set_Ink (Item : in out Label; To : Themes.Slot);
    --  Show it in To, rather than the theme's foreground: as on a dark
    --  bar.
 
@@ -58,7 +58,7 @@ private
       Inked   : Boolean := False;
       Centered : Boolean := False;
       Trailing : Boolean := False;
-      Ink     : Themes.Color := (0, 0, 0, 255);
+      Ink     : Themes.Slot := Themes.Foreground;
       Scaled  : Float := 1.0;
       Iconed  : Boolean := False;
       Which   : UI.Icons.Icon := UI.Icons.Icon'First;

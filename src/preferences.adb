@@ -2,12 +2,11 @@ with Ada.Characters.Handling;
 with Ada.Directories;
 with Ada.Environment_Variables;
 with Ada.Strings.Fixed;
+with Ada.Strings.Unbounded;
 with Files;
 with Projects;
 
 package body Preferences is
-
-   Key : constant String := "speech_model=";
 
    function Config_Directory (Store_Path : String) return String is
    begin
@@ -31,31 +30,111 @@ package body Preferences is
    function Settings_File (Config : String) return String is
      (Config & "/settings");
 
-   function Load_Speech_Model (Config : String) return Speech_Models is
+   function Settings_Text (Config : String) return String is
    begin
-      --  Read in the body: a missing file raises, which the handler below
-      --  would not see from a declaration.
-      declare
-         Saved : constant String :=
-           Ada.Characters.Handling.To_Lower
-             (Files.Read (Settings_File (Config)));
-      begin
-         return
-           (if Ada.Strings.Fixed.Index (Saved, Key & "parakeet") > 0
-            then Parakeet else MacOS);
-      end;
+      return Files.Read (Settings_File (Config));
    exception
       when others =>
-         return MacOS;  --  none kept, or unreadable
-   end Load_Speech_Model;
+         return "";  --  none kept, or unreadable
+   end Settings_Text;
 
-   procedure Save_Speech_Model (Config : String; To : Speech_Models) is
+   function Setting (Config, Name : String) return String;
+   --  The value kept for Name in the settings, "" if there is none.
+
+   function Setting (Config, Name : String) return String is
+      Text  : constant String := Settings_Text (Config);
+      Start : Natural := Text'First;
    begin
+      while Start <= Text'Last loop
+         declare
+            Stop : constant Natural :=
+              (if Ada.Strings.Fixed.Index (Text (Start .. Text'Last),
+                                           [ASCII.LF]) = 0
+               then Text'Last + 1
+               else Ada.Strings.Fixed.Index (Text (Start .. Text'Last),
+                                             [ASCII.LF]));
+            Line  : constant String := Text (Start .. Stop - 1);
+         begin
+            if Line'Length > Name'Length
+              and then Line (Line'First .. Line'First + Name'Length - 1)
+                       = Name
+              and then Line (Line'First + Name'Length) = '='
+            then
+               return Line (Line'First + Name'Length + 1 .. Line'Last);
+            end if;
+            Start := Stop + 1;
+         end;
+      end loop;
+      return "";
+   end Setting;
+
+   procedure Put_Setting (Config, Name, Value : String);
+   --  Keep Value for Name, and the other settings as they were.
+
+   procedure Put_Setting (Config, Name, Value : String) is
+      Text  : constant String := Settings_Text (Config);
+      Kept  : Ada.Strings.Unbounded.Unbounded_String;
+      Start : Natural := Text'First;
+   begin
+      while Start <= Text'Last loop
+         declare
+            Stop : constant Natural :=
+              (if Ada.Strings.Fixed.Index (Text (Start .. Text'Last),
+                                           [ASCII.LF]) = 0
+               then Text'Last + 1
+               else Ada.Strings.Fixed.Index (Text (Start .. Text'Last),
+                                             [ASCII.LF]));
+            Line  : constant String := Text (Start .. Stop - 1);
+         begin
+            if Line'Length > 0
+              and then not (Line'Length > Name'Length
+                            and then Line (Line'First ..
+                                           Line'First + Name'Length - 1)
+                                     = Name
+                            and then Line (Line'First + Name'Length) = '=')
+            then
+               Ada.Strings.Unbounded.Append (Kept, Line & ASCII.LF);
+            end if;
+            Start := Stop + 1;
+         end;
+      end loop;
       Ada.Directories.Create_Path (Config);
       Files.Write
         (Settings_File (Config),
-         Key & Ada.Characters.Handling.To_Lower (Speech_Models'Image (To))
-         & Character'Val (10));
+         Ada.Strings.Unbounded.To_String (Kept)
+         & Name & "=" & Value & ASCII.LF);
+   end Put_Setting;
+
+   function Load_Speech_Model (Config : String) return Speech_Models is
+     (if Ada.Characters.Handling.To_Lower (Setting (Config, "speech_model"))
+         = "parakeet"
+      then Parakeet else MacOS);
+
+   procedure Save_Speech_Model (Config : String; To : Speech_Models) is
+   begin
+      Put_Setting
+        (Config, "speech_model",
+         Ada.Characters.Handling.To_Lower (Speech_Models'Image (To)));
    end Save_Speech_Model;
+
+   function Load_Theme (Config : String) return Theme_Choices is
+      Saved : constant String :=
+        Ada.Characters.Handling.To_Lower (Setting (Config, "theme"));
+   begin
+      if Saved = "light" then
+         return Light;
+      elsif Saved = "dark" then
+         return Dark;
+      else
+         return System;  --  none kept, or not one of these
+      end if;
+   end Load_Theme;
+
+   procedure Save_Theme (Config : String; To : Theme_Choices) is
+   begin
+      Put_Setting
+        (Config, "theme",
+         Ada.Characters.Handling.To_Lower (Theme_Choices'Image (To)));
+   end Save_Theme;
 
 end Preferences;

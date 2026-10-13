@@ -1,5 +1,7 @@
 package body UI.Widgets.Grips is
 
+   use type Themes.Slot;
+
    use type SDL3.Events.Event_Kind;
    use SDL3.Windows.Renderers;
 
@@ -16,61 +18,72 @@ package body UI.Widgets.Grips is
       end if;
    end Set_Shape;
 
-   procedure Restyle (Item : in out Grip; To : UI.Boxes.Look);
-   --  Look like To, drawn again if that is not how it looks.
+   procedure Refresh (Item : in out Grip);
+   --  Draw Item again, if it is on the screen.
 
-   procedure Restyle (Item : in out Grip; To : UI.Boxes.Look) is
-      use type UI.Boxes.Look;
+   procedure Refresh (Item : in out Grip) is
    begin
-      if To /= Item.Look then
-         Item.Look := To;
-         if Is_Attached (Item) then
-            Invalidate (Item);
-         end if;
+      if Is_Attached (Item) then
+         Invalidate (Item);
       end if;
-   end Restyle;
+   end Refresh;
 
-   procedure Set_Fill (Item : in out Grip; Value : Themes.Color) is
+   procedure Set_Fill (Item : in out Grip; Value : Themes.Slot) is
    begin
-      Restyle (Item, (Item.Look with delta Filled => True, Fill => Value));
+      if not Item.Look.Filled or else Item.Fill_Slot /= Value then
+         Item.Look.Filled := True;
+         Item.Fill_Slot := Value;
+         Refresh (Item);
+      end if;
    end Set_Fill;
 
    procedure Set_Border
-     (Item : in out Grip; Value : Themes.Color; Dashed : Boolean := False)
+     (Item : in out Grip; Value : Themes.Slot; Dashed : Boolean := False)
    is
    begin
-      Restyle
-        (Item,
-         (Item.Look with delta
-            Bordered => True, Border => Value, Dashed => Dashed));
+      if not Item.Look.Bordered or else Item.Border_Slot /= Value
+        or else Item.Look.Dashed /= Dashed
+      then
+         Item.Look.Bordered := True;
+         Item.Look.Dashed := Dashed;
+         Item.Border_Slot := Value;
+         Refresh (Item);
+      end if;
    end Set_Border;
 
    procedure Clear_Border (Item : in out Grip) is
    begin
-      Restyle (Item, (Item.Look with delta Bordered => False));
+      if Item.Look.Bordered then
+         Item.Look.Bordered := False;
+         Refresh (Item);
+      end if;
    end Clear_Border;
 
-   procedure Set_Shadow (Item : in out Grip; Value : Themes.Color) is
+   procedure Set_Shadow (Item : in out Grip; Value : Themes.Slot) is
    begin
-      Restyle
-        (Item, (Item.Look with delta Shadowed => True, Shadow => Value));
+      if not Item.Look.Shadowed or else Item.Shadow_Slot /= Value then
+         Item.Look.Shadowed := True;
+         Item.Shadow_Slot := Value;
+         Refresh (Item);
+      end if;
    end Set_Shadow;
 
    procedure Clear_Shadow (Item : in out Grip) is
    begin
-      Restyle (Item, (Item.Look with delta Shadowed => False));
+      if Item.Look.Shadowed then
+         Item.Look.Shadowed := False;
+         Refresh (Item);
+      end if;
    end Clear_Shadow;
 
-   procedure Set_Hover_Outline (Item : in out Grip; Value : Themes.Color) is
+   procedure Set_Hover_Outline (Item : in out Grip; Value : Themes.Slot) is
    begin
       Item.Outlined := True;
       Item.Outline_Color := Value;
-      if Is_Attached (Item) then
-         Invalidate (Item);
-      end if;
+      Refresh (Item);
    end Set_Hover_Outline;
 
-   procedure Set_Hover_Fill (Item : in out Grip; Value : Themes.Color) is
+   procedure Set_Hover_Fill (Item : in out Grip; Value : Themes.Slot) is
    begin
       if not Item.Hover_Filled or else Item.Hover_Fill /= Value then
          Item.Hover_Filled := True;
@@ -186,21 +199,25 @@ package body UI.Widgets.Grips is
         Themes.Mix (Colors.Background, Colors.Foreground, 0.55);
       Edge : constant Float := Left_Of (Item) + Width_Of (Item) - 2.0 * Side;
       Base : constant Float := Top_Of (Item) + Height_Of (Item) - 2.0 * Side;
+      Look : UI.Boxes.Look := Item.Look;
    begin
+      Look.Fill := Themes.Resolve (Colors, Item.Fill_Slot);
+      Look.Border := Themes.Resolve (Colors, Item.Border_Slot);
+      Look.Shadow := Themes.Resolve (Colors, Item.Shadow_Slot);
+      if Item.Hover_Filled and then Is_Hovered (Item) then
+         Look.Fill := Themes.Resolve (Colors, Item.Hover_Fill);
+      end if;
       UI.Boxes.Draw
-        (Target,
-         (if Item.Hover_Filled and then Is_Hovered (Item)
-          then (Item.Look with delta Fill => Item.Hover_Fill)
-          else Item.Look),
-         Left_Of (Item), Top_Of (Item), Width_Of (Item), Height_Of (Item),
-         Density (Item));
+        (Target, Look, Left_Of (Item), Top_Of (Item), Width_Of (Item),
+         Height_Of (Item), Density (Item));
       if Item.Outlined and then Is_Hovered (Item) then
          declare
             Off : constant Float :=
               UI.Boxes.Inset (Item.Look, Density (Item));
          begin
             UI.Boxes.Outline
-              (Target, Item.Outline_Color, Left_Of (Item), Top_Of (Item),
+              (Target, Themes.Resolve (Colors, Item.Outline_Color),
+               Left_Of (Item), Top_Of (Item),
                Width_Of (Item) - Off, Height_Of (Item) - Off,
                UI.Boxes.Edge (Density (Item)));
          end;

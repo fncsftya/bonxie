@@ -37,7 +37,7 @@ package UI.Widgets.Checks is
 
    function Is_Checked (Item : Check) return Boolean;
 
-   procedure Set_Swatch (Item : in out Check; To : Themes.Color);
+   procedure Set_Swatch (Item : in out Check; To : Themes.Slot);
    --  Show a square of the colour between the box and the label.
 
    procedure Set_Enabled (Item : in out Check; To : Boolean);
@@ -74,7 +74,7 @@ private
       Length   : Natural range 0 .. Label_Capacity := 0;
       Checked  : Boolean := False;
       Swatched : Boolean := False;
-      Swatch   : Themes.Color := (0, 0, 0, 255);
+      Swatch   : Themes.Slot := Themes.Primary;
       Enabled  : Boolean := True;
       Down     : Boolean := False;
       Changed  : Boolean := False;

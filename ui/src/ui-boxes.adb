@@ -76,16 +76,15 @@ package body UI.Boxes is
 
    procedure Bevel
      (Target  : SDL3.Windows.Renderers.Renderer;
-      Face    : Themes.Color;
+      Light   : Themes.Color;
+      Dark    : Themes.Color;
       Left, Top, Width, Height : Float;
       Density : Float;
       Sunken  : Boolean := False)
    is
       Thick : constant Float := Edge (Density);
-      Lit   : constant Themes.Color :=
-        (if Sunken then Themes.Shade (Face) else Themes.Highlight (Face));
-      Dim   : constant Themes.Color :=
-        (if Sunken then Themes.Highlight (Face) else Themes.Shade (Face));
+      Lit   : constant Themes.Color := (if Sunken then Dark else Light);
+      Dim   : constant Themes.Color := (if Sunken then Light else Dark);
    begin
       if Width < 2.0 * Thick or else Height < 2.0 * Thick then
          return;
@@ -132,9 +131,16 @@ package body UI.Boxes is
       Fill_Rect (Target, Item.Face, X, Y, Wide, High);
       Outline (Target, Item.Border, X, Y, Wide, High, Thick);
       if not Item.Flat then
-         Bevel (Target, Item.Face, X + Thick, Y + Thick,
-                Wide - 2.0 * Thick, High - 2.0 * Thick, Density,
-                Sunken => Item.Pressed);
+         if Item.Edges_Given then
+            Bevel (Target, Item.Lit, Item.Shaded, X + Thick, Y + Thick,
+                   Wide - 2.0 * Thick, High - 2.0 * Thick, Density,
+                   Sunken => Item.Pressed);
+         else
+            Bevel (Target, Themes.Highlight (Item.Face),
+                   Themes.Shade (Item.Face), X + Thick, Y + Thick,
+                   Wide - 2.0 * Thick, High - 2.0 * Thick, Density,
+                   Sunken => Item.Pressed);
+         end if;
       end if;
    end Draw_Raised;
 

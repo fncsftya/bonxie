@@ -4,7 +4,7 @@ package SDL3.Events is
 
    type Event_Kind is
      (Quit, Key_Down, Text_Input, Text_Editing, Mouse_Down, Mouse_Up,
-      Mouse_Move, Mouse_Wheel, Pinch, Redraw, Other);
+      Mouse_Move, Mouse_Wheel, Pinch, Redraw, Theme_Changed, Other);
    --  Text_Input: text typed, once Windows.Start_Text_Input is called;
    --  the keys that typed it come as Key_Down too. Text_Editing: what an
    --  input method has been given so far, to show in place before it
@@ -12,7 +12,12 @@ package SDL3.Events is
    --  letter. Mouse_Down, Mouse_Up: a mouse button pressed or let go.
    --  Mouse_Move: the pointer moved. Pinch: a pinch on a trackpad.
    --  Redraw: the window was exposed or resized, so what it shows is out
-   --  of date.
+   --  of date. Theme_Changed: the system's light or dark appearance
+   --  changed (see System_Is_Dark).
+
+   function System_Is_Dark return Boolean;
+   --  Whether the system is in its dark appearance now; False if it does
+   --  not say.
 
    subtype Key_Code is Interfaces.Unsigned_32;
 

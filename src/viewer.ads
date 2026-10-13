@@ -166,6 +166,21 @@ package Viewer is
           Post => Preferences."=" (Speech_Model (Item), To);
    --  Choose it, as its radio does.
 
+   function Theme_Choice (Item : Session) return Preferences.Theme_Choices
+     with Pre => Is_Open (Item);
+   --  What is chosen for the appearance of the windows.
+
+   procedure Choose_Theme
+     (Item : in out Session; To : Preferences.Theme_Choices)
+     with Pre  => Is_Open (Item),
+          Post => Preferences."=" (Theme_Choice (Item), To);
+   --  Choose it, as its radio does.
+
+   function Is_Dark (Item : Session) return Boolean
+     with Pre => Is_Open (Item);
+   --  Whether the windows are drawn in the dark theme now: as the choice
+   --  says, or, for System, as the system's appearance is.
+
    procedure Close_Project (Item : in out Session)
      with Pre  => Is_Open (Item) and then Screen (Item) = Project,
           Post => Screen (Item) = Home;
@@ -615,6 +630,12 @@ private
       Model_Native   : UI.Widgets.Checks.Check;
       Model_Parakeet : UI.Widgets.Checks.Check;
       --  Speech's one option, Model: a radio for each.
+      Display_Heading : UI.Widgets.Labels.Label;
+      Theme_Name     : UI.Widgets.Labels.Label;
+      Theme_Light    : UI.Widgets.Checks.Check;
+      Theme_Dark     : UI.Widgets.Checks.Check;
+      Theme_System   : UI.Widgets.Checks.Check;
+      --  Display's one option, Theme: a radio for each.
       Download_Row   : UI.Widgets.Panels.Panel;
       Download_Button : UI.Widgets.Buttons.Button;
       Download_State : UI.Widgets.Labels.Label;
@@ -624,6 +645,9 @@ private
       --  it, and, while it comes, how far.
       Showing_Settings : Boolean := False;
       Speech_Choice  : Preferences.Speech_Models := Preferences.MacOS;
+      Theme_Chosen   : Preferences.Theme_Choices := Preferences.System;
+      Dark_Shown     : Boolean := False;
+      --  Whether the windows are drawn in the dark theme, as last applied.
       Config_Dir     : Ada.Strings.Unbounded.Unbounded_String;
       --  Where the settings and the files they need are kept.
       Persist        : Boolean := False;

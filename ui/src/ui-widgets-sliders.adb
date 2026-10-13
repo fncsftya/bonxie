@@ -125,8 +125,8 @@ package body UI.Widgets.Sliders is
       --  The groove, the light falling into it from the top left.
       Fill_Rect (Target, Groove, Left, Groove_Top, Width_Of (Item), Thick);
       UI.Boxes.Bevel
-        (Target, Groove, Left, Groove_Top, Width_Of (Item), Thick, Pixels,
-         Sunken => True);
+        (Target, Themes.Highlight (Groove), Themes.Shade (Groove), Left,
+         Groove_Top, Width_Of (Item), Thick, Pixels, Sunken => True);
       UI.Boxes.Draw_Raised
         (Target,
          (Face    =>
@@ -134,7 +134,10 @@ package body UI.Widgets.Sliders is
              then Themes.Mix (Colors.Face, Themes.White, 0.22)
              else Colors.Face),
           Border  => Colors.Border,
-          Drop    => Themes.Drop (Colors),
+          Edges_Given => False,
+          Lit => (0, 0, 0, 255),
+          Shaded => (0, 0, 0, 255),
+          Drop    => Colors.Drop_Shadow,
           Pressed => Item.Held,
           Flat    => False),
          Knob, Top_Of (Item), Wide, High, Pixels);

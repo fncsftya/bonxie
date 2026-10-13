@@ -35,7 +35,7 @@ package body UI.Widgets.Chips is
    function Label (Item : Chip) return String is
      (Item.Text (1 .. Item.Length));
 
-   procedure Set_Swatch (Item : in out Chip; To : Themes.Color) is
+   procedure Set_Swatch (Item : in out Chip; To : Themes.Slot) is
    begin
       Item.Swatched := True;
       Item.Swatch := To;
@@ -124,7 +124,7 @@ package body UI.Widgets.Chips is
       X, Y, W, H : Float;
    begin
       Fill_Rect
-        (Target, Themes.White, Left_Of (Item), Top_Of (Item),
+        (Target, Colors.Page, Left_Of (Item), Top_Of (Item),
          Width_Of (Item), Height_Of (Item));
       UI.Boxes.Outline
         (Target, Colors.Border, Left_Of (Item), Top_Of (Item),
@@ -134,7 +134,8 @@ package body UI.Widgets.Chips is
             Size : constant Float := Float'Rounding (Swatch_Size * Pixels);
          begin
             Fill_Rect
-              (Target, Item.Swatch, Float'Rounding (After),
+              (Target, Themes.Resolve (Colors, Item.Swatch),
+               Float'Rounding (After),
                Float'Rounding (Middle - Size / 2.0), Size, Size);
             After := After + Size + Gap * Pixels;
          end;
@@ -151,7 +152,10 @@ package body UI.Widgets.Chips is
             then Themes.Mix (Colors.Face, Themes.White, 0.22)
             else Colors.Face),
          Border  => Colors.Border,
-         Drop    => Themes.Drop (Colors),
+         Edges_Given => False,
+         Lit => (0, 0, 0, 255),
+         Shaded => (0, 0, 0, 255),
+         Drop    => Colors.Drop_Shadow,
          Pressed => Item.Down and then Item.Over,
          Flat    => False);
       UI.Boxes.Draw_Raised (Target, Look, Left, Top, Side, Side, Pixels);

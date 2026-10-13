@@ -59,18 +59,24 @@ package UI.Boxes is
 
    procedure Bevel
      (Target  : SDL3.Windows.Renderers.Renderer;
-      Face    : Themes.Color;
+      Light   : Themes.Color;
+      Dark    : Themes.Color;
       Left, Top, Width, Height : Float;
       Density : Float;
       Sunken  : Boolean := False)
      with Pre => Density > 0.0;
    --  The edges of a face that stands up, a point wide, just inside the
-   --  box: light (Themes.Highlight) at its top and left, dark
-   --  (Themes.Shade) at its foot and right; the other way round if it is
-   --  Sunken, as pressed in. Flat colours, never a gradient.
+   --  box: Light at its top and left, Dark at its foot and right; the
+   --  other way round if it is Sunken, as pressed in. Flat colours, never
+   --  a gradient.
 
    type Raised_Look is record
       Face    : Themes.Color := (0, 0, 0, 255);
+      Edges_Given : Boolean := False;
+      --  Whether Lit and Shaded are the bevel's edges; if not, they are
+      --  made from Face.
+      Lit     : Themes.Color := (0, 0, 0, 255);  --  the bevel's light edge
+      Shaded  : Themes.Color := (0, 0, 0, 255);  --  its dark edge
       Border  : Themes.Color := (0, 0, 0, 255);
       Drop    : Themes.Color := (0, 0, 0, 255);
       Pressed : Boolean := False;

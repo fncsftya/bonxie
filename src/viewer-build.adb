@@ -155,7 +155,7 @@ package body Viewer.Build is
       Buttons.Set_Captioned (Item.Settings_Button, True);
       Set_Height
         (Widgets.Node (Item.Settings_Button), Action_Height * Pixels);
-      Panels.Set_Fill (Item.Home_Rule, Colors.Border);
+      Panels.Set_Fill (Item.Home_Rule, Themes.Border);
       Set_Width (Widgets.Node (Item.Home_Rule), UI.Boxes.Edge (Pixels));
       Set_Flex_Shrink (Widgets.Node (Item.Home_Rule), 0.0);
 
@@ -196,9 +196,9 @@ package body Viewer.Build is
 
       for Card of Item.Cards loop
          --  Outlined, with a shadow, which the face leaves room for.
-         Panels.Set_Fill (Card.Panel, Colors.Tint);
-         Panels.Set_Border (Card.Panel, Colors.Border);
-         Panels.Set_Shadow (Card.Panel, Colors.Shadow);
+         Panels.Set_Fill (Card.Panel, Themes.Tint);
+         Panels.Set_Border (Card.Panel, Themes.Border);
+         Panels.Set_Shadow (Card.Panel, Themes.Shadow);
          Set_Flex_Direction (Widgets.Node (Card.Panel), Yoga.Column);
          Size (Card.Panel, Card_Width, Card_Height);
          Set_Flex_Shrink (Widgets.Node (Card.Panel), 0.0);
@@ -210,14 +210,14 @@ package body Viewer.Build is
                   then UI.Boxes.Offset (Pixels) else 0.0));
          end loop;
          --  A line between the picture and what is below it.
-         Grips.Set_Fill (Card.Peek, Colors.Border);
+         Grips.Set_Fill (Card.Peek, Themes.Border);
          Grips.Set_Wanted_Cursor (Card.Peek, SDL3.Cursors.Pointer);
          Set_Height (Widgets.Node (Card.Peek), Thumb_Height * Pixels);
          Set_Flex_Direction (Widgets.Node (Card.Peek), Yoga.Column);
          Set_Flex_Grow (Widgets.Node (Card.Picture), 1.0);
          Set_Margin
            (Widgets.Node (Card.Picture), Yoga.Bottom, UI.Boxes.Edge (Pixels));
-         Panels.Set_Fill (Card.Info, Colors.Tint);
+         Panels.Set_Fill (Card.Info, Themes.Tint);
          Set_Flex_Grow (Widgets.Node (Card.Info), 1.0);
          Set_Flex_Direction (Widgets.Node (Card.Info), Yoga.Row);
          Set_Align_Items (Widgets.Node (Card.Info), Yoga.Center);
@@ -244,7 +244,7 @@ package body Viewer.Build is
       end loop;
 
       --  The outline of a card, to make a project.
-      Grips.Set_Border (Item.New_Card, Colors.Border, Dashed => True);
+      Grips.Set_Border (Item.New_Card, Themes.Border, Dashed => True);
       Grips.Set_Wanted_Cursor (Item.New_Card, SDL3.Cursors.Pointer);
       Size (Item.New_Card, Card_Width - Themes.Shadow_Offset,
             Card_Height - Themes.Shadow_Offset);
@@ -260,7 +260,7 @@ package body Viewer.Build is
       Labels.Set_Style (Item.New_Card_Label, UI.Line_Texts.Strong);
       Labels.Set_Ink
         (Item.New_Card_Label,
-         Themes.Mix (Colors.Primary, Colors.Foreground, 0.25));
+         Themes.Primary_Mix);
       Labels.Set_Centered (Item.New_Card_Label, True);
       Size (Item.New_Card_Label, Card_Width / 2.0, Title_Height);
       Set_Margin
@@ -342,7 +342,7 @@ package body Viewer.Build is
       Set_Margin
         (Widgets.Node (Item.Bar_Rule), Yoga.Horizontal, Name_Gap * Pixels);
       Labels.Set_Style (Item.Project_Title, UI.Line_Texts.Heading);
-      Labels.Set_Ink (Item.Project_Title, Themes.White);
+      Labels.Set_Ink (Item.Project_Title, Themes.Bar_Ink);
       Set_Flex_Grow (Widgets.Node (Item.Project_Title), 1.0);
       Set_Width (Widgets.Node (Item.Project_Title), 0.0);
       Set_Height (Widgets.Node (Item.Project_Title), Tab_Height * Pixels);
@@ -382,8 +382,7 @@ package body Viewer.Build is
          Items.Windows.Set_Shared
            (Each, Item.Doc_Resources'Unchecked_Access);
          Items.Windows.Build
-           (Each, Item.Canvas_View, Item.Dock_Content, Colors, Toolbar,
-            Pixels);
+           (Each, Item.Canvas_View, Item.Dock_Content, Toolbar, Pixels);
       end loop;
       Links.Build (Item);
    end Build_Project;
@@ -401,7 +400,7 @@ package body Viewer.Build is
       Widgets.Add (Item.Tools, Item.Tool_Item);
       Widgets.Add (Item.Tools, Item.Tool_Source);
       Panels.Set_Fill (Item.Tools, Toolbar);
-      Panels.Set_Shadow (Item.Tools, Colors.Shadow);
+      Panels.Set_Shadow (Item.Tools, Themes.Shadow);
       Set_Position_Type (Widgets.Node (Item.Tools), Yoga.Absolute);
       Set_Position
         (Widgets.Node (Item.Tools), Yoga.Bottom,
@@ -477,7 +476,7 @@ package body Viewer.Build is
             --  taller, and the gap less.
             Grips.Set_Fill (Each.Row, Row_Fill);
             Grips.Set_Hover_Fill (Each.Row, Row_Hover);
-            Grips.Set_Border (Each.Row, Colors.Border);
+            Grips.Set_Border (Each.Row, Themes.Border);
             Grips.Set_Shadow (Each.Row, Side_Fill);
             Grips.Set_Wanted_Cursor (Each.Row, SDL3.Cursors.Pointer);
             Set_Height
@@ -549,15 +548,14 @@ package body Viewer.Build is
       --  Over the rest, last.
       for Each of Item.Readers loop
          Items.Readers.Build
-           (Each, Item.Write_View, Colors, Toolbar, Pixels);
+           (Each, Item.Write_View, Toolbar, Pixels);
       end loop;
       Widgets.Add (Item.Write_View, Item.Menu);
       Set_Position_Type (Widgets.Node (Item.Menu), Yoga.Absolute);
       Set_Width (Widgets.Node (Item.Menu), Menu_Width * Pixels);
       Widgets.Set_Visible (Item.Menu, False);
       Items.Readers.Build
-        (Item.Pane_Reader, Item.Pane_Body, Colors, Toolbar, Pixels,
-         Pinned => True);
+        (Item.Pane_Reader, Item.Pane_Body, Toolbar, Pixels, Pinned => True);
 
       Panels.Set_Fill (Item.Write_View, Desk);
       Set_Flex_Direction (Widgets.Node (Item.Write_View), Yoga.Row);
@@ -577,7 +575,7 @@ package body Viewer.Build is
       Set_Flex_Direction (Widgets.Node (Item.Sidebar), Yoga.Column);
       Set_Gap
         (Widgets.Node (Item.Sidebar), Yoga.All_Gutters, Sidebar_Gap * Pixels);
-      Panels.Set_Fill (Item.Sidebar_Rule, Colors.Border);
+      Panels.Set_Fill (Item.Sidebar_Rule, Themes.Border);
       Set_Width (Widgets.Node (Item.Sidebar_Rule), Edge);
       Set_Flex_Shrink (Widgets.Node (Item.Sidebar_Rule), 0.0);
       Set_Flex_Direction (Widgets.Node (Item.Docs_Head), Yoga.Row);
@@ -653,8 +651,8 @@ package body Viewer.Build is
            (Widgets.Node (Each.Mic_Button), Bar_Button_Height * Pixels);
          --  The page: white, outlined, with a shadow it leaves room for.
          Panels.Set_Fill (Each.Sheet, Paper);
-         Panels.Set_Border (Each.Sheet, Colors.Border);
-         Panels.Set_Shadow (Each.Sheet, Colors.Shadow);
+         Panels.Set_Border (Each.Sheet, Themes.Border);
+         Panels.Set_Shadow (Each.Sheet, Themes.Shadow);
          Set_Flex_Direction (Widgets.Node (Each.Sheet), Yoga.Column);
          Set_Flex_Shrink (Widgets.Node (Each.Sheet), 0.0);
          Set_Padding
@@ -729,6 +727,11 @@ package body Viewer.Build is
       Widgets.Add (Item.Settings_Panel, Item.Settings_Scroll);
       Widgets.Add (Item.Settings_Scroll, Item.Settings_Content);
       Widgets.Add (Item.Settings_Content, Item.Settings_Form);
+      Widgets.Add (Item.Settings_Form, Item.Display_Heading);
+      Widgets.Add (Item.Settings_Form, Item.Theme_Name);
+      Widgets.Add (Item.Settings_Form, Item.Theme_Light);
+      Widgets.Add (Item.Settings_Form, Item.Theme_Dark);
+      Widgets.Add (Item.Settings_Form, Item.Theme_System);
       Widgets.Add (Item.Settings_Form, Item.Speech_Heading);
       Widgets.Add (Item.Settings_Form, Item.Model_Name);
       Widgets.Add (Item.Settings_Form, Item.Model_Native);
@@ -755,7 +758,7 @@ package body Viewer.Build is
         (Widgets.Node (Item.Settings_Bar), Yoga.Right, Bar_Inset * Pixels);
       Labels.Set_Text (Item.Settings_Title, "Settings");
       Labels.Set_Style (Item.Settings_Title, UI.Line_Texts.Heading);
-      Labels.Set_Ink (Item.Settings_Title, Themes.White);
+      Labels.Set_Ink (Item.Settings_Title, Themes.Bar_Ink);
       Set_Flex_Grow (Widgets.Node (Item.Settings_Title), 1.0);
       Set_Width (Widgets.Node (Item.Settings_Title), 0.0);
       Set_Height (Widgets.Node (Item.Settings_Title), Tab_Height * Pixels);
@@ -777,8 +780,8 @@ package body Viewer.Build is
         (Widgets.Node (Item.Settings_Content), Yoga.All_Edges,
          Page_Margin * Pixels);
       Panels.Set_Fill (Item.Settings_Form, Paper);
-      Panels.Set_Border (Item.Settings_Form, Colors.Border);
-      Panels.Set_Shadow (Item.Settings_Form, Colors.Shadow);
+      Panels.Set_Border (Item.Settings_Form, Themes.Border);
+      Panels.Set_Shadow (Item.Settings_Form, Themes.Shadow);
       Set_Flex_Direction (Widgets.Node (Item.Settings_Form), Yoga.Column);
       Set_Flex_Shrink (Widgets.Node (Item.Settings_Form), 0.0);
       Set_Width (Widgets.Node (Item.Settings_Form), Page_Width * Pixels);
@@ -796,10 +799,23 @@ package body Viewer.Build is
         (Widgets.Node (Item.Settings_Form), Yoga.All_Gutters,
          Row_Gap * Pixels);
 
+      --  Display: its one option, Theme.
+      Labels.Set_Text (Item.Display_Heading, "DISPLAY");
+      Labels.Set_Style (Item.Display_Heading, UI.Line_Texts.Caption);
+      Line (Item.Display_Heading, Heading_Height);
+      Labels.Set_Text (Item.Theme_Name, "Theme");
+      Labels.Set_Style (Item.Theme_Name, UI.Line_Texts.Strong);
+      Line (Item.Theme_Name, Settings_Line);
+      Radio (Item.Theme_Light, "Light");
+      Radio (Item.Theme_Dark, "Dark");
+      Radio (Item.Theme_System, "System");
+
       --  Speech: its one option, Model.
       Labels.Set_Text (Item.Speech_Heading, "SPEECH");
       Labels.Set_Style (Item.Speech_Heading, UI.Line_Texts.Caption);
       Line (Item.Speech_Heading, Heading_Height);
+      Set_Margin
+        (Widgets.Node (Item.Speech_Heading), Yoga.Top, Heading_Top * Pixels);
       Labels.Set_Text (Item.Model_Name, "Model");
       Labels.Set_Style (Item.Model_Name, UI.Line_Texts.Strong);
       Line (Item.Model_Name, Settings_Line);
@@ -858,7 +874,7 @@ package body Viewer.Build is
         (Widgets.Node (Bar), Yoga.Horizontal, Dialog_Bar_Pad * Pixels);
       Labels.Set_Text (Named, Name);
       Labels.Set_Style (Named, UI.Line_Texts.Strong);
-      Labels.Set_Ink (Named, Themes.White);
+      Labels.Set_Ink (Named, Themes.Bar_Ink);
       Set_Flex_Grow (Widgets.Node (Named), 1.0);
       Set_Width (Widgets.Node (Named), 0.0);
       Set_Height (Widgets.Node (Named), Dialog_Bar_Height * Pixels);
@@ -881,8 +897,8 @@ package body Viewer.Build is
       use Yoga.Nodes;
       Pixels : constant Float := Item.Density;
    begin
-      Panels.Set_Fill (Border, Colors.Border);
-      Panels.Set_Shadow (Border, Colors.Shadow);
+      Panels.Set_Fill (Border, Themes.Border);
+      Panels.Set_Shadow (Border, Themes.Shadow);
       Set_Flex_Direction (Widgets.Node (Border), Yoga.Column);
       Set_Padding
         (Widgets.Node (Border), Yoga.All_Edges, UI.Boxes.Edge (Pixels));
@@ -914,7 +930,7 @@ package body Viewer.Build is
       Widgets.Add (Item.Confirm_Buttons, Item.Confirm_Cancel);
       Widgets.Add (Item.Confirm_Buttons, Item.Confirm_Delete);
 
-      Panels.Set_Fill (Item.Overlay, UI.Themes.Scrim (Colors));
+      Panels.Set_Fill (Item.Overlay, Themes.Scrim);
       Build_Border (Item, Item.Dialog_Border);
       Build_Dialog_Bar
         (Item, Item.Dialog_Bar, Item.Dialog_Title, Item.Dialog_Close,
@@ -927,9 +943,9 @@ package body Viewer.Build is
       Buttons.Set_Icon_Size (Item.Confirm_Delete, Mic_Icon_Size);
       Buttons.Set_Captioned (Item.Confirm_Delete, True);
       Buttons.Set_Kind (Item.Confirm_Delete, Buttons.Danger);
-      Panels.Set_Fill (Item.Dialog_Rule, Colors.Border);
+      Panels.Set_Fill (Item.Dialog_Rule, Themes.Border);
       Set_Height (Widgets.Node (Item.Dialog_Rule), UI.Boxes.Edge (Pixels));
-      Panels.Set_Fill (Item.Confirm_Buttons, Colors.Tint);
+      Panels.Set_Fill (Item.Confirm_Buttons, Themes.Tint);
 
       --  Not in the layout of the screens: over them, all of the window,
       --  with the dialog in the middle.
@@ -990,7 +1006,7 @@ package body Viewer.Build is
          Widgets.Add (Row.Panel, Row.Remove);
       end loop;
 
-      Panels.Set_Fill (Item.List_Overlay, UI.Themes.Scrim (Colors));
+      Panels.Set_Fill (Item.List_Overlay, Themes.Scrim);
       Build_Border (Item, Item.List_Border);
       Build_Dialog_Bar
         (Item, Item.List_Head, Item.List_Heading, Item.List_Close, "Items");
@@ -1028,8 +1044,8 @@ package body Viewer.Build is
          List_Gap * Pixels);
       Set_Height (Widgets.Node (Item.List_None), Title_Height * Pixels);
       for Row of Item.List_Rows loop
-         Panels.Set_Fill (Row.Panel, Colors.Tint);
-         Panels.Set_Border (Row.Panel, Colors.Border);
+         Panels.Set_Fill (Row.Panel, Themes.Tint);
+         Panels.Set_Border (Row.Panel, Themes.Border);
          Set_Flex_Direction (Widgets.Node (Row.Panel), Yoga.Row);
          Set_Align_Items (Widgets.Node (Row.Panel), Yoga.Center);
          Set_Height (Widgets.Node (Row.Panel), Row_Height * Pixels);
@@ -1045,7 +1061,7 @@ package body Viewer.Build is
          Set_Align_Items (Widgets.Node (Row.Name), Yoga.Center);
          Set_Padding (Widgets.Node (Row.Name), Yoga.Left, Row_Gap * Pixels);
          Grips.Set_Wanted_Cursor (Row.Name, SDL3.Cursors.Pointer);
-         Grips.Set_Hover_Outline (Row.Name, Colors.Foreground);
+         Grips.Set_Hover_Outline (Row.Name, Themes.Foreground);
          Set_Flex_Grow (Widgets.Node (Row.Caption), 1.0);
          Set_Width (Widgets.Node (Row.Caption), 0.0);
          Set_Height (Widgets.Node (Row.Caption), Row_Height * Pixels);
@@ -1078,6 +1094,12 @@ package body Viewer.Build is
          Item.Speech_Choice :=
            Preferences.Load_Speech_Model
              (Ada.Strings.Unbounded.To_String (Item.Config_Dir));
+         Item.Theme_Chosen :=
+           Preferences.Load_Theme
+             (Ada.Strings.Unbounded.To_String (Item.Config_Dir));
+      else
+         --  Offscreen, the light theme, whatever the system's is.
+         Item.Theme_Chosen := Preferences.Light;
       end if;
       Widgets.Set_Density (Item.Widgets, Item.Density);
       Widgets.Set_Line_Texts (Item.Widgets, Item.Lines);

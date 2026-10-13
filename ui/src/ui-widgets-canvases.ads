@@ -55,7 +55,7 @@ package UI.Widgets.Canvases is
       Dash  : Dashes := Solid;
       Arrow : Boolean := False;
       --  An arrowhead at the To end.
-      Ink   : Themes.Color := (0, 0, 0, 255);
+      Ink   : Themes.Slot := Themes.Foreground;
    end record;
    --  A straight line between two places, in canvas units.
 

@@ -39,8 +39,7 @@ package Items.Readers is
    procedure Build
      (Item    : in out Reader;
       Parent  : in out UI.Widgets.Widget'Class;
-      Colors  : UI.Themes.Theme;
-      Bar     : UI.Themes.Color;
+      Bar     : UI.Themes.Slot;
       Density : Float;
       Pinned  : Boolean := False);
    --  Add the reader's widgets, hidden, to Parent, which is in the tree
@@ -48,7 +47,7 @@ package Items.Readers is
    --  column that fills it. Do it once, before the layout, with the
    --  tree's density.
 
-   procedure Set_Tag (Item : in out Reader; To : UI.Themes.Color);
+   procedure Set_Tag (Item : in out Reader; To : UI.Themes.Slot);
    --  Show the source's colour, in a square before its title.
 
    function Is_Assigned (Item : Reader) return Boolean;
