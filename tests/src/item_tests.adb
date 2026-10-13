@@ -29,7 +29,11 @@ package body Item_Tests is
 
    Add_X    : constant Float := 64.0;
    Source_X : constant Float := 182.0;
-   Menu_X   : constant Float := 411.0;
+   Menu_X   : constant Float := 451.0;
+   Marker_X : constant Float := 360.0;
+   Eraser_X : constant Float := 382.0;
+   Cursor_X : constant Float := 338.0;
+   Status_Y : constant Float := 296.0;
    Menu_Y   : constant Float := 275.0;
    --  A zoom's button in the menu of a source's window: 200%.
    List_X   : constant Float := 300.0;
@@ -734,6 +738,29 @@ package body Item_Tests is
       --  Moved at that zoom, by as much of the canvas as it is on screen.
       Press (Session, 260.0, 160.0);
       Release (Session, 260.0, 160.0);
+
+      --  The view is kept with the project: opening it again is at the
+      --  same zoom, and the same place.
+      declare
+         Zoom : constant Float := Viewer.Canvas_Zoom (Session);
+         X    : constant Float := Viewer.Canvas_Origin_X (Session);
+         Y    : constant Float := Viewer.Canvas_Origin_Y (Session);
+         Key  : constant Projects.Id := Viewer.Current_Project (Session);
+         function Near (A, B : Float) return String is
+           (Boolean'Image (abs (A - B) < 0.01));
+      begin
+         Viewer.Close_Project (Session);
+         Viewer.Open_Project (Session, Key);
+         Check
+           ("view-zoom-kept", "TRUE",
+            Near (Zoom, Viewer.Canvas_Zoom (Session)));
+         Check
+           ("view-x-kept", "TRUE",
+            Near (X, Viewer.Canvas_Origin_X (Session)));
+         Check
+           ("view-y-kept", "TRUE",
+            Near (Y, Viewer.Canvas_Origin_Y (Session)));
+      end;
    end Panning_And_Zooming;
 
    procedure Raising is
@@ -1067,11 +1094,63 @@ package body Item_Tests is
       Move_To (Session, 600.0, 60.0);
       Snap (Session, "source-captured");
 
+      --  Highlighted: the tool is chosen in the status line, and a drag
+      --  over the picture marks it, where a drag did nothing before.
+      Check
+        ("source-cursor-first", "FALSE",
+         Boolean'Image (Viewer.Item_Highlighting (Session, 1)));
+      Drag (Session, 300.0, 200.0, 400.0, 200.0);
+      Check
+        ("source-no-mark", " 0",
+         Natural'Image (Viewer.Item_Marks (Session, 1)));
+      Click_On (Session, Marker_X, Status_Y);
+      Check
+        ("source-marker-chosen", "TRUE",
+         Boolean'Image (Viewer.Item_Highlighting (Session, 1)));
+      Drag (Session, 300.0, 200.0, 400.0, 200.0);
+      Check
+        ("source-mark", " 1", Natural'Image (Viewer.Item_Marks (Session, 1)));
+      Click_On (Session, 340.0, 230.0);
+      Check
+        ("source-click-no-mark", " 1",
+         Natural'Image (Viewer.Item_Marks (Session, 1)));
+      Snap (Session, "source-marked");
+
+      --  The eraser removes the mark it is clicked on, and no other.
+      Click_On (Session, Eraser_X, Status_Y);
+      Check
+        ("source-eraser-chosen", "TRUE",
+         Boolean'Image (Viewer.Item_Erasing (Session, 1)));
+      Click_On (Session, 340.0, 230.0);
+      Check
+        ("source-erase-miss", " 1",
+         Natural'Image (Viewer.Item_Marks (Session, 1)));
+      Click_On (Session, 350.0, 200.0);
+      Check
+        ("source-erased", " 0",
+         Natural'Image (Viewer.Item_Marks (Session, 1)));
+      Click_On (Session, Marker_X, Status_Y);
+      Drag (Session, 300.0, 200.0, 400.0, 200.0);
+      Check
+        ("source-marked-again", " 1",
+         Natural'Image (Viewer.Item_Marks (Session, 1)));
+
+      --  The cursor puts it away; so does a click outside the window.
+      Click_On (Session, Cursor_X, Status_Y);
+      Check
+        ("source-cursor-chosen", "FALSE",
+         Boolean'Image (Viewer.Item_Highlighting (Session, 1)));
+      Click_On (Session, Marker_X, Status_Y);
+      Click_On (Session, 100.0, 100.0);
+      Check
+        ("source-marker-put-away", "FALSE",
+         Boolean'Image (Viewer.Item_Highlighting (Session, 1)));
+
       --  Zoomed within the window: by the slider, and from the menu.
       Check
         ("source-zoom-start", " 1.00000E+00",
          Float'Image (Viewer.Item_Zoom (Session, 1)));
-      Click_On (Session, 454.0, 296.0);
+      Click_On (Session, 494.0, 296.0);
       Snap (Session, "source-menu");
       Click_On (Session, Menu_X, Menu_Y);
       Check
@@ -1082,16 +1161,16 @@ package body Item_Tests is
       --  Dragged part of the way, with the knob held: the zoom it is
       --  rounded to is not where the knob is, which it must leave alone
       --  while it is held (this once failed a postcondition).
-      Press (Session, 395.0, 296.0);
-      Move_To (Session, 401.3, 296.0, Held => True);
-      Move_To (Session, 407.7, 296.0, Held => True);
-      Release (Session, 407.7, 296.0);
+      Press (Session, 435.0, 296.0);
+      Move_To (Session, 441.3, 296.0, Held => True);
+      Move_To (Session, 447.7, 296.0, Held => True);
+      Release (Session, 447.7, 296.0);
       Check
         ("source-zoom-dragged", "TRUE",
          Boolean'Image
            (Viewer.Item_Zoom (Session, 1) > 1.0
             and then Viewer.Item_Zoom (Session, 1) < 4.0));
-      Click_On (Session, 428.0, 296.0);
+      Click_On (Session, 468.0, 296.0);
       Check
         ("source-zoom-slider", " 4.00000E+00",
          Float'Image (Viewer.Item_Zoom (Session, 1)));
@@ -1102,6 +1181,9 @@ package body Item_Tests is
                                 Mouse_X => 360.0, Mouse_Y => 220.0,
                                 others => <>));
       Snap (Session, "source-scrolled");
+      Check
+        ("source-marked-still", " 1",
+         Natural'Image (Viewer.Item_Marks (Session, 1)));
 
       --  Kept with the project, picture and all.
       Viewer.Close_Project (Session);
@@ -1110,6 +1192,9 @@ package body Item_Tests is
         ("source-kept-status", "Captured ",
          Viewer.Item_Status (Session, 1) (1 .. 9));
       Snap (Session, "source-kept");
+      Check
+        ("source-mark-kept", " 1",
+         Natural'Image (Viewer.Item_Marks (Session, 1)));
       Check
         ("source-zoom-kept", " 4.00000E+00",
          Float'Image (Viewer.Item_Zoom (Session, 1)));

@@ -25,6 +25,8 @@ with UI.Widgets.Editors;
 --  the canvas, its title bar and status line are not.
 package Items.Windows is
 
+   use type UI.Widgets.Pictures.Tools;
+
    type Window is limited private;
 
    type Window_Array is array (Slot) of Window;
@@ -108,6 +110,27 @@ package Items.Windows is
    function Selected_Text (Item : Window) return String
      with Pre => Is_Assigned (Item);
    --  What is selected in the source's picture, as it would be copied.
+
+   function Tool (Item : Window) return UI.Widgets.Pictures.Tools
+     with Pre => Is_Assigned (Item);
+   --  Of a source: what a drag over its picture does.
+
+   procedure Select_Tool
+     (Item : in out Window; To : UI.Widgets.Pictures.Tools)
+     with Pre => Is_Assigned (Item), Post => Tool (Item) = To;
+   --  As the buttons in the status line do: the highlighter, the eraser
+   --  of its marks, or the cursor to select text with. The cursor is the
+   --  tool again when the window is not open.
+
+   procedure Set_Marks (Item : in out Window; Kept : Items.Mark_List)
+     with Pre => Is_Assigned (Item) and then Details (Item).Kind = Source;
+   --  Show these highlights on the source's picture, as kept: they are
+   --  not written again until it is marked. Set_Capture Ready forgets
+   --  them.
+
+   function Mark_Count (Item : Window) return Natural
+     with Pre => Is_Assigned (Item);
+   --  How many highlights the source's picture has.
 
    function Status (Item : Window) return String
      with Pre => Is_Assigned (Item);
@@ -202,6 +225,8 @@ private
       --  Moved or sized, and not written.
       Zoom_Dirty    : Boolean := False;
       --  Zoomed, and not written.
+      Marks_Saved   : Natural := 0;
+      --  The picture's Marks_Version when its highlights were written.
       Was_Used      : Boolean := False;
       Resizing      : Boolean := False;
       Raw_Width, Raw_Height : Float := 0.0;
@@ -230,6 +255,12 @@ private
       Zoom_Button  : UI.Widgets.Buttons.Button;
       --  Of a source, in its status line: a slider to zoom its picture,
       --  and a button, saying how far, that opens a menu of zooms.
+      Tools        : UI.Widgets.Panels.Panel;
+      Cursor_Button : UI.Widgets.Buttons.Button;
+      Marker_Button : UI.Widgets.Buttons.Button;
+      Eraser_Button : UI.Widgets.Buttons.Button;
+      --  Of a source, in the middle of its status line: the cursor, the
+      --  highlighter and the eraser, one of which is chosen.
       Zoom_Menu    : UI.Widgets.Panels.Panel;
       Menu_Rows    : Panel_Rows;
       Menu_Buttons : Preset_Buttons;

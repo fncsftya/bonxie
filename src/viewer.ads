@@ -212,6 +212,21 @@ package Viewer is
                  and then Items."=" (Item_Kind (Item, Row), Items.Source);
    --  What is selected in the picture of the source: what copying gives.
 
+   function Item_Marks (Item : Session; Row : Positive) return Natural
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item);
+   --  How many highlights the item's picture has.
+
+   function Item_Highlighting (Item : Session; Row : Positive) return Boolean
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item);
+   --  Whether the highlighter is the tool of the item's window.
+
+   function Item_Erasing (Item : Session; Row : Positive) return Boolean
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item);
+   --  Whether the eraser is the tool of the item's window.
+
    function Item_Words (Item : Session; Row : Positive) return Natural
      with Pre => Is_Open (Item) and then Screen (Item) = Project
                  and then Row <= Item_Count (Item);

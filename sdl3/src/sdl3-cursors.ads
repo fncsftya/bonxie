@@ -1,10 +1,11 @@
 --  The pointer's shape, from the system's own.
 package SDL3.Cursors is
 
-   type Kind is (Default, Move, Pointer, Resize);
+   type Kind is (Default, Move, Pointer, Resize, Crosshair);
    --  Default: the arrow. Move: four arrows, for what is being dragged or
    --  panned. Pointer: a hand, for what can be clicked. Resize: two arrows
-   --  across a diagonal, for what is sized by a corner.
+   --  across a diagonal, for what is sized by a corner. Crosshair: for what
+   --  is drawn on.
 
    procedure Set (Which : Kind);
    --  Show the cursor for the window the pointer is over. Made the first

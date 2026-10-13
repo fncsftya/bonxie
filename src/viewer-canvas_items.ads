@@ -35,6 +35,12 @@ private package Viewer.Canvas_Items is
    --  Do what the windows' buttons were clicked for, and keep what has
    --  been dragged and typed.
 
+   procedure Pressed
+     (Item : in out Session; X, Y : Float)
+     with Pre => Screen (Item) = Project;
+   --  The pointer was pressed at X, Y, in points of the window: the
+   --  highlighter of a source's window is put away if that is outside it.
+
    procedure Sync (Item : in out Session)
      with Pre => Screen (Item) = Project;
    --  Put the windows where the canvas has them, if it has been panned

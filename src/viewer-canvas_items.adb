@@ -4,6 +4,7 @@ with Ada.Directories;
 with Ada.Strings.Fixed;
 with UI.Widgets;
 with UI.Widgets.Canvases;
+with UI.Widgets.Pictures;
 with Vision.Jobs;
 with Webshot;
 
@@ -14,7 +15,9 @@ package body Viewer.Canvas_Items is
    package Windows renames Items.Windows;
 
    use type Items.States;
+   use type UI.Widgets.Pictures.Tools;
    use type Items.Id;
+   use type Projects.Id;
    use type Items.Kinds;
    use type Webshot.States;
    use type Vision.Jobs.States;
@@ -325,8 +328,49 @@ package body Viewer.Canvas_Items is
       end if;
    end Recognize_Kept;
 
+   procedure Save_View (Item : in out Session);
+   --  Keep how the canvas is seen, for the project to open at again.
+
+   procedure Save_View (Item : in out Session) is
+      View   : UI.Widgets.Canvases.Canvas renames Item.Canvas_View;
+      Pixels : constant Float := Widgets.Density (Item.Widgets);
+   begin
+      if Item.Current /= 0 and then Widgets.Width_Of (View) > 0.0 then
+         Projects.Set_View
+           (Item.Store, Item.Current, Canvases.Zoom (View),
+            Canvases.To_Canvas_X
+              (View, Widgets.Width_Of (View) / Pixels / 2.0),
+            Canvases.To_Canvas_Y
+              (View, Widgets.Height_Of (View) / Pixels / 2.0));
+      end if;
+   end Save_View;
+
+   procedure Restore_View
+     (Item : in out Session; Found : out Boolean);
+   --  Put the canvas as it was kept, if it was.
+
+   procedure Restore_View
+     (Item : in out Session; Found : out Boolean)
+   is
+      View   : UI.Widgets.Canvases.Canvas renames Item.Canvas_View;
+      Pixels : constant Float := Widgets.Density (Item.Widgets);
+      Zoom, X, Y : Float;
+   begin
+      Projects.Get_View (Item.Store, Item.Current, Found, Zoom, X, Y);
+      if Found then
+         Canvases.Zoom_By
+           (View,
+            Float'Min (Canvases.Max_Zoom, Float'Max (Canvases.Min_Zoom, Zoom))
+              / Canvases.Zoom (View),
+            Widgets.Width_Of (View) / Pixels / 2.0,
+            Widgets.Height_Of (View) / Pixels / 2.0);
+         Centre_On (Item, X, Y);
+      end if;
+   end Restore_View;
+
    procedure Enter (Item : in out Session) is
-      Found : Items.Info_List;
+      Found    : Items.Info_List;
+      Restored : Boolean;
    begin
       Items.Load (Item.Store, Item.Current, Found);
       for I in 1 .. Found.Count loop
@@ -336,8 +380,19 @@ package body Viewer.Canvas_Items is
             Items.Image_File
               (Item.Store, Item.Current, Found.Items (I).Key));
          Recognize_Kept (Item, I);
+         if Found.Items (I).Kind = Items.Source then
+            declare
+               Kept : Items.Mark_List;
+            begin
+               Items.Load_Marks (Item.Store, Found.Items (I).Key, Kept);
+               Windows.Set_Marks (Item.Windows (I), Kept);
+            end;
+         end if;
       end loop;
-      Centre_On_Visible (Item);
+      Restore_View (Item, Restored);
+      if not Restored then
+         Centre_On_Visible (Item);
+      end if;
       Place_All (Item);
       Show_Dock (Item);
       Widgets.Layout (Item.Widgets, Item.Target);
@@ -356,6 +411,7 @@ package body Viewer.Canvas_Items is
       if Any then
          Touch (Item);
       end if;
+      Save_View (Item);
    end Save_All;
 
    procedure Leave (Item : in out Session) is
@@ -385,10 +441,13 @@ package body Viewer.Canvas_Items is
         Canvases.To_Canvas_X (View, Widgets.Width_Of (View) / Pixels / 2.0);
       Middle_Y : constant Float :=
         Canvases.To_Canvas_Y (View, Widgets.Height_Of (View) / Pixels / 2.0);
+      Wide   : constant Float :=
+        (if Kind = Items.Source then Items.Source_Width
+         else Items.Default_Width);
       Where  : constant Items.Frame :=
-        (Left   => Middle_X - Items.Default_Width / 2.0 + Step,
+        (Left   => Middle_X - Wide / 2.0 + Step,
          Top    => Middle_Y - Items.Default_Height / 2.0 + Step,
-         Width  => Items.Default_Width,
+         Width  => Wide,
          Height => Items.Default_Height);
       Free   : Natural := 0;
    begin
@@ -488,6 +547,26 @@ package body Viewer.Canvas_Items is
          end if;
       end loop;
    end Take;
+
+   procedure Pressed (Item : in out Session; X, Y : Float) is
+      Pixels : constant Float := Widgets.Density (Item.Widgets);
+   begin
+      for Each of Item.Windows loop
+         if Windows.Is_Assigned (Each)
+           and then Windows.Tool (Each) /= UI.Widgets.Pictures.Pointer
+         then
+            declare
+               Box : constant Items.Frame := Windows.Box (Each);
+            begin
+               if X * Pixels not in Box.Left .. Box.Left + Box.Width
+                 or else Y * Pixels not in Box.Top .. Box.Top + Box.Height
+               then
+                  Windows.Select_Tool (Each, UI.Widgets.Pictures.Pointer);
+               end if;
+            end;
+         end if;
+      end loop;
+   end Pressed;
 
    procedure Sync (Item : in out Session) is
    begin

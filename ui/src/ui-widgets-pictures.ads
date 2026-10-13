@@ -1,3 +1,4 @@
+with SDL3.Cursors;
 with SDL3.Events;
 with SDL3.Windows.Renderers.Textures;
 with Vision;
@@ -19,6 +20,14 @@ with Vision;
 --  fractions of the picture, so they stay on the words wherever the
 --  picture is, and however big; it is the full-size picture that was
 --  read, not the size it is shown at.
+--
+--  With the highlighter as its tool (Set_Tool), a drag over the picture
+--  does not select, but marks it: a translucent band, one line of text
+--  tall, along the way the pointer went from where it was pressed (it
+--  stays on the line pressed on). Marks are only drawn: they are kept as
+--  fractions of the picture, as the words' boxes are, so they follow its
+--  zoom and scroll, and can be set (Set_Marks) and read (Mark_At) to be
+--  kept elsewhere; Marks_Version says when a mark was made.
 package UI.Widgets.Pictures is
 
    Path_Capacity : constant := 1024;
@@ -27,6 +36,52 @@ package UI.Widgets.Pictures is
    --  How far a notch of the wheel scrolls.
 
    type Picture is new Widget with private;
+
+   type Tools is (Pointer, Highlighter, Eraser);
+   --  What a drag does: select words, or highlight; and what a click does
+   --  on a mark, with the eraser: remove it.
+
+   Max_Marks : constant := 256;
+
+   Mark_Height : constant Float := 0.024;
+   --  How tall a mark is, as a fraction of the picture's width.
+
+   type Mark is record
+      Left, Right, Y : Float := 0.0;
+   end record
+     with Dynamic_Predicate =>
+       Mark.Left in 0.0 .. 1.0 and then Mark.Right in Mark.Left .. 1.0
+       and then Mark.Y in 0.0 .. 1.0;
+   --  A band from Left to Right, of the picture's width, centred Y down
+   --  it, of its height.
+
+   type Mark_Array is array (Positive range <>) of Mark;
+
+   function Tool (Item : Picture) return Tools;
+
+   function Is_Marking (Item : Picture) return Boolean;
+   --  Whether a mark is being made: the pointer is down, with the
+   --  highlighter.
+
+   procedure Set_Tool (Item : in out Picture; To : Tools)
+     with Post => Tool (Item) = To and then not Is_Marking (Item);
+   --  Any mark being made is dropped.
+
+   function Mark_Count (Item : Picture) return Natural;
+
+   function Mark_At (Item : Picture; Index : Positive) return Mark
+     with Pre => Index <= Mark_Count (Item);
+
+   function Marks_Version (Item : Picture) return Natural;
+   --  Changes when a mark is made or they are cleared; not by Set_Marks.
+
+   procedure Set_Marks (Item : in out Picture; To : Mark_Array)
+     with Pre  => To'Length <= Max_Marks,
+          Post => Mark_Count (Item) = To'Length;
+   --  Show these, in place of those made.
+
+   procedure Clear_Marks (Item : in out Picture)
+     with Post => Mark_Count (Item) = 0;
 
    procedure Set_File (Item : in out Picture; Path : String)
      with Pre => Path'Length <= Path_Capacity;
@@ -93,6 +148,8 @@ package UI.Widgets.Pictures is
       Event   : SDL3.Events.Event;
       Handled : out Boolean);
 
+   overriding function Cursor (Item : Picture) return SDL3.Cursors.Kind;
+
    overriding function Accepts_Focus (Item : Picture) return Boolean;
 
    overriding procedure Focus_Changed
@@ -121,6 +178,14 @@ private
       --  The word it has reached, 0 if it has not left the first: the
       --  selection is the words from Anchor to Head, either way round.
       Held    : Boolean := False;
+      Chosen  : Tools := Pointer;
+      Marked  : Mark_Array (1 .. Max_Marks + 1);
+      Marks   : Natural range 0 .. Max_Marks := 0;
+      Version : Natural := 0;
+      Marking : Boolean := False;
+      Started : Float := 0.0;
+      --  While a mark is made, where along the picture it began, of its
+      --  width; it is in Marked (Marks + 1), not counted until done.
    end record;
 
 end UI.Widgets.Pictures;

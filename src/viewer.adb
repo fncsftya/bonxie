@@ -4,6 +4,7 @@ with Ada.Text_IO;
 with SDL3.Events.Redraws;
 with SDL3.Windows.Renderers;
 with UI.Widgets;
+with UI.Widgets.Pictures;
 with Viewer.Build;
 with Viewer.Canvas_Items;
 with Viewer.Clicks;
@@ -83,6 +84,11 @@ package body Viewer is
                Handled := True;
             end if;
             if not Handled then
+               if Item.Shown = Project
+                 and then Event.Kind = SDL3.Events.Mouse_Down
+               then
+                  Canvas_Items.Pressed (Item, Event.Mouse_X, Event.Mouse_Y);
+               end if;
                Widgets.Dispatch (Item.Widgets, Event, Handled);
                Clicks.Take (Item);
                Show_Cursor (Item);
@@ -178,6 +184,18 @@ package body Viewer is
    function Item_Selected_Text (Item : Session; Row : Positive) return String
    is
      (Items.Windows.Selected_Text (Item.Windows (Nth (Item, Row))));
+
+   function Item_Marks (Item : Session; Row : Positive) return Natural is
+     (Items.Windows.Mark_Count (Item.Windows (Nth (Item, Row))));
+
+   function Item_Highlighting (Item : Session; Row : Positive) return Boolean
+   is
+     (UI.Widgets.Pictures."=" (Items.Windows.Tool
+        (Item.Windows (Nth (Item, Row))), UI.Widgets.Pictures.Highlighter));
+
+   function Item_Erasing (Item : Session; Row : Positive) return Boolean is
+     (UI.Widgets.Pictures."=" (Items.Windows.Tool
+        (Item.Windows (Nth (Item, Row))), UI.Widgets.Pictures.Eraser));
 
    function Item_Words (Item : Session; Row : Positive) return Natural is
      (Items.Windows.Words (Item.Windows (Nth (Item, Row))));

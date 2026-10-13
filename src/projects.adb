@@ -15,6 +15,21 @@ package body Projects is
      & "created_at INTEGER NOT NULL, "
      & "updated_at INTEGER NOT NULL)";
 
+   Has_View : constant String :=
+     "SELECT count(*) FROM pragma_table_info('projects') "
+     & "WHERE name = 'view_saved'";
+
+   Add_View : constant array (1 .. 4) of access constant String :=
+     [new String'("ALTER TABLE projects ADD COLUMN view_saved "
+                  & "INTEGER NOT NULL DEFAULT 0"),
+      new String'("ALTER TABLE projects ADD COLUMN view_zoom "
+                  & "REAL NOT NULL DEFAULT 1.0"),
+      new String'("ALTER TABLE projects ADD COLUMN view_x "
+                  & "REAL NOT NULL DEFAULT 0.0"),
+      new String'("ALTER TABLE projects ADD COLUMN view_y "
+                  & "REAL NOT NULL DEFAULT 0.0")];
+   --  Added to tables made before the view was kept.
+
    Index : constant String :=
      "CREATE INDEX IF NOT EXISTS projects_updated "
      & "ON projects (updated_at DESC, id DESC)";
@@ -72,8 +87,63 @@ package body Projects is
       Item.Base := new Ada_Sqlite3.Database'(Ada_Sqlite3.Open (Path));
       Ada_Sqlite3.Execute (Item.Base.all, "PRAGMA foreign_keys = ON");
       Ada_Sqlite3.Execute (Item.Base.all, Schema);
+      declare
+         Query : Ada_Sqlite3.Statement :=
+           Ada_Sqlite3.Prepare (Item.Base.all, Has_View);
+      begin
+         if Ada_Sqlite3.Step (Query) = Ada_Sqlite3.ROW
+           and then Ada_Sqlite3.Column_Int (Query, 0) = 0
+         then
+            for Statement of Add_View loop
+               Ada_Sqlite3.Execute (Item.Base.all, Statement.all);
+            end loop;
+         end if;
+      end;
       Ada_Sqlite3.Execute (Item.Base.all, Index);
    end Open;
+
+   procedure Set_View
+     (Item : in out Store; Key : Id; Zoom, Centre_X, Centre_Y : Float)
+   is
+      Update : Ada_Sqlite3.Statement :=
+        Ada_Sqlite3.Prepare
+          (Item.Base.all,
+           "UPDATE projects SET view_saved = 1, view_zoom = :zoom, "
+           & "view_x = :x, view_y = :y WHERE id = :id");
+   begin
+      Ada_Sqlite3.Bind_Double (Update, ":zoom", Zoom);
+      Ada_Sqlite3.Bind_Double (Update, ":x", Centre_X);
+      Ada_Sqlite3.Bind_Double (Update, ":y", Centre_Y);
+      Ada_Sqlite3.Bind_Int64 (Update, ":id", Long_Integer (Key));
+      Ada_Sqlite3.Step (Update);
+   end Set_View;
+
+   procedure Get_View
+     (Item   : Store;
+      Key    : Id;
+      Found  : out Boolean;
+      Zoom, Centre_X, Centre_Y : out Float)
+   is
+      Query : Ada_Sqlite3.Statement :=
+        Ada_Sqlite3.Prepare
+          (Item.Base.all,
+           "SELECT view_saved, view_zoom, view_x, view_y FROM projects "
+           & "WHERE id = :id");
+   begin
+      Found := False;
+      Zoom := 1.0;
+      Centre_X := 0.0;
+      Centre_Y := 0.0;
+      Ada_Sqlite3.Bind_Int64 (Query, ":id", Long_Integer (Key));
+      if Ada_Sqlite3.Step (Query) = Ada_Sqlite3.ROW
+        and then Ada_Sqlite3.Column_Int (Query, 0) = 1
+      then
+         Found := True;
+         Zoom := Ada_Sqlite3.Column_Double (Query, 1);
+         Centre_X := Ada_Sqlite3.Column_Double (Query, 2);
+         Centre_Y := Ada_Sqlite3.Column_Double (Query, 3);
+      end if;
+   end Get_View;
 
    function Create
      (Item        : in out Store;

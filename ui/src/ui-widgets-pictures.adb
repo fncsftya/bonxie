@@ -17,6 +17,56 @@ package body UI.Widgets.Pictures is
 
    function Zoom (Item : Picture) return Float is (Item.Zoomed);
 
+   function Tool (Item : Picture) return Tools is (Item.Chosen);
+
+   function Is_Marking (Item : Picture) return Boolean is (Item.Marking);
+
+   function Mark_Count (Item : Picture) return Natural is (Item.Marks);
+
+   function Mark_At (Item : Picture; Index : Positive) return Mark is
+     (Item.Marked (Index));
+
+   function Marks_Version (Item : Picture) return Natural is (Item.Version);
+
+   overriding function Cursor (Item : Picture) return SDL3.Cursors.Kind is
+     (case Item.Chosen is
+         when Highlighter => SDL3.Cursors.Crosshair,
+         when Eraser      => SDL3.Cursors.Pointer,
+         when Pointer     => SDL3.Cursors.Default);
+
+   procedure Set_Tool (Item : in out Picture; To : Tools) is
+   begin
+      Item.Chosen := To;
+      if Item.Marking then
+         Item.Marking := False;
+         if Is_Attached (Item) then
+            Invalidate (Item);
+         end if;
+      end if;
+   end Set_Tool;
+
+   procedure Set_Marks (Item : in out Picture; To : Mark_Array) is
+   begin
+      Item.Marking := False;
+      Item.Marks := To'Length;
+      Item.Marked (1 .. To'Length) := To;
+      if Is_Attached (Item) then
+         Invalidate (Item);
+      end if;
+   end Set_Marks;
+
+   procedure Clear_Marks (Item : in out Picture) is
+   begin
+      Item.Marking := False;
+      if Item.Marks > 0 then
+         Item.Marks := 0;
+         Item.Version := Item.Version + 1;
+         if Is_Attached (Item) then
+            Invalidate (Item);
+         end if;
+      end if;
+   end Clear_Marks;
+
    function Has_Words (Item : Picture) return Boolean is
      (Item.Found /= null and then Item.Found.Count > 0);
 
@@ -90,6 +140,9 @@ package body UI.Widgets.Pictures is
 
    --  Where the picture is, in pixels, as of the last draw.
 
+   Highlight : constant SDL3.Windows.Renderers.Color :=
+     (Red => 255, Green => 214, Blue => 0, Alpha => 110);
+
    function Wide_Of (Item : Picture) return Float is
      (Width_Of (Item) * Item.Zoomed);
 
@@ -112,6 +165,100 @@ package body UI.Widgets.Pictures is
          Width  => Integer (Each.Width * Wide_Of (Item)),
          Height => Integer (Each.Height * Item.Fitted));
    end Word_Box;
+
+   function Along (Item : Picture; X : Float) return Float is
+     (Float'Min
+        (1.0, Float'Max (0.0, (X - Origin_X (Item)) / Wide_Of (Item))));
+   --  How far across the picture the pixel X is, clamped to it.
+
+   function Down_Of (Item : Picture; Y : Float) return Float is
+     (Float'Min (1.0, Float'Max (0.0, (Y - Origin_Y (Item)) / Item.Fitted)));
+
+   function Being_Made (Item : Picture; X : Float) return Mark is
+      Now : constant Float := Along (Item, X);
+   begin
+      return (Left  => Float'Min (Item.Started, Now),
+              Right => Float'Max (Item.Started, Now),
+              Y     => Item.Marked (Item.Marks + 1).Y);
+   end Being_Made;
+   --  The mark as dragged to pixel X.
+
+   function Mark_Under (Item : Picture; X, Y : Float) return Natural is
+      Across : constant Float := Along (Item, X);
+      Half   : constant Float := Mark_Height * Wide_Of (Item) / 2.0;
+   begin
+      for Index in reverse 1 .. Item.Marks loop
+         if Across in Item.Marked (Index).Left .. Item.Marked (Index).Right
+           and then abs (Y - (Origin_Y (Item)
+                              + Item.Marked (Index).Y * Item.Fitted)) <= Half
+         then
+            return Index;
+         end if;
+      end loop;
+      return 0;
+   end Mark_Under;
+   --  The latest mark at pixel X, Y, 0 if none.
+
+   procedure Handle_Marking
+     (Item    : in out Picture;
+      Event   : SDL3.Events.Event;
+      Handled : out Boolean)
+   is
+      X : constant Float := Event.Mouse_X * Density (Item);
+      Y : constant Float := Event.Mouse_Y * Density (Item);
+   begin
+      Handled := False;
+      case Event.Kind is
+         when SDL3.Events.Mouse_Down =>
+            if Event.Button = 1 and then Contains (Item, X, Y)
+              and then Item.Chosen = Eraser
+            then
+               declare
+                  Under : constant Natural := Mark_Under (Item, X, Y);
+               begin
+                  if Under > 0 then
+                     Item.Marked (Under .. Item.Marks - 1) :=
+                       Item.Marked (Under + 1 .. Item.Marks);
+                     Item.Marks := Item.Marks - 1;
+                     Item.Version := Item.Version + 1;
+                     Invalidate (Item);
+                  end if;
+                  Handled := True;
+               end;
+            elsif Event.Button = 1 and then Contains (Item, X, Y) then
+               Item.Marking := True;
+               Item.Started := Along (Item, X);
+               Item.Marked (Item.Marks + 1) :=
+                 (Left | Right => Item.Started, Y => Down_Of (Item, Y));
+               Clear_Selection (Item);
+               Invalidate (Item);
+               Handled := True;
+            end if;
+         when SDL3.Events.Mouse_Move =>
+            if Item.Marking then
+               Item.Marked (Item.Marks + 1) := Being_Made (Item, X);
+               Invalidate (Item);
+               Handled := True;
+            end if;
+         when SDL3.Events.Mouse_Up =>
+            if Item.Marking and then Event.Button = 1 then
+               Item.Marking := False;
+               Item.Marked (Item.Marks + 1) := Being_Made (Item, X);
+               --  A click, that went nowhere, marks nothing.
+               if Item.Marks < Max_Marks
+                 and then Item.Marked (Item.Marks + 1).Right
+                          - Item.Marked (Item.Marks + 1).Left > 0.002
+               then
+                  Item.Marks := Item.Marks + 1;
+                  Item.Version := Item.Version + 1;
+               end if;
+               Invalidate (Item);
+               Handled := True;
+            end if;
+         when others =>
+            null;
+      end case;
+   end Handle_Marking;
 
    function Gap (From, To, At_Point : Float) return Float is
      (if At_Point < From then From - At_Point
@@ -204,6 +351,7 @@ package body UI.Widgets.Pictures is
       Item.Held := False;
       Item.Anchor := 0;
       Item.Head := 0;
+      Item.Marking := False;
       if Is_Attached (Item) then
          Invalidate (Item);
       end if;
@@ -267,6 +415,23 @@ package body UI.Widgets.Pictures is
          Left_Of (Item) - Item.Across * Float'Max (0.0, Wide - Box),
          Top_Of (Item) - Item.Down * Item.Fitted,
          Wide, Item.Fitted);
+      declare
+         Left : constant Float := Origin_X (Item);
+         Top  : constant Float := Origin_Y (Item);
+         High : constant Float := Mark_Height * Wide;
+      begin
+         for Index in 1 .. Item.Marks + (if Item.Marking then 1 else 0) loop
+            declare
+               Each : Mark renames Item.Marked (Index);
+            begin
+               SDL3.Windows.Renderers.Fill_Rect
+                 (Target, Highlight,
+                  Left + Each.Left * Wide,
+                  Top + Each.Y * Item.Fitted - High / 2.0,
+                  (Each.Right - Each.Left) * Wide, High);
+            end;
+         end loop;
+      end;
       if Has_Selection (Item) then
          declare
             Tint : SDL3.Windows.Renderers.Color :=
@@ -296,6 +461,12 @@ package body UI.Widgets.Pictures is
       Handled : out Boolean) is
    begin
       Handled := False;
+      if Item.Chosen /= Pointer and then Item.Fitted > 0.0 then
+         Handle_Marking (Item, Event, Handled);
+         if Handled then
+            return;
+         end if;
+      end if;
       if Has_Words (Item) and then Item.Fitted > 0.0 then
          case Event.Kind is
             when SDL3.Events.Mouse_Down =>

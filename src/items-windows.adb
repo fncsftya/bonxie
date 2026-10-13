@@ -23,6 +23,8 @@ package body Items.Windows is
    use type Ada.Calendar.Time;
    use type SDL3.Events.Milliseconds;
 
+   pragma Assert (Items.Max_Marks = UI.Widgets.Pictures.Max_Marks);
+
    --  In points
 
    Outline       : constant Float := 1.0;
@@ -48,6 +50,7 @@ package body Items.Windows is
    Zoom_Button_Width : constant Float := 44.0;
    Zoom_Slider_Width : constant Float := 56.0;
    Preset_Width  : constant Float := 44.0;
+   Tools_Width   : constant Float := 3.0 * Button_Size + 2.0 * Button_Gap;
    Label_Height  : constant Float := 20.0;
 
    Preset_Zooms : constant array (Preset_Index) of Float :=
@@ -153,6 +156,10 @@ package body Items.Windows is
       Widgets.Add (Item.Frame, Item.Picture);
       Widgets.Add (Item.Frame, Item.Status_Bar);
       Widgets.Add (Item.Status_Bar, Item.Status);
+      Widgets.Add (Item.Status_Bar, Item.Tools);
+      Widgets.Add (Item.Tools, Item.Cursor_Button);
+      Widgets.Add (Item.Tools, Item.Marker_Button);
+      Widgets.Add (Item.Tools, Item.Eraser_Button);
       Widgets.Add (Item.Status_Bar, Item.Zoom_Slider);
       Widgets.Add (Item.Status_Bar, Item.Zoom_Button);
       Widgets.Add (Item.Status_Bar, Item.Corner);
@@ -265,6 +272,25 @@ package body Items.Windows is
       Size (Item.Restore_Button, Button_Size, Button_Size);
       Size (Item.Mini_Close, Button_Size, Button_Size);
 
+      --  The tools, in the middle of the status line (see Place).
+      Set_Position_Type (Widgets.Node (Item.Tools), Yoga.Absolute);
+      Set_Position
+        (Widgets.Node (Item.Tools), Yoga.Top,
+         (Status_Height - Zoom_Row_Height) / 2.0 * Pixels);
+      Set_Flex_Direction (Widgets.Node (Item.Tools), Yoga.Row);
+      Set_Gap
+        (Widgets.Node (Item.Tools), Yoga.All_Gutters, Button_Gap * Pixels);
+      Buttons.Set_Label (Item.Cursor_Button, "Ptr");
+      Buttons.Set_Icon (Item.Cursor_Button, UI.Icons.Cursor);
+      Buttons.Set_Label (Item.Marker_Button, "Mark");
+      Buttons.Set_Icon (Item.Marker_Button, UI.Icons.Highlighter);
+      Buttons.Set_Label (Item.Eraser_Button, "Rub");
+      Buttons.Set_Icon (Item.Eraser_Button, UI.Icons.Eraser);
+      Buttons.Set_Selected (Item.Cursor_Button, True);
+      Size (Item.Eraser_Button, Button_Size, Zoom_Row_Height);
+      Size (Item.Cursor_Button, Button_Size, Zoom_Row_Height);
+      Size (Item.Marker_Button, Button_Size, Zoom_Row_Height);
+
       --  The zoom bar: a slider, and the button for the menu.
       Set_Gap
         (Widgets.Node (Item.Status_Bar), Yoga.All_Gutters,
@@ -298,6 +324,7 @@ package body Items.Windows is
       end loop;
 
       Widgets.Set_Visible (Item.Title_Field, False);
+      Widgets.Set_Visible (Item.Tools, False);
       Widgets.Set_Visible (Item.Zoom_Slider, False);
       Widgets.Set_Visible (Item.Zoom_Button, False);
       Widgets.Set_Visible (Item.Zoom_Menu, False);
@@ -317,6 +344,45 @@ package body Items.Windows is
 
    function Status (Item : Window) return String is
      (Labels.Text (Item.Status));
+
+   function Tool (Item : Window) return UI.Widgets.Pictures.Tools is
+     (UI.Widgets.Pictures.Tool (Item.Picture));
+
+   function Mark_Count (Item : Window) return Natural is
+     (UI.Widgets.Pictures.Mark_Count (Item.Picture));
+
+   procedure Select_Tool
+     (Item : in out Window; To : UI.Widgets.Pictures.Tools) is
+   begin
+      UI.Widgets.Pictures.Set_Tool (Item.Picture, To);
+      Buttons.Set_Selected
+        (Item.Cursor_Button, To = UI.Widgets.Pictures.Pointer);
+      Buttons.Set_Selected
+        (Item.Marker_Button, To = UI.Widgets.Pictures.Highlighter);
+      Buttons.Set_Selected
+        (Item.Eraser_Button, To = UI.Widgets.Pictures.Eraser);
+   end Select_Tool;
+
+   function Unit (Value : Float) return Float is
+     (Float'Min (1.0, Float'Max (0.0, Value)));
+   --  Within the picture.
+
+   procedure Set_Marks (Item : in out Window; Kept : Items.Mark_List) is
+      Shown : UI.Widgets.Pictures.Mark_Array (1 .. Kept.Count);
+   begin
+      for Index in Shown'Range loop
+         declare
+            Each : Items.Mark renames Kept.Marks (Index);
+         begin
+            Shown (Index) :=
+              (Left  => Unit (Each.Left),
+               Right => Float'Max (Unit (Each.Left), Unit (Each.Right)),
+               Y     => Unit (Each.Y));
+         end;
+      end loop;
+      UI.Widgets.Pictures.Set_Marks (Item.Picture, Shown);
+      Item.Marks_Saved := UI.Widgets.Pictures.Marks_Version (Item.Picture);
+   end Set_Marks;
 
    procedure Set_Recognized
      (Item : in out Window; Found : Vision.Result) is
@@ -358,6 +424,7 @@ package body Items.Windows is
          when Ready =>
             Item.Details.Captured_At := At_Time;
             Clear_Recognized (Item);
+            UI.Widgets.Pictures.Clear_Marks (Item.Picture);
             UI.Widgets.Pictures.Set_File (Item.Picture, File);
             Labels.Set_Text (Item.Status, "Captured " & Day (At_Time));
          when Failed =>
@@ -425,6 +492,7 @@ package body Items.Windows is
    begin
       Item.Details.State := To;
       if To /= Open then
+         Select_Tool (Item, UI.Widgets.Pictures.Pointer);
          Widgets.Set_Visible (Item.Zoom_Menu, False);
          UI.Widgets.Pictures.Unload (Item.Picture);
       end if;
@@ -446,6 +514,7 @@ package body Items.Windows is
         (Editors.Area (Item.Body_Text).all, Of_Source);
       Set_Flex_Grow (Node, (if Of_Source then 0.0 else 1.0));
       Set_Height (Node, (if Of_Source then Url_Height * Item.Pixels else 0.0));
+      Widgets.Set_Visible (Item.Tools, Of_Source);
       Widgets.Set_Visible (Item.Zoom_Slider, Of_Source);
       Widgets.Set_Visible (Item.Zoom_Button, Of_Source);
       Widgets.Set_Visible (Item.Zoom_Menu, False);
@@ -479,6 +548,9 @@ package body Items.Windows is
       Show_Kind (Item);
       Clear_Recognized (Item);
       UI.Widgets.Pictures.Set_File (Item.Picture, "");
+      UI.Widgets.Pictures.Clear_Marks (Item.Picture);
+      Item.Marks_Saved := UI.Widgets.Pictures.Marks_Version (Item.Picture);
+      Select_Tool (Item, UI.Widgets.Pictures.Pointer);
       if Of_Item.Kind = Source then
          Set_Zoom (Item, Of_Item.Zoom);
          Item.Zoom_Dirty := False;
@@ -540,6 +612,14 @@ package body Items.Windows is
          Editors.Set_Zoom
            (Item.Body_Text,
             (if Item.Details.Kind = Source then 1.0 else Zoom));
+         --  The tools are in the middle of the status line, which is as
+         --  wide as the window within its outline.
+         Set_Position
+           (Widgets.Node (Item.Tools), Yoga.Left,
+            Float'Rounding
+              ((Float'Rounding (Where.Width * Zoom * Pixels)
+                - 2.0 * Float'Max (1.0, Float'Rounding (Outline * Pixels))
+                - Tools_Width * Pixels) / 2.0));
          Widgets.Request_Layout (Item.Frame);
       end if;
    end Place;
@@ -663,6 +743,18 @@ package body Items.Windows is
          if Entered then
             Set_Zoom (Item, From_Slider (Sliders.Value (Item.Zoom_Slider)));
          end if;
+         Buttons.Take_Click (Item.Cursor_Button, Clicked);
+         if Clicked then
+            Select_Tool (Item, UI.Widgets.Pictures.Pointer);
+         end if;
+         Buttons.Take_Click (Item.Marker_Button, Clicked);
+         if Clicked then
+            Select_Tool (Item, UI.Widgets.Pictures.Highlighter);
+         end if;
+         Buttons.Take_Click (Item.Eraser_Button, Clicked);
+         if Clicked then
+            Select_Tool (Item, UI.Widgets.Pictures.Eraser);
+         end if;
          Buttons.Take_Click (Item.Zoom_Button, Clicked);
          if Clicked then
             Widgets.Set_Visible
@@ -740,6 +832,30 @@ package body Items.Windows is
       then
          Items.Set_Zoom (Store, Item.Details.Key, Item.Details.Zoom);
          Item.Zoom_Dirty := False;
+         Wrote := True;
+      end if;
+
+      if Item.Details.Kind = Source
+        and then UI.Widgets.Pictures.Marks_Version (Item.Picture)
+                 /= Item.Marks_Saved
+        and then not UI.Widgets.Pictures.Is_Marking (Item.Picture)
+      then
+         declare
+            Kept : Items.Mark_List;
+         begin
+            Kept.Count := UI.Widgets.Pictures.Mark_Count (Item.Picture);
+            for Index in 1 .. Kept.Count loop
+               declare
+                  Each : constant UI.Widgets.Pictures.Mark :=
+                    UI.Widgets.Pictures.Mark_At (Item.Picture, Index);
+               begin
+                  Kept.Marks (Index) :=
+                    (Left => Each.Left, Right => Each.Right, Y => Each.Y);
+               end;
+            end loop;
+            Items.Save_Marks (Store, Item.Details.Key, Kept);
+         end;
+         Item.Marks_Saved := UI.Widgets.Pictures.Marks_Version (Item.Picture);
          Wrote := True;
       end if;
 

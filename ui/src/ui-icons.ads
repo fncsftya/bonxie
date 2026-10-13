@@ -11,7 +11,8 @@ with SDL3.Windows.Renderers;
 package UI.Icons is
 
    type Icon is
-     (Edit, Delete, Window, Minimize, Restore, Close, List, Show, Hide, Link);
+     (Edit, Delete, Window, Minimize, Restore, Close, List, Show, Hide, Link,
+      Highlighter, Cursor, Eraser);
    --  The file of each is its name in lower case, with ".svg".
 
    File_Extension : constant String := ".svg";

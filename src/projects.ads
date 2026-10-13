@@ -86,6 +86,21 @@ package Projects is
      with Pre => Is_Open (Item) and then Time >= Now;
    --  Say the project was updated at Time.
 
+   procedure Set_View
+     (Item : in out Store; Key : Id; Zoom, Centre_X, Centre_Y : Float)
+     with Pre => Is_Open (Item);
+   --  Keep how the project's canvas is seen: its zoom, and the canvas
+   --  point in the middle of the view. This is not an update of the
+   --  project. Nothing is done if there is no such project.
+
+   procedure Get_View
+     (Item   : Store;
+      Key    : Id;
+      Found  : out Boolean;
+      Zoom, Centre_X, Centre_Y : out Float)
+     with Pre => Is_Open (Item);
+   --  The view kept for the project; not Found if none has been.
+
    procedure Find
      (Item : Store; Key : Id; Found : out Boolean; Result : out Project)
      with Pre => Is_Open (Item);

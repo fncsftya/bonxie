@@ -43,6 +43,14 @@ package body Items is
      & "w REAL NOT NULL, h REAL NOT NULL, "
      & "PRIMARY KEY (item_id, seq)) WITHOUT ROWID";
 
+   Marks_Schema : constant String :=
+     "CREATE TABLE IF NOT EXISTS item_marks ("
+     & "item_id INTEGER NOT NULL "
+     & "REFERENCES items (id) ON DELETE CASCADE, "
+     & "seq INTEGER NOT NULL, "
+     & "x0 REAL NOT NULL, x1 REAL NOT NULL, y REAL NOT NULL, "
+     & "PRIMARY KEY (item_id, seq)) WITHOUT ROWID";
+
    Has_Recognized : constant String :=
      "SELECT count(*) FROM pragma_table_info('items') "
      & "WHERE name = 'recognized_at'";
@@ -146,6 +154,7 @@ package body Items is
          Ada_Sqlite3.Execute (DB (Store).all, Add_Words_Version);
       end if;
       Ada_Sqlite3.Execute (DB (Store).all, Words_Schema);
+      Ada_Sqlite3.Execute (DB (Store).all, Marks_Schema);
       Ada_Sqlite3.Execute (DB (Store).all, Index);
    end Prepare;
 
@@ -312,7 +321,61 @@ package body Items is
       Ada_Sqlite3.Bind_Int64 (Update, ":id", Long_Integer (Key));
       Ada_Sqlite3.Step (Update);
       Clear_Words (Store, Key);
+      Clear_Marks (Store, Key);
    end Set_Captured;
+
+   procedure Clear_Marks (Store : in out Projects.Store; Key : Id) is
+      Remove : Ada_Sqlite3.Statement :=
+        Ada_Sqlite3.Prepare
+          (DB (Store).all, "DELETE FROM item_marks WHERE item_id = :id");
+   begin
+      Ada_Sqlite3.Bind_Int64 (Remove, ":id", Long_Integer (Key));
+      Ada_Sqlite3.Step (Remove);
+   end Clear_Marks;
+
+   procedure Save_Marks
+     (Store : in out Projects.Store; Key : Id; Marks : Mark_List)
+   is
+      Insert : Ada_Sqlite3.Statement :=
+        Ada_Sqlite3.Prepare
+          (DB (Store).all,
+           "INSERT INTO item_marks (item_id, seq, x0, x1, y)"
+           & " VALUES (:item, :seq, :x0, :x1, :y)");
+   begin
+      Ada_Sqlite3.Execute (DB (Store).all, "BEGIN");
+      Clear_Marks (Store, Key);
+      for Number in 1 .. Marks.Count loop
+         Ada_Sqlite3.Reset (Insert);
+         Ada_Sqlite3.Bind_Int64 (Insert, ":item", Long_Integer (Key));
+         Ada_Sqlite3.Bind_Int (Insert, ":seq", Number);
+         Ada_Sqlite3.Bind_Double (Insert, ":x0", Marks.Marks (Number).Left);
+         Ada_Sqlite3.Bind_Double (Insert, ":x1", Marks.Marks (Number).Right);
+         Ada_Sqlite3.Bind_Double (Insert, ":y", Marks.Marks (Number).Y);
+         Ada_Sqlite3.Step (Insert);
+      end loop;
+      Ada_Sqlite3.Execute (DB (Store).all, "COMMIT");
+   end Save_Marks;
+
+   procedure Load_Marks
+     (Store : Projects.Store; Key : Id; Into : out Mark_List)
+   is
+      Query : Ada_Sqlite3.Statement :=
+        Ada_Sqlite3.Prepare
+          (DB (Store).all,
+           "SELECT x0, x1, y FROM item_marks "
+           & "WHERE item_id = :id ORDER BY seq LIMIT :limit");
+   begin
+      Into.Count := 0;
+      Ada_Sqlite3.Bind_Int64 (Query, ":id", Long_Integer (Key));
+      Ada_Sqlite3.Bind_Int (Query, ":limit", Max_Marks);
+      while Ada_Sqlite3.Step (Query) = Ada_Sqlite3.ROW loop
+         Into.Count := Into.Count + 1;
+         Into.Marks (Into.Count) :=
+           (Left  => Ada_Sqlite3.Column_Double (Query, 0),
+            Right => Ada_Sqlite3.Column_Double (Query, 1),
+            Y     => Ada_Sqlite3.Column_Double (Query, 2));
+      end loop;
+   end Load_Marks;
 
    procedure Clear_Words (Store : in out Projects.Store; Key : Id) is
       Remove : Ada_Sqlite3.Statement :=
