@@ -108,6 +108,14 @@ package UI.Widgets.Pictures is
    procedure Scroll_To (Item : in out Picture; To : Float)
      with Pre => To in 0.0 .. 1.0;
 
+   function Scrolled_Across (Item : Picture) return Float;
+   --  How far across the picture the box is, from 0.0, the left edge
+   --  of it at the box's, to 1.0, the right edge at the box's. It is 0.0
+   --  while the picture is no wider than the box.
+
+   procedure Scroll_Across_To (Item : in out Picture; To : Float)
+     with Pre => To in 0.0 .. 1.0;
+
    procedure Set_Zoom (Item : in out Picture; To : Float)
      with Pre => To > 0.0, Post => Zoom (Item) = To;
    --  Show it To times as wide as the box (1.0 to begin with), kept at

@@ -22,7 +22,23 @@ package body Items is
      & "captured_at INTEGER NOT NULL DEFAULT 0, "
      & "zoom REAL NOT NULL DEFAULT 1.0, "
      & "recognized_at INTEGER NOT NULL DEFAULT 0, "
-     & "words_version INTEGER NOT NULL DEFAULT 0)";
+     & "words_version INTEGER NOT NULL DEFAULT 0, "
+     & "scroll REAL NOT NULL DEFAULT 0.0, "
+     & "scroll_across REAL NOT NULL DEFAULT 0.0)";
+
+   Has_Scroll : constant String :=
+     "SELECT count(*) FROM pragma_table_info('items') WHERE name = 'scroll'";
+
+   Add_Scroll : constant String :=
+     "ALTER TABLE items ADD COLUMN scroll REAL NOT NULL DEFAULT 0.0";
+
+   Has_Scroll_Across : constant String :=
+     "SELECT count(*) FROM pragma_table_info('items') "
+     & "WHERE name = 'scroll_across'";
+
+   Add_Scroll_Across : constant String :=
+     "ALTER TABLE items ADD COLUMN scroll_across "
+     & "REAL NOT NULL DEFAULT 0.0";
 
    Words_Version : constant := 1;
    --  Of how the words are put in order (see Vision.Layout): words kept
@@ -147,6 +163,26 @@ package body Items is
       if Lacks_Zoom (Store) then
          Ada_Sqlite3.Execute (DB (Store).all, Add_Zoom);
       end if;
+      declare
+         Query : Ada_Sqlite3.Statement :=
+           Ada_Sqlite3.Prepare (DB (Store).all, Has_Scroll_Across);
+      begin
+         if Ada_Sqlite3.Step (Query) = Ada_Sqlite3.ROW
+           and then Ada_Sqlite3.Column_Int (Query, 0) = 0
+         then
+            Ada_Sqlite3.Execute (DB (Store).all, Add_Scroll_Across);
+         end if;
+      end;
+      declare
+         Query : Ada_Sqlite3.Statement :=
+           Ada_Sqlite3.Prepare (DB (Store).all, Has_Scroll);
+      begin
+         if Ada_Sqlite3.Step (Query) = Ada_Sqlite3.ROW
+           and then Ada_Sqlite3.Column_Int (Query, 0) = 0
+         then
+            Ada_Sqlite3.Execute (DB (Store).all, Add_Scroll);
+         end if;
+      end;
       if Lacks_Recognized (Store) then
          Ada_Sqlite3.Execute (DB (Store).all, Add_Recognized);
       end if;
@@ -194,7 +230,8 @@ package body Items is
         Ada_Sqlite3.Prepare
           (DB (Store).all,
            "SELECT id, title, x, y, w, h, state, kind, "
-           & "captured_at, zoom, recognized_at FROM items "
+           & "captured_at, zoom, recognized_at, scroll, scroll_across "
+           & "FROM items "
            & "WHERE project_id = :project ORDER BY id LIMIT :limit");
    begin
       Result.Count := 0;
@@ -217,7 +254,12 @@ package body Items is
             Zoom  => Float'Min
               (Max_Zoom,
                Float'Max (Min_Zoom, Ada_Sqlite3.Column_Double (Query, 9))),
-            Recognized_At => Ada_Sqlite3.Column_Int64 (Query, 10));
+            Recognized_At => Ada_Sqlite3.Column_Int64 (Query, 10),
+            Scroll => Float'Max
+              (0.0, Ada_Sqlite3.Column_Double (Query, 11)),
+            Scroll_Across => Float'Min
+              (1.0,
+               Float'Max (0.0, Ada_Sqlite3.Column_Double (Query, 12))));
       end loop;
    end Load;
 
@@ -308,6 +350,21 @@ package body Items is
       Ada_Sqlite3.Bind_Int64 (Update, ":id", Long_Integer (Key));
       Ada_Sqlite3.Step (Update);
    end Set_Zoom;
+
+   procedure Set_Scroll
+     (Store : in out Projects.Store; Key : Id; Scroll, Across : Float)
+   is
+      Update : Ada_Sqlite3.Statement :=
+        Ada_Sqlite3.Prepare
+          (DB (Store).all,
+           "UPDATE items SET scroll = :scroll, scroll_across = :across "
+           & "WHERE id = :id");
+   begin
+      Ada_Sqlite3.Bind_Double (Update, ":scroll", Scroll);
+      Ada_Sqlite3.Bind_Double (Update, ":across", Across);
+      Ada_Sqlite3.Bind_Int64 (Update, ":id", Long_Integer (Key));
+      Ada_Sqlite3.Step (Update);
+   end Set_Scroll;
 
    procedure Set_Captured
      (Store : in out Projects.Store; Key : Id; At_Time : Projects.Seconds)

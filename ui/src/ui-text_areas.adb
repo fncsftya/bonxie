@@ -315,6 +315,16 @@ package body UI.Text_Areas is
       Layouts.Scroll (Item.Laid, Item.Anchor, Item.Offset, By, Extent (Item));
    end Scroll;
 
+   function Scroll_Top (Item : Text_Area) return Float is (View_Top (Item));
+
+   procedure Scroll_To (Item : in out Text_Area; Top : Float) is
+   begin
+      Catch_Up (Item);
+      Item.Anchor := 1;
+      Item.Offset := 0.0;
+      Layouts.Scroll (Item.Laid, Item.Anchor, Item.Offset, Top, Extent (Item));
+   end Scroll_To;
+
    procedure Reveal (Item : in out Text_Area) is
       Para     : constant Positive := Item.At_Caret.Paragraph;
       Number   : constant Positive := Line_Of (Item, Item.At_Caret);

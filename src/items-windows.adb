@@ -557,6 +557,21 @@ package body Items.Windows is
       Widgets.Request_Layout (Item.Body_Text);
    end Show_Kind;
 
+   function Across_Of (Item : Window) return Float;
+
+   function Scroll_Of (Item : in out Window) return Float;
+   --  How far the content is scrolled now (see Items.Info.Scroll).
+
+   function Across_Of (Item : Window) return Float is
+     (if Item.Details.Kind = Source
+      then UI.Widgets.Pictures.Scrolled_Across (Item.Picture) else 0.0);
+   --  How far across it is scrolled: only a source's picture is.
+
+   function Scroll_Of (Item : in out Window) return Float is
+     (if Item.Details.Kind = Source
+      then UI.Widgets.Pictures.Scrolled (Item.Picture)
+      else UI.Text_Areas.Scroll_Top (Editors.Area (Item.Body_Text).all));
+
    procedure Assign
      (Item       : in out Window;
       Of_Item    : Items.Info;
@@ -576,6 +591,10 @@ package body Items.Windows is
       Item.Content_Seen := Item.Content_Saved;
       Item.Frame_Dirty := False;
       Item.Zoom_Dirty := False;
+      Item.Scroll_Seen := Of_Item.Scroll;
+      Item.Across_Seen := Of_Item.Scroll_Across;
+      Item.Scroll_At := 0;
+      Item.Scroll_Pending := False;
       Item.Editing := False;
       Widgets.Set_Visible (Item.Title_Area, True);
       Widgets.Set_Visible (Item.Title_Field, False);
@@ -596,8 +615,13 @@ package body Items.Windows is
          else
             Set_Capture (Item, Waiting);
          end if;
+         UI.Widgets.Pictures.Scroll_To
+           (Item.Picture, Float'Min (1.0, Of_Item.Scroll));
+         UI.Widgets.Pictures.Scroll_Across_To
+           (Item.Picture, Float'Min (1.0, Of_Item.Scroll_Across));
       else
          Show_Words (Item);
+         Item.Scroll_Pending := Of_Item.Scroll > 0.0;
       end if;
       Set_State (Item, Of_Item.State);
       if Item.Placed_Once then
@@ -614,6 +638,7 @@ package body Items.Windows is
       Item.Assigned := False;
       Item.Frame_Dirty := False;
       Item.Zoom_Dirty := False;
+      Item.Scroll_Pending := False;
       Item.Was_Used := False;
    end Release;
 
@@ -711,6 +736,17 @@ package body Items.Windows is
       Used         : Boolean;
    begin
       Action := None;
+
+      if Item.Scroll_Pending
+        and then Item.Details.State = Open
+        and then Widgets.Width_Of (Item.Body_Text) > 0.0
+      then
+         UI.Text_Areas.Scroll_To
+           (Editors.Area (Item.Body_Text).all, Item.Details.Scroll);
+         Widgets.Invalidate (Item.Body_Text);
+         Item.Scroll_Pending := False;
+         Item.Scroll_Seen := Scroll_Of (Item);
+      end if;
 
       --  Moved and sized, in canvas units.
       Grips.Take_Drag (Item.Title_Bar, Across, Down);
@@ -868,6 +904,29 @@ package body Items.Windows is
          Items.Set_Zoom (Store, Item.Details.Key, Item.Details.Zoom);
          Item.Zoom_Dirty := False;
          Wrote := True;
+      end if;
+
+      if not Item.Scroll_Pending and then Item.Details.State = Open then
+         declare
+            Scrolled : constant Float := Scroll_Of (Item);
+            Across   : constant Float := Across_Of (Item);
+         begin
+            if Scrolled /= Item.Scroll_Seen or else Across /= Item.Across_Seen
+            then
+               Item.Scroll_Seen := Scrolled;
+               Item.Across_Seen := Across;
+               Item.Scroll_At := Now;
+            end if;
+            if (Scrolled /= Item.Details.Scroll
+                or else Across /= Item.Details.Scroll_Across)
+              and then (Force or else Now >= Item.Scroll_At + Idle_Delay)
+            then
+               Items.Set_Scroll (Store, Item.Details.Key, Scrolled, Across);
+               Item.Details.Scroll := Scrolled;
+               Item.Details.Scroll_Across := Across;
+               Wrote := True;
+            end if;
+         end;
       end if;
 
       if Item.Details.Kind = Source

@@ -15,6 +15,16 @@ package body UI.Widgets.Pictures is
 
    function Scrolled (Item : Picture) return Float is (Item.Down);
 
+   function Scrolled_Across (Item : Picture) return Float is (Item.Across);
+
+   procedure Scroll_Across_To (Item : in out Picture; To : Float) is
+   begin
+      if To /= Item.Across then
+         Item.Across := To;
+         Invalidate (Item);
+      end if;
+   end Scroll_Across_To;
+
    function Zoom (Item : Picture) return Float is (Item.Zoomed);
 
    function Tool (Item : Picture) return Tools is (Item.Chosen);
@@ -384,10 +394,12 @@ package body UI.Widgets.Pictures is
    end Unload;
 
    function Furthest (Item : Picture; High : Float) return Float is
-     (if High > 0.0 and then Item.Fitted > High
+     (if Item.Fitted <= 0.0 then 1.0
+      elsif High > 0.0 and then Item.Fitted > High
       then 1.0 - High / Item.Fitted else 0.0);
    --  The most Down can be, for a box High pixels high, so that the
-   --  picture's end is at the box's.
+   --  picture's end is at the box's; 1.0 until the size of the picture is
+   --  known, when it is drawn.
 
    procedure Scroll_To (Item : in out Picture; To : Float) is
       Wanted : constant Float :=

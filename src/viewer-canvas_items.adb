@@ -514,6 +514,8 @@ package body Viewer.Canvas_Items is
              Kind  => Kind,
              Captured_At => 0,
              Zoom  => 1.0,
+             Scroll => 0.0,
+             Scroll_Across => 0.0,
              Recognized_At => 0),
             "");
          Windows.Place

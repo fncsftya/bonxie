@@ -265,6 +265,14 @@ package UI.Text_Areas is
    --  Move what is shown By layout units down the text (up, if negative),
    --  but not past either end. The caret stays where it is.
 
+   function Scroll_Top (Item : Text_Area) return Float;
+   --  How far down the text what is shown starts, in layout units.
+
+   procedure Scroll_To (Item : in out Text_Area; Top : Float)
+     with Pre => Is_Attached (Item) and then Top >= 0.0;
+   --  Show the text from Top (as Scroll_Top says), but not past the end.
+   --  The caret stays where it is.
+
    procedure Set_Hovered (Item : in out Text_Area; Hovered : Boolean);
    --  Say whether the pointer is over it, which shows the scroll bar (it
    --  is told so by mouse moves in it, but not when the pointer leaves).

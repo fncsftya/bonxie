@@ -238,6 +238,13 @@ private
       --  Moved or sized, and not written.
       Zoom_Dirty    : Boolean := False;
       --  Zoomed, and not written.
+      Scroll_Seen, Across_Seen : Float := 0.0;
+      Scroll_At     : SDL3.Events.Milliseconds := 0;
+      --  How far the content was scrolled when last looked at, and when
+      --  that changed: it is written once it has stayed (Idle_Delay).
+      Scroll_Pending : Boolean := False;
+      --  A note's text is to be scrolled to Details.Scroll once it has a
+      --  width to be laid out in.
       Marks_Saved   : Natural := 0;
       --  The picture's Marks_Version when its highlights were written.
       Was_Used      : Boolean := False;

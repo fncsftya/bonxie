@@ -77,6 +77,13 @@ package Items is
       Zoom  : Zoom_Level := 1.0;
       --  Of a source: how wide its picture is shown, as a multiple of its
       --  window's width.
+      Scroll : Float := 0.0;
+      --  How far the window's content is scrolled: for a note, down its
+      --  text in layout units; for a source, down its picture, from 0.0
+      --  to 1.0 of its height.
+      Scroll_Across : Float := 0.0;
+      --  Of a source: how far across its picture is scrolled, from 0.0 to
+      --  1.0 of how much wider than the window it is (see Zoom).
       Recognized_At : Projects.Seconds := 0;
       --  Of a source: when the text in its picture was found and kept
       --  (see Save_Words); 0 if it has not been, or the picture was taken
@@ -141,6 +148,13 @@ package Items is
      (Store : in out Projects.Store; Key : Id; Zoom : Zoom_Level)
      with Pre => Projects.Is_Open (Store);
    --  Of a source: how its picture is zoomed within its window.
+
+   procedure Set_Scroll
+     (Store : in out Projects.Store; Key : Id; Scroll, Across : Float)
+     with Pre => Projects.Is_Open (Store) and then Scroll >= 0.0
+                 and then Across in 0.0 .. 1.0;
+   --  How far the item's content is scrolled (see Info.Scroll and
+   --  Info.Scroll_Across).
 
    procedure Set_Captured
      (Store : in out Projects.Store; Key : Id; At_Time : Projects.Seconds)

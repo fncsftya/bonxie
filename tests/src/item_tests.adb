@@ -59,7 +59,8 @@ package body Item_Tests is
    --  In the text.
 
    --  The bar in the dock, when the item is minimised: from 8, 382, with
-   --  the title to click to restore it, and the button to close it, at the right.
+   --  the title to click to restore it, and the button to close it, at the
+   --  right.
    Restore_X : constant Float := 80.0;
    Dock_Close_X : constant Float := 192.0;
    Dock_Y    : constant Float := 428.0;
@@ -254,6 +255,17 @@ package body Item_Tests is
       Check
         ("items-changed-content", "other" & ASCII.LF & "text",
          Items.Content (Store, Listed.Items (1).Key));
+
+      Check
+        ("items-scroll-none", "TRUE",
+         Boolean'Image (Listed.Items (1).Scroll = 0.0));
+      Items.Set_Scroll (Store, Listed.Items (1).Key, 42.5, 0.25);
+      Items.Load (Store, First, Listed);
+      Check
+        ("items-scroll-kept", "TRUE",
+         Boolean'Image
+           (Listed.Items (1).Scroll = 42.5
+            and then Listed.Items (1).Scroll_Across = 0.25));
 
       --  One goes.
       Items.Delete (Store, Listed.Items (1).Key);
