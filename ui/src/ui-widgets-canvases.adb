@@ -19,9 +19,18 @@ package body UI.Widgets.Canvases is
 
    function Zoom (Item : Canvas) return Float is (Item.Scale);
 
-   function Origin_X (Item : Canvas) return Float is (Item.Across);
+   function Snapped (Item : Canvas; Points : Float) return Float is
+     (if Is_Attached (Item)
+      then Float'Rounding (Points * Density (Item)) / Density (Item)
+      else Points);
+   --  On a whole pixel, so that all that is on the canvas moves by the
+   --  same whole pixels while it is panned, and does not jiggle.
 
-   function Origin_Y (Item : Canvas) return Float is (Item.Down);
+   function Origin_X (Item : Canvas) return Float is
+     (Snapped (Item, Item.Across));
+
+   function Origin_Y (Item : Canvas) return Float is
+     (Snapped (Item, Item.Down));
 
    function Is_Panning (Item : Canvas) return Boolean is (Item.Panning);
 
@@ -76,10 +85,10 @@ package body UI.Widgets.Canvases is
    function Same (A, B : Line) return Boolean is (A = B);
 
    function Screen_X (Item : Canvas; X : Float) return Float is
-     (Left_Of (Item) + (Item.Across + X * Item.Scale) * Density (Item));
+     (Left_Of (Item) + (Origin_X (Item) + X * Item.Scale) * Density (Item));
 
    function Screen_Y (Item : Canvas; Y : Float) return Float is
-     (Top_Of (Item) + (Item.Down + Y * Item.Scale) * Density (Item));
+     (Top_Of (Item) + (Origin_Y (Item) + Y * Item.Scale) * Density (Item));
    --  A place on the canvas, in pixels from the top left of the target.
 
    procedure Damage_Between
@@ -357,8 +366,8 @@ package body UI.Widgets.Canvases is
       declare
          Gap   : constant Float := Step * Item.Scale * Pixels;
          --  Pixels between dots.
-         Zero_X : constant Float := Left_Of (Item) + Item.Across * Pixels;
-         Zero_Y : constant Float := Top_Of (Item) + Item.Down * Pixels;
+         Zero_X : constant Float := Left_Of (Item) + Origin_X (Item) * Pixels;
+         Zero_Y : constant Float := Top_Of (Item) + Origin_Y (Item) * Pixels;
          First_Column : constant Integer :=
            Integer (Float'Ceiling ((Float (Part.Left) - Zero_X) / Gap));
          Last_Column  : constant Integer :=
