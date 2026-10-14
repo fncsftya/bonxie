@@ -32,6 +32,7 @@ project Speech is
    package Compiler is
       for Default_Switches ("Ada") use Speech_Config.Ada_Compiler_Switches &
         ("-gnatwh",          --  local declarations hiding others
+         "-gnatyM120",        --  longest line
          "-gnatVa",          --  validity checks everywhere
          "-fstack-check",    --  detect stack overflow
          "-fstack-protector-strong",
