@@ -1,6 +1,7 @@
 with Ada.Command_Line;
 with Files;
 with SDL3;
+with Speech.Jobs;
 with Viewer;
 
 procedure Bonxie is
@@ -17,4 +18,9 @@ begin
    end if;
 
    SDL3.Shutdown;
+   Speech.Jobs.Shutdown;  --  or the tasks that listen would keep it from ending
+exception
+   when others =>
+      Speech.Jobs.Shutdown;
+      raise;
 end Bonxie;

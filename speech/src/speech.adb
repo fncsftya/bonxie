@@ -1,7 +1,9 @@
 with Interfaces.C;
 with System;
 
-package body Speech is
+package body Speech
+  with SPARK_Mode => Off
+is
 
    use type Interfaces.C.int;
 

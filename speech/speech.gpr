@@ -28,7 +28,16 @@ project Speech is
      external ("SPEECH_LIBRARY_TYPE", external ("LIBRARY_TYPE", "static"));
    for Library_Kind use Library_Type;
 
+   type Proof_Kind is ("yes", "no");
+   Proof : Proof_Kind := external ("SPEECH_PROOF", "no");
+
    package Compiler is
+      case Proof is
+         when "yes" =>
+            for Local_Configuration_Pragmas use Project'Project_Dir & "jorvik.adc";
+         when "no" =>
+            null;
+      end case;
       for Default_Switches ("Ada") use Speech_Config.Ada_Compiler_Switches &
         ("-gnatwh",          --  local declarations hiding others
          "-gnatyM120",        --  longest line
@@ -38,7 +47,8 @@ project Speech is
          "-mmacosx-version-min=26.0");
       for Driver ("C") use Project'Project_Dir & "swiftc.sh";
       for Default_Switches ("C") use
-        ("-parse-as-library", "-swift-version", "5", "-O");
+        ("-parse-as-library", "-swift-version", "5", "-O",
+         "-import-objc-header", Project'Project_Dir & "native/speech_ring.h");
    end Compiler;
 
    --  Propagated to every project that depends on this one. The plist is
@@ -64,8 +74,12 @@ project Speech is
          & "Info.plist");
    end Linker;
 
-   --  `gnatprove -P speech.gpr -u speech-windows.adb`: Speech.Windows is
-   --  proved (see its comment); the rest of the crate is not SPARK.
+   --  `gnatprove -P speech.gpr -XSPEECH_PROOF=yes`: what is SPARK
+   --  (Speech.Windows, .Words, .Rings, .Parakeet, .Streams, .Jobs) is
+   --  proved; the rest of the crate (what is C, or Swift, underneath) is
+   --  not. Jorvik (Ravenscar's successor) is what GNATprove needs to
+   --  analyse tasks, so that is what Speech.Jobs is proved to keep to: for
+   --  the proof only, as the program runs with Ada's full tasking.
    package Prove is
       for Proof_Switches ("Ada") use ("--level=2", "--timeout=60", "-j0");
    end Prove;

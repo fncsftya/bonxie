@@ -36,4 +36,5 @@ begin
       Put_Line (Speech.Jobs.States'Image (Speech.Jobs.State (Which)) & ": "
                 & Speech.Jobs.Message (Which));
    end if;
+   Speech.Jobs.Shutdown;
 end Listen;

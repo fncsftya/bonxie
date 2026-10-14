@@ -6,9 +6,24 @@
 --  Both calls wait (the first loads the models, downloading them the first
 --  time), so they are not for the main thread. The model runs one at a
 --  time; they may be called from any task.
+--  GNATprove proves these contracts, so they are not also checked as the
+--  program runs: the postconditions look through the whole ring, or every
+--  pair of words, which would cost far more than the work they describe
+--  (and in the microphone's thread, would hold it up). The preconditions
+--  are still checked.
+pragma Assertion_Policy
+  (Post => Ignore, Postcondition => Ignore, Type_Invariant => Ignore,
+   Loop_Invariant => Ignore, Assert => Ignore);
+
 with Speech.Windows;
 
-package Speech.Parakeet is
+package Speech.Parakeet
+  with SPARK_Mode,
+       Abstract_State =>
+         (Model with Synchronous, External => (Async_Readers, Async_Writers))
+is
+   --  Model is the model, as libBonxieParakeet has it: loaded, or not, and
+   --  being fetched, by whoever asks (see Speech.Models).
 
    Max_Words : constant := 2048;
 
@@ -28,31 +43,51 @@ package Speech.Parakeet is
       --  its start.
    end record;
 
-   function Present (Directory : String) return Boolean;
+   function Present (Directory : String) return Boolean
+     with Volatile_Function,
+          Global => (Input => Model);
    --  Whether the models are all in Directory (see Speech.Models).
 
    procedure Load
      (Directory : String;
       Ok        : out Boolean;
-      Message   : out String;
+      Message   : in out String;
       Last      : out Natural)
-     with Pre => Message'First = 1 and then Directory /= "";
+     with Global => (In_Out => Model),
+          Pre    => Message'First = 1 and then Message'Length < Positive'Last / 2
+                    and then Directory /= "",
+          Post   => Last <= Message'Length;
    --  Have the models ready, if they are not already: those in Directory.
    --  On failure Message (1 .. Last) says why (not downloaded, say).
 
    procedure Transcribe
      (Audio   : Windows.Samples;
-      Into    : out Heard;
+      Into    : in out Heard;
       Ok      : out Boolean;
-      Message : out String;
+      Message : in out String;
       Last    : out Natural)
-     with Pre => Message'First = 1 and then Audio'First = 1 and then Audio'Length <= Windows.Capacity;
-   --  Make the text of the audio. What comes back is not taken on trust:
-   --  where the words are in the sound is made to be as it must (see
-   --  Windows.Repair), and a text that is not what the words say is a
-   --  failure.
+     with Global => (Input => Model),
+          Pre    => Message'First = 1
+                    and then Message'Length < Positive'Last / 2
+                    and then Audio'First = 1
+                    and then Audio'Length <= Windows.Capacity,
+          Post   => Last <= Message'Length
+                    and then Into.Count <= Max_Words
+                    and then Into.Text_Length <= Text_Capacity
+                    and then (if Ok
+                              then Windows.Text_Plausible
+                                     (Into.Text_Ends (1 .. Into.Count), Into.Text_Length)
+                                   and then Windows.Ordered
+                                     (Into.Sample_Starts (1 .. Into.Count),
+                                      Into.Sample_Ends (1 .. Into.Count), Audio'Length)
+                              else Into.Count = 0 and then Into.Text_Length = 0);
+   --  Make the text of the audio, and where each word of it is in the
+   --  sound. The model's tokens are made into words (Speech.Words), whose
+   --  places are made to be as they must (Windows.Repair), so what is
+   --  here is as the rest of the program counts on, as it is proved.
 
-   procedure Unload;
+   procedure Unload
+     with Global => (In_Out => Model);
    --  Let the models go.
 
 end Speech.Parakeet;

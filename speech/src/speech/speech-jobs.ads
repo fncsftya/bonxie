@@ -12,6 +12,9 @@
 --  words as they are worked out; the model is loaded meanwhile, so what is
 --  said while it loads is not lost, only late.
 package Speech.Jobs is
+   --  This is the shell: what is asked of it is checked here (as what is
+   --  asked of a slot's state, which is shared, cannot be said in SPARK),
+   --  and what is done is in Speech.Jobs.Core, which is proved.
 
    Slot_Count : constant := Max_Sessions;
 
@@ -34,16 +37,16 @@ package Speech.Jobs is
    --  Of the folder the model is kept in.
 
    procedure Start
-     (Which      : Slot;
-      Engine     : Engines := System;
+     (Which           : Slot;
+      Engine          : Engines := System;
       Model_Directory : String  := "")
      with Pre  => State (Which) in Idle | Done | Failed
                   and then Model_Directory'Length <= Max_Path
                   and then (Engine = System or else Model_Directory /= ""),
           Post => State (Which) in Starting | Listening | Failed;
    --  Begin to listen, with the engine; Model_Directory is where the
-   --  model is kept (see Speech.Models), for Model. If a job that was reset is still running in the slot, this
-   --  waits for it.
+   --  model is kept (see Speech.Models), for Model. If a job that was reset
+   --  is still running in the slot, the new one begins when that is over.
 
    procedure Stop (Which : Slot)
      with Pre => State (Which) in Open;
@@ -73,5 +76,12 @@ package Speech.Jobs is
      with Post => State (Which) = Idle;
    --  Forget the job, if any, and how it ended. One still running is
    --  stopped, and what it heard is thrown away.
+
+   procedure Shutdown;
+   --  The program is ending: let the tasks that listen go. A program that
+   --  uses this package must call it before it ends, or it does not: the
+   --  tasks are made when the program begins, one to a slot, and wait for
+   --  something to do. (A job that is listening is not stopped by this,
+   --  and its task does not go until it is: Stop, or Reset, first.)
 
 end Speech.Jobs;

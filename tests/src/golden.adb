@@ -14,6 +14,7 @@ with Picture_Tests;
 with Preferences;
 with Projects;
 with Sheet_Tests;
+with Speech.Jobs;
 with Text_Area_Tests;
 with Widget_Tests;
 with Viewer;
@@ -1103,4 +1104,5 @@ begin
    if Ran = 0 or else Goldens.Failed > 0 then
       Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
    end if;
+   Speech.Jobs.Shutdown;  --  or the tasks that listen would keep it from ending
 end Golden;

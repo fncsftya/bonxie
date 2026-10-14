@@ -179,53 +179,27 @@ public func pk_unload() {
     lock.unlock()
 }
 
-// One word: its text and where it ends.
-private struct Word {
-    var text = ""
-    var start = 0.0
-    var end = 0.0
-}
-
-// Words from tokens: a token that starts with the SentencePiece space
-// starts a word; others (and punctuation) go on the one before.
-private func words(_ timings: [TokenTiming]) -> [Word] {
-    var made: [Word] = []
-    var spaced = true
-    for timing in timings {
-        let starts = timing.token.hasPrefix("\u{2581}") || timing.token.hasPrefix(" ")
-        let piece = timing.token.replacingOccurrences(of: "\u{2581}", with: "")
-            .trimmingCharacters(in: .whitespaces)
-        if starts { spaced = true }
-        if piece.isEmpty { continue }
-        if spaced || made.isEmpty {
-            made.append(Word(text: piece, start: timing.startTime, end: timing.endTime))
-            spaced = false
-        } else {
-            made[made.count - 1].text += piece
-            made[made.count - 1].end = timing.endTime
-        }
-    }
-    return made
-}
-
-// Make text of count samples: 1 if it is done (maybe with no words); 0 if
-// not, and message says why. The text is the words with a space between,
-// in text (textLength bytes of it, as many as fit, and whole words only).
-// Of the words (as many as wordRoom), wordCount are given, with where
-// each ends: in the text (1-based, the byte it ends at), and where each
-// starts and ends in samples from the start of the audio.
+// Make tokens of count samples: 1 if it is done (maybe with no tokens); 0
+// if not, and message says why. Of the tokens (as many as tokenRoom, and
+// whose text fits in textRoom bytes: no token is cut), tokenCount are
+// given: their text, one after the other, in text (textLength bytes); the
+// byte, from 1, that each ends at in textEnds; and where each starts and
+// ends, in samples from the start of the audio, in starts and ends. The
+// text is as the model has it: a token that begins a word begins with the
+// SentencePiece space (U+2581), or a space; what is made of that is for
+// the caller (see Speech.Words).
 @_cdecl("pk_transcribe")
 public func pk_transcribe(
     _ samples: UnsafePointer<Float>, _ count: Int32,
     _ text: UnsafeMutablePointer<CChar>, _ textRoom: Int32, _ textLength: UnsafeMutablePointer<Int32>,
-    _ wordRoom: Int32, _ wordCount: UnsafeMutablePointer<Int32>,
-    _ textEnds: UnsafeMutablePointer<Int32>, _ sampleStarts: UnsafeMutablePointer<Int32>,
-    _ sampleEnds: UnsafeMutablePointer<Int32>,
+    _ tokenRoom: Int32, _ tokenCount: UnsafeMutablePointer<Int32>,
+    _ textEnds: UnsafeMutablePointer<Int32>, _ starts: UnsafeMutablePointer<Int32>,
+    _ ends: UnsafeMutablePointer<Int32>,
     _ message: UnsafeMutablePointer<CChar>, _ messageRoom: Int32
 ) -> Int32 {
     message[0] = 0
     textLength.pointee = 0
-    wordCount.pointee = 0
+    tokenCount.pointee = 0
     lock.lock()
     let found = loaded
     lock.unlock()
@@ -250,20 +224,20 @@ public func pk_transcribe(
     case .success(let timings):
         var bytes = 0
         var given: Int32 = 0
-        for word in words(timings) {
-            let piece = Array((given == 0 ? word.text : " " + word.text).utf8)
-            if given >= wordRoom || bytes + piece.count > Int(textRoom) { break }
+        for timing in timings {
+            let piece = Array(timing.token.utf8)
+            if given >= tokenRoom || bytes + piece.count > Int(textRoom) { break }
             for (index, byte) in piece.enumerated() {
                 text[bytes + index] = CChar(bitPattern: byte)
             }
             bytes += piece.count
             textEnds[Int(given)] = Int32(bytes)
-            sampleStarts[Int(given)] = Int32(min(Double(count), max(0, word.start * Double(rate))))
-            sampleEnds[Int(given)] = Int32(min(Double(count), max(0, word.end * Double(rate))))
+            starts[Int(given)] = Int32(min(Double(count), max(0, timing.startTime * Double(rate))))
+            ends[Int(given)] = Int32(min(Double(count), max(0, timing.endTime * Double(rate))))
             given += 1
         }
         textLength.pointee = Int32(bytes)
-        wordCount.pointee = given
+        tokenCount.pointee = given
         return 1
     }
 }

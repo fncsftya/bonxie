@@ -8,9 +8,14 @@
 --
 --  Feed and Finish run the model, so they take a while and are not for the
 --  main thread. A stream is for one task at a time.
+with Speech.Parakeet;
 with Speech.Windows;
 
-package Speech.Streams is
+package Speech.Streams
+  with SPARK_Mode
+is
+
+   use type Windows.Sample_Index;
 
    Hop : constant := Windows.Rate / 2;
    --  How much new audio there is to be before the model is run again.
@@ -37,19 +42,29 @@ package Speech.Streams is
 
    type Stream is limited private;
 
+   function Consistent (Item : Stream) return Boolean
+     with Global => null;
+   --  What holds of a stream between calls: the place up to which words
+   --  are settled is not past the sound that is heard.
+
    type Tuning is record
       Hop     : Positive range 1 .. Windows.Capacity := Streams.Hop;
-      Guard   : Natural := Streams.Guard;
-      Trigger : Positive := Streams.Trigger;
-      Context : Natural := Streams.Context;
-      Slack   : Natural := Streams.Slack;
+      Guard   : Natural range 0 .. Windows.Capacity := Streams.Guard;
+      Trigger : Positive range 1 .. Windows.Capacity := Streams.Trigger;
+      Context : Natural range 0 .. Windows.Capacity := Streams.Context;
+      Slack   : Natural range 0 .. Windows.Capacity := Streams.Slack;
    end record;
    --  The constants above, which are what a stream starts with.
 
-   procedure Configure (Item : in out Stream; With_Tuning : Tuning);
+   procedure Configure (Item : in out Stream; With_Tuning : Tuning)
+     with Global => null,
+          Pre    => Consistent (Item),
+          Post   => Consistent (Item);
    --  Use other values than the constants (for finding better ones).
 
-   procedure Reset (Item : in out Stream);
+   procedure Reset (Item : in out Stream)
+     with Global => null,
+          Post   => Consistent (Item);
    --  Forget all that was heard.
 
    procedure Feed
@@ -59,7 +74,13 @@ package Speech.Streams is
       Ok      : out Boolean;
       Message : out String;
       Last    : out Natural)
-     with Pre => Message'First = 1 and then Audio'Last < Positive'Last;
+     with Global => (Input => Parakeet.Model),
+          Pre    => Consistent (Item)
+                    and then Message'First = 1
+                    and then Message'Length < Positive'Last / 2
+                    and then Audio'First >= 1
+                    and then Audio'Last < Positive'Last,
+          Post   => Consistent (Item) and then Last <= Message'Length;
    --  Give the stream more audio. Changed says the model was run, so the
    --  text may not be as it was.
 
@@ -68,22 +89,30 @@ package Speech.Streams is
       Ok      : out Boolean;
       Message : out String;
       Last    : out Natural)
-     with Pre => Message'First = 1;
+     with Global => (Input => Parakeet.Model),
+          Pre    => Consistent (Item)
+                    and then Message'First = 1
+                    and then Message'Length < Positive'Last / 2,
+          Post   => Consistent (Item) and then Last <= Message'Length;
    --  There is no more audio: the text is all settled.
 
-   procedure Text (Item : Stream; Into : in out Transcript);
+   procedure Text (Item : Stream; Into : in out Transcript)
+     with Global => null;
    --  What has been heard: the settled words, then those that may yet
    --  change.
 
 private
 
    type Stream is limited record
-      Held      : Windows.Window;
+      Held       : Windows.Window;
       Settled_To : Windows.Sample_Index := 0;
-      Tuned      : Tuning;
       --  The place in the sound up to which words are settled.
-      Settled   : Transcript;
-      Tentative : Transcript;
+      Tuned      : Tuning;
+      Settled    : Transcript;
+      Tentative  : Transcript;
    end record;
+
+   function Consistent (Item : Stream) return Boolean is
+     (Item.Settled_To <= Windows.Next (Item.Held));
 
 end Speech.Streams;
