@@ -36,62 +36,62 @@ package body Viewer.Deletion is
 
    procedure Confirm (Item : in out Session; Row : Positive) is
       Name : constant String :=
-        Projects.Titles.To_String (Item.Listed.Items (Row).Title);
+        Projects.Titles.To_String (Item.Home_View.Listed.Items (Row).Title);
    begin
       Recent.Cancel_Edit (Item);
-      Item.Deleting := Item.Listed.Items (Row).Key;
-      Labels.Set_Text (Item.Confirm_Message, Asked (Name));
-      Widgets.Set_Visible (Item.Overlay, True);
-      Widgets.Layout (Item.Widgets, Item.Target);
+      Item.Confirm.Deleting := Item.Home_View.Listed.Items (Row).Key;
+      Labels.Set_Text (Item.Confirm.Confirm_Message, Asked (Name));
+      Widgets.Set_Visible (Item.Confirm.Overlay, True);
+      Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
    end Confirm;
 
    procedure Confirm_Node (Item : in out Session; Node : Tree_Entry) is
       Name : constant String :=
         (if Node.Kind = Directory_Node
          then Projects.Titles.To_String
-                (Item.Dirs.Directories (Node.Dir).Title)
+                (Item.Docs.Dirs.Directories (Node.Dir).Title)
          else Projects.Titles.To_String
                 (Items.Windows.Details (Item.Windows (Node.Doc)).Title));
    begin
-      Item.Deleting_Node := Node;
+      Item.Confirm.Deleting_Node := Node;
       Labels.Set_Text
-        (Item.Dialog_Title,
+        (Item.Confirm.Dialog_Title,
          (if Node.Kind = Directory_Node then "Delete folder"
           elsif Items.Windows.Details (Item.Windows (Node.Doc)).Kind
                 = Items.Source
           then "Delete source"
           else "Delete document"));
-      Labels.Set_Text (Item.Confirm_Message, Asked (Name));
+      Labels.Set_Text (Item.Confirm.Confirm_Message, Asked (Name));
       Labels.Set_Text
-        (Item.Confirm_Note,
+        (Item.Confirm.Confirm_Note,
          (if Node.Kind = Directory_Node then "Its documents are kept."
           else "This cannot be undone."));
-      Widgets.Set_Visible (Item.Overlay, True);
-      Widgets.Layout (Item.Widgets, Item.Target);
+      Widgets.Set_Visible (Item.Confirm.Overlay, True);
+      Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
    end Confirm_Node;
 
    procedure Close (Item : in out Session) is
    begin
-      Item.Deleting := 0;
-      Item.Deleting_Node := (others => <>);
-      Labels.Set_Text (Item.Dialog_Title, "Delete project");
-      Labels.Set_Text (Item.Confirm_Note, "This cannot be undone.");
-      Widgets.Set_Visible (Item.Overlay, False);
-      Widgets.Layout (Item.Widgets, Item.Target);
+      Item.Confirm.Deleting := 0;
+      Item.Confirm.Deleting_Node := (others => <>);
+      Labels.Set_Text (Item.Confirm.Dialog_Title, "Delete project");
+      Labels.Set_Text (Item.Confirm.Confirm_Note, "This cannot be undone.");
+      Widgets.Set_Visible (Item.Confirm.Overlay, False);
+      Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
    end Close;
 
    procedure Delete_Confirmed (Item : in out Session) is
-      Key  : constant Projects.Id := Item.Deleting;
-      Node : constant Tree_Entry := Item.Deleting_Node;
+      Key  : constant Projects.Id := Item.Confirm.Deleting;
+      Node : constant Tree_Entry := Item.Confirm.Deleting_Node;
    begin
       Close (Item);
       if Node.Kind /= Overview_Node then
          Writing.Delete_Node (Item, Node);
       else
-         Projects.Delete (Item.Store, Key);
+         Projects.Delete (Item.Nav.Store, Key);
          Recent.Refresh (Item);
       end if;
-      Widgets.Layout (Item.Widgets, Item.Target);
+      Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
    end Delete_Confirmed;
 
 end Viewer.Deletion;

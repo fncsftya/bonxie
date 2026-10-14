@@ -2,23 +2,24 @@
 private package Viewer.Settings_View is
 
    procedure Open (Item : in out Session)
-     with Pre  => Item.Shown = Home and then not Item.Showing_Settings,
-          Post => Item.Showing_Settings;
+     with Pre  => Item.Nav.Shown = Home
+      and then not Item.Prefs.Showing_Settings,
+          Post => Item.Prefs.Showing_Settings;
    --  Show the form.
 
    procedure Close (Item : in out Session)
-     with Pre  => Item.Showing_Settings,
-          Post => not Item.Showing_Settings;
+     with Pre  => Item.Prefs.Showing_Settings,
+          Post => not Item.Prefs.Showing_Settings;
    --  Show the home screen again.
 
    procedure Choose
      (Item : in out Session; To : Preferences.Speech_Models)
-     with Post => Preferences."=" (Item.Speech_Choice, To);
+     with Post => Preferences."=" (Item.Prefs.Speech_Choice, To);
    --  Choose what turns speech into text, and keep the choice.
 
    procedure Choose_Appearance
      (Item : in out Session; To : Preferences.Theme_Choices)
-     with Post => Preferences."=" (Item.Theme_Chosen, To);
+     with Post => Preferences."=" (Item.Prefs.Theme_Chosen, To);
    --  Choose the appearance of the windows, and keep the choice. The
    --  windows are drawn in it now (see Apply_Theme).
 
@@ -28,15 +29,15 @@ private package Viewer.Settings_View is
    --  theme has changed.
 
    procedure Take (Item : in out Session)
-     with Pre => Item.Showing_Settings;
+     with Pre => Item.Prefs.Showing_Settings;
    --  Act on what has been clicked in the form.
 
    procedure Update (Item : in out Session)
-     with Pre => Item.Showing_Settings;
+     with Pre => Item.Prefs.Showing_Settings;
    --  Show how far the download is.
 
    procedure Fit (Item : in out Session)
-     with Pre => Item.Showing_Settings;
+     with Pre => Item.Prefs.Showing_Settings;
    --  Make the form as wide as a page, or as the window leaves room for.
 
    function Downloading (Item : Session) return Boolean;

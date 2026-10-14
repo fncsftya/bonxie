@@ -8,9 +8,15 @@ with SDL3.Events;
 with SDL3.Windows.Renderers.Images;
 with Typeset.Samples;
 with Viewer;
+with Viewer.Canvas_Windows;
+with Viewer.Home_Screen;
+with Viewer.Project_Screen;
 
 procedure Write_Bench is
    package Events renames SDL3.Events;
+   package Windows renames Viewer.Canvas_Windows;
+   package Home renames Viewer.Home_Screen;
+   package Proj renames Viewer.Project_Screen;
    package Images renames SDL3.Windows.Renderers.Images;
 
    use Ada.Real_Time;
@@ -62,7 +68,7 @@ procedure Write_Bench is
 
       --  1. Switch to Write mode (first time)
       T0 := Clock;
-      Viewer.Set_Mode (Session, Viewer.Write);
+      Proj.Set_Mode (Session, Viewer.Write);
       T1 := Clock;
       D_Switch_1 := To_Duration (T1 - T0);
       Print_Ms ("Set_Mode (Write) #1", D_Switch_1);
@@ -83,7 +89,7 @@ procedure Write_Bench is
 
       --  4. Switch back to Canvas mode
       T0 := Clock;
-      Viewer.Set_Mode (Session, Viewer.Canvas);
+      Proj.Set_Mode (Session, Viewer.Canvas);
       T1 := Clock;
       D_Switch_Back := To_Duration (T1 - T0);
       Print_Ms ("Set_Mode (Canvas)", D_Switch_Back);
@@ -96,7 +102,7 @@ procedure Write_Bench is
 
       --  5. Switch to Write mode (second time)
       T0 := Clock;
-      Viewer.Set_Mode (Session, Viewer.Write);
+      Proj.Set_Mode (Session, Viewer.Write);
       T1 := Clock;
       D_Switch_2 := To_Duration (T1 - T0);
       Print_Ms ("Set_Mode (Write) #2", D_Switch_2);
@@ -109,7 +115,7 @@ procedure Write_Bench is
       Print_Ms ("Paint in Write mode #2", D_Paint_2);
 
       --  Switch back to Canvas mode for next iteration
-      Viewer.Set_Mode (Session, Viewer.Canvas);
+      Proj.Set_Mode (Session, Viewer.Canvas);
       Draw;
    end Run_Once;
 
@@ -129,10 +135,10 @@ begin
       Viewer.Open (Session, "", 720, 480, 2.0);
    end if;
 
-   Viewer.New_Project (Session);
+   Home.New_Project (Session);
 
    for I in 1 .. Items_Count loop
-      Viewer.Add_Item (Session, "Document" & I'Image);
+      Windows.Add_Item (Session, "Document" & I'Image);
       if Paragraphs > 0 then
          declare
             Text : constant String := Typeset.Samples.Document (Paragraphs);

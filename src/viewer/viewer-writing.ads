@@ -41,13 +41,14 @@ private package Viewer.Writing is
    --  The words in the source's picture have been found.
 
    procedure Move (Item : in out Session; From, To : Positive)
-     with Pre => From <= Item.Write_Count and then To <= Item.Write_Count;
+     with Pre => From <= Item.Reading.Write_Count
+      and then To <= Item.Reading.Write_Count;
    --  Put the From-th page at the To-th, and keep the order.
 
    procedure Move_To_Directory
      (Item : in out Session; Rank : Positive; Directory : Natural)
-     with Pre => Rank <= Item.Write_Count
-                 and then Directory <= Item.Dirs.Count;
+     with Pre => Rank <= Item.Reading.Write_Count
+                 and then Directory <= Item.Docs.Dirs.Count;
    --  Put the Rankth page last in the directory (none, if 0), and keep it.
 
    procedure Open_Context
@@ -69,16 +70,16 @@ private package Viewer.Writing is
    --  in none), and keep that.
 
    procedure Make_Directory (Item : in out Session; Name : String)
-     with Pre => Item.Dirs.Count < Items.Max_Directories;
+     with Pre => Item.Docs.Dirs.Count < Items.Max_Directories;
    --  Make a directory, put its row last of the directories, and begin to
    --  rename it.
 
    procedure Select_Directory (Item : in out Session; Directory : Natural)
-     with Pre => Directory <= Item.Dirs.Count;
+     with Pre => Directory <= Item.Docs.Dirs.Count;
    --  Show only the pages of the directory (all, if 0).
 
    procedure Take (Item : in out Session)
-     with Pre => Screen (Item) = Project and then Item.Mode = Write;
+     with Pre => Screen (Item) = Project and then Item.Toolbar.Mode = Write;
    --  Do what the lists, the sources' windows and the pane were clicked
    --  or dragged for.
 
@@ -94,7 +95,7 @@ private package Viewer.Writing is
    --  with the canvas's windows.
 
    procedure Fit (Item : in out Session)
-     with Pre => Screen (Item) = Project and then Item.Mode = Write;
+     with Pre => Screen (Item) = Project and then Item.Toolbar.Mode = Write;
    --  Size the pages to their text and the window, once it is laid out,
    --  and bring the caret into view.
 

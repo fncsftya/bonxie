@@ -25,7 +25,7 @@ package body Viewer.Links is
    pragma Assert (Canvases.Max_Lines >= Items.Max_Links);
 
    function Diameter (Item : Session) return Float is
-     (Float'Rounding (Pins.Diameter * Widgets.Density (Item.Widgets)));
+     (Float'Rounding (Pins.Diameter * Widgets.Density (Item.Root.Widgets)));
    --  Of a pin, in pixels.
 
    function Is_Open (Item : Session; Which : Items.Slot) return Boolean is
@@ -47,8 +47,8 @@ package body Viewer.Links is
 
    function Index_Of (Item : Session; Key : Items.Id) return Natural is
    begin
-      for Number in 1 .. Item.Link_Set.Count loop
-         if Item.Link_Set.Links (Number).Key = Key then
+      for Number in 1 .. Item.Linking.Link_Set.Count loop
+         if Item.Linking.Link_Set.Links (Number).Key = Key then
             return Number;
          end if;
       end loop;
@@ -72,11 +72,11 @@ package body Viewer.Links is
 
    function Pixels_Of (Item : Session; Spot : Point) return Point is
      ((X => Float'Rounding
-              ((Item.Shown_X + Spot.X * Item.Shown_Zoom)
-               * Widgets.Density (Item.Widgets)),
+              ((Item.Nav.Shown_X + Spot.X * Item.Nav.Shown_Zoom)
+               * Widgets.Density (Item.Root.Widgets)),
        Y => Float'Rounding
-              ((Item.Shown_Y + Spot.Y * Item.Shown_Zoom)
-               * Widgets.Density (Item.Widgets))));
+              ((Item.Nav.Shown_Y + Spot.Y * Item.Nav.Shown_Zoom)
+               * Widgets.Density (Item.Root.Widgets))));
    --  A place on the canvas, in pixels from its top left.
 
    procedure Move_To
@@ -117,14 +117,15 @@ package body Viewer.Links is
       Spot   : constant Point := Pixels_Of (Item, Middle (Where, Side));
       Half   : constant Float := Diameter (Item) / 2.0;
    begin
-      Move_To (Item.Pins (Which, Side), Spot.X - Half, Spot.Y - Half,
-               Item.Pin_Left (Which, Side), Item.Pin_Top (Which, Side),
+      Move_To (Item.Linking.Pins (Which, Side), Spot.X - Half, Spot.Y - Half,
+               Item.Linking.Pin_Left (Which, Side),
+                  Item.Linking.Pin_Top (Which, Side),
                Changed);
    end Put_Pin;
 
    procedure Build (Item : in out Session) is
       use Yoga.Nodes;
-      Pixels : constant Float := Widgets.Density (Item.Widgets);
+      Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
 
       procedure Size (Part : in out Widgets.Widget'Class; Wide, High : Float)
       is
@@ -135,7 +136,7 @@ package body Viewer.Links is
 
       procedure Tool (Part : in out Buttons.Button; Apart : Boolean) is
       begin
-         Widgets.Add (Item.Link_Bar, Part);
+         Widgets.Add (Item.Linking.Link_Bar, Part);
          Size (Part, Style.Link_Button_Size, Style.Link_Button_Size);
          if Apart then
             Set_Margin (Widgets.Node (Part), Yoga.Left,
@@ -143,52 +144,56 @@ package body Viewer.Links is
          end if;
       end Tool;
    begin
-      Widgets.Add (Item.Canvas_View, Item.Link_Bar);
-      UI.Widgets.Panels.Set_Fill (Item.Link_Bar, Style.Toolbar);
-      Set_Position_Type (Widgets.Node (Item.Link_Bar), Yoga.Absolute);
-      Set_Flex_Direction (Widgets.Node (Item.Link_Bar), Yoga.Row);
-      Set_Align_Items (Widgets.Node (Item.Link_Bar), Yoga.Center);
-      Set_Padding (Widgets.Node (Item.Link_Bar), Yoga.All_Edges,
+      Widgets.Add (Item.Canvas_View, Item.Linking.Link_Bar);
+      UI.Widgets.Panels.Set_Fill (Item.Linking.Link_Bar, Style.Toolbar);
+      Set_Position_Type (Widgets.Node (Item.Linking.Link_Bar), Yoga.Absolute);
+      Set_Flex_Direction (Widgets.Node (Item.Linking.Link_Bar), Yoga.Row);
+      Set_Align_Items (Widgets.Node (Item.Linking.Link_Bar), Yoga.Center);
+      Set_Padding (Widgets.Node (Item.Linking.Link_Bar), Yoga.All_Edges,
                    Style.Link_Bar_Pad * Pixels);
-      Set_Gap (Widgets.Node (Item.Link_Bar), Yoga.All_Gutters,
+      Set_Gap (Widgets.Node (Item.Linking.Link_Bar), Yoga.All_Gutters,
                Style.Link_Bar_Gap * Pixels);
-      Size (Item.Link_Bar, Style.Link_Bar_Width, Style.Link_Bar_Height);
+      Size (Item.Linking.Link_Bar, Style.Link_Bar_Width,
+            Style.Link_Bar_Height);
 
       for Each in Items.Strokes loop
-         Tool (Item.Stroke_Buttons (Each), Apart => Each = Items.Solid);
+         Tool (Item.Linking.Stroke_Buttons (Each),
+               Apart => Each = Items.Solid);
       end loop;
-      Buttons.Set_Label (Item.Stroke_Buttons (Items.Solid), "Solid");
-      Buttons.Set_Icon (Item.Stroke_Buttons (Items.Solid),
+      Buttons.Set_Label (Item.Linking.Stroke_Buttons (Items.Solid), "Solid");
+      Buttons.Set_Icon (Item.Linking.Stroke_Buttons (Items.Solid),
                         UI.Icons.Stroke_Solid);
-      Buttons.Set_Label (Item.Stroke_Buttons (Items.Dots), "Dots");
-      Buttons.Set_Icon (Item.Stroke_Buttons (Items.Dots),
+      Buttons.Set_Label (Item.Linking.Stroke_Buttons (Items.Dots), "Dots");
+      Buttons.Set_Icon (Item.Linking.Stroke_Buttons (Items.Dots),
                         UI.Icons.Stroke_Dots);
-      Buttons.Set_Label (Item.Stroke_Buttons (Items.Dashed), "Dash");
-      Buttons.Set_Icon (Item.Stroke_Buttons (Items.Dashed),
+      Buttons.Set_Label (Item.Linking.Stroke_Buttons (Items.Dashed), "Dash");
+      Buttons.Set_Icon (Item.Linking.Stroke_Buttons (Items.Dashed),
                         UI.Icons.Stroke_Dashed);
       for Each in Items.Endings loop
-         Tool (Item.End_Buttons (Each), Apart => Each = Items.Plain);
+         Tool (Item.Linking.End_Buttons (Each), Apart => Each = Items.Plain);
       end loop;
-      Buttons.Set_Label (Item.End_Buttons (Items.Plain), "Plain");
-      Buttons.Set_Icon (Item.End_Buttons (Items.Plain), UI.Icons.End_Plain);
-      Buttons.Set_Label (Item.End_Buttons (Items.Arrow), "Arrow");
-      Buttons.Set_Icon (Item.End_Buttons (Items.Arrow), UI.Icons.End_Arrow);
+      Buttons.Set_Label (Item.Linking.End_Buttons (Items.Plain), "Plain");
+      Buttons.Set_Icon (Item.Linking.End_Buttons (Items.Plain),
+                        UI.Icons.End_Plain);
+      Buttons.Set_Label (Item.Linking.End_Buttons (Items.Arrow), "Arrow");
+      Buttons.Set_Icon (Item.Linking.End_Buttons (Items.Arrow),
+                        UI.Icons.End_Arrow);
       for Each in Items.Link_Colors loop
-         Tool (Item.Color_Buttons (Each), Apart => Each = 1);
-         Buttons.Set_Label (Item.Color_Buttons (Each), "Ink");
-         Buttons.Set_Swatch (Item.Color_Buttons (Each),
+         Tool (Item.Linking.Color_Buttons (Each), Apart => Each = 1);
+         Buttons.Set_Label (Item.Linking.Color_Buttons (Each), "Ink");
+         Buttons.Set_Swatch (Item.Linking.Color_Buttons (Each),
                              Style.Link_Inks (Each));
       end loop;
-      Tool (Item.Delete_Link, Apart => True);
-      Buttons.Set_Label (Item.Delete_Link, "Del");
-      Buttons.Set_Icon (Item.Delete_Link, UI.Icons.Delete);
-      Buttons.Set_Kind (Item.Delete_Link, Buttons.Danger);
-      Widgets.Set_Visible (Item.Link_Bar, False);
+      Tool (Item.Linking.Delete_Link, Apart => True);
+      Buttons.Set_Label (Item.Linking.Delete_Link, "Del");
+      Buttons.Set_Icon (Item.Linking.Delete_Link, UI.Icons.Delete);
+      Buttons.Set_Kind (Item.Linking.Delete_Link, Buttons.Danger);
+      Widgets.Set_Visible (Item.Linking.Link_Bar, False);
 
       for Which in Items.Slot loop
          for Side in Items.Sides loop
             declare
-               Pin : Pins.Pin renames Item.Pins (Which, Side);
+               Pin : Pins.Pin renames Item.Linking.Pins (Which, Side);
             begin
                Widgets.Add (Item.Canvas_View, Pin);
                Set_Position_Type (Widgets.Node (Pin), Yoga.Absolute);
@@ -197,25 +202,27 @@ package body Viewer.Links is
             end;
          end loop;
       end loop;
-      Widgets.Add (Item.Canvas_View, Item.Link_Handle);
-      Set_Position_Type (Widgets.Node (Item.Link_Handle), Yoga.Absolute);
-      Size (Item.Link_Handle, Pins.Diameter, Pins.Diameter);
-      Widgets.Set_Visible (Item.Link_Handle, False);
+      Widgets.Add (Item.Canvas_View, Item.Linking.Link_Handle);
+      Set_Position_Type (Widgets.Node (Item.Linking.Link_Handle),
+                         Yoga.Absolute);
+      Size (Item.Linking.Link_Handle, Pins.Diameter, Pins.Diameter);
+      Widgets.Set_Visible (Item.Linking.Link_Handle, False);
    end Build;
 
    procedure Reload (Item : in out Session) is
    begin
-      Items.Load_Links (Item.Store, Item.Current, Item.Link_Set);
-      if Index_Of (Item, Item.Link_Key) = 0 then
-         Item.Link_Key := 0;
+      Items.Load_Links (Item.Nav.Store, Item.Opened.Current,
+                        Item.Linking.Link_Set);
+      if Index_Of (Item, Item.Linking.Link_Key) = 0 then
+         Item.Linking.Link_Key := 0;
       end if;
    end Reload;
 
    procedure Enter (Item : in out Session) is
    begin
-      Item.Link_From := 0;
-      Item.Link_Moving := False;
-      Item.Link_Key := 0;
+      Item.Linking.Link_From := 0;
+      Item.Linking.Link_Moving := False;
+      Item.Linking.Link_Key := 0;
       Reload (Item);
    end Enter;
 
@@ -228,7 +235,7 @@ package body Viewer.Links is
       for Which in Items.Slot loop
          for Side in Items.Sides loop
             Pins.Set_Accepting
-              (Item.Pins (Which, Side),
+              (Item.Linking.Pins (Which, Side),
                Except /= 0 and then Which /= Except);
          end loop;
       end loop;
@@ -238,18 +245,18 @@ package body Viewer.Links is
    begin
       for Which in Items.Slot loop
          for Side in Items.Sides loop
-            Pins.Cancel (Item.Pins (Which, Side));
-            Widgets.Set_Visible (Item.Pins (Which, Side), False);
+            Pins.Cancel (Item.Linking.Pins (Which, Side));
+            Widgets.Set_Visible (Item.Linking.Pins (Which, Side), False);
          end loop;
       end loop;
-      Pins.Cancel (Item.Link_Handle);
-      Widgets.Set_Visible (Item.Link_Handle, False);
-      Widgets.Set_Visible (Item.Link_Bar, False);
+      Pins.Cancel (Item.Linking.Link_Handle);
+      Widgets.Set_Visible (Item.Linking.Link_Handle, False);
+      Widgets.Set_Visible (Item.Linking.Link_Bar, False);
       Set_Accepting (Item, 0);
-      Item.Link_From := 0;
-      Item.Link_Moving := False;
-      Item.Link_Key := 0;
-      Item.Link_Set.Count := 0;
+      Item.Linking.Link_From := 0;
+      Item.Linking.Link_Moving := False;
+      Item.Linking.Link_Key := 0;
+      Item.Linking.Link_Set.Count := 0;
       Canvases.Set_Selected (Item.Canvas_View, 0);
       Canvases.Clear_Ghost (Item.Canvas_View);
       Canvases.Set_Lines (Item.Canvas_View, []);
@@ -264,20 +271,22 @@ package body Viewer.Links is
    is
       Added : Boolean;
    begin
-      if Item.Link_From /= 0 and then Item.Link_From /= To
-        and then Is_Open (Item, Item.Link_From) and then Is_Open (Item, To)
+      if Item.Linking.Link_From /= 0 and then Item.Linking.Link_From /= To
+        and then Is_Open (Item, Item.Linking.Link_From) and then Is_Open (Item,
+           To)
       then
          Items.Add_Link
-           (Item.Store,
-            (From      => Windows.Details (Item.Windows (Item.Link_From)).Key,
+           (Item.Nav.Store,
+            (From
+             => Windows.Details (Item.Windows (Item.Linking.Link_From)).Key,
              To        => Windows.Details (Item.Windows (To)).Key,
-             From_Side => Item.Link_From_Side,
+             From_Side => Item.Linking.Link_From_Side,
              To_Side   => To_Side,
              others    => <>),
             Added);
          if Added then
             Reload (Item);
-            Projects.Touch (Item.Store, Item.Current);
+            Projects.Touch (Item.Nav.Store, Item.Opened.Current);
          end if;
       end if;
    end Make_Link;
@@ -291,21 +300,23 @@ package body Viewer.Links is
    is
       Moved : Boolean;
    begin
-      if Item.Link_Key /= 0 and then Is_Open (Item, To) then
+      if Item.Linking.Link_Key /= 0 and then Is_Open (Item, To) then
          Items.Move_Link
-           (Item.Store, Item.Link_Key,
+           (Item.Nav.Store, Item.Linking.Link_Key,
             Windows.Details (Item.Windows (To)).Key, To_Side, Moved);
          if Moved then
             Reload (Item);
-            Projects.Touch (Item.Store, Item.Current);
+            Projects.Touch (Item.Nav.Store, Item.Opened.Current);
          end if;
       end if;
    end Move_Link;
 
    function Dragger (Item : Session) return access Pins.Pin is
-     (if Item.Link_Moving then Item.Link_Handle'Unrestricted_Access
-      else Item.Pins (Item.Link_From, Item.Link_From_Side)'Unrestricted_Access)
-   with Pre => Item.Link_From /= 0;
+     (if Item.Linking.Link_Moving
+      then Item.Linking.Link_Handle'Unrestricted_Access
+      else Item.Linking.Pins (Item.Linking.Link_From,
+                              Item.Linking.Link_From_Side)'Unrestricted_Access)
+   with Pre => Item.Linking.Link_From /= 0;
    --  The pin that is held while a line is dragged.
 
    procedure Take_Drags (Item : in out Session);
@@ -315,34 +326,36 @@ package body Viewer.Links is
    procedure Take_Drags (Item : in out Session) is
       Pressed, Released : Boolean;
    begin
-      if Item.Link_From = 0 then
+      if Item.Linking.Link_From = 0 then
          for Which in Items.Slot loop
             for Side in Items.Sides loop
-               Pins.Take_Press (Item.Pins (Which, Side), Pressed);
-               if Pressed and then Item.Link_From = 0 then
-                  Item.Link_From := Which;
-                  Item.Link_From_Side := Side;
-                  Item.Link_Moving := False;
+               Pins.Take_Press (Item.Linking.Pins (Which, Side), Pressed);
+               if Pressed and then Item.Linking.Link_From = 0 then
+                  Item.Linking.Link_From := Which;
+                  Item.Linking.Link_From_Side := Side;
+                  Item.Linking.Link_Moving := False;
                   Set_Accepting (Item, Which);
                end if;
             end loop;
          end loop;
-         Pins.Take_Press (Item.Link_Handle, Pressed);
-         if Pressed and then Item.Link_From = 0 then
+         Pins.Take_Press (Item.Linking.Link_Handle, Pressed);
+         if Pressed and then Item.Linking.Link_From = 0 then
             declare
-               Number : constant Natural := Index_Of (Item, Item.Link_Key);
+               Number : constant Natural := Index_Of (Item,
+                  Item.Linking.Link_Key);
                From   : constant Natural :=
                  (if Number = 0 then 0
-                  else Slot_Of (Item, Item.Link_Set.Links (Number).From));
+                  else Slot_Of (Item,
+                                Item.Linking.Link_Set.Links (Number).From));
             begin
                if From /= 0 then
-                  Item.Link_From := From;
-                  Item.Link_From_Side :=
-                    Item.Link_Set.Links (Number).From_Side;
-                  Item.Link_Moving := True;
+                  Item.Linking.Link_From := From;
+                  Item.Linking.Link_From_Side :=
+                    Item.Linking.Link_Set.Links (Number).From_Side;
+                  Item.Linking.Link_Moving := True;
                   Set_Accepting (Item, From);
                else
-                  Pins.Cancel (Item.Link_Handle);
+                  Pins.Cancel (Item.Linking.Link_Handle);
                end if;
             end;
          end if;
@@ -352,11 +365,12 @@ package body Viewer.Links is
             --  The pointer is over the pin it was let go on, if any.
             for Which in Items.Slot loop
                for Side in Items.Sides loop
-                  if Which /= Item.Link_From
-                    and then Widgets.Is_Shown (Item.Pins (Which, Side))
-                    and then Widgets.Is_Hovered (Item.Pins (Which, Side))
+                  if Which /= Item.Linking.Link_From
+                    and then Widgets.Is_Shown (Item.Linking.Pins (Which, Side))
+                    and then Widgets.Is_Hovered (Item.Linking.Pins (Which,
+                       Side))
                   then
-                     if Item.Link_Moving then
+                     if Item.Linking.Link_Moving then
                         Move_Link (Item, Which, Side);
                      else
                         Make_Link (Item, Which, Side);
@@ -364,8 +378,8 @@ package body Viewer.Links is
                   end if;
                end loop;
             end loop;
-            Item.Link_From := 0;
-            Item.Link_Moving := False;
+            Item.Linking.Link_From := 0;
+            Item.Linking.Link_Moving := False;
             Set_Accepting (Item, 0);
          end if;
       end if;
@@ -376,32 +390,32 @@ package body Viewer.Links is
    --  selected.
 
    procedure Take_Clicks (Item : in out Session) is
-      Number  : constant Natural := Index_Of (Item, Item.Link_Key);
+      Number  : constant Natural := Index_Of (Item, Item.Linking.Link_Key);
       Clicked : Boolean;
    begin
       if Number = 0 then
          return;
       end if;
       declare
-         Was    : constant Items.Link := Item.Link_Set.Links (Number);
+         Was    : constant Items.Link := Item.Linking.Link_Set.Links (Number);
          Stroke : Items.Strokes := Was.Stroke;
          Ending : Items.Endings := Was.Ending;
          Color  : Items.Link_Colors := Was.Color;
       begin
          for Each in Items.Strokes loop
-            Buttons.Take_Click (Item.Stroke_Buttons (Each), Clicked);
+            Buttons.Take_Click (Item.Linking.Stroke_Buttons (Each), Clicked);
             if Clicked then
                Stroke := Each;
             end if;
          end loop;
          for Each in Items.Endings loop
-            Buttons.Take_Click (Item.End_Buttons (Each), Clicked);
+            Buttons.Take_Click (Item.Linking.End_Buttons (Each), Clicked);
             if Clicked then
                Ending := Each;
             end if;
          end loop;
          for Each in Items.Link_Colors loop
-            Buttons.Take_Click (Item.Color_Buttons (Each), Clicked);
+            Buttons.Take_Click (Item.Linking.Color_Buttons (Each), Clicked);
             if Clicked then
                Color := Each;
             end if;
@@ -409,15 +423,16 @@ package body Viewer.Links is
          if Stroke /= Was.Stroke or else Ending /= Was.Ending
            or else Color /= Was.Color
          then
-            Items.Set_Link_Style (Item.Store, Was.Key, Stroke, Ending, Color);
+            Items.Set_Link_Style (Item.Nav.Store, Was.Key, Stroke, Ending,
+                                  Color);
             Reload (Item);
-            Projects.Touch (Item.Store, Item.Current);
+            Projects.Touch (Item.Nav.Store, Item.Opened.Current);
          end if;
-         Buttons.Take_Click (Item.Delete_Link, Clicked);
+         Buttons.Take_Click (Item.Linking.Delete_Link, Clicked);
          if Clicked then
-            Items.Delete_Link (Item.Store, Was.Key);
+            Items.Delete_Link (Item.Nav.Store, Was.Key);
             Reload (Item);
-            Projects.Touch (Item.Store, Item.Current);
+            Projects.Touch (Item.Nav.Store, Item.Opened.Current);
          end if;
       end;
    end Take_Clicks;
@@ -432,19 +447,19 @@ package body Viewer.Links is
    begin
       Canvases.Take_Selection (Item.Canvas_View, Changed, Tag);
       if Changed then
-         Item.Link_Key :=
-           (if Tag in 1 .. Item.Link_Set.Count
-            then Item.Link_Set.Links (Tag).Key else 0);
-         if Item.Link_Key /= 0 then
+         Item.Linking.Link_Key :=
+           (if Tag in 1 .. Item.Linking.Link_Set.Count
+            then Item.Linking.Link_Set.Links (Tag).Key else 0);
+         if Item.Linking.Link_Key /= 0 then
             --  So that Backspace is not for the text being typed in.
-            Widgets.Clear_Focus (Item.Widgets);
+            Widgets.Clear_Focus (Item.Root.Widgets);
          end if;
       end if;
       Canvases.Take_Delete (Item.Canvas_View, Asked);
-      if Asked and then Item.Link_Key /= 0 then
-         Items.Delete_Link (Item.Store, Item.Link_Key);
+      if Asked and then Item.Linking.Link_Key /= 0 then
+         Items.Delete_Link (Item.Nav.Store, Item.Linking.Link_Key);
          Reload (Item);
-         Projects.Touch (Item.Store, Item.Current);
+         Projects.Touch (Item.Nav.Store, Item.Opened.Current);
       end if;
    end Take_Selection;
 
@@ -463,7 +478,7 @@ package body Viewer.Links is
                Near := Windows.Is_Hovered (Item.Windows (Which));
                for Side in Items.Sides loop
                   Near := Near or else Widgets.Is_Hovered
-                            (Item.Pins (Which, Side));
+                            (Item.Linking.Pins (Which, Side));
                end loop;
             end if;
             for Side in Items.Sides loop
@@ -471,11 +486,12 @@ package body Viewer.Links is
                   Want : constant Boolean :=
                     Is_Open (Item, Which)
                     and then
-                      (if Item.Link_From = 0 then Near
-                       elsif Item.Link_Moving then Which /= Item.Link_From
-                       else Which /= Item.Link_From
-                            or else Side = Item.Link_From_Side);
-                  Pin : Pins.Pin renames Item.Pins (Which, Side);
+                      (if Item.Linking.Link_From = 0 then Near
+                       elsif Item.Linking.Link_Moving
+                          then Which /= Item.Linking.Link_From
+                       else Which /= Item.Linking.Link_From
+                            or else Side = Item.Linking.Link_From_Side);
+                  Pin : Pins.Pin renames Item.Linking.Pins (Which, Side);
                begin
                   if Want /= Widgets.Is_Visible (Pin) then
                      if not Want then
@@ -505,9 +521,9 @@ package body Viewer.Links is
       --  The tag of the selected link, if it is drawn.
       Target, Mid : Point := (0.0, 0.0);
    begin
-      for Number in 1 .. Item.Link_Set.Count loop
+      for Number in 1 .. Item.Linking.Link_Set.Count loop
          declare
-            Each : Items.Link renames Item.Link_Set.Links (Number);
+            Each : Items.Link renames Item.Linking.Link_Set.Links (Number);
             From : constant Natural := Slot_Of (Item, Each.From);
             To   : constant Natural := Slot_Of (Item, Each.To);
          begin
@@ -530,7 +546,7 @@ package body Viewer.Links is
                                    when Items.Dashed => Canvases.Dashed),
                      Arrow  => Each.Ending = Items.Arrow,
                      Ink    => Style.Link_Inks (Each.Color));
-                  if Each.Key = Item.Link_Key then
+                  if Each.Key = Item.Linking.Link_Key then
                      Chosen := Number;
                      Target := B;
                      Mid := (X => (A.X + B.X) / 2.0,
@@ -545,7 +561,7 @@ package body Viewer.Links is
 
       --  The handle over the target end, and the toolbar by the middle.
       declare
-         Pixels : constant Float := Widgets.Density (Item.Widgets);
+         Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
          Shown  : constant Boolean := Chosen /= 0;
          Half   : constant Float := Diameter (Item) / 2.0;
          Spot   : constant Point := Pixels_Of (Item, Target);
@@ -561,44 +577,50 @@ package body Viewer.Links is
                         (Centre.Y + Style.Link_Bar_Offset * Pixels,
                          Widgets.Height_Of (Item.Canvas_View) - High));
       begin
-         if Shown /= Widgets.Is_Visible (Item.Link_Handle) then
+         if Shown /= Widgets.Is_Visible (Item.Linking.Link_Handle) then
             if not Shown then
-               Pins.Cancel (Item.Link_Handle);
+               Pins.Cancel (Item.Linking.Link_Handle);
             end if;
-            Widgets.Set_Visible (Item.Link_Handle, Shown);
-            Widgets.Set_Visible (Item.Link_Bar, Shown);
+            Widgets.Set_Visible (Item.Linking.Link_Handle, Shown);
+            Widgets.Set_Visible (Item.Linking.Link_Bar, Shown);
             Changed := True;
          end if;
          if Shown then
-            Move_To (Item.Link_Handle, Spot.X - Half, Spot.Y - Half,
-                     Item.Handle_Left, Item.Handle_Top, Changed);
-            Move_To (Item.Link_Bar, Float'Rounding (Left),
+            Move_To (Item.Linking.Link_Handle, Spot.X - Half, Spot.Y - Half,
+                     Item.Linking.Handle_Left, Item.Linking.Handle_Top,
+                        Changed);
+            Move_To (Item.Linking.Link_Bar, Float'Rounding (Left),
                      Float'Rounding (Top),
-                     Item.Bar_Left, Item.Bar_Top, Changed);
+                     Item.Linking.Bar_Left, Item.Linking.Bar_Top, Changed);
             declare
-               Was : constant Items.Link := Item.Link_Set.Links (Chosen);
+               Was : constant Items.Link
+                  := Item.Linking.Link_Set.Links (Chosen);
             begin
                for Each in Items.Strokes loop
                   Buttons.Set_Selected
-                    (Item.Stroke_Buttons (Each), Each = Was.Stroke);
+                    (Item.Linking.Stroke_Buttons (Each), Each = Was.Stroke);
                end loop;
                for Each in Items.Endings loop
                   Buttons.Set_Selected
-                    (Item.End_Buttons (Each), Each = Was.Ending);
+                    (Item.Linking.End_Buttons (Each), Each = Was.Ending);
                end loop;
                for Each in Items.Link_Colors loop
                   Buttons.Set_Selected
-                    (Item.Color_Buttons (Each), Each = Was.Color);
+                    (Item.Linking.Color_Buttons (Each), Each = Was.Color);
                end loop;
             end;
          end if;
       end;
 
-      if Item.Link_From /= 0 and then Is_Open (Item, Item.Link_From) then
+      if Item.Linking.Link_From /= 0
+        and then Is_Open (Item, Item.Linking.Link_From)
+      then
          declare
             Source : constant Point :=
-              Middle (Windows.Details (Item.Windows (Item.Link_From)).Where,
-                      Item.Link_From_Side);
+              Middle
+                (Windows.Details
+                   (Item.Windows (Item.Linking.Link_From)).Where,
+                 Item.Linking.Link_From_Side);
             Pin : constant access Pins.Pin := Dragger (Item);
          begin
             Canvases.Set_Ghost
@@ -616,29 +638,29 @@ package body Viewer.Links is
 
    procedure Raise_Over (Item : in out Session) is
       Last  : constant Widgets.Widget_Access :=
-        Widgets.Widget_Access'(Item.Link_Handle'Unrestricted_Access);
+        Widgets.Widget_Access'(Item.Linking.Link_Handle'Unrestricted_Access);
       Count : constant Natural := Widgets.Child_Count (Item.Canvas_View);
    begin
       if Count > 0
         and then Widgets.Child_At (Item.Canvas_View, Count) /= Last
-        and then (Widgets.Is_Visible (Item.Link_Handle)
-                  or else Widgets.Is_Visible (Item.Link_Bar)
+        and then (Widgets.Is_Visible (Item.Linking.Link_Handle)
+                  or else Widgets.Is_Visible (Item.Linking.Link_Bar)
                   or else Shown_Pins (Item) > 0)
       then
-         Widgets.Raise_To_Front (Item.Link_Bar);
+         Widgets.Raise_To_Front (Item.Linking.Link_Bar);
          for Which in Items.Slot loop
             for Side in Items.Sides loop
-               Widgets.Raise_To_Front (Item.Pins (Which, Side));
+               Widgets.Raise_To_Front (Item.Linking.Pins (Which, Side));
             end loop;
          end loop;
-         Widgets.Raise_To_Front (Item.Link_Handle);
+         Widgets.Raise_To_Front (Item.Linking.Link_Handle);
       end if;
    end Raise_Over;
 
    function Shown_Pins (Item : Session) return Natural is
       Found : Natural := 0;
    begin
-      for Each of Item.Pins loop
+      for Each of Item.Linking.Pins loop
          if Widgets.Is_Shown (Each) then
             Found := Found + 1;
          end if;
@@ -657,7 +679,7 @@ package body Viewer.Links is
       Raise_Over (Item);
       --  So that the next event finds them where they are.
       if Changed then
-         Widgets.Layout (Item.Widgets, Item.Target);
+         Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
       end if;
    end Update;
 

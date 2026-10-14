@@ -5,10 +5,14 @@ with Projects;
 with SDL3;
 with SDL3.Events;
 with Viewer;
+with Viewer.Home_Screen;
+with Viewer.Project_Screen;
 
 --  Measures opening a project that is already kept, as a click on it does:
 --  open_bench database [project [times]].
 procedure Open_Bench is
+   package Home renames Viewer.Home_Screen;
+   package Proj renames Viewer.Project_Screen;
    use Ada.Real_Time;
    use Ada.Text_IO;
 
@@ -29,7 +33,7 @@ begin
    Viewer.Paint_Frame (Session);
    for Run in 1 .. Runs loop
       Start := Clock;
-      Viewer.Open_Project (Session, Key);
+      Home.Open_Project (Session, Key);
       Put_Line
         ("open" & Run'Image & ":"
          & Duration'Image (To_Duration (Clock - Start) * 1000.0) & " ms");
@@ -55,7 +59,7 @@ begin
            ("  slowest frame after:"
             & Duration'Image (Worst * 1000.0) & " ms");
       end;
-      Viewer.Close_Project (Session);
+      Proj.Close_Project (Session);
    end loop;
    SDL3.Shutdown;
 end Open_Bench;

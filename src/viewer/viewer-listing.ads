@@ -14,7 +14,7 @@ private package Viewer.Listing is
    --  Make the rows those of the items there are now.
 
    procedure Take (Item : in out Session)
-     with Pre => Screen (Item) = Project and then Item.Showing_List;
+     with Pre => Screen (Item) = Project and then Item.Item_List.Showing_List;
    --  Do what the rows' buttons, and Close, were clicked for.
 
 end Viewer.Listing;

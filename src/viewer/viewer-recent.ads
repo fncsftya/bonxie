@@ -10,7 +10,7 @@ private package Viewer.Recent is
    --  of the field.
 
    procedure Begin_Rename (Item : in out Session; Row : Positive)
-     with Pre => Row <= Item.Listed.Count;
+     with Pre => Row <= Item.Home_View.Listed.Count;
    --  Put a field with the project's title in its row, in place of its
    --  buttons, with the title selected, to type over.
 

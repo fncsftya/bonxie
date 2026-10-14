@@ -44,7 +44,8 @@ package body Viewer.Canvas_Items is
    --  dictated into, in the slot of its window.
 
    function Epoch_Now (Item : Session) return Projects.Seconds is
-     (if Item.Pinned_Time > 0 then Item.Pinned_Time else Projects.Seconds
+     (if Item.Nav.Pinned_Time > 0
+      then Item.Nav.Pinned_Time else Projects.Seconds
         (Ada.Calendar."-"
            (Ada.Calendar.Clock,
             Ada.Calendar.Formatting.Time_Of
@@ -83,9 +84,9 @@ package body Viewer.Canvas_Items is
             declare
                Model_File : constant String :=
                  Preferences.Speech_Model_File
-                   (Ada.Strings.Unbounded.To_String (Item.Config_Dir));
+                   (Ada.Strings.Unbounded.To_String (Item.Prefs.Config_Dir));
             begin
-               if Item.Speech_Choice = Preferences.Parakeet then
+               if Item.Prefs.Speech_Choice = Preferences.Parakeet then
                   if Ada.Directories.Exists (Model_File) then
                      Speech.Jobs.Start
                        (Which, Speech.Jobs.Model, Model_File);
@@ -179,7 +180,7 @@ package body Viewer.Canvas_Items is
    begin
       Vision.Jobs.Reset (Which);
       Vision.Jobs.Start
-        (Which, Items.Image_File (Item.Store, Item.Current, Key));
+        (Which, Items.Image_File (Item.Nav.Store, Item.Opened.Current, Key));
    end Start_Recognition;
 
    procedure Start_Capture (Item : in out Session; Which : Items.Slot);
@@ -197,13 +198,13 @@ package body Viewer.Canvas_Items is
            (Item.Windows (Which), Windows.Failed, Detail => "no link");
          return;
       end if;
-      Items.Make_Image_Folder (Item.Store, Item.Current);
+      Items.Make_Image_Folder (Item.Nav.Store, Item.Opened.Current);
       Vision.Jobs.Reset (Which);
       Webshot.Reset (Which);
       Webshot.Start
         (Which, Link,
          Items.Image_File
-           (Item.Store, Item.Current,
+           (Item.Nav.Store, Item.Opened.Current,
             Windows.Details (Item.Windows (Which)).Key));
       Windows.Set_Capture (Item.Windows (Which), Windows.Busy);
    end Start_Capture;
@@ -218,7 +219,7 @@ package body Viewer.Canvas_Items is
         Windows.Details (Item.Windows (Which)).Key;
    begin
       Vision.Jobs.Take (Which, Found);
-      Items.Save_Words (Item.Store, Key, Found, Epoch_Now (Item));
+      Items.Save_Words (Item.Nav.Store, Key, Found, Epoch_Now (Item));
       Windows.Set_Recognized (Item.Windows (Which), Found);
       Writing.Words_Found (Item, Which, Found);
    end Keep_Recognition;
@@ -274,13 +275,14 @@ package body Viewer.Canvas_Items is
                      Time : constant Projects.Seconds := Epoch_Now (Item);
                   begin
                      Name_From_Page (Item, Which);
-                     Items.Set_Captured (Item.Store, Key, Time);
+                     Items.Set_Captured (Item.Nav.Store, Key, Time);
                      Windows.Set_Capture
                        (Item.Windows (Which), Windows.Ready,
-                        Items.Image_File (Item.Store, Item.Current, Key),
+                        Items.Image_File (Item.Nav.Store, Item.Opened.Current,
+                                          Key),
                         At_Time => Time);
                      Writing.Picture_Taken (Item, Which);
-                     Projects.Touch (Item.Store, Item.Current);
+                     Projects.Touch (Item.Nav.Store, Item.Opened.Current);
                   end;
                   Webshot.Reset (Which);
                   Start_Recognition (Item, Which);
@@ -349,20 +351,28 @@ package body Viewer.Canvas_Items is
       end loop;
    end Order;
 
+   function Nth (Item : Session; Row : Positive) return Items.Slot is
+      Slots : Slot_List (1 .. Items.Capacity);
+      Found : Natural;
+   begin
+      Order (Item, Slots, Found);
+      return Slots (Row);
+   end Nth;
+
    procedure Show_Dock (Item : in out Session) is
       Any : Boolean := False;
    begin
       for Each of Item.Windows loop
          if Windows.Is_Assigned (Each)
            and then Windows.Details (Each).State = Items.Minimized
-           and then Item.Mode = Canvas
+           and then Item.Toolbar.Mode = Canvas
          then
             Any := True;
          end if;
       end loop;
-      if Any /= Widgets.Is_Visible (Item.Dock_Panel) then
-         Widgets.Set_Visible (Item.Dock_Panel, Any);
-         Widgets.Layout (Item.Widgets, Item.Target);
+      if Any /= Widgets.Is_Visible (Item.Dock.Dock_Panel) then
+         Widgets.Set_Visible (Item.Dock.Dock_Panel, Any);
+         Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
       end if;
    end Show_Dock;
 
@@ -371,11 +381,12 @@ package body Viewer.Canvas_Items is
 
    procedure Place_All (Item : in out Session) is
    begin
-      Item.Shown_Zoom := Canvases.Zoom (Item.Canvas_View);
-      Item.Shown_X := Canvases.Origin_X (Item.Canvas_View);
-      Item.Shown_Y := Canvases.Origin_Y (Item.Canvas_View);
+      Item.Nav.Shown_Zoom := Canvases.Zoom (Item.Canvas_View);
+      Item.Nav.Shown_X := Canvases.Origin_X (Item.Canvas_View);
+      Item.Nav.Shown_Y := Canvases.Origin_Y (Item.Canvas_View);
       for Each of Item.Windows loop
-         Windows.Place (Each, Item.Shown_Zoom, Item.Shown_X, Item.Shown_Y);
+         Windows.Place (Each, Item.Nav.Shown_Zoom, Item.Nav.Shown_X,
+                        Item.Nav.Shown_Y);
       end loop;
    end Place_All;
 
@@ -384,7 +395,7 @@ package body Viewer.Canvas_Items is
 
    procedure Touch (Item : in out Session) is
    begin
-      Projects.Touch (Item.Store, Item.Current);
+      Projects.Touch (Item.Nav.Store, Item.Opened.Current);
    end Touch;
 
    procedure Centre_On (Item : in out Session; X, Y : Float);
@@ -392,7 +403,7 @@ package body Viewer.Canvas_Items is
 
    procedure Centre_On (Item : in out Session; X, Y : Float) is
       View   : UI.Widgets.Canvases.Canvas renames Item.Canvas_View;
-      Pixels : constant Float := Widgets.Density (Item.Widgets);
+      Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
       Zoom   : constant Float := Canvases.Zoom (View);
    begin
       Canvases.Pan_By
@@ -453,15 +464,15 @@ package body Viewer.Canvas_Items is
       then
          return;
       end if;
-      if Items.Has_Words (Item.Store, Key) then
+      if Items.Has_Words (Item.Nav.Store, Key) then
          declare
             Found : Vision.Result;
          begin
-            Items.Load_Words (Item.Store, Key, Found);
+            Items.Load_Words (Item.Nav.Store, Key, Found);
             Windows.Set_Recognized (Item.Windows (Which), Found);
          end;
       elsif Ada.Directories.Exists
-              (Items.Image_File (Item.Store, Item.Current, Key))
+              (Items.Image_File (Item.Nav.Store, Item.Opened.Current, Key))
       then
          Start_Recognition (Item, Which);
       end if;
@@ -472,11 +483,11 @@ package body Viewer.Canvas_Items is
 
    procedure Save_View (Item : in out Session) is
       View   : UI.Widgets.Canvases.Canvas renames Item.Canvas_View;
-      Pixels : constant Float := Widgets.Density (Item.Widgets);
+      Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
    begin
-      if Item.Current /= 0 and then Widgets.Width_Of (View) > 0.0 then
+      if Item.Opened.Current /= 0 and then Widgets.Width_Of (View) > 0.0 then
          Projects.Set_View
-           (Item.Store, Item.Current, Canvases.Zoom (View),
+           (Item.Nav.Store, Item.Opened.Current, Canvases.Zoom (View),
             Canvases.To_Canvas_X
               (View, Widgets.Width_Of (View) / Pixels / 2.0),
             Canvases.To_Canvas_Y
@@ -492,10 +503,11 @@ package body Viewer.Canvas_Items is
      (Item : in out Session; Found : out Boolean)
    is
       View   : UI.Widgets.Canvases.Canvas renames Item.Canvas_View;
-      Pixels : constant Float := Widgets.Density (Item.Widgets);
+      Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
       Zoom, X, Y : Float;
    begin
-      Projects.Get_View (Item.Store, Item.Current, Found, Zoom, X, Y);
+      Projects.Get_View (Item.Nav.Store, Item.Opened.Current, Found, Zoom, X,
+                         Y);
       if Found then
          Canvases.Zoom_By
            (View,
@@ -511,19 +523,19 @@ package body Viewer.Canvas_Items is
       Found    : Items.Info_List;
       Restored : Boolean;
    begin
-      Items.Load (Item.Store, Item.Current, Found);
+      Items.Load (Item.Nav.Store, Item.Opened.Current, Found);
       for I in 1 .. Found.Count loop
          Windows.Assign
            (Item.Windows (I), Found.Items (I),
-            Items.Content (Item.Store, Found.Items (I).Key),
+            Items.Content (Item.Nav.Store, Found.Items (I).Key),
             Items.Image_File
-              (Item.Store, Item.Current, Found.Items (I).Key));
+              (Item.Nav.Store, Item.Opened.Current, Found.Items (I).Key));
          Recognize_Kept (Item, I);
          if Found.Items (I).Kind = Items.Source then
             declare
                Kept : Items.Mark_List;
             begin
-               Items.Load_Marks (Item.Store, Found.Items (I).Key, Kept);
+               Items.Load_Marks (Item.Nav.Store, Found.Items (I).Key, Kept);
                Windows.Set_Marks (Item.Windows (I), Kept);
             end;
          end if;
@@ -542,10 +554,10 @@ package body Viewer.Canvas_Items is
       end if;
       Place_All (Item);
       Show_Dock (Item);
-      Widgets.Layout (Item.Widgets, Item.Target);
+      Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
       --  The tray, in the middle of the canvas as it is laid out now.
       Sync (Item);
-      Widgets.Layout (Item.Widgets, Item.Target);
+      Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
       Links.Enter (Item);
       Links.Update (Item);
    end Enter;
@@ -556,7 +568,7 @@ package body Viewer.Canvas_Items is
       for Each of Item.Windows loop
          if Windows.Is_Assigned (Each) then
             Windows.Flush
-              (Each, Item.Store, 0, Force => True, Wrote => Wrote);
+              (Each, Item.Nav.Store, 0, Force => True, Wrote => Wrote);
             Any := Any or else Wrote;
          end if;
       end loop;
@@ -578,7 +590,7 @@ package body Viewer.Canvas_Items is
             Speech.Jobs.Reset (Which);
          end if;
       end loop;
-      Widgets.Set_Visible (Item.Dock_Panel, False);
+      Widgets.Set_Visible (Item.Dock.Dock_Panel, False);
    end Leave;
 
    procedure Make
@@ -605,7 +617,7 @@ package body Viewer.Canvas_Items is
       Make (Item, Untitled_Source, Items.Source, Made);
       if Made /= 0 then
          Items.Add_Link
-           (Item.Store,
+           (Item.Nav.Store,
             (From      => Windows.Details (Item.Windows (To)).Key,
              To        => Windows.Details (Item.Windows (Made)).Key,
              From_Side => Items.Right,
@@ -625,7 +637,7 @@ package body Viewer.Canvas_Items is
       Made : out Natural)
    is
       View   : UI.Widgets.Canvases.Canvas renames Item.Canvas_View;
-      Pixels : constant Float := Widgets.Density (Item.Widgets);
+      Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
       Before : constant Natural := Count (Item);
       Step   : constant Float :=
         Float (Before mod Cascade_Count) * Cascade_Step;
@@ -656,7 +668,7 @@ package body Viewer.Canvas_Items is
       declare
          Key : constant Items.Id :=
            Items.Create
-             (Item.Store, Item.Current, Name, Where, Kind => Kind);
+             (Item.Nav.Store, Item.Opened.Current, Name, Where, Kind => Kind);
       begin
          Windows.Assign
            (Item.Windows (Free),
@@ -676,8 +688,8 @@ package body Viewer.Canvas_Items is
             Canvases.Zoom (View), Canvases.Origin_X (View),
             Canvases.Origin_Y (View));
          Touch (Item);
-         Widgets.Layout (Item.Widgets, Item.Target);
-         if Item.Mode = Canvas then
+         Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
+         if Item.Toolbar.Mode = Canvas then
             Windows.Focus_Text (Item.Windows (Free));
          end if;
          Writing.Added (Item, Free);
@@ -690,13 +702,13 @@ package body Viewer.Canvas_Items is
       Windows.Set_State (Item.Windows (Which), To);
       Windows.Warm (Item.Windows (Which));
       Items.Set_State
-        (Item.Store, Windows.Details (Item.Windows (Which)).Key, To);
+        (Item.Nav.Store, Windows.Details (Item.Windows (Which)).Key, To);
       Windows.Place
         (Item.Windows (Which),
-         Item.Shown_Zoom, Item.Shown_X, Item.Shown_Y);
+         Item.Nav.Shown_Zoom, Item.Nav.Shown_X, Item.Nav.Shown_Y);
       Touch (Item);
       Show_Dock (Item);
-      Widgets.Layout (Item.Widgets, Item.Target);
+      Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
    end Set_State;
 
    procedure Reveal (Item : in out Session; Which : Items.Slot) is
@@ -710,7 +722,7 @@ package body Viewer.Canvas_Items is
                  Where.Top + Where.Height / 2.0);
       Windows.Bring_To_Front (Item.Windows (Which));
       Sync (Item);
-      Widgets.Layout (Item.Widgets, Item.Target);
+      Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
    end Reveal;
 
    procedure Remove (Item : in out Session; Which : Items.Slot) is
@@ -720,12 +732,12 @@ package body Viewer.Canvas_Items is
       Vision.Jobs.Reset (Which);
       Speech.Jobs.Reset (Which);
       Items.Delete
-        (Item.Store, Windows.Details (Item.Windows (Which)).Key);
+        (Item.Nav.Store, Windows.Details (Item.Windows (Which)).Key);
       Windows.Release (Item.Windows (Which));
       Links.Reload (Item);
       Touch (Item);
       Show_Dock (Item);
-      Widgets.Layout (Item.Widgets, Item.Target);
+      Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
    end Remove;
 
    procedure Take (Item : in out Session) is
@@ -753,7 +765,7 @@ package body Viewer.Canvas_Items is
    end Take;
 
    procedure Pressed (Item : in out Session; X, Y : Float) is
-      Pixels : constant Float := Widgets.Density (Item.Widgets);
+      Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
    begin
       for Each of Item.Windows loop
          if Windows.Is_Assigned (Each)
@@ -773,22 +785,22 @@ package body Viewer.Canvas_Items is
    end Pressed;
 
    procedure Sync (Item : in out Session) is
-      Pixels : constant Float := Widgets.Density (Item.Widgets);
+      Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
       Middle : constant Float :=
         Float'Rounding
-          ((Widgets.Width_Of (Item.Content_Panel)
+          ((Widgets.Width_Of (Item.Toolbar.Content_Panel)
             - Style.Tray_Width * Pixels) / 2.0);
    begin
       --  The tray of tools, in the middle of the foot.
-      if Middle /= Item.Tray_Left then
-         Item.Tray_Left := Middle;
+      if Middle /= Item.Dock.Tray_Left then
+         Item.Dock.Tray_Left := Middle;
          Yoga.Nodes.Set_Position
-           (Widgets.Node (Item.Tools), Yoga.Left, Middle);
-         Widgets.Request_Layout (Item.Tools);
+           (Widgets.Node (Item.Dock.Tools), Yoga.Left, Middle);
+         Widgets.Request_Layout (Item.Dock.Tools);
       end if;
-      if Canvases.Zoom (Item.Canvas_View) /= Item.Shown_Zoom
-        or else Canvases.Origin_X (Item.Canvas_View) /= Item.Shown_X
-        or else Canvases.Origin_Y (Item.Canvas_View) /= Item.Shown_Y
+      if Canvases.Zoom (Item.Canvas_View) /= Item.Nav.Shown_Zoom
+        or else Canvases.Origin_X (Item.Canvas_View) /= Item.Nav.Shown_X
+        or else Canvases.Origin_Y (Item.Canvas_View) /= Item.Nav.Shown_Y
       then
          Place_All (Item);
       end if;
@@ -828,7 +840,7 @@ package body Viewer.Canvas_Items is
       for Each of Item.Windows loop
          if Windows.Is_Assigned (Each) then
             Windows.Flush
-              (Each, Item.Store, Now, Force => False, Wrote => Wrote);
+              (Each, Item.Nav.Store, Now, Force => False, Wrote => Wrote);
             Any := Any or else Wrote;
          end if;
       end loop;

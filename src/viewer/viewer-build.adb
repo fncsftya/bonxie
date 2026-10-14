@@ -73,11 +73,12 @@ package body Viewer.Build is
       --  Not shown: the screens leave room for the window's own buttons
       --  (Header_Size above the home screen, Header_Inset at the left of
       --  the toolbar), and its title is the window's.
-      Widgets.Add (Item.Window_Panel, Item.Header_Panel);
-      Widgets.Add (Item.Header_Panel, Item.Header_Title);
+      Widgets.Add (Item.Root.Window_Panel, Item.Root.Header_Panel);
+      Widgets.Add (Item.Root.Header_Panel, Item.Root.Header_Title);
       Set_Height
-        (Widgets.Node (Item.Header_Panel), Header_Size * Item.Density);
-      Widgets.Set_Visible (Item.Header_Panel, False);
+        (Widgets.Node (Item.Root.Header_Panel),
+         Header_Size * Item.Shell.Density);
+      Widgets.Set_Visible (Item.Root.Header_Panel, False);
    end Build_Header;
 
    procedure Build_Home (Item : in out Session);
@@ -85,8 +86,9 @@ package body Viewer.Build is
 
    procedure Build_Home (Item : in out Session) is
       use Yoga.Nodes;
-      Pixels : constant Float := Item.Density;
-      Top    : constant Float := (if Item.Windowed then Header_Size else 0.0);
+      Pixels : constant Float := Item.Shell.Density;
+      Top    : constant Float := (if Item.Shell.Windowed
+                                  then Header_Size else 0.0);
       --  Clear of the window's own buttons.
 
       procedure Size (Part : in out Widgets.Widget'Class; Wide, High : Float)
@@ -96,20 +98,20 @@ package body Viewer.Build is
          Set_Height (Widgets.Node (Part), High * Pixels);
       end Size;
    begin
-      Widgets.Add (Item.Window_Panel, Item.Home_Panel);
-      Widgets.Add (Item.Home_Panel, Item.Home_Side);
-      Widgets.Add (Item.Home_Side, Item.Logo);
-      Widgets.Add (Item.Logo, Item.Logo_Name);
-      Widgets.Add (Item.Home_Side, Item.New_Button);
-      Widgets.Add (Item.Home_Side, Item.Side_Room);
-      Widgets.Add (Item.Home_Side, Item.Settings_Button);
-      Widgets.Add (Item.Home_Panel, Item.Home_Rule);
-      Widgets.Add (Item.Home_Panel, Item.Recent_Panel);
-      Widgets.Add (Item.Recent_Panel, Item.Recent_Title);
-      Widgets.Add (Item.Recent_Panel, Item.Cards_Scroll);
-      Widgets.Add (Item.Cards_Scroll, Item.Cards_Content);
-      for Card of Item.Cards loop
-         Widgets.Add (Item.Cards_Content, Card.Panel);
+      Widgets.Add (Item.Root.Window_Panel, Item.Home_View.Home_Panel);
+      Widgets.Add (Item.Home_View.Home_Panel, Item.Home_View.Home_Side);
+      Widgets.Add (Item.Home_View.Home_Side, Item.Home_View.Logo);
+      Widgets.Add (Item.Home_View.Logo, Item.Home_View.Logo_Name);
+      Widgets.Add (Item.Home_View.Home_Side, Item.Home_View.New_Button);
+      Widgets.Add (Item.Home_View.Home_Side, Item.Home_View.Side_Room);
+      Widgets.Add (Item.Home_View.Home_Side, Item.Home_View.Settings_Button);
+      Widgets.Add (Item.Home_View.Home_Panel, Item.Home_View.Home_Rule);
+      Widgets.Add (Item.Home_View.Home_Panel, Item.Home_View.Recent_Panel);
+      Widgets.Add (Item.Home_View.Recent_Panel, Item.Home_View.Recent_Title);
+      Widgets.Add (Item.Home_View.Recent_Panel, Item.Home_View.Cards_Scroll);
+      Widgets.Add (Item.Home_View.Cards_Scroll, Item.Home_View.Cards_Content);
+      for Card of Item.Home_View.Cards loop
+         Widgets.Add (Item.Home_View.Cards_Content, Card.Panel);
          Widgets.Add (Card.Panel, Card.Peek);
          Widgets.Add (Card.Peek, Card.Picture);
          Widgets.Add (Card.Panel, Card.Info);
@@ -119,82 +121,98 @@ package body Viewer.Build is
          Widgets.Add (Card.Info, Card.Rename);
          Widgets.Add (Card.Info, Card.Delete);
       end loop;
-      Widgets.Add (Item.Cards_Content, Item.New_Card);
-      Widgets.Add (Item.New_Card, Item.New_Card_Plus);
-      Widgets.Add (Item.New_Card, Item.New_Card_Label);
-      Widgets.Add (Item.Cards_Content, Item.No_Rows);
+      Widgets.Add (Item.Home_View.Cards_Content, Item.Home_View.New_Card);
+      Widgets.Add (Item.Home_View.New_Card, Item.Home_View.New_Card_Plus);
+      Widgets.Add (Item.Home_View.New_Card, Item.Home_View.New_Card_Label);
+      Widgets.Add (Item.Home_View.Cards_Content, Item.Home_View.No_Rows);
 
-      Set_Flex_Direction (Widgets.Node (Item.Home_Panel), Yoga.Row);
-      Set_Flex_Grow (Widgets.Node (Item.Home_Panel), 1.0);
+      Set_Flex_Direction (Widgets.Node (Item.Home_View.Home_Panel), Yoga.Row);
+      Set_Flex_Grow (Widgets.Node (Item.Home_View.Home_Panel), 1.0);
 
       --  The sidebar: the name, New Project, and Settings at the foot.
-      Panels.Set_Fill (Item.Home_Side, Mid_Panel);
-      Set_Flex_Direction (Widgets.Node (Item.Home_Side), Yoga.Column);
-      Set_Width (Widgets.Node (Item.Home_Side), Home_Side_Width * Pixels);
-      Set_Flex_Shrink (Widgets.Node (Item.Home_Side), 0.0);
+      Panels.Set_Fill (Item.Home_View.Home_Side, Mid_Panel);
+      Set_Flex_Direction (Widgets.Node (Item.Home_View.Home_Side),
+                          Yoga.Column);
+      Set_Width (Widgets.Node (Item.Home_View.Home_Side),
+                 Home_Side_Width * Pixels);
+      Set_Flex_Shrink (Widgets.Node (Item.Home_View.Home_Side), 0.0);
       Set_Padding
-        (Widgets.Node (Item.Home_Side), Yoga.All_Edges, Side_Pad * Pixels);
+        (Widgets.Node (Item.Home_View.Home_Side), Yoga.All_Edges,
+         Side_Pad * Pixels);
       Set_Padding
-        (Widgets.Node (Item.Home_Side), Yoga.Top, (Side_Pad + Top) * Pixels);
-      Set_Flex_Direction (Widgets.Node (Item.Logo), Yoga.Row);
-      Set_Align_Items (Widgets.Node (Item.Logo), Yoga.Center);
-      Set_Height (Widgets.Node (Item.Logo), Logo_Height * Pixels);
-      Set_Margin (Widgets.Node (Item.Logo), Yoga.Bottom, Logo_Gap * Pixels);
-      Labels.Set_Text (Item.Logo_Name, "bonxie");
-      Labels.Set_Style (Item.Logo_Name, UI.Line_Texts.Display);
-      Set_Flex_Grow (Widgets.Node (Item.Logo_Name), 1.0);
-      Set_Height (Widgets.Node (Item.Logo_Name), Logo_Height * Pixels);
-      Buttons.Set_Label (Item.New_Button, "New project");
-      Buttons.Set_Icon (Item.New_Button, UI.Icons.Plus);
-      Buttons.Set_Captioned (Item.New_Button, True);
-      Buttons.Set_Kind (Item.New_Button, Buttons.Primary);
-      Set_Height (Widgets.Node (Item.New_Button), Action_Height * Pixels);
-      Set_Flex_Grow (Widgets.Node (Item.Side_Room), 1.0);
-      Buttons.Set_Label (Item.Settings_Button, "Settings");
-      Buttons.Set_Icon (Item.Settings_Button, UI.Icons.Settings);
-      Buttons.Set_Captioned (Item.Settings_Button, True);
+        (Widgets.Node (Item.Home_View.Home_Side), Yoga.Top, (Side_Pad
+           + Top) * Pixels);
+      Set_Flex_Direction (Widgets.Node (Item.Home_View.Logo), Yoga.Row);
+      Set_Align_Items (Widgets.Node (Item.Home_View.Logo), Yoga.Center);
+      Set_Height (Widgets.Node (Item.Home_View.Logo), Logo_Height * Pixels);
+      Set_Margin (Widgets.Node (Item.Home_View.Logo), Yoga.Bottom,
+                  Logo_Gap * Pixels);
+      Labels.Set_Text (Item.Home_View.Logo_Name, "bonxie");
+      Labels.Set_Style (Item.Home_View.Logo_Name, UI.Line_Texts.Display);
+      Set_Flex_Grow (Widgets.Node (Item.Home_View.Logo_Name), 1.0);
+      Set_Height (Widgets.Node (Item.Home_View.Logo_Name),
+                  Logo_Height * Pixels);
+      Buttons.Set_Label (Item.Home_View.New_Button, "New project");
+      Buttons.Set_Icon (Item.Home_View.New_Button, UI.Icons.Plus);
+      Buttons.Set_Captioned (Item.Home_View.New_Button, True);
+      Buttons.Set_Kind (Item.Home_View.New_Button, Buttons.Primary);
+      Set_Height (Widgets.Node (Item.Home_View.New_Button),
+                  Action_Height * Pixels);
+      Set_Flex_Grow (Widgets.Node (Item.Home_View.Side_Room), 1.0);
+      Buttons.Set_Label (Item.Home_View.Settings_Button, "Settings");
+      Buttons.Set_Icon (Item.Home_View.Settings_Button, UI.Icons.Settings);
+      Buttons.Set_Captioned (Item.Home_View.Settings_Button, True);
       Set_Height
-        (Widgets.Node (Item.Settings_Button), Action_Height * Pixels);
-      Panels.Set_Fill (Item.Home_Rule, Themes.Border);
-      Set_Width (Widgets.Node (Item.Home_Rule), UI.Boxes.Edge (Pixels));
-      Set_Flex_Shrink (Widgets.Node (Item.Home_Rule), 0.0);
+        (Widgets.Node (Item.Home_View.Settings_Button),
+         Action_Height * Pixels);
+      Panels.Set_Fill (Item.Home_View.Home_Rule, Themes.Border);
+      Set_Width (Widgets.Node (Item.Home_View.Home_Rule),
+                 UI.Boxes.Edge (Pixels));
+      Set_Flex_Shrink (Widgets.Node (Item.Home_View.Home_Rule), 0.0);
 
       --  The projects: a title, and the cards in rows that wrap. The title
       --  is on the line of the name, as the same height from the same top.
-      Set_Flex_Direction (Widgets.Node (Item.Recent_Panel), Yoga.Column);
-      Set_Flex_Grow (Widgets.Node (Item.Recent_Panel), 1.0);
-      Set_Width (Widgets.Node (Item.Recent_Panel), 0.0);
+      Set_Flex_Direction (Widgets.Node (Item.Home_View.Recent_Panel),
+                          Yoga.Column);
+      Set_Flex_Grow (Widgets.Node (Item.Home_View.Recent_Panel), 1.0);
+      Set_Width (Widgets.Node (Item.Home_View.Recent_Panel), 0.0);
       Set_Padding
-        (Widgets.Node (Item.Recent_Panel), Yoga.Top,
+        (Widgets.Node (Item.Home_View.Recent_Panel), Yoga.Top,
          (Side_Pad + Top) * Pixels);
       Set_Padding
-        (Widgets.Node (Item.Recent_Panel), Yoga.Left, Home_Margin * Pixels);
-      Labels.Set_Text (Item.Recent_Title, "Recent projects");
-      Labels.Set_Style (Item.Recent_Title, UI.Line_Texts.Display);
-      Set_Height (Widgets.Node (Item.Recent_Title), Logo_Height * Pixels);
+        (Widgets.Node (Item.Home_View.Recent_Panel), Yoga.Left,
+         Home_Margin * Pixels);
+      Labels.Set_Text (Item.Home_View.Recent_Title, "Recent projects");
+      Labels.Set_Style (Item.Home_View.Recent_Title, UI.Line_Texts.Display);
+      Set_Height (Widgets.Node (Item.Home_View.Recent_Title),
+                  Logo_Height * Pixels);
       Set_Margin
-        (Widgets.Node (Item.Recent_Title), Yoga.Bottom, Logo_Gap * Pixels);
-      Set_Flex_Grow (Widgets.Node (Item.Cards_Scroll), 1.0);
-      Set_Height (Widgets.Node (Item.Cards_Scroll), 0.0);
-      Set_Flex_Direction (Widgets.Node (Item.Cards_Content), Yoga.Row);
-      Set_Wrap (Widgets.Node (Item.Cards_Content), Yoga.Wrap);
-      Set_Align_Items (Widgets.Node (Item.Cards_Content), Yoga.Flex_Start);
-      Set_Flex_Shrink (Widgets.Node (Item.Cards_Content), 0.0);
+        (Widgets.Node (Item.Home_View.Recent_Title), Yoga.Bottom,
+         Logo_Gap * Pixels);
+      Set_Flex_Grow (Widgets.Node (Item.Home_View.Cards_Scroll), 1.0);
+      Set_Height (Widgets.Node (Item.Home_View.Cards_Scroll), 0.0);
+      Set_Flex_Direction (Widgets.Node (Item.Home_View.Cards_Content),
+                          Yoga.Row);
+      Set_Wrap (Widgets.Node (Item.Home_View.Cards_Content), Yoga.Wrap);
+      Set_Align_Items (Widgets.Node (Item.Home_View.Cards_Content),
+                       Yoga.Flex_Start);
+      Set_Flex_Shrink (Widgets.Node (Item.Home_View.Cards_Content), 0.0);
       Set_Gap
-        (Widgets.Node (Item.Cards_Content), Yoga.All_Gutters,
+        (Widgets.Node (Item.Home_View.Cards_Content), Yoga.All_Gutters,
          Card_Gap * Pixels);
       Set_Padding
-        (Widgets.Node (Item.Cards_Content), Yoga.Right,
+        (Widgets.Node (Item.Home_View.Cards_Content), Yoga.Right,
          (Home_Margin - Card_Gap) * Pixels);
       Set_Padding
-        (Widgets.Node (Item.Cards_Content), Yoga.Bottom,
+        (Widgets.Node (Item.Home_View.Cards_Content), Yoga.Bottom,
          Home_Margin * Pixels);
-      Labels.Set_Text (Item.No_Rows, No_Projects);
-      Labels.Set_Ink (Item.No_Rows, Quiet_Ink);
-      Set_Height (Widgets.Node (Item.No_Rows), Title_Height * Pixels);
-      Set_Width (Widgets.Node (Item.No_Rows), Card_Width * Pixels);
+      Labels.Set_Text (Item.Home_View.No_Rows, No_Projects);
+      Labels.Set_Ink (Item.Home_View.No_Rows, Quiet_Ink);
+      Set_Height (Widgets.Node (Item.Home_View.No_Rows),
+                  Title_Height * Pixels);
+      Set_Width (Widgets.Node (Item.Home_View.No_Rows), Card_Width * Pixels);
 
-      for Card of Item.Cards loop
+      for Card of Item.Home_View.Cards loop
          --  Outlined, with a shadow, which the face leaves room for.
          Panels.Set_Fill (Card.Panel, Themes.Tint);
          Panels.Set_Border (Card.Panel, Themes.Border);
@@ -244,27 +262,30 @@ package body Viewer.Build is
       end loop;
 
       --  The outline of a card, to make a project.
-      Grips.Set_Border (Item.New_Card, Themes.Border, Dashed => True);
-      Grips.Set_Wanted_Cursor (Item.New_Card, SDL3.Cursors.Pointer);
-      Size (Item.New_Card, Card_Width - Themes.Shadow_Offset,
+      Grips.Set_Border (Item.Home_View.New_Card, Themes.Border,
+                        Dashed => True);
+      Grips.Set_Wanted_Cursor (Item.Home_View.New_Card, SDL3.Cursors.Pointer);
+      Size (Item.Home_View.New_Card, Card_Width - Themes.Shadow_Offset,
             Card_Height - Themes.Shadow_Offset);
-      Set_Flex_Shrink (Widgets.Node (Item.New_Card), 0.0);
-      Set_Flex_Direction (Widgets.Node (Item.New_Card), Yoga.Column);
-      Set_Justify_Content (Widgets.Node (Item.New_Card), Yoga.Center);
-      Set_Align_Items (Widgets.Node (Item.New_Card), Yoga.Center);
-      Buttons.Set_Label (Item.New_Card_Plus, "New");
-      Buttons.Set_Icon (Item.New_Card_Plus, UI.Icons.Plus);
-      Buttons.Set_Kind (Item.New_Card_Plus, Buttons.Primary);
-      Size (Item.New_Card_Plus, Plus_Size, Plus_Size);
-      Labels.Set_Text (Item.New_Card_Label, "New project");
-      Labels.Set_Style (Item.New_Card_Label, UI.Line_Texts.Strong);
+      Set_Flex_Shrink (Widgets.Node (Item.Home_View.New_Card), 0.0);
+      Set_Flex_Direction (Widgets.Node (Item.Home_View.New_Card), Yoga.Column);
+      Set_Justify_Content (Widgets.Node (Item.Home_View.New_Card),
+                           Yoga.Center);
+      Set_Align_Items (Widgets.Node (Item.Home_View.New_Card), Yoga.Center);
+      Buttons.Set_Label (Item.Home_View.New_Card_Plus, "New");
+      Buttons.Set_Icon (Item.Home_View.New_Card_Plus, UI.Icons.Plus);
+      Buttons.Set_Kind (Item.Home_View.New_Card_Plus, Buttons.Primary);
+      Size (Item.Home_View.New_Card_Plus, Plus_Size, Plus_Size);
+      Labels.Set_Text (Item.Home_View.New_Card_Label, "New project");
+      Labels.Set_Style (Item.Home_View.New_Card_Label, UI.Line_Texts.Strong);
       Labels.Set_Ink
-        (Item.New_Card_Label,
+        (Item.Home_View.New_Card_Label,
          Themes.Primary_Mix);
-      Labels.Set_Centered (Item.New_Card_Label, True);
-      Size (Item.New_Card_Label, Card_Width / 2.0, Title_Height);
+      Labels.Set_Centered (Item.Home_View.New_Card_Label, True);
+      Size (Item.Home_View.New_Card_Label, Card_Width / 2.0, Title_Height);
       Set_Margin
-        (Widgets.Node (Item.New_Card_Label), Yoga.Top, Row_Gap * Pixels);
+        (Widgets.Node (Item.Home_View.New_Card_Label), Yoga.Top,
+         Row_Gap * Pixels);
    end Build_Home;
 
    procedure Build_Project (Item : in out Session);
@@ -272,7 +293,7 @@ package body Viewer.Build is
 
    procedure Build_Project (Item : in out Session) is
       use Yoga.Nodes;
-      Pixels : constant Float := Item.Density;
+      Pixels : constant Float := Item.Shell.Density;
 
       procedure Size (Part : in out Widgets.Widget'Class; Wide, High : Float)
       is
@@ -291,98 +312,105 @@ package body Viewer.Build is
          Set_Width (Widgets.Node (Part), 0.0);
       end Side;
    begin
-      Widgets.Add (Item.Window_Panel, Item.Project_Panel);
-      Widgets.Add (Item.Project_Panel, Item.Toolbar_Panel);
-      Widgets.Add (Item.Toolbar_Panel, Item.Toolbar_Start);
-      Widgets.Add (Item.Toolbar_Start, Item.Close_Button);
-      Widgets.Add (Item.Toolbar_Start, Item.Bar_Rule);
-      Widgets.Add (Item.Toolbar_Start, Item.Project_Title);
-      Widgets.Add (Item.Toolbar_Panel, Item.Tabs);
-      Widgets.Add (Item.Tabs, Item.Canvas_Tab);
-      Widgets.Add (Item.Tabs, Item.Write_Tab);
-      Widgets.Add (Item.Toolbar_Panel, Item.Toolbar_End);
-      Widgets.Add (Item.Toolbar_End, Item.Tool_List);
-      Widgets.Add (Item.Project_Panel, Item.Content_Panel);
-      Widgets.Add (Item.Content_Panel, Item.Canvas_View);
-      Widgets.Add (Item.Project_Panel, Item.Dock_Panel);
-      Widgets.Add (Item.Dock_Panel, Item.Dock_Scroll);
-      Widgets.Add (Item.Dock_Scroll, Item.Dock_Content);
+      Widgets.Add (Item.Root.Window_Panel, Item.Toolbar.Project_Panel);
+      Widgets.Add (Item.Toolbar.Project_Panel, Item.Toolbar.Toolbar_Panel);
+      Widgets.Add (Item.Toolbar.Toolbar_Panel, Item.Toolbar.Toolbar_Start);
+      Widgets.Add (Item.Toolbar.Toolbar_Start, Item.Toolbar.Close_Button);
+      Widgets.Add (Item.Toolbar.Toolbar_Start, Item.Toolbar.Bar_Rule);
+      Widgets.Add (Item.Toolbar.Toolbar_Start, Item.Toolbar.Project_Title);
+      Widgets.Add (Item.Toolbar.Toolbar_Panel, Item.Toolbar.Tabs);
+      Widgets.Add (Item.Toolbar.Tabs, Item.Toolbar.Canvas_Tab);
+      Widgets.Add (Item.Toolbar.Tabs, Item.Toolbar.Write_Tab);
+      Widgets.Add (Item.Toolbar.Toolbar_Panel, Item.Toolbar.Toolbar_End);
+      Widgets.Add (Item.Toolbar.Toolbar_End, Item.Dock.Tool_List);
+      Widgets.Add (Item.Toolbar.Project_Panel, Item.Toolbar.Content_Panel);
+      Widgets.Add (Item.Toolbar.Content_Panel, Item.Canvas_View);
+      Widgets.Add (Item.Toolbar.Project_Panel, Item.Dock.Dock_Panel);
+      Widgets.Add (Item.Dock.Dock_Panel, Item.Dock.Dock_Scroll);
+      Widgets.Add (Item.Dock.Dock_Scroll, Item.Dock.Dock_Content);
 
-      Set_Flex_Direction (Widgets.Node (Item.Project_Panel), Yoga.Column);
-      Set_Flex_Grow (Widgets.Node (Item.Project_Panel), 1.0);
-      Set_Flex_Grow (Widgets.Node (Item.Content_Panel), 1.0);
-      Set_Flex_Direction (Widgets.Node (Item.Content_Panel), Yoga.Column);
+      Set_Flex_Direction (Widgets.Node (Item.Toolbar.Project_Panel),
+                          Yoga.Column);
+      Set_Flex_Grow (Widgets.Node (Item.Toolbar.Project_Panel), 1.0);
+      Set_Flex_Grow (Widgets.Node (Item.Toolbar.Content_Panel), 1.0);
+      Set_Flex_Direction (Widgets.Node (Item.Toolbar.Content_Panel),
+                          Yoga.Column);
       --  The pages are taller than it: it takes what the bars leave.
-      Set_Height (Widgets.Node (Item.Content_Panel), 0.0);
+      Set_Height (Widgets.Node (Item.Toolbar.Content_Panel), 0.0);
       Set_Flex_Grow (Widgets.Node (Item.Canvas_View), 1.0);
 
       --  The bar across the top: the way back and the project's name at the
       --  left, the tabs in the middle (the sides take equal shares), the
       --  list of items at the right.
-      Panels.Set_Fill (Item.Toolbar_Panel, Toolbar);
-      Set_Height (Widgets.Node (Item.Toolbar_Panel), Toolbar_Size * Pixels);
-      Set_Flex_Shrink (Widgets.Node (Item.Toolbar_Panel), 0.0);
-      Set_Flex_Direction (Widgets.Node (Item.Toolbar_Panel), Yoga.Row);
-      Set_Align_Items (Widgets.Node (Item.Toolbar_Panel), Yoga.Center);
+      Panels.Set_Fill (Item.Toolbar.Toolbar_Panel, Toolbar);
+      Set_Height (Widgets.Node (Item.Toolbar.Toolbar_Panel),
+                  Toolbar_Size * Pixels);
+      Set_Flex_Shrink (Widgets.Node (Item.Toolbar.Toolbar_Panel), 0.0);
+      Set_Flex_Direction (Widgets.Node (Item.Toolbar.Toolbar_Panel), Yoga.Row);
+      Set_Align_Items (Widgets.Node (Item.Toolbar.Toolbar_Panel), Yoga.Center);
       Set_Padding
-        (Widgets.Node (Item.Toolbar_Panel), Yoga.Left,
-         (if Item.Windowed then Header_Inset else Bar_Inset) * Pixels);
+        (Widgets.Node (Item.Toolbar.Toolbar_Panel), Yoga.Left,
+         (if Item.Shell.Windowed then Header_Inset else Bar_Inset) * Pixels);
       Set_Padding
-        (Widgets.Node (Item.Toolbar_Panel), Yoga.Right, Bar_Inset * Pixels);
-      Side (Item.Toolbar_Start, Yoga.Flex_Start);
-      Side (Item.Toolbar_End, Yoga.Flex_End);
-      Buttons.Set_Label (Item.Close_Button, "Projects");
-      Buttons.Set_Icon (Item.Close_Button, UI.Icons.Back);
-      Buttons.Set_Captioned (Item.Close_Button, True);
-      Buttons.Set_Kind (Item.Close_Button, Buttons.Quiet);
-      Size (Item.Close_Button, Back_Width, Tab_Height);
-      Panels.Set_Fill (Item.Bar_Rule, Rule_Ink);
-      Size (Item.Bar_Rule, 0.0, Bar_Rule_Height);
-      Set_Width (Widgets.Node (Item.Bar_Rule), UI.Boxes.Edge (Pixels));
+        (Widgets.Node (Item.Toolbar.Toolbar_Panel), Yoga.Right,
+         Bar_Inset * Pixels);
+      Side (Item.Toolbar.Toolbar_Start, Yoga.Flex_Start);
+      Side (Item.Toolbar.Toolbar_End, Yoga.Flex_End);
+      Buttons.Set_Label (Item.Toolbar.Close_Button, "Projects");
+      Buttons.Set_Icon (Item.Toolbar.Close_Button, UI.Icons.Back);
+      Buttons.Set_Captioned (Item.Toolbar.Close_Button, True);
+      Buttons.Set_Kind (Item.Toolbar.Close_Button, Buttons.Quiet);
+      Size (Item.Toolbar.Close_Button, Back_Width, Tab_Height);
+      Panels.Set_Fill (Item.Toolbar.Bar_Rule, Rule_Ink);
+      Size (Item.Toolbar.Bar_Rule, 0.0, Bar_Rule_Height);
+      Set_Width (Widgets.Node (Item.Toolbar.Bar_Rule), UI.Boxes.Edge (Pixels));
       Set_Margin
-        (Widgets.Node (Item.Bar_Rule), Yoga.Horizontal, Name_Gap * Pixels);
-      Labels.Set_Style (Item.Project_Title, UI.Line_Texts.Heading);
-      Labels.Set_Ink (Item.Project_Title, Themes.Bar_Ink);
-      Set_Flex_Grow (Widgets.Node (Item.Project_Title), 1.0);
-      Set_Width (Widgets.Node (Item.Project_Title), 0.0);
-      Set_Height (Widgets.Node (Item.Project_Title), Tab_Height * Pixels);
+        (Widgets.Node (Item.Toolbar.Bar_Rule), Yoga.Horizontal,
+         Name_Gap * Pixels);
+      Labels.Set_Style (Item.Toolbar.Project_Title, UI.Line_Texts.Heading);
+      Labels.Set_Ink (Item.Toolbar.Project_Title, Themes.Bar_Ink);
+      Set_Flex_Grow (Widgets.Node (Item.Toolbar.Project_Title), 1.0);
+      Set_Width (Widgets.Node (Item.Toolbar.Project_Title), 0.0);
+      Set_Height (Widgets.Node (Item.Toolbar.Project_Title),
+                  Tab_Height * Pixels);
 
-      Set_Flex_Direction (Widgets.Node (Item.Tabs), Yoga.Row);
-      Set_Gap (Widgets.Node (Item.Tabs), Yoga.All_Gutters, Tab_Gap * Pixels);
-      Buttons.Set_Label (Item.Canvas_Tab, "Canvas");
-      Buttons.Set_Selected (Item.Canvas_Tab, True);
-      Buttons.Set_Label (Item.Write_Tab, "Write");
-      Size (Item.Canvas_Tab, Tab_Width, Tab_Height);
-      Size (Item.Write_Tab, Tab_Width, Tab_Height);
-      Buttons.Set_Label (Item.Tool_List, "Items");
-      Buttons.Set_Icon (Item.Tool_List, UI.Icons.List);
-      Buttons.Set_Captioned (Item.Tool_List, True);
-      Size (Item.Tool_List, Items_Width, Tab_Height);
+      Set_Flex_Direction (Widgets.Node (Item.Toolbar.Tabs), Yoga.Row);
+      Set_Gap (Widgets.Node (Item.Toolbar.Tabs), Yoga.All_Gutters,
+               Tab_Gap * Pixels);
+      Buttons.Set_Label (Item.Toolbar.Canvas_Tab, "Canvas");
+      Buttons.Set_Selected (Item.Toolbar.Canvas_Tab, True);
+      Buttons.Set_Label (Item.Toolbar.Write_Tab, "Write");
+      Size (Item.Toolbar.Canvas_Tab, Tab_Width, Tab_Height);
+      Size (Item.Toolbar.Write_Tab, Tab_Width, Tab_Height);
+      Buttons.Set_Label (Item.Dock.Tool_List, "Items");
+      Buttons.Set_Icon (Item.Dock.Tool_List, UI.Icons.List);
+      Buttons.Set_Captioned (Item.Dock.Tool_List, True);
+      Size (Item.Dock.Tool_List, Items_Width, Tab_Height);
 
       --  The dock of minimised items, under the canvas, and the
       --  windows of the items: on the canvas, or as bars in the dock.
-      Panels.Set_Fill (Item.Dock_Panel, Dock);
-      Set_Height (Widgets.Node (Item.Dock_Panel), Dock_Height * Pixels);
-      Set_Flex_Shrink (Widgets.Node (Item.Dock_Panel), 0.0);
-      Set_Flex_Direction (Widgets.Node (Item.Dock_Panel), Yoga.Row);
-      Scrollers.Set_Across (Item.Dock_Scroll, True);
-      Set_Flex_Direction (Widgets.Node (Item.Dock_Scroll), Yoga.Row);
-      Set_Flex_Grow (Widgets.Node (Item.Dock_Scroll), 1.0);
-      Set_Width (Widgets.Node (Item.Dock_Scroll), 0.0);
-      Set_Flex_Direction (Widgets.Node (Item.Dock_Content), Yoga.Row);
-      Set_Flex_Shrink (Widgets.Node (Item.Dock_Content), 0.0);
-      Set_Align_Items (Widgets.Node (Item.Dock_Content), Yoga.Center);
+      Panels.Set_Fill (Item.Dock.Dock_Panel, Dock);
+      Set_Height (Widgets.Node (Item.Dock.Dock_Panel), Dock_Height * Pixels);
+      Set_Flex_Shrink (Widgets.Node (Item.Dock.Dock_Panel), 0.0);
+      Set_Flex_Direction (Widgets.Node (Item.Dock.Dock_Panel), Yoga.Row);
+      Scrollers.Set_Across (Item.Dock.Dock_Scroll, True);
+      Set_Flex_Direction (Widgets.Node (Item.Dock.Dock_Scroll), Yoga.Row);
+      Set_Flex_Grow (Widgets.Node (Item.Dock.Dock_Scroll), 1.0);
+      Set_Width (Widgets.Node (Item.Dock.Dock_Scroll), 0.0);
+      Set_Flex_Direction (Widgets.Node (Item.Dock.Dock_Content), Yoga.Row);
+      Set_Flex_Shrink (Widgets.Node (Item.Dock.Dock_Content), 0.0);
+      Set_Align_Items (Widgets.Node (Item.Dock.Dock_Content), Yoga.Center);
       Set_Padding
-        (Widgets.Node (Item.Dock_Content), Yoga.Horizontal,
+        (Widgets.Node (Item.Dock.Dock_Content), Yoga.Horizontal,
          Dock_Inset * Pixels);
       Set_Gap
-        (Widgets.Node (Item.Dock_Content), Yoga.All_Gutters,
+        (Widgets.Node (Item.Dock.Dock_Content), Yoga.All_Gutters,
          Dock_Gap * Pixels);
       for Each of Item.Windows loop
          Items.Windows.Set_Shared
-           (Each, Item.Doc_Resources'Unchecked_Access);
+           (Each, Item.Host.Doc_Resources'Unchecked_Access);
          Items.Windows.Build
-           (Each, Item.Canvas_View, Item.Dock_Content, Toolbar, Pixels);
+           (Each, Item.Canvas_View, Item.Dock.Dock_Content, Toolbar, Pixels);
       end loop;
       Links.Build (Item);
    end Build_Project;
@@ -394,42 +422,42 @@ package body Viewer.Build is
 
    procedure Build_Tray (Item : in out Session) is
       use Yoga.Nodes;
-      Pixels : constant Float := Item.Density;
+      Pixels : constant Float := Item.Shell.Density;
    begin
-      Widgets.Add (Item.Content_Panel, Item.Tools);
-      Widgets.Add (Item.Tools, Item.Tool_Item);
-      Widgets.Add (Item.Tools, Item.Tool_Source);
-      Panels.Set_Fill (Item.Tools, Toolbar);
-      Panels.Set_Shadow (Item.Tools, Themes.Shadow);
-      Set_Position_Type (Widgets.Node (Item.Tools), Yoga.Absolute);
+      Widgets.Add (Item.Toolbar.Content_Panel, Item.Dock.Tools);
+      Widgets.Add (Item.Dock.Tools, Item.Dock.Tool_Item);
+      Widgets.Add (Item.Dock.Tools, Item.Dock.Tool_Source);
+      Panels.Set_Fill (Item.Dock.Tools, Toolbar);
+      Panels.Set_Shadow (Item.Dock.Tools, Themes.Shadow);
+      Set_Position_Type (Widgets.Node (Item.Dock.Tools), Yoga.Absolute);
       Set_Position
-        (Widgets.Node (Item.Tools), Yoga.Bottom,
+        (Widgets.Node (Item.Dock.Tools), Yoga.Bottom,
          (Tray_Foot - Themes.Shadow_Offset) * Pixels);
-      Set_Width (Widgets.Node (Item.Tools), Tray_Width * Pixels);
-      Set_Height (Widgets.Node (Item.Tools), Tray_Height * Pixels);
-      Set_Flex_Direction (Widgets.Node (Item.Tools), Yoga.Row);
-      Set_Align_Items (Widgets.Node (Item.Tools), Yoga.Center);
+      Set_Width (Widgets.Node (Item.Dock.Tools), Tray_Width * Pixels);
+      Set_Height (Widgets.Node (Item.Dock.Tools), Tray_Height * Pixels);
+      Set_Flex_Direction (Widgets.Node (Item.Dock.Tools), Yoga.Row);
+      Set_Align_Items (Widgets.Node (Item.Dock.Tools), Yoga.Center);
       Set_Padding
-        (Widgets.Node (Item.Tools), Yoga.All_Edges, Tray_Pad * Pixels);
+        (Widgets.Node (Item.Dock.Tools), Yoga.All_Edges, Tray_Pad * Pixels);
       Set_Padding
-        (Widgets.Node (Item.Tools), Yoga.Right,
+        (Widgets.Node (Item.Dock.Tools), Yoga.Right,
          Tray_Pad * Pixels + UI.Boxes.Offset (Pixels));
       Set_Padding
-        (Widgets.Node (Item.Tools), Yoga.Bottom,
+        (Widgets.Node (Item.Dock.Tools), Yoga.Bottom,
          Tray_Pad * Pixels + UI.Boxes.Offset (Pixels));
       Set_Gap
-        (Widgets.Node (Item.Tools), Yoga.All_Gutters, Tray_Gap * Pixels);
-      Buttons.Set_Label (Item.Tool_Item, "Add document");
-      Buttons.Set_Icon (Item.Tool_Item, UI.Icons.Document);
-      Buttons.Set_Captioned (Item.Tool_Item, True);
-      Buttons.Set_Label (Item.Tool_Source, "Add source");
-      Buttons.Set_Icon (Item.Tool_Source, UI.Icons.Link);
-      Buttons.Set_Captioned (Item.Tool_Source, True);
-      Buttons.Set_Kind (Item.Tool_Source, Buttons.Primary);
-      Set_Width (Widgets.Node (Item.Tool_Item), Wide_Tool_Width * Pixels);
-      Set_Height (Widgets.Node (Item.Tool_Item), Tool_Height * Pixels);
-      Set_Width (Widgets.Node (Item.Tool_Source), Tool_Width * Pixels);
-      Set_Height (Widgets.Node (Item.Tool_Source), Tool_Height * Pixels);
+        (Widgets.Node (Item.Dock.Tools), Yoga.All_Gutters, Tray_Gap * Pixels);
+      Buttons.Set_Label (Item.Dock.Tool_Item, "Add document");
+      Buttons.Set_Icon (Item.Dock.Tool_Item, UI.Icons.Document);
+      Buttons.Set_Captioned (Item.Dock.Tool_Item, True);
+      Buttons.Set_Label (Item.Dock.Tool_Source, "Add source");
+      Buttons.Set_Icon (Item.Dock.Tool_Source, UI.Icons.Link);
+      Buttons.Set_Captioned (Item.Dock.Tool_Source, True);
+      Buttons.Set_Kind (Item.Dock.Tool_Source, Buttons.Primary);
+      Set_Width (Widgets.Node (Item.Dock.Tool_Item), Wide_Tool_Width * Pixels);
+      Set_Height (Widgets.Node (Item.Dock.Tool_Item), Tool_Height * Pixels);
+      Set_Width (Widgets.Node (Item.Dock.Tool_Source), Tool_Width * Pixels);
+      Set_Height (Widgets.Node (Item.Dock.Tool_Source), Tool_Height * Pixels);
    end Build_Tray;
 
    procedure Build_Write (Item : in out Session);
@@ -437,7 +465,7 @@ package body Viewer.Build is
 
    procedure Build_Write (Item : in out Session) is
       use Yoga.Nodes;
-      Pixels : constant Float := Item.Density;
+      Pixels : constant Float := Item.Shell.Density;
       Edge   : constant Float := UI.Boxes.Edge (Pixels);
       Offset : constant Float := UI.Boxes.Offset (Pixels);
 
@@ -447,7 +475,7 @@ package body Viewer.Build is
          None     : in out Labels.Label;
          Empty    : String) is
       begin
-         Widgets.Add (Item.Sidebar, Scroll);
+         Widgets.Add (Item.Page_View.Sidebar, Scroll);
          Widgets.Add (Scroll, Content);
          Labels.Set_Text (None, Empty);
          Labels.Set_Ink (None, Closed_Ink);
@@ -514,37 +542,42 @@ package body Viewer.Build is
          Set_Flex_Shrink (Widgets.Node (Label), 0.0);
       end Heading;
    begin
-      Widgets.Add (Item.Content_Panel, Item.Write_View);
-      Widgets.Add (Item.Write_View, Item.Sidebar);
-      Widgets.Add (Item.Sidebar, Item.Docs_Head);
-      Widgets.Add (Item.Docs_Head, Item.Docs_Heading);
-      Widgets.Add (Item.Docs_Head, Item.Docs_Folder);
-      Widgets.Add (Item.Docs_Head, Item.Docs_Add);
+      Widgets.Add (Item.Toolbar.Content_Panel, Item.Page_View.Write_View);
+      Widgets.Add (Item.Page_View.Write_View, Item.Page_View.Sidebar);
+      Widgets.Add (Item.Page_View.Sidebar, Item.Page_View.Docs_Head);
+      Widgets.Add (Item.Page_View.Docs_Head, Item.Page_View.Docs_Heading);
+      Widgets.Add (Item.Page_View.Docs_Head, Item.Page_View.Docs_Folder);
+      Widgets.Add (Item.Page_View.Docs_Head, Item.Page_View.Docs_Add);
       Build_Index
-        (Item.Docs_Scroll, Item.Docs_Content, Item.Docs_None, No_Documents);
-      for Each of Item.Doc_Rows loop
-         Build_Row (Item.Docs_Content, Each, Counted => True);
+        (Item.Page_View.Docs_Scroll, Item.Page_View.Docs_Content,
+         Item.Page_View.Docs_None, No_Documents);
+      for Each of Item.Docs.Doc_Rows loop
+         Build_Row (Item.Page_View.Docs_Content, Each, Counted => True);
          Panels.Set_Fill (Each.Tag, Quiet_Ink);
       end loop;
-      Widgets.Add (Item.Docs_Content, Item.Docs_None);
-      Set_Height (Widgets.Node (Item.Docs_None), Index_Height * Pixels);
-      Widgets.Add (Item.Docs_Content, Item.Drop_Line);
-      Widgets.Add (Item.Docs_Content, Item.Dir_Field);
-      Widgets.Add (Item.Sidebar, Item.Sources_Heading);
+      Widgets.Add (Item.Page_View.Docs_Content, Item.Page_View.Docs_None);
+      Set_Height (Widgets.Node (Item.Page_View.Docs_None),
+                  Index_Height * Pixels);
+      Widgets.Add (Item.Page_View.Docs_Content, Item.Docs.Drop_Line);
+      Widgets.Add (Item.Page_View.Docs_Content, Item.Naming.Dir_Field);
+      Widgets.Add (Item.Page_View.Sidebar, Item.Page_View.Sources_Heading);
       Build_Index
-        (Item.Sources_Scroll, Item.Sources_Content, Item.Sources_None,
+        (Item.Page_View.Sources_Scroll, Item.Page_View.Sources_Content,
+         Item.Page_View.Sources_None,
          No_Sources);
-      for Each of Item.Source_Rows loop
-         Build_Row (Item.Sources_Content, Each, Counted => False);
+      for Each of Item.Reading.Source_Rows loop
+         Build_Row (Item.Page_View.Sources_Content, Each, Counted => False);
       end loop;
-      Widgets.Add (Item.Sources_Content, Item.Sources_None);
-      Widgets.Add (Item.Sources_Content, Item.Source_Field);
-      Set_Height (Widgets.Node (Item.Sources_None), Index_Height * Pixels);
-      Widgets.Add (Item.Write_View, Item.Sidebar_Rule);
-      Widgets.Add (Item.Write_View, Item.Pages_Scroll);
-      Widgets.Add (Item.Pages_Scroll, Item.Pages_Content);
-      for Each of Item.Pages loop
-         Widgets.Add (Item.Pages_Content, Each.Box);
+      Widgets.Add (Item.Page_View.Sources_Content,
+                   Item.Page_View.Sources_None);
+      Widgets.Add (Item.Page_View.Sources_Content, Item.Naming.Source_Field);
+      Set_Height (Widgets.Node (Item.Page_View.Sources_None),
+                  Index_Height * Pixels);
+      Widgets.Add (Item.Page_View.Write_View, Item.Page_View.Sidebar_Rule);
+      Widgets.Add (Item.Page_View.Write_View, Item.Page_View.Pages_Scroll);
+      Widgets.Add (Item.Page_View.Pages_Scroll, Item.Page_View.Pages_Content);
+      for Each of Item.Docs.Pages loop
+         Widgets.Add (Item.Page_View.Pages_Content, Each.Box);
          Widgets.Add (Each.Box, Each.Bar);
          Widgets.Add (Each.Bar, Each.Heading_Area);
          Widgets.Add (Each.Heading_Area, Each.Heading);
@@ -555,108 +588,121 @@ package body Viewer.Build is
          Widgets.Add (Each.Sheet, Each.Text);
          Widgets.Add (Each.Box, Each.Words);
       end loop;
-      Widgets.Add (Item.Write_View, Item.Pane);
-      Widgets.Add (Item.Pane, Item.Pane_Edge);
-      Widgets.Add (Item.Pane, Item.Pane_Body);
+      Widgets.Add (Item.Page_View.Write_View, Item.Page_View.Pane);
+      Widgets.Add (Item.Page_View.Pane, Item.Page_View.Pane_Edge);
+      Widgets.Add (Item.Page_View.Pane, Item.Page_View.Pane_Body);
       --  Over the rest, last.
-      for Each of Item.Readers loop
+      for Each of Item.Reading.Readers loop
          Items.Readers.Build
-           (Each, Item.Write_View, Toolbar, Pixels);
+           (Each, Item.Page_View.Write_View, Toolbar, Pixels);
       end loop;
-      Widgets.Add (Item.Write_View, Item.Menu);
-      Set_Position_Type (Widgets.Node (Item.Menu), Yoga.Absolute);
-      Set_Width (Widgets.Node (Item.Menu), Menu_Width * Pixels);
-      Widgets.Set_Visible (Item.Menu, False);
-      Widgets.Add (Item.Content_Panel, Item.Context_Menu);
-      Set_Position_Type (Widgets.Node (Item.Context_Menu), Yoga.Absolute);
-      Set_Width (Widgets.Node (Item.Context_Menu), Context_Width * Pixels);
-      Widgets.Set_Visible (Item.Context_Menu, False);
+      Widgets.Add (Item.Page_View.Write_View, Item.Page_View.Menu);
+      Set_Position_Type (Widgets.Node (Item.Page_View.Menu), Yoga.Absolute);
+      Set_Width (Widgets.Node (Item.Page_View.Menu), Menu_Width * Pixels);
+      Widgets.Set_Visible (Item.Page_View.Menu, False);
+      Widgets.Add (Item.Toolbar.Content_Panel, Item.Context.Context_Menu);
+      Set_Position_Type (Widgets.Node (Item.Context.Context_Menu),
+                         Yoga.Absolute);
+      Set_Width (Widgets.Node (Item.Context.Context_Menu),
+                 Context_Width * Pixels);
+      Widgets.Set_Visible (Item.Context.Context_Menu, False);
       Items.Readers.Build
-        (Item.Pane_Reader, Item.Pane_Body, Toolbar, Pixels, Pinned => True);
+        (Item.Reading.Pane_Reader, Item.Page_View.Pane_Body, Toolbar, Pixels,
+         Pinned => True);
 
-      Panels.Set_Fill (Item.Write_View, Desk);
-      Set_Flex_Direction (Widgets.Node (Item.Write_View), Yoga.Row);
-      Set_Flex_Grow (Widgets.Node (Item.Write_View), 1.0);
-      Set_Height (Widgets.Node (Item.Write_View), 0.0);
+      Panels.Set_Fill (Item.Page_View.Write_View, Desk);
+      Set_Flex_Direction (Widgets.Node (Item.Page_View.Write_View), Yoga.Row);
+      Set_Flex_Grow (Widgets.Node (Item.Page_View.Write_View), 1.0);
+      Set_Height (Widgets.Node (Item.Page_View.Write_View), 0.0);
 
       --  The sidebar: two lists one above the other, with a line at its
       --  right.
-      Panels.Set_Fill (Item.Sidebar, Side_Fill);
-      Set_Width (Widgets.Node (Item.Sidebar), Sidebar_Width * Pixels);
-      Set_Flex_Shrink (Widgets.Node (Item.Sidebar), 0.0);
+      Panels.Set_Fill (Item.Page_View.Sidebar, Side_Fill);
+      Set_Width (Widgets.Node (Item.Page_View.Sidebar),
+                 Sidebar_Width * Pixels);
+      Set_Flex_Shrink (Widgets.Node (Item.Page_View.Sidebar), 0.0);
       Set_Padding
-        (Widgets.Node (Item.Sidebar), Yoga.All_Edges, Sidebar_Pad * Pixels);
+        (Widgets.Node (Item.Page_View.Sidebar), Yoga.All_Edges,
+         Sidebar_Pad * Pixels);
       Set_Padding
-        (Widgets.Node (Item.Sidebar), Yoga.Top,
+        (Widgets.Node (Item.Page_View.Sidebar), Yoga.Top,
          (Sidebar_Pad + Heading_Top) * Pixels);
-      Set_Flex_Direction (Widgets.Node (Item.Sidebar), Yoga.Column);
+      Set_Flex_Direction (Widgets.Node (Item.Page_View.Sidebar), Yoga.Column);
       Set_Gap
-        (Widgets.Node (Item.Sidebar), Yoga.All_Gutters, Sidebar_Gap * Pixels);
-      Panels.Set_Fill (Item.Sidebar_Rule, Themes.Border);
-      Set_Width (Widgets.Node (Item.Sidebar_Rule), Edge);
-      Set_Flex_Shrink (Widgets.Node (Item.Sidebar_Rule), 0.0);
-      Set_Flex_Direction (Widgets.Node (Item.Docs_Head), Yoga.Row);
-      Set_Align_Items (Widgets.Node (Item.Docs_Head), Yoga.Center);
-      Set_Padding (Widgets.Node (Item.Docs_Head), Yoga.Right, Offset);
-      Heading (Item.Docs_Heading, "DOCUMENTS");
-      Set_Flex_Grow (Widgets.Node (Item.Docs_Heading), 1.0);
-      Heading (Item.Sources_Heading, "SOURCES");
+        (Widgets.Node (Item.Page_View.Sidebar), Yoga.All_Gutters,
+         Sidebar_Gap * Pixels);
+      Panels.Set_Fill (Item.Page_View.Sidebar_Rule, Themes.Border);
+      Set_Width (Widgets.Node (Item.Page_View.Sidebar_Rule), Edge);
+      Set_Flex_Shrink (Widgets.Node (Item.Page_View.Sidebar_Rule), 0.0);
+      Set_Flex_Direction (Widgets.Node (Item.Page_View.Docs_Head), Yoga.Row);
+      Set_Align_Items (Widgets.Node (Item.Page_View.Docs_Head), Yoga.Center);
+      Set_Padding (Widgets.Node (Item.Page_View.Docs_Head), Yoga.Right,
+                   Offset);
+      Heading (Item.Page_View.Docs_Heading, "DOCUMENTS");
+      Set_Flex_Grow (Widgets.Node (Item.Page_View.Docs_Heading), 1.0);
+      Heading (Item.Page_View.Sources_Heading, "SOURCES");
       Set_Margin
-        (Widgets.Node (Item.Sources_Heading), Yoga.Top,
+        (Widgets.Node (Item.Page_View.Sources_Heading), Yoga.Top,
          Heading_Top * Pixels);
-      Buttons.Set_Label (Item.Docs_Add, "+");
-      Buttons.Set_Icon (Item.Docs_Add, UI.Icons.Plus);
-      Buttons.Set_Icon_Size (Item.Docs_Add, Mic_Icon_Size);
-      Set_Width (Widgets.Node (Item.Docs_Add), Add_Size * Pixels);
-      Set_Height (Widgets.Node (Item.Docs_Add), Add_Size * Pixels);
-      Buttons.Set_Label (Item.Docs_Folder, "New folder");
-      Buttons.Set_Icon (Item.Docs_Folder, UI.Icons.Folder);
-      Buttons.Set_Icon_Size (Item.Docs_Folder, Mic_Icon_Size);
-      Set_Width (Widgets.Node (Item.Docs_Folder), Add_Size * Pixels);
-      Set_Height (Widgets.Node (Item.Docs_Folder), Add_Size * Pixels);
+      Buttons.Set_Label (Item.Page_View.Docs_Add, "+");
+      Buttons.Set_Icon (Item.Page_View.Docs_Add, UI.Icons.Plus);
+      Buttons.Set_Icon_Size (Item.Page_View.Docs_Add, Mic_Icon_Size);
+      Set_Width (Widgets.Node (Item.Page_View.Docs_Add), Add_Size * Pixels);
+      Set_Height (Widgets.Node (Item.Page_View.Docs_Add), Add_Size * Pixels);
+      Buttons.Set_Label (Item.Page_View.Docs_Folder, "New folder");
+      Buttons.Set_Icon (Item.Page_View.Docs_Folder, UI.Icons.Folder);
+      Buttons.Set_Icon_Size (Item.Page_View.Docs_Folder, Mic_Icon_Size);
+      Set_Width (Widgets.Node (Item.Page_View.Docs_Folder), Add_Size * Pixels);
+      Set_Height (Widgets.Node (Item.Page_View.Docs_Folder),
+                  Add_Size * Pixels);
       Set_Gap
-        (Widgets.Node (Item.Docs_Head), Yoga.All_Gutters,
+        (Widgets.Node (Item.Page_View.Docs_Head), Yoga.All_Gutters,
          Index_Gap * Pixels);
 
       --  Over the rows of the tree, out of their layout: the line where a
       --  document dragged would go between two, and the field to rename
       --  a directory by.
-      Panels.Set_Fill (Item.Drop_Line, UI.Themes.Accent);
-      Set_Position_Type (Widgets.Node (Item.Drop_Line), Yoga.Absolute);
-      Set_Height (Widgets.Node (Item.Drop_Line), Drop_Line_Height * Pixels);
-      Widgets.Set_Visible (Item.Drop_Line, False);
+      Panels.Set_Fill (Item.Docs.Drop_Line, UI.Themes.Accent);
+      Set_Position_Type (Widgets.Node (Item.Docs.Drop_Line), Yoga.Absolute);
+      Set_Height (Widgets.Node (Item.Docs.Drop_Line),
+                  Drop_Line_Height * Pixels);
+      Widgets.Set_Visible (Item.Docs.Drop_Line, False);
       Text_Fields.Set_Shared
-        (Item.Dir_Field, Item.Doc_Resources'Unchecked_Access);
+        (Item.Naming.Dir_Field, Item.Host.Doc_Resources'Unchecked_Access);
       Text_Fields.Configure
-        (Item.Dir_Field, UI.Line_Texts.Interface_Font, Edit_Size);
-      Set_Position_Type (Widgets.Node (Item.Dir_Field), Yoga.Absolute);
-      Set_Height (Widgets.Node (Item.Dir_Field), Index_Height * Pixels);
-      Widgets.Set_Visible (Item.Dir_Field, False);
+        (Item.Naming.Dir_Field, UI.Line_Texts.Interface_Font, Edit_Size);
+      Set_Position_Type (Widgets.Node (Item.Naming.Dir_Field), Yoga.Absolute);
+      Set_Height (Widgets.Node (Item.Naming.Dir_Field), Index_Height * Pixels);
+      Widgets.Set_Visible (Item.Naming.Dir_Field, False);
       Text_Fields.Set_Shared
-        (Item.Source_Field, Item.Doc_Resources'Unchecked_Access);
+        (Item.Naming.Source_Field, Item.Host.Doc_Resources'Unchecked_Access);
       Text_Fields.Configure
-        (Item.Source_Field, UI.Line_Texts.Interface_Font, Edit_Size);
-      Set_Position_Type (Widgets.Node (Item.Source_Field), Yoga.Absolute);
-      Set_Height (Widgets.Node (Item.Source_Field), Index_Height * Pixels);
-      Widgets.Set_Visible (Item.Source_Field, False);
+        (Item.Naming.Source_Field, UI.Line_Texts.Interface_Font, Edit_Size);
+      Set_Position_Type (Widgets.Node (Item.Naming.Source_Field),
+                         Yoga.Absolute);
+      Set_Height (Widgets.Node (Item.Naming.Source_Field),
+                  Index_Height * Pixels);
+      Widgets.Set_Visible (Item.Naming.Source_Field, False);
 
       --  The pages, scrolled, one above the next, and the button to add
       --  one after them.
-      Set_Flex_Grow (Widgets.Node (Item.Pages_Scroll), 1.0);
-      Set_Width (Widgets.Node (Item.Pages_Scroll), 0.0);
-      Set_Flex_Direction (Widgets.Node (Item.Pages_Content), Yoga.Column);
-      Set_Flex_Shrink (Widgets.Node (Item.Pages_Content), 0.0);
-      Set_Align_Items (Widgets.Node (Item.Pages_Content), Yoga.Center);
+      Set_Flex_Grow (Widgets.Node (Item.Page_View.Pages_Scroll), 1.0);
+      Set_Width (Widgets.Node (Item.Page_View.Pages_Scroll), 0.0);
+      Set_Flex_Direction (Widgets.Node (Item.Page_View.Pages_Content),
+                          Yoga.Column);
+      Set_Flex_Shrink (Widgets.Node (Item.Page_View.Pages_Content), 0.0);
+      Set_Align_Items (Widgets.Node (Item.Page_View.Pages_Content),
+                       Yoga.Center);
       Set_Padding
-        (Widgets.Node (Item.Pages_Content), Yoga.All_Edges,
+        (Widgets.Node (Item.Page_View.Pages_Content), Yoga.All_Edges,
          Page_Margin * Pixels);
       Set_Padding
-        (Widgets.Node (Item.Pages_Content), Yoga.Top,
+        (Widgets.Node (Item.Page_View.Pages_Content), Yoga.Top,
          (Page_Margin - Page_Gap) * Pixels);
       Set_Gap
-        (Widgets.Node (Item.Pages_Content), Yoga.All_Gutters,
+        (Widgets.Node (Item.Page_View.Pages_Content), Yoga.All_Gutters,
          Page_Gap * Pixels);
-      for Each of Item.Pages loop
+      for Each of Item.Docs.Pages loop
          Set_Flex_Direction (Widgets.Node (Each.Box), Yoga.Column);
          Set_Flex_Shrink (Widgets.Node (Each.Box), 0.0);
          Set_Width (Widgets.Node (Each.Box), Page_Width * Pixels);
@@ -676,7 +722,7 @@ package body Viewer.Build is
          Set_Width (Widgets.Node (Each.Heading), 0.0);
          Set_Height (Widgets.Node (Each.Heading), Page_Head * Pixels);
          Text_Fields.Set_Shared
-           (Each.Title_Field, Item.Doc_Resources'Unchecked_Access);
+           (Each.Title_Field, Item.Host.Doc_Resources'Unchecked_Access);
          Text_Fields.Configure
            (Each.Title_Field, UI.Line_Texts.Interface_Font,
             UI.Line_Texts.Heading_Size);
@@ -715,7 +761,7 @@ package body Viewer.Build is
            (Widgets.Node (Each.Sheet), Yoga.Bottom,
             (Page_Top - Page_Text_Inset) * Pixels + Offset);
          Editors.Set_Shared
-           (Each.Text, Item.Doc_Resources'Unchecked_Access);
+           (Each.Text, Item.Host.Doc_Resources'Unchecked_Access);
          Editors.Configure
            (Each.Text, UI.Line_Texts.Serif, Page_Text_Size, 2000.0,
             Spacing => 0.35 * Page_Text_Size);
@@ -730,19 +776,22 @@ package body Viewer.Build is
          Widgets.Set_Visible (Each.Box, False);
       end loop;
       --  The pane: an edge to size it by, and the pinned source.
-      Panels.Set_Fill (Item.Pane, Desk);
-      Set_Flex_Direction (Widgets.Node (Item.Pane), Yoga.Row);
-      Set_Flex_Shrink (Widgets.Node (Item.Pane), 0.0);
-      Item.Pane_Wide := Pane_Default;
-      Set_Width (Widgets.Node (Item.Pane), Pane_Default * Pixels);
-      Grips.Set_Fill (Item.Pane_Edge, Edge_Fill);
-      Grips.Set_Wanted_Cursor (Item.Pane_Edge, SDL3.Cursors.Resize_Across);
-      Set_Width (Widgets.Node (Item.Pane_Edge), Pane_Edge_Width * Pixels);
-      Set_Flex_Shrink (Widgets.Node (Item.Pane_Edge), 0.0);
-      Set_Flex_Direction (Widgets.Node (Item.Pane_Body), Yoga.Column);
-      Set_Flex_Grow (Widgets.Node (Item.Pane_Body), 1.0);
-      Set_Width (Widgets.Node (Item.Pane_Body), 0.0);
-      Widgets.Set_Visible (Item.Pane, False);
+      Panels.Set_Fill (Item.Page_View.Pane, Desk);
+      Set_Flex_Direction (Widgets.Node (Item.Page_View.Pane), Yoga.Row);
+      Set_Flex_Shrink (Widgets.Node (Item.Page_View.Pane), 0.0);
+      Item.Page_View.Pane_Wide := Pane_Default;
+      Set_Width (Widgets.Node (Item.Page_View.Pane), Pane_Default * Pixels);
+      Grips.Set_Fill (Item.Page_View.Pane_Edge, Edge_Fill);
+      Grips.Set_Wanted_Cursor (Item.Page_View.Pane_Edge,
+                               SDL3.Cursors.Resize_Across);
+      Set_Width (Widgets.Node (Item.Page_View.Pane_Edge),
+                 Pane_Edge_Width * Pixels);
+      Set_Flex_Shrink (Widgets.Node (Item.Page_View.Pane_Edge), 0.0);
+      Set_Flex_Direction (Widgets.Node (Item.Page_View.Pane_Body),
+                          Yoga.Column);
+      Set_Flex_Grow (Widgets.Node (Item.Page_View.Pane_Body), 1.0);
+      Set_Width (Widgets.Node (Item.Page_View.Pane_Body), 0.0);
+      Widgets.Set_Visible (Item.Page_View.Pane, False);
    end Build_Write;
 
    procedure Build_Settings (Item : in out Session);
@@ -751,7 +800,7 @@ package body Viewer.Build is
 
    procedure Build_Settings (Item : in out Session) is
       use Yoga.Nodes;
-      Pixels : constant Float := Item.Density;
+      Pixels : constant Float := Item.Shell.Density;
       Offset : constant Float := UI.Boxes.Offset (Pixels);
 
       procedure Line (Part : in out Widgets.Widget'Class; High : Float) is
@@ -767,130 +816,140 @@ package body Viewer.Build is
          Line (Part, Settings_Line);
       end Radio;
    begin
-      Widgets.Add (Item.Window_Panel, Item.Settings_Panel);
-      Widgets.Add (Item.Settings_Panel, Item.Settings_Bar);
-      Widgets.Add (Item.Settings_Bar, Item.Settings_Title);
-      Widgets.Add (Item.Settings_Bar, Item.Settings_Close);
-      Widgets.Add (Item.Settings_Panel, Item.Settings_Scroll);
-      Widgets.Add (Item.Settings_Scroll, Item.Settings_Content);
-      Widgets.Add (Item.Settings_Content, Item.Settings_Form);
-      Widgets.Add (Item.Settings_Form, Item.Display_Heading);
-      Widgets.Add (Item.Settings_Form, Item.Theme_Name);
-      Widgets.Add (Item.Settings_Form, Item.Theme_Light);
-      Widgets.Add (Item.Settings_Form, Item.Theme_Dark);
-      Widgets.Add (Item.Settings_Form, Item.Theme_System);
-      Widgets.Add (Item.Settings_Form, Item.Speech_Heading);
-      Widgets.Add (Item.Settings_Form, Item.Model_Name);
-      Widgets.Add (Item.Settings_Form, Item.Model_Native);
-      Widgets.Add (Item.Settings_Form, Item.Model_Parakeet);
-      Widgets.Add (Item.Settings_Form, Item.Download_Row);
-      Widgets.Add (Item.Download_Row, Item.Download_Button);
-      Widgets.Add (Item.Download_Row, Item.Download_State);
-      Widgets.Add (Item.Settings_Form, Item.Download_Bar);
+      Widgets.Add (Item.Root.Window_Panel, Item.Prefs.Settings_Panel);
+      Widgets.Add (Item.Prefs.Settings_Panel, Item.Prefs.Settings_Bar);
+      Widgets.Add (Item.Prefs.Settings_Bar, Item.Prefs.Settings_Title);
+      Widgets.Add (Item.Prefs.Settings_Bar, Item.Prefs.Settings_Close);
+      Widgets.Add (Item.Prefs.Settings_Panel, Item.Prefs.Settings_Scroll);
+      Widgets.Add (Item.Prefs.Settings_Scroll, Item.Prefs.Settings_Content);
+      Widgets.Add (Item.Prefs.Settings_Content, Item.Prefs.Settings_Form);
+      Widgets.Add (Item.Prefs.Settings_Form, Item.Prefs.Display_Heading);
+      Widgets.Add (Item.Prefs.Settings_Form, Item.Prefs.Theme_Name);
+      Widgets.Add (Item.Prefs.Settings_Form, Item.Prefs.Theme_Light);
+      Widgets.Add (Item.Prefs.Settings_Form, Item.Prefs.Theme_Dark);
+      Widgets.Add (Item.Prefs.Settings_Form, Item.Prefs.Theme_System);
+      Widgets.Add (Item.Prefs.Settings_Form, Item.Prefs.Speech_Heading);
+      Widgets.Add (Item.Prefs.Settings_Form, Item.Prefs.Model_Name);
+      Widgets.Add (Item.Prefs.Settings_Form, Item.Prefs.Model_Native);
+      Widgets.Add (Item.Prefs.Settings_Form, Item.Prefs.Model_Parakeet);
+      Widgets.Add (Item.Prefs.Settings_Form, Item.Prefs.Download_Row);
+      Widgets.Add (Item.Prefs.Download_Row, Item.Prefs.Download_Button);
+      Widgets.Add (Item.Prefs.Download_Row, Item.Prefs.Download_State);
+      Widgets.Add (Item.Prefs.Settings_Form, Item.Prefs.Download_Bar);
 
-      Set_Flex_Direction (Widgets.Node (Item.Settings_Panel), Yoga.Column);
-      Set_Flex_Grow (Widgets.Node (Item.Settings_Panel), 1.0);
-      Panels.Set_Fill (Item.Settings_Panel, Desk);
+      Set_Flex_Direction (Widgets.Node (Item.Prefs.Settings_Panel),
+                          Yoga.Column);
+      Set_Flex_Grow (Widgets.Node (Item.Prefs.Settings_Panel), 1.0);
+      Panels.Set_Fill (Item.Prefs.Settings_Panel, Desk);
 
       --  The bar, outside what scrolls, so that it stays: the title at the
       --  left (clear of the window's own buttons) and Close at the right.
-      Panels.Set_Fill (Item.Settings_Bar, Toolbar);
-      Line (Item.Settings_Bar, Toolbar_Size);
-      Set_Flex_Direction (Widgets.Node (Item.Settings_Bar), Yoga.Row);
-      Set_Align_Items (Widgets.Node (Item.Settings_Bar), Yoga.Center);
+      Panels.Set_Fill (Item.Prefs.Settings_Bar, Toolbar);
+      Line (Item.Prefs.Settings_Bar, Toolbar_Size);
+      Set_Flex_Direction (Widgets.Node (Item.Prefs.Settings_Bar), Yoga.Row);
+      Set_Align_Items (Widgets.Node (Item.Prefs.Settings_Bar), Yoga.Center);
       Set_Padding
-        (Widgets.Node (Item.Settings_Bar), Yoga.Left,
-         (if Item.Windowed then Header_Inset else Bar_Inset) * Pixels);
+        (Widgets.Node (Item.Prefs.Settings_Bar), Yoga.Left,
+         (if Item.Shell.Windowed then Header_Inset else Bar_Inset) * Pixels);
       Set_Padding
-        (Widgets.Node (Item.Settings_Bar), Yoga.Right, Bar_Inset * Pixels);
-      Labels.Set_Text (Item.Settings_Title, "Settings");
-      Labels.Set_Style (Item.Settings_Title, UI.Line_Texts.Heading);
-      Labels.Set_Ink (Item.Settings_Title, Themes.Bar_Ink);
-      Set_Flex_Grow (Widgets.Node (Item.Settings_Title), 1.0);
-      Set_Width (Widgets.Node (Item.Settings_Title), 0.0);
-      Set_Height (Widgets.Node (Item.Settings_Title), Tab_Height * Pixels);
-      Buttons.Set_Label (Item.Settings_Close, "Close");
-      Buttons.Set_Icon (Item.Settings_Close, UI.Icons.Close);
-      Buttons.Set_Captioned (Item.Settings_Close, True);
-      Buttons.Set_Kind (Item.Settings_Close, Buttons.Quiet);
-      Set_Width (Widgets.Node (Item.Settings_Close), Items_Width * Pixels);
-      Set_Height (Widgets.Node (Item.Settings_Close), Tab_Height * Pixels);
-      Set_Flex_Shrink (Widgets.Node (Item.Settings_Close), 0.0);
+        (Widgets.Node (Item.Prefs.Settings_Bar), Yoga.Right,
+         Bar_Inset * Pixels);
+      Labels.Set_Text (Item.Prefs.Settings_Title, "Settings");
+      Labels.Set_Style (Item.Prefs.Settings_Title, UI.Line_Texts.Heading);
+      Labels.Set_Ink (Item.Prefs.Settings_Title, Themes.Bar_Ink);
+      Set_Flex_Grow (Widgets.Node (Item.Prefs.Settings_Title), 1.0);
+      Set_Width (Widgets.Node (Item.Prefs.Settings_Title), 0.0);
+      Set_Height (Widgets.Node (Item.Prefs.Settings_Title),
+                  Tab_Height * Pixels);
+      Buttons.Set_Label (Item.Prefs.Settings_Close, "Close");
+      Buttons.Set_Icon (Item.Prefs.Settings_Close, UI.Icons.Close);
+      Buttons.Set_Captioned (Item.Prefs.Settings_Close, True);
+      Buttons.Set_Kind (Item.Prefs.Settings_Close, Buttons.Quiet);
+      Set_Width (Widgets.Node (Item.Prefs.Settings_Close),
+                 Items_Width * Pixels);
+      Set_Height (Widgets.Node (Item.Prefs.Settings_Close),
+                  Tab_Height * Pixels);
+      Set_Flex_Shrink (Widgets.Node (Item.Prefs.Settings_Close), 0.0);
 
       --  The form, on a page of its own, in the middle.
-      Set_Flex_Grow (Widgets.Node (Item.Settings_Scroll), 1.0);
-      Set_Height (Widgets.Node (Item.Settings_Scroll), 0.0);
-      Set_Flex_Direction (Widgets.Node (Item.Settings_Content), Yoga.Column);
-      Set_Flex_Shrink (Widgets.Node (Item.Settings_Content), 0.0);
-      Set_Align_Items (Widgets.Node (Item.Settings_Content), Yoga.Center);
+      Set_Flex_Grow (Widgets.Node (Item.Prefs.Settings_Scroll), 1.0);
+      Set_Height (Widgets.Node (Item.Prefs.Settings_Scroll), 0.0);
+      Set_Flex_Direction (Widgets.Node (Item.Prefs.Settings_Content),
+                          Yoga.Column);
+      Set_Flex_Shrink (Widgets.Node (Item.Prefs.Settings_Content), 0.0);
+      Set_Align_Items (Widgets.Node (Item.Prefs.Settings_Content),
+                       Yoga.Center);
       Set_Padding
-        (Widgets.Node (Item.Settings_Content), Yoga.All_Edges,
+        (Widgets.Node (Item.Prefs.Settings_Content), Yoga.All_Edges,
          Page_Margin * Pixels);
-      Panels.Set_Fill (Item.Settings_Form, Paper);
-      Panels.Set_Border (Item.Settings_Form, Themes.Border);
-      Panels.Set_Shadow (Item.Settings_Form, Themes.Shadow);
-      Set_Flex_Direction (Widgets.Node (Item.Settings_Form), Yoga.Column);
-      Set_Flex_Shrink (Widgets.Node (Item.Settings_Form), 0.0);
-      Set_Width (Widgets.Node (Item.Settings_Form), Page_Width * Pixels);
-      Item.Form_Wide := Page_Width;
+      Panels.Set_Fill (Item.Prefs.Settings_Form, Paper);
+      Panels.Set_Border (Item.Prefs.Settings_Form, Themes.Border);
+      Panels.Set_Shadow (Item.Prefs.Settings_Form, Themes.Shadow);
+      Set_Flex_Direction (Widgets.Node (Item.Prefs.Settings_Form),
+                          Yoga.Column);
+      Set_Flex_Shrink (Widgets.Node (Item.Prefs.Settings_Form), 0.0);
+      Set_Width (Widgets.Node (Item.Prefs.Settings_Form), Page_Width * Pixels);
+      Item.Prefs.Form_Wide := Page_Width;
       Set_Padding
-        (Widgets.Node (Item.Settings_Form), Yoga.All_Edges,
+        (Widgets.Node (Item.Prefs.Settings_Form), Yoga.All_Edges,
          Dialog_Pad * Pixels);
       Set_Padding
-        (Widgets.Node (Item.Settings_Form), Yoga.Right,
+        (Widgets.Node (Item.Prefs.Settings_Form), Yoga.Right,
          Dialog_Pad * Pixels + Offset);
       Set_Padding
-        (Widgets.Node (Item.Settings_Form), Yoga.Bottom,
+        (Widgets.Node (Item.Prefs.Settings_Form), Yoga.Bottom,
          Dialog_Pad * Pixels + Offset);
       Set_Gap
-        (Widgets.Node (Item.Settings_Form), Yoga.All_Gutters,
+        (Widgets.Node (Item.Prefs.Settings_Form), Yoga.All_Gutters,
          Row_Gap * Pixels);
 
       --  Display: its one option, Theme.
-      Labels.Set_Text (Item.Display_Heading, "DISPLAY");
-      Labels.Set_Style (Item.Display_Heading, UI.Line_Texts.Caption);
-      Line (Item.Display_Heading, Heading_Height);
-      Labels.Set_Text (Item.Theme_Name, "Theme");
-      Labels.Set_Style (Item.Theme_Name, UI.Line_Texts.Strong);
-      Line (Item.Theme_Name, Settings_Line);
-      Radio (Item.Theme_Light, "Light");
-      Radio (Item.Theme_Dark, "Dark");
-      Radio (Item.Theme_System, "System");
+      Labels.Set_Text (Item.Prefs.Display_Heading, "DISPLAY");
+      Labels.Set_Style (Item.Prefs.Display_Heading, UI.Line_Texts.Caption);
+      Line (Item.Prefs.Display_Heading, Heading_Height);
+      Labels.Set_Text (Item.Prefs.Theme_Name, "Theme");
+      Labels.Set_Style (Item.Prefs.Theme_Name, UI.Line_Texts.Strong);
+      Line (Item.Prefs.Theme_Name, Settings_Line);
+      Radio (Item.Prefs.Theme_Light, "Light");
+      Radio (Item.Prefs.Theme_Dark, "Dark");
+      Radio (Item.Prefs.Theme_System, "System");
 
       --  Speech: its one option, Model.
-      Labels.Set_Text (Item.Speech_Heading, "SPEECH");
-      Labels.Set_Style (Item.Speech_Heading, UI.Line_Texts.Caption);
-      Line (Item.Speech_Heading, Heading_Height);
+      Labels.Set_Text (Item.Prefs.Speech_Heading, "SPEECH");
+      Labels.Set_Style (Item.Prefs.Speech_Heading, UI.Line_Texts.Caption);
+      Line (Item.Prefs.Speech_Heading, Heading_Height);
       Set_Margin
-        (Widgets.Node (Item.Speech_Heading), Yoga.Top, Heading_Top * Pixels);
-      Labels.Set_Text (Item.Model_Name, "Model");
-      Labels.Set_Style (Item.Model_Name, UI.Line_Texts.Strong);
-      Line (Item.Model_Name, Settings_Line);
-      Radio (Item.Model_Native, "MacOS");
-      Radio (Item.Model_Parakeet, "Parakeet");
+        (Widgets.Node (Item.Prefs.Speech_Heading), Yoga.Top,
+         Heading_Top * Pixels);
+      Labels.Set_Text (Item.Prefs.Model_Name, "Model");
+      Labels.Set_Style (Item.Prefs.Model_Name, UI.Line_Texts.Strong);
+      Line (Item.Prefs.Model_Name, Settings_Line);
+      Radio (Item.Prefs.Model_Native, "MacOS");
+      Radio (Item.Prefs.Model_Parakeet, "Parakeet");
 
-      Set_Flex_Direction (Widgets.Node (Item.Download_Row), Yoga.Row);
-      Set_Align_Items (Widgets.Node (Item.Download_Row), Yoga.Center);
-      Line (Item.Download_Row, Download_Height);
+      Set_Flex_Direction (Widgets.Node (Item.Prefs.Download_Row), Yoga.Row);
+      Set_Align_Items (Widgets.Node (Item.Prefs.Download_Row), Yoga.Center);
+      Line (Item.Prefs.Download_Row, Download_Height);
       Set_Margin
-        (Widgets.Node (Item.Download_Row), Yoga.Top, Gap * Pixels);
+        (Widgets.Node (Item.Prefs.Download_Row), Yoga.Top, Gap * Pixels);
       Set_Gap
-        (Widgets.Node (Item.Download_Row), Yoga.All_Gutters, Gap * Pixels);
-      Buttons.Set_Label (Item.Download_Button, "Download");
-      Buttons.Set_Kind (Item.Download_Button, Buttons.Primary);
+        (Widgets.Node (Item.Prefs.Download_Row), Yoga.All_Gutters,
+         Gap * Pixels);
+      Buttons.Set_Label (Item.Prefs.Download_Button, "Download");
+      Buttons.Set_Kind (Item.Prefs.Download_Button, Buttons.Primary);
       Set_Width
-        (Widgets.Node (Item.Download_Button), Download_Width * Pixels);
+        (Widgets.Node (Item.Prefs.Download_Button), Download_Width * Pixels);
       Set_Height
-        (Widgets.Node (Item.Download_Button), Download_Height * Pixels);
-      Set_Flex_Shrink (Widgets.Node (Item.Download_Button), 0.0);
-      Labels.Set_Ink (Item.Download_State, Quiet_Ink);
-      Set_Flex_Grow (Widgets.Node (Item.Download_State), 1.0);
-      Set_Width (Widgets.Node (Item.Download_State), 0.0);
+        (Widgets.Node (Item.Prefs.Download_Button), Download_Height * Pixels);
+      Set_Flex_Shrink (Widgets.Node (Item.Prefs.Download_Button), 0.0);
+      Labels.Set_Ink (Item.Prefs.Download_State, Quiet_Ink);
+      Set_Flex_Grow (Widgets.Node (Item.Prefs.Download_State), 1.0);
+      Set_Width (Widgets.Node (Item.Prefs.Download_State), 0.0);
       Set_Height
-        (Widgets.Node (Item.Download_State), Download_Height * Pixels);
-      Line (Item.Download_Bar, Progress_Height);
-      Widgets.Set_Visible (Item.Download_Bar, False);
-      Widgets.Set_Visible (Item.Settings_Panel, False);
+        (Widgets.Node (Item.Prefs.Download_State), Download_Height * Pixels);
+      Line (Item.Prefs.Download_Bar, Progress_Height);
+      Widgets.Set_Visible (Item.Prefs.Download_Bar, False);
+      Widgets.Set_Visible (Item.Prefs.Settings_Panel, False);
    end Build_Settings;
 
    procedure Build_Dialog_Bar
@@ -910,7 +969,7 @@ package body Viewer.Build is
       Name  : String)
    is
       use Yoga.Nodes;
-      Pixels : constant Float := Item.Density;
+      Pixels : constant Float := Item.Shell.Density;
    begin
       Panels.Set_Fill (Bar, Toolbar);
       Set_Flex_Direction (Widgets.Node (Bar), Yoga.Row);
@@ -941,7 +1000,7 @@ package body Viewer.Build is
      (Item : in out Session; Border : in out Panels.Panel)
    is
       use Yoga.Nodes;
-      Pixels : constant Float := Item.Density;
+      Pixels : constant Float := Item.Shell.Density;
    begin
       Panels.Set_Fill (Border, Themes.Border);
       Set_Flex_Direction (Widgets.Node (Border), Yoga.Column);
@@ -954,71 +1013,83 @@ package body Viewer.Build is
 
    procedure Build_Modal (Item : in out Session) is
       use Yoga.Nodes;
-      Pixels : constant Float := Item.Density;
+      Pixels : constant Float := Item.Shell.Density;
    begin
-      Widgets.Add (Item.Window_Panel, Item.Overlay);
-      Widgets.Add (Item.Overlay, Item.Dialog_Border);
-      Widgets.Add (Item.Dialog_Border, Item.Dialog_Bar);
-      Widgets.Add (Item.Dialog_Bar, Item.Dialog_Title);
-      Widgets.Add (Item.Dialog_Bar, Item.Dialog_Close);
-      Widgets.Add (Item.Dialog_Border, Item.Dialog);
-      Widgets.Add (Item.Dialog, Item.Confirm_Message);
-      Widgets.Add (Item.Dialog, Item.Confirm_Note);
-      Widgets.Add (Item.Dialog_Border, Item.Dialog_Rule);
-      Widgets.Add (Item.Dialog_Border, Item.Confirm_Buttons);
-      Widgets.Add (Item.Confirm_Buttons, Item.Confirm_Cancel);
-      Widgets.Add (Item.Confirm_Buttons, Item.Confirm_Delete);
+      Widgets.Add (Item.Root.Window_Panel, Item.Confirm.Overlay);
+      Widgets.Add (Item.Confirm.Overlay, Item.Confirm.Dialog_Border);
+      Widgets.Add (Item.Confirm.Dialog_Border, Item.Confirm.Dialog_Bar);
+      Widgets.Add (Item.Confirm.Dialog_Bar, Item.Confirm.Dialog_Title);
+      Widgets.Add (Item.Confirm.Dialog_Bar, Item.Confirm.Dialog_Close);
+      Widgets.Add (Item.Confirm.Dialog_Border, Item.Confirm.Dialog);
+      Widgets.Add (Item.Confirm.Dialog, Item.Confirm.Confirm_Message);
+      Widgets.Add (Item.Confirm.Dialog, Item.Confirm.Confirm_Note);
+      Widgets.Add (Item.Confirm.Dialog_Border, Item.Confirm.Dialog_Rule);
+      Widgets.Add (Item.Confirm.Dialog_Border, Item.Confirm.Confirm_Buttons);
+      Widgets.Add (Item.Confirm.Confirm_Buttons, Item.Confirm.Confirm_Cancel);
+      Widgets.Add (Item.Confirm.Confirm_Buttons, Item.Confirm.Confirm_Delete);
 
-      Panels.Set_Fill (Item.Overlay, Themes.Scrim);
-      Build_Border (Item, Item.Dialog_Border);
+      Panels.Set_Fill (Item.Confirm.Overlay, Themes.Scrim);
+      Build_Border (Item, Item.Confirm.Dialog_Border);
       Build_Dialog_Bar
-        (Item, Item.Dialog_Bar, Item.Dialog_Title, Item.Dialog_Close,
+        (Item, Item.Confirm.Dialog_Bar, Item.Confirm.Dialog_Title,
+         Item.Confirm.Dialog_Close,
          "Delete project");
-      Panels.Set_Fill (Item.Dialog, Paper);
-      Labels.Set_Text (Item.Confirm_Note, "This cannot be undone.");
-      Buttons.Set_Label (Item.Confirm_Cancel, "Cancel");
-      Buttons.Set_Label (Item.Confirm_Delete, "Delete");
-      Buttons.Set_Icon (Item.Confirm_Delete, UI.Icons.Delete);
-      Buttons.Set_Icon_Size (Item.Confirm_Delete, Mic_Icon_Size);
-      Buttons.Set_Captioned (Item.Confirm_Delete, True);
-      Buttons.Set_Kind (Item.Confirm_Delete, Buttons.Danger);
-      Panels.Set_Fill (Item.Dialog_Rule, Themes.Border);
-      Set_Height (Widgets.Node (Item.Dialog_Rule), UI.Boxes.Edge (Pixels));
-      Panels.Set_Fill (Item.Confirm_Buttons, Themes.Tint);
+      Panels.Set_Fill (Item.Confirm.Dialog, Paper);
+      Labels.Set_Text (Item.Confirm.Confirm_Note, "This cannot be undone.");
+      Buttons.Set_Label (Item.Confirm.Confirm_Cancel, "Cancel");
+      Buttons.Set_Label (Item.Confirm.Confirm_Delete, "Delete");
+      Buttons.Set_Icon (Item.Confirm.Confirm_Delete, UI.Icons.Delete);
+      Buttons.Set_Icon_Size (Item.Confirm.Confirm_Delete, Mic_Icon_Size);
+      Buttons.Set_Captioned (Item.Confirm.Confirm_Delete, True);
+      Buttons.Set_Kind (Item.Confirm.Confirm_Delete, Buttons.Danger);
+      Panels.Set_Fill (Item.Confirm.Dialog_Rule, Themes.Border);
+      Set_Height (Widgets.Node (Item.Confirm.Dialog_Rule),
+                  UI.Boxes.Edge (Pixels));
+      Panels.Set_Fill (Item.Confirm.Confirm_Buttons, Themes.Tint);
 
       --  Not in the layout of the screens: over them, all of the window,
       --  with the dialog in the middle.
-      Set_Position_Type (Widgets.Node (Item.Overlay), Yoga.Absolute);
+      Set_Position_Type (Widgets.Node (Item.Confirm.Overlay), Yoga.Absolute);
       for Side in Yoga.Left .. Yoga.Bottom loop
-         Set_Position (Widgets.Node (Item.Overlay), Side, 0.0);
+         Set_Position (Widgets.Node (Item.Confirm.Overlay), Side, 0.0);
       end loop;
-      Set_Flex_Direction (Widgets.Node (Item.Overlay), Yoga.Column);
-      Set_Justify_Content (Widgets.Node (Item.Overlay), Yoga.Center);
-      Set_Align_Items (Widgets.Node (Item.Overlay), Yoga.Center);
+      Set_Flex_Direction (Widgets.Node (Item.Confirm.Overlay), Yoga.Column);
+      Set_Justify_Content (Widgets.Node (Item.Confirm.Overlay), Yoga.Center);
+      Set_Align_Items (Widgets.Node (Item.Confirm.Overlay), Yoga.Center);
 
-      Set_Width (Widgets.Node (Item.Dialog_Border), Dialog_Width * Pixels);
-      Set_Flex_Direction (Widgets.Node (Item.Dialog), Yoga.Column);
+      Set_Width (Widgets.Node (Item.Confirm.Dialog_Border),
+                 Dialog_Width * Pixels);
+      Set_Flex_Direction (Widgets.Node (Item.Confirm.Dialog), Yoga.Column);
       Set_Padding
-        (Widgets.Node (Item.Dialog), Yoga.All_Edges, Dialog_Pad * Pixels);
-      Set_Height (Widgets.Node (Item.Confirm_Message), Dialog_Line * Pixels);
-      Set_Height (Widgets.Node (Item.Confirm_Note), Dialog_Line * Pixels);
+        (Widgets.Node (Item.Confirm.Dialog), Yoga.All_Edges,
+         Dialog_Pad * Pixels);
+      Set_Height (Widgets.Node (Item.Confirm.Confirm_Message),
+                  Dialog_Line * Pixels);
+      Set_Height (Widgets.Node (Item.Confirm.Confirm_Note),
+                  Dialog_Line * Pixels);
 
-      Set_Flex_Direction (Widgets.Node (Item.Confirm_Buttons), Yoga.Row);
-      Set_Justify_Content (Widgets.Node (Item.Confirm_Buttons), Yoga.Flex_End);
+      Set_Flex_Direction (Widgets.Node (Item.Confirm.Confirm_Buttons),
+                          Yoga.Row);
+      Set_Justify_Content (Widgets.Node (Item.Confirm.Confirm_Buttons),
+                           Yoga.Flex_End);
       Set_Padding
-        (Widgets.Node (Item.Confirm_Buttons), Yoga.All_Edges,
+        (Widgets.Node (Item.Confirm.Confirm_Buttons), Yoga.All_Edges,
          Dialog_Foot_Pad * Pixels);
       Set_Gap
-        (Widgets.Node (Item.Confirm_Buttons), Yoga.All_Gutters,
+        (Widgets.Node (Item.Confirm.Confirm_Buttons), Yoga.All_Gutters,
          Row_Gap * Pixels);
       Set_Height
-        (Widgets.Node (Item.Confirm_Cancel), Dialog_Button_Height * Pixels);
+        (Widgets.Node (Item.Confirm.Confirm_Cancel),
+         Dialog_Button_Height * Pixels);
       Set_Height
-        (Widgets.Node (Item.Confirm_Delete), Dialog_Button_Height * Pixels);
+        (Widgets.Node (Item.Confirm.Confirm_Delete),
+         Dialog_Button_Height * Pixels);
       Set_Width
-        (Widgets.Node (Item.Confirm_Cancel), Dialog_Button_Width * Pixels);
+        (Widgets.Node (Item.Confirm.Confirm_Cancel),
+         Dialog_Button_Width * Pixels);
       Set_Width
-        (Widgets.Node (Item.Confirm_Delete), Dialog_Button_Width * Pixels);
+        (Widgets.Node (Item.Confirm.Confirm_Delete),
+         Dialog_Button_Width * Pixels);
    end Build_Modal;
 
    procedure Build_List (Item : in out Session);
@@ -1026,63 +1097,74 @@ package body Viewer.Build is
 
    procedure Build_List (Item : in out Session) is
       use Yoga.Nodes;
-      Pixels : constant Float := Item.Density;
+      Pixels : constant Float := Item.Shell.Density;
    begin
-      Widgets.Add (Item.Window_Panel, Item.List_Overlay);
-      Widgets.Add (Item.List_Overlay, Item.List_Border);
-      Widgets.Add (Item.List_Border, Item.List_Head);
-      Widgets.Add (Item.List_Head, Item.List_Heading);
-      Widgets.Add (Item.List_Head, Item.List_Close);
-      Widgets.Add (Item.List_Border, Item.List_Dialog);
-      Widgets.Add (Item.List_Dialog, Item.List_Scroll);
-      Widgets.Add (Item.List_Scroll, Item.List_Content);
-      Widgets.Add (Item.List_Content, Item.List_None);
-      for Row of Item.List_Rows loop
-         Widgets.Add (Item.List_Content, Row.Panel);
+      Widgets.Add (Item.Root.Window_Panel, Item.Item_List.List_Overlay);
+      Widgets.Add (Item.Item_List.List_Overlay, Item.Item_List.List_Border);
+      Widgets.Add (Item.Item_List.List_Border, Item.Item_List.List_Head);
+      Widgets.Add (Item.Item_List.List_Head, Item.Item_List.List_Heading);
+      Widgets.Add (Item.Item_List.List_Head, Item.Item_List.List_Close);
+      Widgets.Add (Item.Item_List.List_Border, Item.Item_List.List_Dialog);
+      Widgets.Add (Item.Item_List.List_Dialog, Item.Item_List.List_Scroll);
+      Widgets.Add (Item.Item_List.List_Scroll, Item.Item_List.List_Content);
+      Widgets.Add (Item.Item_List.List_Content, Item.Item_List.List_None);
+      for Row of Item.Item_List.List_Rows loop
+         Widgets.Add (Item.Item_List.List_Content, Row.Panel);
          Widgets.Add (Row.Panel, Row.Name);
          Widgets.Add (Row.Name, Row.Caption);
          Widgets.Add (Row.Panel, Row.Toggle);
          Widgets.Add (Row.Panel, Row.Remove);
       end loop;
 
-      Panels.Set_Fill (Item.List_Overlay, Themes.Scrim);
-      Build_Border (Item, Item.List_Border);
+      Panels.Set_Fill (Item.Item_List.List_Overlay, Themes.Scrim);
+      Build_Border (Item, Item.Item_List.List_Border);
       Build_Dialog_Bar
-        (Item, Item.List_Head, Item.List_Heading, Item.List_Close, "Items");
-      Panels.Set_Fill (Item.List_Dialog, Paper);
-      Labels.Set_Text (Item.List_None, No_Items);
+        (Item, Item.Item_List.List_Head, Item.Item_List.List_Heading,
+         Item.Item_List.List_Close, "Items");
+      Panels.Set_Fill (Item.Item_List.List_Dialog, Paper);
+      Labels.Set_Text (Item.Item_List.List_None, No_Items);
 
-      Set_Position_Type (Widgets.Node (Item.List_Overlay), Yoga.Absolute);
+      Set_Position_Type (Widgets.Node (Item.Item_List.List_Overlay),
+                         Yoga.Absolute);
       for Side in Yoga.Left .. Yoga.Bottom loop
-         Set_Position (Widgets.Node (Item.List_Overlay), Side, 0.0);
+         Set_Position (Widgets.Node (Item.Item_List.List_Overlay), Side, 0.0);
       end loop;
-      Set_Flex_Direction (Widgets.Node (Item.List_Overlay), Yoga.Column);
-      Set_Justify_Content (Widgets.Node (Item.List_Overlay), Yoga.Center);
-      Set_Align_Items (Widgets.Node (Item.List_Overlay), Yoga.Center);
+      Set_Flex_Direction (Widgets.Node (Item.Item_List.List_Overlay),
+                          Yoga.Column);
+      Set_Justify_Content (Widgets.Node (Item.Item_List.List_Overlay),
+                           Yoga.Center);
+      Set_Align_Items (Widgets.Node (Item.Item_List.List_Overlay),
+                       Yoga.Center);
 
-      Set_Width (Widgets.Node (Item.List_Border), List_Width * Pixels);
-      Set_Height (Widgets.Node (Item.List_Border), List_Height * Pixels);
-      Set_Flex_Direction (Widgets.Node (Item.List_Dialog), Yoga.Column);
-      Set_Flex_Grow (Widgets.Node (Item.List_Dialog), 1.0);
-      Set_Height (Widgets.Node (Item.List_Dialog), 0.0);
+      Set_Width (Widgets.Node (Item.Item_List.List_Border),
+                 List_Width * Pixels);
+      Set_Height (Widgets.Node (Item.Item_List.List_Border),
+                  List_Height * Pixels);
+      Set_Flex_Direction (Widgets.Node (Item.Item_List.List_Dialog),
+                          Yoga.Column);
+      Set_Flex_Grow (Widgets.Node (Item.Item_List.List_Dialog), 1.0);
+      Set_Height (Widgets.Node (Item.Item_List.List_Dialog), 0.0);
       Set_Padding
-        (Widgets.Node (Item.List_Dialog), Yoga.All_Edges, Dialog_Pad * Pixels);
+        (Widgets.Node (Item.Item_List.List_Dialog), Yoga.All_Edges,
+         Dialog_Pad * Pixels);
 
       --  The scroller takes what the bar leaves; the rows go in a column
       --  in it, as tall as they are.
-      Set_Flex_Grow (Widgets.Node (Item.List_Scroll), 1.0);
-      Set_Height (Widgets.Node (Item.List_Scroll), 0.0);
-      Set_Flex_Direction (Widgets.Node (Item.List_Content), Yoga.Column);
-      Set_Flex_Shrink (Widgets.Node (Item.List_Content), 0.0);
+      Set_Flex_Grow (Widgets.Node (Item.Item_List.List_Scroll), 1.0);
+      Set_Height (Widgets.Node (Item.Item_List.List_Scroll), 0.0);
+      Set_Flex_Direction (Widgets.Node (Item.Item_List.List_Content),
+                          Yoga.Column);
+      Set_Flex_Shrink (Widgets.Node (Item.Item_List.List_Content), 0.0);
       --  Room at the right for the scroll bar.
       Set_Padding
-        (Widgets.Node (Item.List_Content), Yoga.Right,
+        (Widgets.Node (Item.Item_List.List_Content), Yoga.Right,
          UI.Scrollbars.Thickness * Pixels);
       Set_Gap
-        (Widgets.Node (Item.List_Content), Yoga.All_Gutters,
+        (Widgets.Node (Item.Item_List.List_Content), Yoga.All_Gutters,
          List_Gap * Pixels);
-      Set_Height (Widgets.Node (Item.List_None), Title_Height * Pixels);
-      for Row of Item.List_Rows loop
+      Set_Height (Widgets.Node (Item.Item_List.List_None),
+                  Title_Height * Pixels);
+      for Row of Item.Item_List.List_Rows loop
          Panels.Set_Fill (Row.Panel, Themes.Tint);
          Panels.Set_Border (Row.Panel, Themes.Border);
          Set_Flex_Direction (Widgets.Node (Row.Panel), Yoga.Row);
@@ -1122,37 +1204,37 @@ package body Viewer.Build is
    is
       use Yoga.Nodes;
    begin
-      Projects.Open (Item.Store, Store_Path);
-      Items.Prepare (Item.Store);
-      Scripts.Load (Item.Script, Source, File_Name);
-      Item.Config_Dir :=
+      Projects.Open (Item.Nav.Store, Store_Path);
+      Items.Prepare (Item.Nav.Store);
+      Scripts.Load (Item.Host.Script, Source, File_Name);
+      Item.Prefs.Config_Dir :=
         Ada.Strings.Unbounded.To_Unbounded_String
           (Preferences.Config_Directory (Store_Path));
-      Item.Persist := Store_Path /= Projects.Memory;
-      if Item.Persist then
-         Item.Speech_Choice :=
+      Item.Prefs.Persist := Store_Path /= Projects.Memory;
+      if Item.Prefs.Persist then
+         Item.Prefs.Speech_Choice :=
            Preferences.Load_Speech_Model
-             (Ada.Strings.Unbounded.To_String (Item.Config_Dir));
-         Item.Theme_Chosen :=
+             (Ada.Strings.Unbounded.To_String (Item.Prefs.Config_Dir));
+         Item.Prefs.Theme_Chosen :=
            Preferences.Load_Theme
-             (Ada.Strings.Unbounded.To_String (Item.Config_Dir));
+             (Ada.Strings.Unbounded.To_String (Item.Prefs.Config_Dir));
       else
          --  Offscreen, the light theme, whatever the system's is.
-         Item.Theme_Chosen := Preferences.Light;
+         Item.Prefs.Theme_Chosen := Preferences.Light;
       end if;
-      Widgets.Set_Density (Item.Widgets, Item.Density);
-      Widgets.Set_Line_Texts (Item.Widgets, Item.Lines);
-      Widgets.Set_Icons (Item.Widgets, Item.Pictures);
-      UI.Icons.Set_Directory (Item.Pictures, Share_Directory ("icons"));
-      if Item.Windowed then
-         Widgets.Set_Clipboard (Item.Widgets, Item.System_Board);
+      Widgets.Set_Density (Item.Root.Widgets, Item.Shell.Density);
+      Widgets.Set_Line_Texts (Item.Root.Widgets, Item.Host.Lines);
+      Widgets.Set_Icons (Item.Root.Widgets, Item.Host.Pictures);
+      UI.Icons.Set_Directory (Item.Host.Pictures, Share_Directory ("icons"));
+      if Item.Shell.Windowed then
+         Widgets.Set_Clipboard (Item.Root.Widgets, Item.Shell.System_Board);
       else
-         Widgets.Set_Clipboard (Item.Widgets, Item.Own_Board);
+         Widgets.Set_Clipboard (Item.Root.Widgets, Item.Shell.Own_Board);
       end if;
 
-      Widgets.Set_Root (Item.Widgets, Item.Window_Panel);
-      Set_Flex_Direction (Widgets.Node (Item.Window_Panel), Yoga.Column);
-      if Item.Windowed then
+      Widgets.Set_Root (Item.Root.Widgets, Item.Root.Window_Panel);
+      Set_Flex_Direction (Widgets.Node (Item.Root.Window_Panel), Yoga.Column);
+      if Item.Shell.Windowed then
          Build_Header (Item);
       end if;
       Build_Home (Item);
@@ -1163,23 +1245,23 @@ package body Viewer.Build is
       Build_Modal (Item);
       Build_List (Item);
 
-      Buttons.Set_Label (Item.Ok_Button, "OK");
-      Buttons.Set_Kind (Item.Ok_Button, Buttons.Primary);
-      Buttons.Set_Label (Item.Cancel_Button, "Cancel");
+      Buttons.Set_Label (Item.Home_View.Ok_Button, "OK");
+      Buttons.Set_Kind (Item.Home_View.Ok_Button, Buttons.Primary);
+      Buttons.Set_Label (Item.Home_View.Cancel_Button, "Cancel");
       Text_Fields.Set_Shared
-        (Item.Edit_Field, Item.Doc_Resources'Unchecked_Access);
+        (Item.Title_Edit.Edit_Field, Item.Host.Doc_Resources'Unchecked_Access);
       Text_Fields.Configure
-        (Item.Edit_Field, UI.Line_Texts.Interface_Font, Edit_Size);
+        (Item.Title_Edit.Edit_Field, UI.Line_Texts.Interface_Font, Edit_Size);
 
       --  It starts at the home screen.
-      Widgets.Set_Visible (Item.Project_Panel, False);
-      Widgets.Set_Visible (Item.Write_View, False);
-      Widgets.Set_Visible (Item.Overlay, False);
-      Widgets.Set_Visible (Item.List_Overlay, False);
-      Widgets.Set_Visible (Item.Dock_Panel, False);
+      Widgets.Set_Visible (Item.Toolbar.Project_Panel, False);
+      Widgets.Set_Visible (Item.Page_View.Write_View, False);
+      Widgets.Set_Visible (Item.Confirm.Overlay, False);
+      Widgets.Set_Visible (Item.Item_List.List_Overlay, False);
+      Widgets.Set_Visible (Item.Dock.Dock_Panel, False);
       Recent.Refresh (Item);
       --  Before any event: the widgets must know where they are.
-      Widgets.Layout (Item.Widgets, Item.Target);
+      Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
    end Set_Up;
 
 end Viewer.Build;

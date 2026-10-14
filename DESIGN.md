@@ -182,9 +182,19 @@ From the bottom up; each crate depends only on those before it.
   wheel pans it from anywhere but the text; a tray over the foot of the
   canvas, in the middle, with Add Document and Add Source; and a dock below
   it of the minimised items). Offscreen sessions keep their
-  projects in memory. `Viewer` holds the `Session` and the public API,
-  the event loop and the window's lifecycle; the rest is in its private
-  children: `Style` (sizes, colours), `Build` (widgets, built once),
+  projects in memory. `Viewer` holds the `Session`, the event loop and the
+  window's lifecycle. What a test looks at and moves about is in its public
+  children, by what they are of: `Home_Screen` (the recent projects),
+  `Settings`, `Project_Screen` (the project and its view), `Canvas_Camera`
+  (zoom and origin), `Canvas_Windows` (the items), `Canvas_Links` (links
+  and pins), `Documents` (pages and directories) and `Sources`. The rest
+  is in its private children. `Session` is a record of groups, each a
+  run of what it held, in the order it is destroyed in: `Root`, `Home_View`,
+  `Confirm`, `Prefs`, `Toolbar`, `Page_View`, `Dock`, `Nav`, `Item_List`,
+  `Host` (script, window, renderer), `Docs`, `Context`, `Naming`, `Reading`,
+  `Dragging`, `Linking`, `Title_Edit`, `Opened` and `Shell`, besides
+  `Canvas_View` and `Windows`. The private
+  children are `Style` (sizes, colours), `Build` (widgets, built once),
   `Painting`, `Recent` (the list and renaming), `Deletion` (the
   dialog), `Navigation` (between screens), `Clicks` (what a click does),
   `Canvas_Items` (the windows of a project's items: loading, adding,

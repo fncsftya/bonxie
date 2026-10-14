@@ -108,4 +108,8 @@ private package Viewer.Canvas_Items is
    --  The windows of the items, the earliest made first, in
    --  Slots (Slots'First .. Slots'First + Found - 1).
 
+   function Nth (Item : Session; Row : Positive) return Items.Slot
+     with Pre => Row <= Count (Item);
+   --  The window of the Rowth item, in that order.
+
 end Viewer.Canvas_Items;

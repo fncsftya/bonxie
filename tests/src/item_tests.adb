@@ -10,10 +10,20 @@ with Goldens;
 with Items.Windows;
 with Projects;
 with Viewer;
+with Viewer.Canvas_Camera;
+with Viewer.Canvas_Links;
+with Viewer.Canvas_Windows;
+with Viewer.Home_Screen;
+with Viewer.Project_Screen;
 
 package body Item_Tests is
 
    package Events renames SDL3.Events;
+   package Camera renames Viewer.Canvas_Camera;
+   package Links renames Viewer.Canvas_Links;
+   package Windows renames Viewer.Canvas_Windows;
+   package Home renames Viewer.Home_Screen;
+   package Proj renames Viewer.Project_Screen;
    package Pictures renames Goldens.Images;
 
    use type Items.States;
@@ -97,7 +107,7 @@ package body Item_Tests is
       & Whole (Frame.Width) & Whole (Frame.Height));
 
    function Item_Place (Session : Viewer.Session; Row : Positive)
-      return String is (Place (Viewer.Item_Frame (Session, Row)));
+      return String is (Place (Windows.Item_Frame (Session, Row)));
 
    --  Events
 
@@ -173,7 +183,7 @@ package body Item_Tests is
    procedure Start (Session : in out Viewer.Session) is
    begin
       Viewer.Open (Session, "", Width, Height, 2.0);
-      Viewer.New_Project (Session);
+      Home.New_Project (Session);
    end Start;
 
    procedure Start_With_One (Session : in out Viewer.Session) is
@@ -426,27 +436,27 @@ package body Item_Tests is
    begin
       Start (Session);
       Check
-        ("item-none", " 0", Natural'Image (Viewer.Item_Count (Session)));
+        ("item-none", " 0", Natural'Image (Windows.Item_Count (Session)));
       Click_On (Session, Add_X, Tools_Y);
       Check
-        ("item-one", " 1", Natural'Image (Viewer.Item_Count (Session)));
+        ("item-one", " 1", Natural'Image (Windows.Item_Count (Session)));
       Check
-        ("item-new-title", "Untitled item", Viewer.Item_Title (Session, 1));
+        ("item-new-title", "Untitled item", Windows.Item_Title (Session, 1));
       Check
         ("item-new-place", "-140-100 280 200", Item_Place (Session, 1));
       Check
         ("item-new-state", "OPEN",
-         Items.States'Image (Viewer.Item_State (Session, 1)));
+         Items.States'Image (Windows.Item_State (Session, 1)));
       Check
         ("item-new-words", " 0",
-         Natural'Image (Viewer.Item_Words (Session, 1)));
+         Natural'Image (Windows.Item_Words (Session, 1)));
       Move_To (Session, 600.0, 60.0);
       Snap (Session, "item-added");
 
       --  The focus is in the text.
       Type_In (Session, "Hello");
       Check
-        ("item-new-typed", "Hello", Viewer.Item_Text (Session, 1));
+        ("item-new-typed", "Hello", Windows.Item_Text (Session, 1));
 
       --  Another is a little down and right of it, and on top.
       Click_On (Session, Add_X, Tools_Y);
@@ -463,15 +473,15 @@ package body Item_Tests is
       Type_In (Session, "One two three");
       Check
         ("item-typed-words", " 3",
-         Natural'Image (Viewer.Item_Words (Session, 1)));
+         Natural'Image (Windows.Item_Words (Session, 1)));
       Press_Key (Session, Events.Key_Return);
       Type_In (Session, "four");
       Check
         ("item-typed-lines", "One two three" & ASCII.LF & "four",
-         Viewer.Item_Text (Session, 1));
+         Windows.Item_Text (Session, 1));
       Check
         ("item-typed-more-words", " 4",
-         Natural'Image (Viewer.Item_Words (Session, 1)));
+         Natural'Image (Windows.Item_Words (Session, 1)));
       Snap (Session, "item-typed");
 
       --  Clicked into, it takes the typing.
@@ -479,7 +489,7 @@ package body Item_Tests is
       Type_In (Session, "X");
       Check
         ("item-typed-clicked", "One two three" & ASCII.LF & "four" & "X",
-         Viewer.Item_Text (Session, 1));
+         Windows.Item_Text (Session, 1));
    end Typing;
 
    procedure Dictating is
@@ -491,25 +501,25 @@ package body Item_Tests is
       --  is selected.
       Type_In (Session, "ac");
       Press_Key (Session, Events.Key_Left_Arrow);
-      Viewer.Dictate_Into (Session, 1, "b");
-      Check ("dictate-at-caret", "abc", Viewer.Item_Text (Session, 1));
+      Windows.Dictate_Into (Session, 1, "b");
+      Check ("dictate-at-caret", "abc", Windows.Item_Text (Session, 1));
 
       --  Not focused: a new paragraph after the text.
       Click_On (Session, 600.0, 60.0);
-      Viewer.Dictate_Into (Session, 1, "next line");
+      Windows.Dictate_Into (Session, 1, "next line");
       Check
         ("dictate-new-paragraph", "abc" & ASCII.LF & "next line",
-         Viewer.Item_Text (Session, 1));
+         Windows.Item_Text (Session, 1));
 
       --  Nothing said, nothing added.
-      Viewer.Dictate_Into (Session, 1, "");
+      Windows.Dictate_Into (Session, 1, "");
       Check
         ("dictate-nothing", "abc" & ASCII.LF & "next line",
-         Viewer.Item_Text (Session, 1));
+         Windows.Item_Text (Session, 1));
       Move_To (Session, 610.0, 70.0);
       Check
         ("dictate-words", " 3",
-         Natural'Image (Viewer.Item_Words (Session, 1)));
+         Natural'Image (Windows.Item_Words (Session, 1)));
    end Dictating;
 
    procedure Dictating_Into_Empty is
@@ -517,8 +527,8 @@ package body Item_Tests is
    begin
       Start_With_One (Session);
       Click_On (Session, 600.0, 60.0);
-      Viewer.Dictate_Into (Session, 1, "first");
-      Check ("dictate-into-empty", "first", Viewer.Item_Text (Session, 1));
+      Windows.Dictate_Into (Session, 1, "first");
+      Check ("dictate-into-empty", "first", Windows.Item_Text (Session, 1));
    end Dictating_Into_Empty;
 
    procedure Dictating_Live is
@@ -530,24 +540,24 @@ package body Item_Tests is
       --  hearing replaces the last.
       Type_In (Session, "abc");
       Click_On (Session, 600.0, 60.0);
-      Viewer.Dictate_Live (Session, 1, "");
-      Check ("live-nothing", "abc", Viewer.Item_Text (Session, 1));
-      Viewer.Dictate_Live (Session, 1, "hel");
+      Windows.Dictate_Live (Session, 1, "");
+      Check ("live-nothing", "abc", Windows.Item_Text (Session, 1));
+      Windows.Dictate_Live (Session, 1, "hel");
       Check
         ("live-first", "abc" & ASCII.LF & "hel",
-         Viewer.Item_Text (Session, 1));
-      Viewer.Dictate_Live (Session, 1, "hello wor");
+         Windows.Item_Text (Session, 1));
+      Windows.Dictate_Live (Session, 1, "hello wor");
       Check
         ("live-grown", "abc" & ASCII.LF & "hello wor",
-         Viewer.Item_Text (Session, 1));
-      Viewer.Dictate_Live (Session, 1, "hello world");
-      Viewer.Dictate_Live (Session, 1, "hello world");
+         Windows.Item_Text (Session, 1));
+      Windows.Dictate_Live (Session, 1, "hello world");
+      Windows.Dictate_Live (Session, 1, "hello world");
 
       --  What is finally heard takes its place.
-      Viewer.Dictate_Into (Session, 1, "Hello, world.");
+      Windows.Dictate_Into (Session, 1, "Hello, world.");
       Check
         ("live-final", "abc" & ASCII.LF & "Hello, world.",
-         Viewer.Item_Text (Session, 1));
+         Windows.Item_Text (Session, 1));
 
       --  Focused, it shows at the caret, and the final text is one step
       --  to undo, back to the text before.
@@ -555,19 +565,19 @@ package body Item_Tests is
       for Step in 1 .. 30 loop
          Press_Key (Session, Events.Key_Right_Arrow);
       end loop;
-      Viewer.Dictate_Live (Session, 1, " and");
-      Viewer.Dictate_Live (Session, 1, " and more");
+      Windows.Dictate_Live (Session, 1, " and");
+      Windows.Dictate_Live (Session, 1, " and more");
       Check
         ("live-at-caret", "abc" & ASCII.LF & "Hello, world. and more",
-         Viewer.Item_Text (Session, 1));
-      Viewer.Dictate_Into (Session, 1, " and more.");
+         Windows.Item_Text (Session, 1));
+      Windows.Dictate_Into (Session, 1, " and more.");
       Check
         ("live-final-at-caret", "abc" & ASCII.LF & "Hello, world. and more.",
-         Viewer.Item_Text (Session, 1));
+         Windows.Item_Text (Session, 1));
       Press_Key (Session, Events.Key_Z, Command => True);
       Check
         ("live-undone", "abc" & ASCII.LF & "Hello, world.",
-         Viewer.Item_Text (Session, 1));
+         Windows.Item_Text (Session, 1));
    end Dictating_Live;
 
    procedure Titling is
@@ -581,29 +591,30 @@ package body Item_Tests is
       Type_In (Session, "Not here");
       Check
         ("item-title-not-editable", "Untitled item",
-         Viewer.Item_Title (Session, 1));
+         Windows.Item_Title (Session, 1));
       Check ("item-title-not-editing", "FALSE",
-             Boolean'Image (Viewer.Is_Editing_Title (Session, 1)));
+             Boolean'Image (Windows.Is_Editing_Title (Session, 1)));
 
       --  Double-clicked, it is a field, with all of it selected.
       Double_Click_On (Session, Title_X, Bar_Y);
       Check ("item-title-editing", "TRUE",
-             Boolean'Image (Viewer.Is_Editing_Title (Session, 1)));
+             Boolean'Image (Windows.Is_Editing_Title (Session, 1)));
       Type_In (Session, "Interview notes");
       Check
         ("item-title-typed", "Interview notes",
-         Viewer.Item_Title (Session, 1));
+         Windows.Item_Title (Session, 1));
       Snap (Session, "item-title");
 
       --  Return keeps it, and it is text again.
       Press_Key (Session, Events.Key_Return);
       Check ("item-title-done", "FALSE",
-             Boolean'Image (Viewer.Is_Editing_Title (Session, 1)));
+             Boolean'Image (Windows.Is_Editing_Title (Session, 1)));
       Type_In (Session, "Q1");  --  to nothing
       Check
-        ("item-title-return", "Not here", Viewer.Item_Text (Session, 1));
+        ("item-title-return", "Not here", Windows.Item_Text (Session, 1));
       Check
-        ("item-title-kept", "Interview notes", Viewer.Item_Title (Session, 1));
+        ("item-title-kept", "Interview notes",
+         Windows.Item_Title (Session, 1));
       Move_To (Session, 650.0, 60.0);
       Snap (Session, "item-titled");
 
@@ -612,8 +623,8 @@ package body Item_Tests is
       Type_In (Session, "Other");
       Click_On (Session, Text_X, Text_Y);
       Check ("item-title-left", "FALSE",
-             Boolean'Image (Viewer.Is_Editing_Title (Session, 1)));
-      Check ("item-title-left-kept", "Other", Viewer.Item_Title (Session, 1));
+             Boolean'Image (Windows.Is_Editing_Title (Session, 1)));
+      Check ("item-title-left-kept", "Other", Windows.Item_Title (Session, 1));
    end Titling;
 
    procedure Moving is
@@ -677,7 +688,7 @@ package body Item_Tests is
       Click_On (Session, Minimize_X, Bar_Y);
       Check
         ("item-minimized", "MINIMIZED",
-         Items.States'Image (Viewer.Item_State (Session, 1)));
+         Items.States'Image (Windows.Item_State (Session, 1)));
       Move_To (Session, 600.0, 60.0);
       Snap (Session, "item-minimized");
 
@@ -685,11 +696,11 @@ package body Item_Tests is
       Click_On (Session, Restore_X, Dock_Y);
       Check
         ("item-restored", "OPEN",
-         Items.States'Image (Viewer.Item_State (Session, 1)));
+         Items.States'Image (Windows.Item_State (Session, 1)));
       Check
         ("item-restored-place", "-140-100 280 200", Item_Place (Session, 1));
       Check
-        ("item-restored-text", "Kept", Viewer.Item_Text (Session, 1));
+        ("item-restored-text", "Kept", Windows.Item_Text (Session, 1));
       Move_To (Session, 600.0, 60.0);
       Snap (Session, "item-restored");
 
@@ -698,7 +709,7 @@ package body Item_Tests is
       Click_On (Session, Dock_Close_X, Dock_Y);
       Check
         ("item-closed-from-dock", "CLOSED",
-         Items.States'Image (Viewer.Item_State (Session, 1)));
+         Items.States'Image (Windows.Item_State (Session, 1)));
       Move_To (Session, 600.0, 60.0);
       Snap (Session, "item-closed-dock-gone");
    end Minimizing;
@@ -710,10 +721,10 @@ package body Item_Tests is
       Click_On (Session, Close_X, Bar_Y);
       Check
         ("item-closed", "CLOSED",
-         Items.States'Image (Viewer.Item_State (Session, 1)));
+         Items.States'Image (Windows.Item_State (Session, 1)));
       Check
         ("item-closed-kept", " 1",
-         Natural'Image (Viewer.Item_Count (Session)));
+         Natural'Image (Windows.Item_Count (Session)));
       Move_To (Session, 600.0, 60.0);
       Snap (Session, "item-closed");
    end Closing;
@@ -726,7 +737,7 @@ package body Item_Tests is
       Click_On (Session, Close_X + 24.0, Bar_Y + 24.0);
       Click_On (Session, List_X, List_Y);
       Check
-        ("list-shown", "TRUE", Boolean'Image (Viewer.Is_Listing (Session)));
+        ("list-shown", "TRUE", Boolean'Image (Proj.Is_Listing (Session)));
       Move_To (Session, 600.0, 60.0);
       Snap (Session, "list-shown");
    end Listing;
@@ -742,7 +753,7 @@ package body Item_Tests is
       Click_On (Session, Toggle_X, Row_Y (1));
       Check
         ("list-shown-again", "OPEN",
-         Items.States'Image (Viewer.Item_State (Session, 1)));
+         Items.States'Image (Windows.Item_State (Session, 1)));
       Move_To (Session, 600.0, 60.0);
       Snap (Session, "list-item-shown");
 
@@ -750,23 +761,23 @@ package body Item_Tests is
       Click_On (Session, Toggle_X, Row_Y (1));
       Check
         ("list-hidden-again", "CLOSED",
-         Items.States'Image (Viewer.Item_State (Session, 1)));
+         Items.States'Image (Windows.Item_State (Session, 1)));
 
       --  Removed for good.
       Click_On (Session, Remove_X, Row_Y (1));
       Check
-        ("list-removed", " 0", Natural'Image (Viewer.Item_Count (Session)));
+        ("list-removed", " 0", Natural'Image (Windows.Item_Count (Session)));
       Move_To (Session, 600.0, 60.0);
       Snap (Session, "list-empty");
 
       --  Closed, by its button or by Escape.
       Click_On (Session, List_Close_X, List_Close_Y);
       Check
-        ("list-closed", "FALSE", Boolean'Image (Viewer.Is_Listing (Session)));
+        ("list-closed", "FALSE", Boolean'Image (Proj.Is_Listing (Session)));
       Click_On (Session, List_X, List_Y);
       Press_Key (Session, Events.Key_Escape);
       Check
-        ("list-escaped", "FALSE", Boolean'Image (Viewer.Is_Listing (Session)));
+        ("list-escaped", "FALSE", Boolean'Image (Proj.Is_Listing (Session)));
       Snap (Session, "list-gone");
    end Removing;
 
@@ -774,8 +785,8 @@ package body Item_Tests is
       Session : Viewer.Session;
    begin
       Start (Session);
-      Viewer.Add_Item (Session, "First");
-      Viewer.Add_Item (Session, "Second");
+      Windows.Add_Item (Session, "First");
+      Windows.Add_Item (Session, "Second");
       --  The first, behind the second, is closed, and the canvas panned
       --  well away from both.
       Click_On (Session, Minimize_X, Bar_Y);
@@ -790,9 +801,9 @@ package body Item_Tests is
       --  Clicking its title closes the list and shows it, in the middle.
       Click_On (Session, 300.0, Row_Y (1));
       Check ("list-reveal-closed", "FALSE",
-             Boolean'Image (Viewer.Is_Listing (Session)));
+             Boolean'Image (Proj.Is_Listing (Session)));
       Check ("list-reveal-open", "OPEN",
-             Items.States'Image (Viewer.Item_State (Session, 1)));
+             Items.States'Image (Windows.Item_State (Session, 1)));
       Move_To (Session, 650.0, 60.0);
       Snap (Session, "list-revealed");
    end Revealing;
@@ -804,9 +815,9 @@ package body Item_Tests is
       --  Five bars, 200 wide, are wider than the window: each is
       --  minimised in turn, by the button at the right of its bar.
       for I in 1 .. 5 loop
-         Viewer.Add_Item (Session, "Item" & Natural'Image (I));
+         Windows.Add_Item (Session, "Item" & Natural'Image (I));
          declare
-            Where : constant Items.Frame := Viewer.Item_Frame (Session, I);
+            Where : constant Items.Frame := Windows.Item_Frame (Session, I);
          begin
             Click_On
               (Session, 360.0 + Where.Left + Where.Width - 41.0,
@@ -832,7 +843,7 @@ package body Item_Tests is
    begin
       Start (Session);
       for I in 1 .. 9 loop
-         Viewer.Add_Item (Session, "Item" & Natural'Image (I));
+         Windows.Add_Item (Session, "Item" & Natural'Image (I));
       end loop;
       Click_On (Session, List_X, List_Y);
       Move_To (Session, 360.0, 240.0);
@@ -910,24 +921,24 @@ package body Item_Tests is
       --  The view is kept with the project: opening it again is at the
       --  same zoom, and the same place.
       declare
-         Zoom : constant Float := Viewer.Canvas_Zoom (Session);
-         X    : constant Float := Viewer.Canvas_Origin_X (Session);
-         Y    : constant Float := Viewer.Canvas_Origin_Y (Session);
-         Key  : constant Projects.Id := Viewer.Current_Project (Session);
+         Zoom : constant Float := Camera.Canvas_Zoom (Session);
+         X    : constant Float := Camera.Canvas_Origin_X (Session);
+         Y    : constant Float := Camera.Canvas_Origin_Y (Session);
+         Key  : constant Projects.Id := Proj.Current_Project (Session);
          function Near (A, B : Float) return String is
            (Boolean'Image (abs (A - B) < 0.01));
       begin
-         Viewer.Close_Project (Session);
-         Viewer.Open_Project (Session, Key);
+         Proj.Close_Project (Session);
+         Home.Open_Project (Session, Key);
          Check
            ("view-zoom-kept", "TRUE",
-            Near (Zoom, Viewer.Canvas_Zoom (Session)));
+            Near (Zoom, Camera.Canvas_Zoom (Session)));
          Check
            ("view-x-kept", "TRUE",
-            Near (X, Viewer.Canvas_Origin_X (Session)));
+            Near (X, Camera.Canvas_Origin_X (Session)));
          Check
            ("view-y-kept", "TRUE",
-            Near (Y, Viewer.Canvas_Origin_Y (Session)));
+            Near (Y, Camera.Canvas_Origin_Y (Session)));
       end;
    end Panning_And_Zooming;
 
@@ -1013,7 +1024,7 @@ package body Item_Tests is
       --  at one place than another.
       for Row in 1 .. 2 loop
          declare
-            Box : constant Items.Frame := Viewer.Item_Box (Session, Row);
+            Box : constant Items.Frame := Windows.Item_Box (Session, Row);
             function Whole_Pixels (Value : Float) return String is
               (if Value = Float'Rounding (Value) then "whole" else "not");
          begin
@@ -1031,7 +1042,7 @@ package body Item_Tests is
       Drawn   : Pictures.Image;
    begin
       Viewer.Open (Session, "", Width, Height, 1.5);
-      Viewer.New_Project (Session);
+      Home.New_Project (Session);
       Click_On (Session, Add_X, Tools_Y);
       Type_In (Session, "Six words are in this text");
       Move_To (Session, 650.0, 60.0);
@@ -1044,11 +1055,11 @@ package body Item_Tests is
    begin
       Start (Session);
       for I in 1 .. Items.Capacity + 3 loop
-         Viewer.Add_Item (Session);
+         Windows.Add_Item (Session);
       end loop;
       Check
         ("item-full", Natural'Image (Items.Capacity),
-         Natural'Image (Viewer.Item_Count (Session)));
+         Natural'Image (Windows.Item_Count (Session)));
    end Full;
 
    procedure Kept is
@@ -1056,7 +1067,7 @@ package body Item_Tests is
       Key     : Projects.Id;
    begin
       Start_With_One (Session);
-      Key := Viewer.Current_Project (Session);
+      Key := Proj.Current_Project (Session);
       Type_In (Session, "Written down");
       Double_Click_On (Session, Title_X, Bar_Y);
       Type_In (Session, "Kept item");
@@ -1068,27 +1079,28 @@ package body Item_Tests is
       --  Items are as the project was left, shown, minimised or closed.
       Check
         ("item-kept-closed", "CLOSED",
-         Items.States'Image (Viewer.Item_State (Session, 2)));
+         Items.States'Image (Windows.Item_State (Session, 2)));
       Click_On (Session, Minimize_X + 50.0, Bar_Y + 25.0);
 
-      Viewer.Close_Project (Session);
-      Viewer.Open_Project (Session, Key);
+      Proj.Close_Project (Session);
+      Home.Open_Project (Session, Key);
       Check
-        ("item-kept-count", " 2", Natural'Image (Viewer.Item_Count (Session)));
+        ("item-kept-count", " 2",
+         Natural'Image (Windows.Item_Count (Session)));
       Check
-        ("item-kept-title", "Kept item", Viewer.Item_Title (Session, 1));
+        ("item-kept-title", "Kept item", Windows.Item_Title (Session, 1));
       Check
-        ("item-kept-text", "Written down", Viewer.Item_Text (Session, 1));
+        ("item-kept-text", "Written down", Windows.Item_Text (Session, 1));
       Check
         ("item-kept-place", "-90-75 280 200", Item_Place (Session, 1));
       Check
         ("item-kept-state", "MINIMIZED",
-         Items.States'Image (Viewer.Item_State (Session, 1)));
+         Items.States'Image (Windows.Item_State (Session, 1)));
       Check
-        ("item-kept-second", "Second", Viewer.Item_Text (Session, 2));
+        ("item-kept-second", "Second", Windows.Item_Text (Session, 2));
       Check
         ("item-kept-second-state", "CLOSED",
-         Items.States'Image (Viewer.Item_State (Session, 2)));
+         Items.States'Image (Windows.Item_State (Session, 2)));
       Move_To (Session, 650.0, 60.0);
       Snap (Session, "item-kept");
    end Kept;
@@ -1111,7 +1123,7 @@ package body Item_Tests is
         (Natural'Image (Value));
    begin
       Start_With_One (Session);
-      Key := Viewer.Current_Project (Session);
+      Key := Proj.Current_Project (Session);
       Drag (Session, Hold_X, Bar_Y, Hold_X - 150.0, Bar_Y);
       Click_On (Session, Add_X, Tools_Y);
       Drag (Session, Hold_X + 24.0, Bar_Y + 24.0,
@@ -1121,20 +1133,20 @@ package body Item_Tests is
 
       --  Pins are shown while the pointer is over a window.
       Move_To (Session, 600.0, 60.0);
-      Check ("links-none-away", " 0", Count (Viewer.Pin_Count (Session)));
+      Check ("links-none-away", " 0", Count (Links.Pin_Count (Session)));
       Move_To (Session, 200.0, 250.0);
-      Check ("links-four", " 4", Count (Viewer.Pin_Count (Session)));
+      Check ("links-four", " 4", Count (Links.Pin_Count (Session)));
       Move_To (Session, Source_Pin_X, Source_Pin_Y);
-      Check ("links-pin-hovered", " 4", Count (Viewer.Pin_Count (Session)));
+      Check ("links-pin-hovered", " 4", Count (Links.Pin_Count (Session)));
       Check ("links-pin-cursor", "POINTER",
              SDL3.Cursors.Kind'Image (Viewer.Cursor (Session)));
 
       --  Let go on nothing, there is no link.
       Press (Session, Source_Pin_X, Source_Pin_Y);
-      Check ("links-dragging-pins", " 5", Count (Viewer.Pin_Count (Session)));
+      Check ("links-dragging-pins", " 5", Count (Links.Pin_Count (Session)));
       Move_To (Session, 500.0, 120.0, Held => True);
       Release (Session, 500.0, 120.0);
-      Check ("links-nothing", " 0", Count (Viewer.Link_Count (Session)));
+      Check ("links-nothing", " 0", Count (Links.Link_Count (Session)));
 
       --  Dragged to a pin of the other window, there is.
       Move_To (Session, 200.0, 250.0);
@@ -1143,9 +1155,9 @@ package body Item_Tests is
       Move_To (Session, Target_Pin_X, Target_Pin_Y, Held => True);
       Snap (Session, "links-dragging");
       Release (Session, Target_Pin_X, Target_Pin_Y);
-      Check ("links-made", " 1", Count (Viewer.Link_Count (Session)));
+      Check ("links-made", " 1", Count (Links.Link_Count (Session)));
       Move_To (Session, 600.0, 60.0);
-      Check ("links-pins-away", " 0", Count (Viewer.Pin_Count (Session)));
+      Check ("links-pins-away", " 0", Count (Links.Pin_Count (Session)));
       Snap (Session, "links-made");
 
       --  Not twice between the same two, nor back to the same window.
@@ -1154,19 +1166,19 @@ package body Item_Tests is
       Move_To (Session, Source_Pin_X, 150.0, Held => True);
       Release (Session, Source_Pin_X, 150.0);
       Move_To (Session, Source_Pin_X, 150.0);
-      Check ("links-not-twice", " 1", Count (Viewer.Link_Count (Session)));
+      Check ("links-not-twice", " 1", Count (Links.Link_Count (Session)));
 
       --  Kept.
-      Viewer.Close_Project (Session);
-      Viewer.Open_Project (Session, Key);
-      Check ("links-kept", " 1", Count (Viewer.Link_Count (Session)));
+      Proj.Close_Project (Session);
+      Home.Open_Project (Session, Key);
+      Check ("links-kept", " 1", Count (Links.Link_Count (Session)));
       Move_To (Session, 650.0, 60.0);
       Snap (Session, "links-kept");
 
       --  They go with an item.
       Click_On (Session, List_X, List_Y);
       Click_On (Session, Remove_X, Row_Y (2));
-      Check ("links-removed", " 0", Count (Viewer.Link_Count (Session)));
+      Check ("links-removed", " 0", Count (Links.Link_Count (Session)));
    end Linking;
 
    procedure Editing_Links is
@@ -1205,23 +1217,23 @@ package body Item_Tests is
       end Make_Link;
    begin
       Start_With_One (Session);
-      Key := Viewer.Current_Project (Session);
+      Key := Proj.Current_Project (Session);
       Drag (Session, Hold_X, Bar_Y, Hold_X - 150.0, Bar_Y);
       Click_On (Session, Add_X, Tools_Y);
       Drag (Session, Hold_X + 24.0, Bar_Y + 24.0,
             Hold_X + 144.0, Bar_Y + 84.0);
       Make_Link;
-      Check ("link-edit-made", " 1", Text (Viewer.Link_Count (Session)));
+      Check ("link-edit-made", " 1", Text (Links.Link_Count (Session)));
       Check ("link-edit-default",
              "SOLID PLAIN  1 LEFT",
-             Viewer.Link_Description (Session, 1));
+             Links.Link_Description (Session, 1));
 
       --  A press on the line selects it, and on nothing else does not.
       Check ("link-edit-unselected", "FALSE",
-             Boolean'Image (Viewer.Link_Selected (Session)));
+             Boolean'Image (Links.Link_Selected (Session)));
       Click_On (Session, Line_X, Line_Y);
       Check ("link-edit-selected", "TRUE",
-             Boolean'Image (Viewer.Link_Selected (Session)));
+             Boolean'Image (Links.Link_Selected (Session)));
       Snap (Session, "link-selected");
 
       --  Its style, kept.
@@ -1229,12 +1241,12 @@ package body Item_Tests is
       Click_On (Session, Arrow_X, Tool_Y);
       Click_On (Session, Orange_X, Tool_Y);
       Check ("link-edit-styled", "DASHED ARROW  2 LEFT",
-             Viewer.Link_Description (Session, 1));
+             Links.Link_Description (Session, 1));
       Snap (Session, "link-styled");
-      Viewer.Close_Project (Session);
-      Viewer.Open_Project (Session, Key);
+      Proj.Close_Project (Session);
+      Home.Open_Project (Session, Key);
       Check ("link-edit-style-kept", "DASHED ARROW  2 LEFT",
-             Viewer.Link_Description (Session, 1));
+             Links.Link_Description (Session, 1));
       Move_To (Session, 650.0, 60.0);
       Snap (Session, "link-style-kept");
 
@@ -1245,36 +1257,36 @@ package body Item_Tests is
       Press (Session, Target_Pin_X, Target_Pin_Y);
       Move_To (Session, Top_Pin_X, Top_Pin_Y, Held => True);
       Check ("link-edit-moving-pins", " 4",
-             Text (Viewer.Pin_Count (Session)));
+             Text (Links.Pin_Count (Session)));
       Snap (Session, "link-moving");
       Release (Session, Top_Pin_X, Top_Pin_Y);
       Check ("link-edit-moved", "DASHED ARROW  2 TOP",
-             Viewer.Link_Description (Session, 1));
+             Links.Link_Description (Session, 1));
       Check ("link-edit-moved-count", " 1",
-             Text (Viewer.Link_Count (Session)));
+             Text (Links.Link_Count (Session)));
 
       --  Let go on nothing, it stays.
       Move_To (Session, 650.0, 60.0);
       Check ("link-edit-still-selected", "TRUE",
-             Boolean'Image (Viewer.Link_Selected (Session)));
+             Boolean'Image (Links.Link_Selected (Session)));
 
       --  A press on the canvas puts it away.
       Click_On (Session, 600.0, 60.0);
       Check ("link-edit-deselected", "FALSE",
-             Boolean'Image (Viewer.Link_Selected (Session)));
+             Boolean'Image (Links.Link_Selected (Session)));
 
       --  Backspace deletes it; so does its toolbar's button.
       Press_Key (Session, Events.Key_Backspace);
-      Check ("link-edit-not-yet", " 1", Text (Viewer.Link_Count (Session)));
+      Check ("link-edit-not-yet", " 1", Text (Links.Link_Count (Session)));
       Click_On (Session, 357.0, 261.0);
       Press_Key (Session, Events.Key_Backspace);
-      Check ("link-edit-backspace", " 0", Text (Viewer.Link_Count (Session)));
+      Check ("link-edit-backspace", " 0", Text (Links.Link_Count (Session)));
       Make_Link;
       Click_On (Session, Line_X, Line_Y);
       Click_On (Session, Delete_X, Tool_Y);
-      Check ("link-edit-deleted", " 0", Text (Viewer.Link_Count (Session)));
+      Check ("link-edit-deleted", " 0", Text (Links.Link_Count (Session)));
       Check ("link-edit-deleted-selection", "FALSE",
-             Boolean'Image (Viewer.Link_Selected (Session)));
+             Boolean'Image (Links.Link_Selected (Session)));
    end Editing_Links;
 
    --  Sources
@@ -1297,7 +1309,7 @@ package body Item_Tests is
       Press_Key (Session, Events.Key_A, Command => True);
       Type_In (Session, Link);
       Press_Key (Session, Events.Key_Return);
-      while Viewer.Is_Capturing (Session) and then Waited < 600 loop
+      while Windows.Is_Capturing (Session) and then Waited < 600 loop
          Webshot.Pump (100);
          Tick := SDL3.Events.Milliseconds (Natural (Tick) + 100);
          Viewer.Tick (Session, Tick);
@@ -1311,21 +1323,21 @@ package body Item_Tests is
       Start (Session);
       Click_On (Session, Source_X, Tools_Y);
       Check
-        ("source-count", " 1", Natural'Image (Viewer.Item_Count (Session)));
+        ("source-count", " 1", Natural'Image (Windows.Item_Count (Session)));
       Check
         ("source-kind", "SOURCE",
-         Items.Kinds'Image (Viewer.Item_Kind (Session, 1)));
+         Items.Kinds'Image (Windows.Item_Kind (Session, 1)));
       Check
         ("source-status", "Press Return to capture",
-         Viewer.Item_Status (Session, 1));
+         Windows.Item_Status (Session, 1));
       Move_To (Session, 600.0, 60.0);
       Snap (Session, "source-added");
       Type_In (Session, "example.org");
-      Check ("source-link", "example.org", Viewer.Item_Text (Session, 1));
+      Check ("source-link", "example.org", Windows.Item_Text (Session, 1));
       Click_On (Session, Add_X, Tools_Y);
       Check
         ("source-and-note", "NOTE",
-         Items.Kinds'Image (Viewer.Item_Kind (Session, 2)));
+         Items.Kinds'Image (Windows.Item_Kind (Session, 2)));
    end Source_Windows;
 
    Text_Page : constant String :=
@@ -1363,17 +1375,17 @@ package body Item_Tests is
       Ada.Text_IO.Close (File);
 
       Start (Session);
-      Viewer.Pin_Capture_Time (Session, 1_700_000_000);
-      Key := Viewer.Current_Project (Session);
-      Viewer.Add_Item (Session, "Page", Items.Source);
+      Windows.Pin_Capture_Time (Session, 1_700_000_000);
+      Key := Proj.Current_Project (Session);
+      Windows.Add_Item (Session, "Page", Items.Source);
       Check
         ("words-before", " 0",
-         Natural'Image (Viewer.Item_Recognized (Session, 1)));
+         Natural'Image (Windows.Item_Recognized (Session, 1)));
 
       --  Once the picture is taken its text is looked for, in the
       --  background, and the loop goes on until it is found.
       Capture_From (Session, "file://" & Page);
-      Words := Viewer.Item_Recognized (Session, 1);
+      Words := Windows.Item_Recognized (Session, 1);
       Check
         ("words-found", "TRUE", Boolean'Image (Words >= 8));
 
@@ -1384,32 +1396,32 @@ package body Item_Tests is
       Check
         ("words-selected", "TRUE",
          Boolean'Image
-           (Has (Viewer.Item_Selected_Text (Session, 1), "moorland")
-            and then Has (Viewer.Item_Selected_Text (Session, 1), "winter")));
+           (Has (Windows.Item_Selected_Text (Session, 1), "moorland")
+            and then Has (Windows.Item_Selected_Text (Session, 1), "winter")));
       Draw;
 
       --  Kept, so that opening the project again finds them in the
       --  database and does not look again.
-      Viewer.Close_Project (Session);
-      Viewer.Open_Project (Session, Key);
+      Proj.Close_Project (Session);
+      Home.Open_Project (Session, Key);
       Check
         ("words-not-looked-for", "FALSE",
-         Boolean'Image (Viewer.Is_Capturing (Session)));
+         Boolean'Image (Windows.Is_Capturing (Session)));
       Check
         ("words-kept", Natural'Image (Words),
-         Natural'Image (Viewer.Item_Recognized (Session, 1)));
+         Natural'Image (Windows.Item_Recognized (Session, 1)));
       Draw;
       Click_On (Session, 300.0, Picture_Y);
       Press_Key (Session, Events.Key_A, Command => True);
       Check
         ("words-kept-selected", "TRUE",
          Boolean'Image
-           (Has (Viewer.Item_Selected_Text (Session, 1), "moorland")));
+           (Has (Windows.Item_Selected_Text (Session, 1), "moorland")));
 
       Ada.Directories.Delete_Tree
         (Ada.Directories.Containing_Directory
            (Ada.Directories.Containing_Directory
-              (Viewer.Item_Picture_File (Session, 1))));
+              (Windows.Item_Picture_File (Session, 1))));
       Ada.Directories.Delete_Tree (Folder);
    end Source_Words;
 
@@ -1429,20 +1441,20 @@ package body Item_Tests is
       Ada.Text_IO.Close (File);
 
       Start (Session);
-      Viewer.Pin_Capture_Time (Session, 1_700_000_000);
-      Key := Viewer.Current_Project (Session);
-      Viewer.Add_Item (Session, "Page", Items.Source);
+      Windows.Pin_Capture_Time (Session, 1_700_000_000);
+      Key := Proj.Current_Project (Session);
+      Windows.Add_Item (Session, "Page", Items.Source);
       Capture_From (Session, "file://" & Page);
       Check
         ("source-captured", "FALSE",
-         Boolean'Image (Viewer.Is_Capturing (Session)));
+         Boolean'Image (Windows.Is_Capturing (Session)));
       Check
         ("source-picture", "TRUE",
          Boolean'Image
-           (Ada.Directories.Exists (Viewer.Item_Picture_File (Session, 1))));
+           (Ada.Directories.Exists (Windows.Item_Picture_File (Session, 1))));
       Check
         ("source-status-done", "Captured ",
-         Viewer.Item_Status (Session, 1) (1 .. 9));
+         Windows.Item_Status (Session, 1) (1 .. 9));
       Move_To (Session, 600.0, 60.0);
       Snap (Session, "source-captured");
 
@@ -1450,64 +1462,64 @@ package body Item_Tests is
       --  over the picture marks it, where a drag did nothing before.
       Check
         ("source-cursor-first", "FALSE",
-         Boolean'Image (Viewer.Item_Highlighting (Session, 1)));
+         Boolean'Image (Windows.Item_Highlighting (Session, 1)));
       Drag (Session, 300.0, Picture_Y, 400.0, Picture_Y);
       Check
         ("source-no-mark", " 0",
-         Natural'Image (Viewer.Item_Marks (Session, 1)));
+         Natural'Image (Windows.Item_Marks (Session, 1)));
       Click_On (Session, Marker_X, Status_Y);
       Check
         ("source-marker-chosen", "TRUE",
-         Boolean'Image (Viewer.Item_Highlighting (Session, 1)));
+         Boolean'Image (Windows.Item_Highlighting (Session, 1)));
       Drag (Session, 300.0, Picture_Y, 400.0, Picture_Y);
       Check
-        ("source-mark", " 1", Natural'Image (Viewer.Item_Marks (Session, 1)));
+        ("source-mark", " 1", Natural'Image (Windows.Item_Marks (Session, 1)));
       Click_On (Session, 340.0, Picture_Y + 30.0);
       Check
         ("source-click-no-mark", " 1",
-         Natural'Image (Viewer.Item_Marks (Session, 1)));
+         Natural'Image (Windows.Item_Marks (Session, 1)));
       Snap (Session, "source-marked");
 
       --  The eraser removes the mark it is clicked on, and no other.
       Click_On (Session, Eraser_X, Status_Y);
       Check
         ("source-eraser-chosen", "TRUE",
-         Boolean'Image (Viewer.Item_Erasing (Session, 1)));
+         Boolean'Image (Windows.Item_Erasing (Session, 1)));
       Click_On (Session, 340.0, Picture_Y + 30.0);
       Check
         ("source-erase-miss", " 1",
-         Natural'Image (Viewer.Item_Marks (Session, 1)));
+         Natural'Image (Windows.Item_Marks (Session, 1)));
       Click_On (Session, 350.0, Picture_Y);
       Check
         ("source-erased", " 0",
-         Natural'Image (Viewer.Item_Marks (Session, 1)));
+         Natural'Image (Windows.Item_Marks (Session, 1)));
       Click_On (Session, Marker_X, Status_Y);
       Drag (Session, 300.0, Picture_Y, 400.0, Picture_Y);
       Check
         ("source-marked-again", " 1",
-         Natural'Image (Viewer.Item_Marks (Session, 1)));
+         Natural'Image (Windows.Item_Marks (Session, 1)));
 
       --  The cursor puts it away; so does a click outside the window.
       Click_On (Session, Cursor_X, Status_Y);
       Check
         ("source-cursor-chosen", "FALSE",
-         Boolean'Image (Viewer.Item_Highlighting (Session, 1)));
+         Boolean'Image (Windows.Item_Highlighting (Session, 1)));
       Click_On (Session, Marker_X, Status_Y);
       Click_On (Session, 100.0, 100.0);
       Check
         ("source-marker-put-away", "FALSE",
-         Boolean'Image (Viewer.Item_Highlighting (Session, 1)));
+         Boolean'Image (Windows.Item_Highlighting (Session, 1)));
 
       --  Zoomed within the window: by the slider, and from the menu.
       Check
         ("source-zoom-start", " 1.00000E+00",
-         Float'Image (Viewer.Item_Zoom (Session, 1)));
+         Float'Image (Windows.Item_Zoom (Session, 1)));
       Click_On (Session, Menu_X, Status_Y);
       Snap (Session, "source-menu");
       Click_On (Session, Preset_X, Preset_Y);
       Check
         ("source-zoom-menu", " 2.00000E+00",
-         Float'Image (Viewer.Item_Zoom (Session, 1)));
+         Float'Image (Windows.Item_Zoom (Session, 1)));
       Snap (Session, "source-zoomed");
 
       --  Dragged part of the way, with the knob held: the zoom it is
@@ -1520,12 +1532,12 @@ package body Item_Tests is
       Check
         ("source-zoom-dragged", "TRUE",
          Boolean'Image
-           (Viewer.Item_Zoom (Session, 1) > 1.0
-            and then Viewer.Item_Zoom (Session, 1) < 4.0));
+           (Windows.Item_Zoom (Session, 1) > 1.0
+            and then Windows.Item_Zoom (Session, 1) < 4.0));
       Click_On (Session, Slider_End_X, Status_Y);
       Check
         ("source-zoom-slider", " 4.00000E+00",
-         Float'Image (Viewer.Item_Zoom (Session, 1)));
+         Float'Image (Windows.Item_Zoom (Session, 1)));
 
       --  Scrolled with the wheel, over the picture.
       Viewer.Handle
@@ -1535,34 +1547,34 @@ package body Item_Tests is
       Snap (Session, "source-scrolled");
       Check
         ("source-marked-still", " 1",
-         Natural'Image (Viewer.Item_Marks (Session, 1)));
+         Natural'Image (Windows.Item_Marks (Session, 1)));
 
       --  Kept with the project, picture and all.
-      Viewer.Close_Project (Session);
-      Viewer.Open_Project (Session, Key);
+      Proj.Close_Project (Session);
+      Home.Open_Project (Session, Key);
       Check
         ("source-kept-status", "Captured ",
-         Viewer.Item_Status (Session, 1) (1 .. 9));
+         Windows.Item_Status (Session, 1) (1 .. 9));
       Snap (Session, "source-kept");
       Check
         ("source-mark-kept", " 1",
-         Natural'Image (Viewer.Item_Marks (Session, 1)));
+         Natural'Image (Windows.Item_Marks (Session, 1)));
       Check
         ("source-zoom-kept", " 4.00000E+00",
-         Float'Image (Viewer.Item_Zoom (Session, 1)));
+         Float'Image (Windows.Item_Zoom (Session, 1)));
 
       --  A page that is not there fails, and says so.
-      Viewer.Add_Item (Session, "Nowhere", Items.Source);
+      Windows.Add_Item (Session, "Nowhere", Items.Source);
       Capture_From (Session, "https://nowhere.invalid/");
       Check
         ("source-failed", "Failed: ",
-         Viewer.Item_Status (Session, 2) (1 .. 8));
+         Windows.Item_Status (Session, 2) (1 .. 8));
 
       --  What the test made, and the project's pictures, are tidied away.
       Ada.Directories.Delete_Tree
         (Ada.Directories.Containing_Directory
            (Ada.Directories.Containing_Directory
-              (Viewer.Item_Picture_File (Session, 1))));
+              (Windows.Item_Picture_File (Session, 1))));
       Ada.Directories.Delete_Tree (Folder);
    end Source_Pages;
 

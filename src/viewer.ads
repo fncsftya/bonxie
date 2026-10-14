@@ -1,13 +1,13 @@
-with Items;
-with Preferences;
 with Projects;
 with SDL3.Cursors;
 with SDL3.Events;
 with SDL3.Windows.Renderers.Images;
 private with Ada.Strings.Unbounded;
 private with Downloads;
+private with Items;
 private with Items.Readers;
 private with Items.Windows;
+private with Preferences;
 private with Previews;
 private with SDL3.Windows;
 private with Scripts;
@@ -32,6 +32,18 @@ private with UI.Widgets.Scrollers;
 --  A window of two screens: the home, with the recent projects and
 --  buttons to start with, and a project, with a toolbar and, above it, the
 --  project's main view, one at a time, chosen on the toolbar.
+--
+--  This package is the session and how it is run. What it shows is in its
+--  children, which a test uses to look at it and move it about without
+--  finding the buttons:
+--    Home_Screen     the recent projects, to start or open one
+--    Settings        the speech model and the theme
+--    Project_Screen  the project shown, and the view of it
+--    Canvas_Camera   how the canvas is zoomed and panned
+--    Canvas_Windows  the items on the canvas
+--    Canvas_Links    the links between them, and their pins
+--    Documents       the pages of the writing view, and its directories
+--    Sources         the sources of the writing view, and the pinned one
 package Viewer is
 
    type Screens is (Home, Project);
@@ -101,342 +113,6 @@ package Viewer is
    function Screen (Item : Session) return Screens
      with Pre => Is_Open (Item);
    --  Which is shown.
-
-   function Mode (Item : Session) return Modes
-     with Pre => Is_Open (Item) and then Screen (Item) = Project;
-   --  Which view of the project is shown.
-
-   procedure Set_Mode (Item : in out Session; To : Modes)
-     with Pre  => Is_Open (Item) and then Screen (Item) = Project,
-          Post => Mode (Item) = To;
-   --  Show the view, as its tab does.
-
-   function Current_Project (Item : Session) return Projects.Id
-     with Pre => Is_Open (Item) and then Screen (Item) = Project;
-   --  The one the project screen is of.
-
-   procedure New_Project (Item : in out Session)
-     with Pre  => Is_Open (Item) and then Screen (Item) = Home,
-          Post => Screen (Item) = Project;
-   --  Keep a new project, and go to the project screen, as the New
-   --  Project button does.
-
-   procedure Open_Project (Item : in out Session; Key : Projects.Id)
-     with Pre  => Is_Open (Item) and then Screen (Item) = Home,
-          Post => Screen (Item) = Project;
-   --  Go to the screen of the project Key, as a click on it in the recent
-   --  projects does.
-
-   function Is_Renaming (Item : Session) return Boolean
-     with Pre => Is_Open (Item);
-   --  Whether a project listed on the home screen has a field to rename
-   --  it, in place of its button.
-
-   function Is_Confirming (Item : Session) return Boolean
-     with Pre => Is_Open (Item);
-   --  Whether the dialog to confirm deleting a project is shown, over the
-   --  home screen.
-
-   function Row_Title (Item : Session; Row : Positive) return String
-     with Pre => Is_Open (Item) and then Row <= Projects.Recent_Count;
-   --  What the button of the Rowth project listed shows, "" if none.
-
-   function Is_Settings_Open (Item : Session) return Boolean
-     with Pre => Is_Open (Item);
-   --  Whether the settings are shown, in place of the home screen.
-
-   procedure Open_Settings (Item : in out Session)
-     with Pre  => Is_Open (Item) and then Screen (Item) = Home
-                  and then not Is_Settings_Open (Item),
-          Post => Is_Settings_Open (Item);
-   --  Show the settings, as the Settings button does.
-
-   procedure Close_Settings (Item : in out Session)
-     with Pre  => Is_Open (Item) and then Is_Settings_Open (Item),
-          Post => not Is_Settings_Open (Item);
-   --  Go back to the home screen, as the settings' Close button does.
-
-   function Speech_Model (Item : Session) return Preferences.Speech_Models
-     with Pre => Is_Open (Item);
-   --  What is chosen to turn speech into text.
-
-   procedure Choose_Speech_Model
-     (Item : in out Session; To : Preferences.Speech_Models)
-     with Pre  => Is_Open (Item) and then Is_Settings_Open (Item),
-          Post => Preferences."=" (Speech_Model (Item), To);
-   --  Choose it, as its radio does.
-
-   function Theme_Choice (Item : Session) return Preferences.Theme_Choices
-     with Pre => Is_Open (Item);
-   --  What is chosen for the appearance of the windows.
-
-   procedure Choose_Theme
-     (Item : in out Session; To : Preferences.Theme_Choices)
-     with Pre  => Is_Open (Item),
-          Post => Preferences."=" (Theme_Choice (Item), To);
-   --  Choose it, as its radio does.
-
-   function Is_Dark (Item : Session) return Boolean
-     with Pre => Is_Open (Item);
-   --  Whether the windows are drawn in the dark theme now: as the choice
-   --  says, or, for System, as the system's appearance is.
-
-   procedure Close_Project (Item : in out Session)
-     with Pre  => Is_Open (Item) and then Screen (Item) = Project,
-          Post => Screen (Item) = Home;
-   --  Go back to the home screen, as the Close button does.
-
-   procedure Add_Project
-     (Item    : in out Session;
-      Name    : String;
-      Updated : Projects.Seconds)
-     with Pre => Is_Open (Item) and then Updated >= 0;
-   --  Keep a project last updated at Updated, to be listed.
-
-   function Canvas_Zoom (Item : Session) return Float
-     with Pre => Is_Open (Item);
-   --  Of the canvas: screen points to a canvas unit.
-
-   function Canvas_Origin_X (Item : Session) return Float
-     with Pre => Is_Open (Item);
-   function Canvas_Origin_Y (Item : Session) return Float
-     with Pre => Is_Open (Item);
-   --  Where the canvas's origin is, in points from the top left of the
-   --  canvas.
-
-   --  The items on the project's canvas, in the order they were made
-
-   function Item_Count (Item : Session) return Natural
-     with Pre => Is_Open (Item) and then Screen (Item) = Project;
-   --  How many the project has, whether shown or not.
-
-   function Link_Count (Item : Session) return Natural
-     with Pre => Is_Open (Item) and then Screen (Item) = Project;
-   --  How many links there are between the project's items.
-
-   procedure Link_Items (Item : in out Session; From, To : Positive)
-     with Pre => Is_Open (Item) and then Screen (Item) = Project
-                 and then From <= Item_Count (Item)
-                 and then To <= Item_Count (Item) and then From /= To;
-   --  Join the Fromth and Toth items, as dragging from a pin of one to a
-   --  pin of the other does: for tests, which need not find the pins.
-
-   function Link_Selected (Item : Session) return Boolean
-     with Pre => Is_Open (Item) and then Screen (Item) = Project;
-   --  Whether a link is selected.
-
-   function Link_Description
-     (Item : Session; Number : Positive) return String
-     with Pre => Is_Open (Item) and then Screen (Item) = Project
-                 and then Number <= Link_Count (Item);
-   --  How the link is drawn and where it ends, as words: its stroke, its
-   --  end, its colour's number, and the side it ends on.
-
-   function Pin_Count (Item : Session) return Natural
-     with Pre => Is_Open (Item) and then Screen (Item) = Project;
-   --  How many pins, to drag a link from, are shown.
-
-   procedure Add_Item
-     (Item : in out Session;
-      Name : String := "Untitled item";
-      Kind : Items.Kinds := Items.Note)
-     with Pre => Is_Open (Item) and then Screen (Item) = Project
-                 and then Name'Length <= Projects.Title_Capacity;
-   --  Add one called Name in the middle of the canvas, with the focus in
-   --  its text, as the Add Item button does (or, of a Source, as Add
-   --  Source does, in its link); none if the project has Items.Capacity.
-
-   --  The writing view
-
-   function Document_Count (Item : Session) return Natural
-     with Pre => Is_Open (Item) and then Screen (Item) = Project;
-   --  How many items there are that are not sources: the pages.
-
-   function Document_Title (Item : Session; Row : Positive) return String
-     with Pre => Is_Open (Item) and then Screen (Item) = Project
-                 and then Row <= Document_Count (Item);
-   --  The title of the Rowth page, in the order they are written in.
-
-   procedure Move_Document (Item : in out Session; From, To : Positive)
-     with Pre => Is_Open (Item) and then Screen (Item) = Project
-                 and then From <= Document_Count (Item)
-                 and then To <= Document_Count (Item);
-   --  Put the From-th page at the To-th, as dragging its row in the list
-   --  does, and keep that order.
-
-   function Directory_Count (Item : Session) return Natural
-     with Pre => Is_Open (Item) and then Screen (Item) = Project;
-   --  How many directories the documents are in.
-
-   function Directory_Title (Item : Session; Row : Positive) return String
-     with Pre => Is_Open (Item) and then Screen (Item) = Project
-                 and then Row <= Directory_Count (Item);
-
-   procedure Add_Directory
-     (Item : in out Session; Name : String := "Untitled folder")
-     with Pre => Is_Open (Item) and then Screen (Item) = Project
-                 and then Directory_Count (Item) < Items.Max_Directories
-                 and then Name'Length <= Projects.Title_Capacity;
-   --  Make a directory, as the button in the sidebar does, and begin to
-   --  rename it.
-
-   function Document_Directory
-     (Item : Session; Row : Positive) return Natural
-     with Pre => Is_Open (Item) and then Screen (Item) = Project
-                 and then Row <= Document_Count (Item);
-   --  Which directory the Rowth page is in, 0 if none.
-
-   procedure Move_Document_To
-     (Item : in out Session; Row : Positive; Directory : Natural)
-     with Pre => Is_Open (Item) and then Screen (Item) = Project
-                 and then Row <= Document_Count (Item)
-                 and then Directory <= Directory_Count (Item);
-   --  Put the Rowth page last in the directory (none, if 0), as dropping
-   --  its row on that directory's, or on the Overview's, does, and keep it.
-
-   function Shown_Directory (Item : Session) return Natural
-     with Pre => Is_Open (Item) and then Screen (Item) = Project;
-   --  The directory whose pages are shown in the writing view, 0 for all.
-
-   procedure Show_Directory (Item : in out Session; Directory : Natural)
-     with Pre => Is_Open (Item) and then Screen (Item) = Project
-                 and then Directory <= Directory_Count (Item);
-   --  As clicking its row does (0, the Overview's).
-
-   function Source_Count (Item : Session) return Natural
-     with Pre => Is_Open (Item) and then Screen (Item) = Project;
-   --  How many sources there are, listed beside the pages.
-
-   function Source_Title (Item : Session; Row : Positive) return String
-     with Pre => Is_Open (Item) and then Screen (Item) = Project
-                 and then Row <= Source_Count (Item);
-
-   function Source_Is_Open (Item : Session; Row : Positive) return Boolean
-     with Pre => Is_Open (Item) and then Screen (Item) = Project
-                 and then Row <= Source_Count (Item);
-   --  Whether the Rowth source has a window in the writing view, or is
-   --  pinned.
-
-   function Source_Marks (Item : Session; Row : Positive) return Natural
-     with Pre => Is_Open (Item) and then Screen (Item) = Project
-                 and then Row <= Source_Count (Item);
-   --  How many highlights the Rowth source's picture has in the writing
-   --  view.
-
-   function Pinned_Source (Item : Session) return Natural
-     with Pre => Is_Open (Item) and then Screen (Item) = Project;
-   --  Which of the sources is pinned, 0 if none.
-
-   function Item_Title (Item : Session; Row : Positive) return String
-     with Pre => Is_Open (Item) and then Screen (Item) = Project
-                 and then Row <= Item_Count (Item);
-
-   function Item_Text (Item : Session; Row : Positive) return String
-     with Pre => Is_Open (Item) and then Screen (Item) = Project
-                 and then Row <= Item_Count (Item);
-
-   procedure Dictate_Live
-     (Item : in out Session; Row : Positive; Said : String)
-     with Pre => Is_Open (Item) and then Screen (Item) = Project
-                 and then Row <= Item_Count (Item)
-                 and then Items."=" (Item_Kind (Item, Row), Items.Note);
-   --  Show Said in the note's text, as what has been heard so far is
-   --  while dictating (see Items.Windows.Set_Live_Dictation): for tests.
-
-   procedure Dictate_Into
-     (Item : in out Session; Row : Positive; Said : String)
-     with Pre => Is_Open (Item) and then Screen (Item) = Project
-                 and then Row <= Item_Count (Item)
-                 and then Items."=" (Item_Kind (Item, Row), Items.Note);
-   --  Put Said in the note's text, as what was dictated is when the
-   --  microphone is stopped (see Items.Windows.Add_Dictation): for tests,
-   --  which cannot speak.
-
-   function Item_Kind (Item : Session; Row : Positive) return Items.Kinds
-     with Pre => Is_Open (Item) and then Screen (Item) = Project
-                 and then Row <= Item_Count (Item);
-
-   function Item_Status (Item : Session; Row : Positive) return String
-     with Pre => Is_Open (Item) and then Screen (Item) = Project
-                 and then Row <= Item_Count (Item);
-   --  What the status line of the item says.
-
-   function Item_Zoom (Item : Session; Row : Positive) return Float
-     with Pre => Is_Open (Item) and then Screen (Item) = Project
-                 and then Row <= Item_Count (Item)
-                 and then Items."=" (Item_Kind (Item, Row), Items.Source);
-   --  How far the picture of the item is zoomed within its window.
-
-   function Item_Picture_File (Item : Session; Row : Positive) return String
-     with Pre => Is_Open (Item) and then Screen (Item) = Project
-                 and then Row <= Item_Count (Item);
-   --  Where the picture of the item, if a source, is kept.
-
-   procedure Pin_Capture_Time (Item : in out Session; To : Projects.Seconds)
-     with Pre => To > 0;
-   --  Record every picture taken from now on as taken at To, whatever
-   --  the time is: for tests.
-
-   function Is_Capturing (Item : Session) return Boolean
-     with Pre => Is_Open (Item) and then Screen (Item) = Project;
-   --  Whether the picture of a page is being taken, for some source.
-
-   function Item_Recognized (Item : Session; Row : Positive) return Natural
-     with Pre => Is_Open (Item) and then Screen (Item) = Project
-                 and then Row <= Item_Count (Item)
-                 and then Items."=" (Item_Kind (Item, Row), Items.Source);
-   --  How many words of text have been found in the picture of the
-   --  source, to be selected over it.
-
-   function Item_Selected_Text (Item : Session; Row : Positive) return String
-     with Pre => Is_Open (Item) and then Screen (Item) = Project
-                 and then Row <= Item_Count (Item)
-                 and then Items."=" (Item_Kind (Item, Row), Items.Source);
-   --  What is selected in the picture of the source: what copying gives.
-
-   function Item_Marks (Item : Session; Row : Positive) return Natural
-     with Pre => Is_Open (Item) and then Screen (Item) = Project
-                 and then Row <= Item_Count (Item);
-   --  How many highlights the item's picture has.
-
-   function Item_Highlighting (Item : Session; Row : Positive) return Boolean
-     with Pre => Is_Open (Item) and then Screen (Item) = Project
-                 and then Row <= Item_Count (Item);
-   --  Whether the highlighter is the tool of the item's window.
-
-   function Item_Erasing (Item : Session; Row : Positive) return Boolean
-     with Pre => Is_Open (Item) and then Screen (Item) = Project
-                 and then Row <= Item_Count (Item);
-   --  Whether the eraser is the tool of the item's window.
-
-   function Item_Words (Item : Session; Row : Positive) return Natural
-     with Pre => Is_Open (Item) and then Screen (Item) = Project
-                 and then Row <= Item_Count (Item);
-   --  As the status line of the item says.
-
-   function Item_State (Item : Session; Row : Positive) return Items.States
-     with Pre => Is_Open (Item) and then Screen (Item) = Project
-                 and then Row <= Item_Count (Item);
-
-   function Item_Frame (Item : Session; Row : Positive) return Items.Frame
-     with Pre => Is_Open (Item) and then Screen (Item) = Project
-                 and then Row <= Item_Count (Item);
-   --  Where it is on the canvas.
-
-   function Item_Box (Item : Session; Row : Positive) return Items.Frame
-     with Pre => Is_Open (Item) and then Screen (Item) = Project
-                 and then Row <= Item_Count (Item);
-   --  Where its window is on the screen, in pixels, as of the last layout.
-
-   function Is_Editing_Title (Item : Session; Row : Positive) return Boolean
-     with Pre => Is_Open (Item) and then Screen (Item) = Project
-                 and then Row <= Item_Count (Item);
-   --  Whether the item's title is a field to type in, not text.
-
-   function Is_Listing (Item : Session) return Boolean
-     with Pre => Is_Open (Item);
-   --  Whether the list of the project's items is shown, over the project
-   --  screen.
 
    function Cursor (Item : Session) return SDL3.Cursors.Kind
      with Pre => Is_Open (Item);
@@ -639,7 +315,7 @@ private
 
    type Placed_Array is array (Items.Slot) of Boolean;
 
-   type Session is limited record
+   type Root_Parts is limited record
       Widgets      : UI.Widgets.Tree;
       Window_Panel : UI.Widgets.Panels.Panel;
       --  The root, of both screens, one of which is hidden.
@@ -647,7 +323,10 @@ private
       Header_Title : UI.Widgets.Labels.Label;
       --  Across the top of a window, where its title bar was: under the
       --  window's own buttons.
+   end record;
+   --  The tree of widgets and the panels at the top of both screens.
 
+   type Home_Parts is limited record
       Home_Panel     : UI.Widgets.Panels.Panel;
       --  A row: the sidebar of actions, and the recent projects.
       Home_Side      : UI.Widgets.Panels.Panel;
@@ -683,7 +362,11 @@ private
       --  name and buttons, which are hidden.
       Editing        : Natural := 0;
       --  Which card, 0 if none.
+   end record;
+   --  The home screen: the sidebar, the recent projects as cards, and the
+   --  field to rename one.
 
+   type Confirm_Parts is limited record
       Overlay        : UI.Widgets.Panels.Panel;
       --  Over both screens, to grey them out and hold the dialog, which
       --  is shown to confirm deleting a project.
@@ -707,7 +390,10 @@ private
       Deleting_Node  : Tree_Entry;
       --  Or, in the writing view, the document or directory it is about:
       --  the Overview's if it is about none.
+   end record;
+   --  The dialog, over both screens, to confirm deleting.
 
+   type Settings_Parts is limited record
       Settings_Panel : UI.Widgets.Panels.Panel;
       --  A column, in the home screen's place while Showing_Settings: a
       --  bar across the top, which stays, and below it the form, scrolled.
@@ -749,7 +435,10 @@ private
       --  Whether the settings are written there: not offscreen.
       Download_Seen  : Downloads.States := Downloads.Idle;
       --  How the download was when the form last showed it.
+   end record;
+   --  The settings, and what is chosen in them.
 
+   type Toolbar_Parts is limited record
       Project_Panel : UI.Widgets.Panels.Panel;
       --  A column: the toolbar, the content area, and the dock.
       Content_Panel : UI.Widgets.Panels.Panel;
@@ -768,9 +457,10 @@ private
       --  On the right: the list of items.
       Mode          : Modes := Canvas;
       --  The view shown: its tab is selected.
+   end record;
+   --  The project screen: its panels, the toolbar and the view shown.
 
-      Canvas_View   : UI.Widgets.Canvases.Canvas;
-      --  In the content area, all of it.
+   type Page_Parts is limited record
       Write_View    : UI.Widgets.Panels.Panel;
       --  A row, in the content area in the canvas's place when Mode is
       --  Write: the sidebar, the pages, and the pane of the pinned source;
@@ -815,6 +505,11 @@ private
       --  Where it was last put, in points of the writing view.
       Pane_Wide     : Float := 0.0;
       --  How wide, in points.
+   end record;
+   --  The writing view: the sidebar, the pages, the pane of the pinned source
+   --  and the menu of a page.
+
+   type Dock_Parts is limited record
       Dock_Panel    : UI.Widgets.Panels.Panel;
       Dock_Scroll   : UI.Widgets.Scrollers.Scroller;
       Dock_Content  : UI.Widgets.Panels.Panel;
@@ -831,7 +526,10 @@ private
       --  Where it was last put, in pixels from the left of the content.
       Tool_List     : UI.Widgets.Buttons.Button;
       --  At the right of the toolbar: the list of items.
+   end record;
+   --  The dock of minimised items and the tray of tools, over the canvas.
 
+   type Nav_State is limited record
       Shown        : Screens := Home;
       Store        : Projects.Store;
 
@@ -840,7 +538,11 @@ private
 
       Shown_Zoom, Shown_X, Shown_Y : Float := 0.0;
       --  Of the canvas, as the items' windows have been put by it.
+   end record;
+   --  Which screen is shown, the database, and what the canvas was last put
+   --  by.
 
+   type List_Parts is limited record
       List_Overlay  : UI.Widgets.Panels.Panel;
       --  Over the project screen, to grey it out and hold the list of
       --  items, which is shown when Showing_List.
@@ -859,7 +561,10 @@ private
       Row_Slots     : Slot_Array := [others => 1];
       --  The window of the item each row is of.
       Showing_List  : Boolean := False;
+   end record;
+   --  The dialog listing the project's items.
 
+   type Host_Resources is limited record
       Script       : aliased Scripts.Script;
       Win          : SDL3.Windows.Window;
       Target       : SDL3.Windows.Renderers.Renderer;
@@ -870,9 +575,11 @@ private
       --  after Target, which it draws to
       Doc_Resources : aliased Typeset.Views.Shared_Resources;
       --  after Target, which its atlas draws to
-      Windows      : Items.Windows.Window_Array;
-      --  The windows of the project's items: after Target, which they
-      --  draw to.
+   end record;
+   --  The text, the window and what draws to it: declared in the order they
+   --  are destroyed in, the last first.
+
+   type Document_State is limited record
       Pages        : Page_Array;
       --  The pages of the writing view: after Windows, whose documents
       --  they show.
@@ -894,6 +601,11 @@ private
       Drop_Line    : UI.Widgets.Panels.Panel;
       --  The line between two rows where it would go between documents,
       --  over the rows and out of the way of their layout.
+   end record;
+   --  The pages of the writing view, the tree of documents and where a row
+   --  dragged would go.
+
+   type Context_State is limited record
       Context_Menu : UI.Widgets.Menus.Menu;
       Context_Kind : Context_Kinds := No_Context;
       Context_Node : Tree_Entry;
@@ -911,6 +623,10 @@ private
       --  Over the writing view, hidden until the right button is pressed
       --  on a row of the sidebar, a page's text or a source's picture;
       --  what it is of, and what each of its rows does.
+   end record;
+   --  The menu at a right click.
+
+   type Renaming_State is limited record
       Dir_Field    : UI.Widgets.Text_Fields.Text_Field;
       Dir_Doc      : aliased Texts.Documents.Document;
       Renaming_Dir : Natural := 0;
@@ -919,6 +635,10 @@ private
       Renaming_Source : Natural := 0;
       --  The directory, the document or the source being renamed, 0 if
       --  none, in the field over its row (of Source_Field, for a source).
+   end record;
+   --  The fields over a row being renamed.
+
+   type Reading_State is limited record
       Source_Rows  : Index_Row_Array;
       Readers      : Items.Readers.Reader_Array;
       --  The windows of the sources in the writing view, of the same
@@ -937,11 +657,20 @@ private
       --  The windows of the sources, the earliest made first.
       Pinned_Slot  : Natural := 0;
       --  The window of the source in the pane, 0 if none.
+   end record;
+   --  The sources in the writing view, and the orders of the windows of
+   --  documents and of sources.
+
+   type Drag_State is limited record
       Drag_Row     : Natural := 0;
       Drag_Total   : Float := 0.0;
       Drag_Moved   : Boolean := False;
       --  The row of the list of documents being dragged, how far, and the
       --  order when it was pressed.
+   end record;
+   --  The row of the list of documents being dragged.
+
+   type Link_State is limited record
       Pins         : Pin_Grid;
       --  On the canvas, over the windows, shown where the pointer is.
       Pin_Left, Pin_Top : Pin_Places := [others => [others => -1.0E9]];
@@ -969,14 +698,26 @@ private
       Link_From_Side : Items.Sides := Items.Top;
       --  The window and side of the pin a line is being dragged from;
       --  0 if none is.
+   end record;
+   --  The pins, and the links being made, selected and drawn.
+
+   type Title_Edit_State is limited record
       Edit_Doc     : aliased Texts.Documents.Document;
       Edit_Field   : UI.Widgets.Text_Fields.Text_Field;
       --  The title being renamed, and the field for it, which is in the
       --  edit panel: after Target, and the document.
+   end record;
+   --  The title of an item on the canvas being renamed.
+
+   type Opened_State is limited record
       Current      : Projects.Id := 0;
       --  The project shown, at the project screen.
       Project_Name : Ada.Strings.Unbounded.Unbounded_String;
       --  Its name, for the window's title.
+   end record;
+   --  The project shown.
+
+   type Shell_State is limited record
       Density      : Float := 1.0;
       --  Pixels to a point of the window.
 
@@ -996,6 +737,34 @@ private
       --  The clipboard used offscreen.
 
       Done         : Boolean := False;
+   end record;
+   --  The window as the system has it, and the clipboards.
+
+   type Session is limited record
+      Root : Root_Parts;
+      Home_View : Home_Parts;
+      Confirm : Confirm_Parts;
+      Prefs : Settings_Parts;
+      Toolbar : Toolbar_Parts;
+      Canvas_View   : UI.Widgets.Canvases.Canvas;
+      --  In the content area, all of it.
+      Page_View : Page_Parts;
+      Dock : Dock_Parts;
+      Nav : Nav_State;
+      Item_List : List_Parts;
+      Host : Host_Resources;
+      Windows      : Items.Windows.Window_Array;
+      --  The windows of the project's items: after Target, which they
+      --  draw to.
+      Docs : Document_State;
+      Context : Context_State;
+      Naming : Renaming_State;
+      Reading : Reading_State;
+      Dragging : Drag_State;
+      Linking : Link_State;
+      Title_Edit : Title_Edit_State;
+      Opened : Opened_State;
+      Shell : Shell_State;
    end record;
 
 end Viewer;

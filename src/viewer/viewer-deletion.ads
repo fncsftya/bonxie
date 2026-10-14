@@ -2,7 +2,7 @@
 private package Viewer.Deletion is
 
    procedure Confirm (Item : in out Session; Row : Positive)
-     with Pre => Row <= Item.Listed.Count;
+     with Pre => Row <= Item.Home_View.Listed.Count;
    --  Show the dialog to confirm deleting the project of the row.
 
    procedure Confirm_Node (Item : in out Session; Node : Tree_Entry)

@@ -7,10 +7,22 @@ with Goldens;
 with Items;
 with Projects;
 with Viewer;
+with Viewer.Canvas_Links;
+with Viewer.Canvas_Windows;
+with Viewer.Documents;
+with Viewer.Home_Screen;
+with Viewer.Project_Screen;
+with Viewer.Sources;
 
 package body Write_Tests is
 
    package Events renames SDL3.Events;
+   package Links renames Viewer.Canvas_Links;
+   package Windows renames Viewer.Canvas_Windows;
+   package Docs renames Viewer.Documents;
+   package Home renames Viewer.Home_Screen;
+   package Proj renames Viewer.Project_Screen;
+   package Source_List renames Viewer.Sources;
    package Pictures renames Goldens.Images;
 
    procedure Check (Name : String; Expected, Actual : String)
@@ -148,13 +160,13 @@ package body Write_Tests is
    procedure Start_With_Three (Session : in out Viewer.Session) is
    begin
       Viewer.Open (Session, "", Width, Height, 2.0);
-      Viewer.New_Project (Session);
-      Viewer.Add_Item (Session, "Opening");
+      Home.New_Project (Session);
+      Windows.Add_Item (Session, "Opening");
       Type_In (Session, "It was a dark and stormy night.");
-      Viewer.Add_Item (Session, "Middle");
+      Windows.Add_Item (Session, "Middle");
       Type_In (Session, "Then things happened.");
-      Viewer.Add_Item (Session, "Page", Items.Source);
-      Viewer.Add_Item (Session, "Ending");
+      Windows.Add_Item (Session, "Page", Items.Source);
+      Windows.Add_Item (Session, "Ending");
       Type_In (Session, "And they all lived.");
       Move_To (Session, 600.0, 60.0);
    end Start_With_Three;
@@ -163,17 +175,17 @@ package body Write_Tests is
       Session : Viewer.Session;
    begin
       Start_With_Three (Session);
-      Viewer.Set_Mode (Session, Viewer.Write);
+      Proj.Set_Mode (Session, Viewer.Write);
       Check ("write-mode", "WRITE",
-             Viewer.Modes'Image (Viewer.Mode (Session)));
+             Viewer.Modes'Image (Proj.Mode (Session)));
       Check ("write-documents", " 3",
-             Natural'Image (Viewer.Document_Count (Session)));
+             Natural'Image (Docs.Document_Count (Session)));
       Check ("write-sources", " 1",
-             Natural'Image (Viewer.Source_Count (Session)));
-      Check ("write-first", "Opening", Viewer.Document_Title (Session, 1));
-      Check ("write-last", "Ending", Viewer.Document_Title (Session, 3));
+             Natural'Image (Source_List.Source_Count (Session)));
+      Check ("write-first", "Opening", Docs.Document_Title (Session, 1));
+      Check ("write-last", "Ending", Docs.Document_Title (Session, 3));
       Snap (Session, "write-pages");
-      Viewer.Set_Mode (Session, Viewer.Canvas);
+      Proj.Set_Mode (Session, Viewer.Canvas);
       Snap (Session, "write-back-to-canvas");
    end Pages;
 
@@ -182,37 +194,37 @@ package body Write_Tests is
       Key     : Projects.Id;
    begin
       Start_With_Three (Session);
-      Key := Viewer.Current_Project (Session);
-      Viewer.Set_Mode (Session, Viewer.Write);
-      Viewer.Move_Document (Session, 3, 1);
+      Key := Proj.Current_Project (Session);
+      Proj.Set_Mode (Session, Viewer.Write);
+      Docs.Move_Document (Session, 3, 1);
       Check ("write-moved-first", "Ending",
-             Viewer.Document_Title (Session, 1));
+             Docs.Document_Title (Session, 1));
       Check ("write-moved-second", "Opening",
-             Viewer.Document_Title (Session, 2));
+             Docs.Document_Title (Session, 2));
       Snap (Session, "write-reordered");
-      Viewer.Close_Project (Session);
-      Viewer.Open_Project (Session, Key);
-      Viewer.Set_Mode (Session, Viewer.Write);
+      Proj.Close_Project (Session);
+      Home.Open_Project (Session, Key);
+      Proj.Set_Mode (Session, Viewer.Write);
       Check ("write-order-kept", "Ending",
-             Viewer.Document_Title (Session, 1));
+             Docs.Document_Title (Session, 1));
       Check ("write-order-kept-last", "Middle",
-             Viewer.Document_Title (Session, 3));
+             Docs.Document_Title (Session, 3));
    end Ordering;
 
    procedure Dragging is
       Session : Viewer.Session;
    begin
       Start_With_Three (Session);
-      Viewer.Set_Mode (Session, Viewer.Write);
+      Proj.Set_Mode (Session, Viewer.Write);
       Settle (Session);
       --  The first row is dragged down past the others, to the lower half
       --  of the last, which puts it after.
       Drag (Session, Doc_Row_X, Doc_Row_Y (1), Doc_Row_X,
             Doc_Row_Y (3) + 8.0);
       Check ("write-dragged-first", "Middle",
-             Viewer.Document_Title (Session, 1));
+             Docs.Document_Title (Session, 1));
       Check ("write-dragged-last", "Opening",
-             Viewer.Document_Title (Session, 3));
+             Docs.Document_Title (Session, 3));
       Move_To (Session, 600.0, 60.0);
       Snap (Session, "write-dragged");
 
@@ -221,7 +233,7 @@ package body Write_Tests is
       Settle (Session);
       Click_On (Session, Doc_Row_X, Doc_Row_Y (3));
       Check ("write-clicked-not-moved", "Opening",
-             Viewer.Document_Title (Session, 3));
+             Docs.Document_Title (Session, 3));
       Settle (Session);
       Move_To (Session, 600.0, 60.0);
       Snap (Session, "write-scrolled-to-page");
@@ -242,23 +254,23 @@ package body Write_Tests is
       Key     : Projects.Id;
 
       function Where (Row : Positive) return String is
-        (Natural'Image (Viewer.Document_Directory (Session, Row)));
+        (Natural'Image (Docs.Document_Directory (Session, Row)));
    begin
       Start_With_Three (Session);
-      Key := Viewer.Current_Project (Session);
-      Viewer.Set_Mode (Session, Viewer.Write);
+      Key := Proj.Current_Project (Session);
+      Proj.Set_Mode (Session, Viewer.Write);
       Settle (Session);
 
       --  The button beside the name of the list makes one, last of the
       --  tree, and its name is renamed at once.
       Click_On (Session, Add_Directory_X, Add_Document_Y);
       Check ("write-directory-made", " 1",
-             Natural'Image (Viewer.Directory_Count (Session)));
+             Natural'Image (Docs.Directory_Count (Session)));
       Check ("write-directory-named", "Untitled folder",
-             Viewer.Directory_Title (Session, 1));
+             Docs.Directory_Title (Session, 1));
       Name_Directory (Session, "Part one");
       Check ("write-directory-renamed", "Part one",
-             Viewer.Directory_Title (Session, 1));
+             Docs.Directory_Title (Session, 1));
       Move_To (Session, 600.0, 60.0);
       Snap (Session, "write-directory-listed");
 
@@ -266,7 +278,7 @@ package body Write_Tests is
       Drag (Session, Doc_Row_X, Tree_Row_Y (4), Doc_Row_X, Tree_Row_Y (5));
       Check ("write-dropped-in", " 1", Where (3));
       Check ("write-dropped-last", "Ending",
-             Viewer.Document_Title (Session, 3));
+             Docs.Document_Title (Session, 3));
       Check ("write-dropped-others", " 0", Where (1));
       Settle (Session);
       Move_To (Session, 600.0, 60.0);
@@ -277,13 +289,13 @@ package body Write_Tests is
       Click_On (Session, Doc_Row_X, Tree_Row_Y (4));
       Settle (Session);
       Check ("write-directory-shown", " 1",
-             Natural'Image (Viewer.Shown_Directory (Session)));
+             Natural'Image (Docs.Shown_Directory (Session)));
       Move_To (Session, 600.0, 60.0);
       Snap (Session, "write-directory-pages");
       Click_On (Session, Doc_Row_X, Tree_Row_Y (1));
       Settle (Session);
       Check ("write-overview-shown", " 0",
-             Natural'Image (Viewer.Shown_Directory (Session)));
+             Natural'Image (Docs.Shown_Directory (Session)));
 
       --  Held over the top of the directory's row, a line shows above it;
       --  let go, the document is before it, and in none.
@@ -302,16 +314,16 @@ package body Write_Tests is
                                 Mouse_Y => Tree_Row_Y (4) - 10.0,
                                 others => <>));
       Check ("write-before-directory", "Middle",
-             Viewer.Document_Title (Session, 1));
+             Docs.Document_Title (Session, 1));
       Check ("write-before-directory-moved", "Opening",
-             Viewer.Document_Title (Session, 2));
+             Docs.Document_Title (Session, 2));
       Check ("write-before-directory-in-none", " 0", Where (2));
 
       --  The foot of the last document in a directory puts one after it.
       Drag (Session, Doc_Row_X, Tree_Row_Y (2), Doc_Row_X,
             Tree_Row_Y (5) + 13.0);
       Check ("write-after-directory", "Middle",
-             Viewer.Document_Title (Session, 3));
+             Docs.Document_Title (Session, 3));
       Check ("write-after-directory-in-none", " 0", Where (3));
       Check ("write-after-directory-others", " 1", Where (2));
 
@@ -324,11 +336,11 @@ package body Write_Tests is
       Drag (Session, Doc_Row_X, Tree_Row_Y (4), Doc_Row_X,
             Tree_Row_Y (6) + 10.0);
       Check ("write-directory-moved-first", "Opening",
-             Viewer.Document_Title (Session, 1));
+             Docs.Document_Title (Session, 1));
       Check ("write-directory-moved-second", "Middle",
-             Viewer.Document_Title (Session, 2));
+             Docs.Document_Title (Session, 2));
       Check ("write-directory-moved-with-its-documents", "Ending",
-             Viewer.Document_Title (Session, 3));
+             Docs.Document_Title (Session, 3));
       Check ("write-directory-moved-with-its-documents-in", " 1", Where (3));
       Settle (Session);
       Move_To (Session, 600.0, 60.0);
@@ -338,26 +350,26 @@ package body Write_Tests is
       Drag (Session, Doc_Row_X, Tree_Row_Y (6), Doc_Row_X, Tree_Row_Y (1));
       Check ("write-overview-dropped", " 0", Where (3));
       Check ("write-overview-dropped-last", "Ending",
-             Viewer.Document_Title (Session, 3));
+             Docs.Document_Title (Session, 3));
       Drag (Session, Doc_Row_X, Tree_Row_Y (4), Doc_Row_X, Tree_Row_Y (5));
       Check ("write-dropped-in-the-moved", " 1", Where (2));
 
       --  Their order, and what is in them, are kept.
-      Viewer.Close_Project (Session);
-      Viewer.Open_Project (Session, Key);
-      Viewer.Set_Mode (Session, Viewer.Write);
+      Proj.Close_Project (Session);
+      Home.Open_Project (Session, Key);
+      Proj.Set_Mode (Session, Viewer.Write);
       Check ("write-directories-kept", " 2",
-             Natural'Image (Viewer.Directory_Count (Session)));
+             Natural'Image (Docs.Directory_Count (Session)));
       Check ("write-directory-order-kept", "Part two",
-             Viewer.Directory_Title (Session, 1));
+             Docs.Directory_Title (Session, 1));
       Check ("write-directory-name-kept", "Part one",
-             Viewer.Directory_Title (Session, 2));
+             Docs.Directory_Title (Session, 2));
       Check ("write-directory-contents-kept", " 2", Where (2));
       Check ("write-directory-others-kept", " 0", Where (3));
       Check ("write-directory-order-of-documents-kept", "Middle",
-             Viewer.Document_Title (Session, 2));
+             Docs.Document_Title (Session, 2));
       Check ("write-directory-shown-again", " 0",
-             Natural'Image (Viewer.Shown_Directory (Session)));
+             Natural'Image (Docs.Shown_Directory (Session)));
       Settle (Session);
       Move_To (Session, 600.0, 60.0);
       Snap (Session, "write-directories-kept");
@@ -398,8 +410,8 @@ package body Write_Tests is
       end Choose;
    begin
       Start_With_Three (Session);
-      Key := Viewer.Current_Project (Session);
-      Viewer.Set_Mode (Session, Viewer.Write);
+      Key := Proj.Current_Project (Session);
+      Proj.Set_Mode (Session, Viewer.Write);
       Settle (Session);
       Right_Click_On (Session, Doc_Row_X, Doc_Row_Y (2));
       Settle (Session);
@@ -414,7 +426,7 @@ package body Write_Tests is
                                 Key => Events.Key_Return, others => <>));
       Settle (Session);
       Check ("write-context-renamed", "Centre",
-             Viewer.Document_Title (Session, 2));
+             Docs.Document_Title (Session, 2));
 
       Click_On (Session, Add_Directory_X, Add_Document_Y);
       Name_Directory (Session, "Part one");
@@ -425,62 +437,62 @@ package body Write_Tests is
                                 Key => Events.Key_Return, others => <>));
       Settle (Session);
       Check ("write-context-directory-renamed", "Act one",
-             Viewer.Directory_Title (Session, 1));
+             Docs.Directory_Title (Session, 1));
       Drag (Session, Doc_Row_X, Tree_Row_Y (4), Doc_Row_X, Tree_Row_Y (5));
       Settle (Session);
 
       --  Delete asks first; Escape leaves it all.
       Choose (Tree_Row_Y (5), Delete_Dy);
       Check ("write-delete-asked", "TRUE",
-             Boolean'Image (Viewer.Is_Confirming (Session)));
+             Boolean'Image (Home.Is_Confirming (Session)));
       Move_To (Session, 600.0, 60.0);
       Snap (Session, "write-delete-confirm");
       Viewer.Handle
         (Session, Events.Event'(Kind => Events.Key_Down,
                                 Key => Events.Key_Escape, others => <>));
       Check ("write-delete-escaped", "FALSE",
-             Boolean'Image (Viewer.Is_Confirming (Session)));
+             Boolean'Image (Home.Is_Confirming (Session)));
       Check ("write-delete-escaped-kept", " 1",
-             Natural'Image (Viewer.Directory_Count (Session)));
+             Natural'Image (Docs.Directory_Count (Session)));
 
       --  Deleting a directory keeps what was in it, in none.
       Choose (Tree_Row_Y (4), Delete_Dy);
       Check ("write-delete-directory-asked", "TRUE",
-             Boolean'Image (Viewer.Is_Confirming (Session)));
+             Boolean'Image (Home.Is_Confirming (Session)));
       Click_On (Session, Confirm_Delete_X, Confirm_Y);
       Settle (Session);
       Check ("write-delete-directory", " 0",
-             Natural'Image (Viewer.Directory_Count (Session)));
+             Natural'Image (Docs.Directory_Count (Session)));
       Check ("write-delete-directory-kept-documents", " 3",
-             Natural'Image (Viewer.Document_Count (Session)));
+             Natural'Image (Docs.Document_Count (Session)));
       Check ("write-delete-directory-kept-ending", "Ending",
-             Viewer.Document_Title (Session, 3));
+             Docs.Document_Title (Session, 3));
       Check ("write-delete-directory-in-none", " 0",
-             Natural'Image (Viewer.Document_Directory (Session, 3)));
+             Natural'Image (Docs.Document_Directory (Session, 3)));
 
       --  Cancel deletes nothing; Delete deletes a document.
       Choose (Tree_Row_Y (3), Delete_Dy);
       Click_On (Session, Confirm_Cancel_X, Confirm_Y);
       Check ("write-delete-cancelled", " 3",
-             Natural'Image (Viewer.Document_Count (Session)));
+             Natural'Image (Docs.Document_Count (Session)));
       Choose (Tree_Row_Y (3), Delete_Dy);
       Click_On (Session, Confirm_Delete_X, Confirm_Y);
       Settle (Session);
       Check ("write-delete-document", " 2",
-             Natural'Image (Viewer.Document_Count (Session)));
+             Natural'Image (Docs.Document_Count (Session)));
       Check ("write-delete-document-gone", "Ending",
-             Viewer.Document_Title (Session, 2));
+             Docs.Document_Title (Session, 2));
       Move_To (Session, 600.0, 60.0);
       Snap (Session, "write-deleted");
 
       --  They are gone for good.
-      Viewer.Close_Project (Session);
-      Viewer.Open_Project (Session, Key);
-      Viewer.Set_Mode (Session, Viewer.Write);
+      Proj.Close_Project (Session);
+      Home.Open_Project (Session, Key);
+      Proj.Set_Mode (Session, Viewer.Write);
       Check ("write-delete-kept-documents", " 2",
-             Natural'Image (Viewer.Document_Count (Session)));
+             Natural'Image (Docs.Document_Count (Session)));
       Check ("write-delete-kept-directories", " 0",
-             Natural'Image (Viewer.Directory_Count (Session)));
+             Natural'Image (Docs.Directory_Count (Session)));
    end Context_Menus;
 
    procedure Context_Menus_Elsewhere is
@@ -497,7 +509,7 @@ package body Write_Tests is
       Source_Y : constant Float := Source_Row_Y (3);
    begin
       Start_With_Three (Session);
-      Viewer.Set_Mode (Session, Viewer.Write);
+      Proj.Set_Mode (Session, Viewer.Write);
       Settle (Session);
 
       --  In a page's text, with nothing on the clipboard, only Select all
@@ -514,7 +526,7 @@ package body Write_Tests is
       Snap (Session, "write-context-selection");
       Click_On (Session, 360.0, Text_Y + 43.0);
       Settle (Session);
-      Check ("write-context-cut", "", Viewer.Item_Text (Session, 1));
+      Check ("write-context-cut", "", Windows.Item_Text (Session, 1));
 
       --  Now there is something to paste, which is put back.
       Right_Click_On (Session, 300.0, Text_Y);
@@ -522,7 +534,7 @@ package body Write_Tests is
       Click_On (Session, 360.0, Text_Y + 17.0);
       Settle (Session);
       Check ("write-context-pasted", "It was a dark and stormy night.",
-             Viewer.Item_Text (Session, 1));
+             Windows.Item_Text (Session, 1));
 
       --  In a source's window; it has no words, so Select all is faint.
       Click_On (Session, Source_Row_X, Source_Y);
@@ -541,18 +553,18 @@ package body Write_Tests is
                                 Key => Events.Key_Return, others => <>));
       Settle (Session);
       Check ("write-source-renamed", "Renamed",
-             Viewer.Source_Title (Session, 1));
+             Source_List.Source_Title (Session, 1));
       Check ("write-source-renamed-on-canvas", "Renamed",
-             Viewer.Item_Title (Session, 3));
+             Windows.Item_Title (Session, 3));
       Choose (Source_Row_X, Source_Y, 43.0);
       Check ("write-source-delete-asked", "TRUE",
-             Boolean'Image (Viewer.Is_Confirming (Session)));
+             Boolean'Image (Home.Is_Confirming (Session)));
       Click_On (Session, Confirm_Delete_X, Confirm_Y);
       Settle (Session);
       Check ("write-source-deleted", " 0",
-             Natural'Image (Viewer.Source_Count (Session)));
+             Natural'Image (Source_List.Source_Count (Session)));
       Check ("write-source-deleted-on-canvas", " 3",
-             Natural'Image (Viewer.Item_Count (Session)));
+             Natural'Image (Windows.Item_Count (Session)));
    end Context_Menus_Elsewhere;
 
    procedure Context_Menus_On_Canvas is
@@ -587,10 +599,10 @@ package body Write_Tests is
 
       --  On the selection, Copy, Cut and Paste.
       Choose (Word_At_X, Word_At_Y, 43.0);
-      Check ("write-canvas-cut", "", Viewer.Item_Text (Session, 4));
+      Check ("write-canvas-cut", "", Windows.Item_Text (Session, 4));
       Choose (Text_At_X, Text_At_Y, 17.0);
       Check ("write-canvas-pasted", "And they all lived.",
-             Viewer.Item_Text (Session, 4));
+             Windows.Item_Text (Session, 4));
 
       --  In a source's link, once its window is raised.
       Click_On (Session, Link_At_X, Link_At_Y);
@@ -608,16 +620,16 @@ package body Write_Tests is
       Session : Viewer.Session;
    begin
       Start_With_Three (Session);
-      Viewer.Set_Mode (Session, Viewer.Write);
+      Proj.Set_Mode (Session, Viewer.Write);
       Settle (Session);
       Click_On (Session, Add_Document_X, Add_Document_Y);
       Check ("write-added", " 4",
-             Natural'Image (Viewer.Document_Count (Session)));
+             Natural'Image (Docs.Document_Count (Session)));
       Check ("write-added-title", "Untitled document",
-             Viewer.Document_Title (Session, 4));
+             Docs.Document_Title (Session, 4));
       --  It is where the typing goes.
       Type_In (Session, "Fresh.");
-      Check ("write-added-typed", "Fresh.", Viewer.Item_Text (Session, 5));
+      Check ("write-added-typed", "Fresh.", Windows.Item_Text (Session, 5));
       Move_To (Session, 600.0, 60.0);
       Snap (Session, "write-added");
    end Adding;
@@ -627,9 +639,9 @@ package body Write_Tests is
    begin
       Start_With_Three (Session);
       --  The first and last documents are linked to the source.
-      Viewer.Link_Items (Session, 1, 3);
-      Viewer.Link_Items (Session, 3, 4);
-      Viewer.Set_Mode (Session, Viewer.Write);
+      Links.Link_Items (Session, 1, 3);
+      Links.Link_Items (Session, 3, 4);
+      Proj.Set_Mode (Session, Viewer.Write);
       Settle (Session);
       Click_On (Session, Sources_Button_X, Bar_Y);
       Settle (Session);
@@ -639,7 +651,7 @@ package body Write_Tests is
       Click_On (Session, Menu_Item_X, Menu_Item_Y);
       Settle (Session);
       Check ("write-menu-pinned", " 1",
-             Natural'Image (Viewer.Pinned_Source (Session)));
+             Natural'Image (Source_List.Pinned_Source (Session)));
       --  A document with no links has none to list.
       Move_To (Session, 600.0, 300.0);
       Snap (Session, "write-sources-pinned-from-menu");
@@ -649,28 +661,28 @@ package body Write_Tests is
       Session : Viewer.Session;
    begin
       Start_With_Three (Session);
-      Viewer.Set_Mode (Session, Viewer.Write);
+      Proj.Set_Mode (Session, Viewer.Write);
       Click_On (Session, Text_X, Text_Y);
       Type_In (Session, " More.");
       Snap (Session, "write-typed");
       --  It is in the item's window on the canvas too, which writes it.
       Check ("write-typed-text", "It was a dark and stormy night. More.",
-             Viewer.Item_Text (Session, 1));
-      Viewer.Set_Mode (Session, Viewer.Canvas);
+             Windows.Item_Text (Session, 1));
+      Proj.Set_Mode (Session, Viewer.Canvas);
       Check ("write-typed-words", " 8",
-             Natural'Image (Viewer.Item_Words (Session, 1)));
-      Viewer.Set_Mode (Session, Viewer.Write);
+             Natural'Image (Windows.Item_Words (Session, 1)));
+      Proj.Set_Mode (Session, Viewer.Write);
       Check ("write-typed-still", "It was a dark and stormy night. More.",
-             Viewer.Item_Text (Session, 1));
+             Windows.Item_Text (Session, 1));
 
       --  Typed on a page, it is kept as if typed on the canvas.
       declare
-         Key : constant Projects.Id := Viewer.Current_Project (Session);
+         Key : constant Projects.Id := Proj.Current_Project (Session);
       begin
-         Viewer.Close_Project (Session);
-         Viewer.Open_Project (Session, Key);
+         Proj.Close_Project (Session);
+         Home.Open_Project (Session, Key);
          Check ("write-typed-kept", "It was a dark and stormy night. More.",
-                Viewer.Item_Text (Session, 1));
+                Windows.Item_Text (Session, 1));
       end;
    end Typing;
 
@@ -678,14 +690,14 @@ package body Write_Tests is
       Session : Viewer.Session;
    begin
       Start_With_Three (Session);
-      Viewer.Set_Mode (Session, Viewer.Write);
+      Proj.Set_Mode (Session, Viewer.Write);
       Snap (Session, "write-sources-listed");
       Check ("write-source-closed", "FALSE",
-             Boolean'Image (Viewer.Source_Is_Open (Session, 1)));
+             Boolean'Image (Source_List.Source_Is_Open (Session, 1)));
       Click_On (Session, Source_Row_X, Source_Row_Y (3));
       Settle (Session);
       Check ("write-source-opened", "TRUE",
-             Boolean'Image (Viewer.Source_Is_Open (Session, 1)));
+             Boolean'Image (Source_List.Source_Is_Open (Session, 1)));
       Move_To (Session, 600.0, 60.0);
       Snap (Session, "write-source-window");
 
@@ -693,7 +705,7 @@ package body Write_Tests is
       Click_On (Session, Pin_X, Pin_Y);
       Settle (Session);
       Check ("write-source-pinned", " 1",
-             Natural'Image (Viewer.Pinned_Source (Session)));
+             Natural'Image (Source_List.Pinned_Source (Session)));
       Move_To (Session, 600.0, 60.0);
       Snap (Session, "write-source-pinned");
 
@@ -706,9 +718,9 @@ package body Write_Tests is
       Click_On (Session, Pane_Pin_X, Pane_Pin_Y);
       Settle (Session);
       Check ("write-pane-let-go", " 0",
-             Natural'Image (Viewer.Pinned_Source (Session)));
+             Natural'Image (Source_List.Pinned_Source (Session)));
       Check ("write-pane-window", "TRUE",
-             Boolean'Image (Viewer.Source_Is_Open (Session, 1)));
+             Boolean'Image (Source_List.Source_Is_Open (Session, 1)));
       Click_On (Session, Source_Row_X, Source_Row_Y (3));
       Settle (Session);
       Click_On (Session, Source_Row_X, Source_Row_Y (3));
@@ -717,9 +729,9 @@ package body Write_Tests is
       Settle (Session);
       Click_On (Session, Source_Row_X, Source_Row_Y (3));
       Check ("write-source-unpinned", " 0",
-             Natural'Image (Viewer.Pinned_Source (Session)));
+             Natural'Image (Source_List.Pinned_Source (Session)));
       Check ("write-source-closed-again", "FALSE",
-             Boolean'Image (Viewer.Source_Is_Open (Session, 1)));
+             Boolean'Image (Source_List.Source_Is_Open (Session, 1)));
    end Sources;
 
    procedure Sharing_Marks is
@@ -740,9 +752,9 @@ package body Write_Tests is
       Ada.Text_IO.Close (File);
 
       Viewer.Open (Session, "", Width, Height, 2.0);
-      Viewer.New_Project (Session);
-      Viewer.Pin_Capture_Time (Session, 1_700_000_000);
-      Viewer.Add_Item (Session, "Page", Items.Source);
+      Home.New_Project (Session);
+      Windows.Pin_Capture_Time (Session, 1_700_000_000);
+      Windows.Add_Item (Session, "Page", Items.Source);
       Viewer.Handle
         (Session, Events.Event'(Kind => Events.Key_Down,
                                 Key => Events.Key_A, Command => True,
@@ -751,51 +763,51 @@ package body Write_Tests is
       Viewer.Handle
         (Session, Events.Event'(Kind => Events.Key_Down,
                                 Key => Events.Key_Return, others => <>));
-      while Viewer.Is_Capturing (Session) and then Waited < 600 loop
+      while Windows.Is_Capturing (Session) and then Waited < 600 loop
          Webshot.Pump (100);
          Tick := SDL3.Events.Milliseconds (Natural (Tick) + 100);
          Viewer.Tick (Session, Tick);
          Waited := Waited + 1;
       end loop;
-      Viewer.Set_Mode (Session, Viewer.Write);
+      Proj.Set_Mode (Session, Viewer.Write);
       Click_On (Session, Source_Row_X, Source_Row_Y (0));
       Settle (Session);
       Check ("write-marks-none", " 0",
-             Natural'Image (Viewer.Source_Marks (Session, 1)));
+             Natural'Image (Source_List.Source_Marks (Session, 1)));
 
       --  Marked in the writing view, they are on the canvas too.
       Click_On (Session, Marker_X, Status_Y);
       Drag (Session, 340.0, Reader_Y, 440.0, Reader_Y);
       Check ("write-marks-made", " 1",
-             Natural'Image (Viewer.Source_Marks (Session, 1)));
+             Natural'Image (Source_List.Source_Marks (Session, 1)));
       Check ("write-marks-shared", " 1",
-             Natural'Image (Viewer.Item_Marks (Session, 1)));
+             Natural'Image (Windows.Item_Marks (Session, 1)));
       Snap (Session, "write-source-marked");
 
       --  And erased on the canvas, they are gone from the writing view.
-      Viewer.Set_Mode (Session, Viewer.Canvas);
+      Proj.Set_Mode (Session, Viewer.Canvas);
       Check ("write-marks-in-canvas", " 1",
-             Natural'Image (Viewer.Item_Marks (Session, 1)));
+             Natural'Image (Windows.Item_Marks (Session, 1)));
 
       --  Marked there, they are in the writing view too.
       Settle (Session);
       Click_On (Session, Canvas_Marker_X, Canvas_Status_Y);
       Drag (Session, 300.0, Canvas_Picture_Y, 400.0, Canvas_Picture_Y);
       Check ("write-marks-more", " 2",
-             Natural'Image (Viewer.Item_Marks (Session, 1)));
-      Viewer.Set_Mode (Session, Viewer.Write);
+             Natural'Image (Windows.Item_Marks (Session, 1)));
+      Proj.Set_Mode (Session, Viewer.Write);
       Check ("write-marks-more-shared", " 2",
-             Natural'Image (Viewer.Source_Marks (Session, 1)));
+             Natural'Image (Source_List.Source_Marks (Session, 1)));
 
       --  They are kept.
       declare
-         Key : constant Projects.Id := Viewer.Current_Project (Session);
+         Key : constant Projects.Id := Proj.Current_Project (Session);
       begin
-         Viewer.Close_Project (Session);
-         Viewer.Open_Project (Session, Key);
-         Viewer.Set_Mode (Session, Viewer.Write);
+         Proj.Close_Project (Session);
+         Home.Open_Project (Session, Key);
+         Proj.Set_Mode (Session, Viewer.Write);
          Check ("write-marks-kept", " 2",
-                Natural'Image (Viewer.Source_Marks (Session, 1)));
+                Natural'Image (Source_List.Source_Marks (Session, 1)));
       end;
    end Sharing_Marks;
 

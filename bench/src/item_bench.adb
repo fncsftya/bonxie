@@ -8,6 +8,8 @@ with SDL3.Events;
 with SDL3.Windows.Renderers.Images;
 with Typeset.Samples;
 with Viewer;
+with Viewer.Canvas_Windows;
+with Viewer.Home_Screen;
 
 --  Measures what dragging and sizing an item on the canvas costs, offscreen
 --  in software: item_bench [items [frames [paragraphs [gpu]]]]. Each is the
@@ -17,6 +19,8 @@ with Viewer;
 --  compare with a frame where nothing has changed.
 procedure Item_Bench is
    package Events renames SDL3.Events;
+   package Windows renames Viewer.Canvas_Windows;
+   package Home renames Viewer.Home_Screen;
    package Images renames SDL3.Windows.Renderers.Images;
 
    use Ada.Real_Time;
@@ -140,9 +144,9 @@ begin
    else
       Viewer.Open (Session, "", 720, 480, 2.0);
    end if;
-   Viewer.New_Project (Session);
+   Home.New_Project (Session);
    for I in 1 .. Items loop
-      Viewer.Add_Item (Session, "Item" & I'Image);
+      Windows.Add_Item (Session, "Item" & I'Image);
       if Paragraphs > 0 then
          declare
             Text : constant String := Typeset.Samples.Document (Paragraphs);
