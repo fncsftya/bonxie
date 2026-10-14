@@ -10,7 +10,7 @@ with Projects;
 --  Items.Sources (what is of a source alone), Items.Words and
 --  Items.Marks (what is found and made on a source's picture),
 --  Items.Links (the lines between items) and Items.Directories (the
---  writing view's tree).
+--  writing view's tree). The SQL they are kept by is in the Repository.
 package Items is
 
    Capacity : constant := 16;

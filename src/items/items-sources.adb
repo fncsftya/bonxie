@@ -2,10 +2,9 @@ with Ada.Directories;
 with Ada.Numerics.Elementary_Functions;
 with Ada.Strings;
 with Ada.Strings.Fixed;
-with Ada_Sqlite3;
-with Items.Database; use Items.Database;
 with Items.Marks;
 with Items.Words;
+with Repository.Item;
 
 package body Items.Sources is
 
@@ -33,28 +32,15 @@ package body Items.Sources is
                    (Max_Zoom / Min_Zoom, Along)) / 100.0)));
 
    procedure Set_Zoom
-     (Store : in out Projects.Store; Key : Id; Zoom : Zoom_Level)
-   is
-      Update : Ada_Sqlite3.Statement :=
-        Ada_Sqlite3.Prepare
-          (DB (Store).all, "UPDATE items SET zoom = :zoom WHERE id = :id");
+     (Store : in out Projects.Store; Key : Id; Zoom : Zoom_Level) is
    begin
-      Ada_Sqlite3.Bind_Double (Update, ":zoom", Zoom);
-      Ada_Sqlite3.Bind_Int64 (Update, ":id", Long_Integer (Key));
-      Ada_Sqlite3.Step (Update);
+      Repository.Item.Set_Zoom (Store, Key, Zoom);
    end Set_Zoom;
 
    procedure Set_Captured
-     (Store : in out Projects.Store; Key : Id; At_Time : Projects.Seconds)
-   is
-      Update : Ada_Sqlite3.Statement :=
-        Ada_Sqlite3.Prepare
-          (DB (Store).all,
-           "UPDATE items SET captured_at = :time WHERE id = :id");
+     (Store : in out Projects.Store; Key : Id; At_Time : Projects.Seconds) is
    begin
-      Ada_Sqlite3.Bind_Int64 (Update, ":time", At_Time);
-      Ada_Sqlite3.Bind_Int64 (Update, ":id", Long_Integer (Key));
-      Ada_Sqlite3.Step (Update);
+      Repository.Item.Set_Captured (Store, Key, At_Time);
       Words.Clear_Words (Store, Key);
       Marks.Clear_Marks (Store, Key);
    end Set_Captured;

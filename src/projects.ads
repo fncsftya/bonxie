@@ -69,8 +69,8 @@ package Projects is
    function Connection
      (Item : Store) return not null access Ada_Sqlite3.Database
      with Pre => Is_Open (Item);
-   --  The open database, for what belongs to projects to be kept in it
-   --  too (see Items). Foreign keys are on: what refers to a project is
+   --  The open database, for the Repository to reach its tables by: no
+   --  one else is to. Foreign keys are on: what refers to a project is
    --  removed with it.
 
    function Create
