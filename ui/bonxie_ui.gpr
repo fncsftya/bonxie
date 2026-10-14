@@ -10,7 +10,7 @@ project Bonxie_UI is
    for Library_Version use
      Project'Library_Name & ".so." & Bonxie_UI_Config.Crate_Version;
 
-   for Source_Dirs use ("src/", "config/");
+   for Source_Dirs use ("src/**", "config/");
    for Object_Dir use "obj/" & Bonxie_UI_Config.Build_Profile;
    for Create_Missing_Dirs use "True";
    for Library_Dir use "lib";
