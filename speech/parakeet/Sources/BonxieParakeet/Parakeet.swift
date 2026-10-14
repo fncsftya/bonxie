@@ -121,9 +121,22 @@ public func pk_fetch_begin(_ directory: UnsafePointer<CChar>) -> Int32 {
     fetching.why = ""
     fetching.task = Task.detached {
         do {
-            try await AsrModels.download(to: there, version: .v3) { progress in
-                fetching.lock.withLock { fetching.fraction = progress.fractionCompleted }
+            // AsrModels.download makes one load (download, then compile) of
+            // each model in turn, and its fraction restarts and stalls at
+            // a half for every one. ModelHub.download is the same fetch, by
+            // the byte, once; a repo's download is the first half of its
+            // fraction (the other is compiling, which is not done here).
+            try await ModelHub.download(
+                .parakeetV3, to: there.deletingLastPathComponent(),
+                variant: ParakeetEncoderPrecision.int8.rawValue
+            ) { progress in
+                fetching.lock.withLock {
+                    fetching.fraction = max(fetching.fraction, min(1, progress.fractionCompleted * 2))
+                }
             }
+            // This is a no-op once the models and vocabulary are there; it
+            // is here for the vocabulary, should the above not have it.
+            try await AsrModels.download(to: there, version: .v3)
             fetching.lock.withLock {
                 fetching.fraction = 1
                 fetching.state = 2
