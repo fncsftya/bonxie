@@ -24,8 +24,8 @@ package body Preferences is
       end if;
    end Config_Directory;
 
-   function Speech_Model_File (Config : String) return String is
-     (Config & "/speech/model.gguf");
+   function Speech_Model_Directory (Config : String) return String is
+     (Config & "/speech/parakeet-tdt-0.6b-v3-coreml");
 
    function Settings_File (Config : String) return String is
      (Config & "/settings");

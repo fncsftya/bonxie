@@ -3,7 +3,7 @@ with SDL3.Cursors;
 with SDL3.Events;
 with SDL3.Windows.Renderers.Images;
 private with Ada.Strings.Unbounded;
-private with Downloads;
+private with Speech.Models;
 private with Items;
 private with Items.Directories;
 private with Items.Links;
@@ -436,7 +436,7 @@ private
       --  Where the settings and the files they need are kept.
       Persist        : Boolean := False;
       --  Whether the settings are written there: not offscreen.
-      Download_Seen  : Downloads.States := Downloads.Idle;
+      Download_Seen  : Speech.Models.States := Speech.Models.Idle;
       --  How the download was when the form last showed it.
    end record;
    --  The settings, and what is chosen in them.

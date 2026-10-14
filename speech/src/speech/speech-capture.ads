@@ -1,11 +1,11 @@
 --  The microphone as 16 kHz mono samples, for a model that wants nothing
---  else (see Transcribe): converted as the sound comes in, and kept until
+--  else (see Speech.Parakeet): converted as the sound comes in, and kept until
 --  it is read. A capture is told apart by its session number, as
 --  Speech's listenings are (the two do not share a number's state). Begin
 --  waits for leave to
 --  use the microphone, so it is not for the main thread; the rest are
 --  cheap and may be called from any thread.
-with Transcribe;
+with Speech.Windows;
 
 package Speech.Capture is
 
@@ -20,7 +20,7 @@ package Speech.Capture is
 
    procedure Read
      (Which : Session;
-      Into  : out Transcribe.Samples;
+      Into  : out Windows.Samples;
       Last  : out Natural)
      with Post => Last in Into'First - 1 .. Into'Last;
    --  Take the samples that have come, as many as Into holds: Into

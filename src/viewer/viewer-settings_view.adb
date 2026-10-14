@@ -1,13 +1,12 @@
-with Ada.Directories;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
-with Downloads;
 with UI.Widgets;
 with UI.Widgets.Buttons;
 with UI.Widgets.Checks;
 with UI.Widgets.Labels;
 with UI.Widgets.Progress_Bars;
 with SDL3.Events;
+with Speech.Models;
 with Viewer.Style;
 with Yoga.Nodes;
 
@@ -19,29 +18,28 @@ package body Viewer.Settings_View is
    package Labels renames UI.Widgets.Labels;
    package Progress_Bars renames UI.Widgets.Progress_Bars;
 
-   use type Downloads.States;
+   use type Speech.Models.States;
    use type Preferences.Speech_Models;
    use type Preferences.Theme_Choices;
 
    function Config (Item : Session) return String is
      (Ada.Strings.Unbounded.To_String (Item.Prefs.Config_Dir));
 
-   function Model_File (Item : Session) return String is
-     (Preferences.Speech_Model_File (Config (Item)));
+   function Model_Directory (Item : Session) return String is
+     (Preferences.Speech_Model_Directory (Config (Item)));
 
    function Model_Present (Item : Session) return Boolean is
-     (Ada.Directories.Exists (Model_File (Item)));
+     (Speech.Models.Present (Model_Directory (Item)));
 
    function Downloading (Item : Session) return Boolean is
      (Item.Prefs.Showing_Settings
-    and then Downloads.State = Downloads.Running);
+    and then Speech.Models.State = Speech.Models.Running);
 
    function Percent return String;
-   --  How much of the file has come, as "42%"; "" while its length is not
-   --  known.
+   --  How much of the model has come, as "42%"; "" while that is not known.
 
    function Percent return String is
-      Done : constant Natural := Natural (Downloads.Fraction * 100.0);
+      Done : constant Natural := Natural (Speech.Models.Fraction * 100.0);
    begin
       return (if Done = 0 then ""
               else Ada.Strings.Fixed.Trim (Done'Image, Ada.Strings.Left)
@@ -62,12 +60,12 @@ package body Viewer.Settings_View is
       if Model_Present (Item) then
          return "Model available";
       end if;
-      case Downloads.State is
-         when Downloads.Running =>
+      case Speech.Models.State is
+         when Speech.Models.Running =>
             return Fits ("Downloading " & Percent);
-         when Downloads.Failed =>
-            return Fits ("Download failed: " & Downloads.Message);
-         when Downloads.Idle | Downloads.Done =>
+         when Speech.Models.Failed =>
+            return Fits ("Download failed: " & Speech.Models.Message);
+         when Speech.Models.Idle | Speech.Models.Done =>
             return "Model not downloaded";
       end case;
    end Status;
@@ -75,7 +73,7 @@ package body Viewer.Settings_View is
    procedure Refresh (Item : in out Session) is
       Parakeet : constant Boolean := Item.Prefs.Speech_Choice
          = Preferences.Parakeet;
-      Running  : constant Boolean := Downloads.State = Downloads.Running;
+      Running  : constant Boolean := Speech.Models.State = Speech.Models.Running;
    begin
       Checks.Set_Checked (Item.Prefs.Model_Native, not Parakeet);
       Checks.Set_Checked (Item.Prefs.Model_Parakeet, Parakeet);
@@ -93,9 +91,9 @@ package body Viewer.Settings_View is
        and then not Running);
       Labels.Set_Text (Item.Prefs.Download_State, Status (Item));
       if Running then
-         Progress_Bars.Set_Value (Item.Prefs.Download_Bar, Downloads.Fraction);
+         Progress_Bars.Set_Value (Item.Prefs.Download_Bar, Speech.Models.Fraction);
       end if;
-      Item.Prefs.Download_Seen := Downloads.State;
+      Item.Prefs.Download_Seen := Speech.Models.State;
    end Refresh;
 
    procedure Open (Item : in out Session) is
@@ -202,19 +200,19 @@ package body Viewer.Settings_View is
       end if;
       Buttons.Take_Click (Item.Prefs.Download_Button, Clicked);
       if Clicked
-        and then Downloads.State /= Downloads.Running
+        and then Speech.Models.State /= Speech.Models.Running
         and then not Model_Present (Item)
       then
-         Downloads.Start (Preferences.Parakeet_URL, Model_File (Item));
+         Speech.Models.Start (Model_Directory (Item));
          Refresh (Item);
          Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
       end if;
    end Take;
 
    procedure Update (Item : in out Session) is
-      Now : constant Downloads.States := Downloads.State;
+      Now : constant Speech.Models.States := Speech.Models.State;
    begin
-      if Now = Downloads.Running then
+      if Now = Speech.Models.Running then
          Refresh (Item);
       elsif Now /= Item.Prefs.Download_Seen then
          --  It has ended: the button and the bar change.

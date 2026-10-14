@@ -47,7 +47,7 @@ package body Speech.Capture is
 
    procedure Read
      (Which : Session;
-      Into  : out Transcribe.Samples;
+      Into  : out Windows.Samples;
       Last  : out Natural) is
    begin
       Last := Into'First - 1;

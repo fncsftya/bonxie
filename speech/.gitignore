@@ -4,3 +4,5 @@
 /config/
 /tests/obj/
 /tests/bin/
+/native/lib/
+/parakeet/.build/

@@ -1,3 +1,0 @@
-[submodule "transcribe/transcribe.cpp"]
-	path = transcribe/transcribe.cpp
-	url = https://github.com/handy-computer/transcribe.cpp.git

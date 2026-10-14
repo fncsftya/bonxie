@@ -430,7 +430,7 @@ package body Viewer is
       end loop;
       Save_Geometry (Item);
       --  Not to go on fetching what no one will use.
-      Downloads.Cancel;
+      Speech.Models.Cancel;
    end Run;
 
 end Viewer;

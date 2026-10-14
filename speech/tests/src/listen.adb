@@ -1,5 +1,5 @@
---  Listen to the microphone with a model for some seconds, showing the
---  words as they come, then the whole: `listen model.gguf seconds`.
+--  Listen to the microphone with Parakeet for some seconds, showing the
+--  words as they come, then the whole: `listen model-folder seconds`.
 with Ada.Command_Line;
 with Ada.Text_IO;
 with Speech.Jobs;

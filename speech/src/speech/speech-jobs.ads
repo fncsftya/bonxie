@@ -5,12 +5,12 @@
 --  caller polls (State), says when to stop (Stop), and takes the text
 --  when it is Done. The text is kept in the slot until Take.
 --
---  Two engines can do the listening: the system's (SpeechAnalyzer) or a
---  model in a GGUF file (Transcribe). The model's task hears the
---  microphone as 16 kHz mono (Speech.Capture) from the first moment, and
---  feeds it to the model as it comes, so that Heard_So_Far has the words
---  as they are worked out; the model is loaded meanwhile, so what is said
---  while it loads is not lost, only late.
+--  Two engines can do the listening: the system's (SpeechAnalyzer) or
+--  Parakeet, a model on Core ML (Speech.Streams). The model's task hears
+--  the microphone as 16 kHz mono (Speech.Capture) from the first moment,
+--  and feeds it to the model as it comes, so that Heard_So_Far has the
+--  words as they are worked out; the model is loaded meanwhile, so what is
+--  said while it loads is not lost, only late.
 package Speech.Jobs is
 
    Slot_Count : constant := Max_Sessions;
@@ -31,17 +31,18 @@ package Speech.Jobs is
 
    Max_Message : constant := 160;
    Max_Path    : constant := 1024;
+   --  Of the folder the model is kept in.
 
    procedure Start
      (Which      : Slot;
       Engine     : Engines := System;
-      Model_File : String  := "")
+      Model_Directory : String  := "")
      with Pre  => State (Which) in Idle | Done | Failed
-                  and then Model_File'Length <= Max_Path
-                  and then (Engine = System or else Model_File /= ""),
+                  and then Model_Directory'Length <= Max_Path
+                  and then (Engine = System or else Model_Directory /= ""),
           Post => State (Which) in Starting | Listening | Failed;
-   --  Begin to listen, with the engine; Model_File is the model's, for
-   --  Model. If a job that was reset is still running in the slot, this
+   --  Begin to listen, with the engine; Model_Directory is where the
+   --  model is kept (see Speech.Models), for Model. If a job that was reset is still running in the slot, this
    --  waits for it.
 
    procedure Stop (Which : Slot)

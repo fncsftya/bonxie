@@ -26,7 +26,6 @@ coretext = { path = "coretext" }
 sdl3 = { path = "sdl3" }
 speech = { path = "speech" }
 texts = { path = "texts" }
-transcribe = { path = "transcribe" }
 typeset = { path = "typeset" }
 vision = { path = "vision" }
 webshot = { path = "webshot" }

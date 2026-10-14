@@ -1,5 +1,7 @@
 with Speech.Capture;
-with Transcribe.Sessions;
+with Speech.Parakeet;
+with Speech.Streams;
+with Speech.Windows;
 
 package body Speech.Jobs is
 
@@ -168,23 +170,26 @@ package body Speech.Jobs is
       return Words (First .. Last);
    end Trimmed;
 
+   type Stream_Access is access Streams.Stream;
+
+   Streamers : array (Slot) of Stream_Access := [others => null];
+   --  What each slot hears with: made when the slot first listens with
+   --  the model (it holds a window of sound, so it is large), and kept.
+
    procedure Run_Model (Which : Slot; Job : Natural; Path : String);
    --  Hear the microphone and make it text with the model, until the job
    --  is told to stop (or is reset); then the rest. In the slot's task.
 
    procedure Run_Model (Which : Slot; Job : Natural; Path : String) is
       Pause      : constant Duration := 0.05;
-      Item       : Transcribe.Sessions.Session;
       Ok         : Boolean;
       Why        : String (1 .. Max_Message);
       Why_Last   : Natural;
       Stop_Now   : Boolean;
-      Audio      : Transcribe.Samples (1 .. Transcribe.Sample_Rate);
+      Audio      : Windows.Samples (1 .. Windows.Rate);
       Audio_Last : Natural;
-      Words      : String (1 .. Text_Capacity);
-      Words_Last : Natural;
-      Cut        : Boolean;
       Changed    : Boolean;
+      Said       : Transcript;
 
       procedure Fail (Reason : String) is
       begin
@@ -192,22 +197,20 @@ package body Speech.Jobs is
          Board.End_Job (Which, Job, False, Reason);
       end Fail;
 
-      procedure Show is
+      procedure Show (Item : Streams.Stream) is
       begin
-         Transcribe.Sessions.Text (Item, Words, Words_Last, Cut);
-         Live.Put (Which, Trimmed (Words (1 .. Words_Last)), Cut);
+         Streams.Text (Item, Said);
+         Live.Put (Which, Trimmed (Image (Said)), Said.Truncated);
       end Show;
 
-      procedure Feed_What_Came (Any : out Boolean) is
+      procedure Feed_What_Came (Item : in out Streams.Stream; Any : out Boolean) is
       begin
          Capture.Read (Which, Audio, Audio_Last);
          Any := Audio_Last >= Audio'First;
          if Any then
-            Transcribe.Sessions.Feed
-              (Item, Audio (Audio'First .. Audio_Last), Changed, Ok, Why,
-               Why_Last);
+            Streams.Feed (Item, Audio (Audio'First .. Audio_Last), Changed, Ok, Why, Why_Last);
             if Ok and then Changed then
-               Show;
+               Show (Item);
             end if;
          end if;
       end Feed_What_Came;
@@ -227,52 +230,55 @@ package body Speech.Jobs is
          Capture.Close (Which);
          return;
       end if;
-      Transcribe.Sessions.Open (Item, Path, Ok, Why, Why_Last);
+      Parakeet.Load (Path, Ok, Why, Why_Last);
       if not Ok then
          Fail (Why (1 .. Why_Last));
          return;
       end if;
-      Transcribe.Sessions.Begin_Stream (Item, Ok, Why, Why_Last);
-      if not Ok then
-         Fail (Why (1 .. Why_Last));
-         return;
+      if Streamers (Which) = null then
+         Streamers (Which) := new Streams.Stream;
       end if;
-      while Board.Phase (Which, Job) = Listening loop
-         Feed_What_Came (Any);
-         if not Ok then
-            Fail (Why (1 .. Why_Last));
-            return;
-         end if;
-         if not Any then
-            delay Pause;
-         end if;
-      end loop;
-      Capture.Stop (Which);
-      if Board.Phase (Which, Job) = Idle then
-         Capture.Close (Which);  --  reset: what was heard is not wanted
-         return;
-      end if;
-      loop
-         Feed_What_Came (Any);
-         if not Ok then
-            Fail (Why (1 .. Why_Last));
-            return;
-         end if;
-         exit when not Any;
-      end loop;
-      Capture.Close (Which);
-      Transcribe.Sessions.Finalize_Stream (Item, Ok, Why, Why_Last);
-      if not Ok then
-         Board.End_Job (Which, Job, False, Why (1 .. Why_Last));
-         return;
-      end if;
-      Transcribe.Sessions.Text (Item, Words, Words_Last, Cut);
       declare
-         Said : constant String := Trimmed (Words (1 .. Words_Last));
+         Item : Streams.Stream renames Streamers (Which).all;
       begin
-         Heard (Which).Length := Said'Length;
-         Heard (Which).Truncated := Cut;
-         Heard (Which).Text (1 .. Said'Length) := Said;
+         Streams.Reset (Item);
+         while Board.Phase (Which, Job) = Listening loop
+            Feed_What_Came (Item, Any);
+            if not Ok then
+               Fail (Why (1 .. Why_Last));
+               return;
+            end if;
+            if not Any then
+               delay Pause;
+            end if;
+         end loop;
+         Capture.Stop (Which);
+         if Board.Phase (Which, Job) = Idle then
+            Capture.Close (Which);  --  reset: what was heard is not wanted
+            return;
+         end if;
+         loop
+            Feed_What_Came (Item, Any);
+            if not Ok then
+               Fail (Why (1 .. Why_Last));
+               return;
+            end if;
+            exit when not Any;
+         end loop;
+         Capture.Close (Which);
+         Streams.Finish (Item, Ok, Why, Why_Last);
+         if not Ok then
+            Board.End_Job (Which, Job, False, Why (1 .. Why_Last));
+            return;
+         end if;
+         Streams.Text (Item, Said);
+         declare
+            Words : constant String := Trimmed (Image (Said));
+         begin
+            Heard (Which).Length := Words'Length;
+            Heard (Which).Truncated := Said.Truncated;
+            Heard (Which).Text (1 .. Words'Length) := Words;
+         end;
       end;
       Board.End_Job (Which, Job, True, "");
    end Run_Model;
@@ -354,7 +360,7 @@ package body Speech.Jobs is
    procedure Start
      (Which      : Slot;
       Engine     : Engines := System;
-      Model_File : String  := "")
+      Model_Directory : String  := "")
    is
       Job : Natural;
    begin
@@ -362,7 +368,7 @@ package body Speech.Jobs is
       if Workers (Which) = null then
          Workers (Which) := new Worker;
       end if;
-      Workers (Which).Run (Which, Job, Engine, Model_File);
+      Workers (Which).Run (Which, Job, Engine, Model_Directory);
    end Start;
 
    procedure Stop (Which : Slot) is

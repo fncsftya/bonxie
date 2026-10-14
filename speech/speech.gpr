@@ -1,5 +1,4 @@
 with "config/speech_config.gpr";
-with "transcribe.gpr";
 project Speech is
 
    for Library_Name use "speech_ada";
@@ -44,10 +43,17 @@ project Speech is
 
    --  Propagated to every project that depends on this one. The plist is
    --  embedded in the program, as a program that is not in a bundle needs
-   --  it to ask for the microphone.
+   --  it to ask for the microphone. libBonxieParakeet (Parakeet on Core ML,
+   --  built by native/build.sh) is found by its place here when the program
+   --  runs from the tree, or in Frameworks beside the program's folder in a
+   --  bundle.
    package Linker is
       for Linker_Options use
-        ("-framework", "Speech",
+        ("-L" & Project'Project_Dir & "native/lib",
+         "-lBonxieParakeet",
+         "-Wl,-rpath," & Project'Project_Dir & "native/lib",
+         "-Wl,-rpath,@executable_path/../Frameworks",
+         "-framework", "Speech",
          "-framework", "AVFoundation",
          "-framework", "Foundation",
          "-mmacosx-version-min=26.0",
@@ -57,6 +63,12 @@ project Speech is
          "-Wl,-sectcreate,__TEXT,__info_plist," & Project'Project_Dir
          & "Info.plist");
    end Linker;
+
+   --  `gnatprove -P speech.gpr -u speech-windows.adb`: Speech.Windows is
+   --  proved (see its comment); the rest of the crate is not SPARK.
+   package Prove is
+      for Proof_Switches ("Ada") use ("--level=2", "--timeout=60", "-j0");
+   end Prove;
 
    package Binder is
       for Switches ("Ada") use ("-Es"); --  Symbolic traceback

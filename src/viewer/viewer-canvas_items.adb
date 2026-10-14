@@ -13,6 +13,7 @@ with UI.Widgets;
 with UI.Widgets.Canvases;
 with UI.Widgets.Pictures;
 with Speech.Jobs;
+with Speech.Models;
 with Viewer.Links;
 with Viewer.Style;
 with Viewer.Writing;
@@ -87,14 +88,14 @@ package body Viewer.Canvas_Items is
          when Speech.Jobs.Idle | Speech.Jobs.Done | Speech.Jobs.Failed =>
             Speech.Jobs.Reset (Which);
             declare
-               Model_File : constant String :=
-                 Preferences.Speech_Model_File
+               Model_Directory : constant String :=
+                 Preferences.Speech_Model_Directory
                    (Ada.Strings.Unbounded.To_String (Item.Prefs.Config_Dir));
             begin
                if Item.Prefs.Speech_Choice = Preferences.Parakeet then
-                  if Ada.Directories.Exists (Model_File) then
+                  if Speech.Models.Present (Model_Directory) then
                      Speech.Jobs.Start
-                       (Which, Speech.Jobs.Model, Model_File);
+                       (Which, Speech.Jobs.Model, Model_Directory);
                      Windows.Set_Dictation
                        (Item.Windows (Which), Windows.Preparing);
                   else

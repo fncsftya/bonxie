@@ -1,5 +1,5 @@
 name = "speech"
-description = "Speech to text, with Apple's SpeechAnalyzer (macOS 26 or later)"
+description = "Speech to text: SpeechAnalyzer or Parakeet on Core ML (macOS 26+)"
 version = "0.1.0-dev"
 
 authors = ["Matt Rawcliffe"]
@@ -11,11 +11,9 @@ tags = []
 macos = true
 '...' = false
 
-[[depends-on]]
-transcribe = "*"
-
-[[pins]]
-transcribe = { path = "../transcribe" }
+[[actions]]
+type = "post-fetch"
+command = ["sh", "native/build.sh"]
 
 [build-switches]
 "*".ada_version = "Ada2022"
