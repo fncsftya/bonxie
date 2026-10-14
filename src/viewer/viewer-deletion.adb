@@ -70,8 +70,22 @@ package body Viewer.Deletion is
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
    end Confirm_Node;
 
+   procedure Confirm_Model (Item : in out Session; Size : String) is
+   begin
+      Item.Confirm.Deleting_Model := True;
+      Labels.Set_Text (Item.Confirm.Dialog_Title, "Delete model");
+      Labels.Set_Text (Item.Confirm.Confirm_Message, "Delete the Parakeet model?");
+      Labels.Set_Text
+        (Item.Confirm.Confirm_Note,
+         Size (Size'First .. Size'First - 1
+               + Natural'Min (Size'Length, Labels.Text_Capacity)));
+      Widgets.Set_Visible (Item.Confirm.Overlay, True);
+      Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
+   end Confirm_Model;
+
    procedure Close (Item : in out Session) is
    begin
+      Item.Confirm.Deleting_Model := False;
       Item.Confirm.Deleting := 0;
       Item.Confirm.Deleting_Node := (others => <>);
       Labels.Set_Text (Item.Confirm.Dialog_Title, "Delete project");

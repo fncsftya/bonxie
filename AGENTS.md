@@ -17,3 +17,7 @@ PREFER features from the Ada 2022 standard, e.g.
   - Target name symbol (`@`)
 PREFER to refactor existing code if it can be improved.
 KEEP lines to at most 120 columns (`-gnatyM120` in each project).
+
+## Testing
+
+See TESTING.md

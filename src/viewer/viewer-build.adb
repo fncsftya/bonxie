@@ -854,6 +854,7 @@ package body Viewer.Build is
       Widgets.Add (Item.Prefs.Settings_Form, Item.Prefs.Model_Parakeet);
       Widgets.Add (Item.Prefs.Settings_Form, Item.Prefs.Download_Row);
       Widgets.Add (Item.Prefs.Download_Row, Item.Prefs.Download_Button);
+      Widgets.Add (Item.Prefs.Download_Row, Item.Prefs.Delete_Button);
       Widgets.Add (Item.Prefs.Download_Row, Item.Prefs.Download_State);
       Widgets.Add (Item.Prefs.Settings_Form, Item.Prefs.Download_Bar);
 
@@ -962,6 +963,14 @@ package body Viewer.Build is
       Set_Height
         (Widgets.Node (Item.Prefs.Download_Button), Download_Height * Pixels);
       Set_Flex_Shrink (Widgets.Node (Item.Prefs.Download_Button), 0.0);
+      Buttons.Set_Label (Item.Prefs.Delete_Button, "Delete");
+      Buttons.Set_Kind (Item.Prefs.Delete_Button, Buttons.Danger);
+      Set_Width
+        (Widgets.Node (Item.Prefs.Delete_Button), Download_Width * Pixels);
+      Set_Height
+        (Widgets.Node (Item.Prefs.Delete_Button), Download_Height * Pixels);
+      Set_Flex_Shrink (Widgets.Node (Item.Prefs.Delete_Button), 0.0);
+      Widgets.Set_Visible (Item.Prefs.Delete_Button, False);
       Labels.Set_Ink (Item.Prefs.Download_State, Quiet_Ink);
       Set_Flex_Grow (Widgets.Node (Item.Prefs.Download_State), 1.0);
       Set_Width (Widgets.Node (Item.Prefs.Download_State), 0.0);

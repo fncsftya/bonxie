@@ -10,6 +10,11 @@ private package Viewer.Deletion is
    --  Show the dialog to confirm deleting a document or directory of the
    --  writing view.
 
+   procedure Confirm_Model (Item : in out Session; Size : String)
+     with Post => Item.Confirm.Deleting_Model;
+   --  Show the dialog to confirm deleting the files of the speech model,
+   --  which are Size (say so). Settings_View acts on the answer.
+
    procedure Close (Item : in out Session);
    --  Hide the dialog: nothing is deleted.
 

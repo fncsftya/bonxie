@@ -103,11 +103,32 @@ private final class Fetching: @unchecked Sendable {
     let lock = NSLock()
     var state: Int32 = 0
     var fraction = 0.0
+    var total: Int64 = 0
     var why = ""
     var task: Task<Void, Never>?
 }
 
 private let fetching = Fetching()
+
+// The size, in bytes, of the files that a fetch brings: those of the
+// models' folders, as the repository lists them. 0 if it cannot be listed.
+private func remoteSize() async -> Int64 {
+    struct Entry: Decodable {
+        let type: String
+        let size: Int64?
+    }
+    var total: Int64 = 0
+    for name in ModelNames.ASR.requiredModelsV3().sorted() {
+        let address = "https://huggingface.co/api/models/\(Repo.parakeetV3.remotePath)"
+            + "/tree/main/\(name)?recursive=true"
+        guard let url = URL(string: address),
+            let (data, _) = try? await ModelHub.fetchWithAuth(from: url),
+            let entries = try? JSONDecoder().decode([Entry].self, from: data)
+        else { return 0 }
+        total += entries.filter { $0.type == "file" }.reduce(0) { $0 + ($1.size ?? 0) }
+    }
+    return total
+}
 
 // 1 if it began; 0 if one is running already.
 @_cdecl("pk_fetch_begin")
@@ -118,9 +139,14 @@ public func pk_fetch_begin(_ directory: UnsafePointer<CChar>) -> Int32 {
     if fetching.state == 1 { return 0 }
     fetching.state = 1
     fetching.fraction = 0
+    fetching.total = 0
     fetching.why = ""
     fetching.task = Task.detached {
         do {
+            // How many bytes there will be, for the caller to say; 0 if it
+            // cannot be found out (the fetch goes on without).
+            let total = await remoteSize()
+            fetching.lock.withLock { fetching.total = total }
             // AsrModels.download makes one load (download, then compile) of
             // each model in turn, and its fraction restarts and stalls at
             // a half for every one. ModelHub.download is the same fetch, by
@@ -161,6 +187,13 @@ public func pk_fetch_fraction() -> Float {
     fetching.lock.withLock { Float(min(1, max(0, fetching.fraction))) }
 }
 
+// The bytes the fetch comes to in all (0 until they are known, or if they
+// cannot be).
+@_cdecl("pk_fetch_total")
+public func pk_fetch_total() -> Int64 {
+    fetching.lock.withLock { fetching.total }
+}
+
 @_cdecl("pk_fetch_message")
 public func pk_fetch_message(_ message: UnsafeMutablePointer<CChar>, _ room: Int32) {
     say(fetching.lock.withLock { fetching.why }, message, room)
@@ -173,6 +206,7 @@ public func pk_fetch_reset() {
         if fetching.state != 1 {
             fetching.state = 0
             fetching.fraction = 0
+            fetching.total = 0
             fetching.why = ""
         }
     }

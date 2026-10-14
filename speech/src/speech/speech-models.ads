@@ -27,6 +27,20 @@ package Speech.Models is
      with Post => Fraction'Result in 0.0 .. 1.0;
    --  How much has come: 0.0 while Idle, 1.0 when Done.
 
+   function Total_Bytes return Long_Long_Integer
+     with Post => Total_Bytes'Result >= 0;
+   --  How many bytes the fetch comes to in all: 0 until that is known (or
+   --  if it cannot be found out).
+
+   function Size_On_Disk (Directory : String) return Long_Long_Integer
+     with Post => Size_On_Disk'Result >= 0;
+   --  The bytes of the files in Directory and below it, 0 if there is none.
+
+   procedure Delete (Directory : String)
+     with Pre  => State /= Running and then Directory'Length in 1 .. Max_Path,
+          Post => not Present (Directory);
+   --  Remove the model, all of Directory, and let the program forget it.
+
    function Message return String
      with Pre  => State = Failed,
           Post => Message'Result'Length <= Max_Message;

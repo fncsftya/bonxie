@@ -133,7 +133,11 @@ package body Viewer is
                if Event.Kind = SDL3.Events.Key_Down
                  and then Event.Key = SDL3.Events.Key_Escape
                then
-                  Settings_View.Close (Item);
+                  if Item.Confirm.Deleting_Model then
+                     Deletion.Close (Item);
+                  else
+                     Settings_View.Close (Item);
+                  end if;
                   return;
                end if;
             elsif Item.Item_List.Showing_List then

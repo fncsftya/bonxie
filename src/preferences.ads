@@ -21,7 +21,7 @@ package Preferences is
    function Speech_Model_Directory (Config : String) return String
      with Post => Speech_Model_Directory'Result /= "";
    --  Where the model for Parakeet is kept: the folder
-   --  `speech/parakeet-tdt-0.6b-v3-coreml` in Config.
+   --  `speech/parakeet-tdt-0.6b-v3` in Config.
 
    function Load_Speech_Model (Config : String) return Speech_Models;
    --  The one chosen, MacOS if none was or it cannot be read.

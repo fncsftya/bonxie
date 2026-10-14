@@ -7,6 +7,7 @@ with UI.Widgets.Labels;
 with UI.Widgets.Progress_Bars;
 with SDL3.Events;
 with Speech.Models;
+with Viewer.Deletion;
 with Viewer.Style;
 with Yoga.Nodes;
 
@@ -31,20 +32,50 @@ package body Viewer.Settings_View is
    function Model_Present (Item : Session) return Boolean is
      (Speech.Models.Present (Model_Directory (Item)));
 
+   function On_Disk (Item : Session) return Long_Long_Integer is
+     (Speech.Models.Size_On_Disk (Model_Directory (Item)));
+
    function Downloading (Item : Session) return Boolean is
      (Item.Prefs.Showing_Settings
     and then Speech.Models.State = Speech.Models.Running);
 
    function Percent return String;
-   --  How much of the model has come, as "42%"; "" while that is not known.
+   --  How much of the model has come, as "42%".
 
    function Percent return String is
       Done : constant Natural := Natural (Speech.Models.Fraction * 100.0);
    begin
-      return (if Done = 0 then ""
-              else Ada.Strings.Fixed.Trim (Done'Image, Ada.Strings.Left)
-                   & "%");
+      return Ada.Strings.Fixed.Trim (Done'Image, Ada.Strings.Left) & "%";
    end Percent;
+
+   function Size_Text (Bytes : Long_Long_Integer) return String;
+   --  A size as people say it: "483.0 MB", or "1.20 GB" from a thousand.
+
+   function Size_Text (Bytes : Long_Long_Integer) return String is
+      function Trimmed (Value : Long_Long_Integer) return String is
+        (Ada.Strings.Fixed.Trim (Value'Image, Ada.Strings.Left));
+      function Digits_Of (Value : Long_Long_Integer; Width : Positive) return String is
+         Number : constant String := Trimmed (Value);
+      begin
+         return [1 .. Integer'Max (0, Width - Number'Length) => '0'] & Number;
+      end Digits_Of;
+   begin
+      if Bytes >= 1_000_000_000 then
+         declare
+            Hundredths : constant Long_Long_Integer := (Bytes + 5_000_000) / 10_000_000;
+         begin
+            return Trimmed (Hundredths / 100) & "." & Digits_Of (Hundredths mod 100, 2) & " GB";
+         end;
+      elsif Bytes >= 100_000 then
+         declare
+            Tenths : constant Long_Long_Integer := (Bytes + 50_000) / 100_000;
+         begin
+            return Trimmed (Tenths / 10) & "." & Trimmed (Tenths mod 10) & " MB";
+         end;
+      else
+         return Trimmed ((Bytes + 500) / 1_000) & " KB";
+      end if;
+   end Size_Text;
 
    function Fits (Words : String) return String is
      (Words (Words'First ..
@@ -52,17 +83,30 @@ package body Viewer.Settings_View is
              + Natural'Min (Words'Length, Labels.Text_Capacity)));
    --  As much of Words as a label holds.
 
+   function Progress_Text return String;
+   --  "123.4 MB of 483.0 MB (25%)", or just the percentage while the
+   --  total is not known.
+
+   function Progress_Text return String is
+      Total : constant Long_Long_Integer := Speech.Models.Total_Bytes;
+      Got   : constant Long_Long_Integer :=
+        Long_Long_Integer (Float (Total) * Speech.Models.Fraction);
+   begin
+      return (if Total = 0 then Percent
+              else Size_Text (Got) & " of " & Size_Text (Total) & " (" & Percent & ")");
+   end Progress_Text;
+
    function Status (Item : Session) return String;
    --  What the label by the Download button says.
 
    function Status (Item : Session) return String is
    begin
       if Model_Present (Item) then
-         return "Model available";
+         return Fits ("Model available, " & Size_Text (On_Disk (Item)) & " on disk");
       end if;
       case Speech.Models.State is
          when Speech.Models.Running =>
-            return Fits ("Downloading " & Percent);
+            return Fits ("Downloading " & Progress_Text);
          when Speech.Models.Failed =>
             return Fits ("Download failed: " & Speech.Models.Message);
          when Speech.Models.Idle | Speech.Models.Done =>
@@ -74,6 +118,7 @@ package body Viewer.Settings_View is
       Parakeet : constant Boolean := Item.Prefs.Speech_Choice
          = Preferences.Parakeet;
       Running  : constant Boolean := Speech.Models.State = Speech.Models.Running;
+      Present  : constant Boolean := Model_Present (Item);
    begin
       Checks.Set_Checked (Item.Prefs.Model_Native, not Parakeet);
       Checks.Set_Checked (Item.Prefs.Model_Parakeet, Parakeet);
@@ -86,9 +131,9 @@ package body Viewer.Settings_View is
          Item.Prefs.Theme_Chosen = Preferences.System);
       Widgets.Set_Visible (Item.Prefs.Download_Row, Parakeet);
       Widgets.Set_Visible (Item.Prefs.Download_Bar, Parakeet and then Running);
-      Buttons.Set_Enabled
-        (Item.Prefs.Download_Button, not Model_Present (Item)
-       and then not Running);
+      Widgets.Set_Visible (Item.Prefs.Download_Button, not Present);
+      Widgets.Set_Visible (Item.Prefs.Delete_Button, Present and then not Running);
+      Buttons.Set_Enabled (Item.Prefs.Download_Button, not Present and then not Running);
       Labels.Set_Text (Item.Prefs.Download_State, Status (Item));
       if Running then
          Progress_Bars.Set_Value (Item.Prefs.Download_Bar, Speech.Models.Fraction);
@@ -168,6 +213,28 @@ package body Viewer.Settings_View is
    procedure Take (Item : in out Session) is
       Clicked : Boolean;
    begin
+      if Item.Confirm.Deleting_Model then
+         --  The dialog is all that takes clicks.
+         Buttons.Take_Click (Item.Confirm.Confirm_Delete, Clicked);
+         if Clicked then
+            Deletion.Close (Item);
+            if Speech.Models.State /= Speech.Models.Running then
+               Speech.Models.Delete (Model_Directory (Item));
+               Speech.Models.Reset;
+            end if;
+            Refresh (Item);
+            Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
+            return;
+         end if;
+         Buttons.Take_Click (Item.Confirm.Confirm_Cancel, Clicked);
+         if not Clicked then
+            Buttons.Take_Click (Item.Confirm.Dialog_Close, Clicked);
+         end if;
+         if Clicked then
+            Deletion.Close (Item);
+         end if;
+         return;
+      end if;
       Buttons.Take_Click (Item.Prefs.Settings_Close, Clicked);
       if Clicked then
          Close (Item);
@@ -206,6 +273,12 @@ package body Viewer.Settings_View is
          Speech.Models.Start (Model_Directory (Item));
          Refresh (Item);
          Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
+         return;
+      end if;
+      Buttons.Take_Click (Item.Prefs.Delete_Button, Clicked);
+      if Clicked and then Speech.Models.State /= Speech.Models.Running and then Model_Present (Item) then
+         Deletion.Confirm_Model
+           (Item, "Its " & Size_Text (On_Disk (Item)) & " of files go; they can be downloaded again.");
       end if;
    end Take;
 

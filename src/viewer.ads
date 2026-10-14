@@ -390,6 +390,8 @@ private
       Confirm_Delete : UI.Widgets.Buttons.Button;
       Deleting       : Projects.Id := 0;
       --  The project the dialog is about, 0 if it is not shown.
+      Deleting_Model : Boolean := False;
+      --  Or the dialog is about the speech model's files (see Settings_View).
       Deleting_Node  : Tree_Entry;
       --  Or, in the writing view, the document or directory it is about:
       --  the Overview's if it is about none.
@@ -422,11 +424,13 @@ private
       --  Display's one option, Theme: a radio for each.
       Download_Row   : UI.Widgets.Panels.Panel;
       Download_Button : UI.Widgets.Buttons.Button;
+      Delete_Button  : UI.Widgets.Buttons.Button;
       Download_State : UI.Widgets.Labels.Label;
       Download_Bar   : UI.Widgets.Progress_Bars.Progress_Bar;
       --  Under the radios, with Parakeet chosen: the button to fetch its
-      --  file, enabled only while it is not there, what is the matter with
-      --  it, and, while it comes, how far.
+      --  file, shown while it is not there, or else the button to delete
+      --  it; what is the matter with it, or how big it is, or, while it
+      --  comes, how far.
       Showing_Settings : Boolean := False;
       Speech_Choice  : Preferences.Speech_Models := Preferences.MacOS;
       Theme_Chosen   : Preferences.Theme_Choices := Preferences.System;
