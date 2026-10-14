@@ -345,6 +345,21 @@ package body UI.Widgets.Pictures is
       return (if Nearest or else Best_Gap = 0.0 then Best else 0);
    end Word_At;
 
+   function Is_Over_Selection (Item : Picture; X, Y : Float) return Boolean
+   is
+      Under : constant Natural := Word_At (Item, X, Y, Nearest => False);
+   begin
+      return Has_Selection (Item) and then Under > 0
+        and then Under in First_Selected (Item) .. Last_Selected (Item);
+   end Is_Over_Selection;
+
+   procedure Copy (Item : Picture) is
+   begin
+      if Has_Selection (Item) and then Clipboard (Item) /= null then
+         Clipboard (Item).Set_Text (Selected_Text (Item));
+      end if;
+   end Copy;
+
    procedure Select_Line (Item : in out Picture; Index : Positive) is
       Line  : constant Natural := Item.Found.Words (Index).Line;
       First : Positive := Index;

@@ -146,7 +146,7 @@ package body Viewer is
                   Listing.Close (Item);
                   return;
                end if;
-            elsif Item.Deleting /= 0 then
+            elsif Is_Confirming (Item) then
                --  The dialog is all that takes events.
                if Event.Kind = SDL3.Events.Key_Down
                  and then Event.Key = SDL3.Events.Key_Escape
@@ -168,10 +168,18 @@ package body Viewer is
                then
                   Canvas_Items.Pressed (Item, Event.Mouse_X, Event.Mouse_Y);
                   Writing.Pressed (Item, Event.Mouse_X, Event.Mouse_Y);
+                  if Event.Button = 3 and then not Item.Showing_List
+                    and then not Is_Confirming (Item)
+                  then
+                     Writing.Open_Context
+                       (Item, Event.Mouse_X, Event.Mouse_Y, Handled);
+                  end if;
                end if;
-               Widgets.Dispatch (Item.Widgets, Event, Handled);
-               if Item.Windowed then
-                  Track_Window (Item, Event, Handled);
+               if not Handled then
+                  Widgets.Dispatch (Item.Widgets, Event, Handled);
+                  if Item.Windowed then
+                     Track_Window (Item, Event, Handled);
+                  end if;
                end if;
                Clicks.Take (Item);
                Show_Cursor (Item);
@@ -449,7 +457,8 @@ package body Viewer is
      (Item.Editing /= 0);
 
    function Is_Confirming (Item : Session) return Boolean is
-     (Item.Deleting /= 0);
+     (Item.Deleting /= 0
+      or else Item.Deleting_Node.Kind /= Overview_Node);
 
    function Row_Title (Item : Session; Row : Positive) return String is
      (if Row <= Item.Listed.Count then Labels.Text (Item.Cards (Row).Title)

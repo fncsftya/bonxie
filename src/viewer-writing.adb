@@ -16,6 +16,7 @@ with UI.Widgets.Pictures;
 with UI.Widgets.Scrollers;
 with UI.Widgets.Text_Fields;
 with Viewer.Canvas_Items;
+with Viewer.Deletion;
 with Viewer.Style;
 with Yoga.Nodes;
 
@@ -35,6 +36,7 @@ package body Viewer.Writing is
    package Docs renames Texts.Documents;
 
    use type Items.Id;
+   use type Widgets.Clipboard_Access;
    use type Items.Kinds;
    use type Items.States;
    use type Docs.Version;
@@ -742,6 +744,16 @@ package body Viewer.Writing is
       Widgets.Set_Visible (Item.Menu, False);
    end Close_Menu;
 
+   procedure Close_Context (Item : in out Session);
+   --  Put the menu of a row away.
+
+   procedure Close_Context (Item : in out Session) is
+   begin
+      Item.Context_Kind := No_Context;
+      Item.Context_Node := (others => <>);
+      Widgets.Set_Visible (Item.Context_Menu, False);
+   end Close_Context;
+
    Heading_Words : constant String := "LINKED TO ";
 
    function Heading_For (Name : String) return String;
@@ -912,6 +924,7 @@ package body Viewer.Writing is
    begin
       Item.Mode := To;
       Close_Menu (Item);
+      Close_Context (Item);
       Widgets.Set_Visible (Item.Canvas_View, To = Canvas);
       Widgets.Set_Visible (Item.Write_View, To = Write);
       Buttons.Set_Selected (Item.Canvas_Tab, To = Canvas);
@@ -1141,41 +1154,94 @@ package body Viewer.Writing is
 
    --  Directories
 
+   procedure Put_Field
+     (Item    : in out Session;
+      Field   : in out Text_Fields.Text_Field;
+      Content : in out Widgets.Widget'Class;
+      Box     : Grips.Grip);
+   --  Put the field to rename over the row, which is in Content, with its
+   --  text selected and the focus: what it is of is attached already.
+
+   procedure Put_Field
+     (Item    : in out Session;
+      Field   : in out Text_Fields.Text_Field;
+      Content : in out Widgets.Widget'Class;
+      Box     : Grips.Grip)
+   is
+      use Yoga.Nodes;
+      Pixels : constant Float := Widgets.Density (Item.Widgets);
+   begin
+      Set_Position
+        (Widgets.Node (Field), Yoga.Left,
+         Widgets.Left_Of (Box) - Widgets.Left_Of (Content));
+      Set_Position
+        (Widgets.Node (Field), Yoga.Top,
+         Widgets.Top_Of (Box) - Widgets.Top_Of (Content));
+      Set_Width
+        (Widgets.Node (Field),
+         Widgets.Width_Of (Box) - UI.Boxes.Offset (Pixels));
+      Widgets.Set_Visible (Field, True);
+      Widgets.Request_Layout (Field);
+      Widgets.Layout (Item.Widgets, Item.Target);
+      UI.Text_Areas.Select_All (Text_Fields.Area (Field).all);
+      Widgets.Focus (Field);
+   end Put_Field;
+
    procedure Begin_Rename_Dir (Item : in out Session; Dir : Positive);
    --  Put the field to rename the directory over its row, with the focus.
 
    procedure Begin_Rename_Dir (Item : in out Session; Dir : Positive) is
-      use Yoga.Nodes;
-      Row    : constant Natural := Dir_Row (Item, Dir);
-      Pixels : constant Float := Widgets.Density (Item.Widgets);
+      Row : constant Natural := Dir_Row (Item, Dir);
    begin
       if Row = 0 then
          return;
       end if;
-      declare
-         Box : Grips.Grip renames Item.Doc_Rows (Row).Row;
-      begin
-         Docs.Load
-           (Item.Dir_Doc,
-            Projects.Titles.To_String (Item.Dirs.Directories (Dir).Title));
-         Text_Fields.Attach (Item.Dir_Field, Item.Dir_Doc'Unchecked_Access);
-         Set_Position
-           (Widgets.Node (Item.Dir_Field), Yoga.Left,
-            Widgets.Left_Of (Box) - Widgets.Left_Of (Item.Docs_Content));
-         Set_Position
-           (Widgets.Node (Item.Dir_Field), Yoga.Top,
-            Widgets.Top_Of (Box) - Widgets.Top_Of (Item.Docs_Content));
-         Set_Width
-           (Widgets.Node (Item.Dir_Field),
-            Widgets.Width_Of (Box) - UI.Boxes.Offset (Pixels));
-      end;
+      Docs.Load
+        (Item.Dir_Doc,
+         Projects.Titles.To_String (Item.Dirs.Directories (Dir).Title));
+      Text_Fields.Attach (Item.Dir_Field, Item.Dir_Doc'Unchecked_Access);
       Item.Renaming_Dir := Dir;
-      Widgets.Set_Visible (Item.Dir_Field, True);
-      Widgets.Request_Layout (Item.Dir_Field);
-      Widgets.Layout (Item.Widgets, Item.Target);
-      UI.Text_Areas.Select_All (Text_Fields.Area (Item.Dir_Field).all);
-      Widgets.Focus (Item.Dir_Field);
+      Put_Field
+        (Item, Item.Dir_Field, Item.Docs_Content, Item.Doc_Rows (Row).Row);
    end Begin_Rename_Dir;
+
+   procedure End_Rename_Doc (Item : in out Session);
+
+   procedure Begin_Rename_Doc (Item : in out Session; Which : Items.Slot);
+   --  The same for a document, whose title the field edits as the
+   --  window's own title bar does.
+
+   procedure Begin_Rename_Doc (Item : in out Session; Which : Items.Slot) is
+      Row : constant Natural := Leaf_Row (Item, Which);
+   begin
+      if Row = 0 then
+         return;
+      end if;
+      Text_Fields.Attach
+        (Item.Dir_Field, Windows.Title_Document (Item.Windows (Which)));
+      Item.Renaming_Doc := Which;
+      Put_Field
+        (Item, Item.Dir_Field, Item.Docs_Content, Item.Doc_Rows (Row).Row);
+   end Begin_Rename_Doc;
+
+   procedure Begin_Rename_Source (Item : in out Session; Which : Items.Slot);
+   --  The same for a source, in the list of them: it is the window's title,
+   --  which is the one on the canvas.
+
+   procedure Begin_Rename_Source (Item : in out Session; Which : Items.Slot)
+   is
+      Row : constant Natural := Row_Of (Item, Which);
+   begin
+      if Row = 0 then
+         return;
+      end if;
+      Text_Fields.Attach
+        (Item.Source_Field, Windows.Title_Document (Item.Windows (Which)));
+      Item.Renaming_Source := Which;
+      Put_Field
+        (Item, Item.Source_Field, Item.Sources_Content,
+         Item.Source_Rows (Row).Row);
+   end Begin_Rename_Source;
 
    procedure End_Rename_Dir (Item : in out Session);
    --  Keep the new name of the directory, unless it is only spaces.
@@ -1211,6 +1277,20 @@ package body Viewer.Writing is
       Refresh (Item);
    end End_Rename_Dir;
 
+   procedure End_Rename_Source (Item : in out Session) is
+   begin
+      Item.Renaming_Source := 0;
+      Widgets.Set_Visible (Item.Source_Field, False);
+      Refresh (Item);
+   end End_Rename_Source;
+
+   procedure End_Rename_Doc (Item : in out Session) is
+   begin
+      Item.Renaming_Doc := 0;
+      Widgets.Set_Visible (Item.Dir_Field, False);
+      Refresh (Item);
+   end End_Rename_Doc;
+
    procedure Make_Directory (Item : in out Session; Name : String) is
       Key : constant Items.Id :=
         Items.Create_Directory (Item.Store, Item.Current, Name);
@@ -1228,6 +1308,403 @@ package body Viewer.Writing is
       Widgets.Layout (Item.Widgets, Item.Target);
       Begin_Rename_Dir (Item, Item.Dirs.Count);
    end Make_Directory;
+
+   --  The menu of a row
+
+   procedure Show_Context
+     (Item : in out Session; Kind : Context_Kinds; X, Y : Float);
+   --  Show the menu, its rows added, at X, Y, in points of the window, as
+   --  far in as keeps it in the view.
+
+   procedure Show_Context
+     (Item : in out Session; Kind : Context_Kinds; X, Y : Float)
+   is
+      use Yoga.Nodes;
+      Pixels : constant Float := Widgets.Density (Item.Widgets);
+   begin
+      Item.Context_Kind := Kind;
+      Set_Position
+        (Widgets.Node (Item.Context_Menu), Yoga.Left,
+         Float'Rounding
+           (Float'Max
+              (0.0,
+               Float'Min
+                 (X - Widgets.Left_Of (Item.Content_Panel) / Pixels,
+                  Widgets.Width_Of (Item.Content_Panel) / Pixels
+                  - Style.Context_Width)) * Pixels));
+      Set_Position
+        (Widgets.Node (Item.Context_Menu), Yoga.Top,
+         Float'Rounding
+           (Float'Max
+              (0.0,
+               Float'Min
+                 (Y - Widgets.Top_Of (Item.Content_Panel) / Pixels,
+                  Widgets.Height_Of (Item.Content_Panel) / Pixels
+                  - Menus.Height_For (Item.Context_Menu))) * Pixels));
+      Widgets.Set_Visible (Item.Context_Menu, True);
+      Widgets.Raise_To_Front (Item.Context_Menu);
+      Widgets.Request_Layout (Item.Context_Menu);
+      Widgets.Layout (Item.Widgets, Item.Target);
+   end Show_Context;
+
+   procedure Add_Act
+     (Item    : in out Session;
+      Act     : Context_Acts;
+      Name    : String;
+      Icon    : UI.Icons.Icon;
+      Enabled : Boolean := True;
+      Shade   : Menus.Tone := Menus.Plain);
+   --  Add a row to the menu that does Act; if it cannot be now, it is a
+   --  faint note, which is not clicked.
+
+   procedure Add_Act
+     (Item    : in out Session;
+      Act     : Context_Acts;
+      Name    : String;
+      Icon    : UI.Icons.Icon;
+      Enabled : Boolean := True;
+      Shade   : Menus.Tone := Menus.Plain) is
+   begin
+      Menus.Add
+        (Item.Context_Menu, (if Enabled then Menus.Action else Menus.Note),
+         Name, Shade);
+      --  (Select all has none: the others' make room for it.)
+      if Act /= Select_All_Act then
+         Menus.Set_Icon
+           (Item.Context_Menu, Menus.Row_Count (Item.Context_Menu), Icon);
+      end if;
+      Item.Context_Acts (Menus.Row_Count (Item.Context_Menu)) :=
+        (if Enabled then Act else No_Act);
+   end Add_Act;
+
+   function Board_Has_Text (Item : Session) return Boolean is
+     (Widgets.Clipboard (Item.Content_Panel) /= null
+      and then Widgets.Clipboard (Item.Content_Panel).Text /= "");
+   --  Whether there is something to paste.
+
+   procedure Open_Context
+     (Item : in out Session; X, Y : Float; Opened : out Boolean)
+   is
+      Pixels : constant Float := Widgets.Density (Item.Widgets);
+      PX     : constant Float := X * Pixels;
+      PY     : constant Float := Y * Pixels;
+
+      procedure Begin_Menu is
+      begin
+         Menus.Clear (Item.Context_Menu);
+         Item.Context_Acts := [others => No_Act];
+         Item.Context_Canvas := 0;
+      end Begin_Menu;
+
+      procedure Of_Row (Node : Tree_Entry) is
+      begin
+         Begin_Menu;
+         Item.Context_Node := Node;
+         Add_Act (Item, Rename_Act, "Rename", UI.Icons.Edit);
+         Add_Act (Item, Delete_Act, "Delete", UI.Icons.Delete,
+                  Shade => Menus.Danger);
+         Show_Context (Item, Tree_Context, X, Y);
+         Opened := True;
+      end Of_Row;
+
+      procedure Picture_Menu (Over, Words : Boolean) is
+      begin
+         if Over then
+            Add_Act (Item, Copy_Act, "Copy", UI.Icons.Document);
+         end if;
+         Add_Act (Item, Select_All_Act, "Select all", UI.Icons.Check,
+                  Enabled => Words);
+         Show_Context (Item, Picture_Context, X, Y);
+         Opened := True;
+      end Picture_Menu;
+
+      procedure Text_Menu (Over : Boolean) is
+         Paste : constant Boolean := Board_Has_Text (Item);
+      begin
+         if Over then
+            Add_Act (Item, Copy_Act, "Copy", UI.Icons.Document);
+            Add_Act (Item, Cut_Act, "Cut", UI.Icons.Eraser);
+            Add_Act (Item, Paste_Act, "Paste", UI.Icons.Plus, Paste);
+            Add_Act (Item, Select_All_Act, "Select all", UI.Icons.Check);
+         else
+            Add_Act (Item, Paste_Act, "Paste", UI.Icons.Plus, Paste);
+            Add_Act (Item, Select_All_Act, "Select all", UI.Icons.Check);
+         end if;
+         Show_Context (Item, Text_Context, X, Y);
+         Opened := True;
+      end Text_Menu;
+
+      procedure Of_Picture (Shown : Readers.Reader; Slot : Natural) is
+      begin
+         Begin_Menu;
+         Item.Context_Reader := Slot;
+         Picture_Menu
+           (Readers.Is_Over_Selection (Shown, PX, PY),
+            Readers.Has_Words (Shown));
+      end Of_Picture;
+
+      procedure Of_Text (Rank : Positive) is
+         Page  : Doc_Page renames Item.Pages (Rank);
+         Area  : UI.Text_Areas.Text_Area renames Editors.Area (Page.Text).all;
+         Over  : constant Boolean :=
+           UI.Text_Areas.Is_Over_Selection (Area, PX, PY);
+      begin
+         --  The caret goes where it was pressed, unless that is in the
+         --  selection.
+         Widgets.Focus (Page.Text);
+         if not Over then
+            UI.Text_Areas.Click (Area, PX, PY);
+            UI.Text_Areas.Release (Area);
+         end if;
+         Begin_Menu;
+         Item.Context_Page := Rank;
+         Text_Menu (Over);
+      end Of_Text;
+
+      procedure Of_Window (Which : Items.Slot) is
+         Shown : Windows.Window renames Item.Windows (Which);
+      begin
+         if Windows.Text_Contains (Shown, PX, PY) then
+            declare
+               Over : constant Boolean :=
+                 Windows.Over_Text_Selection (Shown, PX, PY);
+            begin
+               if not Over then
+                  Windows.Put_Caret (Shown, PX, PY);
+               end if;
+               Begin_Menu;
+               Item.Context_Canvas := Which;
+               Text_Menu (Over);
+            end;
+         elsif Is_Source (Item, Which)
+           and then Windows.Picture_Contains (Shown, PX, PY)
+         then
+            Begin_Menu;
+            Item.Context_Canvas := Which;
+            Picture_Menu
+              (Windows.Over_Picture_Selection (Shown, PX, PY),
+               Windows.Has_Words (Shown));
+         end if;
+      end Of_Window;
+   begin
+      Opened := False;
+      if Item.Mode = Canvas then
+         --  The window under the pointer, if it is of one.
+         declare
+            Under : constant Widgets.Widget_Access :=
+              Widgets.Hit (Item.Widgets, PX, PY);
+         begin
+            for Which in Items.Slot loop
+               if Windows.Is_Assigned (Item.Windows (Which))
+                 and then Windows.Owns (Item.Windows (Which), Under)
+               then
+                  Of_Window (Which);
+                  return;
+               end if;
+            end loop;
+         end;
+         return;
+      end if;
+      if Widgets.Contains (Item.Docs_Scroll, PX, PY) then
+         for Row in 2 .. Item.Tree_Count loop
+            if Widgets.Contains (Item.Doc_Rows (Row).Row, PX, PY) then
+               Of_Row (Item.Tree (Row));
+               return;
+            end if;
+         end loop;
+      elsif Widgets.Contains (Item.Sources_Scroll, PX, PY) then
+         for Row in 1 .. Item.Source_Total loop
+            if Widgets.Contains (Item.Source_Rows (Row).Row, PX, PY) then
+               Of_Row
+                 ((Kind => Document_Leaf, Dir => 0,
+                   Doc  => Item.Source_Order (Row)));
+               return;
+            end if;
+         end loop;
+      end if;
+      --  A source's window is over the pages.
+      for Which in Items.Slot loop
+         if Readers.Is_Assigned (Item.Readers (Which))
+           and then Readers.Details (Item.Readers (Which)).State = Items.Open
+           and then Item.Pinned_Slot /= Which
+         then
+            declare
+               Box : constant Items.Frame :=
+                 Readers.Box (Item.Readers (Which));
+            begin
+               if PX in Box.Left .. Box.Left + Box.Width
+                 and then PY in Box.Top .. Box.Top + Box.Height
+               then
+                  if Readers.Picture_Contains (Item.Readers (Which), PX, PY)
+                  then
+                     Of_Picture (Item.Readers (Which), Which);
+                  end if;
+                  return;
+               end if;
+            end;
+         end if;
+      end loop;
+      if Item.Pinned_Slot /= 0 and then Widgets.Contains (Item.Pane, PX, PY)
+      then
+         if Readers.Picture_Contains (Item.Pane_Reader, PX, PY) then
+            Of_Picture (Item.Pane_Reader, 0);
+         end if;
+         return;
+      end if;
+      for Rank in 1 .. Item.Write_Count loop
+         if In_View (Item, Item.Write_Order (Rank))
+           and then Widgets.Contains (Item.Pages (Rank).Text, PX, PY)
+         then
+            Of_Text (Rank);
+            return;
+         end if;
+      end loop;
+   end Open_Context;
+
+   procedure Do_Context (Item : in out Session; Chosen : Positive);
+   --  Do what the row clicked of the menu does, and put it away.
+
+   procedure Do_Context (Item : in out Session; Chosen : Positive) is
+      Act  : constant Context_Acts := Item.Context_Acts (Chosen);
+      Kind : constant Context_Kinds := Item.Context_Kind;
+      Node : constant Tree_Entry := Item.Context_Node;
+      Page : constant Natural := Item.Context_Page;
+      Slot : constant Natural := Item.Context_Reader;
+      On_Canvas : constant Natural := Item.Context_Canvas;
+      Board : constant Widgets.Clipboard_Access :=
+        Widgets.Clipboard (Item.Content_Panel);
+   begin
+      Close_Context (Item);
+      case Kind is
+         when No_Context =>
+            null;
+         when Tree_Context =>
+            if Act = Rename_Act then
+               if Node.Kind = Directory_Node then
+                  Begin_Rename_Dir (Item, Node.Dir);
+               elsif Is_Source (Item, Node.Doc) then
+                  Begin_Rename_Source (Item, Node.Doc);
+               else
+                  Begin_Rename_Doc (Item, Node.Doc);
+               end if;
+            elsif Act = Delete_Act then
+               Deletion.Confirm_Node (Item, Node);
+            end if;
+         when Text_Context =>
+            if On_Canvas /= 0 then
+               Windows.Edit_Text
+                 (Item.Windows (On_Canvas),
+                  (case Act is
+                     when Copy_Act   => Windows.Copy,
+                     when Cut_Act    => Windows.Cut,
+                     when Paste_Act  => Windows.Paste,
+                     when others     => Windows.Select_All));
+            elsif Page in 1 .. Item.Write_Count and then Board /= null then
+               declare
+                  Area : UI.Text_Areas.Text_Area renames
+                    Editors.Area (Item.Pages (Page).Text).all;
+               begin
+                  case Act is
+                     when Copy_Act =>
+                        UI.Text_Areas.Copy (Area, Board.all);
+                     when Cut_Act =>
+                        UI.Text_Areas.Cut (Area, Board.all);
+                     when Paste_Act =>
+                        UI.Text_Areas.Paste (Area, Board.all);
+                     when Select_All_Act =>
+                        UI.Text_Areas.Select_All (Area);
+                     when others =>
+                        null;
+                  end case;
+               end;
+            end if;
+         when Picture_Context =>
+            declare
+               procedure Act_On (Shown : in out Readers.Reader) is
+               begin
+                  if Readers.Is_Assigned (Shown) then
+                     if Act = Copy_Act then
+                        Readers.Copy (Shown);
+                     elsif Act = Select_All_Act then
+                        Readers.Select_All (Shown);
+                     end if;
+                  end if;
+               end Act_On;
+            begin
+               if On_Canvas /= 0 then
+                  if Act = Copy_Act then
+                     Windows.Copy_Words (Item.Windows (On_Canvas));
+                  elsif Act = Select_All_Act then
+                     Windows.Select_All_Words (Item.Windows (On_Canvas));
+                  end if;
+               elsif Slot = 0 then
+                  Act_On (Item.Pane_Reader);
+               else
+                  Act_On (Item.Readers (Slot));
+               end if;
+            end;
+      end case;
+   end Do_Context;
+
+   procedure Take_Context (Item : in out Session; Done : out Boolean) is
+      Chosen : Natural;
+   begin
+      Menus.Take_Choice (Item.Context_Menu, Chosen);
+      Done := Chosen /= 0 and then Item.Context_Kind /= No_Context;
+      if Done then
+         Do_Context (Item, Chosen);
+      end if;
+   end Take_Context;
+
+   procedure Remove_Directory (Item : in out Session; Dir : Positive);
+   --  Take the directory out, its documents being in none, where they are.
+
+   procedure Remove_Directory (Item : in out Session; Dir : Positive) is
+   begin
+      Items.Delete_Directory (Item.Store, Item.Dirs.Directories (Dir).Key);
+      --  Those in it are in none; the directories after it are one
+      --  sooner.
+      for Which in Items.Slot loop
+         if Item.Doc_Dir (Which) = Dir then
+            Item.Doc_Dir (Which) := 0;
+         elsif Item.Doc_Dir (Which) > Dir then
+            Item.Doc_Dir (Which) := Item.Doc_Dir (Which) - 1;
+         end if;
+      end loop;
+      Delete_Row (Item, Dir_Row (Item, Dir));
+      for Row in 2 .. Item.Tree_Count loop
+         if Item.Tree (Row).Dir = Dir
+           and then Item.Tree (Row).Kind = Document_Leaf
+         then
+            Item.Tree (Row).Dir := 0;
+         elsif Item.Tree (Row).Dir > Dir then
+            Item.Tree (Row).Dir := Item.Tree (Row).Dir - 1;
+         end if;
+      end loop;
+      for Each in Dir .. Item.Dirs.Count - 1 loop
+         Item.Dirs.Directories (Each) := Item.Dirs.Directories (Each + 1);
+      end loop;
+      Item.Dirs.Count := Item.Dirs.Count - 1;
+      if Item.Shown_Dir = Dir then
+         Item.Shown_Dir := 0;
+      elsif Item.Shown_Dir > Dir then
+         Item.Shown_Dir := Item.Shown_Dir - 1;
+      end if;
+      Keep_Order (Item);
+      Select_Directory (Item, Item.Shown_Dir);
+   end Remove_Directory;
+
+   procedure Delete_Node (Item : in out Session; Node : Tree_Entry) is
+   begin
+      case Node.Kind is
+         when Document_Leaf =>
+            Canvas_Items.Remove (Item, Node.Doc);
+         when Directory_Node =>
+            Remove_Directory (Item, Node.Dir);
+         when Overview_Node =>
+            null;
+      end case;
+   end Delete_Node;
 
    --  Dragging a row
 
@@ -1396,10 +1873,20 @@ package body Viewer.Writing is
       Across, Down : Float;
       Was_Moved    : Boolean := False;
    begin
-      if Item.Renaming_Dir /= 0 then
+      if Item.Renaming_Dir /= 0 or else Item.Renaming_Doc /= 0 then
          Text_Fields.Take_Return (Item.Dir_Field, Entered);
          if Entered or else not Widgets.Has_Focus (Item.Dir_Field) then
-            End_Rename_Dir (Item);
+            if Item.Renaming_Dir /= 0 then
+               End_Rename_Dir (Item);
+            else
+               End_Rename_Doc (Item);
+            end if;
+         end if;
+      end if;
+      if Item.Renaming_Source /= 0 then
+         Text_Fields.Take_Return (Item.Source_Field, Entered);
+         if Entered or else not Widgets.Has_Focus (Item.Source_Field) then
+            End_Rename_Source (Item);
          end if;
       end if;
       if Item.Drag_Row = 0 then
@@ -1711,6 +2198,12 @@ package body Viewer.Writing is
                Close_Menu (Item);
             end if;
          end;
+      end if;
+      if Item.Context_Kind /= No_Context
+        and then not Widgets.Contains
+                       (Item.Context_Menu, X * Pixels, Y * Pixels)
+      then
+         Close_Context (Item);
       end if;
       for Each of Item.Readers loop
          Away (Each);

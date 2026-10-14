@@ -96,6 +96,27 @@ package Items.Readers is
    function Selected_Text (Item : Reader) return String
      with Pre => Is_Assigned (Item);
 
+   function Picture_Contains
+     (Item : Reader; X, Y : Float) return Boolean
+     with Pre => Is_Assigned (Item);
+   --  Whether pixel X, Y is in its picture.
+
+   function Is_Over_Selection
+     (Item : Reader; X, Y : Float) return Boolean
+     with Pre => Is_Assigned (Item);
+   --  Whether pixel X, Y is over a selected word of its picture.
+
+   function Has_Words (Item : Reader) return Boolean
+     with Pre => Is_Assigned (Item);
+
+   procedure Select_All (Item : in out Reader)
+     with Pre => Is_Assigned (Item);
+   --  Select all the words of its picture.
+
+   procedure Copy (Item : Reader)
+     with Pre => Is_Assigned (Item);
+   --  Put the selected words on the clipboard.
+
    function Marks_Version (Item : Reader) return Natural
      with Pre => Is_Assigned (Item);
 

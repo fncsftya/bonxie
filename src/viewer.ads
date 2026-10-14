@@ -599,6 +599,18 @@ private
       --  Of Between: the directory it would be in, 0 if none.
    end record;
 
+   type Context_Kinds is
+     (No_Context, Tree_Context, Text_Context, Picture_Context);
+   --  What the menu shown at a right click is of: a row (of the tree, or a
+   --  source), the text of a page, or a source's picture.
+
+   type Context_Acts is
+     (No_Act, Rename_Act, Delete_Act, Copy_Act, Cut_Act, Paste_Act,
+      Select_All_Act);
+   --  What a row of it does.
+
+   type Act_Array is array (1 .. 4) of Context_Acts;
+
    type Index_Row is limited record
       Row     : UI.Widgets.Grips.Grip;
       --  Clicked to go to the document, or to open the source; dragged to
@@ -692,6 +704,9 @@ private
       Confirm_Delete : UI.Widgets.Buttons.Button;
       Deleting       : Projects.Id := 0;
       --  The project the dialog is about, 0 if it is not shown.
+      Deleting_Node  : Tree_Entry;
+      --  Or, in the writing view, the document or directory it is about:
+      --  the Overview's if it is about none.
 
       Settings_Panel : UI.Widgets.Panels.Panel;
       --  A column, in the home screen's place while Showing_Settings: a
@@ -879,11 +894,31 @@ private
       Drop_Line    : UI.Widgets.Panels.Panel;
       --  The line between two rows where it would go between documents,
       --  over the rows and out of the way of their layout.
+      Context_Menu : UI.Widgets.Menus.Menu;
+      Context_Kind : Context_Kinds := No_Context;
+      Context_Node : Tree_Entry;
+      --  A document or directory, or a source (a leaf, of the slot of its
+      --  window).
+      Context_Page : Natural := 0;
+      --  Of Text_Context: the page.
+      Context_Canvas : Natural := 0;
+      --  Of Text_Context and Picture_Context: the window on the canvas the
+      --  menu is of, if it is of one, not of a page or a reader.
+      Context_Reader : Natural := 0;
+      --  Of Picture_Context: the window of the source whose reader, or 0
+      --  if the pinned one.
+      Context_Acts : Act_Array := [others => No_Act];
+      --  Over the writing view, hidden until the right button is pressed
+      --  on a row of the sidebar, a page's text or a source's picture;
+      --  what it is of, and what each of its rows does.
       Dir_Field    : UI.Widgets.Text_Fields.Text_Field;
       Dir_Doc      : aliased Texts.Documents.Document;
       Renaming_Dir : Natural := 0;
-      --  The directory being renamed, 0 if none, in the field over its
-      --  row.
+      Renaming_Doc : Natural := 0;
+      Source_Field : UI.Widgets.Text_Fields.Text_Field;
+      Renaming_Source : Natural := 0;
+      --  The directory, the document or the source being renamed, 0 if
+      --  none, in the field over its row (of Source_Field, for a source).
       Source_Rows  : Index_Row_Array;
       Readers      : Items.Readers.Reader_Array;
       --  The windows of the sources in the writing view, of the same

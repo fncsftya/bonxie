@@ -516,6 +516,21 @@ package body Items is
       Ada_Sqlite3.Step (Update);
    end Rename_Directory;
 
+   procedure Delete_Directory (Store : in out Projects.Store; Key : Id) is
+      Free : Ada_Sqlite3.Statement :=
+        Ada_Sqlite3.Prepare
+          (DB (Store).all,
+           "UPDATE items SET directory_id = 0 WHERE directory_id = :id");
+      Drop : Ada_Sqlite3.Statement :=
+        Ada_Sqlite3.Prepare
+          (DB (Store).all, "DELETE FROM directories WHERE id = :id");
+   begin
+      Ada_Sqlite3.Bind_Int64 (Free, ":id", Long_Integer (Key));
+      Ada_Sqlite3.Step (Free);
+      Ada_Sqlite3.Bind_Int64 (Drop, ":id", Long_Integer (Key));
+      Ada_Sqlite3.Step (Drop);
+   end Delete_Directory;
+
    function Directory_Of (Store : Projects.Store; Key : Id) return Id is
       Query : Ada_Sqlite3.Statement :=
         Ada_Sqlite3.Prepare

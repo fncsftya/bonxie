@@ -538,6 +538,7 @@ package body Viewer.Build is
          Build_Row (Item.Sources_Content, Each, Counted => False);
       end loop;
       Widgets.Add (Item.Sources_Content, Item.Sources_None);
+      Widgets.Add (Item.Sources_Content, Item.Source_Field);
       Set_Height (Widgets.Node (Item.Sources_None), Index_Height * Pixels);
       Widgets.Add (Item.Write_View, Item.Sidebar_Rule);
       Widgets.Add (Item.Write_View, Item.Pages_Scroll);
@@ -566,6 +567,10 @@ package body Viewer.Build is
       Set_Position_Type (Widgets.Node (Item.Menu), Yoga.Absolute);
       Set_Width (Widgets.Node (Item.Menu), Menu_Width * Pixels);
       Widgets.Set_Visible (Item.Menu, False);
+      Widgets.Add (Item.Content_Panel, Item.Context_Menu);
+      Set_Position_Type (Widgets.Node (Item.Context_Menu), Yoga.Absolute);
+      Set_Width (Widgets.Node (Item.Context_Menu), Context_Width * Pixels);
+      Widgets.Set_Visible (Item.Context_Menu, False);
       Items.Readers.Build
         (Item.Pane_Reader, Item.Pane_Body, Toolbar, Pixels, Pinned => True);
 
@@ -627,6 +632,13 @@ package body Viewer.Build is
       Set_Position_Type (Widgets.Node (Item.Dir_Field), Yoga.Absolute);
       Set_Height (Widgets.Node (Item.Dir_Field), Index_Height * Pixels);
       Widgets.Set_Visible (Item.Dir_Field, False);
+      Text_Fields.Set_Shared
+        (Item.Source_Field, Item.Doc_Resources'Unchecked_Access);
+      Text_Fields.Configure
+        (Item.Source_Field, UI.Line_Texts.Interface_Font, Edit_Size);
+      Set_Position_Type (Widgets.Node (Item.Source_Field), Yoga.Absolute);
+      Set_Height (Widgets.Node (Item.Source_Field), Index_Height * Pixels);
+      Widgets.Set_Visible (Item.Source_Field, False);
 
       --  The pages, scrolled, one above the next, and the button to add
       --  one after them.

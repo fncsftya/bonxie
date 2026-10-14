@@ -149,6 +149,12 @@ package UI.Text_Areas is
 
    function Has_Selection (Item : Text_Area) return Boolean;
 
+   function Is_Over_Selection
+     (Item : in out Text_Area; X, Y : Float) return Boolean
+     with Pre => Is_Attached (Item);
+   --  Whether pixel X, Y is nearest a place in the selection, which there
+   --  must be.
+
    function Selected_Text (Item : Text_Area) return String
      with Pre => Is_Attached (Item);
    --  A line to each paragraph.

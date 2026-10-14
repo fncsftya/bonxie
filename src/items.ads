@@ -241,6 +241,10 @@ package Items is
      (Store : in out Projects.Store; Key : Id; Title : String)
      with Pre => Projects.Is_Open (Store);
 
+   procedure Delete_Directory (Store : in out Projects.Store; Key : Id)
+     with Pre => Projects.Is_Open (Store);
+   --  Remove the directory. What was in it is at the top level.
+
    function Directory_Of (Store : Projects.Store; Key : Id) return Id
      with Pre => Projects.Is_Open (Store);
    --  The directory the item is in, 0 if it is at the top level (or there

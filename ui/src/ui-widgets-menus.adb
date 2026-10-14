@@ -233,6 +233,8 @@ package body UI.Widgets.Menus is
       Inner_Width : constant Float :=
         Width_Of (Item) - UI.Boxes.Inset (Look, Pixels) - 2.0 * Edge;
       Top    : Float := First_Top (Item);
+      Any_Icon : constant Boolean :=
+        (for some Index in 1 .. Item.Used => Item.Rows (Index).Iconed);
    begin
       UI.Boxes.Draw
         (Target, Look, Left_Of (Item), Top_Of (Item), Width_Of (Item),
@@ -315,12 +317,16 @@ package body UI.Widgets.Menus is
                      end if;
                      After := After + Side + Gap * Pixels;
                   end;
-               when Action =>
+               when Action | Note =>
+                  --  A row without an icon is in line with those that
+                  --  have one.
                   if Each.Iconed then
                      Picture (Each.Which, Icon_Size, After);
                      After := After + (Icon_Size + Gap) * Pixels;
+                  elsif Each.Kind = Action and then Any_Icon then
+                     After := After + (Icon_Size + Gap) * Pixels;
                   end if;
-               when Heading | Note =>
+               when Heading =>
                   null;
             end case;
             if Each.Swatched and then Each.Kind /= Separator then

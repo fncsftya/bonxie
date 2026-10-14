@@ -207,6 +207,49 @@ package Items.Windows is
      with Pre => Is_Assigned (Item);
    --  Where its window is on the screen, in pixels, as of the last layout.
 
+   --  A right click on a window: what is under it, and what the menu can
+   --  do to the text or the picture.
+
+   type Text_Acts is (Copy, Cut, Paste, Select_All);
+
+   function Owns (Item : Window; Hit : UI.Widgets.Widget_Access)
+     return Boolean;
+   --  Whether the widget, or one of those it is in, is the window's.
+
+   function Text_Contains (Item : Window; X, Y : Float) return Boolean
+     with Pre => Is_Assigned (Item);
+   --  Whether pixel X, Y is in its text (a source's link).
+
+   function Over_Text_Selection
+     (Item : in out Window; X, Y : Float) return Boolean
+     with Pre => Is_Assigned (Item);
+   --  Whether pixel X, Y is over selected text.
+
+   procedure Put_Caret (Item : in out Window; X, Y : Float)
+     with Pre => Is_Assigned (Item);
+   --  Focus the text, with the caret nearest pixel X, Y.
+
+   procedure Edit_Text (Item : in out Window; Act : Text_Acts)
+     with Pre => Is_Assigned (Item);
+   --  Do it to the text's selection, with the tree's clipboard.
+
+   function Picture_Contains (Item : Window; X, Y : Float) return Boolean
+     with Pre => Is_Assigned (Item);
+
+   function Over_Picture_Selection
+     (Item : Window; X, Y : Float) return Boolean
+     with Pre => Is_Assigned (Item);
+
+   function Has_Words (Item : Window) return Boolean
+     with Pre => Is_Assigned (Item);
+   --  Whether the picture has words to select.
+
+   procedure Select_All_Words (Item : in out Window)
+     with Pre => Is_Assigned (Item);
+
+   procedure Copy_Words (Item : Window)
+     with Pre => Is_Assigned (Item);
+
    function Is_Hovered (Item : Window) return Boolean;
    --  Whether the pointer is over its window on the canvas, or something
    --  in it.

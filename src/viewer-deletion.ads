@@ -5,10 +5,16 @@ private package Viewer.Deletion is
      with Pre => Row <= Item.Listed.Count;
    --  Show the dialog to confirm deleting the project of the row.
 
+   procedure Confirm_Node (Item : in out Session; Node : Tree_Entry)
+     with Pre => Node.Kind /= Overview_Node;
+   --  Show the dialog to confirm deleting a document or directory of the
+   --  writing view.
+
    procedure Close (Item : in out Session);
    --  Hide the dialog: nothing is deleted.
 
    procedure Delete_Confirmed (Item : in out Session);
-   --  Delete the project the dialog is about, and hide it.
+   --  Delete the project (or document or directory) the dialog is about,
+   --  and hide it.
 
 end Viewer.Deletion;

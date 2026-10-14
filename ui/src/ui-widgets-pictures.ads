@@ -147,6 +147,12 @@ package UI.Widgets.Pictures is
 
    function Word_Count (Item : Picture) return Natural;
 
+   function Is_Over_Selection (Item : Picture; X, Y : Float) return Boolean;
+   --  Whether pixel X, Y is over a selected word.
+
+   procedure Copy (Item : Picture);
+   --  Put the selected words on the tree's clipboard, if there are any.
+
    function Selected_Text (Item : Picture) return String;
    --  The selected words, a space between those of one line and a line
    --  break between lines; "" if none.

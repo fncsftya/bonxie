@@ -250,7 +250,21 @@ From the bottom up; each crate depends only on those before it.
   its page; on a directory's, shows only its documents as the pages, and
   on the Overview's, all of them (a document added then is in the
   directory shown); a directory's row pressed twice is renamed, in a field
-  over it; and the sources, a row to click to open or close the source's
+  over it. A press of the right button shows a menu (`Context_Menu`, a
+  `Menus.Menu`, not the system's; `Open_Context`, `Do_Context`) on the
+  canvas, over a window's text (a note's, a source's link) or a source's
+  picture, with the same rows as below (`Items.Windows.Edit_Text`,
+  `Select_All_Words`, `Copy_Words`; found by `Owns`, the window the widget
+  under the pointer is in); and in the writing view on: a
+  document's, directory's or source's row, a page's text (Paste, Select
+  all; on the selection, Copy, Cut, Paste, Select all; Paste is faint if the clipboard
+  is empty) or a source's picture (Select all; on the selected words, Copy
+  too). For a row: Rename, which puts that field over the
+  row (of a document or a source, editing its title, which the canvas's
+  window has too), and Delete, which asks first in the dialog that
+  confirms deleting a project (`Deleting_Node`; Escape or Cancel leaves
+  it). A deleted directory's documents are kept, in none, where they
+  were; and the sources, a row to click to open or close the source's
   window here. That window is an `Items.Readers.Reader`, not the item's window
   on the canvas: where it is, whether it is open, its zoom and scroll are
   of this view only and are not kept; the picture and the words found in it

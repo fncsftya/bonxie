@@ -97,6 +97,8 @@ private package Viewer.Style is
    --  The button to dictate is as tall as the Sources button.
    Menu_Width      : constant Float := 240.0;
    Menu_Gap        : constant Float := 2.0;
+   Context_Width   : constant Float := 140.0;
+   --  Of the menu of a row of the tree, at the pointer.
    --  The menu of a page's sources, below its button.
    Page_Text_Size  : constant Float := 17.0;
    Page_Text_Inset : constant Float := 12.0;

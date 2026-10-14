@@ -3,6 +3,7 @@ with Ada.Calendar.Formatting;
 with Ada.Strings.Fixed;
 with SDL3.Cursors;
 with UI.Boxes;
+with System;
 with UI.Text_Areas;
 with UI.Icons;
 with UI.Line_Texts;
@@ -16,6 +17,11 @@ package body Items.Windows is
    package Labels renames UI.Widgets.Labels;
    package Grips renames UI.Widgets.Grips;
    package Editors renames UI.Widgets.Editors;
+   package Pictures renames UI.Widgets.Pictures;
+
+   use type Widgets.Widget_Access;
+   use type System.Address;
+   use type Widgets.Clipboard_Access;
    package Text_Fields renames UI.Widgets.Text_Fields;
    package Sliders renames UI.Widgets.Sliders;
 
@@ -595,6 +601,78 @@ package body Items.Windows is
        Top    => Widgets.Top_Of (Item.Frame),
        Width  => Widgets.Width_Of (Item.Frame),
        Height => Widgets.Height_Of (Item.Frame)));
+
+   function Owns (Item : Window; Hit : UI.Widgets.Widget_Access)
+     return Boolean
+   is
+      Up : Widgets.Widget_Access := Hit;
+   begin
+      while Up /= null loop
+         if Up.all'Address = Item.Frame'Address then
+            return True;
+         end if;
+         Up := Widgets.Parent_Of (Up.all);
+      end loop;
+      return False;
+   end Owns;
+
+   function Text_Contains (Item : Window; X, Y : Float) return Boolean is
+     (Widgets.Contains (Item.Body_Text, X, Y));
+
+   function Over_Text_Selection
+     (Item : in out Window; X, Y : Float) return Boolean is
+     (UI.Text_Areas.Is_Over_Selection
+        (Editors.Area (Item.Body_Text).all, X, Y));
+
+   procedure Put_Caret (Item : in out Window; X, Y : Float) is
+      Area : UI.Text_Areas.Text_Area renames Editors.Area (Item.Body_Text).all;
+   begin
+      Widgets.Focus (Item.Body_Text);
+      UI.Text_Areas.Click (Area, X, Y);
+      UI.Text_Areas.Release (Area);
+   end Put_Caret;
+
+   procedure Edit_Text (Item : in out Window; Act : Text_Acts) is
+      Area  : UI.Text_Areas.Text_Area renames
+        Editors.Area (Item.Body_Text).all;
+      Board : constant Widgets.Clipboard_Access :=
+        Widgets.Clipboard (Item.Body_Text);
+   begin
+      if Act = Select_All then
+         UI.Text_Areas.Select_All (Area);
+      elsif Board /= null then
+         case Act is
+            when Copy =>
+               UI.Text_Areas.Copy (Area, Board.all);
+            when Cut =>
+               UI.Text_Areas.Cut (Area, Board.all);
+            when Paste =>
+               UI.Text_Areas.Paste (Area, Board.all);
+            when Select_All =>
+               null;
+         end case;
+      end if;
+   end Edit_Text;
+
+   function Picture_Contains (Item : Window; X, Y : Float) return Boolean is
+     (Widgets.Contains (Item.Picture, X, Y));
+
+   function Over_Picture_Selection
+     (Item : Window; X, Y : Float) return Boolean is
+     (Pictures.Is_Over_Selection (Item.Picture, X, Y));
+
+   function Has_Words (Item : Window) return Boolean is
+     (Pictures.Has_Words (Item.Picture));
+
+   procedure Select_All_Words (Item : in out Window) is
+   begin
+      Pictures.Select_All (Item.Picture);
+   end Select_All_Words;
+
+   procedure Copy_Words (Item : Window) is
+   begin
+      Pictures.Copy (Item.Picture);
+   end Copy_Words;
 
    function Is_Hovered (Item : Window) return Boolean is
      (Item.Assigned and then Item.Details.State = Open

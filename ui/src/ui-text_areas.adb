@@ -851,6 +851,26 @@ package body UI.Text_Areas is
          (X - Column_Left (Item)) / Scale (Item));
    end Point_At;
 
+   function Is_Over_Selection
+     (Item : in out Text_Area; X, Y : Float) return Boolean is
+   begin
+      if not Has_Selection (Item) then
+         return False;
+      end if;
+      Catch_Up (Item);
+      declare
+         Point : constant Position := Point_At (Item, X, Y);
+         First : constant Position :=
+           (if Item.At_Caret < Item.At_Mark then Item.At_Caret
+            else Item.At_Mark);
+         Last  : constant Position :=
+           (if Item.At_Caret < Item.At_Mark then Item.At_Mark
+            else Item.At_Caret);
+      begin
+         return not (Point < First) and then Point < Last;
+      end;
+   end Is_Over_Selection;
+
    procedure Click
      (Item   : in out Text_Area;
       X, Y   : Float;

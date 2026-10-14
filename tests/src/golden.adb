@@ -1014,6 +1014,11 @@ begin
    Run ("write-ordering", Write_Tests.Ordering'Access);
    Run ("write-dragging", Write_Tests.Dragging'Access);
    Run ("write-directories", Write_Tests.Directories'Access);
+   Run ("write-context-menus", Write_Tests.Context_Menus'Access);
+   Run ("write-context-elsewhere",
+        Write_Tests.Context_Menus_Elsewhere'Access);
+   Run ("write-context-on-canvas",
+        Write_Tests.Context_Menus_On_Canvas'Access);
    Run ("write-adding", Write_Tests.Adding'Access);
    Run ("write-linked-sources", Write_Tests.Linked_Sources'Access);
    Run ("write-typing", Write_Tests.Typing'Access);

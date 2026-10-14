@@ -210,6 +210,27 @@ package body Items.Readers is
 
    function Zoom (Item : Reader) return Float is (Item.Details.Zoom);
 
+   function Picture_Contains
+     (Item : Reader; X, Y : Float) return Boolean is
+     (Widgets.Contains (Item.Picture, X, Y));
+
+   function Is_Over_Selection
+     (Item : Reader; X, Y : Float) return Boolean is
+     (Pictures.Is_Over_Selection (Item.Picture, X, Y));
+
+   function Has_Words (Item : Reader) return Boolean is
+     (Pictures.Has_Words (Item.Picture));
+
+   procedure Select_All (Item : in out Reader) is
+   begin
+      Pictures.Select_All (Item.Picture);
+   end Select_All;
+
+   procedure Copy (Item : Reader) is
+   begin
+      Pictures.Copy (Item.Picture);
+   end Copy;
+
    function Box (Item : Reader) return Items.Frame is
      ((Left   => Widgets.Left_Of (Item.Frame),
        Top    => Widgets.Top_Of (Item.Frame),

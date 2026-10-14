@@ -102,9 +102,30 @@ package body Viewer.Clicks is
                end if;
             end loop;
          when Project =>
+            if Item.Deleting_Node.Kind /= Overview_Node then
+               --  The dialog to confirm deleting a document or directory
+               --  is all that takes clicks.
+               Buttons.Take_Click (Item.Confirm_Delete, Clicked);
+               if Clicked then
+                  Deletion.Delete_Confirmed (Item);
+                  return;
+               end if;
+               Buttons.Take_Click (Item.Confirm_Cancel, Clicked);
+               if not Clicked then
+                  Buttons.Take_Click (Item.Dialog_Close, Clicked);
+               end if;
+               if Clicked then
+                  Deletion.Close (Item);
+               end if;
+               return;
+            end if;
             if Item.Showing_List then
                --  The list is all that takes clicks.
                Listing.Take (Item);
+               return;
+            end if;
+            Writing.Take_Context (Item, Clicked);
+            if Clicked then
                return;
             end if;
             Buttons.Take_Click (Item.Close_Button, Clicked);

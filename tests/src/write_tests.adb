@@ -363,6 +363,247 @@ package body Write_Tests is
       Snap (Session, "write-directories-kept");
    end Directories;
 
+   Confirm_Delete_X : constant Float := 460.0;
+   Confirm_Cancel_X : constant Float := 352.0;
+   Confirm_Y        : constant Float := 301.0;
+   --  The buttons of the dialog that confirms a deletion.
+
+   procedure Right_Click_On (Session : in out Viewer.Session; X, Y : Float) is
+   begin
+      Move_To (Session, X, Y);
+      Viewer.Handle
+        (Session, Events.Event'(Kind => Events.Mouse_Down, Button => 3,
+                                Clicks => 1, Mouse_X => X, Mouse_Y => Y,
+                                others => <>));
+      Viewer.Handle
+        (Session, Events.Event'(Kind => Events.Mouse_Up, Button => 3,
+                                Clicks => 1, Mouse_X => X, Mouse_Y => Y,
+                                others => <>));
+   end Right_Click_On;
+
+   procedure Context_Menus is
+      Session : Viewer.Session;
+      Key     : Projects.Id;
+
+      Rename_Dy : constant Float := 17.0;
+      Delete_Dy : constant Float := 43.0;
+      --  The rows of the menu, below where it was asked for.
+
+      procedure Choose (Row_Y, Dy : Float) is
+      begin
+         Right_Click_On (Session, Doc_Row_X, Row_Y);
+         Settle (Session);
+         Click_On (Session, Doc_Row_X + 40.0, Row_Y + Dy);
+         Settle (Session);
+      end Choose;
+   begin
+      Start_With_Three (Session);
+      Key := Viewer.Current_Project (Session);
+      Viewer.Set_Mode (Session, Viewer.Write);
+      Settle (Session);
+      Right_Click_On (Session, Doc_Row_X, Doc_Row_Y (2));
+      Settle (Session);
+      Snap (Session, "write-context-menu");
+
+      --  Rename puts a field over the row, as a directory's.
+      Click_On (Session, Doc_Row_X + 40.0, Doc_Row_Y (2) + Rename_Dy);
+      Settle (Session);
+      Type_In (Session, "Centre");
+      Viewer.Handle
+        (Session, Events.Event'(Kind => Events.Key_Down,
+                                Key => Events.Key_Return, others => <>));
+      Settle (Session);
+      Check ("write-context-renamed", "Centre",
+             Viewer.Document_Title (Session, 2));
+
+      Click_On (Session, Add_Directory_X, Add_Document_Y);
+      Name_Directory (Session, "Part one");
+      Choose (Tree_Row_Y (5), Rename_Dy);
+      Type_In (Session, "Act one");
+      Viewer.Handle
+        (Session, Events.Event'(Kind => Events.Key_Down,
+                                Key => Events.Key_Return, others => <>));
+      Settle (Session);
+      Check ("write-context-directory-renamed", "Act one",
+             Viewer.Directory_Title (Session, 1));
+      Drag (Session, Doc_Row_X, Tree_Row_Y (4), Doc_Row_X, Tree_Row_Y (5));
+      Settle (Session);
+
+      --  Delete asks first; Escape leaves it all.
+      Choose (Tree_Row_Y (5), Delete_Dy);
+      Check ("write-delete-asked", "TRUE",
+             Boolean'Image (Viewer.Is_Confirming (Session)));
+      Move_To (Session, 600.0, 60.0);
+      Snap (Session, "write-delete-confirm");
+      Viewer.Handle
+        (Session, Events.Event'(Kind => Events.Key_Down,
+                                Key => Events.Key_Escape, others => <>));
+      Check ("write-delete-escaped", "FALSE",
+             Boolean'Image (Viewer.Is_Confirming (Session)));
+      Check ("write-delete-escaped-kept", " 1",
+             Natural'Image (Viewer.Directory_Count (Session)));
+
+      --  Deleting a directory keeps what was in it, in none.
+      Choose (Tree_Row_Y (4), Delete_Dy);
+      Check ("write-delete-directory-asked", "TRUE",
+             Boolean'Image (Viewer.Is_Confirming (Session)));
+      Click_On (Session, Confirm_Delete_X, Confirm_Y);
+      Settle (Session);
+      Check ("write-delete-directory", " 0",
+             Natural'Image (Viewer.Directory_Count (Session)));
+      Check ("write-delete-directory-kept-documents", " 3",
+             Natural'Image (Viewer.Document_Count (Session)));
+      Check ("write-delete-directory-kept-ending", "Ending",
+             Viewer.Document_Title (Session, 3));
+      Check ("write-delete-directory-in-none", " 0",
+             Natural'Image (Viewer.Document_Directory (Session, 3)));
+
+      --  Cancel deletes nothing; Delete deletes a document.
+      Choose (Tree_Row_Y (3), Delete_Dy);
+      Click_On (Session, Confirm_Cancel_X, Confirm_Y);
+      Check ("write-delete-cancelled", " 3",
+             Natural'Image (Viewer.Document_Count (Session)));
+      Choose (Tree_Row_Y (3), Delete_Dy);
+      Click_On (Session, Confirm_Delete_X, Confirm_Y);
+      Settle (Session);
+      Check ("write-delete-document", " 2",
+             Natural'Image (Viewer.Document_Count (Session)));
+      Check ("write-delete-document-gone", "Ending",
+             Viewer.Document_Title (Session, 2));
+      Move_To (Session, 600.0, 60.0);
+      Snap (Session, "write-deleted");
+
+      --  They are gone for good.
+      Viewer.Close_Project (Session);
+      Viewer.Open_Project (Session, Key);
+      Viewer.Set_Mode (Session, Viewer.Write);
+      Check ("write-delete-kept-documents", " 2",
+             Natural'Image (Viewer.Document_Count (Session)));
+      Check ("write-delete-kept-directories", " 0",
+             Natural'Image (Viewer.Directory_Count (Session)));
+   end Context_Menus;
+
+   procedure Context_Menus_Elsewhere is
+      Session : Viewer.Session;
+
+      procedure Choose (X, Y, Dy : Float) is
+      begin
+         Right_Click_On (Session, X, Y);
+         Settle (Session);
+         Click_On (Session, Float'Min (X, 560.0) + 60.0, Y + Dy);
+         Settle (Session);
+      end Choose;
+
+      Source_Y : constant Float := Source_Row_Y (3);
+   begin
+      Start_With_Three (Session);
+      Viewer.Set_Mode (Session, Viewer.Write);
+      Settle (Session);
+
+      --  In a page's text, with nothing on the clipboard, only Select all
+      --  can be chosen: Paste is faint.
+      Right_Click_On (Session, 400.0, Text_Y);
+      Settle (Session);
+      Snap (Session, "write-context-text");
+      Click_On (Session, 460.0, Text_Y + 43.0);
+      Settle (Session);
+
+      --  On the selection, Copy, Cut and Paste: cut, it is gone.
+      Right_Click_On (Session, 300.0, Text_Y);
+      Settle (Session);
+      Snap (Session, "write-context-selection");
+      Click_On (Session, 360.0, Text_Y + 43.0);
+      Settle (Session);
+      Check ("write-context-cut", "", Viewer.Item_Text (Session, 1));
+
+      --  Now there is something to paste, which is put back.
+      Right_Click_On (Session, 300.0, Text_Y);
+      Settle (Session);
+      Click_On (Session, 360.0, Text_Y + 17.0);
+      Settle (Session);
+      Check ("write-context-pasted", "It was a dark and stormy night.",
+             Viewer.Item_Text (Session, 1));
+
+      --  In a source's window; it has no words, so Select all is faint.
+      Click_On (Session, Source_Row_X, Source_Y);
+      Settle (Session);
+      Right_Click_On (Session, 340.0, Reader_Y);
+      Settle (Session);
+      Snap (Session, "write-context-source");
+      Move_To (Session, 700.0, 300.0);
+
+      --  A source in the list is renamed on the canvas as well, and
+      --  deleted there.
+      Choose (Source_Row_X, Source_Y, 17.0);
+      Type_In (Session, "Renamed");
+      Viewer.Handle
+        (Session, Events.Event'(Kind => Events.Key_Down,
+                                Key => Events.Key_Return, others => <>));
+      Settle (Session);
+      Check ("write-source-renamed", "Renamed",
+             Viewer.Source_Title (Session, 1));
+      Check ("write-source-renamed-on-canvas", "Renamed",
+             Viewer.Item_Title (Session, 3));
+      Choose (Source_Row_X, Source_Y, 43.0);
+      Check ("write-source-delete-asked", "TRUE",
+             Boolean'Image (Viewer.Is_Confirming (Session)));
+      Click_On (Session, Confirm_Delete_X, Confirm_Y);
+      Settle (Session);
+      Check ("write-source-deleted", " 0",
+             Natural'Image (Viewer.Source_Count (Session)));
+      Check ("write-source-deleted-on-canvas", " 3",
+             Natural'Image (Viewer.Item_Count (Session)));
+   end Context_Menus_Elsewhere;
+
+   procedure Context_Menus_On_Canvas is
+      Session : Viewer.Session;
+      --  The last window's text, and the link of the source's, which shows
+      --  at the left of the windows over it.
+      Text_At_X : constant Float := 450.0;
+      Text_At_Y : constant Float := 330.0;
+      Word_At_X : constant Float := 350.0;
+      Word_At_Y : constant Float := 285.0;
+      Link_At_X : constant Float := 530.0;
+      Link_At_Y : constant Float := 220.0;
+
+      procedure Choose (X, Y, Dy : Float) is
+      begin
+         Right_Click_On (Session, X, Y);
+         Settle (Session);
+         Click_On (Session, Float'Min (X, 560.0) + 60.0, Y + Dy);
+         Settle (Session);
+      end Choose;
+   begin
+      Start_With_Three (Session);
+      Settle (Session);
+
+      --  In a window's text, as in a page's: Paste is faint with nothing
+      --  to paste, and Select all has no icon.
+      Right_Click_On (Session, Text_At_X, Text_At_Y);
+      Settle (Session);
+      Snap (Session, "write-canvas-context-text");
+      Click_On (Session, Text_At_X + 60.0, Text_At_Y + 43.0);
+      Settle (Session);
+
+      --  On the selection, Copy, Cut and Paste.
+      Choose (Word_At_X, Word_At_Y, 43.0);
+      Check ("write-canvas-cut", "", Viewer.Item_Text (Session, 4));
+      Choose (Text_At_X, Text_At_Y, 17.0);
+      Check ("write-canvas-pasted", "And they all lived.",
+             Viewer.Item_Text (Session, 4));
+
+      --  In a source's link, once its window is raised.
+      Click_On (Session, Link_At_X, Link_At_Y);
+      Settle (Session);
+      Right_Click_On (Session, 300.0, 254.0);
+      Settle (Session);
+      Snap (Session, "write-canvas-context-link");
+      --  And in its picture, which has no words yet.
+      Right_Click_On (Session, 400.0, 330.0);
+      Settle (Session);
+      Snap (Session, "write-canvas-context-picture");
+   end Context_Menus_On_Canvas;
+
    procedure Adding is
       Session : Viewer.Session;
    begin

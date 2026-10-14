@@ -50,6 +50,24 @@ private package Viewer.Writing is
                  and then Directory <= Item.Dirs.Count;
    --  Put the Rankth page last in the directory (none, if 0), and keep it.
 
+   procedure Open_Context
+     (Item : in out Session; X, Y : Float; Opened : out Boolean)
+     with Pre => Screen (Item) = Project;
+   --  The right button was pressed at X, Y, in points of the window: show
+   --  the menu of what is there, if it has one: in the writing view, a row
+   --  of the sidebar, a page's text or a source's window; on the canvas,
+   --  the text or the picture of a window.
+
+   procedure Take_Context (Item : in out Session; Done : out Boolean)
+     with Pre => Screen (Item) = Project;
+   --  Do what the row clicked of the menu does; Done if one was.
+
+   procedure Delete_Node (Item : in out Session; Node : Tree_Entry)
+     with Pre => Screen (Item) = Project
+                 and then Node.Kind /= Overview_Node;
+   --  Delete the document, or the directory (whose documents are kept,
+   --  in none), and keep that.
+
    procedure Make_Directory (Item : in out Session; Name : String)
      with Pre => Item.Dirs.Count < Items.Max_Directories;
    --  Make a directory, put its row last of the directories, and begin to
