@@ -451,7 +451,14 @@ private
       Close_Button  : UI.Widgets.Buttons.Button;
       --  Back to the projects.
       Bar_Rule      : UI.Widgets.Panels.Panel;
+      Title_Area    : UI.Widgets.Grips.Grip;
       Project_Title : UI.Widgets.Labels.Label;
+      --  The project's name, in a grip that takes a double press to
+      --  rename it.
+      Title_Field   : UI.Widgets.Text_Fields.Text_Field;
+      Title_Doc     : aliased Texts.Documents.Document;
+      Renaming      : Boolean := False;
+      --  In its place while it is renamed.
       Tabs          : UI.Widgets.Panels.Panel;
       Canvas_Tab    : UI.Widgets.Buttons.Button;
       Write_Tab     : UI.Widgets.Buttons.Button;

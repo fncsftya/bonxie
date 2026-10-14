@@ -131,6 +131,7 @@ package body Viewer.Clicks is
             if Clicked then
                return;
             end if;
+            Navigation.Take_Rename (Item);
             Buttons.Take_Click (Item.Toolbar.Close_Button, Clicked);
             if Clicked then
                Navigation.Leave (Item);

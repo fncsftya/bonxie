@@ -13,6 +13,11 @@ private package Viewer.Navigation is
      with Pre => Screen (Item) = Project;
    --  Go back to the home screen.
 
+   procedure Take_Rename (Item : in out Session)
+     with Pre => Screen (Item) = Project;
+   --  Begin renaming the project at a double press on its name, and end
+   --  it at Return or when the field is left.
+
    procedure Keep
      (Item    : in out Session;
       Name    : String;

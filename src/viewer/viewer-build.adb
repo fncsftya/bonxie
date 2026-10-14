@@ -318,7 +318,9 @@ package body Viewer.Build is
       Widgets.Add (Item.Toolbar.Toolbar_Panel, Item.Toolbar.Toolbar_Start);
       Widgets.Add (Item.Toolbar.Toolbar_Start, Item.Toolbar.Close_Button);
       Widgets.Add (Item.Toolbar.Toolbar_Start, Item.Toolbar.Bar_Rule);
-      Widgets.Add (Item.Toolbar.Toolbar_Start, Item.Toolbar.Project_Title);
+      Widgets.Add (Item.Toolbar.Toolbar_Start, Item.Toolbar.Title_Area);
+      Widgets.Add (Item.Toolbar.Title_Area, Item.Toolbar.Project_Title);
+      Widgets.Add (Item.Toolbar.Toolbar_Start, Item.Toolbar.Title_Field);
       Widgets.Add (Item.Toolbar.Toolbar_Panel, Item.Toolbar.Tabs);
       Widgets.Add (Item.Toolbar.Tabs, Item.Toolbar.Canvas_Tab);
       Widgets.Add (Item.Toolbar.Tabs, Item.Toolbar.Write_Tab);
@@ -374,6 +376,23 @@ package body Viewer.Build is
       Set_Width (Widgets.Node (Item.Toolbar.Project_Title), 0.0);
       Set_Height (Widgets.Node (Item.Toolbar.Project_Title),
                   Tab_Height * Pixels);
+      Grips.Set_Hover_Outline (Item.Toolbar.Title_Area, Themes.Bar_Ink);
+      Grips.Set_Wanted_Cursor (Item.Toolbar.Title_Area, SDL3.Cursors.Pointer);
+      Set_Flex_Direction (Widgets.Node (Item.Toolbar.Title_Area), Yoga.Row);
+      Set_Align_Items (Widgets.Node (Item.Toolbar.Title_Area), Yoga.Center);
+      Set_Flex_Grow (Widgets.Node (Item.Toolbar.Title_Area), 1.0);
+      Set_Width (Widgets.Node (Item.Toolbar.Title_Area), 0.0);
+      Set_Height (Widgets.Node (Item.Toolbar.Title_Area), Tab_Height * Pixels);
+      Text_Fields.Set_Shared
+        (Item.Toolbar.Title_Field, Item.Host.Doc_Resources'Unchecked_Access);
+      Text_Fields.Configure
+        (Item.Toolbar.Title_Field, UI.Line_Texts.Interface_Font,
+         UI.Line_Texts.Heading_Size);
+      Set_Flex_Grow (Widgets.Node (Item.Toolbar.Title_Field), 1.0);
+      Set_Width (Widgets.Node (Item.Toolbar.Title_Field), 0.0);
+      Set_Height (Widgets.Node (Item.Toolbar.Title_Field),
+                  Tab_Height * Pixels);
+      Widgets.Set_Visible (Item.Toolbar.Title_Field, False);
 
       Set_Flex_Direction (Widgets.Node (Item.Toolbar.Tabs), Yoga.Row);
       Set_Gap (Widgets.Node (Item.Toolbar.Tabs), Yoga.All_Gutters,
