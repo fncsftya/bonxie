@@ -5,6 +5,7 @@ with Ada.Strings.Unbounded;
 with Items.Readers;
 with Items.Windows;
 with Preferences;
+with Speech.Models;
 with SDL3.Cursors;
 with UI.Boxes;
 with UI.Icons;
@@ -1247,6 +1248,13 @@ package body Viewer.Build is
          Item.Prefs.Theme_Chosen :=
            Preferences.Load_Theme
              (Ada.Strings.Unbounded.To_String (Item.Prefs.Config_Dir));
+         --  The system may have let go of the compiled model: have it
+         --  ready, in the background, before it is wanted.
+         if Preferences."=" (Item.Prefs.Speech_Choice, Preferences.Parakeet) then
+            Speech.Models.Preload
+              (Preferences.Speech_Model_Directory
+                 (Ada.Strings.Unbounded.To_String (Item.Prefs.Config_Dir)));
+         end if;
       else
          --  Offscreen, the light theme, whatever the system's is.
          Item.Prefs.Theme_Chosen := Preferences.Light;

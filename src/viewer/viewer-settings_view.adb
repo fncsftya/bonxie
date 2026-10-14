@@ -101,12 +101,14 @@ package body Viewer.Settings_View is
 
    function Status (Item : Session) return String is
    begin
-      if Model_Present (Item) then
+      if Model_Present (Item) and then Speech.Models.State /= Speech.Models.Running then
          return Fits ("Model available, " & Size_Text (On_Disk (Item)) & " on disk");
       end if;
       case Speech.Models.State is
          when Speech.Models.Running =>
-            return Fits ("Downloading " & Progress_Text);
+            return (if Speech.Models.Preparing
+                    then Fits ("Preparing the model, once only")
+                    else Fits ("Downloading " & Progress_Text));
          when Speech.Models.Failed =>
             return Fits ("Download failed: " & Speech.Models.Message);
          when Speech.Models.Idle | Speech.Models.Done =>

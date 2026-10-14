@@ -47,12 +47,48 @@ private func reason(_ error: Error) -> String {
 
 private let lock = NSLock()
 private var loaded: AsrManager?
+private var preparing: Task<AsrManager, Error>?
 
 // The model wants at least a second of sound.
 private let rate = 16_000
 
 private func place(_ directory: UnsafePointer<CChar>) -> URL {
     URL(fileURLWithPath: String(cString: directory), isDirectory: true)
+}
+
+// The models in directory, loaded and warmed, once: whoever asks while it
+// is under way waits for the same one. Core ML compiles the models for the
+// Neural Engine on the first load (the system keeps the result, for a
+// while), and some of it only on the first prediction, so a second of
+// silence is run here, for the first real call not to wait for it.
+private func prepare(_ there: URL) -> Task<AsrManager, Error> {
+    lock.withLock {
+        if let task = preparing { return task }
+        let task = Task.detached { () async throws -> AsrManager in
+            do {
+                guard AsrModels.modelsExist(at: there, version: .v3) else {
+                    throw Failure(why: "The Parakeet model is not downloaded")
+                }
+                let models = try await AsrModels.load(from: there, version: .v3)
+                let manager = AsrManager(config: .default)
+                try await manager.loadModels(models)
+                var state = try TdtDecoderState(decoderLayers: await manager.decoderLayerCount)
+                _ = try? await manager.transcribe(
+                    [Float](repeating: 0, count: rate), decoderState: &state)
+                try Task.checkCancellation()
+                lock.withLock {
+                    loaded = manager
+                    preparing = nil
+                }
+                return manager
+            } catch {
+                lock.withLock { preparing = nil }
+                throw error
+            }
+        }
+        preparing = task
+        return task
+    }
 }
 
 // 1 if the models are in directory (all of them).
@@ -68,30 +104,28 @@ public func pk_load(
     _ directory: UnsafePointer<CChar>, _ message: UnsafeMutablePointer<CChar>, _ room: Int32
 ) -> Int32 {
     message[0] = 0
-    lock.lock()
-    let already = loaded != nil
-    lock.unlock()
-    if already { return 1 }
-    let there = place(directory)
-    let outcome = finish { () async throws -> AsrManager in
-        guard AsrModels.modelsExist(at: there, version: .v3) else {
-            throw Failure(why: "The Parakeet model is not downloaded")
-        }
-        let models = try await AsrModels.load(from: there, version: .v3)
-        let manager = AsrManager(config: .default)
-        try await manager.loadModels(models)
-        return manager
-    }
-    switch outcome {
+    if lock.withLock({ loaded != nil }) { return 1 }
+    let task = prepare(place(directory))
+    switch finish({ try await task.value }) {
     case .failure(let error):
         say(reason(error), message, room)
         return 0
-    case .success(let manager):
-        lock.lock()
-        loaded = manager
-        lock.unlock()
+    case .success:
         return 1
     }
+}
+
+// Begin to load and warm the models in the background, without waiting
+// (for the start of the program: the system may have let go of what it
+// compiled, and this is better than the first transcription finding out).
+// Nothing happens if they are not downloaded, or are ready or on the way.
+@_cdecl("pk_preload")
+public func pk_preload(_ directory: UnsafePointer<CChar>) {
+    let there = place(directory)
+    guard lock.withLock({ loaded == nil }),
+        AsrModels.modelsExist(at: there, version: .v3)
+    else { return }
+    _ = prepare(there)
 }
 
 // ---------------------------------------------------------------------
@@ -105,6 +139,7 @@ private final class Fetching: @unchecked Sendable {
     var fraction = 0.0
     var total: Int64 = 0
     var why = ""
+    var preparing = false
     var task: Task<Void, Never>?
 }
 
@@ -141,6 +176,7 @@ public func pk_fetch_begin(_ directory: UnsafePointer<CChar>) -> Int32 {
     fetching.fraction = 0
     fetching.total = 0
     fetching.why = ""
+    fetching.preparing = false
     fetching.task = Task.detached {
         do {
             // How many bytes there will be, for the caller to say; 0 if it
@@ -151,7 +187,7 @@ public func pk_fetch_begin(_ directory: UnsafePointer<CChar>) -> Int32 {
             // each model in turn, and its fraction restarts and stalls at
             // a half for every one. ModelHub.download is the same fetch, by
             // the byte, once; a repo's download is the first half of its
-            // fraction (the other is compiling, which is not done here).
+            // fraction (the other is compiling, which is done below).
             try await ModelHub.download(
                 .parakeetV3, to: there.deletingLastPathComponent(),
                 variant: ParakeetEncoderPrecision.int8.rawValue
@@ -163,13 +199,23 @@ public func pk_fetch_begin(_ directory: UnsafePointer<CChar>) -> Int32 {
             // This is a no-op once the models and vocabulary are there; it
             // is here for the vocabulary, should the above not have it.
             try await AsrModels.download(to: there, version: .v3)
+            try Task.checkCancellation()
+            // Then the compiling, which has no fraction: the caller says
+            // it is preparing. The fetch is done when the first
+            // transcription would not wait.
             fetching.lock.withLock {
                 fetching.fraction = 1
+                fetching.preparing = true
+            }
+            _ = try await prepare(there).value
+            fetching.lock.withLock {
+                fetching.preparing = false
                 fetching.state = 2
             }
         } catch {
             fetching.lock.withLock {
                 fetching.why = Task.isCancelled ? "Cancelled" : reason(error)
+                fetching.preparing = false
                 fetching.state = 3
             }
         }
@@ -185,6 +231,12 @@ public func pk_fetch_state() -> Int32 {
 @_cdecl("pk_fetch_fraction")
 public func pk_fetch_fraction() -> Float {
     fetching.lock.withLock { Float(min(1, max(0, fetching.fraction))) }
+}
+
+// 1 while the fetch has it all and is compiling it (no fraction), else 0.
+@_cdecl("pk_fetch_preparing")
+public func pk_fetch_preparing() -> Int32 {
+    fetching.lock.withLock { fetching.preparing ? 1 : 0 }
 }
 
 // The bytes the fetch comes to in all (0 until they are known, or if they
@@ -208,6 +260,7 @@ public func pk_fetch_reset() {
             fetching.fraction = 0
             fetching.total = 0
             fetching.why = ""
+            fetching.preparing = false
         }
     }
 }
@@ -221,9 +274,11 @@ public func pk_fetch_cancel() {
 // Forget the models.
 @_cdecl("pk_unload")
 public func pk_unload() {
-    lock.lock()
-    loaded = nil
-    lock.unlock()
+    lock.withLock {
+        preparing?.cancel()
+        preparing = nil
+        loaded = nil
+    }
 }
 
 // Make tokens of count samples: 1 if it is done (maybe with no tokens); 0

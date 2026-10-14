@@ -16,6 +16,12 @@ package body Speech.Models is
    function PK_Fetch_Fraction return Interfaces.C.C_float
      with Import, Convention => C, External_Name => "pk_fetch_fraction";
 
+   function PK_Fetch_Preparing return Interfaces.C.int
+     with Import, Convention => C, External_Name => "pk_fetch_preparing";
+
+   procedure PK_Preload (Directory : System.Address)
+     with Import, Convention => C, External_Name => "pk_preload";
+
    function PK_Fetch_Total return Interfaces.C.long
      with Import, Convention => C, External_Name => "pk_fetch_total";
 
@@ -47,6 +53,15 @@ package body Speech.Models is
 
    function Fraction return Float is
      (Float'Min (1.0, Float'Max (0.0, Float (PK_Fetch_Fraction))));
+
+   function Preparing return Boolean is
+     (PK_Fetch_State = 1 and then PK_Fetch_Preparing = 1);
+
+   procedure Preload (Directory : String) is
+      Where : aliased constant Interfaces.C.char_array := Interfaces.C.To_C (Directory);
+   begin
+      PK_Preload (Where'Address);
+   end Preload;
 
    function Total_Bytes return Long_Long_Integer is
      (Long_Long_Integer'Max (0, Long_Long_Integer (PK_Fetch_Total)));

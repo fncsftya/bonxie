@@ -27,6 +27,18 @@ package Speech.Models is
      with Post => Fraction'Result in 0.0 .. 1.0;
    --  How much has come: 0.0 while Idle, 1.0 when Done.
 
+   function Preparing return Boolean;
+   --  Whether the fetch has all of the model and is compiling it for the
+   --  Neural Engine (it has no fraction): True only while Running. The
+   --  first transcription then does not wait for it.
+
+   procedure Preload (Directory : String)
+     with Pre => Directory'Length in 1 .. Max_Path;
+   --  Load and warm the model in the background, if it is Present and not
+   --  loaded already, without waiting: for the start of the program, as
+   --  the system may have let go of what it compiled. It does nothing
+   --  otherwise, and is not a fetch (State does not change).
+
    function Total_Bytes return Long_Long_Integer
      with Post => Total_Bytes'Result >= 0;
    --  How many bytes the fetch comes to in all: 0 until that is known (or
