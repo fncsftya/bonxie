@@ -146,7 +146,8 @@ package body Viewer.Canvas_Items is
                      Show (Windows.Listening);
                      Windows.Set_Level (Each, Speech.Jobs.Loudness (Which));
                      Speech.Jobs.Heard_So_Far (Which, Heard);
-                     Windows.Set_Live_Dictation (Each, Speech.Image (Heard));
+                     Windows.Set_Live_Dictation
+                       (Each, Speech.Image (Heard), Heard.Settled);
                   when Speech.Jobs.Finishing =>
                      Show (Windows.Transcribing);
                   when Speech.Jobs.Done =>

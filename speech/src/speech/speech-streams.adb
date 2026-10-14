@@ -178,6 +178,7 @@ is
       if Item.Settled.Length > 0 and then Item.Tentative.Length > 0 then
          Windows.Append_Text (Into, " ");
       end if;
+      Into.Settled := Into.Length;
       Windows.Append_Text (Into, Item.Tentative.Text (1 .. Item.Tentative.Length));
    end Text;
 

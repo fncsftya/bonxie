@@ -1219,6 +1219,19 @@ package body UI.Text_Areas is
          Horizontal => False);
    end Bar_Metrics;
 
+   procedure Set_Faint (Item : in out Text_Area; From, To : Position) is
+   begin
+      Item.Faint_On := From < To;
+      Item.Faint_From := From;
+      Item.Faint_To := To;
+      Item.Faint_Version := Docs.Current (Item.Doc.all);
+   end Set_Faint;
+
+   procedure Clear_Faint (Item : in out Text_Area) is
+   begin
+      Item.Faint_On := False;
+   end Clear_Faint;
+
    procedure Set_Hovered (Item : in out Text_Area; Hovered : Boolean) is
    begin
       Scrollbars.Set_Pane (Item.Bar, Hovered);
@@ -1320,6 +1333,9 @@ package body UI.Text_Areas is
    end Handle;
 
    --  Drawing
+
+   Faint_Alpha : constant SDL3.Windows.Renderers.Color_Component := 150;
+   --  How much of the page's colour covers text that is not settled.
 
    procedure Draw_Range
      (Item        : in out Text_Area;
@@ -1551,6 +1567,18 @@ package body UI.Text_Areas is
          Scale   => Scale (Item),
          Settled => Settled,
          Rows_From => Rows_From, Rows_To => Rows_To);
+
+      if Item.Faint_On
+        and then Item.Faint_Version = Docs.Current (Item.Doc.all)
+      then
+         --  Text laid over with the page's own colour, part see-through,
+         --  is text part faded.
+         Draw_Range
+           (Item, Target, Item.Faint_From, Item.Faint_To, First, Last,
+            (Colors.Background with delta Alpha => Faint_Alpha),
+            Underlined => False,
+            Rows_From => Rows_From, Rows_To => Rows_To);
+      end if;
 
       if Item.Composing then
          Draw_Range

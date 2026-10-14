@@ -89,9 +89,11 @@ is
       if Open = 1 and then Length in 0 .. Text_Capacity then
          Into.Length := Natural (Length);
          Into.Truncated := Cut /= 0;
+         Into.Settled := Into.Length;  --  the system's engine does not say
       else
          Into.Length := 0;
          Into.Truncated := False;
+         Into.Settled := 0;
       end if;
    end Peek;
 

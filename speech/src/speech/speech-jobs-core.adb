@@ -170,9 +170,9 @@ is
    end Board;
 
    protected Live is
-      procedure Put (Which : Slot; Words : String; Cut : Boolean)
+      procedure Put (Which : Slot; Words : String; Cut : Boolean; Settled : Natural := 0)
         with Pre => Words'First >= 1 and then Words'Last < Positive'Last;
-      --  What is heard so far, for the caller's polling.
+      --  What is heard so far, the first Settled bytes of it settled, for the caller's polling.
       procedure Get (Which : Slot; Into : out Transcript);
       procedure Put_Final (Which : Slot; Words : String; Cut : Boolean)
         with Pre => Words'First >= 1 and then Words'Last < Positive'Last;
@@ -186,10 +186,11 @@ is
 
    protected body Live is
 
-      procedure Put (Which : Slot; Words : String; Cut : Boolean) is
+      procedure Put (Which : Slot; Words : String; Cut : Boolean; Settled : Natural := 0) is
          Used : constant Natural := Natural'Min (Words'Length, Text_Capacity);
       begin
          Texts (Which).Length := Used;
+         Texts (Which).Settled := Natural'Min (Settled, Used);
          Texts (Which).Truncated := Cut or else Used < Words'Length;
          Texts (Which).Text (1 .. Used) :=
            Words (Words'First .. Words'First + Used - 1);
@@ -307,7 +308,7 @@ is
       procedure Show is
       begin
          Streams.Text (Item, Said);
-         Live.Put (Which, Trimmed (Image (Said)), Said.Truncated);
+         Live.Put (Which, Trimmed (Image (Said)), Said.Truncated, Said.Settled);
       end Show;
 
       procedure Feed_What_Came (Any : out Boolean) is

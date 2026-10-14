@@ -27,6 +27,8 @@ is
       Length    : Natural := 0;
       --  Text (1 .. Length) is what is used.
       Truncated : Boolean := False;
+      Settled   : Natural := 0;
+      --  Text (1 .. Settled) will not change; what follows may.
       Text      : String (1 .. Text_Capacity) := [others => ' '];
    end record
      with Dynamic_Predicate => Transcript.Length <= Text_Capacity;

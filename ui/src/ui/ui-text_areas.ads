@@ -169,6 +169,16 @@ package UI.Text_Areas is
    procedure Select_All (Item : in out Text_Area)
      with Pre => Is_Attached (Item);
 
+   procedure Set_Faint (Item : in out Text_Area; From, To : Position)
+     with Pre => Is_Attached (Item)
+                 and then Is_Position (Item, From)
+                 and then Is_Position (Item, To);
+   --  Draw the text from From to To at low opacity (it is not settled,
+   --  as dictation is). Any edit of the text afterwards puts the fade away
+   --  until it is set again.
+
+   procedure Clear_Faint (Item : in out Text_Area);
+
    type Motion is
      (Previous_Character, Next_Character, Previous_Word, Next_Word,
       Previous_Line, Next_Line, Line_Start, Line_End,
@@ -423,6 +433,13 @@ private
       Dragging : Boolean := False;
       Bar      : Scrollbars.Bar;
       Bar_Dirty : Boolean := False;
+
+      Faint_On      : Boolean := False;
+      Faint_From    : Position;
+      Faint_To      : Position;
+      Faint_Version : Texts.Documents.Version := 0;
+      --  The text from Faint_From to Faint_To is drawn faintly, if the
+      --  document is still as of Faint_Version.
 
       Composing : Boolean := False;
       Composed  : Position;  --  where the input method's text starts

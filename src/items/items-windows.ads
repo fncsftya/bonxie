@@ -141,14 +141,16 @@ package Items.Windows is
    --  is kept); if it has none yet, it is the text; otherwise it is a
    --  new paragraph after the last.
 
-   procedure Set_Live_Dictation (Item : in out Window; Said : String)
+   procedure Set_Live_Dictation (Item : in out Window; Said : String; Settled : Natural := 0)
      with Pre => Is_Assigned (Item) and then Details (Item).Kind = Note;
    --  Show what has been heard so far, while Listening, in the note's
    --  text, where Add_Dictation will put it: each call replaces the last
    --  Said. These edits are not recorded (they cannot be undone), and
    --  Add_Dictation, or a failure, takes them back before the final text
    --  goes in. If the text is changed by anything else while it is
-   --  shown, it is left as it is, and no more is shown.
+   --  shown, it is left as it is, and no more is shown. The first Settled
+   --  bytes of Said are drawn as text; the rest, which may yet change,
+   --  faintly.
 
    procedure Set_Title_Text (Item : in out Window; To : String)
      with Pre => Is_Assigned (Item) and then To'Length <= 64;

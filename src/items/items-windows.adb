@@ -547,6 +547,7 @@ package body Items.Windows is
          Docs.Replace
            (Doc, Item.Live_From, Item.Live_To, "", Recorded => False);
       end if;
+      UI.Text_Areas.Clear_Faint (Editors.Area (Item.Body_Text).all);
       Item.Live_Shown := False;
       Item.Live_Lost := False;
    end Take_Back_Live;
@@ -612,7 +613,7 @@ package body Items.Windows is
       end return;
    end One_Line_Feeds;
 
-   procedure Set_Live_Dictation (Item : in out Window; Said : String) is
+   procedure Set_Live_Dictation (Item : in out Window; Said : String; Settled : Natural := 0) is
       Area   : UI.Text_Areas.Text_Area
         renames Editors.Area (Item.Body_Text).all;
       Doc    : Docs.Document renames Item.Content_Doc;
@@ -622,6 +623,7 @@ package body Items.Windows is
          Item.Live_Lost := True;
       end if;
       if Item.Live_Lost then
+         UI.Text_Areas.Clear_Faint (Area);
          return;
       end if;
       if not Item.Live_Shown then
@@ -648,6 +650,25 @@ package body Items.Windows is
             Item.Live_To := Texts.End_After (Item.Live_From, Shown);
             Item.Live_Seen := Docs.Current (Doc);
          end if;
+         declare
+            --  What is not settled starts at a character's beginning.
+            Edge : Natural := Natural'Min (Settled, Spoken'Length);
+         begin
+            while Edge < Spoken'Length
+              and then Character'Pos (Spoken (Spoken'First + Edge)) in 16#80# .. 16#BF#
+            loop
+               Edge := Edge + 1;
+            end loop;
+            if Edge < Spoken'Length then
+               UI.Text_Areas.Set_Faint
+                 (Area,
+                  Texts.End_After
+                    (Item.Live_From, Shown (Shown'First .. Shown'Last - (Spoken'Length - Edge))),
+                  Item.Live_To);
+            else
+               UI.Text_Areas.Clear_Faint (Area);
+            end if;
+         end;
       end;
    end Set_Live_Dictation;
 
