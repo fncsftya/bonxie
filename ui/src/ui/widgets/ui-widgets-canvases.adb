@@ -40,6 +40,12 @@ package body UI.Widgets.Canvases is
    function To_Canvas_Y (Item : Canvas; Point : Float) return Float is
      ((Point - Item.Down) / Item.Scale);
 
+   function To_Screen_X (Item : Canvas; Unit : Float) return Float is
+     (To_Screen (Unit, Item.Scale, Item.Across));
+
+   function To_Screen_Y (Item : Canvas; Unit : Float) return Float is
+     (To_Screen (Unit, Item.Scale, Item.Down));
+
    procedure Pan_By (Item : in out Canvas; Across, Down : Float) is
    begin
       if Across /= 0.0 or else Down /= 0.0 then

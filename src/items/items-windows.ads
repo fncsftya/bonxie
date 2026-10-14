@@ -4,13 +4,12 @@ with SDL3.Events;
 with Texts.Documents;
 with UI.Themes;
 with UI.Widgets.Buttons;
-with UI.Widgets.Grips;
+with UI.Widgets.Frames;
 with UI.Widgets.Labels;
 with UI.Widgets.Pictures;
 with UI.Widgets.Progress_Bars;
 with UI.Widgets.Sliders;
 with UI.Widgets.Panels;
-with UI.Widgets.Text_Fields;
 with Vision;
 with UI.Widgets.Editors;
 
@@ -394,28 +393,16 @@ private
       --  While the corner is dragged, the size the cursor asks for, which
       --  may be under the minimum; the item itself is held at the minimum.
       Pixels : Float := 1.0;
-      Ring_Ink : UI.Themes.Slot := UI.Themes.Accent;
-      --  Round the window while it is typed in.
       Face_Of : Kinds := Note;
       --  What the text area's font is for: a note's text, or a source's
       --  link.
       Zoom, Origin_X, Origin_Y : Float := 1.0;
       Placed_Once : Boolean := False;
 
-      Frame        : UI.Widgets.Panels.Panel;
+      Chrome       : UI.Widgets.Frames.Frame;
       --  On the canvas: the outline, round the bar, the text and the
-      --  status line.
-      Title_Bar    : UI.Widgets.Grips.Grip;
-      Title_Area   : UI.Widgets.Grips.Grip;
-      Tag          : UI.Widgets.Panels.Panel;
-      --  Of a source, before its title: a square of its colour.
-      Title_Label  : UI.Widgets.Labels.Label;
-      --  The title as text, in the place the field takes to edit it.
-      Editing      : Boolean := False;
-      Title_Field  : UI.Widgets.Text_Fields.Text_Field;
-      Spacer       : UI.Widgets.Panels.Panel;
-      Minimize_Button : UI.Widgets.Buttons.Button;
-      Close_Button : UI.Widgets.Buttons.Button;
+      --  status line; and the bar in the dock. A source's tag is a
+      --  square of its colour before its title.
       Body_Text    : UI.Widgets.Editors.Editor;
       --  The text of a note. Of a source it is one line, its link, which
       --  a text area costs too much to have another of: a field with an
@@ -455,18 +442,9 @@ private
       --  Of a source, below its link: what is shown.
       Recognized   : aliased Vision.Result;
       --  The words in it, that the picture lets be selected.
-      Status_Bar   : UI.Widgets.Panels.Panel;
       Progress     : UI.Widgets.Progress_Bars.Progress_Bar;
       --  Along the foot of the status line while the picture is taken.
       Status       : UI.Widgets.Labels.Label;
-      Corner       : UI.Widgets.Grips.Grip;
-
-      Mini         : UI.Widgets.Panels.Panel;
-      --  In the dock.
-      Mini_Area    : UI.Widgets.Grips.Grip;
-      --  Over the title: clicked, it asks to Restore the window.
-      Mini_Title   : UI.Widgets.Labels.Label;
-      Mini_Close   : UI.Widgets.Buttons.Button;
    end record;
 
 end Items.Windows;

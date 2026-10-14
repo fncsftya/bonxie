@@ -1,4 +1,5 @@
 with Items.Links;
+with UI.Boxes;
 with UI.Icons;
 with UI.Widgets;
 with UI.Widgets.Buttons;
@@ -11,6 +12,7 @@ with Yoga.Nodes;
 package body Viewer.Links is
 
    package Widgets renames UI.Widgets;
+   package Boxes renames UI.Boxes;
    package Canvases renames UI.Widgets.Canvases;
    package Pins renames UI.Widgets.Pins;
    package Buttons renames UI.Widgets.Buttons;
@@ -18,6 +20,8 @@ package body Viewer.Links is
    package Item_Links renames Items.Links;
 
    use type Widgets.Widget_Access;
+   subtype Point is Boxes.Spot;
+
    use type Items.Id;
    use type Item_Links.Sides;
    use type Items.States;
@@ -58,56 +62,23 @@ package body Viewer.Links is
    end Index_Of;
    --  Of the link in the set; 0 if there is none.
 
-   type Point is record
-      X, Y : Float;
-   end record;
-
    function Middle
      (Where : Items.Frame; Side : Item_Links.Sides) return Point is
-     (case Side is
-         when Item_Links.Top    => (Where.Left + Where.Width / 2.0, Where.Top),
-         when Item_Links.Right  => (Where.Left + Where.Width,
-                                    Where.Top + Where.Height / 2.0),
-         when Item_Links.Bottom => (Where.Left + Where.Width / 2.0,
-                                    Where.Top + Where.Height),
-         when Item_Links.Left   =>
-           (Where.Left, Where.Top + Where.Height / 2.0));
+     (Boxes.Side_Midpoint
+        (Where.Left, Where.Top, Where.Width, Where.Height,
+         Boxes.Sides'Val (Item_Links.Sides'Pos (Side))));
    --  The middle of the side of the window, in canvas units.
 
    function Pixels_Of (Item : Session; Spot : Point) return Point is
      ((X => Float'Rounding
-              ((Item.Nav.Shown_X + Spot.X * Item.Nav.Shown_Zoom)
+              (Canvases.To_Screen (Spot.X, Item.Nav.Shown_Zoom,
+                                   Item.Nav.Shown_X)
                * Widgets.Density (Item.Root.Widgets)),
        Y => Float'Rounding
-              ((Item.Nav.Shown_Y + Spot.Y * Item.Nav.Shown_Zoom)
+              (Canvases.To_Screen (Spot.Y, Item.Nav.Shown_Zoom,
+                                   Item.Nav.Shown_Y)
                * Widgets.Density (Item.Root.Widgets))));
    --  A place on the canvas, in pixels from its top left.
-
-   procedure Move_To
-     (Part      : in out Widgets.Widget'Class;
-      Across, Down : Float;
-      Was_Left, Was_Top : in out Float;
-      Changed   : in out Boolean);
-   --  Put the widget, which is placed by its edges, there, in pixels, if it
-   --  is not.
-
-   procedure Move_To
-     (Part      : in out Widgets.Widget'Class;
-      Across, Down : Float;
-      Was_Left, Was_Top : in out Float;
-      Changed   : in out Boolean)
-   is
-      use Yoga.Nodes;
-   begin
-      if Across /= Was_Left or else Down /= Was_Top then
-         Was_Left := Across;
-         Was_Top := Down;
-         Set_Position (Widgets.Node (Part), Yoga.Left, Across);
-         Set_Position (Widgets.Node (Part), Yoga.Top, Down);
-         Widgets.Request_Layout (Part);
-         Changed := True;
-      end if;
-   end Move_To;
 
    procedure Put_Pin
      (Item    : in out Session;
@@ -121,7 +92,7 @@ package body Viewer.Links is
       Spot   : constant Point := Pixels_Of (Item, Middle (Where, Side));
       Half   : constant Float := Diameter (Item) / 2.0;
    begin
-      Move_To (Item.Linking.Pins (Which, Side), Spot.X - Half, Spot.Y - Half,
+      Widgets.Move_To (Item.Linking.Pins (Which, Side), Spot.X - Half, Spot.Y - Half,
                Item.Linking.Pin_Left (Which, Side),
                   Item.Linking.Pin_Top (Which, Side),
                Changed);
@@ -597,10 +568,10 @@ package body Viewer.Links is
             Changed := True;
          end if;
          if Shown then
-            Move_To (Item.Linking.Link_Handle, Spot.X - Half, Spot.Y - Half,
+            Widgets.Move_To (Item.Linking.Link_Handle, Spot.X - Half, Spot.Y - Half,
                      Item.Linking.Handle_Left, Item.Linking.Handle_Top,
                         Changed);
-            Move_To (Item.Linking.Link_Bar, Float'Rounding (Left),
+            Widgets.Move_To (Item.Linking.Link_Bar, Float'Rounding (Left),
                      Float'Rounding (Top),
                      Item.Linking.Bar_Left, Item.Linking.Bar_Top, Changed);
             declare

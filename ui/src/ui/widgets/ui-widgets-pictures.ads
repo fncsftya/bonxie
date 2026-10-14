@@ -61,6 +61,10 @@ package UI.Widgets.Pictures is
 
    type Mark_Array is array (Positive range <>) of Mark;
 
+   function Clamped_Mark (Left, Right, Y : Float) return Mark;
+   --  A mark kept from elsewhere, made fit the picture: each of Left, Right
+   --  and Y within 0.0 .. 1.0, and Right no less than Left.
+
    function Tool (Item : Picture) return Tools;
 
    function Is_Marking (Item : Picture) return Boolean;

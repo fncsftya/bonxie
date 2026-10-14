@@ -3,6 +3,15 @@ with SDL3.Pictures.Jobs;
 
 package body UI.Widgets.Pictures is
 
+   function Clamped_Mark (Left, Right, Y : Float) return Mark is
+      function Unit (Value : Float) return Float is
+        (Float'Min (1.0, Float'Max (0.0, Value)));
+   begin
+      return (Left  => Unit (Left),
+              Right => Float'Max (Unit (Left), Unit (Right)),
+              Y     => Unit (Y));
+   end Clamped_Mark;
+
    package Textures renames SDL3.Windows.Renderers.Textures;
    package Jobs renames SDL3.Pictures.Jobs;
 

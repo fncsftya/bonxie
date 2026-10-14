@@ -1,3 +1,5 @@
+with System;
+
 package body UI.Widgets is
 
    package Renderers renames SDL3.Windows.Renderers;
@@ -160,6 +162,34 @@ package body UI.Widgets is
       Parent.Count := Parent.Count + 1;
    end Add;
 
+   procedure Add_Before
+     (Parent : in out Widget'Class;
+      Child  : in out Widget'Class;
+      Before : Widget'Class)
+   is
+      use type System.Address;
+      Added : constant Widget_Access := Child'Unchecked_Access;
+      Index : Natural := 0;
+      Up    : Widget_Access := Parent.First;
+      Prior : Widget_Access := null;
+   begin
+      while Up.all'Address /= Before'Address loop
+         Prior := Up;
+         Up := Up.Next;
+         Index := Index + 1;
+      end loop;
+      Child.Owner := Parent.Owner;
+      Child.Parent := Parent'Unchecked_Access;
+      Child.Yoga_Node := Yoga.Nodes.New_Child_At (Parent.Yoga_Node, Index);
+      Child.Next := Up;
+      if Prior = null then
+         Parent.First := Added;
+      else
+         Prior.Next := Added;
+      end if;
+      Parent.Count := Parent.Count + 1;
+   end Add_Before;
+
    --  Walking the tree: parents before their children, and children in
    --  order.
 
@@ -262,6 +292,22 @@ package body UI.Widgets is
    begin
       Item.Owner.Layout_Pending := True;
    end Request_Layout;
+
+   procedure Move_To
+     (Item         : in out Widget'Class;
+      Left, Top    : Float;
+      Was_Left, Was_Top : in out Float;
+      Changed      : in out Boolean) is
+   begin
+      if Left /= Was_Left or else Top /= Was_Top then
+         Was_Left := Left;
+         Was_Top := Top;
+         Yoga.Nodes.Set_Position (Node (Item), Yoga.Left, Left);
+         Yoga.Nodes.Set_Position (Node (Item), Yoga.Top, Top);
+         Request_Layout (Item);
+         Changed := True;
+      end if;
+   end Move_To;
 
    function Needs_Paint (Item : Tree) return Boolean is
      (Item.Lost or else Item.Layout_Pending

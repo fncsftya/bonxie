@@ -143,6 +143,18 @@ package UI.Widgets is
           Post => Is_Attached (Child) and then Parent_Of (Child) /= null;
    --  Put Child after Parent's other children, and so above them.
 
+   procedure Add_Before
+     (Parent : in out Widget'Class;
+      Child  : in out Widget'Class;
+      Before : Widget'Class)
+     with Pre  => Is_Attached (Parent) and then not Is_Attached (Child)
+                  and then Child_Count (Child) = 0
+                  and then Parent_Of (Before) /= null,
+          Post => Is_Attached (Child) and then Parent_Of (Child) /= null;
+   --  Put Child among Parent's children just before Before, one of them,
+   --  and so below it: for a parent whose content is added by more than
+   --  one hand, in the order of the layout.
+
    function Is_Attached (Item : Widget'Class) return Boolean;
    --  Whether it is in a tree.
 
@@ -254,6 +266,17 @@ package UI.Widgets is
      with Pre => Is_Attached (Item);
    --  Say that its style, or its content that sizes it, has changed, so
    --  that Needs_Paint is true until the layout has been looked at again.
+
+   procedure Move_To
+     (Item         : in out Widget'Class;
+      Left, Top    : Float;
+      Was_Left, Was_Top : in out Float;
+      Changed      : in out Boolean)
+     with Pre => Is_Attached (Item);
+   --  Put the widget, which is placed by its edges, Left and Top pixels
+   --  from its parent, unless Was_Left and Was_Top, where the caller last
+   --  put it, say it is: then they are made so, Changed is set, and a
+   --  layout is requested.
 
    procedure Invalidate (Item : in out Widget'Class)
      with Pre => Is_Attached (Item);

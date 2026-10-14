@@ -31,6 +31,13 @@ package body Yoga.Nodes is
       return (Handle => Child);
    end New_Child;
 
+   function New_Child_At (Parent : Node; Index : Natural) return Node is
+      Child : constant Thin.Node_Ref := Thin.Node_New;
+   begin
+      Thin.Node_Insert_Child (Parent.Handle, Child, Interfaces.C.size_t (Index));
+      return (Handle => Child);
+   end New_Child_At;
+
    procedure Delete (Parent : Node; Child : Node) is
    begin
       Thin.Node_Remove_Child (Parent.Handle, Child.Handle);

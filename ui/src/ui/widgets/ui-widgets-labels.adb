@@ -1,5 +1,9 @@
 package body UI.Widgets.Labels is
 
+   function Fitted (Value : String) return String is
+     (Value (Value'First ..
+             Value'First - 1 + Natural'Min (Value'Length, Text_Capacity)));
+
    use type Themes.Slot;
 
    use SDL3.Windows.Renderers;

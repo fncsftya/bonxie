@@ -3,9 +3,7 @@ with Items.Sources;
 with Ada.Calendar;
 with Ada.Calendar.Formatting;
 with Ada.Strings.Fixed;
-with SDL3.Cursors;
 with UI.Boxes;
-with System;
 with UI.Text_Areas;
 with UI.Icons;
 with UI.Line_Texts;
@@ -17,14 +15,11 @@ package body Items.Windows is
    package Panels renames UI.Widgets.Panels;
    package Buttons renames UI.Widgets.Buttons;
    package Labels renames UI.Widgets.Labels;
-   package Grips renames UI.Widgets.Grips;
+   package Frames renames UI.Widgets.Frames;
    package Editors renames UI.Widgets.Editors;
    package Pictures renames UI.Widgets.Pictures;
 
-   use type Widgets.Widget_Access;
-   use type System.Address;
    use type Widgets.Clipboard_Access;
-   package Text_Fields renames UI.Widgets.Text_Fields;
    package Sliders renames UI.Widgets.Sliders;
 
    use type Docs.Version;
@@ -35,31 +30,17 @@ package body Items.Windows is
 
    --  In points
 
-   Outline       : constant Float := 1.0;
-   Bar_Height    : constant Float := 28.0;
-   Bar_Pad       : constant Float := 6.0;
-   Button_Size   : constant Float := 18.0;
-   Bar_Icon_Size : constant Float := 11.0;
-   Tag_Size      : constant Float := 9.0;
-   Tag_Gap       : constant Float := 7.0;
-   --  The square of a source's colour before its title, and after it.
-   Button_Gap    : constant Float := 4.0;
-   Drag_Room     : constant Float := 32.0;
-   --  Left of the title field before the buttons, to take hold of.
-   Title_Size    : constant Float := 12.0;
-   Title_Height  : constant Float := 20.0;
+   Outline       : constant Float := Frames.Outline;
+   Button_Size   : constant Float := Frames.Button_Size;
+   Button_Gap    : constant Float := Frames.Button_Gap;
+   Label_Height  : constant Float := Frames.Label_Height;
+   Status_Height : constant Float := Frames.Status_Height;
+   Corner_Size   : constant Float := Frames.Corner_Size;
+   Bar_Height    : constant Float := Frames.Bar_Height;
    Text_Size     : constant Float := 15.0;
    Link_Size     : constant Float := 12.0;
    --  Of the text of a note, in the serif, and of the link of a source.
    Measure       : constant Float := 2000.0;
-   Status_Height : constant Float := 26.0;
-   Status_Pad    : constant Float := 10.0;
-   Corner_Size   : constant Float := 18.0;
-   Mini_Width    : constant Float := 200.0;
-   Mini_Height   : constant Float := 28.0;
-   Mini_Gap      : constant Float := 4.0;
-   Mini_Chars    : constant := 16;
-   --  How many characters of a title the bar in the dock shows.
    Zoom_Row_Height : constant Float := 19.0;
    Zoom_Button_Width : constant Float := 44.0;
    Zoom_Slider_Width : constant Float := 56.0;
@@ -69,7 +50,6 @@ package body Items.Windows is
    Level_Steps   : constant Float := 20.0;
    --  How many sizes of the bar that shows how loud the speech is.
    Tools_Width   : constant Float := 3.0 * Button_Size + 2.0 * Button_Gap;
-   Label_Height  : constant Float := 20.0;
 
    Preset_Zooms : constant array (Preset_Index) of Float :=
      [0.5, 0.75, 1.0, 1.5, 2.0, 3.0];
@@ -101,11 +81,6 @@ package body Items.Windows is
       return Total;
    end Count_Words;
 
-   function Shortened (Title : String) return String is
-     (if Title'Length <= Mini_Chars then Title
-      else Title (Title'First .. Title'First + Mini_Chars - 1) & "..");
-   --  For the bar in the dock.
-
    function Status_Text (Number : Natural) return String is
      (Ada.Strings.Fixed.Trim (Number'Image, Ada.Strings.Both)
       & (if Number = 1 then " word" else " words"));
@@ -126,17 +101,11 @@ package body Items.Windows is
    end Day;
    --  As 13 Oct 2026, in UTC.
 
-   function Fitted (Message : String) return String is
-     (Message (Message'First ..
-               Message'First - 1
-               + Natural'Min (Message'Length, Labels.Text_Capacity)));
-   --  As much as a label takes.
-
    procedure Set_Shared
      (Item   : in out Window;
       Shared : not null Shared_Access) is
    begin
-      Text_Fields.Set_Shared (Item.Title_Field, Shared);
+      Frames.Share_Title (Item.Chrome, Shared);
       Editors.Set_Shared (Item.Body_Text, Shared);
    end Set_Shared;
 
@@ -149,10 +118,7 @@ package body Items.Windows is
    is
       use Yoga.Nodes;
       Pixels : constant Float := Density;
-      Edge   : constant Float :=
-        Float'Max (1.0, Float'Rounding (Outline * Pixels));
-      --  Whole pixels: a border that is not is a pixel more or less where
-      --  it is drawn, or none.
+      Edge   : constant Float := UI.Boxes.Edge (Outline * Pixels);
 
       procedure Size (Part : in out Widgets.Widget'Class; Wide, High : Float)
       is
@@ -162,98 +128,20 @@ package body Items.Windows is
       end Size;
    begin
       Item.Pixels := Pixels;
-      Widgets.Add (Canvas, Item.Frame);
-      Widgets.Add (Item.Frame, Item.Title_Bar);
-      Widgets.Add (Item.Title_Bar, Item.Title_Area);
-      Widgets.Add (Item.Title_Area, Item.Tag);
-      Widgets.Add (Item.Title_Area, Item.Title_Label);
-      Widgets.Add (Item.Title_Bar, Item.Title_Field);
-      Widgets.Add (Item.Title_Bar, Item.Spacer);
-      Widgets.Add (Item.Title_Bar, Item.Minimize_Button);
-      Widgets.Add (Item.Title_Bar, Item.Close_Button);
-      Widgets.Add (Item.Frame, Item.Body_Text);
-      Widgets.Add (Item.Frame, Item.Picture);
-      Widgets.Add (Item.Frame, Item.Status_Bar);
-      Widgets.Add (Item.Status_Bar, Item.Status);
-      Widgets.Add (Item.Status_Bar, Item.Tools);
+      Frames.Build
+        (Item.Chrome, Canvas, Bar, Pixels, Editable_Title => True,
+         Dock => Dock'Unrestricted_Access);
+      Frames.Add_Content (Item.Chrome, Item.Body_Text);
+      Frames.Add_Content (Item.Chrome, Item.Picture);
+      Frames.Add_Status_Item (Item.Chrome, Item.Status);
+      Frames.Add_Status_Item (Item.Chrome, Item.Tools);
       Widgets.Add (Item.Tools, Item.Cursor_Button);
       Widgets.Add (Item.Tools, Item.Marker_Button);
       Widgets.Add (Item.Tools, Item.Eraser_Button);
-      Widgets.Add (Item.Status_Bar, Item.Speak_Button);
-      Widgets.Add (Item.Status_Bar, Item.Zoom_Slider);
-      Widgets.Add (Item.Status_Bar, Item.Zoom_Button);
-      Widgets.Add (Item.Status_Bar, Item.Corner);
-      Widgets.Add (Item.Status_Bar, Item.Progress);
-      Widgets.Add (Dock, Item.Mini);
-      Widgets.Add (Item.Mini, Item.Mini_Area);
-      Widgets.Add (Item.Mini_Area, Item.Mini_Title);
-      Widgets.Add (Item.Mini, Item.Mini_Close);
-
-      --  The window: an outline round a column of the bar, the text and
-      --  the status line, placed by its edges on the canvas.
-      --  Its outline is its fill, round what is in it; its shadow is
-      --  inside its box, at the right and the foot.
-      Item.Ring_Ink := UI.Themes.Accent;
-      Panels.Set_Fill (Item.Frame, UI.Themes.Border);
-      Panels.Set_Shadow (Item.Frame, UI.Themes.Shadow);
-      Set_Position_Type (Widgets.Node (Item.Frame), Yoga.Absolute);
-      Set_Flex_Direction (Widgets.Node (Item.Frame), Yoga.Column);
-      Set_Padding (Widgets.Node (Item.Frame), Yoga.Left, Edge);
-      Set_Padding (Widgets.Node (Item.Frame), Yoga.Top, Edge);
-      Set_Padding
-        (Widgets.Node (Item.Frame), Yoga.Right,
-         Edge + UI.Boxes.Offset (Pixels));
-      Set_Padding
-        (Widgets.Node (Item.Frame), Yoga.Bottom,
-         Edge + UI.Boxes.Offset (Pixels));
-
-      Grips.Set_Fill (Item.Title_Bar, Bar);
-      Set_Height (Widgets.Node (Item.Title_Bar), Bar_Height * Pixels);
-      Set_Flex_Direction (Widgets.Node (Item.Title_Bar), Yoga.Row);
-      Set_Align_Items (Widgets.Node (Item.Title_Bar), Yoga.Center);
-      Set_Padding
-        (Widgets.Node (Item.Title_Bar), Yoga.Horizontal, Bar_Pad * Pixels);
-      Set_Gap
-        (Widgets.Node (Item.Title_Bar), Yoga.All_Gutters,
-         Button_Gap * Pixels);
-      Text_Fields.Configure
-        (Item.Title_Field, UI.Line_Texts.Interface_Font, Title_Size);
-      Set_Flex_Grow (Widgets.Node (Item.Title_Field), 1.0);
-      Set_Width (Widgets.Node (Item.Title_Field), 0.0);
-      Set_Height (Widgets.Node (Item.Title_Field), Title_Height * Pixels);
-      Set_Margin
-        (Widgets.Node (Item.Title_Field), Yoga.Right, Drag_Room * Pixels);
-      --  The title is text, in the field's place, until it is to be
-      --  edited.
-      Grips.Set_Hover_Outline (Item.Title_Area, UI.Themes.Background);
-      Set_Flex_Grow (Widgets.Node (Item.Title_Area), 1.0);
-      Set_Width (Widgets.Node (Item.Title_Area), 0.0);
-      Set_Height (Widgets.Node (Item.Title_Area), Title_Height * Pixels);
-      Set_Margin
-        (Widgets.Node (Item.Title_Area), Yoga.Right, Drag_Room * Pixels);
-      Set_Flex_Direction (Widgets.Node (Item.Title_Area), Yoga.Row);
-      Set_Align_Items (Widgets.Node (Item.Title_Area), Yoga.Center);
-      Set_Padding
-        (Widgets.Node (Item.Title_Area), Yoga.Left, Bar_Pad * Pixels);
-      Panels.Set_Fill (Item.Tag, UI.Themes.Bar);
-      Size (Item.Tag, Tag_Size, Tag_Size);
-      Set_Flex_Shrink (Widgets.Node (Item.Tag), 0.0);
-      Set_Margin (Widgets.Node (Item.Tag), Yoga.Right, Tag_Gap * Pixels);
-      Labels.Set_Style (Item.Title_Label, UI.Line_Texts.Strong);
-      Labels.Set_Ink (Item.Title_Label, UI.Themes.Bar_Ink);
-      Set_Flex_Grow (Widgets.Node (Item.Title_Label), 1.0);
-      Set_Width (Widgets.Node (Item.Title_Label), 0.0);
-      Set_Height (Widgets.Node (Item.Title_Label), Label_Height * Pixels);
-      --  Nothing: the bar is held there.
-      Set_Width (Widgets.Node (Item.Spacer), 0.0);
-      Buttons.Set_Label (Item.Minimize_Button, "Min");
-      Buttons.Set_Icon (Item.Minimize_Button, UI.Icons.Minimize);
-      Buttons.Set_Label (Item.Close_Button, "Close");
-      Buttons.Set_Icon (Item.Close_Button, UI.Icons.Close);
-      Buttons.Set_Icon_Size (Item.Minimize_Button, Bar_Icon_Size);
-      Buttons.Set_Icon_Size (Item.Close_Button, Bar_Icon_Size);
-      Size (Item.Minimize_Button, Button_Size, Button_Size);
-      Size (Item.Close_Button, Button_Size, Button_Size);
+      Frames.Add_Status_Item (Item.Chrome, Item.Speak_Button);
+      Frames.Add_Status_Item (Item.Chrome, Item.Zoom_Slider);
+      Frames.Add_Status_Item (Item.Chrome, Item.Zoom_Button);
+      Frames.Add_Over_Status (Item.Chrome, Item.Progress);
 
       Editors.Configure
         (Item.Body_Text, UI.Line_Texts.Serif, Text_Size, Measure);
@@ -267,25 +155,11 @@ package body Items.Windows is
       Set_Flex_Grow (Widgets.Node (Item.Picture), 1.0);
       Set_Height (Widgets.Node (Item.Picture), 0.0);
 
-      --  Its outline over the window's at the sides and the foot, a line
-      --  between it and what is above.
-      Panels.Set_Fill (Item.Status_Bar, UI.Themes.Tint);
-      Panels.Set_Border (Item.Status_Bar, UI.Themes.Border);
-      Set_Margin (Widgets.Node (Item.Status_Bar), Yoga.Horizontal, -Edge);
-      Set_Margin (Widgets.Node (Item.Status_Bar), Yoga.Bottom, -Edge);
-      Set_Height (Widgets.Node (Item.Status_Bar), Status_Height * Pixels);
-      Set_Flex_Direction (Widgets.Node (Item.Status_Bar), Yoga.Row);
-      Set_Align_Items (Widgets.Node (Item.Status_Bar), Yoga.Center);
-      Set_Padding
-        (Widgets.Node (Item.Status_Bar), Yoga.Left, Status_Pad * Pixels);
       Set_Flex_Grow (Widgets.Node (Item.Status), 1.0);
       Set_Width (Widgets.Node (Item.Status), 0.0);
       Set_Height (Widgets.Node (Item.Status), Label_Height * Pixels);
-      Grips.Set_Shape (Item.Corner, Grips.Corner);
-      Grips.Set_Wanted_Cursor (Item.Corner, SDL3.Cursors.Resize);
-      Size (Item.Corner, Corner_Size, Status_Height);
-      Widgets.Add (Item.Frame, Item.Zoom_Menu);
-      Widgets.Add (Item.Frame, Item.Fetch_Button);
+      Frames.Add_Over_Content (Item.Chrome, Item.Zoom_Menu);
+      Frames.Add_Over_Content (Item.Chrome, Item.Fetch_Button);
       for Row in Item.Menu_Rows'Range loop
          Widgets.Add (Item.Zoom_Menu, Item.Menu_Rows (Row));
       end loop;
@@ -293,33 +167,6 @@ package body Items.Windows is
          Widgets.Add (Item.Menu_Rows (1 + (Which - 1) / 3),
                       Item.Menu_Buttons (Which));
       end loop;
-
-      --  The bar in the dock.
-      Panels.Set_Fill (Item.Mini, Bar);
-      Size (Item.Mini, Mini_Width, Mini_Height);
-      Set_Flex_Direction (Widgets.Node (Item.Mini), Yoga.Row);
-      Set_Align_Items (Widgets.Node (Item.Mini), Yoga.Center);
-      Set_Padding (Widgets.Node (Item.Mini), Yoga.Right, Mini_Gap * Pixels);
-      Set_Gap (Widgets.Node (Item.Mini), Yoga.All_Gutters, Mini_Gap * Pixels);
-      --  The whole title is to click, to bring the window back.
-      Grips.Set_Hover_Outline (Item.Mini_Area, UI.Themes.Background);
-      Grips.Set_Wanted_Cursor (Item.Mini_Area, SDL3.Cursors.Pointer);
-      Set_Flex_Grow (Widgets.Node (Item.Mini_Area), 1.0);
-      Set_Width (Widgets.Node (Item.Mini_Area), 0.0);
-      Set_Height (Widgets.Node (Item.Mini_Area), Mini_Height * Pixels);
-      Set_Flex_Direction (Widgets.Node (Item.Mini_Area), Yoga.Row);
-      Set_Align_Items (Widgets.Node (Item.Mini_Area), Yoga.Center);
-      Set_Padding
-        (Widgets.Node (Item.Mini_Area), Yoga.Left, Bar_Pad * Pixels);
-      Labels.Set_Style (Item.Mini_Title, UI.Line_Texts.Strong);
-      Labels.Set_Ink (Item.Mini_Title, UI.Themes.Bar_Ink);
-      Set_Flex_Grow (Widgets.Node (Item.Mini_Title), 1.0);
-      Set_Width (Widgets.Node (Item.Mini_Title), 0.0);
-      Set_Height (Widgets.Node (Item.Mini_Title), Label_Height * Pixels);
-      Buttons.Set_Label (Item.Mini_Close, "Close");
-      Buttons.Set_Icon (Item.Mini_Close, UI.Icons.Close);
-      Buttons.Set_Icon_Size (Item.Mini_Close, Bar_Icon_Size);
-      Size (Item.Mini_Close, Button_Size, Button_Size);
 
       --  The progress bar, along the foot of the status line.
       Set_Position_Type (Widgets.Node (Item.Progress), Yoga.Absolute);
@@ -349,9 +196,6 @@ package body Items.Windows is
       Size (Item.Marker_Button, Button_Size, Zoom_Row_Height);
 
       --  The zoom bar: a slider, and the button for the menu.
-      Set_Gap
-        (Widgets.Node (Item.Status_Bar), Yoga.All_Gutters,
-         Button_Gap * Pixels);
       Set_Width (Widgets.Node (Item.Zoom_Slider), Zoom_Slider_Width * Pixels);
       Set_Height (Widgets.Node (Item.Zoom_Slider), Zoom_Row_Height * Pixels);
       Buttons.Set_Label (Item.Zoom_Button, "100%");
@@ -402,7 +246,6 @@ package body Items.Windows is
         (Widgets.Node (Item.Fetch_Button), Yoga.Right,
          Edge + UI.Boxes.Offset (Pixels) + Fetch_Inset * Pixels);
 
-      Widgets.Set_Visible (Item.Title_Field, False);
       Widgets.Set_Visible (Item.Fetch_Button, False);
       Widgets.Set_Visible (Item.Tools, False);
       Widgets.Set_Visible (Item.Zoom_Slider, False);
@@ -410,15 +253,13 @@ package body Items.Windows is
       Widgets.Set_Visible (Item.Zoom_Menu, False);
       Widgets.Set_Visible (Item.Picture, False);
       Widgets.Set_Visible (Item.Progress, False);
-      Widgets.Set_Visible (Item.Frame, False);
-      Widgets.Set_Visible (Item.Mini, False);
    end Build;
 
    function Is_Assigned (Item : Window) return Boolean is (Item.Assigned);
 
    procedure Set_Tag (Item : in out Window; To : UI.Themes.Slot) is
    begin
-      Panels.Set_Fill (Item.Tag, To);
+      Frames.Set_Tag (Item.Chrome, To);
    end Set_Tag;
 
    function Details (Item : Window) return Items.Info is (Item.Details);
@@ -482,10 +323,6 @@ package body Items.Windows is
         (Item.Eraser_Button, To = UI.Widgets.Pictures.Eraser);
    end Select_Tool;
 
-   function Unit (Value : Float) return Float is
-     (Float'Min (1.0, Float'Max (0.0, Value)));
-   --  Within the picture.
-
    procedure Set_Marks (Item : in out Window; Kept : Items.Marks.Mark_List) is
       Shown : UI.Widgets.Pictures.Mark_Array (1 .. Kept.Count);
    begin
@@ -494,9 +331,8 @@ package body Items.Windows is
             Each : Items.Marks.Mark renames Kept.Marks (Index);
          begin
             Shown (Index) :=
-              (Left  => Unit (Each.Left),
-               Right => Float'Max (Unit (Each.Left), Unit (Each.Right)),
-               Y     => Unit (Each.Y));
+              UI.Widgets.Pictures.Clamped_Mark
+                (Each.Left, Each.Right, Each.Y);
          end;
       end loop;
       UI.Widgets.Pictures.Set_Marks (Item.Picture, Shown);
@@ -584,7 +420,7 @@ package body Items.Windows is
             Show_Fetch (Item);
          when Failed =>
             Labels.Set_Text
-              (Item.Status, Fitted ("Failed: " & Detail));
+              (Item.Status, Labels.Fitted ("Failed: " & Detail));
       end case;
    end Set_Capture;
 
@@ -600,24 +436,13 @@ package body Items.Windows is
    end Set_Zoom;
 
    function Box (Item : Window) return Items.Frame is
-     ((Left   => Widgets.Left_Of (Item.Frame),
-       Top    => Widgets.Top_Of (Item.Frame),
-       Width  => Widgets.Width_Of (Item.Frame),
-       Height => Widgets.Height_Of (Item.Frame)));
+     ((Left   => Frames.Left_Of (Item.Chrome),
+       Top    => Frames.Top_Of (Item.Chrome),
+       Width  => Frames.Width_Of (Item.Chrome),
+       Height => Frames.Height_Of (Item.Chrome)));
 
    function Owns (Item : Window; Hit : UI.Widgets.Widget_Access)
-     return Boolean
-   is
-      Up : Widgets.Widget_Access := Hit;
-   begin
-      while Up /= null loop
-         if Up.all'Address = Item.Frame'Address then
-            return True;
-         end if;
-         Up := Widgets.Parent_Of (Up.all);
-      end loop;
-      return False;
-   end Owns;
+     return Boolean is (Frames.Owns (Item.Chrome, Hit));
 
    function Text_Contains (Item : Window; X, Y : Float) return Boolean is
      (Widgets.Contains (Item.Body_Text, X, Y));
@@ -679,7 +504,7 @@ package body Items.Windows is
 
    function Is_Hovered (Item : Window) return Boolean is
      (Item.Assigned and then Item.Details.State = Open
-      and then Widgets.Is_Hovered (Item.Frame));
+      and then Frames.Is_Hovered (Item.Chrome));
 
    procedure Show_Title (Item : in out Window);
    --  Take the title as edited, for the item and the bar in the dock.
@@ -691,20 +516,7 @@ package body Items.Windows is
    begin
       Item.Details.Title := Title;
       Item.Title_Version := Docs.Current (Item.Title_Doc);
-      Labels.Set_Text
-        (Item.Title_Label,
-         Typed (Typed'First ..
-                Typed'First - 1
-                + Natural'Min (Typed'Length, Labels.Text_Capacity)));
-      declare
-         Short : constant String := Shortened (Typed);
-      begin
-         Labels.Set_Text
-           (Item.Mini_Title,
-            Short (Short'First ..
-                   Short'First - 1
-                   + Natural'Min (Short'Length, Labels.Text_Capacity)));
-      end;
+      Frames.Set_Title (Item.Chrome, Typed);
    end Show_Title;
 
    procedure Show_Words (Item : in out Window);
@@ -771,7 +583,7 @@ package body Items.Windows is
             Labels.Set_Text (Item.Status, "Transcribing...");
          when Failed =>
             Labels.Set_Text
-              (Item.Status, Fitted ("Could not dictate: " & Detail));
+              (Item.Status, Labels.Fitted ("Could not dictate: " & Detail));
       end case;
    end Set_Dictation;
 
@@ -876,8 +688,7 @@ package body Items.Windows is
          Widgets.Set_Visible (Item.Zoom_Menu, False);
          UI.Widgets.Pictures.Unload (Item.Picture);
       end if;
-      Widgets.Set_Visible (Item.Frame, To = Open);
-      Widgets.Set_Visible (Item.Mini, To = Minimized);
+      Frames.Set_Shown (Item.Chrome, To = Open, To = Minimized);
       Item.Was_Used := False;
    end Set_State;
 
@@ -898,48 +709,17 @@ package body Items.Windows is
       Pixels : constant Float := Item.Pixels;
       Narrow : constant Boolean := Item.Zoom < Compact_Below;
       Of_Source : constant Boolean := Item.Details.Kind = Source;
-
-      procedure Size (Part : in out Widgets.Widget'Class; Wide, High : Float)
-      is
-      begin
-         Set_Width (Widgets.Node (Part), Wide * Chrome * Pixels);
-         Set_Height (Widgets.Node (Part), High * Chrome * Pixels);
-      end Size;
    begin
-      Widgets.Set_Visible (Item.Status_Bar, not Narrow);
+      Frames.Set_Status_Visible (Item.Chrome, not Narrow);
       Widgets.Set_Visible (Item.Body_Text, not (Narrow and then Of_Source));
-      Set_Height (Widgets.Node (Item.Title_Bar), Bar_Height * Chrome * Pixels);
-      Set_Height
-        (Widgets.Node (Item.Title_Field), Title_Height * Chrome * Pixels);
-      Set_Height
-        (Widgets.Node (Item.Title_Area), Title_Height * Chrome * Pixels);
-      Set_Height
-        (Widgets.Node (Item.Title_Label), Label_Height * Chrome * Pixels);
-      Set_Margin
-        (Widgets.Node (Item.Title_Field), Yoga.Right,
-         Drag_Room * Chrome * Pixels);
-      Set_Margin
-        (Widgets.Node (Item.Title_Area), Yoga.Right,
-         Drag_Room * Chrome * Pixels);
-      Set_Padding
-        (Widgets.Node (Item.Title_Bar), Yoga.Horizontal,
-         Bar_Pad * Chrome * Pixels);
-      Set_Padding
-        (Widgets.Node (Item.Title_Area), Yoga.Left,
-         Bar_Pad * Chrome * Pixels);
-      Size (Item.Minimize_Button, Button_Size, Button_Size);
-      Size (Item.Close_Button, Button_Size, Button_Size);
-      Size (Item.Tag, Tag_Size, Tag_Size);
-      Set_Margin
-        (Widgets.Node (Item.Tag), Yoga.Right, Tag_Gap * Chrome * Pixels);
-      Labels.Set_Scale (Item.Title_Label, Chrome);
+      Frames.Set_Scale (Item.Chrome, Chrome);
       Set_Position
         (Widgets.Node (Item.Fetch_Button), Yoga.Top,
-         Float'Max (1.0, Float'Rounding (Outline * Pixels))
+         UI.Boxes.Edge (Outline * Pixels)
          + (Bar_Height * Chrome + (Url_Height - Fetch_Height) / 2.0)
            * Pixels);
       Show_Fetch (Item);
-      Widgets.Request_Layout (Item.Frame);
+      Widgets.Request_Layout (Item.Body_Text);
    end Fit_Zoom;
 
    procedure Show_Kind (Item : in out Window);
@@ -964,7 +744,7 @@ package body Items.Windows is
               (Item.Body_Text, UI.Line_Texts.Serif, Text_Size, Measure);
          end if;
       end if;
-      Widgets.Set_Visible (Item.Tag, Of_Source);
+      Frames.Set_Tag_Visible (Item.Chrome, Of_Source);
       UI.Text_Areas.Set_Single_Line
         (Editors.Area (Item.Body_Text).all, Of_Source);
       if Of_Source then
@@ -1015,7 +795,7 @@ package body Items.Windows is
       Item.Dictating := Silent;
       Item.Live_Shown := False;
       Item.Live_Lost := False;
-      Text_Fields.Attach (Item.Title_Field, Item.Title_Doc'Unchecked_Access);
+      Frames.Attach_Title (Item.Chrome, Item.Title_Doc'Unchecked_Access);
       Editors.Attach (Item.Body_Text, Item.Content_Doc'Unchecked_Access);
       Item.Title_Saved := Docs.State (Item.Title_Doc);
       Item.Title_Seen := Item.Title_Saved;
@@ -1027,9 +807,7 @@ package body Items.Windows is
       Item.Across_Seen := Of_Item.Scroll_Across;
       Item.Scroll_At := 0;
       Item.Scroll_Pending := False;
-      Item.Editing := False;
-      Widgets.Set_Visible (Item.Title_Area, True);
-      Widgets.Set_Visible (Item.Title_Field, False);
+      Frames.Reset_Title_Edit (Item.Chrome);
       Show_Title (Item);
       Show_Kind (Item);
       Clear_Recognized (Item);
@@ -1065,8 +843,7 @@ package body Items.Windows is
    begin
       Clear_Recognized (Item);
       UI.Widgets.Pictures.Unload (Item.Picture);
-      Widgets.Set_Visible (Item.Frame, False);
-      Widgets.Set_Visible (Item.Mini, False);
+      Frames.Set_Shown (Item.Chrome, False, False);
       Item.Assigned := False;
       Item.Frame_Dirty := False;
       Item.Zoom_Dirty := False;
@@ -1092,17 +869,11 @@ package body Items.Windows is
          Fit_Zoom (Item);
          --  On whole pixels, so that its edges, and the borders in them,
          --  are the same wherever it is.
-         Set_Position
-           (Widgets.Node (Item.Frame), Yoga.Left,
-            Float'Rounding ((Origin_X + Where.Left * Zoom) * Pixels));
-         Set_Position
-           (Widgets.Node (Item.Frame), Yoga.Top,
-            Float'Rounding ((Origin_Y + Where.Top * Zoom) * Pixels));
-         Set_Width
-           (Widgets.Node (Item.Frame),
-            Float'Rounding (Where.Width * Zoom * Pixels));
-         Set_Height
-           (Widgets.Node (Item.Frame),
+         Frames.Place
+           (Item.Chrome,
+            Float'Rounding ((Origin_X + Where.Left * Zoom) * Pixels),
+            Float'Rounding ((Origin_Y + Where.Top * Zoom) * Pixels),
+            Float'Rounding (Where.Width * Zoom * Pixels),
             Float'Rounding (Where.Height * Zoom * Pixels));
          --  The link is not zoomed, nor is the title.
          Editors.Set_Zoom
@@ -1110,44 +881,35 @@ package body Items.Windows is
             (if Item.Details.Kind = Source then 1.0 else Zoom));
          --  The tools are in the middle of the status line, which is as
          --  wide as the window within its outline.
-         Set_Position
-           (Widgets.Node (Item.Tools), Yoga.Left,
-            Float'Rounding
-              ((Float'Rounding (Where.Width * Zoom * Pixels)
-                - 2.0 * Float'Max (1.0, Float'Rounding (Outline * Pixels))
-                - UI.Boxes.Offset (Pixels)
-                - Tools_Width * Pixels) / 2.0));
-         Set_Position
-           (Widgets.Node (Item.Speak_Button), Yoga.Left,
-            Float'Rounding
-              ((Float'Rounding (Where.Width * Zoom * Pixels)
-                - 2.0 * Float'Max (1.0, Float'Rounding (Outline * Pixels))
-                - UI.Boxes.Offset (Pixels)
-                - Button_Size * Pixels) / 2.0));
-         Widgets.Request_Layout (Item.Frame);
+         declare
+            Across : constant Float :=
+              Frames.Status_Width
+                (Item.Chrome, Float'Rounding (Where.Width * Zoom * Pixels));
+         begin
+            Set_Position
+              (Widgets.Node (Item.Tools), Yoga.Left,
+               Float'Rounding ((Across - Tools_Width * Pixels) / 2.0));
+            Set_Position
+              (Widgets.Node (Item.Speak_Button), Yoga.Left,
+               Float'Rounding ((Across - Button_Size * Pixels) / 2.0));
+         end;
       end if;
    end Place;
 
    procedure Bring_To_Front (Item : in out Window) is
    begin
-      Widgets.Raise_To_Front (Item.Frame);
+      Frames.Raise_To_Front (Item.Chrome);
    end Bring_To_Front;
 
    function Is_Editing_Title (Item : Window) return Boolean is
-     (Item.Editing);
+     (Frames.Is_Editing_Title (Item.Chrome));
 
    procedure Begin_Edit (Item : in out Window);
    --  Make the title a field, with all of it selected, to type over.
 
    procedure Begin_Edit (Item : in out Window) is
    begin
-      Item.Editing := True;
-      Widgets.Set_Visible (Item.Title_Area, False);
-      --  The press that began it is not let go on what is hidden.
-      Grips.Cancel_Drag (Item.Title_Area);
-      Widgets.Set_Visible (Item.Title_Field, True);
-      UI.Text_Areas.Select_All (Text_Fields.Area (Item.Title_Field).all);
-      Widgets.Focus (Item.Title_Field);
+      Frames.Begin_Title_Edit (Item.Chrome);
    end Begin_Edit;
 
    procedure End_Edit (Item : in out Window);
@@ -1155,10 +917,8 @@ package body Items.Windows is
 
    procedure End_Edit (Item : in out Window) is
    begin
-      Item.Editing := False;
       Show_Title (Item);
-      Widgets.Set_Visible (Item.Title_Field, False);
-      Widgets.Set_Visible (Item.Title_Area, True);
+      Frames.End_Title_Edit (Item.Chrome);
    end End_Edit;
 
    procedure Focus_Text (Item : in out Window) is
@@ -1167,13 +927,10 @@ package body Items.Windows is
    end Focus_Text;
 
    function Is_Dragging (Item : Window) return Boolean is
-     (Grips.Is_Dragging (Item.Title_Bar)
-      or else Grips.Is_Dragging (Item.Title_Area)
-      or else Grips.Is_Dragging (Item.Corner));
+     (Frames.Is_Dragging (Item.Chrome));
 
    procedure Poll (Item : in out Window; Action : out Actions) is
       Across, Down : Float;
-      Area_Across, Area_Down : Float;
       Clicked      : Boolean;
       Entered      : Boolean;
       Doubled      : Boolean;
@@ -1193,10 +950,7 @@ package body Items.Windows is
       end if;
 
       --  Moved and sized, in canvas units.
-      Grips.Take_Drag (Item.Title_Bar, Across, Down);
-      Grips.Take_Drag (Item.Title_Area, Area_Across, Area_Down);
-      Across := Across + Area_Across;
-      Down := Down + Area_Down;
+      Frames.Take_Move (Item.Chrome, Across, Down);
       if Across /= 0.0 or else Down /= 0.0 then
          Item.Details.Where.Left :=
            Item.Details.Where.Left + Across / Item.Zoom;
@@ -1208,7 +962,7 @@ package body Items.Windows is
          Item.Raw_Width := Item.Details.Where.Width;
          Item.Raw_Height := Item.Details.Where.Height;
       end if;
-      Grips.Take_Drag (Item.Corner, Across, Down);
+      Frames.Take_Size (Item.Chrome, Across, Down);
       if Across /= 0.0 or else Down /= 0.0 then
          Item.Raw_Width := Item.Raw_Width + Across / Item.Zoom;
          Item.Raw_Height := Item.Raw_Height + Down / Item.Zoom;
@@ -1219,24 +973,23 @@ package body Items.Windows is
          Item.Frame_Dirty := True;
          Place (Item, Item.Zoom, Item.Origin_X, Item.Origin_Y);
       end if;
-      Item.Resizing := Grips.Is_Dragging (Item.Corner);
+      Item.Resizing := Frames.Is_Sizing (Item.Chrome);
 
       --  Raised when it starts to be used.
       Used := Is_Dragging (Item)
         or else Sliders.Is_Dragging (Item.Zoom_Slider)
-        or else Item.Editing
+        or else Frames.Is_Editing_Title (Item.Chrome)
         or else Widgets.Has_Focus (Item.Body_Text);
       if Used and then not Item.Was_Used and then Item.Details.State = Open
       then
-         Widgets.Raise_To_Front (Item.Frame);
+         Frames.Raise_To_Front (Item.Chrome);
       end if;
       Item.Was_Used := Used;
       --  A ring round the window being typed in.
-      if Item.Editing or else Widgets.Has_Focus (Item.Body_Text) then
-         Panels.Set_Ring (Item.Frame, Item.Ring_Ink);
-      else
-         Panels.Clear_Ring (Item.Frame);
-      end if;
+      Frames.Set_Ring
+        (Item.Chrome,
+         Frames.Is_Editing_Title (Item.Chrome)
+         or else Widgets.Has_Focus (Item.Body_Text));
 
       --  What was typed.
       if Docs.Current (Item.Title_Doc) /= Item.Title_Version then
@@ -1245,9 +998,9 @@ package body Items.Windows is
       if Docs.Current (Item.Content_Doc) /= Item.Content_Version then
          Show_Words (Item);
       end if;
-      Grips.Take_Double_Click (Item.Title_Area, Doubled);
+      Frames.Take_Title_Double_Click (Item.Chrome, Doubled);
       if Doubled and then Item.Details.State = Open
-        and then not Item.Editing
+        and then not Frames.Is_Editing_Title (Item.Chrome)
       then
          Begin_Edit (Item);
       end if;
@@ -1293,9 +1046,9 @@ package body Items.Windows is
             end if;
          end loop;
       end if;
-      if Item.Editing then
-         Text_Fields.Take_Return (Item.Title_Field, Entered);
-         if Entered or else not Widgets.Has_Focus (Item.Title_Field) then
+      if Frames.Is_Editing_Title (Item.Chrome) then
+         Frames.Take_Title_Return (Item.Chrome, Entered);
+         if Entered or else not Frames.Title_Has_Focus (Item.Chrome) then
             End_Edit (Item);
          end if;
       end if;
@@ -1310,22 +1063,22 @@ package body Items.Windows is
 
       --  Whichever button, of the window or the bar in the dock.
       if Item.Details.State = Open then
-         Buttons.Take_Click (Item.Minimize_Button, Clicked);
+         Frames.Take_Minimize (Item.Chrome, Clicked);
          if Clicked then
             Action := Minimize;
             return;
          end if;
-         Buttons.Take_Click (Item.Close_Button, Clicked);
+         Frames.Take_Close (Item.Chrome, Clicked);
          if Clicked then
             Action := Close;
          end if;
       elsif Item.Details.State = Minimized then
-         Grips.Take_Click (Item.Mini_Area, Clicked);
+         Frames.Take_Restore (Item.Chrome, Clicked);
          if Clicked then
             Action := Restore;
             return;
          end if;
-         Buttons.Take_Click (Item.Mini_Close, Clicked);
+         Frames.Take_Close (Item.Chrome, Clicked);
          if Clicked then
             Action := Close;
          end if;
@@ -1342,7 +1095,7 @@ package body Items.Windows is
       Title_Now   : constant Natural := Docs.State (Item.Title_Doc);
       Content_Now : constant Natural := Docs.State (Item.Content_Doc);
       Typing      : constant Boolean :=
-        Widgets.Has_Focus (Item.Title_Field)
+        Frames.Title_Has_Focus (Item.Chrome)
         or else Widgets.Has_Focus (Item.Body_Text)
         or else Item.Held;
    begin

@@ -1,7 +1,7 @@
 with Items.Marks;
 with UI.Themes;
 with UI.Widgets.Buttons;
-with UI.Widgets.Grips;
+with UI.Widgets.Frames;
 with UI.Widgets.Labels;
 with UI.Widgets.Panels;
 with UI.Widgets.Pictures;
@@ -185,15 +185,10 @@ private
       Recognized : aliased Vision.Result;
       --  The words in the picture, that it lets be selected.
 
-      Frame       : UI.Widgets.Panels.Panel;
-      Title_Bar   : UI.Widgets.Grips.Grip;
-      Tag         : UI.Widgets.Panels.Panel;
-      --  Before the title: a square of the source's colour.
-      Title_Label : UI.Widgets.Labels.Label;
+      Chrome      : UI.Widgets.Frames.Frame;
+      --  Its tag is a square of the source's colour before the title.
       Pin_Button  : UI.Widgets.Buttons.Button;
-      Close_Button : UI.Widgets.Buttons.Button;
       Picture     : UI.Widgets.Pictures.Picture;
-      Status_Bar  : UI.Widgets.Panels.Panel;
       Tools       : UI.Widgets.Panels.Panel;
       Cursor_Button : UI.Widgets.Buttons.Button;
       Marker_Button : UI.Widgets.Buttons.Button;
@@ -201,7 +196,6 @@ private
       Zoom_Slider : UI.Widgets.Sliders.Slider;
       Zoom_Label  : UI.Widgets.Labels.Label;
       Status      : UI.Widgets.Labels.Label;
-      Corner      : UI.Widgets.Grips.Grip;
    end record;
 
 end Items.Readers;

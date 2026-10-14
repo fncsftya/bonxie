@@ -59,12 +59,6 @@ package body Viewer.Writing is
 
    --  The items
 
-   function Fitted (Words : String) return String is
-     (Words (Words'First ..
-             Words'First - 1
-             + Natural'Min (Words'Length, Labels.Text_Capacity)));
-   --  As much as a label takes.
-
    function Is_Note (Item : Session; Which : Items.Slot) return Boolean is
      (Windows.Is_Assigned (Item.Windows (Which))
       and then Windows.Details (Item.Windows (Which)).Kind = Items.Note);
@@ -457,13 +451,13 @@ package body Viewer.Writing is
          when Directory_Node =>
             Labels.Set_Text
               (Each.Caption,
-               Fitted (Projects.Titles.To_String
+               Labels.Fitted (Projects.Titles.To_String
                          (Item.Docs.Dirs.Directories (Node.Dir).Title)));
             Labels.Set_Text
               (Each.Count, Count_Image (Documents_In (Item, Node.Dir)));
             Chosen := Item.Docs.Shown_Dir = Node.Dir;
          when Document_Leaf =>
-            Labels.Set_Text (Each.Caption, Fitted (Title_Of (Item, Node.Doc)));
+            Labels.Set_Text (Each.Caption, Labels.Fitted (Title_Of (Item, Node.Doc)));
             Labels.Set_Text
               (Each.Count,
                Count_Image (Windows.Words (Item.Windows (Node.Doc))));
@@ -533,7 +527,7 @@ package body Viewer.Writing is
                      Each.Caret_Seen := 0;
                   end if;
                   Labels.Set_Text
-                    (Each.Heading, Fitted (Title_Of (Item, Which)));
+                    (Each.Heading, Labels.Fitted (Title_Of (Item, Which)));
                   if not In_View (Item, Which) then
                      --  Out of sight, it keeps neither the focus nor a
                      --  title being renamed.
@@ -584,7 +578,7 @@ package body Viewer.Writing is
                      := Item.Reading.Source_Order (Row);
                begin
                   Labels.Set_Text
-                    (Each.Caption, Fitted (Title_Of (Item, Which)));
+                    (Each.Caption, Labels.Fitted (Title_Of (Item, Which)));
                   UI.Widgets.Panels.Set_Fill
                     (Each.Tag, Canvas_Items.Source_Ink (Item, Which));
                   Choose_Row
@@ -848,7 +842,7 @@ package body Viewer.Writing is
                Item.Page_View.Menu_Count := Item.Page_View.Menu_Count + 1;
                Item.Page_View.Menu_Slots (Item.Page_View.Menu_Count) := Which;
                Menus.Add
-                 (Item.Page_View.Menu, Menus.Check, Fitted (Title_Of (Item,
+                 (Item.Page_View.Menu, Menus.Check, Labels.Fitted (Title_Of (Item,
                     Which)),
                   Checked => Item.Reading.Pinned_Slot = Which);
                Menus.Set_Swatch
@@ -2326,7 +2320,7 @@ package body Viewer.Writing is
                      Linked_Sources (Item, Which));
                   Labels.Set_Text
                     (Item.Docs.Pages (Rank).Heading,
-                     Fitted (Title_Of (Item, Which)));
+                     Labels.Fitted (Title_Of (Item, Which)));
                   declare
                      Row : constant Natural := Leaf_Row (Item, Which);
                   begin
@@ -2336,7 +2330,7 @@ package body Viewer.Writing is
                            Count_Image (Windows.Words (Item.Windows (Which))));
                         Labels.Set_Text
                           (Item.Docs.Doc_Rows (Row).Caption,
-                           Fitted (Title_Of (Item, Which)));
+                           Labels.Fitted (Title_Of (Item, Which)));
                         if Item.Dragging.Drag_Row = 0 then
                            Choose_Row
                              (Item.Docs.Doc_Rows (Row),
@@ -2362,7 +2356,7 @@ package body Viewer.Writing is
                if Row > 0 then
                   Labels.Set_Text
                     (Item.Reading.Source_Rows (Row).Caption,
-                     Fitted (Title_Of (Item, Which)));
+                     Labels.Fitted (Title_Of (Item, Which)));
                end if;
             end;
          end if;

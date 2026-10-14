@@ -44,6 +44,17 @@ package UI.Widgets.Canvases is
    function To_Canvas_Y (Item : Canvas; Point : Float) return Float;
    --  The canvas unit at Point points from the left or top of the box.
 
+   function To_Screen (Unit, Scale, Origin : Float) return Float is
+     (Origin + Unit * Scale);
+   --  Points from the left or top of the box of a canvas unit, for a
+   --  canvas zoomed by Scale whose origin is Origin points from there: for a
+   --  canvas as it was seen (see Zoom and Origin_X) rather than as it is.
+
+   function To_Screen_X (Item : Canvas; Unit : Float) return Float;
+   function To_Screen_Y (Item : Canvas; Unit : Float) return Float;
+   --  The points from the left or top of the box of a canvas unit; the
+   --  opposite of To_Canvas_X and To_Canvas_Y.
+
    Max_Lines : constant := 128;
 
    type Dashes is (Solid, Dotted, Dashed);

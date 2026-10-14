@@ -16,6 +16,10 @@ package UI.Widgets.Labels is
    --  the density; in the system font, cut short, with an ellipsis, if it
    --  is wider than the box.
 
+   function Fitted (Value : String) return String
+     with Post => Fitted'Result'Length <= Text_Capacity;
+   --  As much of Value as a label takes.
+
    function Text (Item : Label) return String;
 
    procedure Set_Style (Item : in out Label; To : Line_Texts.Style);

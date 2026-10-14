@@ -8,6 +8,22 @@ with UI.Themes;
 --  offset at its right and foot, and what is in it is to be kept off that.
 package UI.Boxes is
 
+   type Sides is (Top_Side, Right_Side, Bottom_Side, Left_Side);
+   --  The edges of a box.
+
+   type Spot is record
+      X, Y : Float;
+   end record;
+
+   function Side_Midpoint
+     (Left, Top, Width, Height : Float; Side : Sides) return Spot is
+     (case Side is
+         when Top_Side    => (Left + Width / 2.0, Top),
+         when Right_Side  => (Left + Width, Top + Height / 2.0),
+         when Bottom_Side => (Left + Width / 2.0, Top + Height),
+         when Left_Side   => (Left, Top + Height / 2.0));
+   --  The middle of the edge of the box.
+
    type Look is record
       Filled   : Boolean := False;
       Fill     : Themes.Color := (0, 0, 0, 255);
