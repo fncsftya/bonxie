@@ -935,8 +935,7 @@ package body Viewer.Build is
 
    procedure Build_Border
      (Item : in out Session; Border : in out Panels.Panel);
-   --  Style the outline round a dialog, which casts a shadow it leaves
-   --  room for.
+   --  Style the outline round a dialog.
 
    procedure Build_Border
      (Item : in out Session; Border : in out Panels.Panel)
@@ -945,16 +944,9 @@ package body Viewer.Build is
       Pixels : constant Float := Item.Density;
    begin
       Panels.Set_Fill (Border, Themes.Border);
-      Panels.Set_Shadow (Border, Themes.Shadow);
       Set_Flex_Direction (Widgets.Node (Border), Yoga.Column);
       Set_Padding
         (Widgets.Node (Border), Yoga.All_Edges, UI.Boxes.Edge (Pixels));
-      Set_Padding
-        (Widgets.Node (Border), Yoga.Right,
-         UI.Boxes.Edge (Pixels) + UI.Boxes.Offset (Pixels));
-      Set_Padding
-        (Widgets.Node (Border), Yoga.Bottom,
-         UI.Boxes.Edge (Pixels) + UI.Boxes.Offset (Pixels));
    end Build_Border;
 
    procedure Build_Modal (Item : in out Session);

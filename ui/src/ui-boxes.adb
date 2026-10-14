@@ -121,13 +121,9 @@ package body UI.Boxes is
       Density : Float)
    is
       Thick : constant Float := Edge (Density);
-      Room  : constant Float := Lift (Density);
       X, Y, Wide, High : Float;
    begin
       Raised_Face (Item, Left, Top, Width, Height, Density, X, Y, Wide, High);
-      if not Item.Pressed and then not Item.Flat then
-         Fill_Rect (Target, Item.Drop, Left + Room, Top + Room, Wide, High);
-      end if;
       Fill_Rect (Target, Item.Face, X, Y, Wide, High);
       Outline (Target, Item.Border, X, Y, Wide, High, Thick);
       if not Item.Flat then

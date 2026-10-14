@@ -27,12 +27,11 @@ package UI.Boxes is
      (Float'Rounding (Themes.Shadow_Offset * Density));
    --  Of a shadow, in whole pixels.
 
-   function Lift (Density : Float) return Float is
-     (Float'Max (1.0, Float'Rounding (Themes.Raise_Offset * Density)));
-   function Shift (Density : Float) return Float is
-     (Float'Max (1.0, Float'Rounding (Themes.Press_Shift * Density)));
-   --  In whole pixels: of the shadow of a control that stands up, and how
-   --  far it goes when pressed in.
+   function Lift (Density : Float) return Float is (0.0 * Density);
+   function Shift (Density : Float) return Float is (0.0 * Density);
+   --  In whole pixels: the shadow of a control that stands up, and how
+   --  far it goes when pressed in. Neither: it has no shadow, and the
+   --  bevel alone turns over.
 
    function Inset (Item : Look; Density : Float) return Float is
      (if Item.Shadowed then Offset (Density) else 0.0);
@@ -83,9 +82,8 @@ package UI.Boxes is
       Flat    : Boolean := False;
    end record;
    --  A control that stands up, as a button: a face, outlined, bevelled,
-   --  and casting a small solid shadow (Lift); pressed, the bevel turns
-   --  over, the shadow goes and the face goes down and right by Shift;
-   --  Flat, as of one that is turned off, it has no bevel or shadow.
+   --  and no shadow; pressed, the bevel turns over;
+   --  Flat, as of one that is turned off, it has no bevel.
 
    procedure Draw_Raised
      (Target  : SDL3.Windows.Renderers.Renderer;
@@ -93,8 +91,7 @@ package UI.Boxes is
       Left, Top, Width, Height : Float;
       Density : Float)
      with Pre => Density > 0.0;
-   --  In the box, with the room for the shadow inside it at the right
-   --  and the foot (as a box's: see Raised_Face), pressed or not.
+   --  In the box, pressed or not.
 
    procedure Raised_Face
      (Item    : Raised_Look;

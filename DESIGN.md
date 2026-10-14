@@ -66,8 +66,8 @@ From the bottom up; each crate depends only on those before it.
   document the app owns; several may show one document. `UI.Widgets` is
   a retained tree of widgets (`Panels`, `Buttons`, `Labels`, `Editors`,
   which wraps a text area, and `Text_Fields`, an editor of one line) the
-  app owns and adds top-down. Buttons stand up, bevelled, with a small
-  solid shadow (`UI.Boxes.Draw_Raised`), are pressed in while held, and
+  app owns and adds top-down. Buttons stand up, bevelled, with no
+  shadow (`UI.Boxes.Draw_Raised`), are pressed in while held, and
   stay so, in the accent, as a toggle that is on (`Set_Selected`); one can
   be turned off (`Set_Enabled`), take the focus and be clicked by Return or
   Space (`Set_Focusable`), or be a dropdown, with a caret in a part of its
