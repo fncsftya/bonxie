@@ -1,3 +1,4 @@
+with Items.Links;
 with UI.Themes;
 
 --  How the screens look: the sizes of what is on them, and its colours.
@@ -232,7 +233,7 @@ private package Viewer.Style is
    Link_Bar_Offset  : constant Float := 14.0;
    --  Below the lower end of the link, and centred across it.
 
-   Link_Inks : constant array (Items.Link_Colors) of UI.Themes.Slot :=
+   Link_Inks : constant array (Items.Links.Link_Colors) of UI.Themes.Slot :=
      [UI.Themes.Bar, UI.Themes.Accent, UI.Themes.Primary, UI.Themes.Danger,
       UI.Themes.Source_1];
    --  The colours a link between documents can be drawn in: the theme's,

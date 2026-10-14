@@ -1,3 +1,4 @@
+with Items.Marks;
 with Items.Readers;
 with Items.Windows;
 
@@ -20,7 +21,7 @@ package body Viewer.Sources is
                  Items.Open));
 
    function Source_Marks (Item : Session; Row : Positive) return Natural is
-      Kept : Items.Mark_List;
+      Kept : Items.Marks.Mark_List;
    begin
       Items.Readers.Get_Marks
         (Item.Reading.Readers (Item.Reading.Source_Order (Row)), Kept);

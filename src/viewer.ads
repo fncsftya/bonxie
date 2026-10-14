@@ -5,6 +5,8 @@ with SDL3.Windows.Renderers.Images;
 private with Ada.Strings.Unbounded;
 private with Downloads;
 private with Items;
+private with Items.Directories;
+private with Items.Links;
 private with Items.Readers;
 private with Items.Windows;
 private with Preferences;
@@ -193,17 +195,17 @@ private
    type Dir_Array is array (Items.Slot) of Natural;
 
    type Pin_Grid is
-     array (Items.Slot, Items.Sides) of aliased UI.Widgets.Pins.Pin;
+     array (Items.Slot, Items.Links.Sides) of aliased UI.Widgets.Pins.Pin;
    --  The handles to link items by: four round each window.
 
    type Stroke_Button_Array is
-     array (Items.Strokes) of UI.Widgets.Buttons.Button;
+     array (Items.Links.Strokes) of UI.Widgets.Buttons.Button;
    type End_Button_Array is
-     array (Items.Endings) of UI.Widgets.Buttons.Button;
+     array (Items.Links.Endings) of UI.Widgets.Buttons.Button;
    type Color_Button_Array is
-     array (Items.Link_Colors) of UI.Widgets.Buttons.Button;
+     array (Items.Links.Link_Colors) of UI.Widgets.Buttons.Button;
 
-   type Pin_Places is array (Items.Slot, Items.Sides) of Float;
+   type Pin_Places is array (Items.Slot, Items.Links.Sides) of Float;
 
    type Doc_Page is limited record
       Box     : UI.Widgets.Panels.Panel;
@@ -239,7 +241,8 @@ private
 
    type Page_Array is array (Items.Slot) of Doc_Page;
 
-   Tree_Capacity : constant := 1 + Items.Max_Directories + Items.Capacity;
+   Tree_Capacity : constant :=
+     1 + Items.Directories.Max_Directories + Items.Capacity;
    --  The rows of the tree of documents: the Overview, every directory,
    --  and every document.
 
@@ -589,7 +592,7 @@ private
       --  The rows of the documents' tree, from the top: the Overview,
       --  then each directory directly followed by its documents, and
       --  the documents in none among them. What each is of.
-      Dirs         : Items.Directory_List;
+      Dirs         : Items.Directories.Directory_List;
       Doc_Dir      : Dir_Array := [others => 0];
       --  The directories, and which of them each document's window is in,
       --  0 if none. Tree is the order of it all.
@@ -692,10 +695,10 @@ private
       --  rather than a new link from a pin.
       Handle_Left, Handle_Top, Bar_Left, Bar_Top : Float := -1.0E9;
       --  Where they were last put, in pixels.
-      Link_Set     : Items.Link_List;
+      Link_Set     : Items.Links.Link_List;
       --  The links between the project's items.
       Link_From    : Natural := 0;
-      Link_From_Side : Items.Sides := Items.Top;
+      Link_From_Side : Items.Links.Sides := Items.Links.Top;
       --  The window and side of the pin a line is being dragged from;
       --  0 if none is.
    end record;

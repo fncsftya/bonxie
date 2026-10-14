@@ -1,3 +1,7 @@
+with Items.Records;
+with Items.Schema;
+with Items.Sources;
+with Items.Words;
 with Ada.Directories;
 with Ada.Strings.Fixed;
 with Ada.Text_IO;
@@ -235,22 +239,25 @@ package body Item_Tests is
       Other   : Items.Id;
    begin
       Projects.Open (Store, Projects.Memory);
-      Items.Prepare (Store);
-      Items.Prepare (Store);  --  again, which is no harm
+      Items.Schema.Prepare (Store);
+      Items.Schema.Prepare (Store);  --  again, which is no harm
       First := Projects.Create (Store, "First");
       Second := Projects.Create (Store, "Second");
 
-      Notes := Items.Create (Store, First, "Notes", Where, "some text");
-      Ideas := Items.Create (Store, First, "Ideas", (1.0, 2.0, 3.0, 4.0));
-      Other := Items.Create (Store, Second, "Elsewhere", Where);
+      Notes :=
+        Items.Records.Create (Store, First, "Notes", Where, "some text");
+      Ideas :=
+        Items.Records.Create
+          (Store, First, "Ideas", (1.0, 2.0, 3.0, 4.0));
+      Other := Items.Records.Create (Store, Second, "Elsewhere", Where);
       Check ("items-ids", "TRUE",
              Boolean'Image (Notes < Ideas and then Ideas < Other));
       Check
         ("items-count", " 2 1",
-         Natural'Image (Items.Count (Store, First))
-         & Natural'Image (Items.Count (Store, Second)));
+         Natural'Image (Items.Records.Count (Store, First))
+         & Natural'Image (Items.Records.Count (Store, Second)));
 
-      Items.Load (Store, First, Listed);
+      Items.Records.Load (Store, First, Listed);
       Check
         ("items-loaded", "Notes,Ideas,",
          Projects.Titles.To_String (Listed.Items (1).Title) & ","
@@ -263,15 +270,16 @@ package body Item_Tests is
          Items.States'Image (Listed.Items (1).State));
       Check
         ("items-content", "some text",
-         Items.Content (Store, Listed.Items (1).Key));
+         Items.Records.Content (Store, Listed.Items (1).Key));
 
-      Items.Set_Title (Store, Listed.Items (1).Key, "Renamed");
-      Items.Set_Content
+      Items.Records.Set_Title (Store, Listed.Items (1).Key, "Renamed");
+      Items.Records.Set_Content
         (Store, Listed.Items (1).Key, "other" & ASCII.LF & "text");
-      Items.Set_Frame (Store, Listed.Items (1).Key, (5.0, 6.0, 7.0, 8.0));
-      Items.Set_State (Store, Listed.Items (1).Key, Items.Minimized);
-      Items.Set_State (Store, Listed.Items (2).Key, Items.Closed);
-      Items.Load (Store, First, Listed);
+      Items.Records.Set_Frame
+        (Store, Listed.Items (1).Key, (5.0, 6.0, 7.0, 8.0));
+      Items.Records.Set_State (Store, Listed.Items (1).Key, Items.Minimized);
+      Items.Records.Set_State (Store, Listed.Items (2).Key, Items.Closed);
+      Items.Records.Load (Store, First, Listed);
       Check
         ("items-changed", "Renamed MINIMIZED 5 6 7 8",
          Projects.Titles.To_String (Listed.Items (1).Title) & " "
@@ -282,13 +290,13 @@ package body Item_Tests is
          Items.States'Image (Listed.Items (2).State));
       Check
         ("items-changed-content", "other" & ASCII.LF & "text",
-         Items.Content (Store, Listed.Items (1).Key));
+         Items.Records.Content (Store, Listed.Items (1).Key));
 
       Check
         ("items-scroll-none", "TRUE",
          Boolean'Image (Listed.Items (1).Scroll = 0.0));
-      Items.Set_Scroll (Store, Listed.Items (1).Key, 42.5, 0.25);
-      Items.Load (Store, First, Listed);
+      Items.Records.Set_Scroll (Store, Listed.Items (1).Key, 42.5, 0.25);
+      Items.Records.Load (Store, First, Listed);
       Check
         ("items-scroll-kept", "TRUE",
          Boolean'Image
@@ -296,31 +304,33 @@ package body Item_Tests is
             and then Listed.Items (1).Scroll_Across = 0.25));
 
       --  One goes.
-      Items.Delete (Store, Listed.Items (1).Key);
-      Items.Delete (Store, 9999);  --  none such
+      Items.Records.Delete (Store, Listed.Items (1).Key);
+      Items.Records.Delete (Store, 9999);  --  none such
       Check
-        ("items-deleted", " 1", Natural'Image (Items.Count (Store, First)));
+        ("items-deleted", " 1",
+         Natural'Image (Items.Records.Count (Store, First)));
       Check
         ("items-deleted-content", "",
-         Items.Content (Store, Listed.Items (1).Key));
+         Items.Records.Content (Store, Listed.Items (1).Key));
 
       --  A source: a link, and a picture that goes with it.
       declare
          Link    : constant Items.Id :=
-           Items.Create
+           Items.Records.Create
              (Store, First, "Page", Where, "https://example.org",
               Kind => Items.Source);
-         Picture : constant String := Items.Image_File (Store, First, Link);
+         Picture : constant String :=
+           Items.Sources.Image_File (Store, First, Link);
          File    : Ada.Text_IO.File_Type;
          Found   : Items.Info_List;
       begin
-         Items.Set_Captured (Store, Link, 1_700_000_000);
-         Items.Load (Store, First, Found);
+         Items.Sources.Set_Captured (Store, Link, 1_700_000_000);
+         Items.Records.Load (Store, First, Found);
          Check
            ("source-stored", "SOURCE 1700000000 https://example.org",
             Items.Kinds'Image (Found.Items (Found.Count).Kind)
             & Projects.Seconds'Image (Found.Items (Found.Count).Captured_At)
-            & " " & Items.Content (Store, Link));
+            & " " & Items.Records.Content (Store, Link));
          Check
            ("source-note-kind", "NOTE 0",
             Items.Kinds'Image (Found.Items (1).Kind)
@@ -331,7 +341,7 @@ package body Item_Tests is
               (Picture = Projects.Folder (Store, First) & "/sources/"
                & Ada.Strings.Fixed.Trim (Link'Image, Ada.Strings.Both)
                & ".png"));
-         Items.Make_Image_Folder (Store, First);
+         Items.Sources.Make_Image_Folder (Store, First);
          Ada.Text_IO.Create (File, Ada.Text_IO.Out_File, Picture);
          Ada.Text_IO.Close (File);
 
@@ -342,7 +352,7 @@ package body Item_Tests is
          begin
             Check
               ("words-none", "FALSE",
-               Boolean'Image (Items.Has_Words (Store, Link)));
+               Boolean'Image (Items.Words.Has_Words (Store, Link)));
             Words.Text (1 .. 10) := "helloworld";
             Words.Length := 10;
             Words.Count := 2;
@@ -352,11 +362,11 @@ package body Item_Tests is
             Words.Words (2) :=
               (Line => 2, First => 6, Last => 10,
                Left => 0.5, Top => 0.75, Width => 0.25, Height => 0.125);
-            Items.Save_Words (Store, Link, Words, 1_700_000_001);
+            Items.Words.Save_Words (Store, Link, Words, 1_700_000_001);
             Check
               ("words-kept", "TRUE",
-               Boolean'Image (Items.Has_Words (Store, Link)));
-            Items.Load_Words (Store, Link, Again);
+               Boolean'Image (Items.Words.Has_Words (Store, Link)));
+            Items.Words.Load_Words (Store, Link, Again);
             Check
               ("words-loaded", " 2 10 hello world",
                Natural'Image (Again.Count) & Natural'Image (Again.Length)
@@ -375,35 +385,35 @@ package body Item_Tests is
 
             --  Kept again, they are the new words, not more.
             Words.Count := 1;
-            Items.Save_Words (Store, Link, Words, 1_700_000_002);
-            Items.Load_Words (Store, Link, Again);
+            Items.Words.Save_Words (Store, Link, Words, 1_700_000_002);
+            Items.Words.Load_Words (Store, Link, Again);
             Check
               ("words-replaced", " 1", Natural'Image (Again.Count));
 
             --  A new picture is of other words.
-            Items.Set_Captured (Store, Link, 1_700_000_003);
-            Items.Load_Words (Store, Link, Again);
+            Items.Sources.Set_Captured (Store, Link, 1_700_000_003);
+            Items.Words.Load_Words (Store, Link, Again);
             Check
               ("words-forgotten", "FALSE 0",
-               Boolean'Image (Items.Has_Words (Store, Link))
+               Boolean'Image (Items.Words.Has_Words (Store, Link))
                & Natural'Image (Again.Count));
 
             --  No words in a picture is something kept too.
             Words.Count := 0;
             Words.Length := 0;
-            Items.Save_Words (Store, Link, Words, 1_700_000_004);
+            Items.Words.Save_Words (Store, Link, Words, 1_700_000_004);
             Check
               ("words-none-found", "TRUE",
-               Boolean'Image (Items.Has_Words (Store, Link)));
+               Boolean'Image (Items.Words.Has_Words (Store, Link)));
             Words.Count := 1;
             Words.Length := 10;
-            Items.Save_Words (Store, Link, Words, 1_700_000_005);
+            Items.Words.Save_Words (Store, Link, Words, 1_700_000_005);
          end;
-         Items.Delete (Store, Link);
+         Items.Records.Delete (Store, Link);
          declare
             Gone : Vision.Result;
          begin
-            Items.Load_Words (Store, Link, Gone);
+            Items.Words.Load_Words (Store, Link, Gone);
             Check
               ("words-deleted", " 0", Natural'Image (Gone.Count));
          end;
@@ -412,7 +422,7 @@ package body Item_Tests is
             Boolean'Image (Ada.Directories.Exists (Picture)));
 
          --  And a project's files go with it.
-         Items.Make_Image_Folder (Store, First);
+         Items.Sources.Make_Image_Folder (Store, First);
          Ada.Text_IO.Create (File, Ada.Text_IO.Out_File, Picture);
          Ada.Text_IO.Close (File);
       end;
@@ -425,8 +435,8 @@ package body Item_Tests is
            (Ada.Directories.Exists (Projects.Folder (Store, First))));
       Check
         ("items-with-project", " 0 1",
-         Natural'Image (Items.Count (Store, First))
-         & Natural'Image (Items.Count (Store, Second)));
+         Natural'Image (Items.Records.Count (Store, First))
+         & Natural'Image (Items.Records.Count (Store, Second)));
    end Stored;
 
    --  On the canvas

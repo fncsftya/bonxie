@@ -1,3 +1,8 @@
+with Items.Links;
+with Items.Marks;
+with Items.Records;
+with Items.Sources;
+with Items.Words;
 with Ada.Calendar;
 with Ada.Calendar.Formatting;
 with Ada.Directories;
@@ -180,7 +185,9 @@ package body Viewer.Canvas_Items is
    begin
       Vision.Jobs.Reset (Which);
       Vision.Jobs.Start
-        (Which, Items.Image_File (Item.Nav.Store, Item.Opened.Current, Key));
+        (Which,
+         Items.Sources.Image_File
+           (Item.Nav.Store, Item.Opened.Current, Key));
    end Start_Recognition;
 
    procedure Start_Capture (Item : in out Session; Which : Items.Slot);
@@ -198,12 +205,12 @@ package body Viewer.Canvas_Items is
            (Item.Windows (Which), Windows.Failed, Detail => "no link");
          return;
       end if;
-      Items.Make_Image_Folder (Item.Nav.Store, Item.Opened.Current);
+      Items.Sources.Make_Image_Folder (Item.Nav.Store, Item.Opened.Current);
       Vision.Jobs.Reset (Which);
       Webshot.Reset (Which);
       Webshot.Start
         (Which, Link,
-         Items.Image_File
+         Items.Sources.Image_File
            (Item.Nav.Store, Item.Opened.Current,
             Windows.Details (Item.Windows (Which)).Key));
       Windows.Set_Capture (Item.Windows (Which), Windows.Busy);
@@ -219,7 +226,7 @@ package body Viewer.Canvas_Items is
         Windows.Details (Item.Windows (Which)).Key;
    begin
       Vision.Jobs.Take (Which, Found);
-      Items.Save_Words (Item.Nav.Store, Key, Found, Epoch_Now (Item));
+      Items.Words.Save_Words (Item.Nav.Store, Key, Found, Epoch_Now (Item));
       Windows.Set_Recognized (Item.Windows (Which), Found);
       Writing.Words_Found (Item, Which, Found);
    end Keep_Recognition;
@@ -275,11 +282,11 @@ package body Viewer.Canvas_Items is
                      Time : constant Projects.Seconds := Epoch_Now (Item);
                   begin
                      Name_From_Page (Item, Which);
-                     Items.Set_Captured (Item.Nav.Store, Key, Time);
+                     Items.Sources.Set_Captured (Item.Nav.Store, Key, Time);
                      Windows.Set_Capture
                        (Item.Windows (Which), Windows.Ready,
-                        Items.Image_File (Item.Nav.Store, Item.Opened.Current,
-                                          Key),
+                        Items.Sources.Image_File
+                          (Item.Nav.Store, Item.Opened.Current, Key),
                         At_Time => Time);
                      Writing.Picture_Taken (Item, Which);
                      Projects.Touch (Item.Nav.Store, Item.Opened.Current);
@@ -464,15 +471,16 @@ package body Viewer.Canvas_Items is
       then
          return;
       end if;
-      if Items.Has_Words (Item.Nav.Store, Key) then
+      if Items.Words.Has_Words (Item.Nav.Store, Key) then
          declare
             Found : Vision.Result;
          begin
-            Items.Load_Words (Item.Nav.Store, Key, Found);
+            Items.Words.Load_Words (Item.Nav.Store, Key, Found);
             Windows.Set_Recognized (Item.Windows (Which), Found);
          end;
       elsif Ada.Directories.Exists
-              (Items.Image_File (Item.Nav.Store, Item.Opened.Current, Key))
+              (Items.Sources.Image_File
+                 (Item.Nav.Store, Item.Opened.Current, Key))
       then
          Start_Recognition (Item, Which);
       end if;
@@ -523,19 +531,20 @@ package body Viewer.Canvas_Items is
       Found    : Items.Info_List;
       Restored : Boolean;
    begin
-      Items.Load (Item.Nav.Store, Item.Opened.Current, Found);
+      Items.Records.Load (Item.Nav.Store, Item.Opened.Current, Found);
       for I in 1 .. Found.Count loop
          Windows.Assign
            (Item.Windows (I), Found.Items (I),
-            Items.Content (Item.Nav.Store, Found.Items (I).Key),
-            Items.Image_File
+            Items.Records.Content (Item.Nav.Store, Found.Items (I).Key),
+            Items.Sources.Image_File
               (Item.Nav.Store, Item.Opened.Current, Found.Items (I).Key));
          Recognize_Kept (Item, I);
          if Found.Items (I).Kind = Items.Source then
             declare
-               Kept : Items.Mark_List;
+               Kept : Items.Marks.Mark_List;
             begin
-               Items.Load_Marks (Item.Nav.Store, Found.Items (I).Key, Kept);
+               Items.Marks.Load_Marks
+                 (Item.Nav.Store, Found.Items (I).Key, Kept);
                Windows.Set_Marks (Item.Windows (I), Kept);
             end;
          end if;
@@ -616,12 +625,12 @@ package body Viewer.Canvas_Items is
    begin
       Make (Item, Untitled_Source, Items.Source, Made);
       if Made /= 0 then
-         Items.Add_Link
+         Items.Links.Add_Link
            (Item.Nav.Store,
             (From      => Windows.Details (Item.Windows (To)).Key,
              To        => Windows.Details (Item.Windows (Made)).Key,
-             From_Side => Items.Right,
-             To_Side   => Items.Left,
+             From_Side => Items.Links.Right,
+             To_Side   => Items.Links.Left,
              others    => <>),
             Added);
          if Added then
@@ -667,7 +676,7 @@ package body Viewer.Canvas_Items is
       end if;
       declare
          Key : constant Items.Id :=
-           Items.Create
+           Items.Records.Create
              (Item.Nav.Store, Item.Opened.Current, Name, Where, Kind => Kind);
       begin
          Windows.Assign
@@ -701,7 +710,7 @@ package body Viewer.Canvas_Items is
    begin
       Windows.Set_State (Item.Windows (Which), To);
       Windows.Warm (Item.Windows (Which));
-      Items.Set_State
+      Items.Records.Set_State
         (Item.Nav.Store, Windows.Details (Item.Windows (Which)).Key, To);
       Windows.Place
         (Item.Windows (Which),
@@ -731,7 +740,7 @@ package body Viewer.Canvas_Items is
       Webshot.Reset (Which);
       Vision.Jobs.Reset (Which);
       Speech.Jobs.Reset (Which);
-      Items.Delete
+      Items.Records.Delete
         (Item.Nav.Store, Windows.Details (Item.Windows (Which)).Key);
       Windows.Release (Item.Windows (Which));
       Links.Reload (Item);

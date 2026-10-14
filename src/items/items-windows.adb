@@ -1,3 +1,5 @@
+with Items.Records;
+with Items.Sources;
 with Ada.Calendar;
 with Ada.Calendar.Formatting;
 with Ada.Strings.Fixed;
@@ -29,7 +31,7 @@ package body Items.Windows is
    use type Ada.Calendar.Time;
    use type SDL3.Events.Milliseconds;
 
-   pragma Assert (Items.Max_Marks = UI.Widgets.Pictures.Max_Marks);
+   pragma Assert (Items.Marks.Max_Marks = UI.Widgets.Pictures.Max_Marks);
 
    --  In points
 
@@ -385,7 +387,8 @@ package body Items.Windows is
       end loop;
       for Which in Item.Menu_Buttons'Range loop
          Buttons.Set_Label
-           (Item.Menu_Buttons (Which), Percent (Preset_Zooms (Which)));
+           (Item.Menu_Buttons (Which),
+            Items.Sources.Percent (Preset_Zooms (Which)));
          Size (Item.Menu_Buttons (Which), Preset_Width, Zoom_Row_Height);
       end loop;
 
@@ -444,7 +447,7 @@ package body Items.Windows is
    function Is_Marking (Item : Window) return Boolean is
      (UI.Widgets.Pictures.Is_Marking (Item.Picture));
 
-   procedure Get_Marks (Item : Window; Into : out Items.Mark_List) is
+   procedure Get_Marks (Item : Window; Into : out Items.Marks.Mark_List) is
    begin
       Into.Count := UI.Widgets.Pictures.Mark_Count (Item.Picture);
       for Index in 1 .. Into.Count loop
@@ -483,12 +486,12 @@ package body Items.Windows is
      (Float'Min (1.0, Float'Max (0.0, Value)));
    --  Within the picture.
 
-   procedure Set_Marks (Item : in out Window; Kept : Items.Mark_List) is
+   procedure Set_Marks (Item : in out Window; Kept : Items.Marks.Mark_List) is
       Shown : UI.Widgets.Pictures.Mark_Array (1 .. Kept.Count);
    begin
       for Index in Shown'Range loop
          declare
-            Each : Items.Mark renames Kept.Marks (Index);
+            Each : Items.Marks.Mark renames Kept.Marks (Index);
          begin
             Shown (Index) :=
               (Left  => Unit (Each.Left),
@@ -592,8 +595,8 @@ package body Items.Windows is
          Item.Zoom_Dirty := True;
       end if;
       UI.Widgets.Pictures.Set_Zoom (Item.Picture, To);
-      Sliders.Set_Value (Item.Zoom_Slider, To_Slider (To));
-      Buttons.Set_Label (Item.Zoom_Button, Percent (To));
+      Sliders.Set_Value (Item.Zoom_Slider, Items.Sources.To_Slider (To));
+      Buttons.Set_Label (Item.Zoom_Button, Items.Sources.Percent (To));
    end Set_Zoom;
 
    function Box (Item : Window) return Items.Frame is
@@ -1260,7 +1263,9 @@ package body Items.Windows is
       if Item.Details.Kind = Source and then Item.Details.State = Open then
          Sliders.Take_Change (Item.Zoom_Slider, Entered);
          if Entered then
-            Set_Zoom (Item, From_Slider (Sliders.Value (Item.Zoom_Slider)));
+            Set_Zoom
+              (Item,
+               Items.Sources.From_Slider (Sliders.Value (Item.Zoom_Slider)));
          end if;
          Buttons.Take_Click (Item.Cursor_Button, Clicked);
          if Clicked then
@@ -1350,7 +1355,8 @@ package body Items.Windows is
       end if;
 
       if Item.Frame_Dirty and then not Is_Dragging (Item) then
-         Set_Frame (Store, Item.Details.Key, Item.Details.Where);
+         Items.Records.Set_Frame
+           (Store, Item.Details.Key, Item.Details.Where);
          Item.Frame_Dirty := False;
          Wrote := True;
       end if;
@@ -1358,7 +1364,7 @@ package body Items.Windows is
       if Item.Zoom_Dirty
         and then not Sliders.Is_Dragging (Item.Zoom_Slider)
       then
-         Items.Set_Zoom (Store, Item.Details.Key, Item.Details.Zoom);
+         Items.Sources.Set_Zoom (Store, Item.Details.Key, Item.Details.Zoom);
          Item.Zoom_Dirty := False;
          Wrote := True;
       end if;
@@ -1378,7 +1384,8 @@ package body Items.Windows is
                 or else Across /= Item.Details.Scroll_Across)
               and then (Force or else Now >= Item.Scroll_At + Idle_Delay)
             then
-               Items.Set_Scroll (Store, Item.Details.Key, Scrolled, Across);
+               Items.Records.Set_Scroll
+                 (Store, Item.Details.Key, Scrolled, Across);
                Item.Details.Scroll := Scrolled;
                Item.Details.Scroll_Across := Across;
                Wrote := True;
@@ -1392,10 +1399,10 @@ package body Items.Windows is
         and then not UI.Widgets.Pictures.Is_Marking (Item.Picture)
       then
          declare
-            Kept : Items.Mark_List;
+            Kept : Items.Marks.Mark_List;
          begin
             Get_Marks (Item, Kept);
-            Items.Save_Marks (Store, Item.Details.Key, Kept);
+            Items.Marks.Save_Marks (Store, Item.Details.Key, Kept);
          end;
          Item.Marks_Saved := UI.Widgets.Pictures.Marks_Version (Item.Picture);
          Wrote := True;
@@ -1407,13 +1414,13 @@ package body Items.Windows is
                   or else Now >= Item.Changed_At + Idle_Delay)
       then
          if Title_Now /= Item.Title_Saved then
-            Set_Title
+            Items.Records.Set_Title
               (Store, Item.Details.Key,
                Projects.Titles.To_String (Item.Details.Title));
             Item.Title_Saved := Title_Now;
          end if;
          if Content_Now /= Item.Content_Saved then
-            Set_Content
+            Items.Records.Set_Content
               (Store, Item.Details.Key, Docs.Whole (Item.Content_Doc));
             Item.Content_Saved := Content_Now;
          end if;

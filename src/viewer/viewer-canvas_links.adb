@@ -1,4 +1,5 @@
 with Items;
+with Items.Links;
 with Items.Windows;
 with Viewer.Canvas_Items;
 with Viewer.Links;
@@ -13,7 +14,7 @@ package body Viewer.Canvas_Links is
    procedure Link_Items (Item : in out Session; From, To : Positive) is
       Added : Boolean;
    begin
-      Items.Add_Link
+      Items.Links.Add_Link
         (Item.Nav.Store,
          (From => Items.Windows.Details
                     (Item.Windows (Canvas_Items.Nth (Item, From))).Key,
@@ -30,12 +31,12 @@ package body Viewer.Canvas_Links is
    function Link_Description
      (Item : Session; Number : Positive) return String
    is
-      Each : Items.Link renames Item.Linking.Link_Set.Links (Number);
+      Each : Items.Links.Link renames Item.Linking.Link_Set.Links (Number);
    begin
-      return Items.Strokes'Image (Each.Stroke) & ' '
-        & Items.Endings'Image (Each.Ending) & ' '
+      return Items.Links.Strokes'Image (Each.Stroke) & ' '
+        & Items.Links.Endings'Image (Each.Ending) & ' '
         & Integer'Image (Each.Color) & ' '
-        & Items.Sides'Image (Each.To_Side);
+        & Items.Links.Sides'Image (Each.To_Side);
    end Link_Description;
 
    function Pin_Count (Item : Session) return Natural is

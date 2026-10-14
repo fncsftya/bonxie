@@ -1,3 +1,4 @@
+with Items.Sources;
 with Ada.Strings;
 with SDL3.Cursors;
 with UI.Boxes;
@@ -237,7 +238,7 @@ package body Items.Readers is
        Width  => Widgets.Width_Of (Item.Frame),
        Height => Widgets.Height_Of (Item.Frame)));
 
-   procedure Get_Marks (Item : Reader; Into : out Items.Mark_List) is
+   procedure Get_Marks (Item : Reader; Into : out Items.Marks.Mark_List) is
    begin
       Into.Count := Pictures.Mark_Count (Item.Picture);
       for Index in 1 .. Into.Count loop
@@ -251,12 +252,12 @@ package body Items.Readers is
       end loop;
    end Get_Marks;
 
-   procedure Set_Marks (Item : in out Reader; Kept : Items.Mark_List) is
+   procedure Set_Marks (Item : in out Reader; Kept : Items.Marks.Mark_List) is
       Shown : Pictures.Mark_Array (1 .. Kept.Count);
    begin
       for Index in Shown'Range loop
          declare
-            Each : Items.Mark renames Kept.Marks (Index);
+            Each : Items.Marks.Mark renames Kept.Marks (Index);
          begin
             Shown (Index) :=
               (Left  => Unit (Each.Left),
@@ -279,8 +280,8 @@ package body Items.Readers is
    begin
       Item.Details.Zoom := To;
       Pictures.Set_Zoom (Item.Picture, To);
-      Sliders.Set_Value (Item.Zoom_Slider, Items.To_Slider (To));
-      Labels.Set_Text (Item.Zoom_Label, Items.Percent (To));
+      Sliders.Set_Value (Item.Zoom_Slider, Items.Sources.To_Slider (To));
+      Labels.Set_Text (Item.Zoom_Label, Items.Sources.Percent (To));
    end Set_Zoom;
 
    procedure Set_Title (Item : in out Reader; To : String) is
@@ -470,7 +471,9 @@ package body Items.Readers is
 
       Sliders.Take_Change (Item.Zoom_Slider, Changed);
       if Changed then
-         Set_Zoom (Item, Items.From_Slider (Sliders.Value (Item.Zoom_Slider)));
+         Set_Zoom
+           (Item,
+            Items.Sources.From_Slider (Sliders.Value (Item.Zoom_Slider)));
       end if;
       Buttons.Take_Click (Item.Cursor_Button, Clicked);
       if Clicked then

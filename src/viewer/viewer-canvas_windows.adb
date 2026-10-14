@@ -1,3 +1,4 @@
+with Items.Sources;
 with Items.Windows;
 with UI.Widgets.Pictures;
 with Viewer.Canvas_Items;
@@ -71,7 +72,7 @@ package body Viewer.Canvas_Windows is
 
    function Item_Picture_File (Item : Session; Row : Positive) return String
    is
-     (Items.Image_File
+     (Items.Sources.Image_File
         (Item.Nav.Store, Item.Opened.Current,
          Items.Windows.Details (Item.Windows (Window (Item, Row))).Key));
 

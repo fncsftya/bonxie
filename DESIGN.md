@@ -131,7 +131,11 @@ From the bottom up; each crate depends only on those before it.
   `<config>/bonxie/<project id>/sources/<item id>.png`, by
   `Projects.Folder`, which goes with its item and its project) in the same database, in a table that refers to the
   project, so that they go with it (`Projects.Connection` shares the
-  connection, with foreign keys on). `Items.Windows` is the widgets that
+  connection, with foreign keys on). It is split into children by what they
+  do: `Items.Schema` (the tables), `Items.Records` (the items), `Items.Sources`
+  (zoom, capture and picture of a source), `Items.Words`, `Items.Marks`,
+  `Items.Links` and `Items.Directories` (the writing view's tree).
+  `Items.Windows` is the widgets that
   show one item: its window on the canvas (title bar to drag, a title that
   is text until double-clicked, minimise and close, a text editor, a status line of the word
   count, a corner to size by) and its short bar in the dock; and what has
@@ -145,13 +149,13 @@ From the bottom up; each crate depends only on those before it.
   kept in the item's `zoom`), and, in the middle of the status line, buttons for the cursor, the
   highlighter and the eraser of its marks (a source's window is wider, for room); a click outside the
   window puts the highlighter away. Zoomed out under 0.75 a window is compact: no status line (so no corner to size by; zoom in to do that), and a source no link, only the title and the content; and its bar and title shrink with the zoom, down to 0.6, so the title is not large over the text. The marks are kept in the database
-  (`item_marks`, a row to a mark, with the item; `Items.Save_Marks`,
+  (`item_marks`, a row to a mark, with the item; `Items.Marks.Save_Marks`,
   `Load_Marks`) and forgotten with a new picture. Return in the link has `Viewer`
   start `Webshot` for it, and, while it is taken, a bar along the foot of the status line shows how far on it is (`Webshot.Progress`: the page's load, then the settling and the snapshot). A source still called "Untitled source" takes the title of the page (`Webshot.Page_Title`) when its picture is taken. When the picture is taken (or is found
   without words kept, as in a project from before they were) `Viewer`
   starts `Vision.Jobs` on it, and the words found are kept in the
   database, in `item_words` (a row to a word, with the item, so that they
-  go with it; `Items.Save_Words`, `Load_Words`) and stamped on the item
+  go with it; `Items.Words.Save_Words`, `Load_Words`) and stamped on the item
   (`recognized_at`, and `words_version`, of how they were put in order:
   those kept by an earlier version are looked for again), so opening the project again loads them and does not
   look again; a new picture forgets them (`Set_Captured`). A project

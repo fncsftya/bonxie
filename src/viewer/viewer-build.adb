@@ -1,3 +1,4 @@
+with Items.Schema;
 with Ada.Command_Line;
 with Ada.Directories;
 with Ada.Strings.Unbounded;
@@ -1205,7 +1206,7 @@ package body Viewer.Build is
       use Yoga.Nodes;
    begin
       Projects.Open (Item.Nav.Store, Store_Path);
-      Items.Prepare (Item.Nav.Store);
+      Items.Schema.Prepare (Item.Nav.Store);
       Scripts.Load (Item.Host.Script, Source, File_Name);
       Item.Prefs.Config_Dir :=
         Ada.Strings.Unbounded.To_Unbounded_String

@@ -1,3 +1,4 @@
+with Items.Marks;
 with UI.Themes;
 with UI.Widgets.Buttons;
 with UI.Widgets.Grips;
@@ -123,10 +124,10 @@ package Items.Readers is
    function Is_Marking (Item : Reader) return Boolean
      with Pre => Is_Assigned (Item);
 
-   procedure Get_Marks (Item : Reader; Into : out Items.Mark_List)
+   procedure Get_Marks (Item : Reader; Into : out Items.Marks.Mark_List)
      with Pre => Is_Assigned (Item);
 
-   procedure Set_Marks (Item : in out Reader; Kept : Items.Mark_List)
+   procedure Set_Marks (Item : in out Reader; Kept : Items.Marks.Mark_List)
      with Pre => Is_Assigned (Item);
 
    function Tool (Item : Reader) return UI.Widgets.Pictures.Tools

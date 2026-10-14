@@ -1,5 +1,6 @@
 with Ada.Strings.Fixed;
 with Items;
+with Items.Records;
 with Previews;
 with UI.Text_Areas;
 with UI.Widgets;
@@ -58,7 +59,8 @@ package body Viewer.Recent is
       Shown     : Previews.Card_Array (1 .. Previews.Max_Shown);
       Drawn     : Natural := 0;
    begin
-      Items.Load (Item.Nav.Store, Item.Home_View.Row_Keys (Row), Found);
+      Items.Records.Load
+        (Item.Nav.Store, Item.Home_View.Row_Keys (Row), Found);
       for Each of Found.Items (1 .. Found.Count) loop
          if Each.Kind = Items.Source then
             Sources := Sources + 1;

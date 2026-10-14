@@ -1,3 +1,4 @@
+with Items.Directories;
 with Vision;
 
 --  The writing view: the items that are not sources, as documents, each
@@ -70,7 +71,7 @@ private package Viewer.Writing is
    --  in none), and keep that.
 
    procedure Make_Directory (Item : in out Session; Name : String)
-     with Pre => Item.Docs.Dirs.Count < Items.Max_Directories;
+     with Pre => Item.Docs.Dirs.Count < Items.Directories.Max_Directories;
    --  Make a directory, put its row last of the directories, and begin to
    --  rename it.
 

@@ -1,3 +1,4 @@
+with Items.Marks;
 with Projects;
 with SDL3.Events;
 with Texts.Documents;
@@ -189,7 +190,7 @@ package Items.Windows is
    --  of its marks, or the cursor to select text with. The cursor is the
    --  tool again when the window is not open.
 
-   procedure Set_Marks (Item : in out Window; Kept : Items.Mark_List)
+   procedure Set_Marks (Item : in out Window; Kept : Items.Marks.Mark_List)
      with Pre => Is_Assigned (Item) and then Details (Item).Kind = Source;
    --  Show these highlights on the source's picture, as kept: they are
    --  not written again until it is marked. Set_Capture Ready forgets
@@ -283,7 +284,7 @@ package Items.Windows is
      with Pre => Is_Assigned (Item) and then Details (Item).Kind = Source;
    --  Whether the highlighter is being dragged.
 
-   procedure Get_Marks (Item : Window; Into : out Items.Mark_List)
+   procedure Get_Marks (Item : Window; Into : out Items.Marks.Mark_List)
      with Pre => Is_Assigned (Item) and then Details (Item).Kind = Source;
    --  The highlights the source's picture has.
 

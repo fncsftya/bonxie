@@ -1,3 +1,7 @@
+with Items.Links;
+with Items.Marks;
+with Items.Sources;
+with Items.Words;
 with UI.Boxes;
 with UI.Themes;
 with Ada.Strings.Fixed;
@@ -253,7 +257,7 @@ package body Viewer.Writing is
              (Next_Doc > Item.Reading.Write_Count
               or else Key_Of (Item.Docs.Dirs.Directories (Next_Dir).Position)
                       <= Key_Of
-                           (Items.Position_Of
+                           (Items.Directories.Position_Of
                               (Item.Nav.Store,
                                Windows.Details
                                  (Item.Windows
@@ -296,9 +300,10 @@ package body Viewer.Writing is
       Item.Reading.Source_Total := 0;
       Item.Docs.Shown_Dir := 0;
       Item.Docs.Doc_Dir := [others => 0];
-      Items.Load_Directories (Item.Nav.Store, Item.Opened.Current,
-                              Item.Docs.Dirs);
-      Items.Load_Order (Item.Nav.Store, Item.Opened.Current, Ordered);
+      Items.Directories.Load_Directories
+        (Item.Nav.Store, Item.Opened.Current, Item.Docs.Dirs);
+      Items.Directories.Load_Order
+        (Item.Nav.Store, Item.Opened.Current, Ordered);
       for Place in 1 .. Ordered.Count loop
          for Which in Items.Slot loop
             if Windows.Is_Assigned (Item.Windows (Which))
@@ -308,7 +313,7 @@ package body Viewer.Writing is
                if Is_Note (Item, Which) then
                   declare
                      Inside : constant Items.Id :=
-                       Items.Directory_Of (Item.Nav.Store,
+                       Items.Directories.Directory_Of (Item.Nav.Store,
                                            Ordered.Keys (Place));
                   begin
                      for Dir in 1 .. Item.Docs.Dirs.Count loop
@@ -336,7 +341,7 @@ package body Viewer.Writing is
    procedure Keep_Directory (Item : in out Session; Which : Items.Slot) is
       Dir : constant Natural := Item.Docs.Doc_Dir (Which);
    begin
-      Items.Set_Directory
+      Items.Directories.Set_Directory
         (Item.Nav.Store, Windows.Details (Item.Windows (Which)).Key,
          (if Dir = 0 then 0 else Item.Docs.Dirs.Directories (Dir).Key));
    end Keep_Directory;
@@ -351,12 +356,12 @@ package body Viewer.Writing is
       for Row in 2 .. Item.Docs.Tree_Count loop
          case Item.Docs.Tree (Row).Kind is
             when Directory_Node =>
-               Items.Set_Directory_Position
+               Items.Directories.Set_Directory_Position
                  (Item.Nav.Store,
                   Item.Docs.Dirs.Directories (Item.Docs.Tree (Row).Dir).Key,
                      Row);
             when Document_Leaf =>
-               Items.Set_Position
+               Items.Directories.Set_Position
                  (Item.Nav.Store,
                   Windows.Details
                     (Item.Windows (Item.Docs.Tree (Row).Doc)).Key,
@@ -559,7 +564,7 @@ package body Viewer.Writing is
                            Item.Reading.Write_Count = 0);
       Buttons.Set_Enabled
         (Item.Page_View.Docs_Folder,
-         Item.Docs.Dirs.Count < Items.Max_Directories);
+         Item.Docs.Dirs.Count < Items.Directories.Max_Directories);
 
       for Row in Tree_Row loop
          if Row <= Item.Docs.Tree_Count then
@@ -613,7 +618,7 @@ package body Viewer.Writing is
    --  The windows of the sources
 
    function Picture_Of (Item : Session; Which : Items.Slot) return String is
-     (Items.Image_File
+     (Items.Sources.Image_File
         (Item.Nav.Store, Item.Opened.Current,
          Windows.Details (Item.Windows (Which)).Key));
 
@@ -629,13 +634,13 @@ package body Viewer.Writing is
    is
       Key   : constant Items.Id :=
         Windows.Details (Item.Windows (Which)).Key;
-      Kept  : Items.Mark_List;
+      Kept  : Items.Marks.Mark_List;
    begin
-      if Items.Has_Words (Item.Nav.Store, Key) then
+      if Items.Words.Has_Words (Item.Nav.Store, Key) then
          declare
             Found : Vision.Result;
          begin
-            Items.Load_Words (Item.Nav.Store, Key, Found);
+            Items.Words.Load_Words (Item.Nav.Store, Key, Found);
             Readers.Set_Recognized (Shown, Found);
          end;
       end if;
@@ -836,7 +841,7 @@ package body Viewer.Writing is
          declare
             Which : constant Items.Slot := Item.Reading.Source_Order (Row);
          begin
-            if Items.Is_Linked
+            if Items.Links.Is_Linked
                  (Item.Nav.Store, Key,
                   Windows.Details (Item.Windows (Which)).Key)
             then
@@ -901,12 +906,12 @@ package body Viewer.Writing is
       Own  : constant Natural := Readers.Marks_Version (Shown);
       Peer : constant Natural :=
         Windows.Marks_Version (Item.Windows (Which));
-      Kept : Items.Mark_List;
+      Kept : Items.Marks.Mark_List;
    begin
       if Own /= Sync.Own then
          if not Readers.Is_Marking (Shown) then
             Readers.Get_Marks (Shown, Kept);
-            Items.Save_Marks
+            Items.Marks.Save_Marks
               (Item.Nav.Store, Windows.Details (Item.Windows (Which)).Key,
                Kept);
             Windows.Set_Marks (Item.Windows (Which), Kept);
@@ -1306,7 +1311,7 @@ package body Viewer.Writing is
                        Natural'Min
                          (Last, First + Projects.Title_Capacity - 1));
          begin
-            Items.Rename_Directory
+            Items.Directories.Rename_Directory
               (Item.Nav.Store, Item.Docs.Dirs.Directories (Dir).Key, Name);
             Item.Docs.Dirs.Directories (Dir).Title :=
               Projects.Titles.To_Bounded_String (Name);
@@ -1332,7 +1337,8 @@ package body Viewer.Writing is
 
    procedure Make_Directory (Item : in out Session; Name : String) is
       Key : constant Items.Id :=
-        Items.Create_Directory (Item.Nav.Store, Item.Opened.Current, Name);
+        Items.Directories.Create_Directory
+          (Item.Nav.Store, Item.Opened.Current, Name);
    begin
       Item.Docs.Dirs.Count := Item.Docs.Dirs.Count + 1;
       Item.Docs.Dirs.Directories (Item.Docs.Dirs.Count) :=
@@ -1710,7 +1716,7 @@ package body Viewer.Writing is
 
    procedure Remove_Directory (Item : in out Session; Dir : Positive) is
    begin
-      Items.Delete_Directory (Item.Nav.Store,
+      Items.Directories.Delete_Directory (Item.Nav.Store,
                               Item.Docs.Dirs.Directories (Dir).Key);
       --  Those in it are in none; the directories after it are one
       --  sooner.
@@ -2163,7 +2169,7 @@ package body Viewer.Writing is
       end if;
       Buttons.Take_Click (Item.Page_View.Docs_Folder, Clicked);
       if Clicked then
-         if Item.Docs.Dirs.Count < Items.Max_Directories then
+         if Item.Docs.Dirs.Count < Items.Directories.Max_Directories then
             Make_Directory (Item, Untitled_Directory);
          end if;
          return;
@@ -2426,7 +2432,7 @@ package body Viewer.Writing is
          declare
             Button : Buttons.Button renames
               Item.Docs.Pages (Item.Page_View.Menu_Page).Sources_Button;
-            Left   : constant Float :=
+            Place_Left   : constant Float :=
               Float'Max
                 (0.0,
                  Float'Min
@@ -2434,22 +2440,22 @@ package body Viewer.Writing is
                      - Widgets.Left_Of (Item.Page_View.Write_View)) / Pixels,
                     Widgets.Width_Of (Item.Page_View.Write_View) / Pixels
                     - Style.Menu_Width - Style.Reader_Margin));
-            Top    : constant Float :=
+            Place_Top    : constant Float :=
               (Widgets.Top_Of (Button) + Widgets.Height_Of (Button)
                - Widgets.Top_Of (Item.Page_View.Write_View)) / Pixels
               + Style.Menu_Gap;
          begin
-            if Left /= Item.Page_View.Menu_Left
-               or else Top /= Item.Page_View.Menu_Top
+            if Place_Left /= Item.Page_View.Menu_Left
+               or else Place_Top /= Item.Page_View.Menu_Top
             then
-               Item.Page_View.Menu_Left := Left;
-               Item.Page_View.Menu_Top := Top;
+               Item.Page_View.Menu_Left := Place_Left;
+               Item.Page_View.Menu_Top := Place_Top;
                Set_Position
                  (Widgets.Node (Item.Page_View.Menu), Yoga.Left,
-                  Float'Rounding (Left * Pixels));
+                  Float'Rounding (Place_Left * Pixels));
                Set_Position
                  (Widgets.Node (Item.Page_View.Menu), Yoga.Top,
-                  Float'Rounding (Top * Pixels));
+                  Float'Rounding (Place_Top * Pixels));
                Widgets.Request_Layout (Item.Page_View.Menu);
                Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
             end if;
@@ -2476,7 +2482,7 @@ package body Viewer.Writing is
                      Each.Caret_Seen := Version;
                      declare
                         X, Y, Wide, High : Float;
-                        Top    : constant Float :=
+                        Reveal_Top    : constant Float :=
                           Widgets.Top_Of (Item.Page_View.Pages_Scroll)
                           + Reveal_Margin * Pixels;
                         Bottom : constant Float :=
@@ -2487,10 +2493,10 @@ package body Viewer.Writing is
                           Scrollers.Offset (Item.Page_View.Pages_Scroll);
                      begin
                         Editors.Caret_Box (Each.Text, X, Y, Wide, High);
-                        if Y < Top then
+                        if Y < Reveal_Top then
                            Scrollers.Scroll_To
                              (Item.Page_View.Pages_Scroll,
-                              Offset - (Top - Y) / Pixels);
+                              Offset - (Reveal_Top - Y) / Pixels);
                            Moved := True;
                         elsif Y + High > Bottom then
                            Scrollers.Scroll_To
