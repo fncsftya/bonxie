@@ -294,6 +294,36 @@ package body Viewer is
       Writing.Move (Item, From, To);
    end Move_Document;
 
+   function Directory_Count (Item : Session) return Natural is
+     (Item.Dirs.Count);
+
+   function Directory_Title (Item : Session; Row : Positive) return String is
+     (Projects.Titles.To_String (Item.Dirs.Directories (Row).Title));
+
+   procedure Add_Directory
+     (Item : in out Session; Name : String := "Untitled folder") is
+   begin
+      Writing.Make_Directory (Item, Name);
+   end Add_Directory;
+
+   function Document_Directory
+     (Item : Session; Row : Positive) return Natural is
+     (Item.Doc_Dir (Item.Write_Order (Row)));
+
+   procedure Move_Document_To
+     (Item : in out Session; Row : Positive; Directory : Natural) is
+   begin
+      Writing.Move_To_Directory (Item, Row, Directory);
+   end Move_Document_To;
+
+   function Shown_Directory (Item : Session) return Natural is
+     (Item.Shown_Dir);
+
+   procedure Show_Directory (Item : in out Session; Directory : Natural) is
+   begin
+      Writing.Select_Directory (Item, Directory);
+   end Show_Directory;
+
    function Source_Count (Item : Session) return Natural is
      (Item.Source_Total);
 

@@ -49,13 +49,19 @@ package body Write_Tests is
 
    Doc_Row_X : constant Float := 100.0;
 
-   function Doc_Row_Y (Row : Positive) return Float is
+   function Tree_Row_Y (Row : Positive) return Float is
      (114.5 + Float (Row - 1) * 38.0);
-   --  The rows of the list of documents, in the sidebar.
+   --  The rows of the tree of documents, in the sidebar, the Overview's
+   --  first.
+
+   function Doc_Row_Y (Row : Positive) return Float is
+     (Tree_Row_Y (Row + 1));
+   --  Those of the documents, before there are directories.
 
    Add_Document_X : constant Float := 181.0;
+   Add_Directory_X : constant Float := 153.0;
    Add_Document_Y : constant Float := 80.0;
-   --  The button beside the name of the list of documents.
+   --  The buttons beside the name of the list of documents.
 
    Pane_Edge_X : constant Float := 435.0;
    Pane_Pin_X  : constant Float := 682.0;
@@ -66,12 +72,13 @@ package body Write_Tests is
    Source_Row_X : constant Float := 100.0;
 
    function Source_Row_Y (Documents : Natural) return Float is
-     (99.0
+     (99.0 + 38.0
       + (if Documents = 0 then 31.0
          else Float (Documents) * 34.0 + Float (Documents - 1) * 4.0)
       + 67.5);
-   --  The row of the first source, in the sidebar, below the list of so
-   --  many documents (or the line that says there are none).
+   --  The row of the first source, in the sidebar, below the Overview and
+   --  the list of so many documents (or the line that says there are
+   --  none).
 
    --  Events
 
@@ -198,8 +205,10 @@ package body Write_Tests is
       Start_With_Three (Session);
       Viewer.Set_Mode (Session, Viewer.Write);
       Settle (Session);
-      --  The first row is dragged down past the others, which makes room.
-      Drag (Session, Doc_Row_X, Doc_Row_Y (1), Doc_Row_X, Doc_Row_Y (3));
+      --  The first row is dragged down past the others, to the lower half
+      --  of the last, which puts it after.
+      Drag (Session, Doc_Row_X, Doc_Row_Y (1), Doc_Row_X,
+            Doc_Row_Y (3) + 8.0);
       Check ("write-dragged-first", "Middle",
              Viewer.Document_Title (Session, 1));
       Check ("write-dragged-last", "Opening",
@@ -217,6 +226,142 @@ package body Write_Tests is
       Move_To (Session, 600.0, 60.0);
       Snap (Session, "write-scrolled-to-page");
    end Dragging;
+
+   procedure Name_Directory (Session : in out Viewer.Session; Name : String)
+   is
+   begin
+      Type_In (Session, Name);
+      Viewer.Handle
+        (Session, Events.Event'(Kind => Events.Key_Down,
+                                Key => Events.Key_Return, others => <>));
+      Settle (Session);
+   end Name_Directory;
+
+   procedure Directories is
+      Session : Viewer.Session;
+      Key     : Projects.Id;
+
+      function Where (Row : Positive) return String is
+        (Natural'Image (Viewer.Document_Directory (Session, Row)));
+   begin
+      Start_With_Three (Session);
+      Key := Viewer.Current_Project (Session);
+      Viewer.Set_Mode (Session, Viewer.Write);
+      Settle (Session);
+
+      --  The button beside the name of the list makes one, last of the
+      --  tree, and its name is renamed at once.
+      Click_On (Session, Add_Directory_X, Add_Document_Y);
+      Check ("write-directory-made", " 1",
+             Natural'Image (Viewer.Directory_Count (Session)));
+      Check ("write-directory-named", "Untitled folder",
+             Viewer.Directory_Title (Session, 1));
+      Name_Directory (Session, "Part one");
+      Check ("write-directory-renamed", "Part one",
+             Viewer.Directory_Title (Session, 1));
+      Move_To (Session, 600.0, 60.0);
+      Snap (Session, "write-directory-listed");
+
+      --  A document dropped on it (the middle of its row) is in it.
+      Drag (Session, Doc_Row_X, Tree_Row_Y (4), Doc_Row_X, Tree_Row_Y (5));
+      Check ("write-dropped-in", " 1", Where (3));
+      Check ("write-dropped-last", "Ending",
+             Viewer.Document_Title (Session, 3));
+      Check ("write-dropped-others", " 0", Where (1));
+      Settle (Session);
+      Move_To (Session, 600.0, 60.0);
+      Snap (Session, "write-directory-dropped");
+
+      --  Clicking the directory shows only its documents; the Overview,
+      --  all of them.
+      Click_On (Session, Doc_Row_X, Tree_Row_Y (4));
+      Settle (Session);
+      Check ("write-directory-shown", " 1",
+             Natural'Image (Viewer.Shown_Directory (Session)));
+      Move_To (Session, 600.0, 60.0);
+      Snap (Session, "write-directory-pages");
+      Click_On (Session, Doc_Row_X, Tree_Row_Y (1));
+      Settle (Session);
+      Check ("write-overview-shown", " 0",
+             Natural'Image (Viewer.Shown_Directory (Session)));
+
+      --  Held over the top of the directory's row, a line shows above it;
+      --  let go, the document is before it, and in none.
+      Move_To (Session, Doc_Row_X, Tree_Row_Y (2));
+      Viewer.Handle
+        (Session, Events.Event'(Kind => Events.Mouse_Down, Button => 1,
+                                Clicks => 1, Mouse_X => Doc_Row_X,
+                                Mouse_Y => Tree_Row_Y (2), others => <>));
+      Move_To (Session, Doc_Row_X, Tree_Row_Y (3), Held => True);
+      Move_To (Session, Doc_Row_X, Tree_Row_Y (4) - 10.0, Held => True);
+      Settle (Session);
+      Snap (Session, "write-drop-line");
+      Viewer.Handle
+        (Session, Events.Event'(Kind => Events.Mouse_Up, Button => 1,
+                                Clicks => 1, Mouse_X => Doc_Row_X,
+                                Mouse_Y => Tree_Row_Y (4) - 10.0,
+                                others => <>));
+      Check ("write-before-directory", "Middle",
+             Viewer.Document_Title (Session, 1));
+      Check ("write-before-directory-moved", "Opening",
+             Viewer.Document_Title (Session, 2));
+      Check ("write-before-directory-in-none", " 0", Where (2));
+
+      --  The foot of the last document in a directory puts one after it.
+      Drag (Session, Doc_Row_X, Tree_Row_Y (2), Doc_Row_X,
+            Tree_Row_Y (5) + 13.0);
+      Check ("write-after-directory", "Middle",
+             Viewer.Document_Title (Session, 3));
+      Check ("write-after-directory-in-none", " 0", Where (3));
+      Check ("write-after-directory-others", " 1", Where (2));
+
+      --  A second directory is put before the first row, a directory with
+      --  its documents after the last, and one is taken out of it.
+      Click_On (Session, Add_Directory_X, Add_Document_Y);
+      Name_Directory (Session, "Part two");
+      Drag (Session, Doc_Row_X, Tree_Row_Y (6), Doc_Row_X,
+            Tree_Row_Y (2) - 8.0);
+      Drag (Session, Doc_Row_X, Tree_Row_Y (4), Doc_Row_X,
+            Tree_Row_Y (6) + 10.0);
+      Check ("write-directory-moved-first", "Opening",
+             Viewer.Document_Title (Session, 1));
+      Check ("write-directory-moved-second", "Middle",
+             Viewer.Document_Title (Session, 2));
+      Check ("write-directory-moved-with-its-documents", "Ending",
+             Viewer.Document_Title (Session, 3));
+      Check ("write-directory-moved-with-its-documents-in", " 1", Where (3));
+      Settle (Session);
+      Move_To (Session, 600.0, 60.0);
+      Snap (Session, "write-directories-moved");
+
+      --  On the Overview, a document is out of its directory, and last.
+      Drag (Session, Doc_Row_X, Tree_Row_Y (6), Doc_Row_X, Tree_Row_Y (1));
+      Check ("write-overview-dropped", " 0", Where (3));
+      Check ("write-overview-dropped-last", "Ending",
+             Viewer.Document_Title (Session, 3));
+      Drag (Session, Doc_Row_X, Tree_Row_Y (4), Doc_Row_X, Tree_Row_Y (5));
+      Check ("write-dropped-in-the-moved", " 1", Where (2));
+
+      --  Their order, and what is in them, are kept.
+      Viewer.Close_Project (Session);
+      Viewer.Open_Project (Session, Key);
+      Viewer.Set_Mode (Session, Viewer.Write);
+      Check ("write-directories-kept", " 2",
+             Natural'Image (Viewer.Directory_Count (Session)));
+      Check ("write-directory-order-kept", "Part two",
+             Viewer.Directory_Title (Session, 1));
+      Check ("write-directory-name-kept", "Part one",
+             Viewer.Directory_Title (Session, 2));
+      Check ("write-directory-contents-kept", " 2", Where (2));
+      Check ("write-directory-others-kept", " 0", Where (3));
+      Check ("write-directory-order-of-documents-kept", "Middle",
+             Viewer.Document_Title (Session, 2));
+      Check ("write-directory-shown-again", " 0",
+             Natural'Image (Viewer.Shown_Directory (Session)));
+      Settle (Session);
+      Move_To (Session, 600.0, 60.0);
+      Snap (Session, "write-directories-kept");
+   end Directories;
 
    procedure Adding is
       Session : Viewer.Session;

@@ -227,11 +227,30 @@ From the bottom up; each crate depends only on those before it.
   both, and the canvas's window writes it (`Hold_Typing` says it is being
   typed in elsewhere, to write it once it has been left alone for a
   moment). The sidebar, at the left, has two scrolling lists: the
-  documents (with a button to add one), each row with how many words it
-  has, a row to drag to put a document elsewhere in the order
-  (`Items.Save_Order`, `Load_Order`: the `position` column of `items`; those
-  never put come last, in the order they were made), or to click to go to
-  its page; and the sources, a row to click to open or close the source's
+  documents (with buttons to add one, and a directory), as a tree:
+  the Overview at the top, which cannot be moved; then directories (the
+  `directories` table, and `directory_id` of `items`; `Items.Create_Directory`,
+  `Load_Directories`, `Set_Directory`; at most `Items.Max_Directories`),
+  each directly followed by its documents, inset (the box is narrower),
+  and the documents in none, among them. The Overview and the directories
+  are bare rows with a marker, not boxes; documents are boxes. The tree
+  (`Item.Tree`) is the one order, and the pages' (`Sync_Order`): the
+  `position` of a document or directory is its row (`Items.Set_Position`,
+  `Set_Directory_Position`; those never put come last). A row's count is
+  how many words a document has, or how many documents a directory. Any row
+  but the Overview's is dragged, and where it would go is found from the
+  pointer (`Target_At`): a document in the middle of a directory's or the
+  Overview's row goes last in it (the Overview's: in none, last of all);
+  or between rows, shown by a line over the gap (a panel out of the
+  layout, so nothing moves): above or below another document (by the half
+  of its row), before a directory (the top of its row), after one (the foot
+  of its row if empty, else the lowest part of its last document's). A
+  directory is dragged with its documents, to before or after another unit
+  of the top level. A click on a document's row goes to
+  its page; on a directory's, shows only its documents as the pages, and
+  on the Overview's, all of them (a document added then is in the
+  directory shown); a directory's row pressed twice is renamed, in a field
+  over it; and the sources, a row to click to open or close the source's
   window here. That window is an `Items.Readers.Reader`, not the item's window
   on the canvas: where it is, whether it is open, its zoom and scroll are
   of this view only and are not kept; the picture and the words found in it

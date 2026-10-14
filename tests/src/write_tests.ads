@@ -6,6 +6,7 @@ package Write_Tests is
    procedure Pages;
    procedure Ordering;
    procedure Dragging;
+   procedure Directories;
    procedure Adding;
    procedure Linked_Sources;
    procedure Typing;

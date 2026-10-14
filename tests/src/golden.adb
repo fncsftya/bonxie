@@ -1013,6 +1013,7 @@ begin
    Run ("write-pages", Write_Tests.Pages'Access);
    Run ("write-ordering", Write_Tests.Ordering'Access);
    Run ("write-dragging", Write_Tests.Dragging'Access);
+   Run ("write-directories", Write_Tests.Directories'Access);
    Run ("write-adding", Write_Tests.Adding'Access);
    Run ("write-linked-sources", Write_Tests.Linked_Sources'Access);
    Run ("write-typing", Write_Tests.Typing'Access);

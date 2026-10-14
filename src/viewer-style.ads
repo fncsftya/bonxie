@@ -76,6 +76,10 @@ private package Viewer.Style is
    Index_Pad       : constant Float := 10.0;
    Count_Width     : constant Float := 32.0;
    --  Of the count of a document's words, at the right of its row.
+   Tree_Indent     : constant Float := 14.0;
+   --  How far in the documents of a directory are, in the tree.
+   Drop_Line_Height : constant Float := 2.0;
+   --  Of the line where a document dragged would go between two.
    Tag_Size        : constant Float := 8.0;
    --  The square of a source's colour, in its row.
    Page_Width      : constant Float := 760.0;

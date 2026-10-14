@@ -1,3 +1,4 @@
+with UI.Boxes;
 with UI.Themes;
 with Ada.Strings.Fixed;
 with Texts.Documents;
@@ -40,6 +41,8 @@ package body Viewer.Writing is
    use type Texts.Position;
    use type Pictures.Tools;
    use type Windows.Dictations;
+
+   Untitled_Directory : constant String := "Untitled folder";
 
    Drag_Threshold : constant Float := 4.0;
    --  How far, in points, a press on a row has to go to be a drag.
@@ -90,6 +93,191 @@ package body Viewer.Writing is
    end Row_Of;
    --  Where the source is in the list of them, 0 if it is not.
 
+   function In_View (Item : Session; Which : Items.Slot) return Boolean is
+     (Item.Shown_Dir = 0 or else Item.Doc_Dir (Which) = Item.Shown_Dir);
+   --  Whether the document's page is one shown.
+
+   function Leaf_Row (Item : Session; Which : Items.Slot) return Natural is
+   begin
+      for Row in 1 .. Item.Tree_Count loop
+         if Item.Tree (Row).Kind = Document_Leaf
+           and then Item.Tree (Row).Doc = Which
+         then
+            return Row;
+         end if;
+      end loop;
+      return 0;
+   end Leaf_Row;
+   --  Where the document is in the tree, 0 if it is not.
+
+   function Dir_Row (Item : Session; Dir : Positive) return Natural is
+   begin
+      for Row in 1 .. Item.Tree_Count loop
+         if Item.Tree (Row).Kind = Directory_Node
+           and then Item.Tree (Row).Dir = Dir
+         then
+            return Row;
+         end if;
+      end loop;
+      return 0;
+   end Dir_Row;
+   --  Where the directory is in the tree, 0 if it is not.
+
+   function Documents_In (Item : Session; Dir : Positive) return Natural is
+      Total : Natural := 0;
+   begin
+      for Rank in 1 .. Item.Write_Count loop
+         if Item.Doc_Dir (Item.Write_Order (Rank)) = Dir then
+            Total := Total + 1;
+         end if;
+      end loop;
+      return Total;
+   end Documents_In;
+
+   procedure Sync_Order (Item : in out Session);
+   --  Take the documents' order from the tree, which is the pages'.
+
+   procedure Sync_Order (Item : in out Session) is
+   begin
+      Item.Write_Count := 0;
+      for Row in 2 .. Item.Tree_Count loop
+         if Item.Tree (Row).Kind = Document_Leaf then
+            Item.Write_Count := Item.Write_Count + 1;
+            Item.Write_Order (Item.Write_Count) := Item.Tree (Row).Doc;
+         end if;
+      end loop;
+   end Sync_Order;
+
+   function Block_End (Item : Session; Row : Positive) return Positive;
+   --  The last row of what is moved with the row: of a directory, the
+   --  last of its documents, which follow it; else the row.
+
+   function Block_End (Item : Session; Row : Positive) return Positive is
+      Last : Positive := Row;
+   begin
+      if Item.Tree (Row).Kind = Directory_Node then
+         while Last < Item.Tree_Count
+           and then Item.Tree (Last + 1).Kind = Document_Leaf
+           and then Item.Tree (Last + 1).Dir = Item.Tree (Row).Dir
+         loop
+            Last := Last + 1;
+         end loop;
+      end if;
+      return Last;
+   end Block_End;
+
+   procedure Insert_Row
+     (Item : in out Session; Index : Positive; Node : Tree_Entry)
+     with Pre => Index in 2 .. Item.Tree_Count + 1
+                 and then Item.Tree_Count < Tree_Capacity;
+   --  Put the row before the Indexth.
+
+   procedure Insert_Row
+     (Item : in out Session; Index : Positive; Node : Tree_Entry) is
+   begin
+      for Row in reverse Index .. Item.Tree_Count loop
+         Item.Tree (Row + 1) := Item.Tree (Row);
+      end loop;
+      Item.Tree (Index) := Node;
+      Item.Tree_Count := Item.Tree_Count + 1;
+   end Insert_Row;
+
+   procedure Delete_Row (Item : in out Session; Index : Positive)
+     with Pre => Index in 2 .. Item.Tree_Count;
+
+   procedure Delete_Row (Item : in out Session; Index : Positive) is
+   begin
+      for Row in Index .. Item.Tree_Count - 1 loop
+         Item.Tree (Row) := Item.Tree (Row + 1);
+      end loop;
+      Item.Tree_Count := Item.Tree_Count - 1;
+   end Delete_Row;
+
+   procedure Move_Block (Item : in out Session; From, Index : Positive)
+     with Pre => From in 2 .. Item.Tree_Count
+                 and then Index in 2 .. Item.Tree_Count + 1;
+   --  Put the row, and those moved with it, before the Indexth (as it
+   --  was before it was moved).
+
+   procedure Move_Block (Item : in out Session; From, Index : Positive) is
+      Last   : constant Positive := Block_End (Item, From);
+      Length : constant Positive := Last - From + 1;
+      Moved  : constant Tree_Entry_Array := Item.Tree;
+      Place  : Positive := Index;
+   begin
+      if Index in From .. Last + 1 then
+         return;
+      end if;
+      if Index > Last then
+         Place := Index - Length;
+      end if;
+      for Each in reverse From .. Last loop
+         Delete_Row (Item, From);
+      end loop;
+      for Each in 0 .. Length - 1 loop
+         Insert_Row (Item, Place + Each, Moved (From + Each));
+      end loop;
+   end Move_Block;
+
+   function Key_Of (Position : Natural) return Natural is
+     (if Position = 0 then Natural'Last else Position);
+   --  Never put comes after what was.
+
+   procedure Arrange (Item : in out Session);
+   --  Make the tree of the documents (as Write_Order and Doc_Dir have
+   --  them, in the order kept) and the directories: each directory, and
+   --  the documents in none, in the order kept, each directory's
+   --  documents after it.
+
+   procedure Arrange (Item : in out Session) is
+      Count    : Natural := 1;
+      Next_Doc : Positive := 1;
+      Next_Dir : Positive := 1;
+   begin
+      Item.Tree (1) := (Kind => Overview_Node, others => 0);
+      loop
+         while Next_Doc <= Item.Write_Count
+           and then Item.Doc_Dir (Item.Write_Order (Next_Doc)) /= 0
+         loop
+            Next_Doc := Next_Doc + 1;
+         end loop;
+         exit when Next_Doc > Item.Write_Count
+                   and then Next_Dir > Item.Dirs.Count;
+         if Next_Dir <= Item.Dirs.Count
+           and then
+             (Next_Doc > Item.Write_Count
+              or else Key_Of (Item.Dirs.Directories (Next_Dir).Position)
+                      <= Key_Of
+                           (Items.Position_Of
+                              (Item.Store,
+                               Windows.Details
+                                 (Item.Windows
+                                    (Item.Write_Order (Next_Doc))).Key)))
+         then
+            Count := Count + 1;
+            Item.Tree (Count) :=
+              (Kind => Directory_Node, Dir => Next_Dir, Doc => 0);
+            for Rank in 1 .. Item.Write_Count loop
+               if Item.Doc_Dir (Item.Write_Order (Rank)) = Next_Dir then
+                  Count := Count + 1;
+                  Item.Tree (Count) :=
+                    (Kind => Document_Leaf, Dir => Next_Dir,
+                     Doc  => Item.Write_Order (Rank));
+               end if;
+            end loop;
+            Next_Dir := Next_Dir + 1;
+         else
+            Count := Count + 1;
+            Item.Tree (Count) :=
+              (Kind => Document_Leaf, Dir => 0,
+               Doc  => Item.Write_Order (Next_Doc));
+            Next_Doc := Next_Doc + 1;
+         end if;
+      end loop;
+      Item.Tree_Count := Count;
+      Sync_Order (Item);
+   end Arrange;
+
    procedure Build_Order (Item : in out Session);
    --  Find the documents, in the order kept, and the sources.
 
@@ -98,6 +286,9 @@ package body Viewer.Writing is
    begin
       Item.Write_Count := 0;
       Item.Source_Total := 0;
+      Item.Shown_Dir := 0;
+      Item.Doc_Dir := [others => 0];
+      Items.Load_Directories (Item.Store, Item.Current, Item.Dirs);
       Items.Load_Order (Item.Store, Item.Current, Ordered);
       for Place in 1 .. Ordered.Count loop
          for Which in Items.Slot loop
@@ -106,6 +297,16 @@ package body Viewer.Writing is
                        = Ordered.Keys (Place)
             then
                if Is_Note (Item, Which) then
+                  declare
+                     Inside : constant Items.Id :=
+                       Items.Directory_Of (Item.Store, Ordered.Keys (Place));
+                  begin
+                     for Dir in 1 .. Item.Dirs.Count loop
+                        if Item.Dirs.Directories (Dir).Key = Inside then
+                           Item.Doc_Dir (Which) := Dir;
+                        end if;
+                     end loop;
+                  end;
                   Item.Write_Count := Item.Write_Count + 1;
                   Item.Write_Order (Item.Write_Count) := Which;
                else
@@ -115,42 +316,44 @@ package body Viewer.Writing is
             end if;
          end loop;
       end loop;
+      Arrange (Item);
    end Build_Order;
+
+   procedure Keep_Directory (Item : in out Session; Which : Items.Slot);
+   --  Write the directory the document is in to the database.
+
+   procedure Keep_Directory (Item : in out Session; Which : Items.Slot) is
+      Dir : constant Natural := Item.Doc_Dir (Which);
+   begin
+      Items.Set_Directory
+        (Item.Store, Windows.Details (Item.Windows (Which)).Key,
+         (if Dir = 0 then 0 else Item.Dirs.Directories (Dir).Key));
+   end Keep_Directory;
 
    procedure Keep_Order (Item : in out Session);
    --  Write the order of the documents to the database.
 
    procedure Keep_Order (Item : in out Session) is
-      Keys : Items.Id_Array (1 .. Item.Write_Count);
    begin
-      for Rank in Keys'Range loop
-         Keys (Rank) :=
-           Windows.Details (Item.Windows (Item.Write_Order (Rank))).Key;
+      --  A row's place is its number in the tree, directories and
+      --  documents together.
+      for Row in 2 .. Item.Tree_Count loop
+         case Item.Tree (Row).Kind is
+            when Directory_Node =>
+               Items.Set_Directory_Position
+                 (Item.Store,
+                  Item.Dirs.Directories (Item.Tree (Row).Dir).Key, Row);
+            when Document_Leaf =>
+               Items.Set_Position
+                 (Item.Store,
+                  Windows.Details (Item.Windows (Item.Tree (Row).Doc)).Key,
+                  Row);
+            when Overview_Node =>
+               null;
+         end case;
       end loop;
-      Items.Save_Order (Item.Store, Keys);
       Projects.Touch (Item.Store, Item.Current);
    end Keep_Order;
-
-   procedure Reorder
-     (Order : in out Slot_Array; From, To : Positive);
-   --  Move the From-th to the To-th place, the others making room.
-
-   procedure Reorder
-     (Order : in out Slot_Array; From, To : Positive)
-   is
-      Moved : constant Items.Slot := Order (From);
-   begin
-      if From < To then
-         for Place in From .. To - 1 loop
-            Order (Place) := Order (Place + 1);
-         end loop;
-      else
-         for Place in reverse To + 1 .. From loop
-            Order (Place) := Order (Place - 1);
-         end loop;
-      end if;
-      Order (To) := Moved;
-   end Reorder;
 
    --  What is shown
 
@@ -206,6 +409,82 @@ package body Viewer.Writing is
       return Total;
    end Linked_Sources;
 
+   procedure Show_Tree_Row (Item : in out Session; Row : Tree_Row);
+   --  Show the row of the tree as what it is of: its name, its count, how
+   --  far in it is, and whether it is the one chosen or dropped on.
+
+   procedure Show_Tree_Row (Item : in out Session; Row : Tree_Row) is
+      use Yoga.Nodes;
+      Each    : Index_Row renames Item.Doc_Rows (Row);
+      Node    : Tree_Entry renames Item.Tree (Row);
+      Pixels  : constant Float := Widgets.Density (Item.Widgets);
+      Dropped : constant Boolean :=
+        Item.Drop.Kind = Into_Node and then Item.Drop.Row = Row;
+      --  While a document is dragged, the nodes it can be dropped on show.
+      Hinted  : constant Boolean :=
+        Item.Drag_Row /= 0 and then Item.Drag_Moved
+        and then Item.Tree (Item.Drag_Row).Kind = Document_Leaf;
+      Chosen  : Boolean;
+      Level   : Float := 0.0;
+   begin
+      case Node.Kind is
+         when Overview_Node =>
+            Labels.Set_Text (Each.Caption, "Overview");
+            Labels.Set_Text (Each.Count, Count_Image (Item.Write_Count));
+            Chosen := Item.Shown_Dir = 0;
+         when Directory_Node =>
+            Labels.Set_Text
+              (Each.Caption,
+               Fitted (Projects.Titles.To_String
+                         (Item.Dirs.Directories (Node.Dir).Title)));
+            Labels.Set_Text
+              (Each.Count, Count_Image (Documents_In (Item, Node.Dir)));
+            Chosen := Item.Shown_Dir = Node.Dir;
+         when Document_Leaf =>
+            Labels.Set_Text (Each.Caption, Fitted (Title_Of (Item, Node.Doc)));
+            Labels.Set_Text
+              (Each.Count,
+               Count_Image (Windows.Words (Item.Windows (Node.Doc))));
+            if Node.Dir /= 0 then
+               Level := Style.Tree_Indent;
+            end if;
+            Chosen :=
+              (if Item.Drag_Row /= 0 and then Item.Drag_Moved
+               then Row = Item.Drag_Row
+               else Widgets.Has_Focus
+                      (Item.Pages (Rank_Of (Item, Node.Doc)).Text));
+      end case;
+      if Node.Kind = Document_Leaf then
+         --  A box, standing up.
+         Choose_Row (Each, Chosen);
+         Grips.Set_Border (Each.Row, UI.Themes.Border);
+         Widgets.Set_Visible (Each.Tag, False);
+      else
+         --  Not a box: bare, with a marker, in bold; the marker is lit
+         --  when it is the one shown, and the row is outlined while a
+         --  document is over it.
+         Labels.Set_Style (Each.Caption, UI.Line_Texts.Strong);
+         Grips.Clear_Fill (Each.Row);
+         Grips.Clear_Shadow (Each.Row);
+         if Dropped then
+            Grips.Set_Border (Each.Row, UI.Themes.Focus);
+         elsif Hinted then
+            Grips.Set_Border (Each.Row, UI.Themes.Border, Dashed => True);
+         else
+            Grips.Clear_Border (Each.Row);
+         end if;
+         UI.Widgets.Panels.Set_Fill
+           (Each.Tag, (if Chosen then UI.Themes.Accent else Style.Quiet_Ink));
+         Widgets.Set_Visible (Each.Tag, True);
+      end if;
+      if Level /= Each.Indent then
+         --  Shrinks the box, not only its text.
+         Each.Indent := Level;
+         Set_Margin (Widgets.Node (Each.Row), Yoga.Left, Level * Pixels);
+         Widgets.Request_Layout (Each.Row);
+      end if;
+   end Show_Tree_Row;
+
    procedure Refresh (Item : in out Session);
    --  Show the pages and the rows of the lists as the items and their
    --  order are now.
@@ -215,7 +494,6 @@ package body Viewer.Writing is
       for Rank in Items.Slot loop
          declare
             Each : Doc_Page renames Item.Pages (Rank);
-            Row  : Index_Row renames Item.Doc_Rows (Rank);
          begin
             if Rank <= Item.Write_Count then
                declare
@@ -233,13 +511,16 @@ package body Viewer.Writing is
                   end if;
                   Labels.Set_Text
                     (Each.Heading, Fitted (Title_Of (Item, Which)));
-                  Labels.Set_Text
-                    (Row.Caption, Fitted (Title_Of (Item, Which)));
-                  Choose_Row
-                    (Row,
-                     (if Item.Drag_Row /= 0 and then Item.Drag_Moved
-                      then Rank = Item.Drag_Target
-                      else Widgets.Has_Focus (Each.Text)));
+                  if not In_View (Item, Which) then
+                     --  Out of sight, it keeps neither the focus nor a
+                     --  title being renamed.
+                     Each.Renaming := False;
+                     Widgets.Set_Visible (Each.Title_Field, False);
+                     Widgets.Set_Visible (Each.Heading_Area, True);
+                     if Widgets.Has_Focus (Each.Text) then
+                        Widgets.Release_Focus (Each.Text);
+                     end if;
+                  end if;
                end;
             elsif Each.Bound /= 0 then
                Each.Bound := 0;
@@ -250,11 +531,22 @@ package body Viewer.Writing is
                   Widgets.Release_Focus (Each.Text);
                end if;
             end if;
-            Widgets.Set_Visible (Each.Box, Rank <= Item.Write_Count);
-            Widgets.Set_Visible (Row.Row, Rank <= Item.Write_Count);
+            Widgets.Set_Visible
+              (Each.Box,
+               Rank <= Item.Write_Count
+               and then In_View (Item, Item.Write_Order (Rank)));
          end;
       end loop;
       Widgets.Set_Visible (Item.Docs_None, Item.Write_Count = 0);
+      Buttons.Set_Enabled
+        (Item.Docs_Folder, Item.Dirs.Count < Items.Max_Directories);
+
+      for Row in Tree_Row loop
+         if Row <= Item.Tree_Count then
+            Show_Tree_Row (Item, Row);
+         end if;
+         Widgets.Set_Visible (Item.Doc_Rows (Row).Row, Row <= Item.Tree_Count);
+      end loop;
 
       for Row in Items.Slot loop
          declare
@@ -609,6 +901,10 @@ package body Viewer.Writing is
          end if;
       end loop;
       Item.Drag_Row := 0;
+      Item.Drop := (others => <>);
+      Item.Renaming_Dir := 0;
+      Widgets.Set_Visible (Item.Dir_Field, False);
+      Widgets.Set_Visible (Item.Drop_Line, False);
       Refresh (Item);
    end Enter;
 
@@ -642,7 +938,14 @@ package body Viewer.Writing is
       end loop;
       Item.Write_Count := 0;
       Item.Source_Total := 0;
+      Item.Dirs.Count := 0;
+      Item.Tree_Count := 0;
+      Item.Shown_Dir := 0;
       Item.Drag_Row := 0;
+      Item.Drop := (others => <>);
+      Item.Renaming_Dir := 0;
+      Widgets.Set_Visible (Item.Dir_Field, False);
+      Widgets.Set_Visible (Item.Drop_Line, False);
       Refresh (Item);
       Show (Item, Canvas);
    end Leave;
@@ -650,14 +953,27 @@ package body Viewer.Writing is
    procedure Added (Item : in out Session; Which : Items.Slot) is
    begin
       if Is_Note (Item, Which) then
-         Item.Write_Count := Item.Write_Count + 1;
-         Item.Write_Order (Item.Write_Count) := Which;
+         --  One written while a directory is shown is last in it; else
+         --  last of all.
+         Item.Doc_Dir (Which) :=
+           (if Item.Mode = Write then Item.Shown_Dir else 0);
+         Insert_Row
+           (Item,
+            (if Item.Doc_Dir (Which) = 0 then Item.Tree_Count + 1
+             else Block_End (Item, Dir_Row (Item, Item.Doc_Dir (Which))) + 1),
+            (Kind => Document_Leaf, Dir => Item.Doc_Dir (Which),
+             Doc  => Which));
+         Sync_Order (Item);
+         if Item.Doc_Dir (Which) /= 0 then
+            Keep_Directory (Item, Which);
+         end if;
+         Keep_Order (Item);
          Refresh (Item);
          if Item.Mode = Write then
             Widgets.Layout (Item.Widgets, Item.Target);
             Fit (Item);
-            Go_To (Item, Item.Write_Count);
-            Widgets.Focus (Item.Pages (Item.Write_Count).Text);
+            Go_To (Item, Rank_Of (Item, Which));
+            Widgets.Focus (Item.Pages (Rank_Of (Item, Which)).Text);
          end if;
       else
          Item.Source_Total := Item.Source_Total + 1;
@@ -671,14 +987,13 @@ package body Viewer.Writing is
    begin
       if Is_Note (Item, Which) then
          declare
-            Rank : constant Natural := Rank_Of (Item, Which);
+            Row : constant Natural := Leaf_Row (Item, Which);
          begin
-            if Rank > 0 then
-               for Place in Rank .. Item.Write_Count - 1 loop
-                  Item.Write_Order (Place) := Item.Write_Order (Place + 1);
-               end loop;
-               Item.Write_Count := Item.Write_Count - 1;
+            if Row > 0 then
+               Delete_Row (Item, Row);
+               Sync_Order (Item);
             end if;
+            Item.Doc_Dir (Which) := 0;
          end;
       else
          declare
@@ -731,76 +1046,451 @@ package body Viewer.Writing is
       end if;
    end Words_Found;
 
-   procedure Move (Item : in out Session; From, To : Positive) is
+   procedure Relocate
+     (Item : in out Session; Row, Index, Dir : Natural);
+   --  Put the row, a document or a directory, before the Indexth row, and
+   --  a document in the directory (none, if 0), and keep that.
+
+   procedure Relocate
+     (Item : in out Session; Row, Index, Dir : Natural) is
    begin
-      Reorder (Item.Write_Order, From, To);
+      if Item.Tree (Row).Kind = Document_Leaf then
+         Item.Doc_Dir (Item.Tree (Row).Doc) := Dir;
+         Item.Tree (Row).Dir := Dir;
+         Keep_Directory (Item, Item.Tree (Row).Doc);
+      end if;
+      Move_Block (Item, Row, Index);
+      Sync_Order (Item);
       Keep_Order (Item);
       Refresh (Item);
+   end Relocate;
+
+   function Last_Of (Item : Session; Dir : Natural) return Positive is
+     (if Dir = 0 then Item.Tree_Count + 1
+      else Block_End (Item, Dir_Row (Item, Dir)) + 1);
+   --  Where a document last in the directory is put (before the row that
+   --  comes after it); Dir_Row cannot be 0 for a directory.
+
+   procedure Move (Item : in out Session; From, To : Positive) is
+      Beside : constant Items.Slot := Item.Write_Order (To);
+   begin
+      if From /= To then
+         Relocate
+           (Item, Leaf_Row (Item, Item.Write_Order (From)),
+            Leaf_Row (Item, Beside) + (if From < To then 1 else 0),
+            Item.Doc_Dir (Beside));
+      end if;
    end Move;
+
+   procedure Move_To_Directory
+     (Item : in out Session; Rank : Positive; Directory : Natural) is
+   begin
+      Relocate
+        (Item, Leaf_Row (Item, Item.Write_Order (Rank)),
+         Last_Of (Item, Directory), Directory);
+   end Move_To_Directory;
+
+   procedure Drop_Row
+     (Item : in out Session; Row : Positive; Target : Drop_Target);
+   --  Put the row where it was dropped.
+
+   procedure Drop_Row
+     (Item : in out Session; Row : Positive; Target : Drop_Target) is
+   begin
+      case Target.Kind is
+         when No_Drop =>
+            null;
+         when Into_Node =>
+            Relocate
+              (Item, Row,
+               Last_Of (Item,
+                        (if Item.Tree (Target.Row).Kind = Directory_Node
+                         then Item.Tree (Target.Row).Dir else 0)),
+               (if Item.Tree (Target.Row).Kind = Directory_Node
+                then Item.Tree (Target.Row).Dir else 0));
+         when Between =>
+            Relocate (Item, Row, Target.Index, Target.Dir);
+      end case;
+   end Drop_Row;
 
    --  What is clicked and dragged
 
+   procedure Select_Directory (Item : in out Session; Directory : Natural) is
+   begin
+      Close_Menu (Item);
+      Item.Shown_Dir := Directory;
+      Refresh (Item);
+      Scrollers.Scroll_To (Item.Pages_Scroll, 0.0);
+      if Item.Mode = Write then
+         Widgets.Layout (Item.Widgets, Item.Target);
+         Fit (Item);
+      end if;
+   end Select_Directory;
+
+   procedure Show_Page (Item : in out Session; Which : Items.Slot);
+   --  Scroll the pages to the document's, showing its directory's first
+   --  if it is not one of those shown.
+
+   procedure Show_Page (Item : in out Session; Which : Items.Slot) is
+   begin
+      if not In_View (Item, Which) then
+         Select_Directory (Item, Item.Doc_Dir (Which));
+      end if;
+      Go_To (Item, Rank_Of (Item, Which));
+   end Show_Page;
+
+   --  Directories
+
+   procedure Begin_Rename_Dir (Item : in out Session; Dir : Positive);
+   --  Put the field to rename the directory over its row, with the focus.
+
+   procedure Begin_Rename_Dir (Item : in out Session; Dir : Positive) is
+      use Yoga.Nodes;
+      Row    : constant Natural := Dir_Row (Item, Dir);
+      Pixels : constant Float := Widgets.Density (Item.Widgets);
+   begin
+      if Row = 0 then
+         return;
+      end if;
+      declare
+         Box : Grips.Grip renames Item.Doc_Rows (Row).Row;
+      begin
+         Docs.Load
+           (Item.Dir_Doc,
+            Projects.Titles.To_String (Item.Dirs.Directories (Dir).Title));
+         Text_Fields.Attach (Item.Dir_Field, Item.Dir_Doc'Unchecked_Access);
+         Set_Position
+           (Widgets.Node (Item.Dir_Field), Yoga.Left,
+            Widgets.Left_Of (Box) - Widgets.Left_Of (Item.Docs_Content));
+         Set_Position
+           (Widgets.Node (Item.Dir_Field), Yoga.Top,
+            Widgets.Top_Of (Box) - Widgets.Top_Of (Item.Docs_Content));
+         Set_Width
+           (Widgets.Node (Item.Dir_Field),
+            Widgets.Width_Of (Box) - UI.Boxes.Offset (Pixels));
+      end;
+      Item.Renaming_Dir := Dir;
+      Widgets.Set_Visible (Item.Dir_Field, True);
+      Widgets.Request_Layout (Item.Dir_Field);
+      Widgets.Layout (Item.Widgets, Item.Target);
+      UI.Text_Areas.Select_All (Text_Fields.Area (Item.Dir_Field).all);
+      Widgets.Focus (Item.Dir_Field);
+   end Begin_Rename_Dir;
+
+   procedure End_Rename_Dir (Item : in out Session);
+   --  Keep the new name of the directory, unless it is only spaces.
+
+   procedure End_Rename_Dir (Item : in out Session) is
+      Content : constant String := Docs.Whole (Item.Dir_Doc);
+      Dir     : constant Natural := Item.Renaming_Dir;
+      First   : Positive := Content'First;
+      Last    : Natural := Content'Last;
+   begin
+      Item.Renaming_Dir := 0;
+      Widgets.Set_Visible (Item.Dir_Field, False);
+      while First <= Last and then Content (First) = ' ' loop
+         First := First + 1;
+      end loop;
+      while Last >= First and then Content (Last) = ' ' loop
+         Last := Last - 1;
+      end loop;
+      if Dir /= 0 and then Last >= First then
+         declare
+            Name : constant String :=
+              Content (First ..
+                       Natural'Min
+                         (Last, First + Projects.Title_Capacity - 1));
+         begin
+            Items.Rename_Directory
+              (Item.Store, Item.Dirs.Directories (Dir).Key, Name);
+            Item.Dirs.Directories (Dir).Title :=
+              Projects.Titles.To_Bounded_String (Name);
+            Projects.Touch (Item.Store, Item.Current);
+         end;
+      end if;
+      Refresh (Item);
+   end End_Rename_Dir;
+
+   procedure Make_Directory (Item : in out Session; Name : String) is
+      Key : constant Items.Id :=
+        Items.Create_Directory (Item.Store, Item.Current, Name);
+   begin
+      Item.Dirs.Count := Item.Dirs.Count + 1;
+      Item.Dirs.Directories (Item.Dirs.Count) :=
+        (Key => Key, Title => Projects.Titles.To_Bounded_String (Name),
+         Position => 0);
+      --  Last of all.
+      Insert_Row
+        (Item, Item.Tree_Count + 1,
+         (Kind => Directory_Node, Dir => Item.Dirs.Count, Doc => 0));
+      Keep_Order (Item);
+      Refresh (Item);
+      Widgets.Layout (Item.Widgets, Item.Target);
+      Begin_Rename_Dir (Item, Item.Dirs.Count);
+   end Make_Directory;
+
+   --  Dragging a row
+
+   function Target_At
+     (Item : Session; X, Y : Float) return Drop_Target;
+   --  Where the row being dragged, dropped at X, Y, in points of the
+   --  window, would go. A document goes into a directory or the Overview
+   --  (the middle of their rows), or between rows: before or after a
+   --  directory (the top and foot of its row, the foot only if it has
+   --  no documents), or above or below another document (by which half
+   --  of its row, or, of the last in a directory, the lowest quarter puts
+   --  it after the directory). A directory goes only between the
+   --  directories and the documents in none, before or after the one
+   --  under the pointer, or the directory it is in.
+
+   function Target_At
+     (Item : Session; X, Y : Float) return Drop_Target
+   is
+      Pixels : constant Float := Widgets.Density (Item.Widgets);
+      Point  : constant Float := Y * Pixels;
+      Moving : constant Tree_Entry := Item.Tree (Item.Drag_Row);
+      Row    : Natural := Item.Tree_Count;
+
+      function Top (Of_Row : Positive) return Float is
+        (Widgets.Top_Of (Item.Doc_Rows (Of_Row).Row));
+
+      function Bottom (Of_Row : Positive) return Float is
+        (Top (Of_Row) + Widgets.Height_Of (Item.Doc_Rows (Of_Row).Row));
+
+      function Between (Index : Positive; Dir : Natural) return Drop_Target
+      is
+         Held : constant Positive := Item.Drag_Row;
+      begin
+         --  Where it already is: nowhere.
+         if Moving.Kind = Document_Leaf then
+            if Index in Held .. Held + 1 and then Dir = Moving.Dir then
+               return (others => <>);
+            end if;
+         elsif Index in Held .. Block_End (Item, Held) + 1 then
+            return (others => <>);
+         end if;
+         return (Kind => Viewer.Between, Row => 0, Index => Index,
+                 Dir => (if Moving.Kind = Document_Leaf then Dir else 0));
+      end Between;
+   begin
+      if not Widgets.Contains (Item.Docs_Scroll, X * Pixels, Point) then
+         return (others => <>);
+      end if;
+      for Each in 1 .. Item.Tree_Count loop
+         if Point < Bottom (Each) then
+            Row := Each;
+            exit;
+         end if;
+      end loop;
+      if Row = 0 or else Row = Item.Drag_Row then
+         return (others => <>);
+      end if;
+      declare
+         Node  : constant Tree_Entry := Item.Tree (Row);
+         Fract : constant Float :=
+           (Point - Top (Row)) / (Bottom (Row) - Top (Row));
+      begin
+         if Moving.Kind = Directory_Node then
+            --  Whole units of the top level: the directory with its
+            --  documents, or a document in none.
+            declare
+               First : constant Natural :=
+                 (case Node.Kind is
+                  when Overview_Node => 0,
+                  when Directory_Node => Row,
+                  when Document_Leaf =>
+                    (if Node.Dir = 0 then Row else Dir_Row (Item, Node.Dir)));
+            begin
+               if First = 0 then
+                  return (others => <>);
+               end if;
+               declare
+                  Last : constant Positive := Block_End (Item, First);
+               begin
+                  return (if Point < (Top (First) + Bottom (Last)) / 2.0
+                          then Between (First, 0)
+                          else Between (Last + 1, 0));
+               end;
+            end;
+         end if;
+         case Node.Kind is
+            when Overview_Node =>
+               return (Kind => Into_Node, Row => Row, others => <>);
+            when Directory_Node =>
+               if Fract < 0.25 then
+                  return Between (Row, 0);
+               elsif Fract >= 0.75 and then Block_End (Item, Row) = Row then
+                  return Between (Row + 1, 0);
+               else
+                  return (Kind => Into_Node, Row => Row, others => <>);
+               end if;
+            when Document_Leaf =>
+               declare
+                  Last : constant Boolean :=
+                    Node.Dir /= 0
+                    and then Block_End (Item, Dir_Row (Item, Node.Dir))
+                             = Row;
+               begin
+                  if Fract < 0.5 then
+                     return Between (Row, Node.Dir);
+                  elsif Last and then Fract >= 0.75 then
+                     return Between (Row + 1, 0);
+                  else
+                     return Between (Row + 1, Node.Dir);
+                  end if;
+               end;
+         end case;
+      end;
+   end Target_At;
+
+   procedure Show_Drop_Line (Item : in out Session);
+   --  Put the line where a row would go between two, or hide it.
+
+   procedure Show_Drop_Line (Item : in out Session) is
+      use Yoga.Nodes;
+      Pixels : constant Float := Widgets.Density (Item.Widgets);
+      Offset : constant Float := UI.Boxes.Offset (Pixels);
+   begin
+      if Item.Drop.Kind /= Between then
+         Widgets.Set_Visible (Item.Drop_Line, False);
+         return;
+      end if;
+      declare
+         --  Below the row before it, in the middle of the gap, and in as
+         --  far as what is in a directory is.
+         Above : Grips.Grip renames Item.Doc_Rows (Item.Drop.Index - 1).Row;
+         Gap   : constant Float := Style.Index_Gap * Pixels - Offset;
+         Mid   : constant Float :=
+           Widgets.Top_Of (Above) + Widgets.Height_Of (Above) + Gap / 2.0;
+         Thick : constant Float := Style.Drop_Line_Height * Pixels;
+         Inset : constant Float :=
+           (if Item.Drop.Dir /= 0 then Style.Tree_Indent * Pixels else 0.0);
+         Edge  : Grips.Grip renames Item.Doc_Rows (1).Row;
+      begin
+         Set_Position
+           (Widgets.Node (Item.Drop_Line), Yoga.Left,
+            Widgets.Left_Of (Edge) - Widgets.Left_Of (Item.Docs_Content)
+            + Inset);
+         Set_Position
+           (Widgets.Node (Item.Drop_Line), Yoga.Top,
+            Float'Rounding
+              (Mid - Thick / 2.0 - Widgets.Top_Of (Item.Docs_Content)));
+         Set_Width (Widgets.Node (Item.Drop_Line),
+                    Widgets.Width_Of (Edge) - Offset - Inset);
+      end;
+      Widgets.Set_Visible (Item.Drop_Line, True);
+      Widgets.Request_Layout (Item.Drop_Line);
+      Widgets.Layout (Item.Widgets, Item.Target);
+   end Show_Drop_Line;
+
    procedure Take_Documents (Item : in out Session);
-   --  The list of documents: a row dragged is put elsewhere in the order;
-   --  one clicked takes the pages to its page.
+   --  The tree of documents: a row dragged is dropped on a directory or
+   --  the Overview (a document's) or between two rows; a row clicked
+   --  shows the directory or goes to the page; a directory's row pressed
+   --  twice is renamed.
 
    procedure Take_Documents (Item : in out Session) is
       Clicked      : Boolean;
+      Doubled      : Boolean;
+      Entered      : Boolean;
       Across, Down : Float;
       Was_Moved    : Boolean := False;
    begin
+      if Item.Renaming_Dir /= 0 then
+         Text_Fields.Take_Return (Item.Dir_Field, Entered);
+         if Entered or else not Widgets.Has_Focus (Item.Dir_Field) then
+            End_Rename_Dir (Item);
+         end if;
+      end if;
       if Item.Drag_Row = 0 then
-         for Row in 1 .. Item.Write_Count loop
+         for Row in 1 .. Item.Tree_Count loop
             if Grips.Is_Dragging (Item.Doc_Rows (Row).Row) then
-               Item.Drag_Row := Row;
-               Item.Drag_Total := 0.0;
-               Item.Drag_Moved := False;
-               Item.Drag_Target := Row;
-               Item.Drag_Start := Item.Write_Order;
+               if Item.Tree (Row).Kind /= Overview_Node then
+                  Item.Drag_Row := Row;
+                  Item.Drag_Total := 0.0;
+                  Item.Drag_Moved := False;
+                  Item.Drop := (others => <>);
+               else
+                  --  The Overview is not put elsewhere.
+                  Grips.Take_Drag (Item.Doc_Rows (Row).Row, Across, Down);
+               end if;
             end if;
          end loop;
       end if;
       if Item.Drag_Row /= 0 then
-         Grips.Take_Drag (Item.Doc_Rows (Item.Drag_Row).Row, Across, Down);
-         Item.Drag_Total := Item.Drag_Total + Down;
-         if abs Item.Drag_Total >= Drag_Threshold then
-            Item.Drag_Moved := True;
-         end if;
-         if Item.Drag_Moved then
-            declare
-               Target : constant Integer :=
-                 Integer'Max
-                   (1, Integer'Min
-                         (Item.Write_Count,
-                          Item.Drag_Row
-                          + Integer
-                              (Float'Rounding
-                                 (Item.Drag_Total / Style.Index_Pitch))));
-            begin
-               if Target /= Item.Drag_Target then
-                  Item.Drag_Target := Target;
-                  Item.Write_Order := Item.Drag_Start;
-                  Reorder (Item.Write_Order, Item.Drag_Row, Target);
-                  Refresh (Item);
-               end if;
-            end;
-         end if;
-         if not Grips.Is_Dragging (Item.Doc_Rows (Item.Drag_Row).Row) then
-            Was_Moved := Item.Drag_Moved;
-            if Was_Moved then
-               Keep_Order (Item);
+         declare
+            Row  : constant Tree_Row := Item.Drag_Row;
+            Grip : Grips.Grip renames Item.Doc_Rows (Row).Row;
+         begin
+            Grips.Take_Drag (Grip, Across, Down);
+            Item.Drag_Total := Item.Drag_Total + abs Across + abs Down;
+            if Item.Drag_Total >= Drag_Threshold
+              and then not Item.Drag_Moved
+            then
+               Item.Drag_Moved := True;
+               Refresh (Item);
             end if;
-            Item.Drag_Row := 0;
-            Item.Drag_Moved := False;
-            Item.Drag_Target := 0;
-            Refresh (Item);
-         end if;
+            if Item.Drag_Moved then
+               declare
+                  X, Y   : Float;
+                  Target : Drop_Target;
+               begin
+                  Grips.Pointer (Grip, X, Y);
+                  Target := Target_At (Item, X, Y);
+                  if Target /= Item.Drop then
+                     Item.Drop := Target;
+                     Refresh (Item);
+                     Show_Drop_Line (Item);
+                  end if;
+               end;
+            end if;
+            if not Grips.Is_Dragging (Grip) then
+               Was_Moved := Item.Drag_Moved;
+               declare
+                  Target : constant Drop_Target := Item.Drop;
+               begin
+                  Item.Drag_Row := 0;
+                  Item.Drag_Moved := False;
+                  Item.Drop := (others => <>);
+                  if Was_Moved then
+                     Drop_Row (Item, Row, Target);
+                  end if;
+               end;
+               Show_Drop_Line (Item);
+               Refresh (Item);
+            end if;
+         end;
       end if;
-      for Row in 1 .. Item.Write_Count loop
-         Grips.Take_Click (Item.Doc_Rows (Row).Row, Clicked);
-         if Clicked and then not Was_Moved and then Item.Drag_Row = 0 then
-            Go_To (Item, Row);
-         end if;
+      for Row in 1 .. Item.Tree_Count loop
+         declare
+            Box  : Grips.Grip renames Item.Doc_Rows (Row).Row;
+            Node : constant Tree_Entry := Item.Tree (Row);
+         begin
+            if Node.Kind = Directory_Node then
+               Grips.Take_Double_Click (Box, Doubled);
+               if Doubled and then Item.Renaming_Dir /= Node.Dir then
+                  --  The press that began it is not let go on its row.
+                  Grips.Cancel_Drag (Box);
+                  Grips.Take_Click (Box, Clicked);
+                  Begin_Rename_Dir (Item, Node.Dir);
+                  return;
+               end if;
+            end if;
+            Grips.Take_Click (Box, Clicked);
+            if Clicked and then not Was_Moved and then Item.Drag_Row = 0 then
+               case Node.Kind is
+                  when Overview_Node =>
+                     Select_Directory (Item, 0);
+                  when Directory_Node =>
+                     if Item.Renaming_Dir /= Node.Dir then
+                        Select_Directory (Item, Node.Dir);
+                     end if;
+                  when Document_Leaf =>
+                     Show_Page (Item, Node.Doc);
+               end case;
+               return;
+            end if;
+         end;
       end loop;
    end Take_Documents;
 
@@ -917,6 +1607,13 @@ package body Viewer.Writing is
       Buttons.Take_Click (Item.Docs_Add, Clicked);
       if Clicked then
          Canvas_Items.Add (Item, Canvas_Items.Untitled_Document);
+         return;
+      end if;
+      Buttons.Take_Click (Item.Docs_Folder, Clicked);
+      if Clicked then
+         if Item.Dirs.Count < Items.Max_Directories then
+            Make_Directory (Item, Untitled_Directory);
+         end if;
          return;
       end if;
       declare
@@ -1057,23 +1754,30 @@ package body Viewer.Writing is
                        (Item.Pages (Rank).Words,
                         Count_Image (Words)
                         & (if Words = 1 then " word" else " words"));
-                     Labels.Set_Text
-                       (Item.Doc_Rows (Rank).Count, Count_Image (Words));
                   end;
                   Buttons.Set_Badge
                     (Item.Pages (Rank).Sources_Button,
                      Linked_Sources (Item, Which));
-                  if Item.Drag_Row = 0 then
-                     Choose_Row
-                       (Item.Doc_Rows (Rank),
-                        Widgets.Has_Focus (Item.Pages (Rank).Text));
-                  end if;
                   Labels.Set_Text
                     (Item.Pages (Rank).Heading,
                      Fitted (Title_Of (Item, Which)));
-                  Labels.Set_Text
-                    (Item.Doc_Rows (Rank).Caption,
-                     Fitted (Title_Of (Item, Which)));
+                  declare
+                     Row : constant Natural := Leaf_Row (Item, Which);
+                  begin
+                     if Row > 0 then
+                        Labels.Set_Text
+                          (Item.Doc_Rows (Row).Count,
+                           Count_Image (Windows.Words (Item.Windows (Which))));
+                        Labels.Set_Text
+                          (Item.Doc_Rows (Row).Caption,
+                           Fitted (Title_Of (Item, Which)));
+                        if Item.Drag_Row = 0 then
+                           Choose_Row
+                             (Item.Doc_Rows (Row),
+                              Widgets.Has_Focus (Item.Pages (Rank).Text));
+                        end if;
+                     end if;
+                  end;
                end if;
             end;
          elsif Is_Source (Item, Which)
@@ -1124,26 +1828,28 @@ package body Viewer.Writing is
                          Float'Min (Style.Page_Width, Room));
          begin
             for Rank in 1 .. Item.Write_Count loop
-               declare
-                  Each : Doc_Page renames Item.Pages (Rank);
-                  High : constant Float :=
-                    Float'Max
-                      (Style.Page_Min_Height,
-                       Float'Ceiling
-                         (UI.Text_Areas.Content_Height
-                            (Editors.Area (Each.Text).all)));
-               begin
-                  if Wide /= Each.Wide then
-                     Set_Width (Widgets.Node (Each.Box), Wide * Pixels);
-                     Each.Wide := Wide;
-                     Changed := True;
-                  end if;
-                  if High /= Each.High then
-                     Set_Height (Widgets.Node (Each.Text), High * Pixels);
-                     Each.High := High;
-                     Changed := True;
-                  end if;
-               end;
+               if In_View (Item, Item.Write_Order (Rank)) then
+                  declare
+                     Each : Doc_Page renames Item.Pages (Rank);
+                     High : constant Float :=
+                       Float'Max
+                         (Style.Page_Min_Height,
+                          Float'Ceiling
+                            (UI.Text_Areas.Content_Height
+                               (Editors.Area (Each.Text).all)));
+                  begin
+                     if Wide /= Each.Wide then
+                        Set_Width (Widgets.Node (Each.Box), Wide * Pixels);
+                        Each.Wide := Wide;
+                        Changed := True;
+                     end if;
+                     if High /= Each.High then
+                        Set_Height (Widgets.Node (Each.Text), High * Pixels);
+                        Each.High := High;
+                        Changed := True;
+                     end if;
+                  end;
+               end if;
             end loop;
          end;
          exit when not Changed;

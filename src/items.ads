@@ -152,6 +152,26 @@ package Items is
    end record;
    --  Keys (1 .. Count).
 
+   Max_Directories : constant := 64;
+   --  Of one project.
+
+   type Directory is record
+      Key   : Id := 0;
+      Position : Natural := 0;
+      --  Where it was put in the tree, with the documents; 0 if never.
+      Title : Projects.Titles.Bounded_String :=
+        Projects.Titles.Null_Bounded_String;
+   end record;
+   --  A folder of the writing view's documents.
+
+   type Directory_Array is array (Positive range <>) of Directory;
+
+   type Directory_List is record
+      Count       : Natural range 0 .. Max_Directories := 0;
+      Directories : Directory_Array (1 .. Max_Directories);
+   end record;
+   --  Directories (1 .. Count), the earliest made first.
+
    procedure Prepare (Store : in out Projects.Store)
      with Pre => Projects.Is_Open (Store);
    --  Make the table, if there is none: once, after the store is opened.
@@ -180,13 +200,56 @@ package Items is
       Result  : out Id_List)
      with Pre => Projects.Is_Open (Store);
    --  The project's items, in the order the writing view lists them: as
-   --  they were put by Save_Order, those since made after, the earliest
+   --  they were put by Set_Position, those never put after, the earliest
    --  made first.
 
-   procedure Save_Order
-     (Store : in out Projects.Store; Keys : Id_Array)
+   function Position_Of (Store : Projects.Store; Key : Id) return Natural
      with Pre => Projects.Is_Open (Store);
-   --  Keep Keys as the order of the items they are of.
+   --  Where the item was put, from 1; 0 if never.
+
+   procedure Set_Position
+     (Store : in out Projects.Store; Key : Id; Position : Positive)
+     with Pre => Projects.Is_Open (Store);
+   --  Put the item at the place in the order, which is shared with the
+   --  directories (Set_Directory_Position): the tree's rows.
+
+   procedure Set_Directory_Position
+     (Store : in out Projects.Store; Key : Id; Position : Positive)
+     with Pre => Projects.Is_Open (Store);
+
+   function Directory_Count
+     (Store : Projects.Store; Project : Projects.Id) return Natural
+     with Pre => Projects.Is_Open (Store);
+
+   function Create_Directory
+     (Store   : in out Projects.Store;
+      Project : Projects.Id;
+      Title   : String) return Id
+     with Pre => Projects.Is_Open (Store)
+                 and then Directory_Count (Store, Project) < Max_Directories;
+   --  Add a directory to the project, after those it has.
+
+   procedure Load_Directories
+     (Store   : Projects.Store;
+      Project : Projects.Id;
+      Result  : out Directory_List)
+     with Pre => Projects.Is_Open (Store);
+   --  The project's directories, in the order they were put in, those
+   --  never put after, the earliest made first.
+
+   procedure Rename_Directory
+     (Store : in out Projects.Store; Key : Id; Title : String)
+     with Pre => Projects.Is_Open (Store);
+
+   function Directory_Of (Store : Projects.Store; Key : Id) return Id
+     with Pre => Projects.Is_Open (Store);
+   --  The directory the item is in, 0 if it is at the top level (or there
+   --  is no such item).
+
+   procedure Set_Directory
+     (Store : in out Projects.Store; Key : Id; Into : Id)
+     with Pre => Projects.Is_Open (Store);
+   --  Put the item in the directory, or at the top level if it is 0.
 
    function Count
      (Store : Projects.Store; Project : Projects.Id) return Natural

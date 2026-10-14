@@ -109,6 +109,29 @@ package body Items is
    Has_Position : constant String :=
      "SELECT count(*) FROM pragma_table_info('items') WHERE name = 'position'";
 
+   Has_Directory : constant String :=
+     "SELECT count(*) FROM pragma_table_info('items') "
+     & "WHERE name = 'directory_id'";
+
+   Add_Directory : constant String :=
+     "ALTER TABLE items ADD COLUMN directory_id INTEGER NOT NULL DEFAULT 0";
+
+   Directories_Schema : constant String :=
+     "CREATE TABLE IF NOT EXISTS directories ("
+     & "id INTEGER PRIMARY KEY, "
+     & "project_id INTEGER NOT NULL "
+     & "REFERENCES projects (id) ON DELETE CASCADE, "
+     & "title TEXT NOT NULL, "
+     & "position INTEGER NOT NULL DEFAULT 0)";
+
+   Has_Directory_Position : constant String :=
+     "SELECT count(*) FROM pragma_table_info('directories') "
+     & "WHERE name = 'position'";
+
+   Add_Directory_Position : constant String :=
+     "ALTER TABLE directories ADD COLUMN position "
+     & "INTEGER NOT NULL DEFAULT 0";
+
    Index : constant String :=
      "CREATE INDEX IF NOT EXISTS items_project ON items (project_id, id)";
 
@@ -265,6 +288,27 @@ package body Items is
             Ada_Sqlite3.Execute (DB (Store).all, Add_Position);
          end if;
       end;
+      declare
+         Query : Ada_Sqlite3.Statement :=
+           Ada_Sqlite3.Prepare (DB (Store).all, Has_Directory);
+      begin
+         if Ada_Sqlite3.Step (Query) = Ada_Sqlite3.ROW
+           and then Ada_Sqlite3.Column_Int (Query, 0) = 0
+         then
+            Ada_Sqlite3.Execute (DB (Store).all, Add_Directory);
+         end if;
+      end;
+      Ada_Sqlite3.Execute (DB (Store).all, Directories_Schema);
+      declare
+         Query : Ada_Sqlite3.Statement :=
+           Ada_Sqlite3.Prepare (DB (Store).all, Has_Directory_Position);
+      begin
+         if Ada_Sqlite3.Step (Query) = Ada_Sqlite3.ROW
+           and then Ada_Sqlite3.Column_Int (Query, 0) = 0
+         then
+            Ada_Sqlite3.Execute (DB (Store).all, Add_Directory_Position);
+         end if;
+      end;
       Ada_Sqlite3.Execute (DB (Store).all, Words_Schema);
       Ada_Sqlite3.Execute (DB (Store).all, Marks_Schema);
       Ada_Sqlite3.Execute (DB (Store).all, Links_Schema);
@@ -366,24 +410,135 @@ package body Items is
       end loop;
    end Load_Order;
 
-   procedure Save_Order
-     (Store : in out Projects.Store; Keys : Id_Array) is
+   function Create_Directory
+     (Store   : in out Projects.Store;
+      Project : Projects.Id;
+      Title   : String) return Id
+   is
+      Insert : Ada_Sqlite3.Statement :=
+        Ada_Sqlite3.Prepare
+          (DB (Store).all,
+           "INSERT INTO directories (project_id, title) "
+           & "VALUES (:project, :title)");
    begin
-      for Place in Keys'Range loop
-         declare
-            Update : Ada_Sqlite3.Statement :=
-              Ada_Sqlite3.Prepare
-                (DB (Store).all,
-                 "UPDATE items SET position = :position WHERE id = :id");
-         begin
-            Ada_Sqlite3.Bind_Int
-              (Update, ":position", Place - Keys'First + 1);
-            Ada_Sqlite3.Bind_Int64
-              (Update, ":id", Long_Integer (Keys (Place)));
-            Ada_Sqlite3.Step (Update);
-         end;
+      Ada_Sqlite3.Bind_Int64 (Insert, ":project", Long_Integer (Project));
+      Ada_Sqlite3.Bind_Text (Insert, ":title", Title);
+      Ada_Sqlite3.Step (Insert);
+      return Id (Ada_Sqlite3.Last_Insert_Row_ID (DB (Store).all));
+   end Create_Directory;
+
+   procedure Load_Directories
+     (Store   : Projects.Store;
+      Project : Projects.Id;
+      Result  : out Directory_List)
+   is
+      Query : Ada_Sqlite3.Statement :=
+        Ada_Sqlite3.Prepare
+          (DB (Store).all,
+           "SELECT id, title, position FROM directories "
+           & "WHERE project_id = :project "
+           & "ORDER BY position = 0, position, id LIMIT :limit");
+   begin
+      Result.Count := 0;
+      Ada_Sqlite3.Bind_Int64 (Query, ":project", Long_Integer (Project));
+      Ada_Sqlite3.Bind_Int (Query, ":limit", Max_Directories);
+      while Ada_Sqlite3.Step (Query) = Ada_Sqlite3.ROW loop
+         pragma Assert (Result.Count < Max_Directories);
+         Result.Count := Result.Count + 1;
+         Result.Directories (Result.Count) :=
+           (Key   => Id (Ada_Sqlite3.Column_Int64 (Query, 0)),
+            Title => Projects.Titles.To_Bounded_String
+              (Ada_Sqlite3.Column_Text (Query, 1), Ada.Strings.Right),
+            Position => Natural'Max (0, Ada_Sqlite3.Column_Int (Query, 2)));
       end loop;
-   end Save_Order;
+   end Load_Directories;
+
+   function Position_Of (Store : Projects.Store; Key : Id) return Natural is
+      Query : Ada_Sqlite3.Statement :=
+        Ada_Sqlite3.Prepare
+          (DB (Store).all, "SELECT position FROM items WHERE id = :id");
+   begin
+      Ada_Sqlite3.Bind_Int64 (Query, ":id", Long_Integer (Key));
+      return (if Ada_Sqlite3.Step (Query) = Ada_Sqlite3.ROW
+              then Natural'Max (0, Ada_Sqlite3.Column_Int (Query, 0))
+              else 0);
+   end Position_Of;
+
+   procedure Set_Position
+     (Store : in out Projects.Store; Key : Id; Position : Positive)
+   is
+      Update : Ada_Sqlite3.Statement :=
+        Ada_Sqlite3.Prepare
+          (DB (Store).all,
+           "UPDATE items SET position = :position WHERE id = :id");
+   begin
+      Ada_Sqlite3.Bind_Int (Update, ":position", Position);
+      Ada_Sqlite3.Bind_Int64 (Update, ":id", Long_Integer (Key));
+      Ada_Sqlite3.Step (Update);
+   end Set_Position;
+
+   procedure Set_Directory_Position
+     (Store : in out Projects.Store; Key : Id; Position : Positive)
+   is
+      Update : Ada_Sqlite3.Statement :=
+        Ada_Sqlite3.Prepare
+          (DB (Store).all,
+           "UPDATE directories SET position = :position WHERE id = :id");
+   begin
+      Ada_Sqlite3.Bind_Int (Update, ":position", Position);
+      Ada_Sqlite3.Bind_Int64 (Update, ":id", Long_Integer (Key));
+      Ada_Sqlite3.Step (Update);
+   end Set_Directory_Position;
+
+   function Directory_Count
+     (Store : Projects.Store; Project : Projects.Id) return Natural
+   is
+      Query : Ada_Sqlite3.Statement :=
+        Ada_Sqlite3.Prepare
+          (DB (Store).all,
+           "SELECT count(*) FROM directories WHERE project_id = :project");
+   begin
+      Ada_Sqlite3.Bind_Int64 (Query, ":project", Long_Integer (Project));
+      return (if Ada_Sqlite3.Step (Query) = Ada_Sqlite3.ROW
+              then Ada_Sqlite3.Column_Int (Query, 0) else 0);
+   end Directory_Count;
+
+   procedure Rename_Directory
+     (Store : in out Projects.Store; Key : Id; Title : String)
+   is
+      Update : Ada_Sqlite3.Statement :=
+        Ada_Sqlite3.Prepare
+          (DB (Store).all,
+           "UPDATE directories SET title = :title WHERE id = :id");
+   begin
+      Ada_Sqlite3.Bind_Text (Update, ":title", Title);
+      Ada_Sqlite3.Bind_Int64 (Update, ":id", Long_Integer (Key));
+      Ada_Sqlite3.Step (Update);
+   end Rename_Directory;
+
+   function Directory_Of (Store : Projects.Store; Key : Id) return Id is
+      Query : Ada_Sqlite3.Statement :=
+        Ada_Sqlite3.Prepare
+          (DB (Store).all,
+           "SELECT directory_id FROM items WHERE id = :id");
+   begin
+      Ada_Sqlite3.Bind_Int64 (Query, ":id", Long_Integer (Key));
+      return (if Ada_Sqlite3.Step (Query) = Ada_Sqlite3.ROW
+              then Id (Ada_Sqlite3.Column_Int64 (Query, 0)) else 0);
+   end Directory_Of;
+
+   procedure Set_Directory
+     (Store : in out Projects.Store; Key : Id; Into : Id)
+   is
+      Update : Ada_Sqlite3.Statement :=
+        Ada_Sqlite3.Prepare
+          (DB (Store).all,
+           "UPDATE items SET directory_id = :directory WHERE id = :id");
+   begin
+      Ada_Sqlite3.Bind_Int64 (Update, ":directory", Long_Integer (Into));
+      Ada_Sqlite3.Bind_Int64 (Update, ":id", Long_Integer (Key));
+      Ada_Sqlite3.Step (Update);
+   end Set_Directory;
 
    function Count
      (Store : Projects.Store; Project : Projects.Id) return Natural

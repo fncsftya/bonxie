@@ -14,7 +14,7 @@ package UI.Icons is
      (Edit, Delete, Window, Minimize, Restore, Close, List, Show, Hide, Link,
       Cursor, Eraser, Stroke_Solid, Stroke_Dots, Stroke_Dashed, End_Plain,
       End_Arrow, Microphone, Stop, Pin, Plus, Back, Document, Settings,
-      Chevron_Down, Chevron_Up, Check, Highlighter);
+      Chevron_Down, Chevron_Up, Check, Highlighter, Folder);
    --  The file of each is its name in lower case, with ".svg".
 
    File_Extension : constant String := ".svg";

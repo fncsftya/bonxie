@@ -445,19 +445,10 @@ package body Viewer.Build is
         (Scroll   : in out Scrollers.Scroller;
          Content  : in out Panels.Panel;
          None     : in out Labels.Label;
-         Rows     : in out Index_Row_Array;
-         Empty    : String;
-         Counted  : Boolean) is
+         Empty    : String) is
       begin
          Widgets.Add (Item.Sidebar, Scroll);
          Widgets.Add (Scroll, Content);
-         Widgets.Add (Content, None);
-         for Each of Rows loop
-            Widgets.Add (Content, Each.Row);
-            Widgets.Add (Each.Row, Each.Tag);
-            Widgets.Add (Each.Row, Each.Caption);
-            Widgets.Add (Each.Row, Each.Count);
-         end loop;
          Labels.Set_Text (None, Empty);
          Labels.Set_Ink (None, Closed_Ink);
          --  As tall as its rows, if there is room; the second list
@@ -470,42 +461,50 @@ package body Viewer.Build is
          Set_Gap
            (Widgets.Node (Content), Yoga.All_Gutters,
             Index_Gap * Pixels - Offset);
-         Set_Height (Widgets.Node (None), Index_Height * Pixels);
-         for Each of Rows loop
-            --  Each row casts a shadow, inside its box: it is that much
-            --  taller, and the gap less.
-            Grips.Set_Fill (Each.Row, Row_Fill);
-            Grips.Set_Hover_Fill (Each.Row, Row_Hover);
-            Grips.Set_Border (Each.Row, Themes.Border);
-            Grips.Set_Shadow (Each.Row, Side_Fill);
-            Grips.Set_Wanted_Cursor (Each.Row, SDL3.Cursors.Pointer);
-            Set_Height
-              (Widgets.Node (Each.Row), Index_Height * Pixels + Offset);
-            Set_Flex_Shrink (Widgets.Node (Each.Row), 0.0);
-            Set_Flex_Direction (Widgets.Node (Each.Row), Yoga.Row);
-            Set_Align_Items (Widgets.Node (Each.Row), Yoga.Center);
-            Set_Padding
-              (Widgets.Node (Each.Row), Yoga.Left, Index_Pad * Pixels);
-            Set_Padding
-              (Widgets.Node (Each.Row), Yoga.Right,
-               Index_Pad * Pixels + Offset);
-            Set_Padding (Widgets.Node (Each.Row), Yoga.Bottom, Offset);
-            Set_Width (Widgets.Node (Each.Tag), Tag_Size * Pixels);
-            Set_Height (Widgets.Node (Each.Tag), Tag_Size * Pixels);
-            Set_Flex_Shrink (Widgets.Node (Each.Tag), 0.0);
-            Set_Margin
-              (Widgets.Node (Each.Tag), Yoga.Right, Index_Pad * Pixels);
-            Widgets.Set_Visible (Each.Tag, not Counted);
-            Set_Flex_Grow (Widgets.Node (Each.Caption), 1.0);
-            Set_Width (Widgets.Node (Each.Caption), 0.0);
-            Set_Height (Widgets.Node (Each.Caption), Index_Height * Pixels);
-            Labels.Set_Trailing (Each.Count, True);
-            Labels.Set_Ink (Each.Count, Quiet_Ink);
-            Set_Width (Widgets.Node (Each.Count), Count_Width * Pixels);
-            Set_Height (Widgets.Node (Each.Count), Index_Height * Pixels);
-            Widgets.Set_Visible (Each.Count, Counted);
-         end loop;
       end Build_Index;
+
+      procedure Build_Row
+        (Content : in out Panels.Panel;
+         Each    : in out Index_Row;
+         Counted : Boolean) is
+      begin
+         Widgets.Add (Content, Each.Row);
+         Widgets.Add (Each.Row, Each.Tag);
+         Widgets.Add (Each.Row, Each.Caption);
+         Widgets.Add (Each.Row, Each.Count);
+         --  Each row casts a shadow, inside its box: it is that much
+         --  taller, and the gap less.
+         Grips.Set_Fill (Each.Row, Row_Fill);
+         Grips.Set_Hover_Fill (Each.Row, Row_Hover);
+         Grips.Set_Border (Each.Row, Themes.Border);
+         Grips.Set_Shadow (Each.Row, Side_Fill);
+         Grips.Set_Wanted_Cursor (Each.Row, SDL3.Cursors.Pointer);
+         Set_Height
+           (Widgets.Node (Each.Row), Index_Height * Pixels + Offset);
+         Set_Flex_Shrink (Widgets.Node (Each.Row), 0.0);
+         Set_Flex_Direction (Widgets.Node (Each.Row), Yoga.Row);
+         Set_Align_Items (Widgets.Node (Each.Row), Yoga.Center);
+         Set_Padding
+           (Widgets.Node (Each.Row), Yoga.Left, Index_Pad * Pixels);
+         Set_Padding
+           (Widgets.Node (Each.Row), Yoga.Right,
+            Index_Pad * Pixels + Offset);
+         Set_Padding (Widgets.Node (Each.Row), Yoga.Bottom, Offset);
+         Set_Width (Widgets.Node (Each.Tag), Tag_Size * Pixels);
+         Set_Height (Widgets.Node (Each.Tag), Tag_Size * Pixels);
+         Set_Flex_Shrink (Widgets.Node (Each.Tag), 0.0);
+         Set_Margin
+           (Widgets.Node (Each.Tag), Yoga.Right, Index_Pad * Pixels);
+         Widgets.Set_Visible (Each.Tag, not Counted);
+         Set_Flex_Grow (Widgets.Node (Each.Caption), 1.0);
+         Set_Width (Widgets.Node (Each.Caption), 0.0);
+         Set_Height (Widgets.Node (Each.Caption), Index_Height * Pixels);
+         Labels.Set_Trailing (Each.Count, True);
+         Labels.Set_Ink (Each.Count, Quiet_Ink);
+         Set_Width (Widgets.Node (Each.Count), Count_Width * Pixels);
+         Set_Height (Widgets.Node (Each.Count), Index_Height * Pixels);
+         Widgets.Set_Visible (Each.Count, Counted);
+      end Build_Row;
 
       procedure Heading (Label : in out Labels.Label; Name : String) is
       begin
@@ -519,14 +518,27 @@ package body Viewer.Build is
       Widgets.Add (Item.Write_View, Item.Sidebar);
       Widgets.Add (Item.Sidebar, Item.Docs_Head);
       Widgets.Add (Item.Docs_Head, Item.Docs_Heading);
+      Widgets.Add (Item.Docs_Head, Item.Docs_Folder);
       Widgets.Add (Item.Docs_Head, Item.Docs_Add);
       Build_Index
-        (Item.Docs_Scroll, Item.Docs_Content, Item.Docs_None,
-         Item.Doc_Rows, No_Documents, Counted => True);
+        (Item.Docs_Scroll, Item.Docs_Content, Item.Docs_None, No_Documents);
+      for Each of Item.Doc_Rows loop
+         Build_Row (Item.Docs_Content, Each, Counted => True);
+         Panels.Set_Fill (Each.Tag, Quiet_Ink);
+      end loop;
+      Widgets.Add (Item.Docs_Content, Item.Docs_None);
+      Set_Height (Widgets.Node (Item.Docs_None), Index_Height * Pixels);
+      Widgets.Add (Item.Docs_Content, Item.Drop_Line);
+      Widgets.Add (Item.Docs_Content, Item.Dir_Field);
       Widgets.Add (Item.Sidebar, Item.Sources_Heading);
       Build_Index
         (Item.Sources_Scroll, Item.Sources_Content, Item.Sources_None,
-         Item.Source_Rows, No_Sources, Counted => False);
+         No_Sources);
+      for Each of Item.Source_Rows loop
+         Build_Row (Item.Sources_Content, Each, Counted => False);
+      end loop;
+      Widgets.Add (Item.Sources_Content, Item.Sources_None);
+      Set_Height (Widgets.Node (Item.Sources_None), Index_Height * Pixels);
       Widgets.Add (Item.Write_View, Item.Sidebar_Rule);
       Widgets.Add (Item.Write_View, Item.Pages_Scroll);
       Widgets.Add (Item.Pages_Scroll, Item.Pages_Content);
@@ -592,6 +604,29 @@ package body Viewer.Build is
       Buttons.Set_Icon_Size (Item.Docs_Add, Mic_Icon_Size);
       Set_Width (Widgets.Node (Item.Docs_Add), Add_Size * Pixels);
       Set_Height (Widgets.Node (Item.Docs_Add), Add_Size * Pixels);
+      Buttons.Set_Label (Item.Docs_Folder, "New folder");
+      Buttons.Set_Icon (Item.Docs_Folder, UI.Icons.Folder);
+      Buttons.Set_Icon_Size (Item.Docs_Folder, Mic_Icon_Size);
+      Set_Width (Widgets.Node (Item.Docs_Folder), Add_Size * Pixels);
+      Set_Height (Widgets.Node (Item.Docs_Folder), Add_Size * Pixels);
+      Set_Gap
+        (Widgets.Node (Item.Docs_Head), Yoga.All_Gutters,
+         Index_Gap * Pixels);
+
+      --  Over the rows of the tree, out of their layout: the line where a
+      --  document dragged would go between two, and the field to rename
+      --  a directory by.
+      Panels.Set_Fill (Item.Drop_Line, UI.Themes.Accent);
+      Set_Position_Type (Widgets.Node (Item.Drop_Line), Yoga.Absolute);
+      Set_Height (Widgets.Node (Item.Drop_Line), Drop_Line_Height * Pixels);
+      Widgets.Set_Visible (Item.Drop_Line, False);
+      Text_Fields.Set_Shared
+        (Item.Dir_Field, Item.Doc_Resources'Unchecked_Access);
+      Text_Fields.Configure
+        (Item.Dir_Field, UI.Line_Texts.Interface_Font, Edit_Size);
+      Set_Position_Type (Widgets.Node (Item.Dir_Field), Yoga.Absolute);
+      Set_Height (Widgets.Node (Item.Dir_Field), Index_Height * Pixels);
+      Widgets.Set_Visible (Item.Dir_Field, False);
 
       --  The pages, scrolled, one above the next, and the button to add
       --  one after them.

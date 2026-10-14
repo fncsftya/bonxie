@@ -44,6 +44,21 @@ private package Viewer.Writing is
      with Pre => From <= Item.Write_Count and then To <= Item.Write_Count;
    --  Put the From-th page at the To-th, and keep the order.
 
+   procedure Move_To_Directory
+     (Item : in out Session; Rank : Positive; Directory : Natural)
+     with Pre => Rank <= Item.Write_Count
+                 and then Directory <= Item.Dirs.Count;
+   --  Put the Rankth page last in the directory (none, if 0), and keep it.
+
+   procedure Make_Directory (Item : in out Session; Name : String)
+     with Pre => Item.Dirs.Count < Items.Max_Directories;
+   --  Make a directory, put its row last of the directories, and begin to
+   --  rename it.
+
+   procedure Select_Directory (Item : in out Session; Directory : Natural)
+     with Pre => Directory <= Item.Dirs.Count;
+   --  Show only the pages of the directory (all, if 0).
+
    procedure Take (Item : in out Session)
      with Pre => Screen (Item) = Project and then Item.Mode = Write;
    --  Do what the lists, the sources' windows and the pane were clicked

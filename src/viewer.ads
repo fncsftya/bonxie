@@ -264,6 +264,45 @@ package Viewer is
    --  Put the From-th page at the To-th, as dragging its row in the list
    --  does, and keep that order.
 
+   function Directory_Count (Item : Session) return Natural
+     with Pre => Is_Open (Item) and then Screen (Item) = Project;
+   --  How many directories the documents are in.
+
+   function Directory_Title (Item : Session; Row : Positive) return String
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Directory_Count (Item);
+
+   procedure Add_Directory
+     (Item : in out Session; Name : String := "Untitled folder")
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Directory_Count (Item) < Items.Max_Directories
+                 and then Name'Length <= Projects.Title_Capacity;
+   --  Make a directory, as the button in the sidebar does, and begin to
+   --  rename it.
+
+   function Document_Directory
+     (Item : Session; Row : Positive) return Natural
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Document_Count (Item);
+   --  Which directory the Rowth page is in, 0 if none.
+
+   procedure Move_Document_To
+     (Item : in out Session; Row : Positive; Directory : Natural)
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Document_Count (Item)
+                 and then Directory <= Directory_Count (Item);
+   --  Put the Rowth page last in the directory (none, if 0), as dropping
+   --  its row on that directory's, or on the Overview's, does, and keep it.
+
+   function Shown_Directory (Item : Session) return Natural
+     with Pre => Is_Open (Item) and then Screen (Item) = Project;
+   --  The directory whose pages are shown in the writing view, 0 for all.
+
+   procedure Show_Directory (Item : in out Session; Directory : Natural)
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Directory <= Directory_Count (Item);
+   --  As clicking its row does (0, the Overview's).
+
    function Source_Count (Item : Session) return Natural
      with Pre => Is_Open (Item) and then Screen (Item) = Project;
    --  How many sources there are, listed beside the pages.
@@ -475,6 +514,7 @@ private
 
    type Item_Row_Array is array (Items.Slot) of Item_Row;
    type Slot_Array is array (Items.Slot) of Items.Slot;
+   type Dir_Array is array (Items.Slot) of Natural;
 
    type Pin_Grid is
      array (Items.Slot, Items.Sides) of aliased UI.Widgets.Pins.Pin;
@@ -523,6 +563,42 @@ private
 
    type Page_Array is array (Items.Slot) of Doc_Page;
 
+   Tree_Capacity : constant := 1 + Items.Max_Directories + Items.Capacity;
+   --  The rows of the tree of documents: the Overview, every directory,
+   --  and every document.
+
+   subtype Tree_Row is Positive range 1 .. Tree_Capacity;
+
+   type Tree_Kinds is (Overview_Node, Directory_Node, Document_Leaf);
+
+   type Tree_Entry is record
+      Kind : Tree_Kinds := Overview_Node;
+      Dir  : Natural := 0;
+      --  Of a directory, which it is (of Dirs); of a document, the
+      --  directory it is in, 0 if none.
+      Doc  : Natural := 0;
+      --  Of a document, its window.
+   end record;
+   --  What a row of the tree is of.
+
+   type Tree_Entry_Array is array (Tree_Row) of Tree_Entry;
+
+   type Drop_Kinds is (No_Drop, Into_Node, Between);
+   --  Where a row dragged would go: nowhere, into the Overview or a
+   --  directory (the row of the tree under the pointer), or between two
+   --  rows of the tree.
+
+   type Drop_Target is record
+      Kind  : Drop_Kinds := No_Drop;
+      Row   : Natural := 0;
+      --  Of Into_Node: the row dropped on.
+      Index : Natural := 0;
+      --  Of Between: the row it would be put before (one past the last
+      --  if it goes last).
+      Dir   : Natural := 0;
+      --  Of Between: the directory it would be in, 0 if none.
+   end record;
+
    type Index_Row is limited record
       Row     : UI.Widgets.Grips.Grip;
       --  Clicked to go to the document, or to open the source; dragged to
@@ -531,11 +607,15 @@ private
       --  Of a source: a square of its colour.
       Caption : UI.Widgets.Labels.Label;
       Count   : UI.Widgets.Labels.Label;
-      --  Of a document: how many words it has.
+      --  Of a document: how many words it has; of a directory, how many
+      --  documents.
+      Indent  : Float := 0.0;
+      --  How far in, in points, it has been put.
    end record;
    --  A row of a list in the writing view's sidebar.
 
    type Index_Row_Array is array (Items.Slot) of Index_Row;
+   type Tree_Row_Array is array (Tree_Row) of Index_Row;
 
    type Sync_State is record
       Own, Peer : Natural := 0;
@@ -686,7 +766,8 @@ private
       Docs_Head     : UI.Widgets.Panels.Panel;
       Docs_Heading  : UI.Widgets.Labels.Label;
       Docs_Add      : UI.Widgets.Buttons.Button;
-      --  Beside the name of the list: adds a document.
+      Docs_Folder   : UI.Widgets.Buttons.Button;
+      --  Beside the name of the list: add a document, and a directory.
       Docs_Scroll   : UI.Widgets.Scrollers.Scroller;
       Docs_Content  : UI.Widgets.Panels.Panel;
       Docs_None     : UI.Widgets.Labels.Label;
@@ -780,7 +861,29 @@ private
       Pages        : Page_Array;
       --  The pages of the writing view: after Windows, whose documents
       --  they show.
-      Doc_Rows     : Index_Row_Array;
+      Doc_Rows     : Tree_Row_Array;
+      Tree         : Tree_Entry_Array;
+      Tree_Count   : Natural := 0;
+      --  The rows of the documents' tree, from the top: the Overview,
+      --  then each directory directly followed by its documents, and
+      --  the documents in none among them. What each is of.
+      Dirs         : Items.Directory_List;
+      Doc_Dir      : Dir_Array := [others => 0];
+      --  The directories, and which of them each document's window is in,
+      --  0 if none. Tree is the order of it all.
+      Shown_Dir    : Natural := 0;
+      --  The directory whose documents are the pages, 0 for the Overview:
+      --  all of them.
+      Drop         : Drop_Target;
+      --  Where the document being dragged would go.
+      Drop_Line    : UI.Widgets.Panels.Panel;
+      --  The line between two rows where it would go between documents,
+      --  over the rows and out of the way of their layout.
+      Dir_Field    : UI.Widgets.Text_Fields.Text_Field;
+      Dir_Doc      : aliased Texts.Documents.Document;
+      Renaming_Dir : Natural := 0;
+      --  The directory being renamed, 0 if none, in the field over its
+      --  row.
       Source_Rows  : Index_Row_Array;
       Readers      : Items.Readers.Reader_Array;
       --  The windows of the sources in the writing view, of the same
@@ -801,9 +904,7 @@ private
       --  The window of the source in the pane, 0 if none.
       Drag_Row     : Natural := 0;
       Drag_Total   : Float := 0.0;
-      Drag_Start   : Slot_Array := [others => 1];
       Drag_Moved   : Boolean := False;
-      Drag_Target  : Natural := 0;
       --  The row of the list of documents being dragged, how far, and the
       --  order when it was pressed.
       Pins         : Pin_Grid;

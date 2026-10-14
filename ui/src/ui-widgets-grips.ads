@@ -27,6 +27,10 @@ package UI.Widgets.Grips is
    --  with: a bar to drag by, and the widgets on it. By default it fills
    --  with nothing.
 
+   procedure Clear_Fill (Item : in out Grip);
+   --  Fill nothing: as when it is new. Not the fill it has while the
+   --  pointer is over it, if that is set.
+
    procedure Set_Border
      (Item : in out Grip; Value : Themes.Slot; Dashed : Boolean := False);
    --  Outline its face a point wide in Value, in dashes if Dashed.
@@ -62,6 +66,10 @@ package UI.Widgets.Grips is
    procedure Take_Drag (Item : in out Grip; Across, Down : out Float);
    --  How far the pointer has gone, in points to the right and down,
    --  since this was last called, and forget it.
+
+   procedure Pointer (Item : Grip; X, Y : out Float);
+   --  Where the pointer was, in points of the window, at the last press on
+   --  it or move of the pointer while it was held.
 
    procedure Cancel_Drag (Item : in out Grip)
      with Post => not Is_Dragging (Item);

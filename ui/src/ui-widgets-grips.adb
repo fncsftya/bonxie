@@ -37,6 +37,14 @@ package body UI.Widgets.Grips is
       end if;
    end Set_Fill;
 
+   procedure Clear_Fill (Item : in out Grip) is
+   begin
+      if Item.Look.Filled then
+         Item.Look.Filled := False;
+         Refresh (Item);
+      end if;
+   end Clear_Fill;
+
    procedure Set_Border
      (Item : in out Grip; Value : Themes.Slot; Dashed : Boolean := False)
    is
@@ -140,6 +148,12 @@ package body UI.Widgets.Grips is
    end Take_Drag;
 
    function Is_Dragging (Item : Grip) return Boolean is (Item.Held);
+
+   procedure Pointer (Item : Grip; X, Y : out Float) is
+   begin
+      X := Item.Last_X;
+      Y := Item.Last_Y;
+   end Pointer;
 
    procedure Cancel_Drag (Item : in out Grip) is
    begin
