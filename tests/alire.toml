@@ -21,16 +21,16 @@ texts = "*"
 
 [[pins]]
 bonxie = { path = ".." }
-pomarine_goldens = { path = "../../pomarine/goldens" }
-pomarine_ui = { path = "../../pomarine/ui" }
-coretext = { path = "../../pomarine/coretext" }
-sdl3 = { path = "../../pomarine/sdl3" }
+pomarine_goldens = { path = "../pomarine/goldens" }
+pomarine_ui = { path = "../pomarine/ui" }
+coretext = { path = "../pomarine/coretext" }
+sdl3 = { path = "../pomarine/sdl3" }
 speech = { path = "../speech" }
-texts = { path = "../../pomarine/texts" }
-typeset = { path = "../../pomarine/typeset" }
+texts = { path = "../pomarine/texts" }
+typeset = { path = "../pomarine/typeset" }
 vision = { path = "../vision" }
 webshot = { path = "../webshot" }
-yoga = { path = "../../pomarine/yoga" }
+yoga = { path = "../pomarine/yoga" }
 
 [build-switches]
 "*".ada_version = "Ada2022"

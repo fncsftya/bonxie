@@ -15,12 +15,12 @@ macos = true
 pomarine_ui = "*"
 
 [[pins]]
-pomarine_ui = { path = "../../pomarine/ui" }
-coretext = { path = "../../pomarine/coretext" }
-sdl3 = { path = "../../pomarine/sdl3" }
-texts = { path = "../../pomarine/texts" }
-typeset = { path = "../../pomarine/typeset" }
-yoga = { path = "../../pomarine/yoga" }
+pomarine_ui = { path = "../pomarine/ui" }
+coretext = { path = "../pomarine/coretext" }
+sdl3 = { path = "../pomarine/sdl3" }
+texts = { path = "../pomarine/texts" }
+typeset = { path = "../pomarine/typeset" }
+yoga = { path = "../pomarine/yoga" }
 
 [build-switches]
 "*".ada_version = "Ada2022"

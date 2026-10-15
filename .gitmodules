@@ -1,0 +1,3 @@
+[submodule "pomarine"]
+	path = pomarine
+	url = https://github.com/fncsftya/pomarine.git
