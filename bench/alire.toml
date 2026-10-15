@@ -15,6 +15,7 @@ macos = true
 
 [[depends-on]]
 bonxie = "*"
+pomarine_native = "*"
 pomarine_ui = "*"
 coretext = "*"
 sdl3 = "*"
@@ -24,6 +25,7 @@ yoga = "*"
 
 [[pins]]
 bonxie = { path = ".." }
+pomarine_native = { path = "../pomarine/native" }
 pomarine_ui = { path = "../pomarine/ui" }
 coretext = { path = "../pomarine/coretext" }
 sdl3 = { path = "../pomarine/sdl3" }

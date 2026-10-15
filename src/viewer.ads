@@ -15,7 +15,9 @@ private with SDL3.Windows;
 private with Scripts;
 private with Texts.Documents;
 private with Typeset.Views;
+private with Pomarine.Accessibility;
 private with Pomarine.Clipboards;
+private with Pomarine.Native_Menus;
 private with Pomarine.Icons;
 private with Pomarine.Line_Texts;
 private with Pomarine.Widgets;
@@ -637,6 +639,9 @@ private
    type Host_Resources is limited record
       Script       : aliased Scripts.Script;
       Win          : SDL3.Windows.Window;
+      Assistive    : Pomarine.Accessibility.Adapter;
+      Menus        : Pomarine.Native_Menus.Menu_Bar;
+      --  after Win: it is let go of the window first
       Target       : SDL3.Windows.Renderers.Renderer;
       --  after Win: it is destroyed first
       Pictures     : aliased Pomarine.Icons.Library;

@@ -3,6 +3,7 @@ with Ada.Environment_Variables;
 with Ada.Exceptions;
 with Ada.Text_IO;
 with Files;
+with Pomarine.System_Settings;
 with SDL3.Events.Redraws;
 with SDL3.Windows.Renderers;
 with Viewer.Build;
@@ -10,6 +11,7 @@ with Viewer.Canvas_Items;
 with Viewer.Deletion;
 with Viewer.Gestures;
 with Viewer.Home_Screen;
+with Viewer.Menus;
 with Viewer.Listing;
 with Viewer.Painting;
 with Viewer.Responses;
@@ -265,7 +267,10 @@ package body Viewer is
       --  system, so that its buttons are only clicked.
       SDL3.Windows.Set_Movable (Item.Host.Win, False);
       Create (Item.Host.Target, Item.Host.Win, VSync => VSync);
+      Pomarine.Accessibility.Attach (Item.Host.Assistive, Item.Host.Win);
       Build.Set_Up (Item, Source, File_Name, Store);
+      Widgets.Set_Title (Item.Root.Widgets, "bonxie");
+      Menus.Build (Item);
       Settings_View.Apply_Theme (Item);
       SDL3.Windows.Start_Text_Input (Item.Host.Win);
    end Open_Window;
@@ -441,6 +446,15 @@ package body Viewer is
             Painting.Draw (Item);
          end if;
          Wait_And_Handle (Item);
+         Menus.Update (Item);
+         --  The person's setting for less movement is theirs to change at any
+         --  time.
+         Widgets.Set_Reduced_Motion
+           (Item.Root.Widgets, Pomarine.System_Settings.Reduce_Motion);
+         --  What an assistive technology asks, and what it is told.
+         if Pomarine.Accessibility.Is_Attached (Item.Host.Assistive) then
+            Pomarine.Accessibility.Update (Item.Host.Assistive, Item.Root.Widgets);
+         end if;
       end loop;
       Save_Geometry (Item);
       --  Not to go on fetching what no one will use.

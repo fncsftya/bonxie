@@ -2,7 +2,7 @@ with Pomarine.Boxes;
 
 package body Previews is
 
-   use SDL3.Windows.Renderers;
+   use all type SDL3.Painters.Painter;
    use type Items.Kinds;
 
    --  In points
@@ -32,7 +32,7 @@ package body Previews is
 
    overriding procedure Draw
      (Item   : in out Preview;
-      Target : SDL3.Windows.Renderers.Renderer;
+      Target : SDL3.Painters.Painter'Class;
       Colors : Pomarine.Themes.Theme)
    is
       Pixels : constant Float := Pomarine.Widgets.Density (Item);

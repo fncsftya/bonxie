@@ -10,6 +10,7 @@ tags = []
 executables = ["bonxie"]
 
 [[depends-on]]
+pomarine_native = "*"
 pomarine_ui = "*"
 coretext = "*"
 sdl3 = "*"
@@ -21,6 +22,7 @@ webshot = "*"
 yoga = "*"
 
 [[pins]]
+pomarine_native = { path = "pomarine/native" }
 pomarine_ui = { path = "pomarine/ui" }
 coretext = { path = "pomarine/coretext" }
 sdl3 = { path = "pomarine/sdl3" }

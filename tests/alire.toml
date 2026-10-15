@@ -16,12 +16,14 @@ macos = true
 [[depends-on]]
 bonxie = "*"
 pomarine_goldens = "*"
+pomarine_native = "*"
 pomarine_ui = "*"
 texts = "*"
 
 [[pins]]
 bonxie = { path = ".." }
 pomarine_goldens = { path = "../pomarine/goldens" }
+pomarine_native = { path = "../pomarine/native" }
 pomarine_ui = { path = "../pomarine/ui" }
 coretext = { path = "../pomarine/coretext" }
 sdl3 = { path = "../pomarine/sdl3" }

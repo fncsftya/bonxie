@@ -108,7 +108,9 @@ package body Viewer.Responses is
             --  The writing view
             when Add_Page | Add_Folder | Open_Sources | Dictate | Toggle_Source
                | Choose_Source | Choose_Context =>
-               Writing.Respond (Item, What, Event.Index, Event.Row);
+               Writing.Respond
+                 (Item, What, Event.Index,
+                  (if Event.Kind in Pomarine.Widgets.Choose | Pomarine.Widgets.Select_Tag then Event.Row else 0));
          end case;
       end;
    end Respond;

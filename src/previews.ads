@@ -1,5 +1,5 @@
 with Items;
-with SDL3.Windows.Renderers;
+with SDL3.Painters;
 with Pomarine.Themes;
 with Pomarine.Widgets;
 
@@ -32,7 +32,7 @@ package Previews is
 
    overriding procedure Draw
      (Item   : in out Preview;
-      Target : SDL3.Windows.Renderers.Renderer;
+      Target : SDL3.Painters.Painter'Class;
       Colors : Pomarine.Themes.Theme);
 
 private
