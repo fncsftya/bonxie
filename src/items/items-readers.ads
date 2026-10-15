@@ -9,6 +9,9 @@ with Pomarine.Widgets.Labels;
 with Pomarine.Widgets.Panels;
 with Pomarine.Widgets.Pictures;
 with Pomarine.Widgets.Sliders;
+with Items.Vector_Pages;
+with Pomarine.Pages;
+with Pomarine.Widgets.Page_Views;
 with Vision;
 
 --  What shows a source in the writing view: the picture of its page, in a
@@ -90,6 +93,16 @@ package Items.Readers is
    --  its picture is of its Page'th of Count pages: as a text file, it is
    --  shown as text, to be read and selected, not as a picture (see
    --  Set_Picture). Do it before Set_Picture.
+
+   procedure Go_To_Page (Item : in out Reader; Page : Positive)
+     with Pre => Is_Assigned (Item);
+   --  Of a document shown as pages one under another, scroll to the page;
+   --  nothing is done for one that is not.
+
+   procedure Follow_Page (Item : in out Reader)
+     with Pre => Is_Assigned (Item);
+   --  Of such a document, say in the status which page is being read, as
+   --  it is scrolled.
 
    procedure Set_Picture
      (Item : in out Reader; File : String; At_Time : Projects.Seconds)
@@ -205,6 +218,11 @@ private
       --  may be under the minimum; the window is held at the minimum.
       Recognized : aliased Vision.Result;
       --  The words in the picture, that it lets be selected.
+      Pages      : Pomarine.Widgets.Page_Views.Page_View;
+      Paged      : Boolean := False;
+      --  Of a document, its pages one under another, in place of Picture.
+      Doc_Sizes  : Pomarine.Pages.Size_Array_Access;
+      Doc_Source : aliased Items.Vector_Pages.File_Source;
 
       Chrome      : Pomarine.Widgets.Frames.Frame;
       --  Its tag is a square of the source's colour before the title.

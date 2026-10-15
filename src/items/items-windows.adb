@@ -30,6 +30,9 @@ package body Items.Windows is
    use type SDL3.Events.Milliseconds;
 
    pragma Assert (Items.Marks.Max_Marks = Pomarine.Widgets.Pictures.Max_Marks);
+   pragma Assert (Items.Marks.Max_Marks = Pomarine.Widgets.Page_Views.Max_Marks);
+
+   package Views renames Pomarine.Widgets.Page_Views;
 
    --  In points
 
@@ -145,6 +148,7 @@ package body Items.Windows is
          Dock => Dock'Unrestricted_Access);
       Frames.Add_Content (Item.Chrome, Item.Body_Text);
       Frames.Add_Content (Item.Chrome, Item.Picture);
+      Frames.Add_Content (Item.Chrome, Item.Pages);
       Frames.Add_Content (Item.Chrome, Item.Text_View);
       Frames.Add_Content (Item.Chrome, Item.Wizard);
       Widgets.Add (Item.Wizard, Item.Link_Button);
@@ -169,6 +173,7 @@ package body Items.Windows is
          Unit => Layouts.Device_Pixels);
 
       Layouts.Set_Layout (Item.Picture, Grow => 1.0, Height => 0.0);
+      Layouts.Set_Layout (Item.Pages, Grow => 1.0, Height => 0.0);
 
       --  A text file's text: the page's paper, in the serif, as a note's,
       --  to be read and selected.
@@ -298,6 +303,7 @@ package body Items.Windows is
       Widgets.Set_Visible (Item.Text_View, False);
       Widgets.Set_Visible (Item.Wizard, False);
       Widgets.Set_Visible (Item.Picture, False);
+      Widgets.Set_Visible (Item.Pages, False);
       Widgets.Set_Visible (Item.Progress, False);
       Listen (Item);
    end Build;
@@ -329,14 +335,32 @@ package body Items.Windows is
       Item.Held := To;
    end Hold_Typing;
 
+   function Shown_Marks_Version (Item : Window) return Natural is
+     (if Item.Paged then Views.Marks_Version (Item.Pages)
+      else Pomarine.Widgets.Pictures.Marks_Version (Item.Picture));
+   --  Of the widget shown, whatever the item is.
+
    function Marks_Version (Item : Window) return Natural is
-     (Pomarine.Widgets.Pictures.Marks_Version (Item.Picture));
+     (Shown_Marks_Version (Item));
 
    function Is_Marking (Item : Window) return Boolean is
-     (Pomarine.Widgets.Pictures.Is_Marking (Item.Picture));
+     (if Item.Paged then Views.Is_Marking (Item.Pages)
+      else Pomarine.Widgets.Pictures.Is_Marking (Item.Picture));
 
    procedure Get_Marks (Item : Window; Into : out Items.Marks.Mark_List) is
    begin
+      if Item.Paged then
+         Into.Count := Views.Mark_Count (Item.Pages);
+         for Index in 1 .. Into.Count loop
+            declare
+               Each : constant Views.Mark := Views.Mark_At (Item.Pages, Index);
+            begin
+               Into.Marks (Index) :=
+                 (Left => Each.Left, Right => Each.Right, Y => Each.Y, Page => Each.Page);
+            end;
+         end loop;
+         return;
+      end if;
       Into.Count := Pomarine.Widgets.Pictures.Mark_Count (Item.Picture);
       for Index in 1 .. Into.Count loop
          declare
@@ -344,7 +368,7 @@ package body Items.Windows is
               Pomarine.Widgets.Pictures.Mark_At (Item.Picture, Index);
          begin
             Into.Marks (Index) :=
-              (Left => Each.Left, Right => Each.Right, Y => Each.Y);
+              (Left => Each.Left, Right => Each.Right, Y => Each.Y, Page => 1);
          end;
       end loop;
    end Get_Marks;
@@ -353,15 +377,18 @@ package body Items.Windows is
      (Labels.Text (Item.Status));
 
    function Tool (Item : Window) return Pomarine.Widgets.Pictures.Tools is
-     (Pomarine.Widgets.Pictures.Tool (Item.Picture));
+     (if Item.Paged then Views.Tool (Item.Pages)
+      else Pomarine.Widgets.Pictures.Tool (Item.Picture));
 
    function Mark_Count (Item : Window) return Natural is
-     (Pomarine.Widgets.Pictures.Mark_Count (Item.Picture));
+     (if Item.Paged then Views.Mark_Count (Item.Pages)
+      else Pomarine.Widgets.Pictures.Mark_Count (Item.Picture));
 
    procedure Select_Tool
      (Item : in out Window; To : Pomarine.Widgets.Pictures.Tools) is
    begin
       Pomarine.Widgets.Pictures.Set_Tool (Item.Picture, To);
+      Views.Set_Tool (Item.Pages, To);
       Buttons.Set_Selected
         (Item.Cursor_Button, To = Pomarine.Widgets.Pictures.Pointer);
       Buttons.Set_Selected
@@ -371,7 +398,8 @@ package body Items.Windows is
    end Select_Tool;
 
    procedure Set_Marks (Item : in out Window; Kept : Items.Marks.Mark_List) is
-      Shown : Pomarine.Widgets.Pictures.Mark_Array (1 .. Kept.Count);
+      Shown  : Pomarine.Widgets.Pictures.Mark_Array (1 .. Kept.Count);
+      Paged  : Views.Mark_Array (1 .. Kept.Count);
    begin
       for Index in Shown'Range loop
          declare
@@ -380,10 +408,12 @@ package body Items.Windows is
             Shown (Index) :=
               Pomarine.Widgets.Pictures.Clamped_Mark
                 (Each.Left, Each.Right, Each.Y);
+            Paged (Index) := Views.Clamped_Mark (Each.Left, Each.Right, Each.Y, Each.Page);
          end;
       end loop;
       Pomarine.Widgets.Pictures.Set_Marks (Item.Picture, Shown);
-      Item.Marks_Saved := Pomarine.Widgets.Pictures.Marks_Version (Item.Picture);
+      Views.Set_Marks (Item.Pages, Paged);
+      Item.Marks_Saved := Shown_Marks_Version (Item);
    end Set_Marks;
 
    procedure Set_Recognized
@@ -405,11 +435,27 @@ package body Items.Windows is
       Item.Recognized.Truncated := False;
    end Clear_Recognized;
 
+   function Is_Paged (Item : Window) return Boolean is
+     (Item.Paged);
+
+   function Shows_Picture (Item : Window) return Boolean is
+     (Item.Paged or else Pomarine.Widgets.Pictures.File_Name (Item.Picture) /= "");
+
+   function Document_Page (Item : Window) return Natural is
+     (if Item.Paged and then Views.Is_Settled (Item.Pages)
+      then Views.Current_Page (Item.Pages) else 0);
+
+   procedure Go_To_Page (Item : in out Window; Page : Positive) is
+   begin
+      Views.Show_Page (Item.Pages, Page);
+   end Go_To_Page;
+
    function Recognized_Count (Item : Window) return Natural is
-     (Item.Recognized.Count);
+     (if Item.Paged then Views.Word_Count (Item.Pages) else Item.Recognized.Count);
 
    function Selected_Text (Item : Window) return String is
-     (Pomarine.Widgets.Pictures.Selected_Text (Item.Picture));
+     (if Item.Paged then Views.Selected_Text (Item.Pages)
+      else Pomarine.Widgets.Pictures.Selected_Text (Item.Picture));
 
    procedure Set_Title_Text (Item : in out Window; To : String) is
    begin
@@ -481,6 +527,10 @@ package body Items.Windows is
       Item.Details.Page := Page;
       Item.Details.Page_Count := Count;
       Show_Mode (Item);
+      --  Turning to another page of a document that is shown.
+      if Item.Paged and then Count > 0 and then Item.Details.Captured_At > 0 then
+         Labels.Set_Text (Item.Status, Page_Status (Item));
+      end if;
    end Set_Pages;
 
    procedure Set_Capture
@@ -508,7 +558,31 @@ package body Items.Windows is
             Item.Details.Captured_At := At_Time;
             Clear_Recognized (Item);
             Pomarine.Widgets.Pictures.Clear_Marks (Item.Picture);
-            Pomarine.Widgets.Pictures.Set_File (Item.Picture, File);
+            Views.Clear_Marks (Item.Pages);
+            if Item.Details.Page > 0
+              and then Items.Sources.Is_Vector (Items.Extensions.To_String (Item.Details.Document))
+            then
+               declare
+                  Message : String (1 .. 160);
+                  Last    : Natural;
+               begin
+                  Items.Vector_Pages.Open
+                    (Item.Pages, Item.Doc_Sizes, Item.Doc_Source, File,
+                     Item.Details.Page_Count, Message, Last);
+                  Item.Paged := Last < Message'First;
+                  if not Item.Paged then
+                     Labels.Set_Text (Item.Status, Labels.Fitted ("Failed: " & Message (1 .. Last)));
+                     return;
+                  end if;
+                  Pomarine.Widgets.Pictures.Set_File (Item.Picture, "");
+                  Views.Show_Page (Item.Pages, Item.Details.Page);
+               end;
+            else
+               Item.Paged := False;
+               Items.Vector_Pages.Close (Item.Pages, Item.Doc_Sizes);
+               Pomarine.Widgets.Pictures.Set_File (Item.Picture, File);
+            end if;
+            Show_Mode (Item);
             Labels.Set_Text
               (Item.Status,
                (if Item.Details.Page_Count > 0
@@ -557,6 +631,8 @@ package body Items.Windows is
       Clear_Recognized (Item);
       Pomarine.Widgets.Pictures.Clear_Marks (Item.Picture);
       Pomarine.Widgets.Pictures.Set_File (Item.Picture, "");
+      Items.Vector_Pages.Close (Item.Pages, Item.Doc_Sizes);
+      Item.Paged := False;
       Docs.Load (Item.Text_Doc, Items.Sources.Read_Text (File));
       Widgets.Set_Visible (Item.Progress, False);
       Show_Mode (Item);
@@ -570,6 +646,7 @@ package body Items.Windows is
          Item.Zoom_Dirty := True;
       end if;
       Pomarine.Widgets.Pictures.Set_Zoom (Item.Picture, To);
+      Views.Set_Zoom (Item.Pages, To);
       Sliders.Set_Value (Item.Zoom_Slider, Items.Sources.To_Slider (To));
       Buttons.Set_Label (Item.Zoom_Button, Items.Sources.Percent (To));
    end Set_Zoom;
@@ -622,23 +699,32 @@ package body Items.Windows is
    end Edit_Text;
 
    function Picture_Contains (Item : Window; X, Y : Float) return Boolean is
-     (Widgets.Contains (Item.Picture, X, Y));
+     (if Item.Paged then Widgets.Contains (Item.Pages, X, Y) else Widgets.Contains (Item.Picture, X, Y));
 
    function Over_Picture_Selection
      (Item : Window; X, Y : Float) return Boolean is
-     (Pictures.Is_Over_Selection (Item.Picture, X, Y));
+     (if Item.Paged then Views.Is_Over_Selection (Item.Pages, X, Y)
+      else Pictures.Is_Over_Selection (Item.Picture, X, Y));
 
    function Has_Words (Item : Window) return Boolean is
-     (Pictures.Has_Words (Item.Picture));
+     (if Item.Paged then Views.Has_Words (Item.Pages) else Pictures.Has_Words (Item.Picture));
 
    procedure Select_All_Words (Item : in out Window) is
    begin
-      Pictures.Select_All (Item.Picture);
+      if Item.Paged then
+         Views.Select_All (Item.Pages);
+      else
+         Pictures.Select_All (Item.Picture);
+      end if;
    end Select_All_Words;
 
    procedure Copy_Words (Item : Window) is
    begin
-      Pictures.Copy (Item.Picture);
+      if Item.Paged then
+         Views.Copy (Item.Pages);
+      else
+         Pictures.Copy (Item.Picture);
+      end if;
    end Copy_Words;
 
    function Is_Hovered (Item : Window) return Boolean is
@@ -847,6 +933,7 @@ package body Items.Windows is
          Select_Tool (Item, Pomarine.Widgets.Pictures.Pointer);
          Widgets.Set_Visible (Item.Zoom_Menu, False);
          Pomarine.Widgets.Pictures.Unload (Item.Picture);
+         Views.Unload (Item.Pages);
       end if;
       Frames.Set_Shown (Item.Chrome, To = Open, To = Minimized);
       Item.Was_Used := False;
@@ -893,7 +980,8 @@ package body Items.Windows is
       Widgets.Set_Visible (Item.Zoom_Slider, Pictured);
       Widgets.Set_Visible (Item.Zoom_Button, Pictured);
       Widgets.Set_Visible (Item.Zoom_Menu, False);
-      Widgets.Set_Visible (Item.Picture, Pictured);
+      Widgets.Set_Visible (Item.Picture, Pictured and then not Item.Paged);
+      Widgets.Set_Visible (Item.Pages, Pictured and then Item.Paged);
       Widgets.Set_Visible (Item.Text_View, Is_Text_Source (Item));
       Widgets.Set_Visible (Item.Wizard, Is_Unchosen (Item));
       Show_Pager (Item);
@@ -948,12 +1036,14 @@ package body Items.Windows is
 
    function Across_Of (Item : Window) return Float is
      (if Item.Details.Kind = Source
-      then Pomarine.Widgets.Pictures.Scrolled_Across (Item.Picture) else 0.0);
+      then (if Item.Paged then Views.Scrolled_Across (Item.Pages)
+            else Pomarine.Widgets.Pictures.Scrolled_Across (Item.Picture)) else 0.0);
    --  How far across it is scrolled: only a source's picture is.
 
    function Scroll_Of (Item : in out Window) return Float is
      (if Item.Details.Kind = Source
-      then Pomarine.Widgets.Pictures.Scrolled (Item.Picture)
+      then (if Item.Paged then Views.Scrolled (Item.Pages)
+            else Pomarine.Widgets.Pictures.Scrolled (Item.Picture))
       else Pomarine.Text_Areas.Scroll_Top (Editors.Area (Item.Body_Text).all));
 
    procedure Assign
@@ -989,8 +1079,10 @@ package body Items.Windows is
       Show_Kind (Item);
       Clear_Recognized (Item);
       Pomarine.Widgets.Pictures.Set_File (Item.Picture, "");
+      Items.Vector_Pages.Close (Item.Pages, Item.Doc_Sizes);
+      Item.Paged := False;
       Pomarine.Widgets.Pictures.Clear_Marks (Item.Picture);
-      Item.Marks_Saved := Pomarine.Widgets.Pictures.Marks_Version (Item.Picture);
+      Item.Marks_Saved := Shown_Marks_Version (Item);
       Select_Tool (Item, Pomarine.Widgets.Pictures.Pointer);
       if Of_Item.Kind = Source then
          Set_Origin (Item, Of_Item.Origin);
@@ -1011,6 +1103,10 @@ package body Items.Windows is
            (Item.Picture, Float'Min (1.0, Of_Item.Scroll));
          Pomarine.Widgets.Pictures.Scroll_Across_To
            (Item.Picture, Float'Min (1.0, Of_Item.Scroll_Across));
+         if Item.Paged then
+            Views.Scroll_To (Item.Pages, Float'Min (1.0, Of_Item.Scroll));
+            Views.Scroll_Across_To (Item.Pages, Float'Min (1.0, Of_Item.Scroll_Across));
+         end if;
       else
          Show_Words (Item);
          Item.Scroll_Pending := Of_Item.Scroll > 0.0;
@@ -1024,6 +1120,9 @@ package body Items.Windows is
    procedure Release (Item : in out Window) is
    begin
       Clear_Recognized (Item);
+      Pomarine.Widgets.Pictures.Set_File (Item.Picture, "");
+      Items.Vector_Pages.Close (Item.Pages, Item.Doc_Sizes);
+      Item.Paged := False;
       Pomarine.Widgets.Pictures.Unload (Item.Picture);
       Frames.Set_Shown (Item.Chrome, False, False);
       Item.Assigned := False;
@@ -1536,9 +1635,8 @@ package body Items.Windows is
       end if;
 
       if Item.Details.Kind = Source
-        and then Pomarine.Widgets.Pictures.Marks_Version (Item.Picture)
-                 /= Item.Marks_Saved
-        and then not Pomarine.Widgets.Pictures.Is_Marking (Item.Picture)
+        and then Shown_Marks_Version (Item) /= Item.Marks_Saved
+        and then not Is_Marking (Item)
       then
          declare
             Kept : Items.Marks.Mark_List;
@@ -1546,7 +1644,7 @@ package body Items.Windows is
             Get_Marks (Item, Kept);
             Items.Marks.Save_Marks (Store, Item.Details.Key, Kept);
          end;
-         Item.Marks_Saved := Pomarine.Widgets.Pictures.Marks_Version (Item.Picture);
+         Item.Marks_Saved := Shown_Marks_Version (Item);
          Wrote := True;
       end if;
 

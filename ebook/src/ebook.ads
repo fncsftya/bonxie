@@ -1,9 +1,15 @@
---  Pages of PDFs and e-books (EPUB, FB2, XPS, comic book archives...),
---  drawn as PNG files with MuPDF, as SDLBook does to show them.
+--  Pages of PDFs, drawn as PNG files with PDFium. (E-books are not
+--  drawn yet.)
 --
 --  What is called here does its work before it returns, in the caller's
 --  thread: a page takes a moment. Nothing is kept open between calls.
+with Pomarine.Pages;
+with Pomarine.Words;
+
 package Ebook is
+
+   use type Pomarine.Pages.Page_Access;
+   use type Pomarine.Pages.Size_Array_Access;
 
    Max_Message : constant := 160;
    Max_Title   : constant := 160;
@@ -36,7 +42,7 @@ package Ebook is
      (Is_Document (URL) or else Is_Text (URL));
 
    function Extensions return String;
-   --  The endings of the files this can show, as "pdf;epub;txt", for a
+   --  The endings of the files this can show, as "pdf;txt", for a
    --  dialog to choose among.
 
    type Information is record
@@ -68,5 +74,32 @@ package Ebook is
    --  Draw the page (counted from 1) as a PNG file, Page_Width pixels
    --  wide (less if it is tall). If it cannot be, Height is 0 and
    --  Message (Message'First .. Last) says why.
+
+   procedure Build_Page
+     (File_Name : String;
+      Page      : Positive;
+      Content   : out Pomarine.Pages.Page_Access;
+      Found     : in out Pomarine.Words.Result;
+      Message   : out String;
+      Last      : out Natural)
+     with Pre  => Message'Length >= Max_Message,
+          Post => (if Content /= null then Last = Message'First - 1);
+   --  Make the page (counted from 1) as what is drawn on it (see
+   --  Pomarine.Pages): shapes, characters and pictures, to be drawn at any
+   --  size. Found is given the words of its text, as boxes over the page.
+   --  A page that cannot be drawn as shapes (it has shading, say) is one
+   --  picture, drawn by PDFium. If it cannot be made, Content is null and
+   --  Message says why. The document stays open for the next page.
+
+   procedure Document_Sizes
+     (File_Name : String;
+      Count     : Natural;
+      Sizes     : out Pomarine.Pages.Size_Array_Access;
+      Message   : out String;
+      Last      : out Natural)
+     with Pre  => Message'Length >= Max_Message,
+          Post => (if Sizes /= null then Sizes'Length = Count);
+   --  How big, in points, each of the first Count pages is. Sizes is null,
+   --  and Message says why, if it cannot be known.
 
 end Ebook;

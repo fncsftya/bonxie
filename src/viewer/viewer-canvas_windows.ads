@@ -131,6 +131,11 @@ package Viewer.Canvas_Windows is
                  and then Row <= Item_Count (Item);
    --  Where the picture of the item, if a source, is kept.
 
+   function Item_Is_Paged (Item : Session; Row : Positive) return Boolean
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item);
+   --  Whether the item's document is shown as its pages one under another.
+
    function Item_Recognized (Item : Session; Row : Positive) return Natural
      with Pre => Is_Open (Item) and then Screen (Item) = Project
                  and then Row <= Item_Count (Item)

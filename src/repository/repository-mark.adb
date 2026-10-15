@@ -16,6 +16,9 @@ package body Repository.Mark is
    procedure Prepare (Store : in out Projects.Store) is
    begin
       Ada_Sqlite3.Execute (DB (Store).all, Schema);
+      --  Of a document, the page a mark is on; those made before are of the
+      --  first.
+      Add_Column (Store, "item_marks", "page", "INTEGER NOT NULL DEFAULT 1");
    end Prepare;
 
    procedure Delete (Store : in out Projects.Store; Key : Items.Id) is
@@ -35,8 +38,8 @@ package body Repository.Mark is
       Insert : Ada_Sqlite3.Statement :=
         Ada_Sqlite3.Prepare
           (DB (Store).all,
-           "INSERT INTO item_marks (item_id, seq, x0, x1, y)"
-           & " VALUES (:item, :seq, :x0, :x1, :y)");
+           "INSERT INTO item_marks (item_id, seq, x0, x1, y, page)"
+           & " VALUES (:item, :seq, :x0, :x1, :y, :page)");
    begin
       Ada_Sqlite3.Execute (DB (Store).all, "BEGIN");
       Delete (Store, Key);
@@ -47,6 +50,7 @@ package body Repository.Mark is
          Ada_Sqlite3.Bind_Double (Insert, ":x0", Made.Marks (Number).Left);
          Ada_Sqlite3.Bind_Double (Insert, ":x1", Made.Marks (Number).Right);
          Ada_Sqlite3.Bind_Double (Insert, ":y", Made.Marks (Number).Y);
+         Ada_Sqlite3.Bind_Int (Insert, ":page", Made.Marks (Number).Page);
          Ada_Sqlite3.Step (Insert);
       end loop;
       Ada_Sqlite3.Execute (DB (Store).all, "COMMIT");
@@ -60,7 +64,7 @@ package body Repository.Mark is
       Query : Ada_Sqlite3.Statement :=
         Ada_Sqlite3.Prepare
           (DB (Store).all,
-           "SELECT x0, x1, y FROM item_marks "
+           "SELECT x0, x1, y, page FROM item_marks "
            & "WHERE item_id = :id ORDER BY seq LIMIT :limit");
    begin
       Into.Count := 0;
@@ -71,7 +75,8 @@ package body Repository.Mark is
          Into.Marks (Into.Count) :=
            (Left  => Ada_Sqlite3.Column_Double (Query, 0),
             Right => Ada_Sqlite3.Column_Double (Query, 1),
-            Y     => Ada_Sqlite3.Column_Double (Query, 2));
+            Y     => Ada_Sqlite3.Column_Double (Query, 2),
+            Page  => Integer'Max (1, Ada_Sqlite3.Column_Int (Query, 3)));
       end loop;
    end Load;
 

@@ -104,6 +104,9 @@ package body Viewer.Canvas_Windows is
         (Item.Nav.Store, Item.Opened.Current,
          Items.Windows.Details (Item.Windows (Window (Item, Row))).Key));
 
+   function Item_Is_Paged (Item : Session; Row : Positive) return Boolean is
+     (Items.Windows.Is_Paged (Item.Windows (Window (Item, Row))));
+
    function Item_Recognized (Item : Session; Row : Positive) return Natural is
      (Items.Windows.Recognized_Count (Item.Windows (Window (Item, Row))));
 

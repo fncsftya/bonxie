@@ -361,33 +361,30 @@ package body Viewer.Canvas_Items is
    is
       Details : constant Items.Info := Windows.Details (Item.Windows (Which));
       Ending  : constant String := Items.Extensions.To_String (Details.Document);
-      Picture : constant String :=
-        Items.Sources.Image_File (Item.Nav.Store, Item.Opened.Current, Details.Key);
-      Height  : Natural;
-      Message : String (1 .. Ebook.Max_Message);
-      Last    : Natural;
       Time    : constant Projects.Seconds := Epoch_Now (Item);
    begin
-      Items.Sources.Make_Image_Folder (Item.Nav.Store, Item.Opened.Current);
-      Ebook.Render
-        (Items.Sources.Document_File
-           (Item.Nav.Store, Item.Opened.Current, Details.Key, Ending),
-         Page, Picture, Height, Message, Last);
-      if Height = 0 then
-         Windows.Set_Capture
-           (Item.Windows (Which), Windows.Failed, Detail => Message (1 .. Last));
-         return;
-      end if;
+      --  The page is drawn from the document, as shapes and text.
       if Heading /= "" then
          Name_From_Page (Item, Which, Heading);
       end if;
+      Windows.Set_Pages (Item.Windows (Which), Ending, Page, Details.Page_Count);
+      Windows.Set_Capture
+        (Item.Windows (Which), Windows.Ready,
+         Items.Sources.Document_File
+           (Item.Nav.Store, Item.Opened.Current, Details.Key, Ending),
+         At_Time => Time);
+      if not Windows.Shows_Picture (Item.Windows (Which)) then
+         return;   --  and says why
+      end if;
       Items.Sources.Set_Captured (Item.Nav.Store, Details.Key, Time);
       Items.Sources.Set_Page (Item.Nav.Store, Details.Key, Page);
-      Windows.Set_Pages (Item.Windows (Which), Ending, Page, Details.Page_Count);
-      Windows.Set_Capture (Item.Windows (Which), Windows.Ready, Picture, At_Time => Time);
       Writing.Picture_Taken (Item, Which);
       Projects.Touch (Item.Nav.Store, Item.Opened.Current);
-      Start_Recognition (Item, Which);
+      --  The words of pages one under another are the document's own text,
+      --  found as the pages are made.
+      if not Windows.Is_Paged (Item.Windows (Which)) then
+         Start_Recognition (Item, Which);
+      end if;
    end Show_Page;
 
    procedure Turn_Page (Item : in out Session; Which : Items.Slot; By : Integer);
@@ -399,7 +396,11 @@ package body Viewer.Canvas_Items is
       Page    : constant Integer := Details.Page + By;
    begin
       if Details.Kind = Items.Source and then Page in 1 .. Details.Page_Count then
-         Show_Page (Item, Which, Page);
+         if Windows.Is_Paged (Item.Windows (Which)) then
+            Windows.Go_To_Page (Item.Windows (Which), Page);
+         else
+            Show_Page (Item, Which, Page);
+         end if;
       end if;
    end Turn_Page;
 
@@ -599,7 +600,7 @@ package body Viewer.Canvas_Items is
       SDL3.Dialogs.Reset;
       Item.Nav.Pick_Slot := Which;
       Item.Nav.Pick_Key := Windows.Details (Item.Windows (Which)).Key;
-      SDL3.Dialogs.Open_File (Item.Host.Win, "PDFs, e-books and text", Ebook.Extensions);
+      SDL3.Dialogs.Open_File (Item.Host.Win, "PDFs and text", Ebook.Extensions);
    end Pick_File;
 
    procedure Poll_Pick (Item : in out Session);
@@ -640,6 +641,22 @@ package body Viewer.Canvas_Items is
       Poll_Pick (Item);
       Poll_Download (Item);
       for Which in Items.Slot loop
+         if Is_Source (Item, Which) and then Windows.Is_Paged (Item.Windows (Which)) then
+            --  Which page is being read, of a document one page under
+            --  another, as the window is scrolled.
+            declare
+               Now     : constant Natural := Windows.Document_Page (Item.Windows (Which));
+               Details : constant Items.Info := Windows.Details (Item.Windows (Which));
+            begin
+               if Now > 0 and then Now /= Details.Page then
+                  Windows.Set_Pages
+                    (Item.Windows (Which), Items.Extensions.To_String (Details.Document),
+                     Now, Details.Page_Count);
+                  Items.Sources.Set_Page (Item.Nav.Store, Details.Key, Now);
+                  Writing.Page_Turned (Item, Which);
+               end if;
+            end;
+         end if;
          if Is_Source (Item, Which) then
             case Webshot.State (Which) is
                when Webshot.Done =>
@@ -844,7 +861,9 @@ package body Viewer.Canvas_Items is
       then
          return;
       end if;
-      if Items.Words.Has_Words (Item.Nav.Store, Key) then
+      if Windows.Is_Paged (Item.Windows (Which)) then
+         null;   --  The document's own text (see Show_Page).
+      elsif Items.Words.Has_Words (Item.Nav.Store, Key) then
          declare
             Found : Vision.Result;
          begin

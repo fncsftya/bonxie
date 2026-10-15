@@ -11,6 +11,9 @@ with Pomarine.Widgets.Pictures;
 with Pomarine.Widgets.Progress_Bars;
 with Pomarine.Widgets.Sliders;
 with Pomarine.Widgets.Panels;
+with Items.Vector_Pages;
+with Pomarine.Pages;
+with Pomarine.Widgets.Page_Views;
 with Vision;
 with Pomarine.Widgets.Editors;
 
@@ -216,6 +219,25 @@ package Items.Windows is
    --  Say what words are in the source's picture, to be selected as text
    --  over it. They are of the picture shown: Set_Capture Ready forgets
    --  them.
+
+   function Shows_Picture (Item : Window) return Boolean
+     with Pre => Is_Assigned (Item);
+   --  Whether the source has a picture to show, the pages of a document or
+   --  a file (that may not be read yet): not if Set_Capture Ready failed.
+
+   function Is_Paged (Item : Window) return Boolean
+     with Pre => Is_Assigned (Item);
+   --  Whether the source's document is shown as all its pages one under
+   --  another, drawn from what is on them (see Items.Vector_Pages), whose
+   --  words are its own text.
+
+   function Document_Page (Item : Window) return Natural
+     with Pre => Is_Assigned (Item);
+   --  Of a document shown as pages, the page being read; 0 if it is not.
+
+   procedure Go_To_Page (Item : in out Window; Page : Positive)
+     with Pre => Is_Assigned (Item) and then Is_Paged (Item);
+   --  Scroll to the page.
 
    function Recognized_Count (Item : Window) return Natural
      with Pre => Is_Assigned (Item);
@@ -512,6 +534,11 @@ private
       --  Of a source, below its link: what is shown.
       Recognized   : aliased Vision.Result;
       --  The words in it, that the picture lets be selected.
+      Pages        : Pomarine.Widgets.Page_Views.Page_View;
+      Paged        : Boolean := False;
+      --  Of a document, its pages one under another, in place of Picture.
+      Doc_Sizes    : Pomarine.Pages.Size_Array_Access;
+      Doc_Source   : aliased Items.Vector_Pages.File_Source;
       Progress     : Pomarine.Widgets.Progress_Bars.Progress_Bar;
       --  Along the foot of the status line while the picture is taken.
       Status       : Pomarine.Widgets.Labels.Label;

@@ -1085,6 +1085,23 @@ package body Viewer.Writing is
       end if;
    end Picture_Taken;
 
+   procedure Page_Turned (Item : in out Session; Which : Items.Slot) is
+      Details : constant Items.Info := Windows.Details (Item.Windows (Which));
+   begin
+      if Readers.Is_Assigned (Item.Reading.Readers (Which)) then
+         Readers.Set_Document
+           (Item.Reading.Readers (Which), Items.Extensions.To_String (Details.Document),
+            Details.Page, Details.Page_Count);
+         Readers.Go_To_Page (Item.Reading.Readers (Which), Details.Page);
+      end if;
+      if Item.Reading.Pinned_Slot = Which then
+         Readers.Set_Document
+           (Item.Reading.Pane_Reader, Items.Extensions.To_String (Details.Document),
+            Details.Page, Details.Page_Count);
+         Readers.Go_To_Page (Item.Reading.Pane_Reader, Details.Page);
+      end if;
+   end Page_Turned;
+
    procedure Words_Found
      (Item : in out Session; Which : Items.Slot; Found : Vision.Result) is
    begin
@@ -2478,6 +2495,7 @@ package body Viewer.Writing is
             Readers.Set_Tag
               (Item.Reading.Readers (Which), Canvas_Items.Source_Ink (Item,
                  Which));
+            Readers.Follow_Page (Item.Reading.Readers (Which));
             Keep_Marks
               (Item, Which, Item.Reading.Readers (Which),
                Item.Reading.Reader_Sync (Which));
@@ -2497,6 +2515,7 @@ package body Viewer.Writing is
          Readers.Set_Tag
            (Item.Reading.Pane_Reader,
             Canvas_Items.Source_Ink (Item, Item.Reading.Pinned_Slot));
+         Readers.Follow_Page (Item.Reading.Pane_Reader);
          Keep_Marks
            (Item, Item.Reading.Pinned_Slot, Item.Reading.Pane_Reader,
             Item.Reading.Pane_Sync);

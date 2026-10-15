@@ -10,18 +10,21 @@ changes. The window is described to VoiceOver through AccessKit (Pomarine's
 `native/` crate): buttons, headings, text and the settings can be read and
 pressed, and what is changed is told as it changes.
 
-## PDFs, e-books and text
+## PDFs and text
 
 A new source window asks where it comes from: **From URL** (a link, as before) or
 **From File** (the system's file dialog; the path is then shown where the link was, and
 pressing it chooses another file).
 
-A link or file ending `.pdf`, `.epub`, `.fb2`, `.xps`, `.oxps`, `.cbz` or `.mobi` is
+A link or file ending `.pdf` is
 copied into the project's `sources` folder (a link is downloaded; WebKit is not used), and
-its pages are drawn, one at a time, with MuPDF (the `ebook` crate; the way it draws a page
-follows `vendor/SDLBook`). Buttons over the picture turn the page. A link or file ending
+its pages are drawn, one at a time, from PDFium's objects: shapes, text (set by CoreText, one character at
+each place the PDF puts it) and pictures are drawn by SDL at any zoom, so a page stays sharp, and its words
+are the PDF's own text (the `ebook` crate; `Pomarine.Pages` and `Pomarine.Widgets.Pictures.Set_Page`). A
+page PDFium has to draw itself (rotated, rotated text, shading) is shown as a picture, as before. Buttons
+over the page turn it. A link or file ending
 `.txt`, `.text`, `.md` or `.markdown` is copied and shown as text that can be selected and
 copied, but not changed.
 
-Build with MuPDF installed: `brew install mupdf` (`MUPDF_PREFIX` says where it is, if not
-Homebrew's on Apple silicon).
+Build with PDFium fetched: `ebook/fetch-pdfium.sh` (prebuilt, from pdfium-binaries, into
+`ebook/pdfium`; `PDFIUM_PREFIX` says where else it is). E-books are not drawn yet.

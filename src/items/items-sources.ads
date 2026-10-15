@@ -33,13 +33,17 @@ package Items.Sources is
       Document   : String;
       Page_Count : Natural)
      with Pre => Projects.Is_Open (Store);
-   --  Say the source is a PDF or e-book of that ending (as "epub"), of
+   --  Say the source is a document of that ending (as "pdf"), of
    --  Page_Count pages, at its first; or, with "" and 0, a web page.
 
    procedure Set_Origin
      (Store : in out Projects.Store; Key : Id; Origin : Origins)
      with Pre => Projects.Is_Open (Store);
    --  Say whether the source is a link or a file (see Origins).
+
+   function Is_Vector (Document : String) return Boolean;
+   --  Whether a document of this ending is shown page by page as shapes
+   --  and text (see Items.Vector_Pages): a PDF.
 
    function Is_Text (Document : String) return Boolean;
    --  Whether a document with that ending is plain text, shown as text,

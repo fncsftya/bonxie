@@ -17,10 +17,10 @@ dragged into another order and kept, typed on a page and seen on the
 canvas, a source opened and pinned, its highlights shared with the canvas's
 window, which like `sources-pages` needs WebKit), highlighting a picture
 (the tools in the status line, erasing, marks kept, put away by the cursor
-or a click outside), PDFs and e-books (`sources-documents`, `write-source-documents`: a link to a
+or a click outside), PDFs (`sources-documents`, `write-source-documents`: a link to a
 PDF, written to `/tmp`, is fetched with curl, not shown with WebKit, and its
-pages are drawn with MuPDF, one at a time, on the canvas and in the writing
-view; the tests need MuPDF, `brew install mupdf`, which `ebook` links;
+pages are drawn from PDFium's objects as shapes and text (no picture file), one at a time, on the canvas and in the writing
+view; the tests need PDFium, `ebook/fetch-pdfium.sh`, which `ebook` links;
 `sources-files`: files chosen as the file dialog would, PDFs and text, kept; the
 dialog itself is not shown),
 the order Vision's words of a page of columns are

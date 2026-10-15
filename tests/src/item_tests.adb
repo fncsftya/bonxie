@@ -211,6 +211,16 @@ package body Item_Tests is
       Goldens.Check (Name, Drawn);
    end Snap;
 
+   procedure Draw_Pages (Session : in out Viewer.Session) is
+      Drawn : Pictures.Image;
+   begin
+      --  The pages of a document in view are made as they are drawn, one to
+      --  a frame.
+      for Pass in 1 .. 3 loop
+         Viewer.Render (Session, Drawn);
+      end loop;
+   end Draw_Pages;
+
    function Image_Of (Value : Natural) return String is
      (Natural'Image (Value));
 
@@ -1523,6 +1533,8 @@ package body Item_Tests is
             Viewer.Tick (Session, Tick);
             Waited := Waited + 1;
          end loop;
+         --  Once more, for what is done at once (the words of a page).
+         Viewer.Tick (Session, SDL3.Events.Milliseconds (Natural (Tick) + 100));
          Pomarine.Application.Run_Posted;
       end Wait;
    begin
@@ -1544,8 +1556,12 @@ package body Item_Tests is
       Type_In (Session, "file://" & Book);
       Press_Key (Session, Events.Key_Return);
       Wait;
+      --  Drawn from the document as shapes and text: there is no picture
+      --  file.
       Check
-        ("document-picture", "TRUE",
+        ("document-paged", "TRUE", Boolean'Image (Windows.Item_Is_Paged (Session, 1)));
+      Check
+        ("document-no-picture-file", "FALSE",
          Boolean'Image
            (Ada.Directories.Exists (Windows.Item_Picture_File (Session, 1))));
       Check ("document-status", "Page 1 of 2", Windows.Item_Status (Session, 1));
@@ -1581,6 +1597,7 @@ package body Item_Tests is
       Proj.Close_Project (Session);
       Home.Open_Project (Session, Key);
       Check ("document-kept", "Page 2 of 2", Windows.Item_Status (Session, 1));
+      Draw_Pages (Session);
       Check
         ("document-kept-words", "TRUE",
          Boolean'Image (Windows.Item_Recognized (Session, 1) >= 3));
@@ -1620,6 +1637,8 @@ package body Item_Tests is
             Viewer.Tick (Session, Tick);
             Waited := Waited + 1;
          end loop;
+         --  Once more, for what is done at once (the words of a page).
+         Viewer.Tick (Session, SDL3.Events.Milliseconds (Natural (Tick) + 100));
          Pomarine.Application.Run_Posted;
       end Wait;
    begin
@@ -1649,6 +1668,7 @@ package body Item_Tests is
         ("file-origin", "LOCAL", Items.Origins'Image (Windows.Item_Origin (Session, 1)));
       Check ("file-path", Book, Windows.Item_Text (Session, 1));
       Check ("file-status", "Page 1 of 2", Windows.Item_Status (Session, 1));
+      Draw_Pages (Session);
       Check
         ("file-words", "TRUE", Boolean'Image (Windows.Item_Recognized (Session, 1) >= 3));
       Check ("file-title", "book", Windows.Item_Title (Session, 1));

@@ -1,11 +1,22 @@
 name = "ebook"
-description = "Pages of PDFs and e-books, rendered with MuPDF"
+description = "Pages of PDFs and e-books, rendered with PDFium"
 version = "0.1.0-dev"
 
 authors = ["Matt Rawcliffe"]
 licenses = "GPL-3.0-only"
 website = ""
 tags = []
+
+[[depends-on]]
+pomarine_ui = "*"
+
+[[pins]]
+pomarine_ui = { path = "../pomarine/ui" }
+coretext = { path = "../pomarine/coretext" }
+sdl3 = { path = "../pomarine/sdl3" }
+texts = { path = "../pomarine/texts" }
+typeset = { path = "../pomarine/typeset" }
+yoga = { path = "../pomarine/yoga" }
 
 [build-switches]
 "*".ada_version = "Ada2022"

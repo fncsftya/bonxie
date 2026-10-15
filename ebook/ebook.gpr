@@ -1,4 +1,5 @@
 with "config/ebook_config.gpr";
+with "pomarine_ui.gpr";
 project Ebook is
 
    for Library_Name use "ebook_ada";
@@ -16,8 +17,9 @@ project Ebook is
      external ("EBOOK_LIBRARY_TYPE", external ("LIBRARY_TYPE", "static"));
    for Library_Kind use Library_Type;
 
-   --  MuPDF is Homebrew's (brew install mupdf): its folder is the prefix.
-   Mupdf := external ("MUPDF_PREFIX", "/opt/homebrew/opt/mupdf");
+   --  PDFium is prebuilt: fetch-pdfium.sh puts it in pdfium/, or
+   --  PDFIUM_PREFIX says where else it is.
+   Pdfium := external ("PDFIUM_PREFIX", Project'Project_Dir & "pdfium");
 
    package Compiler is
       for Default_Switches ("Ada") use Ebook_Config.Ada_Compiler_Switches &
@@ -26,19 +28,23 @@ project Ebook is
          "-gnatVa",          --  validity checks everywhere
          "-fstack-check",    --  detect stack overflow
          "-fstack-protector-strong");
-      --  Alire's GCC is not the one that finds MuPDF's headers: Apple's
-      --  clang is used for the C, as for the Objective-C of webshot.
+      --  Alire's GCC does not find Apple's frameworks: Apple's clang is
+      --  used for the C, as for the Objective-C of webshot.
       for Driver ("C") use "/usr/bin/clang";
       for Default_Switches ("C") use
-        ("-O2", "-Wall", "-I" & Mupdf & "/include",
+        ("-O2", "-Wall", "-I" & Pdfium & "/include",
          "-Wno-unused-command-line-argument");
    end Compiler;
 
    --  Propagated to every project that depends on this one.
    package Linker is
       for Linker_Options use
-        ("-L" & Mupdf & "/lib", "-lmupdf");
-      --  Its install name is a full path: no rpath.
+        ("-L" & Pdfium & "/lib", "-lpdfium",
+         "-Wl,-rpath," & Pdfium & "/lib",
+         "-framework", "ImageIO",
+         "-framework", "CoreGraphics",
+         "-framework", "CoreFoundation",
+         "-framework", "CoreText");
    end Linker;
 
    package Binder is

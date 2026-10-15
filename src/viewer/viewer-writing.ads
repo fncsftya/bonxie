@@ -38,6 +38,11 @@ private package Viewer.Writing is
      with Pre => Items.Windows.Is_Assigned (Item.Windows (Which));
    --  The source's picture is a new one: show it in its windows here too.
 
+   procedure Page_Turned (Item : in out Session; Which : Items.Slot)
+     with Pre => Items.Windows.Is_Assigned (Item.Windows (Which));
+   --  The page being read of the source's document, shown as pages one
+   --  under another, has changed: say which in its windows here too.
+
    procedure Words_Found
      (Item : in out Session; Which : Items.Slot; Found : Vision.Result);
    --  The words in the source's picture have been found.

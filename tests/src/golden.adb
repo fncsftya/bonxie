@@ -610,7 +610,8 @@ procedure Golden is
    --  The settings, in the same window: Close is at the right of the bar
    --  across the top, and the radios of Speech's Model are in the form,
    --  which is as wide as a page in the writing view.
-   Settings_Close_X : constant Float := Float (Home_Width) - 52.0;
+   Settings_Close_X : constant Float := 48.0;
+   --  The back button, at the left of the bar.
    Settings_Close_Y : constant Float := 22.0;
    Model_X          : constant Float := 160.0;
    --  Display's radios come first in the form, then Speech's, which is

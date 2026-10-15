@@ -6,7 +6,7 @@ project Ebook_Tests is
    for Object_Dir use "obj/" & Ebook_Tests_Config.Build_Profile;
    for Create_Missing_Dirs use "True";
    for Exec_Dir use "bin";
-   for Main use ("ebook_test.adb");
+   for Main use ("ebook_test.adb", "page_view.adb");
 
    package Compiler is
       for Default_Switches ("Ada") use Ebook_Tests_Config.Ada_Compiler_Switches &

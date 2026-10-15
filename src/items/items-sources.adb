@@ -57,6 +57,9 @@ package body Items.Sources is
    function Is_Text (Document : String) return Boolean is
      (Ebook.Is_Text ("." & Document));
 
+   function Is_Vector (Document : String) return Boolean is
+     (Ebook.Is_Document ("." & Document));
+
    function Read_Text (File_Name : String) return String is
       Raw  : constant String := Files.Read (File_Name);
       Last : constant Natural := Natural'Min (Raw'Length, Max_Text);
@@ -162,7 +165,10 @@ package body Items.Sources is
 
    function Shown_File
      (Store : Projects.Store; Project : Projects.Id; Of_Item : Info) return String is
-     (if Of_Item.Origin /= Unchosen and then Is_Text (Extensions.To_String (Of_Item.Document))
+     (if Of_Item.Origin /= Unchosen
+         and then (Is_Text (Extensions.To_String (Of_Item.Document))
+                   or else (Is_Vector (Extensions.To_String (Of_Item.Document))
+                            and then Of_Item.Page > 0))
       then Document_File (Store, Project, Of_Item.Key, Extensions.To_String (Of_Item.Document))
       else Image_File (Store, Project, Of_Item.Key));
 

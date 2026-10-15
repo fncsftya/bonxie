@@ -16,6 +16,7 @@ package body Items.Readers is
    package Frames renames Pomarine.Widgets.Frames;
    package Sliders renames Pomarine.Widgets.Sliders;
    package Pictures renames Pomarine.Widgets.Pictures;
+   package Views renames Pomarine.Widgets.Page_Views;
    package Editors renames Pomarine.Widgets.Editors;
    package Docs renames Texts.Documents;
 
@@ -64,6 +65,7 @@ package body Items.Readers is
          Placement => (if Pinned then Frames.Filling else Frames.Floating));
       Frames.Add_Title_Button (Item.Chrome, Item.Pin_Button);
       Frames.Add_Content (Item.Chrome, Item.Picture);
+      Frames.Add_Content (Item.Chrome, Item.Pages);
       Frames.Add_Content (Item.Chrome, Item.Text_View);
       Frames.Add_Status_Item (Item.Chrome, Item.Tools);
       Widgets.Add (Item.Tools, Item.Cursor_Button);
@@ -80,6 +82,7 @@ package body Items.Readers is
       Size (Item.Pin_Button, Button_Size, Button_Size);
 
       Layouts.Set_Layout (Item.Picture, Grow => 1.0, Height => 0.0);
+      Layouts.Set_Layout (Item.Pages, Grow => 1.0, Height => 0.0);
       Editors.Configure
         (Item.Text_View, Pomarine.Line_Texts.Serif, Text_Size, 2000.0);
       Editors.Set_Paper (Item.Text_View, Pomarine.Themes.Page);
@@ -116,41 +119,54 @@ package body Items.Readers is
    function Details (Item : Reader) return Items.Info is (Item.Details);
 
    function Recognized_Count (Item : Reader) return Natural is
-     (Item.Recognized.Count);
+     (if Item.Paged then Views.Word_Count (Item.Pages) else Item.Recognized.Count);
 
    function Selected_Text (Item : Reader) return String is
-     (Pictures.Selected_Text (Item.Picture));
+     (if Item.Paged then Views.Selected_Text (Item.Pages)
+      else Pictures.Selected_Text (Item.Picture));
 
    function Marks_Version (Item : Reader) return Natural is
-     (Pictures.Marks_Version (Item.Picture));
+     (if Item.Paged then Views.Marks_Version (Item.Pages)
+      else Pictures.Marks_Version (Item.Picture));
 
    function Is_Marking (Item : Reader) return Boolean is
-     (Pictures.Is_Marking (Item.Picture));
+     (if Item.Paged then Views.Is_Marking (Item.Pages)
+      else Pictures.Is_Marking (Item.Picture));
 
    function Tool (Item : Reader) return Pictures.Tools is
-     (Pictures.Tool (Item.Picture));
+     (if Item.Paged then Views.Tool (Item.Pages) else Pictures.Tool (Item.Picture));
 
    function Zoom (Item : Reader) return Float is (Item.Details.Zoom);
 
    function Picture_Contains
      (Item : Reader; X, Y : Float) return Boolean is
-     (Widgets.Contains (Item.Picture, X, Y));
+     (if Item.Paged then Widgets.Contains (Item.Pages, X, Y)
+      else Widgets.Contains (Item.Picture, X, Y));
 
    function Is_Over_Selection
      (Item : Reader; X, Y : Float) return Boolean is
-     (Pictures.Is_Over_Selection (Item.Picture, X, Y));
+     (if Item.Paged then Views.Is_Over_Selection (Item.Pages, X, Y)
+      else Pictures.Is_Over_Selection (Item.Picture, X, Y));
 
    function Has_Words (Item : Reader) return Boolean is
-     (Pictures.Has_Words (Item.Picture));
+     (if Item.Paged then Views.Has_Words (Item.Pages) else Pictures.Has_Words (Item.Picture));
 
    procedure Select_All (Item : in out Reader) is
    begin
-      Pictures.Select_All (Item.Picture);
+      if Item.Paged then
+         Views.Select_All (Item.Pages);
+      else
+         Pictures.Select_All (Item.Picture);
+      end if;
    end Select_All;
 
    procedure Copy (Item : Reader) is
    begin
-      Pictures.Copy (Item.Picture);
+      if Item.Paged then
+         Views.Copy (Item.Pages);
+      else
+         Pictures.Copy (Item.Picture);
+      end if;
    end Copy;
 
    function Box (Item : Reader) return Items.Frame is
@@ -161,6 +177,18 @@ package body Items.Readers is
 
    procedure Get_Marks (Item : Reader; Into : out Items.Marks.Mark_List) is
    begin
+      if Item.Paged then
+         Into.Count := Views.Mark_Count (Item.Pages);
+         for Index in 1 .. Into.Count loop
+            declare
+               Each : constant Views.Mark := Views.Mark_At (Item.Pages, Index);
+            begin
+               Into.Marks (Index) :=
+                 (Left => Each.Left, Right => Each.Right, Y => Each.Y, Page => Each.Page);
+            end;
+         end loop;
+         return;
+      end if;
       Into.Count := Pictures.Mark_Count (Item.Picture);
       for Index in 1 .. Into.Count loop
          declare
@@ -168,13 +196,14 @@ package body Items.Readers is
               Pictures.Mark_At (Item.Picture, Index);
          begin
             Into.Marks (Index) :=
-              (Left => Each.Left, Right => Each.Right, Y => Each.Y);
+              (Left => Each.Left, Right => Each.Right, Y => Each.Y, Page => 1);
          end;
       end loop;
    end Get_Marks;
 
    procedure Set_Marks (Item : in out Reader; Kept : Items.Marks.Mark_List) is
       Shown : Pictures.Mark_Array (1 .. Kept.Count);
+      Paged : Views.Mark_Array (1 .. Kept.Count);
    begin
       for Index in Shown'Range loop
          declare
@@ -183,14 +212,17 @@ package body Items.Readers is
             Shown (Index) :=
               Pictures.Clamped_Mark
                 (Each.Left, Each.Right, Each.Y);
+            Paged (Index) := Views.Clamped_Mark (Each.Left, Each.Right, Each.Y, Each.Page);
          end;
       end loop;
       Pictures.Set_Marks (Item.Picture, Shown);
+      Views.Set_Marks (Item.Pages, Paged);
    end Set_Marks;
 
    procedure Select_Tool (Item : in out Reader; To : Pictures.Tools) is
    begin
       Pictures.Set_Tool (Item.Picture, To);
+      Views.Set_Tool (Item.Pages, To);
       Buttons.Set_Selected (Item.Cursor_Button, To = Pictures.Pointer);
       Buttons.Set_Selected (Item.Marker_Button, To = Pictures.Highlighter);
       Buttons.Set_Selected (Item.Eraser_Button, To = Pictures.Eraser);
@@ -200,6 +232,7 @@ package body Items.Readers is
    begin
       Item.Details.Zoom := To;
       Pictures.Set_Zoom (Item.Picture, To);
+      Views.Set_Zoom (Item.Pages, To);
       Sliders.Set_Value (Item.Zoom_Slider, Items.Sources.To_Slider (To));
       Labels.Set_Text (Item.Zoom_Label, Items.Sources.Percent (To));
    end Set_Zoom;
@@ -228,7 +261,8 @@ package body Items.Readers is
       Texty : constant Boolean := Is_Texty (Item);
    begin
       Widgets.Set_Visible (Item.Text_View, Texty);
-      Widgets.Set_Visible (Item.Picture, not Texty);
+      Widgets.Set_Visible (Item.Picture, not Texty and then not Item.Paged);
+      Widgets.Set_Visible (Item.Pages, not Texty and then Item.Paged);
       Widgets.Set_Visible (Item.Tools, not Texty);
       Widgets.Set_Visible (Item.Zoom_Slider, not Texty);
       Widgets.Set_Visible (Item.Zoom_Label, not Texty);
@@ -263,6 +297,52 @@ package body Items.Readers is
       Pictures.Set_Words (Item.Picture, Item.Recognized'Unchecked_Access);
    end Set_Recognized;
 
+   procedure Go_To_Page (Item : in out Reader; Page : Positive) is
+   begin
+      if Item.Paged and then Page <= Views.Page_Count (Item.Pages) then
+         Views.Show_Page (Item.Pages, Page);
+      end if;
+   end Go_To_Page;
+
+   procedure Follow_Page (Item : in out Reader) is
+      Now : constant Natural :=
+        (if Item.Paged and then Views.Is_Settled (Item.Pages)
+         then Views.Current_Page (Item.Pages) else 0);
+   begin
+      if Now > 0 and then Now /= Item.Details.Page then
+         Item.Details.Page := Now;
+         Show_Status (Item);
+      end if;
+   end Follow_Page;
+
+   procedure Show_Picture (Item : in out Reader; File : String);
+   --  Show the page or picture File, as the source's document is.
+
+   procedure Show_Picture (Item : in out Reader; File : String) is
+   begin
+      if Item.Details.Page > 0
+        and then Items.Sources.Is_Vector (Items.Extensions.To_String (Item.Details.Document))
+      then
+         declare
+            Message : String (1 .. 160);
+            Last    : Natural;
+         begin
+            Items.Vector_Pages.Open
+              (Item.Pages, Item.Doc_Sizes, Item.Doc_Source, File,
+               Item.Details.Page_Count, Message, Last);
+            Item.Paged := Last < Message'First;
+            Pictures.Set_File (Item.Picture, "");
+            if Item.Paged then
+               Views.Show_Page (Item.Pages, Item.Details.Page);
+            end if;
+         end;
+      else
+         Items.Vector_Pages.Close (Item.Pages, Item.Doc_Sizes);
+         Item.Paged := False;
+         Pictures.Set_File (Item.Picture, File);
+      end if;
+   end Show_Picture;
+
    procedure Set_Picture
      (Item : in out Reader; File : String; At_Time : Projects.Seconds) is
    begin
@@ -271,9 +351,11 @@ package body Items.Readers is
       Pictures.Clear_Marks (Item.Picture);
       if Is_Texty (Item) then
          Pictures.Set_File (Item.Picture, "");
+         Items.Vector_Pages.Close (Item.Pages, Item.Doc_Sizes);
+         Item.Paged := False;
          Docs.Load (Item.Text_Doc, Items.Sources.Read_Text (File));
       else
-         Pictures.Set_File (Item.Picture, File);
+         Show_Picture (Item, File);
       end if;
       Show_Mode (Item);
       Show_Status (Item);
@@ -288,6 +370,7 @@ package body Items.Readers is
       if To /= Open then
          Select_Tool (Item, Pictures.Pointer);
          Pictures.Unload (Item.Picture);
+         Views.Unload (Item.Pages);
       else
          Pictures.Load_Soon (Item.Picture, Urgent => True);
       end if;
@@ -314,7 +397,10 @@ package body Items.Readers is
       Set_Title (Item, Projects.Titles.To_String (Of_Item.Title));
       Clear_Recognized (Item);
       Pictures.Clear_Marks (Item.Picture);
+      Views.Clear_Marks (Item.Pages);
       Pictures.Set_File (Item.Picture, "");
+      Items.Vector_Pages.Close (Item.Pages, Item.Doc_Sizes);
+      Item.Paged := False;
       Select_Tool (Item, Pictures.Pointer);
       Set_Zoom (Item, Of_Item.Zoom);
       Docs.Load (Item.Text_Doc, "");
@@ -323,7 +409,7 @@ package body Items.Readers is
          if Is_Texty (Item) then
             Docs.Load (Item.Text_Doc, Items.Sources.Read_Text (Picture_File));
          else
-            Pictures.Set_File (Item.Picture, Picture_File);
+            Show_Picture (Item, Picture_File);
          end if;
       end if;
       Show_Mode (Item);
@@ -334,6 +420,9 @@ package body Items.Readers is
    procedure Release (Item : in out Reader) is
    begin
       Clear_Recognized (Item);
+      Pictures.Set_File (Item.Picture, "");
+      Items.Vector_Pages.Close (Item.Pages, Item.Doc_Sizes);
+      Item.Paged := False;
       Pictures.Unload (Item.Picture);
       Frames.Set_Shown (Item.Chrome, False, False);
       Item.Assigned := False;
