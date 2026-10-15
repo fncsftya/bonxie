@@ -1,6 +1,6 @@
 with Items;
-with UI.Widgets;
-with UI.Widgets.Grips;
+with Pomarine.Widgets;
+with Pomarine.Widgets.Grips;
 with Viewer.Canvas_Items;
 with Viewer.Deletion;
 with Viewer.Listing;
@@ -11,10 +11,10 @@ with Viewer.Settings_View;
 
 package body Viewer.Clicks is
 
-   package Widgets renames UI.Widgets;
-   package Buttons renames UI.Widgets.Buttons;
-   package Grips renames UI.Widgets.Grips;
-   package Text_Fields renames UI.Widgets.Text_Fields;
+   package Widgets renames Pomarine.Widgets;
+   package Buttons renames Pomarine.Widgets.Buttons;
+   package Grips renames Pomarine.Widgets.Grips;
+   package Text_Fields renames Pomarine.Widgets.Text_Fields;
 
    use type Projects.Id;
 

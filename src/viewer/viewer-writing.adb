@@ -2,23 +2,24 @@ with Items.Links;
 with Items.Marks;
 with Items.Sources;
 with Items.Words;
-with UI.Boxes;
-with UI.Themes;
+with Pomarine.Boxes;
+with Pomarine.Themes;
 with Ada.Strings.Fixed;
 with Texts.Documents;
-with UI.Icons;
-with UI.Line_Texts;
-with UI.Text_Areas;
-with UI.Widgets;
-with UI.Widgets.Buttons;
-with UI.Widgets.Editors;
-with UI.Widgets.Grips;
-with UI.Widgets.Labels;
-with UI.Widgets.Menus;
-with UI.Widgets.Panels;
-with UI.Widgets.Pictures;
-with UI.Widgets.Scrollers;
-with UI.Widgets.Text_Fields;
+with Icon_Set;
+with Pomarine.Icons;
+with Pomarine.Line_Texts;
+with Pomarine.Text_Areas;
+with Pomarine.Widgets;
+with Pomarine.Widgets.Buttons;
+with Pomarine.Widgets.Editors;
+with Pomarine.Widgets.Grips;
+with Pomarine.Widgets.Labels;
+with Pomarine.Widgets.Menus;
+with Pomarine.Widgets.Panels;
+with Pomarine.Widgets.Pictures;
+with Pomarine.Widgets.Scrollers;
+with Pomarine.Widgets.Text_Fields;
 with Viewer.Canvas_Items;
 with Viewer.Deletion;
 with Viewer.Style;
@@ -26,15 +27,15 @@ with Yoga.Nodes;
 
 package body Viewer.Writing is
 
-   package Widgets renames UI.Widgets;
-   package Buttons renames UI.Widgets.Buttons;
-   package Editors renames UI.Widgets.Editors;
-   package Grips renames UI.Widgets.Grips;
-   package Labels renames UI.Widgets.Labels;
-   package Menus renames UI.Widgets.Menus;
-   package Pictures renames UI.Widgets.Pictures;
-   package Scrollers renames UI.Widgets.Scrollers;
-   package Text_Fields renames UI.Widgets.Text_Fields;
+   package Widgets renames Pomarine.Widgets;
+   package Buttons renames Pomarine.Widgets.Buttons;
+   package Editors renames Pomarine.Widgets.Editors;
+   package Grips renames Pomarine.Widgets.Grips;
+   package Labels renames Pomarine.Widgets.Labels;
+   package Menus renames Pomarine.Widgets.Menus;
+   package Pictures renames Pomarine.Widgets.Pictures;
+   package Scrollers renames Pomarine.Widgets.Scrollers;
+   package Text_Fields renames Pomarine.Widgets.Text_Fields;
    package Readers renames Items.Readers;
    package Windows renames Items.Windows;
    package Docs renames Texts.Documents;
@@ -376,11 +377,11 @@ package body Viewer.Writing is
    begin
       Labels.Set_Style
         (Row.Caption,
-         (if Chosen then UI.Line_Texts.Strong else UI.Line_Texts.Regular));
+         (if Chosen then Pomarine.Line_Texts.Strong else Pomarine.Line_Texts.Regular));
       if Chosen then
          Grips.Set_Fill (Row.Row, Style.Row_Open);
          Grips.Set_Hover_Fill (Row.Row, Style.Row_Open);
-         Grips.Set_Shadow (Row.Row, UI.Themes.Shadow);
+         Grips.Set_Shadow (Row.Row, Pomarine.Themes.Shadow);
       else
          --  Its shadow is the ground: unseen, but the face is the same
          --  size.
@@ -473,24 +474,24 @@ package body Viewer.Writing is
       if Node.Kind = Document_Leaf then
          --  A box, standing up.
          Choose_Row (Each, Chosen);
-         Grips.Set_Border (Each.Row, UI.Themes.Border);
+         Grips.Set_Border (Each.Row, Pomarine.Themes.Border);
          Widgets.Set_Visible (Each.Tag, False);
       else
          --  Not a box: bare, with a marker, in bold; the marker is lit
          --  when it is the one shown, and the row is outlined while a
          --  document is over it.
-         Labels.Set_Style (Each.Caption, UI.Line_Texts.Strong);
+         Labels.Set_Style (Each.Caption, Pomarine.Line_Texts.Strong);
          Grips.Clear_Fill (Each.Row);
          Grips.Clear_Shadow (Each.Row);
          if Dropped then
-            Grips.Set_Border (Each.Row, UI.Themes.Focus);
+            Grips.Set_Border (Each.Row, Pomarine.Themes.Focus);
          elsif Hinted then
-            Grips.Set_Border (Each.Row, UI.Themes.Border, Dashed => True);
+            Grips.Set_Border (Each.Row, Pomarine.Themes.Border, Dashed => True);
          else
             Grips.Clear_Border (Each.Row);
          end if;
-         UI.Widgets.Panels.Set_Fill
-           (Each.Tag, (if Chosen then UI.Themes.Accent else Style.Quiet_Ink));
+         Pomarine.Widgets.Panels.Set_Fill
+           (Each.Tag, (if Chosen then Pomarine.Themes.Accent else Style.Quiet_Ink));
          Widgets.Set_Visible (Each.Tag, True);
       end if;
       if Level /= Each.Indent then
@@ -579,7 +580,7 @@ package body Viewer.Writing is
                begin
                   Labels.Set_Text
                     (Each.Caption, Labels.Fitted (Title_Of (Item, Which)));
-                  UI.Widgets.Panels.Set_Fill
+                  Pomarine.Widgets.Panels.Set_Fill
                     (Each.Tag, Canvas_Items.Source_Ink (Item, Which));
                   Choose_Row
                     (Each,
@@ -858,7 +859,7 @@ package body Viewer.Writing is
       Menus.Add (Item.Page_View.Menu, Menus.Action, "Add source",
                  Menus.Primary);
       Menus.Set_Icon (Item.Page_View.Menu,
-                      Menus.Row_Count (Item.Page_View.Menu), UI.Icons.Plus);
+                      Menus.Row_Count (Item.Page_View.Menu), Icon_Set.Plus);
       pragma Assert (Menus.Row_Count (Item.Page_View.Menu) = Add_Row (Item));
       Item.Page_View.Menu_Page := Rank;
       Item.Page_View.Menu_Left := -1.0E9;
@@ -1213,11 +1214,11 @@ package body Viewer.Writing is
          Widgets.Top_Of (Box) - Widgets.Top_Of (Content));
       Set_Width
         (Widgets.Node (Field),
-         Widgets.Width_Of (Box) - UI.Boxes.Offset (Pixels));
+         Widgets.Width_Of (Box) - Pomarine.Boxes.Offset (Pixels));
       Widgets.Set_Visible (Field, True);
       Widgets.Request_Layout (Field);
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
-      UI.Text_Areas.Select_All (Text_Fields.Area (Field).all);
+      Pomarine.Text_Areas.Select_All (Text_Fields.Area (Field).all);
       Widgets.Focus (Field);
    end Put_Field;
 
@@ -1390,7 +1391,7 @@ package body Viewer.Writing is
      (Item    : in out Session;
       Act     : Context_Acts;
       Name    : String;
-      Icon    : UI.Icons.Icon;
+      Icon    : Pomarine.Icons.Icon;
       Enabled : Boolean := True;
       Shade   : Menus.Tone := Menus.Plain);
    --  Add a row to the menu that does Act; if it cannot be now, it is a
@@ -1400,7 +1401,7 @@ package body Viewer.Writing is
      (Item    : in out Session;
       Act     : Context_Acts;
       Name    : String;
-      Icon    : UI.Icons.Icon;
+      Icon    : Pomarine.Icons.Icon;
       Enabled : Boolean := True;
       Shade   : Menus.Tone := Menus.Plain) is
    begin
@@ -1442,8 +1443,8 @@ package body Viewer.Writing is
       begin
          Begin_Menu;
          Item.Context.Context_Node := Node;
-         Add_Act (Item, Rename_Act, "Rename", UI.Icons.Edit);
-         Add_Act (Item, Delete_Act, "Delete", UI.Icons.Delete,
+         Add_Act (Item, Rename_Act, "Rename", Icon_Set.Edit);
+         Add_Act (Item, Delete_Act, "Delete", Icon_Set.Delete,
                   Shade => Menus.Danger);
          Show_Context (Item, Tree_Context, X, Y);
          Opened := True;
@@ -1452,9 +1453,9 @@ package body Viewer.Writing is
       procedure Picture_Menu (Over, Words : Boolean) is
       begin
          if Over then
-            Add_Act (Item, Copy_Act, "Copy", UI.Icons.Document);
+            Add_Act (Item, Copy_Act, "Copy", Icon_Set.Document);
          end if;
-         Add_Act (Item, Select_All_Act, "Select all", UI.Icons.Check,
+         Add_Act (Item, Select_All_Act, "Select all", Pomarine.Icons.Check,
                   Enabled => Words);
          Show_Context (Item, Picture_Context, X, Y);
          Opened := True;
@@ -1464,13 +1465,13 @@ package body Viewer.Writing is
          Paste : constant Boolean := Board_Has_Text (Item);
       begin
          if Over then
-            Add_Act (Item, Copy_Act, "Copy", UI.Icons.Document);
-            Add_Act (Item, Cut_Act, "Cut", UI.Icons.Eraser);
-            Add_Act (Item, Paste_Act, "Paste", UI.Icons.Plus, Paste);
-            Add_Act (Item, Select_All_Act, "Select all", UI.Icons.Check);
+            Add_Act (Item, Copy_Act, "Copy", Icon_Set.Document);
+            Add_Act (Item, Cut_Act, "Cut", Icon_Set.Eraser);
+            Add_Act (Item, Paste_Act, "Paste", Icon_Set.Plus, Paste);
+            Add_Act (Item, Select_All_Act, "Select all", Pomarine.Icons.Check);
          else
-            Add_Act (Item, Paste_Act, "Paste", UI.Icons.Plus, Paste);
-            Add_Act (Item, Select_All_Act, "Select all", UI.Icons.Check);
+            Add_Act (Item, Paste_Act, "Paste", Icon_Set.Plus, Paste);
+            Add_Act (Item, Select_All_Act, "Select all", Pomarine.Icons.Check);
          end if;
          Show_Context (Item, Text_Context, X, Y);
          Opened := True;
@@ -1487,16 +1488,16 @@ package body Viewer.Writing is
 
       procedure Of_Text (Rank : Positive) is
          Page  : Doc_Page renames Item.Docs.Pages (Rank);
-         Area  : UI.Text_Areas.Text_Area renames Editors.Area (Page.Text).all;
+         Area  : Pomarine.Text_Areas.Text_Area renames Editors.Area (Page.Text).all;
          Over  : constant Boolean :=
-           UI.Text_Areas.Is_Over_Selection (Area, PX, PY);
+           Pomarine.Text_Areas.Is_Over_Selection (Area, PX, PY);
       begin
          --  The caret goes where it was pressed, unless that is in the
          --  selection.
          Widgets.Focus (Page.Text);
          if not Over then
-            UI.Text_Areas.Click (Area, PX, PY);
-            UI.Text_Areas.Release (Area);
+            Pomarine.Text_Areas.Click (Area, PX, PY);
+            Pomarine.Text_Areas.Release (Area);
          end if;
          Begin_Menu;
          Item.Context.Context_Page := Rank;
@@ -1650,18 +1651,18 @@ package body Viewer.Writing is
              and then Board /= null
             then
                declare
-                  Area : UI.Text_Areas.Text_Area renames
+                  Area : Pomarine.Text_Areas.Text_Area renames
                     Editors.Area (Item.Docs.Pages (Page).Text).all;
                begin
                   case Act is
                      when Copy_Act =>
-                        UI.Text_Areas.Copy (Area, Board.all);
+                        Pomarine.Text_Areas.Copy (Area, Board.all);
                      when Cut_Act =>
-                        UI.Text_Areas.Cut (Area, Board.all);
+                        Pomarine.Text_Areas.Cut (Area, Board.all);
                      when Paste_Act =>
-                        UI.Text_Areas.Paste (Area, Board.all);
+                        Pomarine.Text_Areas.Paste (Area, Board.all);
                      when Select_All_Act =>
-                        UI.Text_Areas.Select_All (Area);
+                        Pomarine.Text_Areas.Select_All (Area);
                      when others =>
                         null;
                   end case;
@@ -1879,7 +1880,7 @@ package body Viewer.Writing is
    procedure Show_Drop_Line (Item : in out Session) is
       use Yoga.Nodes;
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
-      Offset : constant Float := UI.Boxes.Offset (Pixels);
+      Offset : constant Float := Pomarine.Boxes.Offset (Pixels);
    begin
       if Item.Docs.Drop.Kind /= Between then
          Widgets.Set_Visible (Item.Docs.Drop_Line, False);
@@ -2138,7 +2139,7 @@ package body Viewer.Writing is
          --  The press that began it is not let go on what is hidden.
          Grips.Cancel_Drag (Each.Heading_Area);
          Widgets.Set_Visible (Each.Title_Field, True);
-         UI.Text_Areas.Select_All (Text_Fields.Area (Each.Title_Field).all);
+         Pomarine.Text_Areas.Select_All (Text_Fields.Area (Each.Title_Field).all);
          Widgets.Focus (Each.Title_Field);
       elsif Each.Renaming then
          Text_Fields.Take_Return (Each.Title_Field, Entered);
@@ -2302,8 +2303,8 @@ package body Viewer.Writing is
                           (Mic, (if Busy then "Stop" else "Mic"));
                         Buttons.Set_Icon
                           (Mic,
-                           (if Busy then UI.Icons.Stop
-                            else UI.Icons.Microphone));
+                           (if Busy then Icon_Set.Stop
+                            else Icon_Set.Microphone));
                      end if;
                   end;
                   declare
@@ -2398,7 +2399,7 @@ package body Viewer.Writing is
                        Float'Max
                          (Style.Page_Min_Height,
                           Float'Ceiling
-                            (UI.Text_Areas.Content_Height
+                            (Pomarine.Text_Areas.Content_Height
                                (Editors.Area (Each.Text).all)));
                   begin
                      if Wide /= Each.Wide then
@@ -2460,15 +2461,15 @@ package body Viewer.Writing is
       for Rank in 1 .. Item.Reading.Write_Count loop
          declare
             Each : Doc_Page renames Item.Docs.Pages (Rank);
-            Area : UI.Text_Areas.Text_Area renames
+            Area : Pomarine.Text_Areas.Text_Area renames
               Editors.Area (Each.Text).all;
          begin
             if Widgets.Has_Focus (Each.Text) then
                declare
                   Caret   : constant Texts.Position :=
-                    UI.Text_Areas.Caret (Area);
+                    Pomarine.Text_Areas.Caret (Area);
                   Version : constant Docs.Version :=
-                    Docs.Current (UI.Text_Areas.Document (Area).all);
+                    Docs.Current (Pomarine.Text_Areas.Document (Area).all);
                begin
                   if Caret /= Each.Caret_For or else Version /= Each.Caret_Seen
                   then

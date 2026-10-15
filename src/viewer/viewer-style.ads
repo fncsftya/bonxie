@@ -1,5 +1,5 @@
 with Items.Links;
-with UI.Themes;
+with Pomarine.Themes;
 
 --  How the screens look: the sizes of what is on them, and its colours.
 private package Viewer.Style is
@@ -39,9 +39,9 @@ private package Viewer.Style is
    Tool_Width    : constant Float := 112.0;
    Tray_Width    : constant Float :=
      Wide_Tool_Width + Tool_Width + Tray_Gap + 2.0 * Tray_Pad
-     + UI.Themes.Shadow_Offset;
+     + Pomarine.Themes.Shadow_Offset;
    Tray_Height   : constant Float :=
-     Tool_Height + 2.0 * Tray_Pad + UI.Themes.Shadow_Offset;
+     Tool_Height + 2.0 * Tray_Pad + Pomarine.Themes.Shadow_Offset;
    --  With its shadow, which is inside its box.
 
    Dock_Height   : constant Float := 40.0;
@@ -176,47 +176,47 @@ private package Viewer.Style is
    --  theme without being built again; what is drawn at once takes Colors,
    --  the theme in use.
 
-   Active : UI.Themes.Theme := UI.Themes.Light;
+   Active : Pomarine.Themes.Theme := Pomarine.Themes.Light;
    --  The theme of the window shown: Light, or Dark, as Use_Dark says.
 
-   function Colors return UI.Themes.Theme is (Active);
+   function Colors return Pomarine.Themes.Theme is (Active);
 
    procedure Use_Dark (Dark : Boolean)
-     with Post => UI.Themes."=" (Colors, (if Dark then UI.Themes.Dark
-                                          else UI.Themes.Light));
+     with Post => Pomarine.Themes."=" (Colors, (if Dark then Pomarine.Themes.Dark
+                                          else Pomarine.Themes.Light));
    --  Draw in the dark theme, or in the light.
 
-   Toolbar : constant UI.Themes.Slot := UI.Themes.Bar;
+   Toolbar : constant Pomarine.Themes.Slot := Pomarine.Themes.Bar;
    --  The dark bars: across the top, and of the windows' titles.
-   Mid_Panel : constant UI.Themes.Slot := UI.Themes.Rail;
+   Mid_Panel : constant Pomarine.Themes.Slot := Pomarine.Themes.Rail;
    --  Behind the pages, and of the home screen's sidebar.
-   Dock : constant UI.Themes.Slot := UI.Themes.Dock;
+   Dock : constant Pomarine.Themes.Slot := Pomarine.Themes.Dock;
    --  Behind the minimised items.
-   Desk : constant UI.Themes.Slot := UI.Themes.Rail;
-   Paper : constant UI.Themes.Slot := UI.Themes.Page;
-   Side_Fill : constant UI.Themes.Slot := UI.Themes.Background;
+   Desk : constant Pomarine.Themes.Slot := Pomarine.Themes.Rail;
+   Paper : constant Pomarine.Themes.Slot := Pomarine.Themes.Page;
+   Side_Fill : constant Pomarine.Themes.Slot := Pomarine.Themes.Background;
    --  Of the writing view's sidebar.
-   Row_Fill : constant UI.Themes.Slot := UI.Themes.Face;
-   Row_Open : constant UI.Themes.Slot := UI.Themes.Page;
-   Row_Hover : constant UI.Themes.Slot := UI.Themes.Hover_Row;
+   Row_Fill : constant Pomarine.Themes.Slot := Pomarine.Themes.Face;
+   Row_Open : constant Pomarine.Themes.Slot := Pomarine.Themes.Page;
+   Row_Hover : constant Pomarine.Themes.Slot := Pomarine.Themes.Hover_Row;
    --  A row of a list; the one chosen: a source that is open, or a
    --  document that is being put elsewhere in the order; and one under
    --  the pointer.
-   Edge_Fill : constant UI.Themes.Slot := UI.Themes.Border;
-   Closed_Ink : constant UI.Themes.Slot := UI.Themes.Closed;
+   Edge_Fill : constant Pomarine.Themes.Slot := Pomarine.Themes.Border;
+   Closed_Ink : constant Pomarine.Themes.Slot := Pomarine.Themes.Closed;
    --  Of the title of an item that is not shown, in the list.
-   Quiet_Ink : constant UI.Themes.Slot := UI.Themes.Hint;
+   Quiet_Ink : constant Pomarine.Themes.Slot := Pomarine.Themes.Hint;
    --  Of what is said of something, after its name: a count.
-   Rule_Ink : constant UI.Themes.Slot := UI.Themes.Rule;
+   Rule_Ink : constant Pomarine.Themes.Slot := Pomarine.Themes.Rule;
    --  A line on the dark bar.
 
-   Source_Inks : constant array (1 .. 8) of UI.Themes.Slot :=
-     [UI.Themes.Source_1, UI.Themes.Source_2, UI.Themes.Source_3,
-      UI.Themes.Source_4, UI.Themes.Source_5, UI.Themes.Source_6,
-      UI.Themes.Source_7, UI.Themes.Source_8];
+   Source_Inks : constant array (1 .. 8) of Pomarine.Themes.Slot :=
+     [Pomarine.Themes.Source_1, Pomarine.Themes.Source_2, Pomarine.Themes.Source_3,
+      Pomarine.Themes.Source_4, Pomarine.Themes.Source_5, Pomarine.Themes.Source_6,
+      Pomarine.Themes.Source_7, Pomarine.Themes.Source_8];
    --  Of the sources, in the order they were made, and round again.
 
-   function Source_Ink (Rank : Natural) return UI.Themes.Slot is
+   function Source_Ink (Rank : Natural) return Pomarine.Themes.Slot is
      (Source_Inks (1 + (Integer'Max (1, Rank) - 1) mod Source_Inks'Length));
 
    --  The toolbar of a selected link, in points
@@ -233,9 +233,9 @@ private package Viewer.Style is
    Link_Bar_Offset  : constant Float := 14.0;
    --  Below the lower end of the link, and centred across it.
 
-   Link_Inks : constant array (Items.Links.Link_Colors) of UI.Themes.Slot :=
-     [UI.Themes.Bar, UI.Themes.Accent, UI.Themes.Primary, UI.Themes.Danger,
-      UI.Themes.Source_1];
+   Link_Inks : constant array (Items.Links.Link_Colors) of Pomarine.Themes.Slot :=
+     [Pomarine.Themes.Bar, Pomarine.Themes.Accent, Pomarine.Themes.Primary, Pomarine.Themes.Danger,
+      Pomarine.Themes.Source_1];
    --  The colours a link between documents can be drawn in: the theme's,
    --  and a blue.
 

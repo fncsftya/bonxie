@@ -1,11 +1,11 @@
-with UI.Widgets;
+with Pomarine.Widgets;
 with Viewer.Recent;
 with Viewer.Writing;
 
 package body Viewer.Deletion is
 
-   package Widgets renames UI.Widgets;
-   package Labels renames UI.Widgets.Labels;
+   package Widgets renames Pomarine.Widgets;
+   package Labels renames Pomarine.Widgets.Labels;
 
    use type Items.Kinds;
 

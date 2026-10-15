@@ -1,4 +1,4 @@
-with UI.Widgets.Labels;
+with Pomarine.Widgets.Labels;
 with Viewer.Navigation;
 
 package body Viewer.Home_Screen is
@@ -26,7 +26,7 @@ package body Viewer.Home_Screen is
 
    function Row_Title (Item : Session; Row : Positive) return String is
      (if Row <= Item.Home_View.Listed.Count
-      then UI.Widgets.Labels.Text (Item.Home_View.Cards (Row).Title)
+      then Pomarine.Widgets.Labels.Text (Item.Home_View.Cards (Row).Title)
       else "");
 
 end Viewer.Home_Screen;

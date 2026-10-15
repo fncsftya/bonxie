@@ -1,21 +1,21 @@
 with Items.Links;
-with UI.Boxes;
-with UI.Icons;
-with UI.Widgets;
-with UI.Widgets.Buttons;
-with UI.Widgets.Canvases;
-with UI.Widgets.Panels;
-with UI.Widgets.Pins;
+with Pomarine.Boxes;
+with Icon_Set;
+with Pomarine.Widgets;
+with Pomarine.Widgets.Buttons;
+with Pomarine.Widgets.Canvases;
+with Pomarine.Widgets.Panels;
+with Pomarine.Widgets.Pins;
 with Viewer.Style;
 with Yoga.Nodes;
 
 package body Viewer.Links is
 
-   package Widgets renames UI.Widgets;
-   package Boxes renames UI.Boxes;
-   package Canvases renames UI.Widgets.Canvases;
-   package Pins renames UI.Widgets.Pins;
-   package Buttons renames UI.Widgets.Buttons;
+   package Widgets renames Pomarine.Widgets;
+   package Boxes renames Pomarine.Boxes;
+   package Canvases renames Pomarine.Widgets.Canvases;
+   package Pins renames Pomarine.Widgets.Pins;
+   package Buttons renames Pomarine.Widgets.Buttons;
    package Windows renames Items.Windows;
    package Item_Links renames Items.Links;
 
@@ -120,7 +120,7 @@ package body Viewer.Links is
       end Tool;
    begin
       Widgets.Add (Item.Canvas_View, Item.Linking.Link_Bar);
-      UI.Widgets.Panels.Set_Fill (Item.Linking.Link_Bar, Style.Toolbar);
+      Pomarine.Widgets.Panels.Set_Fill (Item.Linking.Link_Bar, Style.Toolbar);
       Set_Position_Type (Widgets.Node (Item.Linking.Link_Bar), Yoga.Absolute);
       Set_Flex_Direction (Widgets.Node (Item.Linking.Link_Bar), Yoga.Row);
       Set_Align_Items (Widgets.Node (Item.Linking.Link_Bar), Yoga.Center);
@@ -138,15 +138,15 @@ package body Viewer.Links is
       Buttons.Set_Label
         (Item.Linking.Stroke_Buttons (Item_Links.Solid), "Solid");
       Buttons.Set_Icon (Item.Linking.Stroke_Buttons (Item_Links.Solid),
-                        UI.Icons.Stroke_Solid);
+                        Icon_Set.Stroke_Solid);
       Buttons.Set_Label
         (Item.Linking.Stroke_Buttons (Item_Links.Dots), "Dots");
       Buttons.Set_Icon (Item.Linking.Stroke_Buttons (Item_Links.Dots),
-                        UI.Icons.Stroke_Dots);
+                        Icon_Set.Stroke_Dots);
       Buttons.Set_Label
         (Item.Linking.Stroke_Buttons (Item_Links.Dashed), "Dash");
       Buttons.Set_Icon (Item.Linking.Stroke_Buttons (Item_Links.Dashed),
-                        UI.Icons.Stroke_Dashed);
+                        Icon_Set.Stroke_Dashed);
       for Each in Item_Links.Endings loop
          Tool
            (Item.Linking.End_Buttons (Each),
@@ -154,10 +154,10 @@ package body Viewer.Links is
       end loop;
       Buttons.Set_Label (Item.Linking.End_Buttons (Item_Links.Plain), "Plain");
       Buttons.Set_Icon (Item.Linking.End_Buttons (Item_Links.Plain),
-                        UI.Icons.End_Plain);
+                        Icon_Set.End_Plain);
       Buttons.Set_Label (Item.Linking.End_Buttons (Item_Links.Arrow), "Arrow");
       Buttons.Set_Icon (Item.Linking.End_Buttons (Item_Links.Arrow),
-                        UI.Icons.End_Arrow);
+                        Icon_Set.End_Arrow);
       for Each in Item_Links.Link_Colors loop
          Tool (Item.Linking.Color_Buttons (Each), Apart => Each = 1);
          Buttons.Set_Label (Item.Linking.Color_Buttons (Each), "Ink");
@@ -166,7 +166,7 @@ package body Viewer.Links is
       end loop;
       Tool (Item.Linking.Delete_Link, Apart => True);
       Buttons.Set_Label (Item.Linking.Delete_Link, "Del");
-      Buttons.Set_Icon (Item.Linking.Delete_Link, UI.Icons.Delete);
+      Buttons.Set_Icon (Item.Linking.Delete_Link, Icon_Set.Delete);
       Buttons.Set_Kind (Item.Linking.Delete_Link, Buttons.Danger);
       Widgets.Set_Visible (Item.Linking.Link_Bar, False);
 

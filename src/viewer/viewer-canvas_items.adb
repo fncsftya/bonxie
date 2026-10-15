@@ -9,9 +9,9 @@ with Ada.Directories;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 with Preferences;
-with UI.Widgets;
-with UI.Widgets.Canvases;
-with UI.Widgets.Pictures;
+with Pomarine.Widgets;
+with Pomarine.Widgets.Canvases;
+with Pomarine.Widgets.Pictures;
 with Speech.Jobs;
 with Speech.Models;
 with Viewer.Links;
@@ -23,13 +23,13 @@ with Yoga.Nodes;
 
 package body Viewer.Canvas_Items is
 
-   package Widgets renames UI.Widgets;
-   package Canvases renames UI.Widgets.Canvases;
+   package Widgets renames Pomarine.Widgets;
+   package Canvases renames Pomarine.Widgets.Canvases;
    package Windows renames Items.Windows;
 
    use type Items.States;
    use type Preferences.Speech_Models;
-   use type UI.Widgets.Pictures.Tools;
+   use type Pomarine.Widgets.Pictures.Tools;
    use type Items.Id;
    use type Projects.Id;
    use type Items.Kinds;
@@ -411,7 +411,7 @@ package body Viewer.Canvas_Items is
    --  Pan so that the canvas point X, Y is in the middle of the view.
 
    procedure Centre_On (Item : in out Session; X, Y : Float) is
-      View   : UI.Widgets.Canvases.Canvas renames Item.Canvas_View;
+      View   : Pomarine.Widgets.Canvases.Canvas renames Item.Canvas_View;
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
       Zoom   : constant Float := Canvases.Zoom (View);
    begin
@@ -492,7 +492,7 @@ package body Viewer.Canvas_Items is
    --  Keep how the canvas is seen, for the project to open at again.
 
    procedure Save_View (Item : in out Session) is
-      View   : UI.Widgets.Canvases.Canvas renames Item.Canvas_View;
+      View   : Pomarine.Widgets.Canvases.Canvas renames Item.Canvas_View;
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
    begin
       if Item.Opened.Current /= 0 and then Widgets.Width_Of (View) > 0.0 then
@@ -512,7 +512,7 @@ package body Viewer.Canvas_Items is
    procedure Restore_View
      (Item : in out Session; Found : out Boolean)
    is
-      View   : UI.Widgets.Canvases.Canvas renames Item.Canvas_View;
+      View   : Pomarine.Widgets.Canvases.Canvas renames Item.Canvas_View;
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
       Zoom, X, Y : Float;
    begin
@@ -647,7 +647,7 @@ package body Viewer.Canvas_Items is
       Kind : Items.Kinds;
       Made : out Natural)
    is
-      View   : UI.Widgets.Canvases.Canvas renames Item.Canvas_View;
+      View   : Pomarine.Widgets.Canvases.Canvas renames Item.Canvas_View;
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
       Before : constant Natural := Count (Item);
       Step   : constant Float :=
@@ -780,7 +780,7 @@ package body Viewer.Canvas_Items is
    begin
       for Each of Item.Windows loop
          if Windows.Is_Assigned (Each)
-           and then Windows.Tool (Each) /= UI.Widgets.Pictures.Pointer
+           and then Windows.Tool (Each) /= Pomarine.Widgets.Pictures.Pointer
          then
             declare
                Box : constant Items.Frame := Windows.Box (Each);
@@ -788,7 +788,7 @@ package body Viewer.Canvas_Items is
                if X * Pixels not in Box.Left .. Box.Left + Box.Width
                  or else Y * Pixels not in Box.Top .. Box.Top + Box.Height
                then
-                  Windows.Select_Tool (Each, UI.Widgets.Pictures.Pointer);
+                  Windows.Select_Tool (Each, Pomarine.Widgets.Pictures.Pointer);
                end if;
             end;
          end if;
@@ -818,7 +818,7 @@ package body Viewer.Canvas_Items is
    end Sync;
 
    function Source_Ink
-     (Item : Session; Which : Items.Slot) return UI.Themes.Slot
+     (Item : Session; Which : Items.Slot) return Pomarine.Themes.Slot
    is
       Key  : constant Items.Id := Windows.Details (Item.Windows (Which)).Key;
       Rank : Natural := 0;

@@ -1,6 +1,6 @@
 with Items.Sources;
 with Items.Windows;
-with UI.Widgets.Pictures;
+with Pomarine.Widgets.Pictures;
 with Viewer.Canvas_Items;
 
 package body Viewer.Canvas_Windows is
@@ -88,12 +88,12 @@ package body Viewer.Canvas_Windows is
 
    function Item_Highlighting (Item : Session; Row : Positive) return Boolean
    is
-     (UI.Widgets.Pictures."=" (Items.Windows.Tool
+     (Pomarine.Widgets.Pictures."=" (Items.Windows.Tool
         (Item.Windows (Window (Item, Row))),
-         UI.Widgets.Pictures.Highlighter));
+         Pomarine.Widgets.Pictures.Highlighter));
 
    function Item_Erasing (Item : Session; Row : Positive) return Boolean is
-     (UI.Widgets.Pictures."=" (Items.Windows.Tool
-        (Item.Windows (Window (Item, Row))), UI.Widgets.Pictures.Eraser));
+     (Pomarine.Widgets.Pictures."=" (Items.Windows.Tool
+        (Item.Windows (Window (Item, Row))), Pomarine.Widgets.Pictures.Eraser));
 
 end Viewer.Canvas_Windows;

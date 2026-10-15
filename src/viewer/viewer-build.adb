@@ -7,14 +7,15 @@ with Items.Windows;
 with Preferences;
 with Speech.Models;
 with SDL3.Cursors;
-with UI.Boxes;
-with UI.Icons;
-with UI.Line_Texts;
-with UI.Scrollbars;
-with UI.Themes;
-with UI.Widgets;
-with UI.Widgets.Scrollers;
-with UI.Text_Areas;
+with Pomarine.Boxes;
+with Icon_Set;
+with Pomarine.Icons;
+with Pomarine.Line_Texts;
+with Pomarine.Scrollbars;
+with Pomarine.Themes;
+with Pomarine.Widgets;
+with Pomarine.Widgets.Scrollers;
+with Pomarine.Text_Areas;
 with Viewer.Links;
 with Viewer.Recent;
 with Viewer.Style;
@@ -22,16 +23,16 @@ with Yoga.Nodes;
 
 package body Viewer.Build is
 
-   package Widgets renames UI.Widgets;
-   package Panels renames UI.Widgets.Panels;
-   package Buttons renames UI.Widgets.Buttons;
-   package Labels renames UI.Widgets.Labels;
-   package Text_Fields renames UI.Widgets.Text_Fields;
-   package Grips renames UI.Widgets.Grips;
-   package Scrollers renames UI.Widgets.Scrollers;
-   package Editors renames UI.Widgets.Editors;
-   package Checks renames UI.Widgets.Checks;
-   package Themes renames UI.Themes;
+   package Widgets renames Pomarine.Widgets;
+   package Panels renames Pomarine.Widgets.Panels;
+   package Buttons renames Pomarine.Widgets.Buttons;
+   package Labels renames Pomarine.Widgets.Labels;
+   package Text_Fields renames Pomarine.Widgets.Text_Fields;
+   package Grips renames Pomarine.Widgets.Grips;
+   package Scrollers renames Pomarine.Widgets.Scrollers;
+   package Editors renames Pomarine.Widgets.Editors;
+   package Checks renames Pomarine.Widgets.Checks;
+   package Themes renames Pomarine.Themes;
 
    use Style;
 
@@ -150,26 +151,26 @@ package body Viewer.Build is
       Set_Margin (Widgets.Node (Item.Home_View.Logo), Yoga.Bottom,
                   Logo_Gap * Pixels);
       Labels.Set_Text (Item.Home_View.Logo_Name, "bonxie");
-      Labels.Set_Style (Item.Home_View.Logo_Name, UI.Line_Texts.Display);
+      Labels.Set_Style (Item.Home_View.Logo_Name, Pomarine.Line_Texts.Display);
       Set_Flex_Grow (Widgets.Node (Item.Home_View.Logo_Name), 1.0);
       Set_Height (Widgets.Node (Item.Home_View.Logo_Name),
                   Logo_Height * Pixels);
       Buttons.Set_Label (Item.Home_View.New_Button, "New project");
-      Buttons.Set_Icon (Item.Home_View.New_Button, UI.Icons.Plus);
+      Buttons.Set_Icon (Item.Home_View.New_Button, Icon_Set.Plus);
       Buttons.Set_Captioned (Item.Home_View.New_Button, True);
       Buttons.Set_Kind (Item.Home_View.New_Button, Buttons.Primary);
       Set_Height (Widgets.Node (Item.Home_View.New_Button),
                   Action_Height * Pixels);
       Set_Flex_Grow (Widgets.Node (Item.Home_View.Side_Room), 1.0);
       Buttons.Set_Label (Item.Home_View.Settings_Button, "Settings");
-      Buttons.Set_Icon (Item.Home_View.Settings_Button, UI.Icons.Settings);
+      Buttons.Set_Icon (Item.Home_View.Settings_Button, Icon_Set.Settings);
       Buttons.Set_Captioned (Item.Home_View.Settings_Button, True);
       Set_Height
         (Widgets.Node (Item.Home_View.Settings_Button),
          Action_Height * Pixels);
       Panels.Set_Fill (Item.Home_View.Home_Rule, Themes.Border);
       Set_Width (Widgets.Node (Item.Home_View.Home_Rule),
-                 UI.Boxes.Edge (Pixels));
+                 Pomarine.Boxes.Edge (Pixels));
       Set_Flex_Shrink (Widgets.Node (Item.Home_View.Home_Rule), 0.0);
 
       --  The projects: a title, and the cards in rows that wrap. The title
@@ -185,7 +186,7 @@ package body Viewer.Build is
         (Widgets.Node (Item.Home_View.Recent_Panel), Yoga.Left,
          Home_Margin * Pixels);
       Labels.Set_Text (Item.Home_View.Recent_Title, "Recent projects");
-      Labels.Set_Style (Item.Home_View.Recent_Title, UI.Line_Texts.Display);
+      Labels.Set_Style (Item.Home_View.Recent_Title, Pomarine.Line_Texts.Display);
       Set_Height (Widgets.Node (Item.Home_View.Recent_Title),
                   Logo_Height * Pixels);
       Set_Margin
@@ -225,9 +226,9 @@ package body Viewer.Build is
          for Side in Yoga.Left .. Yoga.Bottom loop
             Set_Padding
               (Widgets.Node (Card.Panel), Side,
-               UI.Boxes.Edge (Pixels)
+               Pomarine.Boxes.Edge (Pixels)
                + (if Side in Yoga.Right | Yoga.Bottom
-                  then UI.Boxes.Offset (Pixels) else 0.0));
+                  then Pomarine.Boxes.Offset (Pixels) else 0.0));
          end loop;
          --  A line between the picture and what is below it.
          Grips.Set_Fill (Card.Peek, Themes.Border);
@@ -236,7 +237,7 @@ package body Viewer.Build is
          Set_Flex_Direction (Widgets.Node (Card.Peek), Yoga.Column);
          Set_Flex_Grow (Widgets.Node (Card.Picture), 1.0);
          Set_Margin
-           (Widgets.Node (Card.Picture), Yoga.Bottom, UI.Boxes.Edge (Pixels));
+           (Widgets.Node (Card.Picture), Yoga.Bottom, Pomarine.Boxes.Edge (Pixels));
          Panels.Set_Fill (Card.Info, Themes.Tint);
          Set_Flex_Grow (Widgets.Node (Card.Info), 1.0);
          Set_Flex_Direction (Widgets.Node (Card.Info), Yoga.Row);
@@ -251,13 +252,13 @@ package body Viewer.Build is
          Set_Flex_Direction (Widgets.Node (Card.Name), Yoga.Column);
          Set_Justify_Content (Widgets.Node (Card.Name), Yoga.Center);
          Set_Align_Self (Widgets.Node (Card.Name), Yoga.Stretch);
-         Labels.Set_Style (Card.Title, UI.Line_Texts.Heading);
+         Labels.Set_Style (Card.Title, Pomarine.Line_Texts.Heading);
          Set_Height (Widgets.Node (Card.Title), Card_Title_Height * Pixels);
          Set_Height (Widgets.Node (Card.Meta), Card_Meta_Height * Pixels);
          Buttons.Set_Label (Card.Rename, "Rename");
-         Buttons.Set_Icon (Card.Rename, UI.Icons.Edit);
+         Buttons.Set_Icon (Card.Rename, Icon_Set.Edit);
          Buttons.Set_Label (Card.Delete, "Delete");
-         Buttons.Set_Icon (Card.Delete, UI.Icons.Delete);
+         Buttons.Set_Icon (Card.Delete, Icon_Set.Delete);
          Buttons.Set_Kind (Card.Delete, Buttons.Danger);
          Size (Card.Rename, Card_Button, Card_Button);
          Size (Card.Delete, Card_Button, Card_Button);
@@ -275,11 +276,11 @@ package body Viewer.Build is
                            Yoga.Center);
       Set_Align_Items (Widgets.Node (Item.Home_View.New_Card), Yoga.Center);
       Buttons.Set_Label (Item.Home_View.New_Card_Plus, "New");
-      Buttons.Set_Icon (Item.Home_View.New_Card_Plus, UI.Icons.Plus);
+      Buttons.Set_Icon (Item.Home_View.New_Card_Plus, Icon_Set.Plus);
       Buttons.Set_Kind (Item.Home_View.New_Card_Plus, Buttons.Primary);
       Size (Item.Home_View.New_Card_Plus, Plus_Size, Plus_Size);
       Labels.Set_Text (Item.Home_View.New_Card_Label, "New project");
-      Labels.Set_Style (Item.Home_View.New_Card_Label, UI.Line_Texts.Strong);
+      Labels.Set_Style (Item.Home_View.New_Card_Label, Pomarine.Line_Texts.Strong);
       Labels.Set_Ink
         (Item.Home_View.New_Card_Label,
          Themes.Primary_Mix);
@@ -361,17 +362,17 @@ package body Viewer.Build is
       Side (Item.Toolbar.Toolbar_Start, Yoga.Flex_Start);
       Side (Item.Toolbar.Toolbar_End, Yoga.Flex_End);
       Buttons.Set_Label (Item.Toolbar.Close_Button, "Projects");
-      Buttons.Set_Icon (Item.Toolbar.Close_Button, UI.Icons.Back);
+      Buttons.Set_Icon (Item.Toolbar.Close_Button, Icon_Set.Back);
       Buttons.Set_Captioned (Item.Toolbar.Close_Button, True);
       Buttons.Set_Kind (Item.Toolbar.Close_Button, Buttons.Quiet);
       Size (Item.Toolbar.Close_Button, Back_Width, Tab_Height);
       Panels.Set_Fill (Item.Toolbar.Bar_Rule, Rule_Ink);
       Size (Item.Toolbar.Bar_Rule, 0.0, Bar_Rule_Height);
-      Set_Width (Widgets.Node (Item.Toolbar.Bar_Rule), UI.Boxes.Edge (Pixels));
+      Set_Width (Widgets.Node (Item.Toolbar.Bar_Rule), Pomarine.Boxes.Edge (Pixels));
       Set_Margin
         (Widgets.Node (Item.Toolbar.Bar_Rule), Yoga.Horizontal,
          Name_Gap * Pixels);
-      Labels.Set_Style (Item.Toolbar.Project_Title, UI.Line_Texts.Heading);
+      Labels.Set_Style (Item.Toolbar.Project_Title, Pomarine.Line_Texts.Heading);
       Labels.Set_Ink (Item.Toolbar.Project_Title, Themes.Bar_Ink);
       Set_Flex_Grow (Widgets.Node (Item.Toolbar.Project_Title), 1.0);
       Set_Width (Widgets.Node (Item.Toolbar.Project_Title), 0.0);
@@ -387,8 +388,8 @@ package body Viewer.Build is
       Text_Fields.Set_Shared
         (Item.Toolbar.Title_Field, Item.Host.Doc_Resources'Unchecked_Access);
       Text_Fields.Configure
-        (Item.Toolbar.Title_Field, UI.Line_Texts.Interface_Font,
-         UI.Line_Texts.Heading_Size);
+        (Item.Toolbar.Title_Field, Pomarine.Line_Texts.Interface_Font,
+         Pomarine.Line_Texts.Heading_Size);
       Set_Flex_Grow (Widgets.Node (Item.Toolbar.Title_Field), 1.0);
       Set_Width (Widgets.Node (Item.Toolbar.Title_Field), 0.0);
       Set_Height (Widgets.Node (Item.Toolbar.Title_Field),
@@ -404,7 +405,7 @@ package body Viewer.Build is
       Size (Item.Toolbar.Canvas_Tab, Tab_Width, Tab_Height);
       Size (Item.Toolbar.Write_Tab, Tab_Width, Tab_Height);
       Buttons.Set_Label (Item.Dock.Tool_List, "Items");
-      Buttons.Set_Icon (Item.Dock.Tool_List, UI.Icons.List);
+      Buttons.Set_Icon (Item.Dock.Tool_List, Icon_Set.List);
       Buttons.Set_Captioned (Item.Dock.Tool_List, True);
       Size (Item.Dock.Tool_List, Items_Width, Tab_Height);
 
@@ -462,17 +463,17 @@ package body Viewer.Build is
         (Widgets.Node (Item.Dock.Tools), Yoga.All_Edges, Tray_Pad * Pixels);
       Set_Padding
         (Widgets.Node (Item.Dock.Tools), Yoga.Right,
-         Tray_Pad * Pixels + UI.Boxes.Offset (Pixels));
+         Tray_Pad * Pixels + Pomarine.Boxes.Offset (Pixels));
       Set_Padding
         (Widgets.Node (Item.Dock.Tools), Yoga.Bottom,
-         Tray_Pad * Pixels + UI.Boxes.Offset (Pixels));
+         Tray_Pad * Pixels + Pomarine.Boxes.Offset (Pixels));
       Set_Gap
         (Widgets.Node (Item.Dock.Tools), Yoga.All_Gutters, Tray_Gap * Pixels);
       Buttons.Set_Label (Item.Dock.Tool_Item, "Add document");
-      Buttons.Set_Icon (Item.Dock.Tool_Item, UI.Icons.Document);
+      Buttons.Set_Icon (Item.Dock.Tool_Item, Icon_Set.Document);
       Buttons.Set_Captioned (Item.Dock.Tool_Item, True);
       Buttons.Set_Label (Item.Dock.Tool_Source, "Add source");
-      Buttons.Set_Icon (Item.Dock.Tool_Source, UI.Icons.Link);
+      Buttons.Set_Icon (Item.Dock.Tool_Source, Icon_Set.Link);
       Buttons.Set_Captioned (Item.Dock.Tool_Source, True);
       Buttons.Set_Kind (Item.Dock.Tool_Source, Buttons.Primary);
       Set_Width (Widgets.Node (Item.Dock.Tool_Item), Wide_Tool_Width * Pixels);
@@ -487,8 +488,8 @@ package body Viewer.Build is
    procedure Build_Write (Item : in out Session) is
       use Yoga.Nodes;
       Pixels : constant Float := Item.Shell.Density;
-      Edge   : constant Float := UI.Boxes.Edge (Pixels);
-      Offset : constant Float := UI.Boxes.Offset (Pixels);
+      Edge   : constant Float := Pomarine.Boxes.Edge (Pixels);
+      Offset : constant Float := Pomarine.Boxes.Offset (Pixels);
 
       procedure Build_Index
         (Scroll   : in out Scrollers.Scroller;
@@ -558,7 +559,7 @@ package body Viewer.Build is
       procedure Heading (Label : in out Labels.Label; Name : String) is
       begin
          Labels.Set_Text (Label, Name);
-         Labels.Set_Style (Label, UI.Line_Texts.Caption);
+         Labels.Set_Style (Label, Pomarine.Line_Texts.Caption);
          Set_Height (Widgets.Node (Label), Heading_Height * Pixels);
          Set_Flex_Shrink (Widgets.Node (Label), 0.0);
       end Heading;
@@ -666,12 +667,12 @@ package body Viewer.Build is
         (Widgets.Node (Item.Page_View.Sources_Heading), Yoga.Top,
          Heading_Top * Pixels);
       Buttons.Set_Label (Item.Page_View.Docs_Add, "+");
-      Buttons.Set_Icon (Item.Page_View.Docs_Add, UI.Icons.Plus);
+      Buttons.Set_Icon (Item.Page_View.Docs_Add, Icon_Set.Plus);
       Buttons.Set_Icon_Size (Item.Page_View.Docs_Add, Mic_Icon_Size);
       Set_Width (Widgets.Node (Item.Page_View.Docs_Add), Add_Size * Pixels);
       Set_Height (Widgets.Node (Item.Page_View.Docs_Add), Add_Size * Pixels);
       Buttons.Set_Label (Item.Page_View.Docs_Folder, "New folder");
-      Buttons.Set_Icon (Item.Page_View.Docs_Folder, UI.Icons.Folder);
+      Buttons.Set_Icon (Item.Page_View.Docs_Folder, Icon_Set.Folder);
       Buttons.Set_Icon_Size (Item.Page_View.Docs_Folder, Mic_Icon_Size);
       Set_Width (Widgets.Node (Item.Page_View.Docs_Folder), Add_Size * Pixels);
       Set_Height (Widgets.Node (Item.Page_View.Docs_Folder),
@@ -683,7 +684,7 @@ package body Viewer.Build is
       --  Over the rows of the tree, out of their layout: the line where a
       --  document dragged would go between two, and the field to rename
       --  a directory by.
-      Panels.Set_Fill (Item.Docs.Drop_Line, UI.Themes.Accent);
+      Panels.Set_Fill (Item.Docs.Drop_Line, Pomarine.Themes.Accent);
       Set_Position_Type (Widgets.Node (Item.Docs.Drop_Line), Yoga.Absolute);
       Set_Height (Widgets.Node (Item.Docs.Drop_Line),
                   Drop_Line_Height * Pixels);
@@ -691,14 +692,14 @@ package body Viewer.Build is
       Text_Fields.Set_Shared
         (Item.Naming.Dir_Field, Item.Host.Doc_Resources'Unchecked_Access);
       Text_Fields.Configure
-        (Item.Naming.Dir_Field, UI.Line_Texts.Interface_Font, Edit_Size);
+        (Item.Naming.Dir_Field, Pomarine.Line_Texts.Interface_Font, Edit_Size);
       Set_Position_Type (Widgets.Node (Item.Naming.Dir_Field), Yoga.Absolute);
       Set_Height (Widgets.Node (Item.Naming.Dir_Field), Index_Height * Pixels);
       Widgets.Set_Visible (Item.Naming.Dir_Field, False);
       Text_Fields.Set_Shared
         (Item.Naming.Source_Field, Item.Host.Doc_Resources'Unchecked_Access);
       Text_Fields.Configure
-        (Item.Naming.Source_Field, UI.Line_Texts.Interface_Font, Edit_Size);
+        (Item.Naming.Source_Field, Pomarine.Line_Texts.Interface_Font, Edit_Size);
       Set_Position_Type (Widgets.Node (Item.Naming.Source_Field),
                          Yoga.Absolute);
       Set_Height (Widgets.Node (Item.Naming.Source_Field),
@@ -733,7 +734,7 @@ package body Viewer.Build is
          Set_Gap
            (Widgets.Node (Each.Bar), Yoga.All_Gutters, Tool_Gap * Pixels);
          Set_Padding (Widgets.Node (Each.Bar), Yoga.Right, Offset);
-         Labels.Set_Style (Each.Heading, UI.Line_Texts.Heading);
+         Labels.Set_Style (Each.Heading, Pomarine.Line_Texts.Heading);
          Set_Flex_Direction (Widgets.Node (Each.Heading_Area), Yoga.Row);
          Set_Align_Items (Widgets.Node (Each.Heading_Area), Yoga.Center);
          Set_Flex_Grow (Widgets.Node (Each.Heading_Area), 1.0);
@@ -745,8 +746,8 @@ package body Viewer.Build is
          Text_Fields.Set_Shared
            (Each.Title_Field, Item.Host.Doc_Resources'Unchecked_Access);
          Text_Fields.Configure
-           (Each.Title_Field, UI.Line_Texts.Interface_Font,
-            UI.Line_Texts.Heading_Size);
+           (Each.Title_Field, Pomarine.Line_Texts.Interface_Font,
+            Pomarine.Line_Texts.Heading_Size);
          Set_Flex_Grow (Widgets.Node (Each.Title_Field), 1.0);
          Set_Width (Widgets.Node (Each.Title_Field), 0.0);
          Set_Height (Widgets.Node (Each.Title_Field), Title_Height * Pixels);
@@ -758,7 +759,7 @@ package body Viewer.Build is
          Set_Height
            (Widgets.Node (Each.Sources_Button), Bar_Button_Height * Pixels);
          Buttons.Set_Label (Each.Mic_Button, "Mic");
-         Buttons.Set_Icon (Each.Mic_Button, UI.Icons.Microphone);
+         Buttons.Set_Icon (Each.Mic_Button, Icon_Set.Microphone);
          Buttons.Set_Icon_Size (Each.Mic_Button, Mic_Icon_Size);
          Set_Width (Widgets.Node (Each.Mic_Button), Mic_Width * Pixels);
          Set_Height
@@ -784,10 +785,10 @@ package body Viewer.Build is
          Editors.Set_Shared
            (Each.Text, Item.Host.Doc_Resources'Unchecked_Access);
          Editors.Configure
-           (Each.Text, UI.Line_Texts.Serif, Page_Text_Size, 2000.0,
+           (Each.Text, Pomarine.Line_Texts.Serif, Page_Text_Size, 2000.0,
             Spacing => 0.35 * Page_Text_Size);
          Editors.Set_Paper (Each.Text, Paper);
-         UI.Text_Areas.Set_Grows (Editors.Area (Each.Text).all);
+         Pomarine.Text_Areas.Set_Grows (Editors.Area (Each.Text).all);
          Set_Flex_Shrink (Widgets.Node (Each.Text), 0.0);
          Set_Height (Widgets.Node (Each.Text), Page_Min_Height * Pixels);
          Labels.Set_Trailing (Each.Words, True);
@@ -822,7 +823,7 @@ package body Viewer.Build is
    procedure Build_Settings (Item : in out Session) is
       use Yoga.Nodes;
       Pixels : constant Float := Item.Shell.Density;
-      Offset : constant Float := UI.Boxes.Offset (Pixels);
+      Offset : constant Float := Pomarine.Boxes.Offset (Pixels);
 
       procedure Line (Part : in out Widgets.Widget'Class; High : Float) is
       begin
@@ -877,14 +878,14 @@ package body Viewer.Build is
         (Widgets.Node (Item.Prefs.Settings_Bar), Yoga.Right,
          Bar_Inset * Pixels);
       Labels.Set_Text (Item.Prefs.Settings_Title, "Settings");
-      Labels.Set_Style (Item.Prefs.Settings_Title, UI.Line_Texts.Heading);
+      Labels.Set_Style (Item.Prefs.Settings_Title, Pomarine.Line_Texts.Heading);
       Labels.Set_Ink (Item.Prefs.Settings_Title, Themes.Bar_Ink);
       Set_Flex_Grow (Widgets.Node (Item.Prefs.Settings_Title), 1.0);
       Set_Width (Widgets.Node (Item.Prefs.Settings_Title), 0.0);
       Set_Height (Widgets.Node (Item.Prefs.Settings_Title),
                   Tab_Height * Pixels);
       Buttons.Set_Label (Item.Prefs.Settings_Close, "Close");
-      Buttons.Set_Icon (Item.Prefs.Settings_Close, UI.Icons.Close);
+      Buttons.Set_Icon (Item.Prefs.Settings_Close, Pomarine.Icons.Close);
       Buttons.Set_Captioned (Item.Prefs.Settings_Close, True);
       Buttons.Set_Kind (Item.Prefs.Settings_Close, Buttons.Quiet);
       Set_Width (Widgets.Node (Item.Prefs.Settings_Close),
@@ -927,10 +928,10 @@ package body Viewer.Build is
 
       --  Display: its one option, Theme.
       Labels.Set_Text (Item.Prefs.Display_Heading, "DISPLAY");
-      Labels.Set_Style (Item.Prefs.Display_Heading, UI.Line_Texts.Caption);
+      Labels.Set_Style (Item.Prefs.Display_Heading, Pomarine.Line_Texts.Caption);
       Line (Item.Prefs.Display_Heading, Heading_Height);
       Labels.Set_Text (Item.Prefs.Theme_Name, "Theme");
-      Labels.Set_Style (Item.Prefs.Theme_Name, UI.Line_Texts.Strong);
+      Labels.Set_Style (Item.Prefs.Theme_Name, Pomarine.Line_Texts.Strong);
       Line (Item.Prefs.Theme_Name, Settings_Line);
       Radio (Item.Prefs.Theme_Light, "Light");
       Radio (Item.Prefs.Theme_Dark, "Dark");
@@ -938,13 +939,13 @@ package body Viewer.Build is
 
       --  Speech: its one option, Model.
       Labels.Set_Text (Item.Prefs.Speech_Heading, "SPEECH");
-      Labels.Set_Style (Item.Prefs.Speech_Heading, UI.Line_Texts.Caption);
+      Labels.Set_Style (Item.Prefs.Speech_Heading, Pomarine.Line_Texts.Caption);
       Line (Item.Prefs.Speech_Heading, Heading_Height);
       Set_Margin
         (Widgets.Node (Item.Prefs.Speech_Heading), Yoga.Top,
          Heading_Top * Pixels);
       Labels.Set_Text (Item.Prefs.Model_Name, "Model");
-      Labels.Set_Style (Item.Prefs.Model_Name, UI.Line_Texts.Strong);
+      Labels.Set_Style (Item.Prefs.Model_Name, Pomarine.Line_Texts.Strong);
       Line (Item.Prefs.Model_Name, Settings_Line);
       Radio (Item.Prefs.Model_Native, "MacOS");
       Radio (Item.Prefs.Model_Parakeet, "Parakeet");
@@ -1009,13 +1010,13 @@ package body Viewer.Build is
       Set_Padding
         (Widgets.Node (Bar), Yoga.Horizontal, Dialog_Bar_Pad * Pixels);
       Labels.Set_Text (Named, Name);
-      Labels.Set_Style (Named, UI.Line_Texts.Strong);
+      Labels.Set_Style (Named, Pomarine.Line_Texts.Strong);
       Labels.Set_Ink (Named, Themes.Bar_Ink);
       Set_Flex_Grow (Widgets.Node (Named), 1.0);
       Set_Width (Widgets.Node (Named), 0.0);
       Set_Height (Widgets.Node (Named), Dialog_Bar_Height * Pixels);
       Buttons.Set_Label (Close, "Close");
-      Buttons.Set_Icon (Close, UI.Icons.Close);
+      Buttons.Set_Icon (Close, Pomarine.Icons.Close);
       Buttons.Set_Icon_Size (Close, Dialog_Close_Icon);
       Set_Width (Widgets.Node (Close), Dialog_Close_Size * Pixels);
       Set_Height (Widgets.Node (Close), Dialog_Close_Size * Pixels);
@@ -1035,7 +1036,7 @@ package body Viewer.Build is
       Panels.Set_Fill (Border, Themes.Border);
       Set_Flex_Direction (Widgets.Node (Border), Yoga.Column);
       Set_Padding
-        (Widgets.Node (Border), Yoga.All_Edges, UI.Boxes.Edge (Pixels));
+        (Widgets.Node (Border), Yoga.All_Edges, Pomarine.Boxes.Edge (Pixels));
    end Build_Border;
 
    procedure Build_Modal (Item : in out Session);
@@ -1068,13 +1069,13 @@ package body Viewer.Build is
       Labels.Set_Text (Item.Confirm.Confirm_Note, "This cannot be undone.");
       Buttons.Set_Label (Item.Confirm.Confirm_Cancel, "Cancel");
       Buttons.Set_Label (Item.Confirm.Confirm_Delete, "Delete");
-      Buttons.Set_Icon (Item.Confirm.Confirm_Delete, UI.Icons.Delete);
+      Buttons.Set_Icon (Item.Confirm.Confirm_Delete, Icon_Set.Delete);
       Buttons.Set_Icon_Size (Item.Confirm.Confirm_Delete, Mic_Icon_Size);
       Buttons.Set_Captioned (Item.Confirm.Confirm_Delete, True);
       Buttons.Set_Kind (Item.Confirm.Confirm_Delete, Buttons.Danger);
       Panels.Set_Fill (Item.Confirm.Dialog_Rule, Themes.Border);
       Set_Height (Widgets.Node (Item.Confirm.Dialog_Rule),
-                  UI.Boxes.Edge (Pixels));
+                  Pomarine.Boxes.Edge (Pixels));
       Panels.Set_Fill (Item.Confirm.Confirm_Buttons, Themes.Tint);
 
       --  Not in the layout of the screens: over them, all of the window,
@@ -1188,7 +1189,7 @@ package body Viewer.Build is
       --  Room at the right for the scroll bar.
       Set_Padding
         (Widgets.Node (Item.Item_List.List_Content), Yoga.Right,
-         UI.Scrollbars.Thickness * Pixels);
+         Pomarine.Scrollbars.Thickness * Pixels);
       Set_Gap
         (Widgets.Node (Item.Item_List.List_Content), Yoga.All_Gutters,
          List_Gap * Pixels);
@@ -1221,7 +1222,7 @@ package body Viewer.Build is
          Set_Width (Widgets.Node (Row.Remove), Remove_Width * Pixels);
          Set_Height (Widgets.Node (Row.Remove), Row_Height * Pixels);
          Buttons.Set_Label (Row.Remove, "Remove");
-         Buttons.Set_Icon (Row.Remove, UI.Icons.Delete);
+         Buttons.Set_Icon (Row.Remove, Icon_Set.Delete);
          Buttons.Set_Kind (Row.Remove, Buttons.Danger);
       end loop;
    end Build_List;
@@ -1262,7 +1263,7 @@ package body Viewer.Build is
       Widgets.Set_Density (Item.Root.Widgets, Item.Shell.Density);
       Widgets.Set_Line_Texts (Item.Root.Widgets, Item.Host.Lines);
       Widgets.Set_Icons (Item.Root.Widgets, Item.Host.Pictures);
-      UI.Icons.Set_Directory (Item.Host.Pictures, Share_Directory ("icons"));
+      Icon_Set.Install (Item.Host.Pictures, Share_Directory ("icons"));
       if Item.Shell.Windowed then
          Widgets.Set_Clipboard (Item.Root.Widgets, Item.Shell.System_Board);
       else
@@ -1288,7 +1289,7 @@ package body Viewer.Build is
       Text_Fields.Set_Shared
         (Item.Title_Edit.Edit_Field, Item.Host.Doc_Resources'Unchecked_Access);
       Text_Fields.Configure
-        (Item.Title_Edit.Edit_Field, UI.Line_Texts.Interface_Font, Edit_Size);
+        (Item.Title_Edit.Edit_Field, Pomarine.Line_Texts.Interface_Font, Edit_Size);
 
       --  It starts at the home screen.
       Widgets.Set_Visible (Item.Toolbar.Project_Panel, False);

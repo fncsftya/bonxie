@@ -3,30 +3,30 @@ with Items.Sources;
 with Ada.Calendar;
 with Ada.Calendar.Formatting;
 with Ada.Strings.Fixed;
-with UI.Boxes;
-with UI.Text_Areas;
-with UI.Icons;
-with UI.Line_Texts;
+with Pomarine.Boxes;
+with Pomarine.Text_Areas;
+with Icon_Set;
+with Pomarine.Line_Texts;
 with Yoga.Nodes;
 
 package body Items.Windows is
 
-   package Widgets renames UI.Widgets;
-   package Panels renames UI.Widgets.Panels;
-   package Buttons renames UI.Widgets.Buttons;
-   package Labels renames UI.Widgets.Labels;
-   package Frames renames UI.Widgets.Frames;
-   package Editors renames UI.Widgets.Editors;
-   package Pictures renames UI.Widgets.Pictures;
+   package Widgets renames Pomarine.Widgets;
+   package Panels renames Pomarine.Widgets.Panels;
+   package Buttons renames Pomarine.Widgets.Buttons;
+   package Labels renames Pomarine.Widgets.Labels;
+   package Frames renames Pomarine.Widgets.Frames;
+   package Editors renames Pomarine.Widgets.Editors;
+   package Pictures renames Pomarine.Widgets.Pictures;
 
    use type Widgets.Clipboard_Access;
-   package Sliders renames UI.Widgets.Sliders;
+   package Sliders renames Pomarine.Widgets.Sliders;
 
    use type Docs.Version;
    use type Ada.Calendar.Time;
    use type SDL3.Events.Milliseconds;
 
-   pragma Assert (Items.Marks.Max_Marks = UI.Widgets.Pictures.Max_Marks);
+   pragma Assert (Items.Marks.Max_Marks = Pomarine.Widgets.Pictures.Max_Marks);
 
    --  In points
 
@@ -113,12 +113,12 @@ package body Items.Windows is
      (Item    : in out Window;
       Canvas  : in out Widgets.Widget'Class;
       Dock    : in out Widgets.Widget'Class;
-      Bar     : UI.Themes.Slot;
+      Bar     : Pomarine.Themes.Slot;
       Density : Float)
    is
       use Yoga.Nodes;
       Pixels : constant Float := Density;
-      Edge   : constant Float := UI.Boxes.Edge (Outline * Pixels);
+      Edge   : constant Float := Pomarine.Boxes.Edge (Outline * Pixels);
 
       procedure Size (Part : in out Widgets.Widget'Class; Wide, High : Float)
       is
@@ -144,8 +144,8 @@ package body Items.Windows is
       Frames.Add_Over_Status (Item.Chrome, Item.Progress);
 
       Editors.Configure
-        (Item.Body_Text, UI.Line_Texts.Serif, Text_Size, Measure);
-      Editors.Set_Paper (Item.Body_Text, UI.Themes.Page);
+        (Item.Body_Text, Pomarine.Line_Texts.Serif, Text_Size, Measure);
+      Editors.Set_Paper (Item.Body_Text, Pomarine.Themes.Page);
       Set_Flex_Grow (Widgets.Node (Item.Body_Text), 1.0);
       --  Its own outline is the window's at the sides.
       Set_Margin
@@ -185,11 +185,11 @@ package body Items.Windows is
       Set_Gap
         (Widgets.Node (Item.Tools), Yoga.All_Gutters, Button_Gap * Pixels);
       Buttons.Set_Label (Item.Cursor_Button, "Ptr");
-      Buttons.Set_Icon (Item.Cursor_Button, UI.Icons.Cursor);
+      Buttons.Set_Icon (Item.Cursor_Button, Icon_Set.Cursor);
       Buttons.Set_Label (Item.Marker_Button, "Mark");
-      Buttons.Set_Icon (Item.Marker_Button, UI.Icons.Highlighter);
+      Buttons.Set_Icon (Item.Marker_Button, Icon_Set.Highlighter);
       Buttons.Set_Label (Item.Eraser_Button, "Rub");
-      Buttons.Set_Icon (Item.Eraser_Button, UI.Icons.Eraser);
+      Buttons.Set_Icon (Item.Eraser_Button, Icon_Set.Eraser);
       Buttons.Set_Selected (Item.Cursor_Button, True);
       Size (Item.Eraser_Button, Button_Size, Zoom_Row_Height);
       Size (Item.Cursor_Button, Button_Size, Zoom_Row_Height);
@@ -203,7 +203,7 @@ package body Items.Windows is
 
       --  The button to dictate, of a note.
       Buttons.Set_Label (Item.Speak_Button, "Mic");
-      Buttons.Set_Icon (Item.Speak_Button, UI.Icons.Microphone);
+      Buttons.Set_Icon (Item.Speak_Button, Icon_Set.Microphone);
       Size (Item.Speak_Button, Button_Size, Zoom_Row_Height);
       Buttons.Set_Icon_Size (Item.Speak_Button, Speak_Icon_Size);
       --  In the middle of the status line, as the tools are (see Place).
@@ -214,7 +214,7 @@ package body Items.Windows is
 
       --  The menu: over the picture, at the right, with the window's
       --  outline between its buttons.
-      Panels.Set_Fill (Item.Zoom_Menu, UI.Themes.Border);
+      Panels.Set_Fill (Item.Zoom_Menu, Pomarine.Themes.Border);
       Set_Position_Type (Widgets.Node (Item.Zoom_Menu), Yoga.Absolute);
       Set_Position
         (Widgets.Node (Item.Zoom_Menu), Yoga.Right,
@@ -244,7 +244,7 @@ package body Items.Windows is
       Set_Position_Type (Widgets.Node (Item.Fetch_Button), Yoga.Absolute);
       Set_Position
         (Widgets.Node (Item.Fetch_Button), Yoga.Right,
-         Edge + UI.Boxes.Offset (Pixels) + Fetch_Inset * Pixels);
+         Edge + Pomarine.Boxes.Offset (Pixels) + Fetch_Inset * Pixels);
 
       Widgets.Set_Visible (Item.Fetch_Button, False);
       Widgets.Set_Visible (Item.Tools, False);
@@ -257,7 +257,7 @@ package body Items.Windows is
 
    function Is_Assigned (Item : Window) return Boolean is (Item.Assigned);
 
-   procedure Set_Tag (Item : in out Window; To : UI.Themes.Slot) is
+   procedure Set_Tag (Item : in out Window; To : Pomarine.Themes.Slot) is
    begin
       Frames.Set_Tag (Item.Chrome, To);
    end Set_Tag;
@@ -283,18 +283,18 @@ package body Items.Windows is
    end Hold_Typing;
 
    function Marks_Version (Item : Window) return Natural is
-     (UI.Widgets.Pictures.Marks_Version (Item.Picture));
+     (Pomarine.Widgets.Pictures.Marks_Version (Item.Picture));
 
    function Is_Marking (Item : Window) return Boolean is
-     (UI.Widgets.Pictures.Is_Marking (Item.Picture));
+     (Pomarine.Widgets.Pictures.Is_Marking (Item.Picture));
 
    procedure Get_Marks (Item : Window; Into : out Items.Marks.Mark_List) is
    begin
-      Into.Count := UI.Widgets.Pictures.Mark_Count (Item.Picture);
+      Into.Count := Pomarine.Widgets.Pictures.Mark_Count (Item.Picture);
       for Index in 1 .. Into.Count loop
          declare
-            Each : constant UI.Widgets.Pictures.Mark :=
-              UI.Widgets.Pictures.Mark_At (Item.Picture, Index);
+            Each : constant Pomarine.Widgets.Pictures.Mark :=
+              Pomarine.Widgets.Pictures.Mark_At (Item.Picture, Index);
          begin
             Into.Marks (Index) :=
               (Left => Each.Left, Right => Each.Right, Y => Each.Y);
@@ -305,45 +305,45 @@ package body Items.Windows is
    function Status (Item : Window) return String is
      (Labels.Text (Item.Status));
 
-   function Tool (Item : Window) return UI.Widgets.Pictures.Tools is
-     (UI.Widgets.Pictures.Tool (Item.Picture));
+   function Tool (Item : Window) return Pomarine.Widgets.Pictures.Tools is
+     (Pomarine.Widgets.Pictures.Tool (Item.Picture));
 
    function Mark_Count (Item : Window) return Natural is
-     (UI.Widgets.Pictures.Mark_Count (Item.Picture));
+     (Pomarine.Widgets.Pictures.Mark_Count (Item.Picture));
 
    procedure Select_Tool
-     (Item : in out Window; To : UI.Widgets.Pictures.Tools) is
+     (Item : in out Window; To : Pomarine.Widgets.Pictures.Tools) is
    begin
-      UI.Widgets.Pictures.Set_Tool (Item.Picture, To);
+      Pomarine.Widgets.Pictures.Set_Tool (Item.Picture, To);
       Buttons.Set_Selected
-        (Item.Cursor_Button, To = UI.Widgets.Pictures.Pointer);
+        (Item.Cursor_Button, To = Pomarine.Widgets.Pictures.Pointer);
       Buttons.Set_Selected
-        (Item.Marker_Button, To = UI.Widgets.Pictures.Highlighter);
+        (Item.Marker_Button, To = Pomarine.Widgets.Pictures.Highlighter);
       Buttons.Set_Selected
-        (Item.Eraser_Button, To = UI.Widgets.Pictures.Eraser);
+        (Item.Eraser_Button, To = Pomarine.Widgets.Pictures.Eraser);
    end Select_Tool;
 
    procedure Set_Marks (Item : in out Window; Kept : Items.Marks.Mark_List) is
-      Shown : UI.Widgets.Pictures.Mark_Array (1 .. Kept.Count);
+      Shown : Pomarine.Widgets.Pictures.Mark_Array (1 .. Kept.Count);
    begin
       for Index in Shown'Range loop
          declare
             Each : Items.Marks.Mark renames Kept.Marks (Index);
          begin
             Shown (Index) :=
-              UI.Widgets.Pictures.Clamped_Mark
+              Pomarine.Widgets.Pictures.Clamped_Mark
                 (Each.Left, Each.Right, Each.Y);
          end;
       end loop;
-      UI.Widgets.Pictures.Set_Marks (Item.Picture, Shown);
-      Item.Marks_Saved := UI.Widgets.Pictures.Marks_Version (Item.Picture);
+      Pomarine.Widgets.Pictures.Set_Marks (Item.Picture, Shown);
+      Item.Marks_Saved := Pomarine.Widgets.Pictures.Marks_Version (Item.Picture);
    end Set_Marks;
 
    procedure Set_Recognized
      (Item : in out Window; Found : Vision.Result) is
    begin
       Item.Recognized := Found;
-      UI.Widgets.Pictures.Set_Words
+      Pomarine.Widgets.Pictures.Set_Words
         (Item.Picture, Item.Recognized'Unchecked_Access);
    end Set_Recognized;
 
@@ -352,7 +352,7 @@ package body Items.Windows is
 
    procedure Clear_Recognized (Item : in out Window) is
    begin
-      UI.Widgets.Pictures.Set_Words (Item.Picture, null);
+      Pomarine.Widgets.Pictures.Set_Words (Item.Picture, null);
       Item.Recognized.Count := 0;
       Item.Recognized.Length := 0;
       Item.Recognized.Truncated := False;
@@ -362,7 +362,7 @@ package body Items.Windows is
      (Item.Recognized.Count);
 
    function Selected_Text (Item : Window) return String is
-     (UI.Widgets.Pictures.Selected_Text (Item.Picture));
+     (Pomarine.Widgets.Pictures.Selected_Text (Item.Picture));
 
    procedure Set_Title_Text (Item : in out Window; To : String) is
    begin
@@ -374,7 +374,7 @@ package body Items.Windows is
 
    procedure Set_Progress (Item : in out Window; To : Float) is
    begin
-      UI.Widgets.Progress_Bars.Set_Value (Item.Progress, To);
+      Pomarine.Widgets.Progress_Bars.Set_Value (Item.Progress, To);
    end Set_Progress;
 
    procedure Show_Fetch (Item : in out Window);
@@ -388,7 +388,7 @@ package body Items.Windows is
    begin
       if Wanted /= Widgets.Is_Visible (Item.Fetch_Button) then
          Widgets.Set_Visible (Item.Fetch_Button, Wanted);
-         UI.Text_Areas.Set_Trail
+         Pomarine.Text_Areas.Set_Trail
            (Editors.Area (Item.Body_Text).all,
             (if Wanted then Fetch_Width + Fetch_Inset else 0.0));
          Widgets.Request_Layout (Item.Body_Text);
@@ -404,7 +404,7 @@ package body Items.Windows is
    begin
       Widgets.Set_Visible (Item.Progress, To = Busy);
       if To = Busy then
-         UI.Widgets.Progress_Bars.Set_Value (Item.Progress, 0.0);
+         Pomarine.Widgets.Progress_Bars.Set_Value (Item.Progress, 0.0);
       end if;
       case To is
          when Waiting =>
@@ -414,8 +414,8 @@ package body Items.Windows is
          when Ready =>
             Item.Details.Captured_At := At_Time;
             Clear_Recognized (Item);
-            UI.Widgets.Pictures.Clear_Marks (Item.Picture);
-            UI.Widgets.Pictures.Set_File (Item.Picture, File);
+            Pomarine.Widgets.Pictures.Clear_Marks (Item.Picture);
+            Pomarine.Widgets.Pictures.Set_File (Item.Picture, File);
             Labels.Set_Text (Item.Status, "Captured " & Day (At_Time));
             Show_Fetch (Item);
          when Failed =>
@@ -430,7 +430,7 @@ package body Items.Windows is
          Item.Details.Zoom := To;
          Item.Zoom_Dirty := True;
       end if;
-      UI.Widgets.Pictures.Set_Zoom (Item.Picture, To);
+      Pomarine.Widgets.Pictures.Set_Zoom (Item.Picture, To);
       Sliders.Set_Value (Item.Zoom_Slider, Items.Sources.To_Slider (To));
       Buttons.Set_Label (Item.Zoom_Button, Items.Sources.Percent (To));
    end Set_Zoom;
@@ -441,7 +441,7 @@ package body Items.Windows is
        Width  => Frames.Width_Of (Item.Chrome),
        Height => Frames.Height_Of (Item.Chrome)));
 
-   function Owns (Item : Window; Hit : UI.Widgets.Widget_Access)
+   function Owns (Item : Window; Hit : Pomarine.Widgets.Widget_Access)
      return Boolean is (Frames.Owns (Item.Chrome, Hit));
 
    function Text_Contains (Item : Window; X, Y : Float) return Boolean is
@@ -449,33 +449,33 @@ package body Items.Windows is
 
    function Over_Text_Selection
      (Item : in out Window; X, Y : Float) return Boolean is
-     (UI.Text_Areas.Is_Over_Selection
+     (Pomarine.Text_Areas.Is_Over_Selection
         (Editors.Area (Item.Body_Text).all, X, Y));
 
    procedure Put_Caret (Item : in out Window; X, Y : Float) is
-      Area : UI.Text_Areas.Text_Area renames Editors.Area (Item.Body_Text).all;
+      Area : Pomarine.Text_Areas.Text_Area renames Editors.Area (Item.Body_Text).all;
    begin
       Widgets.Focus (Item.Body_Text);
-      UI.Text_Areas.Click (Area, X, Y);
-      UI.Text_Areas.Release (Area);
+      Pomarine.Text_Areas.Click (Area, X, Y);
+      Pomarine.Text_Areas.Release (Area);
    end Put_Caret;
 
    procedure Edit_Text (Item : in out Window; Act : Text_Acts) is
-      Area  : UI.Text_Areas.Text_Area renames
+      Area  : Pomarine.Text_Areas.Text_Area renames
         Editors.Area (Item.Body_Text).all;
       Board : constant Widgets.Clipboard_Access :=
         Widgets.Clipboard (Item.Body_Text);
    begin
       if Act = Select_All then
-         UI.Text_Areas.Select_All (Area);
+         Pomarine.Text_Areas.Select_All (Area);
       elsif Board /= null then
          case Act is
             when Copy =>
-               UI.Text_Areas.Copy (Area, Board.all);
+               Pomarine.Text_Areas.Copy (Area, Board.all);
             when Cut =>
-               UI.Text_Areas.Cut (Area, Board.all);
+               Pomarine.Text_Areas.Cut (Area, Board.all);
             when Paste =>
-               UI.Text_Areas.Paste (Area, Board.all);
+               Pomarine.Text_Areas.Paste (Area, Board.all);
             when Select_All =>
                null;
          end case;
@@ -547,7 +547,7 @@ package body Items.Windows is
          Docs.Replace
            (Doc, Item.Live_From, Item.Live_To, "", Recorded => False);
       end if;
-      UI.Text_Areas.Clear_Faint (Editors.Area (Item.Body_Text).all);
+      Pomarine.Text_Areas.Clear_Faint (Editors.Area (Item.Body_Text).all);
       Item.Live_Shown := False;
       Item.Live_Lost := False;
    end Take_Back_Live;
@@ -565,11 +565,11 @@ package body Items.Windows is
       end if;
       Item.Dictating := To;
       Widgets.Set_Visible (Item.Progress, To = Listening);
-      UI.Widgets.Progress_Bars.Set_Value (Item.Progress, 0.0);
+      Pomarine.Widgets.Progress_Bars.Set_Value (Item.Progress, 0.0);
       Buttons.Set_Icon
         (Item.Speak_Button,
          (if To in Preparing | Listening
-          then UI.Icons.Stop else UI.Icons.Microphone));
+          then Icon_Set.Stop else Icon_Set.Microphone));
       Buttons.Set_Label
         (Item.Speak_Button,
          (if To in Preparing | Listening then "Stop" else "Mic"));
@@ -593,9 +593,9 @@ package body Items.Windows is
         Float'Rounding (To * Level_Steps) / Level_Steps;
    begin
       if Item.Dictating = Listening
-        and then UI.Widgets.Progress_Bars.Value (Item.Progress) /= Stepped
+        and then Pomarine.Widgets.Progress_Bars.Value (Item.Progress) /= Stepped
       then
-         UI.Widgets.Progress_Bars.Set_Value (Item.Progress, Stepped);
+         Pomarine.Widgets.Progress_Bars.Set_Value (Item.Progress, Stepped);
       end if;
    end Set_Level;
 
@@ -614,7 +614,7 @@ package body Items.Windows is
    end One_Line_Feeds;
 
    procedure Set_Live_Dictation (Item : in out Window; Said : String; Settled : Natural := 0) is
-      Area   : UI.Text_Areas.Text_Area
+      Area   : Pomarine.Text_Areas.Text_Area
         renames Editors.Area (Item.Body_Text).all;
       Doc    : Docs.Document renames Item.Content_Doc;
       Spoken : constant String := One_Line_Feeds (Said);
@@ -623,7 +623,7 @@ package body Items.Windows is
          Item.Live_Lost := True;
       end if;
       if Item.Live_Lost then
-         UI.Text_Areas.Clear_Faint (Area);
+         Pomarine.Text_Areas.Clear_Faint (Area);
          return;
       end if;
       if not Item.Live_Shown then
@@ -631,7 +631,7 @@ package body Items.Windows is
             return;
          end if;
          if Widgets.Has_Focus (Item.Body_Text) then
-            Item.Live_From := UI.Text_Areas.Caret (Area);
+            Item.Live_From := Pomarine.Text_Areas.Caret (Area);
             Item.Live_Break := False;
          else
             Item.Live_From := Docs.Text_End (Doc);
@@ -660,20 +660,20 @@ package body Items.Windows is
                Edge := Edge + 1;
             end loop;
             if Edge < Spoken'Length then
-               UI.Text_Areas.Set_Faint
+               Pomarine.Text_Areas.Set_Faint
                  (Area,
                   Texts.End_After
                     (Item.Live_From, Shown (Shown'First .. Shown'Last - (Spoken'Length - Edge))),
                   Item.Live_To);
             else
-               UI.Text_Areas.Clear_Faint (Area);
+               Pomarine.Text_Areas.Clear_Faint (Area);
             end if;
          end;
       end;
    end Set_Live_Dictation;
 
    procedure Add_Dictation (Item : in out Window; Said : String) is
-      Area : UI.Text_Areas.Text_Area renames Editors.Area (Item.Body_Text).all;
+      Area : Pomarine.Text_Areas.Text_Area renames Editors.Area (Item.Body_Text).all;
       Doc  : Docs.Document renames Item.Content_Doc;
       Spoken : constant String := One_Line_Feeds (Said);
    begin
@@ -683,9 +683,9 @@ package body Items.Windows is
       end if;
       if Widgets.Has_Focus (Item.Body_Text) then
          --  At the caret, not over what is selected.
-         UI.Text_Areas.Select_Range
-           (Area, UI.Text_Areas.Caret (Area), UI.Text_Areas.Caret (Area));
-         UI.Text_Areas.Insert (Area, Spoken);
+         Pomarine.Text_Areas.Select_Range
+           (Area, Pomarine.Text_Areas.Caret (Area), Pomarine.Text_Areas.Caret (Area));
+         Pomarine.Text_Areas.Insert (Area, Spoken);
       else
          declare
             After : constant Texts.Position := Docs.Text_End (Doc);
@@ -705,9 +705,9 @@ package body Items.Windows is
    begin
       Item.Details.State := To;
       if To /= Open then
-         Select_Tool (Item, UI.Widgets.Pictures.Pointer);
+         Select_Tool (Item, Pomarine.Widgets.Pictures.Pointer);
          Widgets.Set_Visible (Item.Zoom_Menu, False);
-         UI.Widgets.Pictures.Unload (Item.Picture);
+         Pomarine.Widgets.Pictures.Unload (Item.Picture);
       end if;
       Frames.Set_Shown (Item.Chrome, To = Open, To = Minimized);
       Item.Was_Used := False;
@@ -715,7 +715,7 @@ package body Items.Windows is
 
    procedure Warm (Item : in out Window) is
    begin
-      UI.Widgets.Pictures.Load_Soon
+      Pomarine.Widgets.Pictures.Load_Soon
         (Item.Picture, Urgent => Item.Details.State = Open);
    end Warm;
 
@@ -736,7 +736,7 @@ package body Items.Windows is
       Frames.Set_Scale (Item.Chrome, Chrome);
       Set_Position
         (Widgets.Node (Item.Fetch_Button), Yoga.Top,
-         UI.Boxes.Edge (Outline * Pixels)
+         Pomarine.Boxes.Edge (Outline * Pixels)
          + (Bar_Height * Chrome + (Url_Height - Fetch_Height) / 2.0)
            * Pixels);
       Show_Fetch (Item);
@@ -758,18 +758,18 @@ package body Items.Windows is
          Item.Face_Of := Item.Details.Kind;
          if Of_Source then
             Editors.Configure
-              (Item.Body_Text, UI.Line_Texts.Interface_Font, Link_Size,
+              (Item.Body_Text, Pomarine.Line_Texts.Interface_Font, Link_Size,
                Measure);
          else
             Editors.Configure
-              (Item.Body_Text, UI.Line_Texts.Serif, Text_Size, Measure);
+              (Item.Body_Text, Pomarine.Line_Texts.Serif, Text_Size, Measure);
          end if;
       end if;
       Frames.Set_Tag_Visible (Item.Chrome, Of_Source);
-      UI.Text_Areas.Set_Single_Line
+      Pomarine.Text_Areas.Set_Single_Line
         (Editors.Area (Item.Body_Text).all, Of_Source);
       if Of_Source then
-         Editors.Set_Icon (Item.Body_Text, UI.Icons.Link);
+         Editors.Set_Icon (Item.Body_Text, Icon_Set.Link);
          Editors.Set_Placeholder (Item.Body_Text, "https://");
       else
          Editors.Clear_Icon (Item.Body_Text);
@@ -794,13 +794,13 @@ package body Items.Windows is
 
    function Across_Of (Item : Window) return Float is
      (if Item.Details.Kind = Source
-      then UI.Widgets.Pictures.Scrolled_Across (Item.Picture) else 0.0);
+      then Pomarine.Widgets.Pictures.Scrolled_Across (Item.Picture) else 0.0);
    --  How far across it is scrolled: only a source's picture is.
 
    function Scroll_Of (Item : in out Window) return Float is
      (if Item.Details.Kind = Source
-      then UI.Widgets.Pictures.Scrolled (Item.Picture)
-      else UI.Text_Areas.Scroll_Top (Editors.Area (Item.Body_Text).all));
+      then Pomarine.Widgets.Pictures.Scrolled (Item.Picture)
+      else Pomarine.Text_Areas.Scroll_Top (Editors.Area (Item.Body_Text).all));
 
    procedure Assign
      (Item       : in out Window;
@@ -832,10 +832,10 @@ package body Items.Windows is
       Show_Title (Item);
       Show_Kind (Item);
       Clear_Recognized (Item);
-      UI.Widgets.Pictures.Set_File (Item.Picture, "");
-      UI.Widgets.Pictures.Clear_Marks (Item.Picture);
-      Item.Marks_Saved := UI.Widgets.Pictures.Marks_Version (Item.Picture);
-      Select_Tool (Item, UI.Widgets.Pictures.Pointer);
+      Pomarine.Widgets.Pictures.Set_File (Item.Picture, "");
+      Pomarine.Widgets.Pictures.Clear_Marks (Item.Picture);
+      Item.Marks_Saved := Pomarine.Widgets.Pictures.Marks_Version (Item.Picture);
+      Select_Tool (Item, Pomarine.Widgets.Pictures.Pointer);
       if Of_Item.Kind = Source then
          Set_Zoom (Item, Of_Item.Zoom);
          Item.Zoom_Dirty := False;
@@ -846,9 +846,9 @@ package body Items.Windows is
          else
             Set_Capture (Item, Waiting);
          end if;
-         UI.Widgets.Pictures.Scroll_To
+         Pomarine.Widgets.Pictures.Scroll_To
            (Item.Picture, Float'Min (1.0, Of_Item.Scroll));
-         UI.Widgets.Pictures.Scroll_Across_To
+         Pomarine.Widgets.Pictures.Scroll_Across_To
            (Item.Picture, Float'Min (1.0, Of_Item.Scroll_Across));
       else
          Show_Words (Item);
@@ -863,7 +863,7 @@ package body Items.Windows is
    procedure Release (Item : in out Window) is
    begin
       Clear_Recognized (Item);
-      UI.Widgets.Pictures.Unload (Item.Picture);
+      Pomarine.Widgets.Pictures.Unload (Item.Picture);
       Frames.Set_Shown (Item.Chrome, False, False);
       Item.Assigned := False;
       Item.Frame_Dirty := False;
@@ -963,7 +963,7 @@ package body Items.Windows is
         and then Item.Details.State = Open
         and then Widgets.Width_Of (Item.Body_Text) > 0.0
       then
-         UI.Text_Areas.Scroll_To
+         Pomarine.Text_Areas.Scroll_To
            (Editors.Area (Item.Body_Text).all, Item.Details.Scroll);
          Widgets.Invalidate (Item.Body_Text);
          Item.Scroll_Pending := False;
@@ -1026,7 +1026,7 @@ package body Items.Windows is
          Begin_Edit (Item);
       end if;
       if Item.Details.Kind = Source and then Item.Details.State = Open then
-         UI.Text_Areas.Take_Return
+         Pomarine.Text_Areas.Take_Return
            (Editors.Area (Item.Body_Text).all, Entered);
          Buttons.Take_Click (Item.Fetch_Button, Clicked);
          if Entered or else Clicked then
@@ -1043,15 +1043,15 @@ package body Items.Windows is
          end if;
          Buttons.Take_Click (Item.Cursor_Button, Clicked);
          if Clicked then
-            Select_Tool (Item, UI.Widgets.Pictures.Pointer);
+            Select_Tool (Item, Pomarine.Widgets.Pictures.Pointer);
          end if;
          Buttons.Take_Click (Item.Marker_Button, Clicked);
          if Clicked then
-            Select_Tool (Item, UI.Widgets.Pictures.Highlighter);
+            Select_Tool (Item, Pomarine.Widgets.Pictures.Highlighter);
          end if;
          Buttons.Take_Click (Item.Eraser_Button, Clicked);
          if Clicked then
-            Select_Tool (Item, UI.Widgets.Pictures.Eraser);
+            Select_Tool (Item, Pomarine.Widgets.Pictures.Eraser);
          end if;
          Buttons.Take_Click (Item.Zoom_Button, Clicked);
          if Clicked then
@@ -1168,9 +1168,9 @@ package body Items.Windows is
       end if;
 
       if Item.Details.Kind = Source
-        and then UI.Widgets.Pictures.Marks_Version (Item.Picture)
+        and then Pomarine.Widgets.Pictures.Marks_Version (Item.Picture)
                  /= Item.Marks_Saved
-        and then not UI.Widgets.Pictures.Is_Marking (Item.Picture)
+        and then not Pomarine.Widgets.Pictures.Is_Marking (Item.Picture)
       then
          declare
             Kept : Items.Marks.Mark_List;
@@ -1178,7 +1178,7 @@ package body Items.Windows is
             Get_Marks (Item, Kept);
             Items.Marks.Save_Marks (Store, Item.Details.Key, Kept);
          end;
-         Item.Marks_Saved := UI.Widgets.Pictures.Marks_Version (Item.Picture);
+         Item.Marks_Saved := Pomarine.Widgets.Pictures.Marks_Version (Item.Picture);
          Wrote := True;
       end if;
 

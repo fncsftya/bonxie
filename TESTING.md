@@ -2,12 +2,9 @@
 
 `tests/` draws the viewer offscreen, with SDL's software renderer, in
 various setups (window sizes, densities, scrolling, zooming, resizing, other
-scripts and emoji, editing, saving), and the `UI.Text_Areas` component by
-itself (`textarea-*`: typing, caret movement, clicks and drags, selection,
-the clipboard, undo, input methods, blinking, scrolling), and compares each
-picture with `tests/golden/<name>.png`. Tests also check text, as edited
-or saved, with `Goldens.Check_Text`, and documents and layouts without
-drawing (`document-*`, `layout-*`), and the items of a canvas (`items-*`:
+scripts and emoji, editing, saving), and compares each picture with
+`tests/golden/<name>.png`. Tests also check text, as edited or saved, with
+`Goldens.Check_Text`, and the items of a canvas (`items-*`:
 added, typed in, dragged, sized, minimised, closed, listed and kept in the
 database, by clicks and drags at points of the window), and sources
 (`sources-*`: a link's picture taken from a page written to
@@ -15,18 +12,17 @@ database, by clicks and drags at points of the window), and sources
 beyond one name that does not exist; `sources-words` reads the text of a
 page's picture with Vision, in the background, and checks the words are
 selected and kept in the database, without a golden, as WebKit's text
-differs between releases), the writing view (`write-*`: documents on pages, dragged into another
-order and kept, typed on a page and seen on the canvas, a source opened
-and pinned, its highlights shared with the canvas's window, which like
-`sources-pages` needs WebKit), and highlighting a picture (the tools in the status line, erasing, marks kept, put away
-by the cursor or a click outside), and selecting words over a picture
-(`pictures-*`, with made-up words: dragging, double and triple clicks,
-copying, zooming and scrolling, and reading a page of columns in order),
-and the widgets as the design's sheet shows them (`sheet-*`: every kind on
-one board, pressed, focused and hovered states, and what each does with
-clicks and keys). The `picture-*` tests read `golden/textarea-typing.png`
-as their picture: when that changes, run `UPDATE_GOLDEN=1 bin/golden
-picture` again after updating the rest.
+differs between releases), the writing view (`write-*`: documents on pages,
+dragged into another order and kept, typed on a page and seen on the
+canvas, a source opened and pinned, its highlights shared with the canvas's
+window, which like `sources-pages` needs WebKit), highlighting a picture
+(the tools in the status line, erasing, marks kept, put away by the cursor
+or a click outside), and the order Vision's words of a page of columns are
+read in (`layout-*`).
+
+The widgets themselves (text areas, fields, the sheet, words selected over
+a picture) are tested in pomarine, which this uses for its UI.
+
 The software renderer gives the same pixels every run, so no pixel may
 differ.
 

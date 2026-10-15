@@ -1,4 +1,4 @@
-with UI.Boxes;
+with Pomarine.Boxes;
 
 package body Previews is
 
@@ -20,8 +20,8 @@ package body Previews is
    begin
       Item.Count := To'Length;
       Item.Cards (1 .. To'Length) := To;
-      if UI.Widgets.Is_Attached (Item) then
-         UI.Widgets.Invalidate (Item);
+      if Pomarine.Widgets.Is_Attached (Item) then
+         Pomarine.Widgets.Invalidate (Item);
       end if;
    end Set_Cards;
 
@@ -33,22 +33,22 @@ package body Previews is
    overriding procedure Draw
      (Item   : in out Preview;
       Target : SDL3.Windows.Renderers.Renderer;
-      Colors : UI.Themes.Theme)
+      Colors : Pomarine.Themes.Theme)
    is
-      Pixels : constant Float := UI.Widgets.Density (Item);
-      Left   : constant Float := UI.Widgets.Left_Of (Item);
-      Top    : constant Float := UI.Widgets.Top_Of (Item);
-      Wide   : constant Float := UI.Widgets.Width_Of (Item);
-      High   : constant Float := UI.Widgets.Height_Of (Item);
+      Pixels : constant Float := Pomarine.Widgets.Density (Item);
+      Left   : constant Float := Pomarine.Widgets.Left_Of (Item);
+      Top    : constant Float := Pomarine.Widgets.Top_Of (Item);
+      Wide   : constant Float := Pomarine.Widgets.Width_Of (Item);
+      High   : constant Float := Pomarine.Widgets.Height_Of (Item);
       Side   : constant Float :=
         Float'Max (1.0, Float'Rounding (Dot_Side * Pixels));
       Step   : constant Float := Dot_Step * Pixels;
-      Ink    : constant UI.Themes.Color :=
-        UI.Themes.Mix (Colors.Background, Colors.Border, 0.8);
-      Rule   : constant UI.Themes.Color :=
-        UI.Themes.Mix (Colors.Bar, UI.Themes.White, 0.25);
-      Text   : constant UI.Themes.Color :=
-        UI.Themes.Mix (Colors.Face, UI.Themes.White, 0.35);
+      Ink    : constant Pomarine.Themes.Color :=
+        Pomarine.Themes.Mix (Colors.Background, Colors.Border, 0.8);
+      Rule   : constant Pomarine.Themes.Color :=
+        Pomarine.Themes.Mix (Colors.Bar, Pomarine.Themes.White, 0.25);
+      Text   : constant Pomarine.Themes.Color :=
+        Pomarine.Themes.Mix (Colors.Face, Pomarine.Themes.White, 0.35);
       X, Y   : Float;
    begin
       Fill_Rect (Target, Colors.Background, Left, Top, Wide, High);
@@ -111,18 +111,18 @@ package body Previews is
                   Row   : Float := T + Pad + Mark + Pad / 2.0;
                   Part  : Natural := 0;
                begin
-                  UI.Boxes.Draw
+                  Pomarine.Boxes.Draw
                     (Target,
-                     (Filled => True, Fill => UI.Themes.White,
+                     (Filled => True, Fill => Pomarine.Themes.White,
                       Bordered => True, Border => Colors.Border,
                       Shadowed => True, Shadow => Colors.Shadow,
                       Dashed => False),
-                     L, T, W + UI.Boxes.Offset (Pixels / 2.0),
-                     H + UI.Boxes.Offset (Pixels / 2.0), Pixels / 2.0);
+                     L, T, W + Pomarine.Boxes.Offset (Pixels / 2.0),
+                     H + Pomarine.Boxes.Offset (Pixels / 2.0), Pixels / 2.0);
                   if Inner > 0.0 then
                      if Each.Kind = Items.Source then
                         Fill_Rect
-                          (Target, UI.Themes.Resolve (Colors, Each.Ink),
+                          (Target, Pomarine.Themes.Resolve (Colors, Each.Ink),
                            Title_Left, T + Pad, Mark, Mark);
                         Title_Left := Title_Left + Mark + Pad / 2.0;
                      end if;

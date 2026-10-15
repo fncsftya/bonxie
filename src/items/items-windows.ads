@@ -2,16 +2,16 @@ with Items.Marks;
 with Projects;
 with SDL3.Events;
 with Texts.Documents;
-with UI.Themes;
-with UI.Widgets.Buttons;
-with UI.Widgets.Frames;
-with UI.Widgets.Labels;
-with UI.Widgets.Pictures;
-with UI.Widgets.Progress_Bars;
-with UI.Widgets.Sliders;
-with UI.Widgets.Panels;
+with Pomarine.Themes;
+with Pomarine.Widgets.Buttons;
+with Pomarine.Widgets.Frames;
+with Pomarine.Widgets.Labels;
+with Pomarine.Widgets.Pictures;
+with Pomarine.Widgets.Progress_Bars;
+with Pomarine.Widgets.Sliders;
+with Pomarine.Widgets.Panels;
 with Vision;
-with UI.Widgets.Editors;
+with Pomarine.Widgets.Editors;
 
 --  What shows one item: a window on the canvas, which can be dragged by
 --  its title bar and sized by its corner, with a title to edit, buttons to
@@ -26,7 +26,7 @@ with UI.Widgets.Editors;
 --  the canvas, its title bar and status line are not.
 package Items.Windows is
 
-   use type UI.Widgets.Pictures.Tools;
+   use type Pomarine.Widgets.Pictures.Tools;
 
    type Window is limited private;
 
@@ -53,7 +53,7 @@ package Items.Windows is
    function Count_Words (Of_Text : String) return Natural;
    --  Of runs of anything but spaces, tabs and line breaks.
 
-   subtype Shared_Access is UI.Widgets.Editors.Shared_Access;
+   subtype Shared_Access is Pomarine.Widgets.Editors.Shared_Access;
 
    procedure Set_Shared
      (Item   : in out Window;
@@ -63,9 +63,9 @@ package Items.Windows is
 
    procedure Build
      (Item    : in out Window;
-      Canvas  : in out UI.Widgets.Widget'Class;
-      Dock    : in out UI.Widgets.Widget'Class;
-      Bar     : UI.Themes.Slot;
+      Canvas  : in out Pomarine.Widgets.Widget'Class;
+      Dock    : in out Pomarine.Widgets.Widget'Class;
+      Bar     : Pomarine.Themes.Slot;
       Density : Float);
    --  Add the window's widgets, hidden: its window to the canvas, its
    --  bar to the dock, both in the tree already. Do it once, before the
@@ -90,7 +90,7 @@ package Items.Windows is
    function Details (Item : Window) return Items.Info
      with Pre => Is_Assigned (Item);
 
-   procedure Set_Tag (Item : in out Window; To : UI.Themes.Slot)
+   procedure Set_Tag (Item : in out Window; To : Pomarine.Themes.Slot)
      with Pre => Is_Assigned (Item) and then Details (Item).Kind = Source;
    --  Show the source's colour, in a square before its title, as its
    --  links and its rows elsewhere have it.
@@ -180,12 +180,12 @@ package Items.Windows is
      with Pre => Is_Assigned (Item);
    --  What is selected in the source's picture, as it would be copied.
 
-   function Tool (Item : Window) return UI.Widgets.Pictures.Tools
+   function Tool (Item : Window) return Pomarine.Widgets.Pictures.Tools
      with Pre => Is_Assigned (Item);
    --  Of a source: what a drag over its picture does.
 
    procedure Select_Tool
-     (Item : in out Window; To : UI.Widgets.Pictures.Tools)
+     (Item : in out Window; To : Pomarine.Widgets.Pictures.Tools)
      with Pre => Is_Assigned (Item), Post => Tool (Item) = To;
    --  As the buttons in the status line do: the highlighter, the eraser
    --  of its marks, or the cursor to select text with. The cursor is the
@@ -214,7 +214,7 @@ package Items.Windows is
 
    type Text_Acts is (Copy, Cut, Paste, Select_All);
 
-   function Owns (Item : Window; Hit : UI.Widgets.Widget_Access)
+   function Owns (Item : Window; Hit : Pomarine.Widgets.Widget_Access)
      return Boolean;
    --  Whether the widget, or one of those it is in, is the window's.
 
@@ -355,8 +355,8 @@ private
    package Docs renames Texts.Documents;
 
    subtype Preset_Index is Positive range 1 .. 6;
-   type Panel_Rows is array (1 .. 2) of UI.Widgets.Panels.Panel;
-   type Preset_Buttons is array (Preset_Index) of UI.Widgets.Buttons.Button;
+   type Panel_Rows is array (1 .. 2) of Pomarine.Widgets.Panels.Panel;
+   type Preset_Buttons is array (Preset_Index) of Pomarine.Widgets.Buttons.Button;
 
    type Window is limited record
       Assigned : Boolean := False;
@@ -401,23 +401,23 @@ private
       Zoom, Origin_X, Origin_Y : Float := 1.0;
       Placed_Once : Boolean := False;
 
-      Chrome       : UI.Widgets.Frames.Frame;
+      Chrome       : Pomarine.Widgets.Frames.Frame;
       --  On the canvas: the outline, round the bar, the text and the
       --  status line; and the bar in the dock. A source's tag is a
       --  square of its colour before its title.
-      Body_Text    : UI.Widgets.Editors.Editor;
+      Body_Text    : Pomarine.Widgets.Editors.Editor;
       --  The text of a note. Of a source it is one line, its link, which
       --  a text area costs too much to have another of: a field with an
       --  icon of a link before it, a hint while it is empty, and room at
       --  its right for Fetch_Button.
-      Fetch_Button : UI.Widgets.Buttons.Button;
+      Fetch_Button : Pomarine.Widgets.Buttons.Button;
       --  Of a source whose picture has not been taken, over the right of
       --  its link: takes it, as Return does.
-      Zoom_Slider  : UI.Widgets.Sliders.Slider;
-      Zoom_Button  : UI.Widgets.Buttons.Button;
+      Zoom_Slider  : Pomarine.Widgets.Sliders.Slider;
+      Zoom_Button  : Pomarine.Widgets.Buttons.Button;
       --  Of a source, in its status line: a slider to zoom its picture,
       --  and a button, saying how far, that opens a menu of zooms.
-      Speak_Button : UI.Widgets.Buttons.Button;
+      Speak_Button : Pomarine.Widgets.Buttons.Button;
       --  Of a note, in its status line: starts and stops dictating.
       Dictating    : Dictations := Silent;
       Live_Shown   : Boolean := False;
@@ -430,23 +430,23 @@ private
       --  from Live_From to Live_To (after a line feed, if Live_Break),
       --  as of version Live_Seen. Live_Lost: it was changed by something
       --  else, so it is left alone.
-      Tools        : UI.Widgets.Panels.Panel;
-      Cursor_Button : UI.Widgets.Buttons.Button;
-      Marker_Button : UI.Widgets.Buttons.Button;
-      Eraser_Button : UI.Widgets.Buttons.Button;
+      Tools        : Pomarine.Widgets.Panels.Panel;
+      Cursor_Button : Pomarine.Widgets.Buttons.Button;
+      Marker_Button : Pomarine.Widgets.Buttons.Button;
+      Eraser_Button : Pomarine.Widgets.Buttons.Button;
       --  Of a source, in the middle of its status line: the cursor, the
       --  highlighter and the eraser, one of which is chosen.
-      Zoom_Menu    : UI.Widgets.Panels.Panel;
+      Zoom_Menu    : Pomarine.Widgets.Panels.Panel;
       Menu_Rows    : Panel_Rows;
       Menu_Buttons : Preset_Buttons;
       --  Over the picture, hidden until the button is clicked.
-      Picture      : UI.Widgets.Pictures.Picture;
+      Picture      : Pomarine.Widgets.Pictures.Picture;
       --  Of a source, below its link: what is shown.
       Recognized   : aliased Vision.Result;
       --  The words in it, that the picture lets be selected.
-      Progress     : UI.Widgets.Progress_Bars.Progress_Bar;
+      Progress     : Pomarine.Widgets.Progress_Bars.Progress_Bar;
       --  Along the foot of the status line while the picture is taken.
-      Status       : UI.Widgets.Labels.Label;
+      Status       : Pomarine.Widgets.Labels.Label;
    end record;
 
 end Items.Windows;

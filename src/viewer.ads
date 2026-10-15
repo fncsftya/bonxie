@@ -15,21 +15,21 @@ private with SDL3.Windows;
 private with Scripts;
 private with Texts.Documents;
 private with Typeset.Views;
-private with UI.Clipboards;
-private with UI.Icons;
-private with UI.Line_Texts;
-private with UI.Widgets.Buttons;
-private with UI.Widgets.Checks;
-private with UI.Widgets.Canvases;
-private with UI.Widgets.Editors;
-private with UI.Widgets.Grips;
-private with UI.Widgets.Labels;
-private with UI.Widgets.Menus;
-private with UI.Widgets.Text_Fields;
-private with UI.Widgets.Panels;
-private with UI.Widgets.Pins;
-private with UI.Widgets.Progress_Bars;
-private with UI.Widgets.Scrollers;
+private with Pomarine.Clipboards;
+private with Pomarine.Icons;
+private with Pomarine.Line_Texts;
+private with Pomarine.Widgets.Buttons;
+private with Pomarine.Widgets.Checks;
+private with Pomarine.Widgets.Canvases;
+private with Pomarine.Widgets.Editors;
+private with Pomarine.Widgets.Grips;
+private with Pomarine.Widgets.Labels;
+private with Pomarine.Widgets.Menus;
+private with Pomarine.Widgets.Text_Fields;
+private with Pomarine.Widgets.Panels;
+private with Pomarine.Widgets.Pins;
+private with Pomarine.Widgets.Progress_Bars;
+private with Pomarine.Widgets.Scrollers;
 
 --  A window of two screens: the home, with the recent projects and
 --  buttons to start with, and a project, with a toolbar and, above it, the
@@ -158,21 +158,21 @@ package Viewer is
 private
 
    type Project_Card is limited record
-      Panel   : UI.Widgets.Panels.Panel;
+      Panel   : Pomarine.Widgets.Panels.Panel;
       --  A column, outlined, with a shadow: the picture, and below it
       --  the name and the buttons.
-      Peek    : UI.Widgets.Grips.Grip;
+      Peek    : Pomarine.Widgets.Grips.Grip;
       Picture : Previews.Preview;
       --  Of its canvas: clicked, to open it.
-      Info    : UI.Widgets.Panels.Panel;
-      Name    : UI.Widgets.Grips.Grip;
+      Info    : Pomarine.Widgets.Panels.Panel;
+      Name    : Pomarine.Widgets.Grips.Grip;
       --  Clicked, to open it; in the place of which, the field to rename
       --  it.
-      Title   : UI.Widgets.Labels.Label;
-      Meta    : UI.Widgets.Labels.Label;
+      Title   : Pomarine.Widgets.Labels.Label;
+      Meta    : Pomarine.Widgets.Labels.Label;
       --  How many documents and sources it has.
-      Rename  : UI.Widgets.Buttons.Button;
-      Delete  : UI.Widgets.Buttons.Button;
+      Rename  : Pomarine.Widgets.Buttons.Button;
+      Delete  : Pomarine.Widgets.Buttons.Button;
    end record;
    --  A project listed on the home screen.
 
@@ -180,12 +180,12 @@ private
    type Key_Array is array (Card_Array'Range) of Projects.Id;
 
    type Item_Row is limited record
-      Panel  : UI.Widgets.Panels.Panel;
-      Name   : UI.Widgets.Grips.Grip;
+      Panel  : Pomarine.Widgets.Panels.Panel;
+      Name   : Pomarine.Widgets.Grips.Grip;
       --  The title: clicked, to show the item.
-      Caption : UI.Widgets.Labels.Label;
-      Toggle : UI.Widgets.Buttons.Button;
-      Remove : UI.Widgets.Buttons.Button;
+      Caption : Pomarine.Widgets.Labels.Label;
+      Toggle : Pomarine.Widgets.Buttons.Button;
+      Remove : Pomarine.Widgets.Buttons.Button;
    end record;
    --  A row of the list of items: its title, a button to show it on the
    --  canvas or hide it, and one to remove it.
@@ -195,38 +195,38 @@ private
    type Dir_Array is array (Items.Slot) of Natural;
 
    type Pin_Grid is
-     array (Items.Slot, Items.Links.Sides) of aliased UI.Widgets.Pins.Pin;
+     array (Items.Slot, Items.Links.Sides) of aliased Pomarine.Widgets.Pins.Pin;
    --  The handles to link items by: four round each window.
 
    type Stroke_Button_Array is
-     array (Items.Links.Strokes) of UI.Widgets.Buttons.Button;
+     array (Items.Links.Strokes) of Pomarine.Widgets.Buttons.Button;
    type End_Button_Array is
-     array (Items.Links.Endings) of UI.Widgets.Buttons.Button;
+     array (Items.Links.Endings) of Pomarine.Widgets.Buttons.Button;
    type Color_Button_Array is
-     array (Items.Links.Link_Colors) of UI.Widgets.Buttons.Button;
+     array (Items.Links.Link_Colors) of Pomarine.Widgets.Buttons.Button;
 
    type Pin_Places is array (Items.Slot, Items.Links.Sides) of Float;
 
    type Doc_Page is limited record
-      Box     : UI.Widgets.Panels.Panel;
+      Box     : Pomarine.Widgets.Panels.Panel;
       --  A column: the bar above, and the page.
-      Bar     : UI.Widgets.Panels.Panel;
-      Heading_Area : UI.Widgets.Grips.Grip;
-      Heading : UI.Widgets.Labels.Label;
+      Bar     : Pomarine.Widgets.Panels.Panel;
+      Heading_Area : Pomarine.Widgets.Grips.Grip;
+      Heading : Pomarine.Widgets.Labels.Label;
       --  The title, in a grip that takes a double press to rename it.
-      Title_Field : UI.Widgets.Text_Fields.Text_Field;
+      Title_Field : Pomarine.Widgets.Text_Fields.Text_Field;
       --  In its place while it is renamed, on the title of the window.
       Renaming : Boolean := False;
-      Sources_Button : UI.Widgets.Buttons.Button;
+      Sources_Button : Pomarine.Widgets.Buttons.Button;
       --  A dropdown: opens the menu of the sources the document is
       --  linked to, and shows how many.
-      Mic_Button : UI.Widgets.Buttons.Button;
+      Mic_Button : Pomarine.Widgets.Buttons.Button;
       --  Starts and stops dictating into the document.
-      Sheet   : UI.Widgets.Panels.Panel;
+      Sheet   : Pomarine.Widgets.Panels.Panel;
       --  The white page.
-      Text    : UI.Widgets.Editors.Editor;
+      Text    : Pomarine.Widgets.Editors.Editor;
       --  The text of a document, which its window on the canvas has too.
-      Words   : UI.Widgets.Labels.Label;
+      Words   : Pomarine.Widgets.Labels.Label;
       --  Below the page, at the right: how many words it has.
       Bound   : Natural := 0;
       --  The window it shows, 0 if none.
@@ -291,13 +291,13 @@ private
    type Act_Array is array (1 .. 4) of Context_Acts;
 
    type Index_Row is limited record
-      Row     : UI.Widgets.Grips.Grip;
+      Row     : Pomarine.Widgets.Grips.Grip;
       --  Clicked to go to the document, or to open the source; dragged to
       --  put a document elsewhere in the order.
-      Tag     : UI.Widgets.Panels.Panel;
+      Tag     : Pomarine.Widgets.Panels.Panel;
       --  Of a source: a square of its colour.
-      Caption : UI.Widgets.Labels.Label;
-      Count   : UI.Widgets.Labels.Label;
+      Caption : Pomarine.Widgets.Labels.Label;
+      Count   : Pomarine.Widgets.Labels.Label;
       --  Of a document: how many words it has; of a directory, how many
       --  documents.
       Indent  : Float := 0.0;
@@ -319,48 +319,48 @@ private
    type Placed_Array is array (Items.Slot) of Boolean;
 
    type Root_Parts is limited record
-      Widgets      : UI.Widgets.Tree;
-      Window_Panel : UI.Widgets.Panels.Panel;
+      Widgets      : Pomarine.Widgets.Tree;
+      Window_Panel : Pomarine.Widgets.Panels.Panel;
       --  The root, of both screens, one of which is hidden.
-      Header_Panel : UI.Widgets.Panels.Panel;
-      Header_Title : UI.Widgets.Labels.Label;
+      Header_Panel : Pomarine.Widgets.Panels.Panel;
+      Header_Title : Pomarine.Widgets.Labels.Label;
       --  Across the top of a window, where its title bar was: under the
       --  window's own buttons.
    end record;
    --  The tree of widgets and the panels at the top of both screens.
 
    type Home_Parts is limited record
-      Home_Panel     : UI.Widgets.Panels.Panel;
+      Home_Panel     : Pomarine.Widgets.Panels.Panel;
       --  A row: the sidebar of actions, and the recent projects.
-      Home_Side      : UI.Widgets.Panels.Panel;
-      Logo           : UI.Widgets.Panels.Panel;
-      Logo_Name      : UI.Widgets.Labels.Label;
-      New_Button     : UI.Widgets.Buttons.Button;
-      Side_Room      : UI.Widgets.Panels.Panel;
+      Home_Side      : Pomarine.Widgets.Panels.Panel;
+      Logo           : Pomarine.Widgets.Panels.Panel;
+      Logo_Name      : Pomarine.Widgets.Labels.Label;
+      New_Button     : Pomarine.Widgets.Buttons.Button;
+      Side_Room      : Pomarine.Widgets.Panels.Panel;
       --  Between New Project at the top and Settings at the foot.
-      Settings_Button : UI.Widgets.Buttons.Button;
-      Home_Rule      : UI.Widgets.Panels.Panel;
+      Settings_Button : Pomarine.Widgets.Buttons.Button;
+      Home_Rule      : Pomarine.Widgets.Panels.Panel;
       --  The line between the sidebar and the projects.
-      Recent_Panel   : UI.Widgets.Panels.Panel;
-      Recent_Title   : UI.Widgets.Labels.Label;
-      Cards_Scroll   : UI.Widgets.Scrollers.Scroller;
-      Cards_Content  : UI.Widgets.Panels.Panel;
+      Recent_Panel   : Pomarine.Widgets.Panels.Panel;
+      Recent_Title   : Pomarine.Widgets.Labels.Label;
+      Cards_Scroll   : Pomarine.Widgets.Scrollers.Scroller;
+      Cards_Content  : Pomarine.Widgets.Panels.Panel;
       --  The cards, in rows that wrap, scrolled.
       Cards          : Card_Array;
       --  A card to each of the projects listed.
       Row_Keys       : Key_Array := [others => 0];
       Listed         : Projects.Recent_List;
       --  The projects the cards are of.
-      No_Rows        : UI.Widgets.Labels.Label;
+      No_Rows        : Pomarine.Widgets.Labels.Label;
       --  Shown when there are none.
-      New_Card       : UI.Widgets.Grips.Grip;
-      New_Card_Plus  : UI.Widgets.Buttons.Button;
-      New_Card_Label : UI.Widgets.Labels.Label;
+      New_Card       : Pomarine.Widgets.Grips.Grip;
+      New_Card_Plus  : Pomarine.Widgets.Buttons.Button;
+      New_Card_Label : Pomarine.Widgets.Labels.Label;
       --  After the cards: an outline of one, in dashes, to make a project.
 
-      Edit_Panel     : UI.Widgets.Panels.Panel;
-      Ok_Button      : UI.Widgets.Buttons.Button;
-      Cancel_Button  : UI.Widgets.Buttons.Button;
+      Edit_Panel     : Pomarine.Widgets.Panels.Panel;
+      Ok_Button      : Pomarine.Widgets.Buttons.Button;
+      Cancel_Button  : Pomarine.Widgets.Buttons.Button;
       --  Put in the card of the project being renamed, in place of its
       --  name and buttons, which are hidden.
       Editing        : Natural := 0;
@@ -370,24 +370,24 @@ private
    --  field to rename one.
 
    type Confirm_Parts is limited record
-      Overlay        : UI.Widgets.Panels.Panel;
+      Overlay        : Pomarine.Widgets.Panels.Panel;
       --  Over both screens, to grey them out and hold the dialog, which
       --  is shown to confirm deleting a project.
-      Dialog_Border  : UI.Widgets.Panels.Panel;
-      Dialog_Bar     : UI.Widgets.Panels.Panel;
-      Dialog_Title   : UI.Widgets.Labels.Label;
-      Dialog_Close   : UI.Widgets.Buttons.Button;
+      Dialog_Border  : Pomarine.Widgets.Panels.Panel;
+      Dialog_Bar     : Pomarine.Widgets.Panels.Panel;
+      Dialog_Title   : Pomarine.Widgets.Labels.Label;
+      Dialog_Close   : Pomarine.Widgets.Buttons.Button;
       --  A dark bar across its top, as a window's: its title, and a
       --  button to close it, as Cancel does.
-      Dialog         : UI.Widgets.Panels.Panel;
-      Confirm_Message : UI.Widgets.Labels.Label;
-      Confirm_Note   : UI.Widgets.Labels.Label;
-      Dialog_Rule    : UI.Widgets.Panels.Panel;
-      Confirm_Buttons : UI.Widgets.Panels.Panel;
+      Dialog         : Pomarine.Widgets.Panels.Panel;
+      Confirm_Message : Pomarine.Widgets.Labels.Label;
+      Confirm_Note   : Pomarine.Widgets.Labels.Label;
+      Dialog_Rule    : Pomarine.Widgets.Panels.Panel;
+      Confirm_Buttons : Pomarine.Widgets.Panels.Panel;
       --  The white body, saying what is to be deleted, a line, and a
       --  tinted foot with the buttons.
-      Confirm_Cancel : UI.Widgets.Buttons.Button;
-      Confirm_Delete : UI.Widgets.Buttons.Button;
+      Confirm_Cancel : Pomarine.Widgets.Buttons.Button;
+      Confirm_Delete : Pomarine.Widgets.Buttons.Button;
       Deleting       : Projects.Id := 0;
       --  The project the dialog is about, 0 if it is not shown.
       Deleting_Model : Boolean := False;
@@ -399,34 +399,34 @@ private
    --  The dialog, over both screens, to confirm deleting.
 
    type Settings_Parts is limited record
-      Settings_Panel : UI.Widgets.Panels.Panel;
+      Settings_Panel : Pomarine.Widgets.Panels.Panel;
       --  A column, in the home screen's place while Showing_Settings: a
       --  bar across the top, which stays, and below it the form, scrolled.
-      Settings_Bar   : UI.Widgets.Panels.Panel;
-      Settings_Title : UI.Widgets.Labels.Label;
-      Settings_Close : UI.Widgets.Buttons.Button;
-      Settings_Scroll  : UI.Widgets.Scrollers.Scroller;
-      Settings_Content : UI.Widgets.Panels.Panel;
+      Settings_Bar   : Pomarine.Widgets.Panels.Panel;
+      Settings_Title : Pomarine.Widgets.Labels.Label;
+      Settings_Close : Pomarine.Widgets.Buttons.Button;
+      Settings_Scroll  : Pomarine.Widgets.Scrollers.Scroller;
+      Settings_Content : Pomarine.Widgets.Panels.Panel;
       --  Centres the form, which is as wide as a page in the writing view.
-      Settings_Form  : UI.Widgets.Panels.Panel;
+      Settings_Form  : Pomarine.Widgets.Panels.Panel;
       Form_Wide      : Float := 0.0;
       --  Its width, in points, as last set (see Settings_View.Fit).
-      Speech_Heading : UI.Widgets.Labels.Label;
-      Model_Name     : UI.Widgets.Labels.Label;
-      Model_Native   : UI.Widgets.Checks.Check;
-      Model_Parakeet : UI.Widgets.Checks.Check;
+      Speech_Heading : Pomarine.Widgets.Labels.Label;
+      Model_Name     : Pomarine.Widgets.Labels.Label;
+      Model_Native   : Pomarine.Widgets.Checks.Check;
+      Model_Parakeet : Pomarine.Widgets.Checks.Check;
       --  Speech's one option, Model: a radio for each.
-      Display_Heading : UI.Widgets.Labels.Label;
-      Theme_Name     : UI.Widgets.Labels.Label;
-      Theme_Light    : UI.Widgets.Checks.Check;
-      Theme_Dark     : UI.Widgets.Checks.Check;
-      Theme_System   : UI.Widgets.Checks.Check;
+      Display_Heading : Pomarine.Widgets.Labels.Label;
+      Theme_Name     : Pomarine.Widgets.Labels.Label;
+      Theme_Light    : Pomarine.Widgets.Checks.Check;
+      Theme_Dark     : Pomarine.Widgets.Checks.Check;
+      Theme_System   : Pomarine.Widgets.Checks.Check;
       --  Display's one option, Theme: a radio for each.
-      Download_Row   : UI.Widgets.Panels.Panel;
-      Download_Button : UI.Widgets.Buttons.Button;
-      Delete_Button  : UI.Widgets.Buttons.Button;
-      Download_State : UI.Widgets.Labels.Label;
-      Download_Bar   : UI.Widgets.Progress_Bars.Progress_Bar;
+      Download_Row   : Pomarine.Widgets.Panels.Panel;
+      Download_Button : Pomarine.Widgets.Buttons.Button;
+      Delete_Button  : Pomarine.Widgets.Buttons.Button;
+      Download_State : Pomarine.Widgets.Labels.Label;
+      Download_Bar   : Pomarine.Widgets.Progress_Bars.Progress_Bar;
       --  Under the radios, with Parakeet chosen: the button to fetch its
       --  file, shown while it is not there, or else the button to delete
       --  it; what is the matter with it, or how big it is, or, while it
@@ -446,28 +446,28 @@ private
    --  The settings, and what is chosen in them.
 
    type Toolbar_Parts is limited record
-      Project_Panel : UI.Widgets.Panels.Panel;
+      Project_Panel : Pomarine.Widgets.Panels.Panel;
       --  A column: the toolbar, the content area, and the dock.
-      Content_Panel : UI.Widgets.Panels.Panel;
-      Toolbar_Panel : UI.Widgets.Panels.Panel;
-      Toolbar_Start : UI.Widgets.Panels.Panel;
+      Content_Panel : Pomarine.Widgets.Panels.Panel;
+      Toolbar_Panel : Pomarine.Widgets.Panels.Panel;
+      Toolbar_Start : Pomarine.Widgets.Panels.Panel;
       --  On the left of the toolbar: the way back, and the project's name.
-      Close_Button  : UI.Widgets.Buttons.Button;
+      Close_Button  : Pomarine.Widgets.Buttons.Button;
       --  Back to the projects.
-      Bar_Rule      : UI.Widgets.Panels.Panel;
-      Title_Area    : UI.Widgets.Grips.Grip;
-      Project_Title : UI.Widgets.Labels.Label;
+      Bar_Rule      : Pomarine.Widgets.Panels.Panel;
+      Title_Area    : Pomarine.Widgets.Grips.Grip;
+      Project_Title : Pomarine.Widgets.Labels.Label;
       --  The project's name, in a grip that takes a double press to
       --  rename it.
-      Title_Field   : UI.Widgets.Text_Fields.Text_Field;
+      Title_Field   : Pomarine.Widgets.Text_Fields.Text_Field;
       Title_Doc     : aliased Texts.Documents.Document;
       Renaming      : Boolean := False;
       --  In its place while it is renamed.
-      Tabs          : UI.Widgets.Panels.Panel;
-      Canvas_Tab    : UI.Widgets.Buttons.Button;
-      Write_Tab     : UI.Widgets.Buttons.Button;
+      Tabs          : Pomarine.Widgets.Panels.Panel;
+      Canvas_Tab    : Pomarine.Widgets.Buttons.Button;
+      Write_Tab     : Pomarine.Widgets.Buttons.Button;
       --  A tab for each view, in the middle of the toolbar.
-      Toolbar_End   : UI.Widgets.Panels.Panel;
+      Toolbar_End   : Pomarine.Widgets.Panels.Panel;
       --  On the right: the list of items.
       Mode          : Modes := Canvas;
       --  The view shown: its tab is selected.
@@ -475,36 +475,36 @@ private
    --  The project screen: its panels, the toolbar and the view shown.
 
    type Page_Parts is limited record
-      Write_View    : UI.Widgets.Panels.Panel;
+      Write_View    : Pomarine.Widgets.Panels.Panel;
       --  A row, in the content area in the canvas's place when Mode is
       --  Write: the sidebar, the pages, and the pane of the pinned source;
       --  and the windows of the sources, over them.
-      Sidebar       : UI.Widgets.Panels.Panel;
-      Sidebar_Rule  : UI.Widgets.Panels.Panel;
+      Sidebar       : Pomarine.Widgets.Panels.Panel;
+      Sidebar_Rule  : Pomarine.Widgets.Panels.Panel;
       --  The line at its right.
-      Docs_Head     : UI.Widgets.Panels.Panel;
-      Docs_Heading  : UI.Widgets.Labels.Label;
-      Docs_Add      : UI.Widgets.Buttons.Button;
-      Docs_Folder   : UI.Widgets.Buttons.Button;
+      Docs_Head     : Pomarine.Widgets.Panels.Panel;
+      Docs_Heading  : Pomarine.Widgets.Labels.Label;
+      Docs_Add      : Pomarine.Widgets.Buttons.Button;
+      Docs_Folder   : Pomarine.Widgets.Buttons.Button;
       --  Beside the name of the list: add a document, and a directory.
-      Docs_Scroll   : UI.Widgets.Scrollers.Scroller;
-      Docs_Content  : UI.Widgets.Panels.Panel;
-      Docs_None     : UI.Widgets.Labels.Label;
-      Sources_Heading : UI.Widgets.Labels.Label;
-      Sources_Scroll  : UI.Widgets.Scrollers.Scroller;
-      Sources_Content : UI.Widgets.Panels.Panel;
-      Sources_None  : UI.Widgets.Labels.Label;
+      Docs_Scroll   : Pomarine.Widgets.Scrollers.Scroller;
+      Docs_Content  : Pomarine.Widgets.Panels.Panel;
+      Docs_None     : Pomarine.Widgets.Labels.Label;
+      Sources_Heading : Pomarine.Widgets.Labels.Label;
+      Sources_Scroll  : Pomarine.Widgets.Scrollers.Scroller;
+      Sources_Content : Pomarine.Widgets.Panels.Panel;
+      Sources_None  : Pomarine.Widgets.Labels.Label;
       --  The two lists of the sidebar: of the documents, in the order they
       --  are written in, and of the sources.
-      Pages_Scroll  : UI.Widgets.Scrollers.Scroller;
-      Pages_Content : UI.Widgets.Panels.Panel;
+      Pages_Scroll  : Pomarine.Widgets.Scrollers.Scroller;
+      Pages_Content : Pomarine.Widgets.Panels.Panel;
       --  The pages, one above the next, scrolled together.
-      Pane          : UI.Widgets.Panels.Panel;
-      Pane_Edge     : UI.Widgets.Grips.Grip;
-      Pane_Body     : UI.Widgets.Panels.Panel;
+      Pane          : Pomarine.Widgets.Panels.Panel;
+      Pane_Edge     : Pomarine.Widgets.Grips.Grip;
+      Pane_Body     : Pomarine.Widgets.Panels.Panel;
       --  At the right, the full height of the view, shown while a source
       --  is pinned; the edge is dragged to size it.
-      Menu          : UI.Widgets.Menus.Menu;
+      Menu          : Pomarine.Widgets.Menus.Menu;
       --  Over the pages, hidden until a document's Sources button is
       --  clicked: a heading, a box for each source the document is linked
       --  to, ticked if it is the one pinned (or a note that there are
@@ -524,21 +524,21 @@ private
    --  and the menu of a page.
 
    type Dock_Parts is limited record
-      Dock_Panel    : UI.Widgets.Panels.Panel;
-      Dock_Scroll   : UI.Widgets.Scrollers.Scroller;
-      Dock_Content  : UI.Widgets.Panels.Panel;
+      Dock_Panel    : Pomarine.Widgets.Panels.Panel;
+      Dock_Scroll   : Pomarine.Widgets.Scrollers.Scroller;
+      Dock_Content  : Pomarine.Widgets.Panels.Panel;
       --  The bars sit in a row in Dock_Content, which scrolls across
       --  when they are wider than the window.
       --  A bar above the tools, of the bars of the items that are
       --  minimised: shown only when there are any.
-      Tools         : UI.Widgets.Panels.Panel;
-      Tool_Item     : UI.Widgets.Buttons.Button;
-      Tool_Source   : UI.Widgets.Buttons.Button;
+      Tools         : Pomarine.Widgets.Panels.Panel;
+      Tool_Item     : Pomarine.Widgets.Buttons.Button;
+      Tool_Source   : Pomarine.Widgets.Buttons.Button;
       --  The tray of the canvas's tools, over it at the foot, in the
       --  middle: Add Document, Add Source.
       Tray_Left     : Float := -1.0E9;
       --  Where it was last put, in pixels from the left of the content.
-      Tool_List     : UI.Widgets.Buttons.Button;
+      Tool_List     : Pomarine.Widgets.Buttons.Button;
       --  At the right of the toolbar: the list of items.
    end record;
    --  The dock of minimised items and the tray of tools, over the canvas.
@@ -557,19 +557,19 @@ private
    --  by.
 
    type List_Parts is limited record
-      List_Overlay  : UI.Widgets.Panels.Panel;
+      List_Overlay  : Pomarine.Widgets.Panels.Panel;
       --  Over the project screen, to grey it out and hold the list of
       --  items, which is shown when Showing_List.
-      List_Border   : UI.Widgets.Panels.Panel;
-      List_Head     : UI.Widgets.Panels.Panel;
-      List_Heading  : UI.Widgets.Labels.Label;
-      List_Close    : UI.Widgets.Buttons.Button;
+      List_Border   : Pomarine.Widgets.Panels.Panel;
+      List_Head     : Pomarine.Widgets.Panels.Panel;
+      List_Heading  : Pomarine.Widgets.Labels.Label;
+      List_Close    : Pomarine.Widgets.Buttons.Button;
       --  A dark bar across its top, as a window's: its title, and a
       --  button to close it.
-      List_Dialog   : UI.Widgets.Panels.Panel;
-      List_Scroll   : UI.Widgets.Scrollers.Scroller;
-      List_Content  : UI.Widgets.Panels.Panel;
-      List_None     : UI.Widgets.Labels.Label;
+      List_Dialog   : Pomarine.Widgets.Panels.Panel;
+      List_Scroll   : Pomarine.Widgets.Scrollers.Scroller;
+      List_Content  : Pomarine.Widgets.Panels.Panel;
+      List_None     : Pomarine.Widgets.Labels.Label;
       --  Shown when there are no items.
       List_Rows     : Item_Row_Array;
       Row_Slots     : Slot_Array := [others => 1];
@@ -583,9 +583,9 @@ private
       Win          : SDL3.Windows.Window;
       Target       : SDL3.Windows.Renderers.Renderer;
       --  after Win: it is destroyed first
-      Pictures     : aliased UI.Icons.Library;
+      Pictures     : aliased Pomarine.Icons.Library;
       --  after Target, which it draws to
-      Lines        : aliased UI.Line_Texts.Drawer;
+      Lines        : aliased Pomarine.Line_Texts.Drawer;
       --  after Target, which it draws to
       Doc_Resources : aliased Typeset.Views.Shared_Resources;
       --  after Target, which its atlas draws to
@@ -612,7 +612,7 @@ private
       --  all of them.
       Drop         : Drop_Target;
       --  Where the document being dragged would go.
-      Drop_Line    : UI.Widgets.Panels.Panel;
+      Drop_Line    : Pomarine.Widgets.Panels.Panel;
       --  The line between two rows where it would go between documents,
       --  over the rows and out of the way of their layout.
    end record;
@@ -620,7 +620,7 @@ private
    --  dragged would go.
 
    type Context_State is limited record
-      Context_Menu : UI.Widgets.Menus.Menu;
+      Context_Menu : Pomarine.Widgets.Menus.Menu;
       Context_Kind : Context_Kinds := No_Context;
       Context_Node : Tree_Entry;
       --  A document or directory, or a source (a leaf, of the slot of its
@@ -641,11 +641,11 @@ private
    --  The menu at a right click.
 
    type Renaming_State is limited record
-      Dir_Field    : UI.Widgets.Text_Fields.Text_Field;
+      Dir_Field    : Pomarine.Widgets.Text_Fields.Text_Field;
       Dir_Doc      : aliased Texts.Documents.Document;
       Renaming_Dir : Natural := 0;
       Renaming_Doc : Natural := 0;
-      Source_Field : UI.Widgets.Text_Fields.Text_Field;
+      Source_Field : Pomarine.Widgets.Text_Fields.Text_Field;
       Renaming_Source : Natural := 0;
       --  The directory, the document or the source being renamed, 0 if
       --  none, in the field over its row (of Source_Field, for a source).
@@ -690,14 +690,14 @@ private
       Pin_Left, Pin_Top : Pin_Places := [others => [others => -1.0E9]];
       --  Where each was last put, in pixels, to put it again only if it
       --  moves.
-      Link_Handle  : UI.Widgets.Pins.Pin;
+      Link_Handle  : Pomarine.Widgets.Pins.Pin;
       --  Over the target end of the selected link, to drag it to another
       --  pin by.
-      Link_Bar     : UI.Widgets.Panels.Panel;
+      Link_Bar     : Pomarine.Widgets.Panels.Panel;
       Stroke_Buttons : Stroke_Button_Array;
       End_Buttons    : End_Button_Array;
       Color_Buttons  : Color_Button_Array;
-      Delete_Link    : UI.Widgets.Buttons.Button;
+      Delete_Link    : Pomarine.Widgets.Buttons.Button;
       --  Beside the selected link: how it is drawn, and to delete it.
       Link_Key     : Items.Id := 0;
       --  The link selected, 0 if none.
@@ -717,7 +717,7 @@ private
 
    type Title_Edit_State is limited record
       Edit_Doc     : aliased Texts.Documents.Document;
-      Edit_Field   : UI.Widgets.Text_Fields.Text_Field;
+      Edit_Field   : Pomarine.Widgets.Text_Fields.Text_Field;
       --  The title being renamed, and the field for it, which is in the
       --  edit panel: after Target, and the document.
    end record;
@@ -746,8 +746,8 @@ private
       --  pointer and the window were when it was pressed.
       Grab_X, Grab_Y       : Float := 0.0;
       Grab_Left, Grab_Top  : Integer := 0;
-      System_Board : UI.Clipboards.System_Clipboard;
-      Own_Board    : UI.Clipboards.Memory_Clipboard;
+      System_Board : Pomarine.Clipboards.System_Clipboard;
+      Own_Board    : Pomarine.Clipboards.Memory_Clipboard;
       --  The clipboard used offscreen.
 
       Done         : Boolean := False;
@@ -760,7 +760,7 @@ private
       Confirm : Confirm_Parts;
       Prefs : Settings_Parts;
       Toolbar : Toolbar_Parts;
-      Canvas_View   : UI.Widgets.Canvases.Canvas;
+      Canvas_View   : Pomarine.Widgets.Canvases.Canvas;
       --  In the content area, all of it.
       Page_View : Page_Parts;
       Dock : Dock_Parts;

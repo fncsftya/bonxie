@@ -1,6 +1,6 @@
 with SDL3.Windows.Renderers;
-with UI.Line_Texts;
-with UI.Widgets;
+with Pomarine.Line_Texts;
+with Pomarine.Widgets;
 with Viewer.Canvas_Items;
 with Viewer.Style;
 with Viewer.Settings_View;
@@ -8,13 +8,13 @@ with Viewer.Writing;
 
 package body Viewer.Painting is
 
-   package Widgets renames UI.Widgets;
+   package Widgets renames Pomarine.Widgets;
 
    use SDL3.Windows.Renderers;
 
    procedure Paint (Item : in out Session) is
    begin
-      UI.Line_Texts.Begin_Frame (Item.Host.Lines);
+      Pomarine.Line_Texts.Begin_Frame (Item.Host.Lines);
       if Item.Nav.Shown = Project then
          --  The canvas may be panned or laid out afresh since the items
          --  were put on it.

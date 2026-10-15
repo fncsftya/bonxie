@@ -1,11 +1,11 @@
 with Items.Marks;
-with UI.Themes;
-with UI.Widgets.Buttons;
-with UI.Widgets.Frames;
-with UI.Widgets.Labels;
-with UI.Widgets.Panels;
-with UI.Widgets.Pictures;
-with UI.Widgets.Sliders;
+with Pomarine.Themes;
+with Pomarine.Widgets.Buttons;
+with Pomarine.Widgets.Frames;
+with Pomarine.Widgets.Labels;
+with Pomarine.Widgets.Panels;
+with Pomarine.Widgets.Pictures;
+with Pomarine.Widgets.Sliders;
 with Vision;
 
 --  What shows a source in the writing view: the picture of its page, in a
@@ -21,7 +21,7 @@ with Vision;
 --  application keeps them the same (Marks_Version, Get_Marks, Set_Marks).
 package Items.Readers is
 
-   use type UI.Widgets.Pictures.Tools;
+   use type Pomarine.Widgets.Pictures.Tools;
 
    type Reader is limited private;
 
@@ -39,8 +39,8 @@ package Items.Readers is
 
    procedure Build
      (Item    : in out Reader;
-      Parent  : in out UI.Widgets.Widget'Class;
-      Bar     : UI.Themes.Slot;
+      Parent  : in out Pomarine.Widgets.Widget'Class;
+      Bar     : Pomarine.Themes.Slot;
       Density : Float;
       Pinned  : Boolean := False);
    --  Add the reader's widgets, hidden, to Parent, which is in the tree
@@ -48,7 +48,7 @@ package Items.Readers is
    --  column that fills it. Do it once, before the layout, with the
    --  tree's density.
 
-   procedure Set_Tag (Item : in out Reader; To : UI.Themes.Slot);
+   procedure Set_Tag (Item : in out Reader; To : Pomarine.Themes.Slot);
    --  Show the source's colour, in a square before its title.
 
    function Is_Assigned (Item : Reader) return Boolean;
@@ -130,11 +130,11 @@ package Items.Readers is
    procedure Set_Marks (Item : in out Reader; Kept : Items.Marks.Mark_List)
      with Pre => Is_Assigned (Item);
 
-   function Tool (Item : Reader) return UI.Widgets.Pictures.Tools
+   function Tool (Item : Reader) return Pomarine.Widgets.Pictures.Tools
      with Pre => Is_Assigned (Item);
 
    procedure Select_Tool
-     (Item : in out Reader; To : UI.Widgets.Pictures.Tools)
+     (Item : in out Reader; To : Pomarine.Widgets.Pictures.Tools)
      with Pre => Is_Assigned (Item), Post => Tool (Item) = To;
 
    function Zoom (Item : Reader) return Float
@@ -185,17 +185,17 @@ private
       Recognized : aliased Vision.Result;
       --  The words in the picture, that it lets be selected.
 
-      Chrome      : UI.Widgets.Frames.Frame;
+      Chrome      : Pomarine.Widgets.Frames.Frame;
       --  Its tag is a square of the source's colour before the title.
-      Pin_Button  : UI.Widgets.Buttons.Button;
-      Picture     : UI.Widgets.Pictures.Picture;
-      Tools       : UI.Widgets.Panels.Panel;
-      Cursor_Button : UI.Widgets.Buttons.Button;
-      Marker_Button : UI.Widgets.Buttons.Button;
-      Eraser_Button : UI.Widgets.Buttons.Button;
-      Zoom_Slider : UI.Widgets.Sliders.Slider;
-      Zoom_Label  : UI.Widgets.Labels.Label;
-      Status      : UI.Widgets.Labels.Label;
+      Pin_Button  : Pomarine.Widgets.Buttons.Button;
+      Picture     : Pomarine.Widgets.Pictures.Picture;
+      Tools       : Pomarine.Widgets.Panels.Panel;
+      Cursor_Button : Pomarine.Widgets.Buttons.Button;
+      Marker_Button : Pomarine.Widgets.Buttons.Button;
+      Eraser_Button : Pomarine.Widgets.Buttons.Button;
+      Zoom_Slider : Pomarine.Widgets.Sliders.Slider;
+      Zoom_Label  : Pomarine.Widgets.Labels.Label;
+      Status      : Pomarine.Widgets.Labels.Label;
    end record;
 
 end Items.Readers;

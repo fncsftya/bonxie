@@ -1,16 +1,16 @@
 with Items.Sources;
 with Ada.Strings;
-with UI.Icons;
+with Icon_Set;
 with Yoga.Nodes;
 
 package body Items.Readers is
 
-   package Widgets renames UI.Widgets;
-   package Buttons renames UI.Widgets.Buttons;
-   package Labels renames UI.Widgets.Labels;
-   package Frames renames UI.Widgets.Frames;
-   package Sliders renames UI.Widgets.Sliders;
-   package Pictures renames UI.Widgets.Pictures;
+   package Widgets renames Pomarine.Widgets;
+   package Buttons renames Pomarine.Widgets.Buttons;
+   package Labels renames Pomarine.Widgets.Labels;
+   package Frames renames Pomarine.Widgets.Frames;
+   package Sliders renames Pomarine.Widgets.Sliders;
+   package Pictures renames Pomarine.Widgets.Pictures;
 
    --  In points
 
@@ -26,7 +26,7 @@ package body Items.Readers is
    procedure Build
      (Item    : in out Reader;
       Parent  : in out Widgets.Widget'Class;
-      Bar     : UI.Themes.Slot;
+      Bar     : Pomarine.Themes.Slot;
       Density : Float;
       Pinned  : Boolean := False)
    is
@@ -56,7 +56,7 @@ package body Items.Readers is
       Frames.Add_Status_Item (Item.Chrome, Item.Status);
 
       Buttons.Set_Label (Item.Pin_Button, "Pin");
-      Buttons.Set_Icon (Item.Pin_Button, UI.Icons.Pin);
+      Buttons.Set_Icon (Item.Pin_Button, Icon_Set.Pin);
       Buttons.Set_Icon_Size (Item.Pin_Button, Pin_Icon_Size);
       Buttons.Set_Selected (Item.Pin_Button, Pinned);
       Size (Item.Pin_Button, Button_Size, Button_Size);
@@ -68,11 +68,11 @@ package body Items.Readers is
       Set_Gap
         (Widgets.Node (Item.Tools), Yoga.All_Gutters, Button_Gap * Pixels);
       Buttons.Set_Label (Item.Cursor_Button, "Ptr");
-      Buttons.Set_Icon (Item.Cursor_Button, UI.Icons.Cursor);
+      Buttons.Set_Icon (Item.Cursor_Button, Icon_Set.Cursor);
       Buttons.Set_Label (Item.Marker_Button, "Mark");
-      Buttons.Set_Icon (Item.Marker_Button, UI.Icons.Highlighter);
+      Buttons.Set_Icon (Item.Marker_Button, Icon_Set.Highlighter);
       Buttons.Set_Label (Item.Eraser_Button, "Rub");
-      Buttons.Set_Icon (Item.Eraser_Button, UI.Icons.Eraser);
+      Buttons.Set_Icon (Item.Eraser_Button, Icon_Set.Eraser);
       Buttons.Set_Selected (Item.Cursor_Button, True);
       Size (Item.Cursor_Button, Button_Size, Row_Height);
       Size (Item.Marker_Button, Button_Size, Row_Height);
@@ -88,7 +88,7 @@ package body Items.Readers is
 
    function Is_Assigned (Item : Reader) return Boolean is (Item.Assigned);
 
-   procedure Set_Tag (Item : in out Reader; To : UI.Themes.Slot) is
+   procedure Set_Tag (Item : in out Reader; To : Pomarine.Themes.Slot) is
    begin
       Frames.Set_Tag (Item.Chrome, To);
    end Set_Tag;

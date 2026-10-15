@@ -5,7 +5,7 @@ with Ada.Text_IO;
 with Files;
 with SDL3.Events.Redraws;
 with SDL3.Windows.Renderers;
-with UI.Widgets;
+with Pomarine.Widgets;
 with Viewer.Build;
 with Viewer.Canvas_Items;
 with Viewer.Clicks;
@@ -19,8 +19,8 @@ with Viewer.Writing;
 
 package body Viewer is
 
-   package Widgets renames UI.Widgets;
-   package Labels renames UI.Widgets.Labels;
+   package Widgets renames Pomarine.Widgets;
+   package Labels renames Pomarine.Widgets.Labels;
 
    use Ada.Strings.Unbounded;
    use type Preferences.Theme_Choices;

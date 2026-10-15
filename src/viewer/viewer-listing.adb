@@ -1,16 +1,16 @@
-with UI.Themes;
-with UI.Icons;
-with UI.Widgets;
+with Pomarine.Themes;
+with Icon_Set;
+with Pomarine.Widgets;
 with Viewer.Canvas_Items;
 with Viewer.Style;
 
 package body Viewer.Listing is
 
-   package Widgets renames UI.Widgets;
-   package Buttons renames UI.Widgets.Buttons;
-   package Labels renames UI.Widgets.Labels;
-   package Grips renames UI.Widgets.Grips;
-   package Scrollers renames UI.Widgets.Scrollers;
+   package Widgets renames Pomarine.Widgets;
+   package Buttons renames Pomarine.Widgets.Buttons;
+   package Labels renames Pomarine.Widgets.Labels;
+   package Grips renames Pomarine.Widgets.Grips;
+   package Scrollers renames Pomarine.Widgets.Scrollers;
    package Windows renames Items.Windows;
 
    use type Items.States;
@@ -44,14 +44,14 @@ package body Viewer.Listing is
                Labels.Set_Ink
                  (Item.Item_List.List_Rows (Row).Caption,
                   (if Closed then Style.Closed_Ink
-                   else UI.Themes.Foreground));
+                   else Pomarine.Themes.Foreground));
                --  What a click does: show it if it is closed.
                Buttons.Set_Label
                  (Item.Item_List.List_Rows (Row).Toggle,
                   (if Closed then "Show" else "Hide"));
                Buttons.Set_Icon
                  (Item.Item_List.List_Rows (Row).Toggle,
-                  (if Closed then UI.Icons.Show else UI.Icons.Hide));
+                  (if Closed then Icon_Set.Show else Icon_Set.Hide));
             end;
          end if;
          Widgets.Set_Visible (Item.Item_List.List_Rows (Row).Panel,

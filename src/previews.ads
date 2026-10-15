@@ -1,7 +1,7 @@
 with Items;
 with SDL3.Windows.Renderers;
-with UI.Themes;
-with UI.Widgets;
+with Pomarine.Themes;
+with Pomarine.Widgets;
 
 --  A picture of a project's canvas, small: its open items, where they are,
 --  as white cards on a ground of dots, each with a line for its title (a
@@ -12,12 +12,12 @@ package Previews is
    Max_Shown : constant := 12;
    --  Items drawn, the earliest made first; the rest are left out.
 
-   type Preview is new UI.Widgets.Widget with private;
+   type Preview is new Pomarine.Widgets.Widget with private;
 
    type Card is record
       Where : Items.Frame;
       Kind  : Items.Kinds := Items.Note;
-      Ink   : UI.Themes.Slot := UI.Themes.Foreground;
+      Ink   : Pomarine.Themes.Slot := Pomarine.Themes.Foreground;
       --  Of a source: its colour.
    end record;
 
@@ -33,11 +33,11 @@ package Previews is
    overriding procedure Draw
      (Item   : in out Preview;
       Target : SDL3.Windows.Renderers.Renderer;
-      Colors : UI.Themes.Theme);
+      Colors : Pomarine.Themes.Theme);
 
 private
 
-   type Preview is new UI.Widgets.Widget with record
+   type Preview is new Pomarine.Widgets.Widget with record
       Count : Natural range 0 .. Max_Shown := 0;
       Cards : Card_Array (1 .. Max_Shown);
    end record;

@@ -2,17 +2,17 @@ with Ada.Strings.Fixed;
 with Items;
 with Items.Records;
 with Previews;
-with UI.Text_Areas;
-with UI.Widgets;
-with UI.Widgets.Labels;
+with Pomarine.Text_Areas;
+with Pomarine.Widgets;
+with Pomarine.Widgets.Labels;
 with Viewer.Style;
 with Yoga.Nodes;
 
 package body Viewer.Recent is
 
-   package Widgets renames UI.Widgets;
-   package Labels renames UI.Widgets.Labels;
-   package Text_Fields renames UI.Widgets.Text_Fields;
+   package Widgets renames Pomarine.Widgets;
+   package Labels renames Pomarine.Widgets.Labels;
+   package Text_Fields renames Pomarine.Widgets.Text_Fields;
    package Docs renames Texts.Documents;
 
    use type Items.Kinds;
@@ -154,7 +154,7 @@ package body Viewer.Recent is
          Projects.Titles.To_String (Item.Home_View.Listed.Items (Row).Title));
       Text_Fields.Attach (Item.Title_Edit.Edit_Field,
                           Item.Title_Edit.Edit_Doc'Unchecked_Access);
-      UI.Text_Areas.Select_All
+      Pomarine.Text_Areas.Select_All
         (Text_Fields.Area (Item.Title_Edit.Edit_Field).all);
       Widgets.Focus (Item.Title_Edit.Edit_Field);
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);

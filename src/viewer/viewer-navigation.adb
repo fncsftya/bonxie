@@ -1,19 +1,19 @@
 with Ada.Strings.Unbounded;
 with Texts.Documents;
-with UI.Text_Areas;
-with UI.Widgets;
-with UI.Widgets.Grips;
-with UI.Widgets.Labels;
-with UI.Widgets.Text_Fields;
+with Pomarine.Text_Areas;
+with Pomarine.Widgets;
+with Pomarine.Widgets.Grips;
+with Pomarine.Widgets.Labels;
+with Pomarine.Widgets.Text_Fields;
 with Viewer.Canvas_Items;
 with Viewer.Recent;
 with Viewer.Writing;
 
 package body Viewer.Navigation is
 
-   package Widgets renames UI.Widgets;
-   package Grips renames UI.Widgets.Grips;
-   package Text_Fields renames UI.Widgets.Text_Fields;
+   package Widgets renames Pomarine.Widgets;
+   package Grips renames Pomarine.Widgets.Grips;
+   package Text_Fields renames Pomarine.Widgets.Text_Fields;
 
    procedure Show_Title_Of_Project (Item : in out Session);
    --  Put the title of the current project on the toolbar.
@@ -29,12 +29,12 @@ package body Viewer.Navigation is
       begin
          Item.Opened.Project_Name
             := Ada.Strings.Unbounded.To_Unbounded_String (Name);
-         UI.Widgets.Labels.Set_Text
+         Pomarine.Widgets.Labels.Set_Text
            (Item.Toolbar.Project_Title,
             Name (Name'First ..
                   Name'First - 1
                   + Natural'Min
-                      (Name'Length, UI.Widgets.Labels.Text_Capacity)));
+                      (Name'Length, Pomarine.Widgets.Labels.Text_Capacity)));
       end;
    end Show_Title_Of_Project;
 
@@ -82,7 +82,7 @@ package body Viewer.Navigation is
          Grips.Cancel_Drag (Item.Toolbar.Title_Area);
          Widgets.Set_Visible (Item.Toolbar.Title_Field, True);
          Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
-         UI.Text_Areas.Select_All
+         Pomarine.Text_Areas.Select_All
            (Text_Fields.Area (Item.Toolbar.Title_Field).all);
          Widgets.Focus (Item.Toolbar.Title_Field);
       elsif Item.Toolbar.Renaming then

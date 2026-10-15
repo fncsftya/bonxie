@@ -1,7 +1,7 @@
 --  The items on the project's canvas: their windows, which are loaded
 --  from the database when the project is entered, kept in step with the
 --  canvas as it is panned and zoomed, and written back as they change.
-with UI.Themes;
+with Pomarine.Themes;
 
 private package Viewer.Canvas_Items is
 
@@ -90,7 +90,7 @@ private package Viewer.Canvas_Items is
    --  Show the dock if any item is minimised, and the canvas is shown.
 
    function Source_Ink
-     (Item : Session; Which : Items.Slot) return UI.Themes.Slot
+     (Item : Session; Which : Items.Slot) return Pomarine.Themes.Slot
      with Pre => Items.Windows.Is_Assigned (Item.Windows (Which))
                  and then Items."="
                             (Items.Windows.Details (Item.Windows (Which)).Kind,

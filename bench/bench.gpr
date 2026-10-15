@@ -1,6 +1,6 @@
 with "config/bench_config.gpr";
 with "bonxie.gpr";
-with "bonxie_ui.gpr";
+with "pomarine_ui.gpr";
 with "coretext.gpr";
 with "sdl3.gpr";
 with "texts.gpr";
@@ -12,8 +12,7 @@ project Bench is
    for Object_Dir use "obj/" & Bench_Config.Build_Profile;
    for Create_Missing_Dirs use "True";
    for Exec_Dir use "bin";
-   for Main use ("bench.adb", "text_area_bench.adb", "widget_bench.adb",
-                 "item_bench.adb", "open_bench.adb", "write_bench.adb");
+   for Main use ("item_bench.adb", "open_bench.adb", "write_bench.adb");
 
    package Compiler is
       for Default_Switches ("Ada") use Bench_Config.Ada_Compiler_Switches &

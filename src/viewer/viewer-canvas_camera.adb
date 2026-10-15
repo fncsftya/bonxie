@@ -1,8 +1,8 @@
-with UI.Widgets.Canvases;
+with Pomarine.Widgets.Canvases;
 
 package body Viewer.Canvas_Camera is
 
-   package Canvases renames UI.Widgets.Canvases;
+   package Canvases renames Pomarine.Widgets.Canvases;
 
    function Canvas_Zoom (Item : Session) return Float is
      (Canvases.Zoom (Item.Canvas_View));

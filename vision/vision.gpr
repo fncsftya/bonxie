@@ -1,4 +1,5 @@
 with "config/vision_config.gpr";
+with "pomarine_ui.gpr";
 project Vision is
 
    for Library_Name use "vision_ada";

@@ -1,10 +1,10 @@
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
-with UI.Widgets;
-with UI.Widgets.Buttons;
-with UI.Widgets.Checks;
-with UI.Widgets.Labels;
-with UI.Widgets.Progress_Bars;
+with Pomarine.Widgets;
+with Pomarine.Widgets.Buttons;
+with Pomarine.Widgets.Checks;
+with Pomarine.Widgets.Labels;
+with Pomarine.Widgets.Progress_Bars;
 with SDL3.Events;
 with Speech.Models;
 with Viewer.Deletion;
@@ -13,11 +13,11 @@ with Yoga.Nodes;
 
 package body Viewer.Settings_View is
 
-   package Widgets renames UI.Widgets;
-   package Buttons renames UI.Widgets.Buttons;
-   package Checks renames UI.Widgets.Checks;
-   package Labels renames UI.Widgets.Labels;
-   package Progress_Bars renames UI.Widgets.Progress_Bars;
+   package Widgets renames Pomarine.Widgets;
+   package Buttons renames Pomarine.Widgets.Buttons;
+   package Checks renames Pomarine.Widgets.Checks;
+   package Labels renames Pomarine.Widgets.Labels;
+   package Progress_Bars renames Pomarine.Widgets.Progress_Bars;
 
    use type Speech.Models.States;
    use type Preferences.Speech_Models;
