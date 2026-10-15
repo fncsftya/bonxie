@@ -1,5 +1,5 @@
 name = "bonxie"
-description = "Podcast creation application."
+description = "Writing application with transcription and sources"
 version = "0.1.0-dev"
 
 authors = ["Matt Rawcliffe"]
