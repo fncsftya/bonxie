@@ -38,6 +38,14 @@ package Viewer.Settings is
           Post => Preferences."=" (Theme_Choice (Item), To);
    --  Choose it, as its radio does.
 
+   function AI_Enabled (Item : Session) return Boolean
+     with Pre => Is_Open (Item);
+   --  Whether the local language model is switched on.
+
+   function AI_Model (Item : Session) return String
+     with Pre => Is_Open (Item);
+   --  The language model chosen, "provider/name"; "" if none.
+
    function Is_Dark (Item : Session) return Boolean
      with Pre => Is_Open (Item);
    --  Whether the windows are drawn in the dark theme now: as the choice

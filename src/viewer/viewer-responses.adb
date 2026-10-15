@@ -1,4 +1,5 @@
 with Pomarine.Widgets.Callbacks;
+with Pomarine.Widgets.Switches;
 with Viewer.Canvas_Items;
 with Viewer.Deletion;
 with Viewer.Listing;
@@ -10,6 +11,7 @@ with Viewer.Writing;
 package body Viewer.Responses is
 
    package Widgets renames Pomarine.Widgets;
+   package Switches renames Pomarine.Widgets.Switches;
    package Hooks is new Pomarine.Widgets.Callbacks (Session);
 
    use type Projects.Id;
@@ -232,6 +234,58 @@ package body Viewer.Responses is
       end if;
    end Choose_Parakeet;
 
+   procedure Switch_AI
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
+
+   procedure Switch_AI
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Event);
+   begin
+      if Settings_Open (Item) then
+         Settings_View.Enable_AI (Item, Switches.Is_On (Switches.Switch (Source)));
+      end if;
+   end Switch_AI;
+
+   procedure Open_AI_Models
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
+
+   procedure Open_AI_Models
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source, Event);
+   begin
+      if Settings_Open (Item) then
+         Settings_View.Toggle_AI_Menu (Item);
+      end if;
+   end Open_AI_Models;
+
+   procedure Choose_AI_Model
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
+
+   procedure Choose_AI_Model
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source);
+   begin
+      if Settings_Open (Item) then
+         Settings_View.Choose_AI_Model (Item, Event.Row);
+      end if;
+   end Choose_AI_Model;
+
+   procedure Test_AI_Model
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
+
+   procedure Test_AI_Model
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source, Event);
+   begin
+      if Settings_Open (Item) then
+         Settings_View.Test_AI (Item);
+      end if;
+   end Test_AI_Model;
+
    procedure Download_Model
      (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
 
@@ -416,6 +470,10 @@ package body Viewer.Responses is
       Hear (Prefs.Theme_Light, Change, Choose_Light'Access);
       Hear (Prefs.Theme_Dark, Change, Choose_Dark'Access);
       Hear (Prefs.Theme_System, Change, Choose_System'Access);
+      Hear (Prefs.AI_Enable, Change, Switch_AI'Access);
+      Hear (Prefs.AI_Select, Click, Open_AI_Models'Access);
+      Hear (Prefs.AI_Menu, Choose, Choose_AI_Model'Access);
+      Hear (Prefs.AI_Test_Button, Click, Test_AI_Model'Access);
       Hear (Prefs.Model_Native, Change, Choose_MacOS'Access);
       Hear (Prefs.Model_Parakeet, Change, Choose_Parakeet'Access);
       Hear (Prefs.Download_Button, Click, Download_Model'Access);

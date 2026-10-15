@@ -1,5 +1,6 @@
 with Ada.Command_Line;
 with Ada.Directories;
+with Ada.Environment_Variables;
 with Ada.Streams.Stream_IO;
 with Ada.Strings.Fixed;
 with Ada.Text_IO;
@@ -30,6 +31,8 @@ procedure Golden is
    package Proj renames Viewer.Project_Screen;
    package Settings renames Viewer.Settings;
    package Images renames Goldens.Images;
+
+   Text_File : Ada.Text_IO.File_Type;
 
    Filter : constant String :=
      (if Ada.Command_Line.Argument_Count > 0
@@ -619,8 +622,8 @@ procedure Golden is
    Light_Y          : constant Float := 189.0;
    Dark_Y           : constant Float := 225.0;
    System_Y         : constant Float := 261.0;
-   Native_Y         : constant Float := 377.0;
-   Parakeet_Y       : constant Float := 413.0;
+   Native_Y         : constant Float := 456.0;
+   Parakeet_Y       : constant Float := 492.0;
 
    procedure Home_Settings is
       use type Preferences.Speech_Models;
@@ -687,6 +690,153 @@ procedure Golden is
         ("settings-closed", "FALSE",
          Boolean'Image (Settings.Is_Settings_Open (Session)));
    end Home_Settings;
+
+   --  The AI settings, in a window that is the same: the switch is under
+   --  its heading, and with it on the Model field, which opens a menu of
+   --  the models in the Hugging Face cache, here a made one in a folder
+   --  of the test's, which is the home folder as far as the program can
+   --  tell. The Test button runs a model, which is not for a golden (a
+   --  model is gigabytes, and says what it likes): see mlx/tests.
+   AI_Switch_X : constant Float := 160.0;
+   AI_Switch_Y : constant Float := 340.0;
+   AI_Field_X  : constant Float := 300.0;
+   AI_Field_Y  : constant Float := 415.0;
+   AI_Row_Gap  : constant Float := 26.0;
+   --  The menu's rows are this far apart, the first this far under the
+   --  field's middle (see AI_Row): None Selected, then the models in order
+   --  of name.
+
+   function AI_Row (Which : Positive) return Float is
+     (AI_Field_Y + 36.0 + AI_Row_Gap * Float (Which - 1));
+
+   procedure Make_Model (Hub, Name, Format, Kind : String) is
+      Folder : constant String := Hub & "/models--" & Name & "/snapshots/0123abcd";
+      Header : constant String := "{""__metadata__"":{""format"":""" & Format & """}}";
+      File   : Ada.Streams.Stream_IO.File_Type;
+      Size   : Natural := Header'Length;
+      Bytes  : Ada.Streams.Stream_Element_Array (1 .. 8) := [others => 0];
+   begin
+      Ada.Directories.Create_Path (Folder);
+      for Place in Bytes'Range loop
+         Bytes (Place) := Ada.Streams.Stream_Element (Size mod 256);
+         Size := Size / 256;
+      end loop;
+      Ada.Streams.Stream_IO.Create (File, Ada.Streams.Stream_IO.Out_File, Folder & "/model.safetensors");
+      Ada.Streams.Stream_IO.Write (File, Bytes);
+      for Letter of Header loop
+         Ada.Streams.Stream_IO.Write
+           (File, [1 => Ada.Streams.Stream_Element (Character'Pos (Letter))]);
+      end loop;
+      Ada.Streams.Stream_IO.Close (File);
+      Ada.Text_IO.Create (Text_File, Ada.Text_IO.Out_File, Folder & "/config.json");
+      Ada.Text_IO.Put (Text_File, "{""model_type"":""" & Kind & """}");
+      Ada.Text_IO.Close (Text_File);
+   end Make_Model;
+
+   procedure Home_Settings_AI is
+      Fake    : constant String := "/tmp/bonxie-ai-test";
+      Hub     : constant String := Fake & "/.cache/huggingface/hub";
+      Before  : constant String :=
+        (if Ada.Environment_Variables.Exists ("HOME")
+         then Ada.Environment_Variables.Value ("HOME") else "");
+      Hub_Cache : constant String :=
+        (if Ada.Environment_Variables.Exists ("HF_HUB_CACHE")
+         then Ada.Environment_Variables.Value ("HF_HUB_CACHE") else "");
+      Hub_Home  : constant String :=
+        (if Ada.Environment_Variables.Exists ("HF_HOME")
+         then Ada.Environment_Variables.Value ("HF_HOME") else "");
+      Session : Viewer.Session;
+      Drawn   : Images.Image;
+
+      procedure Restore is
+      begin
+         Ada.Environment_Variables.Set ("HOME", Before);
+         if Hub_Cache /= "" then
+            Ada.Environment_Variables.Set ("HF_HUB_CACHE", Hub_Cache);
+         end if;
+         if Hub_Home /= "" then
+            Ada.Environment_Variables.Set ("HF_HOME", Hub_Home);
+         end if;
+      end Restore;
+   begin
+      if Ada.Directories.Exists (Fake) then
+         Ada.Directories.Delete_Tree (Fake);
+      end if;
+      Ada.Directories.Create_Path (Fake);
+      Ada.Environment_Variables.Set ("HOME", Fake);
+      Ada.Environment_Variables.Clear ("HF_HUB_CACHE");
+      Ada.Environment_Variables.Clear ("HF_HOME");
+
+      --  Off to begin with; on, with no Hugging Face cache, it says so.
+      Viewer.Open (Session, "", Home_Width, Home_Height);
+      Click_On (Session, Actions_X, Settings_Y);
+      Goldens.Check_Text
+        ("settings-ai-off", "FALSE", Boolean'Image (Settings.AI_Enabled (Session)));
+      Click_On (Session, AI_Switch_X, AI_Switch_Y);
+      Goldens.Check_Text
+        ("settings-ai-on", "TRUE", Boolean'Image (Settings.AI_Enabled (Session)));
+      Viewer.Render (Session, Drawn);
+      Goldens.Check ("settings-ai-no-hub", Drawn);
+      Click_On (Session, AI_Switch_X, AI_Switch_Y);
+      Goldens.Check_Text
+        ("settings-ai-off-again", "FALSE", Boolean'Image (Settings.AI_Enabled (Session)));
+
+      --  A cache that is there but has no models in it is as none.
+      Ada.Directories.Create_Path (Hub & "/datasets--acme--words");
+      Click_On (Session, AI_Switch_X, AI_Switch_Y);
+      Viewer.Render (Session, Drawn);
+      Goldens.Check ("settings-ai-no-models", Drawn);
+      Click_On (Session, AI_Switch_X, AI_Switch_Y);
+
+      --  With models in it, they are in the menu, and None Selected is
+      --  what the field has until one is chosen.
+      Make_Model (Hub, "acme--plain-mlx", "mlx", "llama");
+      Make_Model (Hub, "acme--torch", "pt", "llama");
+      Make_Model (Hub, "acme--odd-mlx", "mlx", "nonsense");
+      Click_On (Session, AI_Switch_X, AI_Switch_Y);
+      Goldens.Check_Text ("settings-ai-none", "", Settings.AI_Model (Session));
+      Viewer.Render (Session, Drawn);
+      Goldens.Check ("settings-ai-models", Drawn);
+      Click_On (Session, AI_Field_X, AI_Field_Y);
+      Viewer.Render (Session, Drawn);
+      Goldens.Check ("settings-ai-menu", Drawn);
+
+      --  One that is not for MLX is chosen, and warned of.
+      Click_On (Session, AI_Field_X, AI_Row (4));
+      Goldens.Check_Text ("settings-ai-torch", "acme/torch", Settings.AI_Model (Session));
+      Viewer.Render (Session, Drawn);
+      Goldens.Check ("settings-ai-warned", Drawn);
+
+      --  One that is, so that it can be tested.
+      Click_On (Session, AI_Field_X, AI_Field_Y);
+      Click_On (Session, AI_Field_X, AI_Row (3));
+      Goldens.Check_Text ("settings-ai-plain", "acme/plain-mlx", Settings.AI_Model (Session));
+      Viewer.Render (Session, Drawn);
+      Goldens.Check ("settings-ai-chosen", Drawn);
+
+      --  A click outside the menu puts it away, and Escape too.
+      Click_On (Session, AI_Field_X, AI_Field_Y);
+      Click_On (Session, 900.0, 700.0);
+      Goldens.Check_Text
+        ("settings-ai-menu-away", "TRUE", Boolean'Image (Settings.Is_Settings_Open (Session)));
+      Click_On (Session, AI_Field_X, AI_Field_Y);
+      Viewer.Handle (Session, Key (Events.Key_Escape));
+      Goldens.Check_Text
+        ("settings-ai-escape-menu", "TRUE", Boolean'Image (Settings.Is_Settings_Open (Session)));
+
+      --  In the dark theme the field and the menu are dark too.
+      Click_On (Session, Model_X, Dark_Y);
+      Click_On (Session, AI_Field_X, AI_Field_Y);
+      Viewer.Render (Session, Drawn);
+      Goldens.Check ("settings-ai-menu-dark", Drawn);
+
+      Restore;
+      Ada.Directories.Delete_Tree (Fake);
+   exception
+      when others =>
+         Restore;
+         raise;
+   end Home_Settings_AI;
 
    procedure Fetching is
       use type Downloads.States;
@@ -1078,6 +1228,7 @@ begin
    Run ("home-empty", Home_Empty'Access);
    Run ("home-recent", Home_Recent'Access);
    Run ("home-settings", Home_Settings'Access);
+   Run ("home-settings-ai", Home_Settings_AI'Access);
    Run ("home-dark", Dark_Screens'Access);
    Run ("preferences-kept", Preferences_Kept'Access);
    Run ("downloads-fetching", Fetching'Access);

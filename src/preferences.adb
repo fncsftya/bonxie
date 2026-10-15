@@ -137,4 +137,20 @@ package body Preferences is
          Ada.Characters.Handling.To_Lower (Theme_Choices'Image (To)));
    end Save_Theme;
 
+   function Load_AI_Enabled (Config : String) return Boolean is
+     (Ada.Characters.Handling.To_Lower (Setting (Config, "ai")) = "on");
+
+   procedure Save_AI_Enabled (Config : String; To : Boolean) is
+   begin
+      Put_Setting (Config, "ai", (if To then "on" else "off"));
+   end Save_AI_Enabled;
+
+   function Load_AI_Model (Config : String) return String is
+     (Setting (Config, "ai_model"));
+
+   procedure Save_AI_Model (Config : String; To : String) is
+   begin
+      Put_Setting (Config, "ai_model", To);
+   end Save_AI_Model;
+
 end Preferences;

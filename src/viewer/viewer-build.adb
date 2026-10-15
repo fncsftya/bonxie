@@ -34,6 +34,8 @@ package body Viewer.Build is
    package Scrollers renames Pomarine.Widgets.Scrollers;
    package Editors renames Pomarine.Widgets.Editors;
    package Checks renames Pomarine.Widgets.Checks;
+   package Selects renames Pomarine.Widgets.Selects;
+   package Switches renames Pomarine.Widgets.Switches;
    package Themes renames Pomarine.Themes;
 
    use Style;
@@ -600,6 +602,15 @@ package body Viewer.Build is
         (Prefs.Settings_Form, Prefs.Display_Heading, Prefs.Theme_Name, Prefs.Theme_Light,
          Prefs.Theme_Dark, Prefs.Theme_System);
       Widgets.Add
+        (Prefs.Settings_Form, Prefs.AI_Heading, Prefs.AI_Enable, Prefs.AI_Model_Name, Prefs.AI_Hub_Note,
+         Prefs.AI_Select);
+      Widgets.Add (Prefs.Settings_Form, Prefs.AI_Test_Row);
+      Widgets.Add (Prefs.AI_Test_Row, Prefs.AI_Test_Button, Prefs.AI_Test_State);
+      for Each of Prefs.AI_Notes loop
+         Widgets.Add (Prefs.Settings_Form, Each);
+      end loop;
+      Widgets.Add (Prefs.Settings_Panel, Prefs.AI_Menu);
+      Widgets.Add
         (Prefs.Settings_Form, Prefs.Speech_Heading, Prefs.Model_Name, Prefs.Model_Native,
          Prefs.Model_Parakeet, Prefs.Download_Row);
       Widgets.Add (Prefs.Download_Row, Prefs.Download_Button, Prefs.Delete_Button, Prefs.Download_State);
@@ -651,6 +662,40 @@ package body Viewer.Build is
       Radio (Prefs.Theme_Light, "Light");
       Radio (Prefs.Theme_Dark, "Dark");
       Radio (Prefs.Theme_System, "System");
+
+      --  AI: Enable, and, with it on, the model to run.
+      Labels.Set_Text (Prefs.AI_Heading, "AI");
+      Labels.Set_Style (Prefs.AI_Heading, Pomarine.Line_Texts.Caption);
+      Line (Prefs.AI_Heading, Heading_Height);
+      Set_Layout (Prefs.AI_Heading, Margin => (Top => Heading_Top, others => <>));
+      Switches.Set_Label (Prefs.AI_Enable, "Enable");
+      Switches.Set_Focusable (Prefs.AI_Enable, True);
+      Line (Prefs.AI_Enable, Settings_Line);
+      Labels.Set_Text (Prefs.AI_Model_Name, "Model");
+      Labels.Set_Style (Prefs.AI_Model_Name, Pomarine.Line_Texts.Strong);
+      Line (Prefs.AI_Model_Name, Settings_Line);
+      Labels.Set_Text (Prefs.AI_Hub_Note, "Hugging Face support not detected");
+      Labels.Set_Ink (Prefs.AI_Hub_Note, Quiet_Ink);
+      Line (Prefs.AI_Hub_Note, Settings_Line);
+      Selects.Set_Value (Prefs.AI_Select, None_Selected);
+      Line (Prefs.AI_Select, Download_Height);
+      Line (Prefs.AI_Test_Row, Download_Height);
+      Set_Layout
+        (Prefs.AI_Test_Row, Flow => Row, Align => Center, Gap => Gap,
+         Margin => (Top => Gap, others => <>));
+      Buttons.Set_Label (Prefs.AI_Test_Button, "Test");
+      Buttons.Set_Kind (Prefs.AI_Test_Button, Buttons.Primary);
+      Buttons.Set_Focusable (Prefs.AI_Test_Button, True);
+      Set_Layout
+        (Prefs.AI_Test_Button, Width => Download_Width, Height => Download_Height, Shrink => 0.0);
+      Labels.Set_Ink (Prefs.AI_Test_State, Quiet_Ink);
+      Set_Layout (Prefs.AI_Test_State, Grow => 1.0, Width => 0.0, Height => Download_Height);
+      for Each of Prefs.AI_Notes loop
+         Line (Each, Note_Line);
+         Widgets.Set_Visible (Each, False);
+      end loop;
+      Set_Layout (Prefs.AI_Menu, Place => Absolute, Width => Menu_Width);
+      Widgets.Set_Visible (Prefs.AI_Menu, False);
 
       --  Speech: its one option, Model.
       Labels.Set_Text (Prefs.Speech_Heading, "SPEECH");
@@ -878,6 +923,13 @@ package body Viewer.Build is
          Item.Prefs.Theme_Chosen :=
            Preferences.Load_Theme
              (Ada.Strings.Unbounded.To_String (Item.Prefs.Config_Dir));
+         Item.Prefs.AI_On :=
+           Preferences.Load_AI_Enabled
+             (Ada.Strings.Unbounded.To_String (Item.Prefs.Config_Dir));
+         Item.Prefs.AI_Model :=
+           Ada.Strings.Unbounded.To_Unbounded_String
+             (Preferences.Load_AI_Model
+                (Ada.Strings.Unbounded.To_String (Item.Prefs.Config_Dir)));
          --  The system may have let go of the compiled model: have it
          --  ready, in the background, before it is wanted.
          if Preferences."=" (Item.Prefs.Speech_Choice, Preferences.Parakeet) then

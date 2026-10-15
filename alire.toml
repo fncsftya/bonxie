@@ -14,6 +14,7 @@ pomarine_native = "*"
 pomarine_ui = "*"
 coretext = "*"
 ebook = "*"
+mlx = "*"
 sdl3 = "*"
 speech = "*"
 texts = "*"
@@ -27,6 +28,7 @@ pomarine_native = { path = "pomarine/native" }
 pomarine_ui = { path = "pomarine/ui" }
 coretext = { path = "pomarine/coretext" }
 ebook = { path = "ebook" }
+mlx = { path = "mlx" }
 sdl3 = { path = "pomarine/sdl3" }
 speech = { path = "speech" }
 texts = { path = "pomarine/texts" }

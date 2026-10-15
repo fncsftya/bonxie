@@ -3,6 +3,8 @@ with SDL3.Cursors;
 with SDL3.Events;
 with SDL3.Windows.Renderers.Images;
 private with Ada.Strings.Unbounded;
+private with MLX;
+private with MLX.Hub;
 private with Speech.Models;
 private with Items;
 private with Items.Directories;
@@ -36,6 +38,8 @@ private with Pomarine.Widgets.Panels;
 private with Pomarine.Widgets.Pins;
 private with Pomarine.Widgets.Progress_Bars;
 private with Pomarine.Widgets.Scrollers;
+private with Pomarine.Widgets.Selects;
+private with Pomarine.Widgets.Switches;
 
 --  A window of two screens: the home, with the recent projects and
 --  buttons to start with, and a project, with a toolbar and, above it, the
@@ -436,6 +440,12 @@ private
    end record;
    --  The dialog, over both screens, to confirm deleting.
 
+   AI_Note_Lines : constant := 6;
+   --  Lines of what is said under the AI model: why it will not run, or
+   --  what it replied to the test.
+
+   type AI_Note_Array is array (1 .. AI_Note_Lines) of Pomarine.Widgets.Labels.Label;
+
    type Settings_Parts is limited record
       Settings_Panel : Pomarine.Widgets.Panels.Panel;
       --  A column, in the home screen's place while Showing_Settings: a
@@ -469,6 +479,35 @@ private
       --  file, shown while it is not there, or else the button to delete
       --  it; what is the matter with it, or how big it is, or, while it
       --  comes, how far.
+      AI_Heading     : Pomarine.Widgets.Labels.Label;
+      AI_Enable      : Pomarine.Widgets.Switches.Switch;
+      AI_Model_Name  : Pomarine.Widgets.Labels.Label;
+      AI_Hub_Note    : Pomarine.Widgets.Labels.Label;
+      AI_Select      : Pomarine.Widgets.Selects.Select_Field;
+      AI_Test_Row    : Pomarine.Widgets.Panels.Panel;
+      AI_Test_Button : Pomarine.Widgets.Buttons.Button;
+      AI_Test_State  : Pomarine.Widgets.Labels.Label;
+      AI_Notes       : AI_Note_Array;
+      --  AI: Enable, a switch; and, with it on, Model: a field to choose
+      --  from the models of the Hugging Face cache (or, if there is
+      --  none, a note that it is not found), the menu it opens (AI_Menu,
+      --  over the form), then a Test button with how the test is, and
+      --  under it what is to be said.
+      AI_Menu        : Pomarine.Widgets.Menus.Menu;
+      AI_Menu_Open   : Boolean := False;
+      AI_Menu_Left   : Float := -1.0E9;
+      AI_Menu_Top    : Float := -1.0E9;
+      --  Where the menu was last put, in points of the settings panel.
+      AI_On          : Boolean := False;
+      AI_Model       : Ada.Strings.Unbounded.Unbounded_String;
+      --  The model chosen, "provider/name", empty for none.
+      AI_Found       : MLX.Hub.Models;
+      AI_Problem     : Ada.Strings.Unbounded.Unbounded_String;
+      --  Why the model chosen will not run, empty if it will.
+      AI_Tested      : Ada.Strings.Unbounded.Unbounded_String;
+      --  The model the test was begun for: what it says is of that one.
+      AI_Test_Seen   : MLX.States := MLX.Idle;
+      --  How the test was when the form last showed it.
       Showing_Settings : Boolean := False;
       Speech_Choice  : Preferences.Speech_Models := Preferences.MacOS;
       Theme_Chosen   : Preferences.Theme_Choices := Preferences.System;

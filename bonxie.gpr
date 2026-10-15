@@ -3,6 +3,7 @@ with "pomarine_native.gpr";
 with "pomarine_ui.gpr";
 with "coretext.gpr";
 with "ebook.gpr";
+with "mlx.gpr";
 with "sdl3.gpr";
 with "speech.gpr";
 with "texts.gpr";

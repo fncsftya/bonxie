@@ -49,9 +49,39 @@ private package Viewer.Settings_View is
      with Pre => Item.Prefs.Showing_Settings;
    --  Make the form as wide as a page, or as the window leaves room for.
 
+   procedure Enable_AI (Item : in out Session; To : Boolean)
+     with Pre => Item.Prefs.Showing_Settings;
+   --  Switch the language model on or off, and keep the choice.
+
+   procedure Toggle_AI_Menu (Item : in out Session)
+     with Pre => Item.Prefs.Showing_Settings;
+   --  Show the menu of the models in the Hugging Face cache under the
+   --  Model field, or put it away if it is shown.
+
+   procedure Choose_AI_Model (Item : in out Session; Row : Natural)
+     with Pre => Item.Prefs.Showing_Settings;
+   --  A row of that menu was chosen (the first is None Selected, the rest
+   --  the models, in order): keep the choice, and put the menu away.
+
+   procedure Test_AI (Item : in out Session)
+     with Pre => Item.Prefs.Showing_Settings;
+   --  Run the test prompt through the model chosen, in the background.
+
+   function AI_Menu_Open (Item : Session) return Boolean;
+   --  Whether the menu of models is shown.
+
+   procedure Close_AI_Menu (Item : in out Session)
+     with Post => not AI_Menu_Open (Item);
+
+   procedure Pressed (Item : in out Session; X, Y : Float)
+     with Pre => Item.Prefs.Showing_Settings;
+   --  The pointer was pressed at X, Y, in points of the window: put the
+   --  menu of models away if that was outside it (and its field, whose
+   --  click does that).
+
    function Downloading (Item : Session) return Boolean;
    --  Whether the form needs to be looked at again soon, for the
-   --  download's progress.
+   --  download's progress, or for the language model's test to end.
 
    procedure Refresh (Item : in out Session);
    --  Show the choice, and whether the file for it is there.

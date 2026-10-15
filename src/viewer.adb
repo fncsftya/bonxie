@@ -165,6 +165,8 @@ package body Viewer is
                then
                   if Item.Confirm.Deleting_Model then
                      Deletion.Close (Item);
+                  elsif Settings_View.AI_Menu_Open (Item) then
+                     Settings_View.Close_AI_Menu (Item);
                   else
                      Settings_View.Close (Item);
                   end if;
@@ -195,6 +197,9 @@ package body Viewer is
                Handled := True;
             end if;
             if not Handled then
+               if Item.Prefs.Showing_Settings and then Event.Kind = SDL3.Events.Mouse_Down then
+                  Settings_View.Pressed (Item, Event.Mouse_X, Event.Mouse_Y);
+               end if;
                if Item.Nav.Shown = Project
                  and then Event.Kind = SDL3.Events.Mouse_Down
                then

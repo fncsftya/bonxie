@@ -35,4 +35,18 @@ package Preferences is
    procedure Save_Theme (Config : String; To : Theme_Choices);
    --  Keep the choice, making Config if need be.
 
+   function Load_AI_Enabled (Config : String) return Boolean;
+   --  Whether the local language model is switched on: False if none was
+   --  chosen or it cannot be read.
+
+   procedure Save_AI_Enabled (Config : String; To : Boolean);
+   --  Keep the choice, making Config if need be.
+
+   function Load_AI_Model (Config : String) return String;
+   --  The language model chosen, as "provider/name" of the Hugging Face
+   --  cache; "" if none was or it cannot be read.
+
+   procedure Save_AI_Model (Config : String; To : String);
+   --  Keep the choice ("" for none), making Config if need be.
+
 end Preferences;

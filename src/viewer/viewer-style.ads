@@ -124,6 +124,9 @@ private package Viewer.Style is
    --  A line of the form: a name, a radio.
    Download_Height : constant Float := 34.0;
    Download_Width  : constant Float := 112.0;
+   Note_Line       : constant Float := 20.0;
+   --  A line of what is said under the AI model.
+   None_Selected   : constant String := "None Selected";
    Progress_Height : constant Float := 12.0;
 
    --  The home screen, in points

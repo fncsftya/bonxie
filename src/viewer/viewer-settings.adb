@@ -1,3 +1,4 @@
+with Ada.Strings.Unbounded;
 with Viewer.Settings_View;
 
 package body Viewer.Settings is
@@ -24,6 +25,11 @@ package body Viewer.Settings is
    procedure Choose_Theme
      (Item : in out Session; To : Preferences.Theme_Choices)
      renames Settings_View.Choose_Appearance;
+
+   function AI_Enabled (Item : Session) return Boolean is (Item.Prefs.AI_On);
+
+   function AI_Model (Item : Session) return String is
+     (Ada.Strings.Unbounded.To_String (Item.Prefs.AI_Model));
 
    function Is_Dark (Item : Session) return Boolean is (Item.Prefs.Dark_Shown);
 
