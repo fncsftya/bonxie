@@ -849,7 +849,6 @@ package body Write_Tests is
              Natural'Image (Source_List.Source_Marks (Session, 1)));
       Check ("write-marks-shared", " 1",
              Natural'Image (Windows.Item_Marks (Session, 1)));
-      Snap (Session, "write-source-marked");
 
       --  And erased on the canvas, they are gone from the writing view.
       Proj.Set_Mode (Session, Viewer.Canvas);

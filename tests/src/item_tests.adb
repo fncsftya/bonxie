@@ -3,7 +3,9 @@ with Items.Schema;
 with Items.Sources;
 with Items.Words;
 with Ada.Directories;
+with Ada.Streams.Stream_IO;
 with Ada.Strings.Fixed;
+with Ada.Strings.Unbounded;
 with Ada.Text_IO;
 with SDL3.Cursors;
 with SDL3.Events;
@@ -1609,16 +1611,81 @@ package body Item_Tests is
       Ada.Directories.Delete_Tree (Folder);
    end Source_Documents;
 
+   function Tiny_Epub return String is
+      --  A book of two chapters, in a zip whose files are stored, not
+      --  deflated.
+      function Little (Value : Natural; Bytes : Positive) return String is
+        [for Each in 1 .. Bytes => Character'Val ((Value / 256 ** (Each - 1)) mod 256)];
+
+      Container : constant String :=
+        "<?xml version=""1.0""?><container version=""1.0"" "
+        & "xmlns=""urn:oasis:names:tc:opendocument:xmlns:container""><rootfiles>"
+        & "<rootfile full-path=""OEBPS/content.opf"" media-type=""application/oebps-package+xml""/>"
+        & "</rootfiles></container>";
+      Package_File : constant String :=
+        "<package xmlns=""http://www.idpf.org/2007/opf"" version=""3.0"">"
+        & "<metadata xmlns:dc=""http://purl.org/dc/elements/1.1/""><dc:title>Seabirds</dc:title></metadata>"
+        & "<manifest><item id=""a"" href=""one.xhtml"" media-type=""application/xhtml+xml""/>"
+        & "<item id=""b"" href=""two.xhtml"" media-type=""application/xhtml+xml""/></manifest>"
+        & "<spine><itemref idref=""a""/><itemref idref=""b""/></spine></package>";
+      One : constant String :=
+        "<html xmlns=""http://www.w3.org/1999/xhtml""><head><title>x</title></head><body>"
+        & "<h1>Bonxies</h1><p>Bonxies nest on moorland and <i>winter</i> at sea.</p>"
+        & "<ul><li>Great skua</li><li>Arctic skua</li></ul></body></html>";
+      Two : constant String :=
+        "<html xmlns=""http://www.w3.org/1999/xhtml""><body><h2>Skuas</h2>"
+        & "<p>Skuas winter at sea &amp; steal fish from gulls.</p></body></html>";
+
+      Local, Central : Ada.Strings.Unbounded.Unbounded_String;
+      Files          : Natural := 0;
+      use Ada.Strings.Unbounded;
+
+      procedure Add (Name, Content : String) is
+      begin
+         Central := Central
+           & "PK" & Character'Val (1) & Character'Val (2) & Little (20, 2) & Little (20, 2)
+           & Little (0, 2) & Little (0, 2) & Little (0, 4) & Little (0, 4)
+           & Little (Content'Length, 4) & Little (Content'Length, 4)
+           & Little (Name'Length, 2) & Little (0, 4) & Little (0, 4) & Little (0, 4)
+           & Little (Length (Local), 4) & Name;
+         Local := Local
+           & "PK" & Character'Val (3) & Character'Val (4) & Little (20, 2) & Little (0, 2)
+           & Little (0, 2) & Little (0, 4) & Little (0, 4)
+           & Little (Content'Length, 4) & Little (Content'Length, 4)
+           & Little (Name'Length, 2) & Little (0, 2) & Name & Content;
+         Files := Files + 1;
+      end Add;
+   begin
+      Add ("mimetype", "application/epub+zip");
+      Add ("META-INF/container.xml", Container);
+      Add ("OEBPS/content.opf", Package_File);
+      Add ("OEBPS/one.xhtml", One);
+      Add ("OEBPS/two.xhtml", Two);
+      return To_String
+        (Local & Central & "PK" & Character'Val (5) & Character'Val (6) & Little (0, 4)
+         & Little (Files, 2) & Little (Files, 2) & Little (Length (Central), 4)
+         & Little (Length (Local), 4) & Little (0, 2));
+   end Tiny_Epub;
+
    procedure Source_Files is
       Session : Viewer.Session;
       Folder  : constant String := "/tmp/bonxie-source-files";
       Book    : constant String := Folder & "/book.pdf";
+      Epub    : constant String := Folder & "/seabirds.epub";
       Notes   : constant String := Folder & "/notes.txt";
       Odd     : constant String := Folder & "/picture.xyz";
       Words   : constant String :=
         "Bonxies nest on moorland" & ASCII.CR & ASCII.LF & "and winter at sea.";
       --  (Closing the file ends its last line.)
       File    : Ada.Text_IO.File_Type;
+
+      procedure Write_Bytes (Name, Contents : String) is
+         Raw : Ada.Streams.Stream_IO.File_Type;
+      begin
+         Ada.Streams.Stream_IO.Create (Raw, Ada.Streams.Stream_IO.Out_File, Name);
+         String'Write (Ada.Streams.Stream_IO.Stream (Raw), Contents);
+         Ada.Streams.Stream_IO.Close (Raw);
+      end Write_Bytes;
 
       procedure Write (Name, Contents : String) is
       begin
@@ -1646,6 +1713,7 @@ package body Item_Tests is
          Ada.Directories.Create_Path (Folder);
       end if;
       Write (Book, Two_Pages);
+      Write_Bytes (Epub, Tiny_Epub);
       Write (Notes, Words);
       Write (Odd, "not a thing we show");
 
@@ -1679,6 +1747,19 @@ package body Item_Tests is
       Click_On (Session, Next_X, Pager_Y);
       Wait;
       Check ("file-next", "Page 2 of 2", Windows.Item_Status (Session, 1));
+
+      --  An e-book: set in pages, a chapter to a page.
+      Windows.Pick_File (Session, 1, Epub);
+      Wait;
+      Check ("file-epub-status", "Page 1 of 2", Windows.Item_Status (Session, 1));
+      Draw_Pages (Session);
+      Check
+        ("file-epub-words", "TRUE", Boolean'Image (Windows.Item_Recognized (Session, 1) >= 8));
+      Move_To (Session, 600.0, 60.0);
+      Snap (Session, "file-epub");
+      Click_On (Session, Next_X, Pager_Y);
+      Wait;
+      Check ("file-epub-next", "Page 2 of 2", Windows.Item_Status (Session, 1));
 
       --  A text file: copied, and shown as text that cannot be changed,
       --  with line ends as line feeds.

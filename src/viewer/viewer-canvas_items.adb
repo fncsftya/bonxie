@@ -600,7 +600,7 @@ package body Viewer.Canvas_Items is
       SDL3.Dialogs.Reset;
       Item.Nav.Pick_Slot := Which;
       Item.Nav.Pick_Key := Windows.Details (Item.Windows (Which)).Key;
-      SDL3.Dialogs.Open_File (Item.Host.Win, "PDFs and text", Ebook.Extensions);
+      SDL3.Dialogs.Open_File (Item.Host.Win, "PDFs, e-books and text", Ebook.Extensions);
    end Pick_File;
 
    procedure Poll_Pick (Item : in out Session);

@@ -1,5 +1,5 @@
---  Pages of PDFs, drawn as PNG files with PDFium. (E-books are not
---  drawn yet.)
+--  Pages of PDFs, drawn with PDFium, and of EPUB e-books, which are read and
+--  set here (see Ebook.Books).
 --
 --  What is called here does its work before it returns, in the caller's
 --  thread: a page takes a moment. Nothing is kept open between calls.

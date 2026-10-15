@@ -27,4 +27,5 @@ over the page turn it. A link or file ending
 copied, but not changed.
 
 Build with PDFium fetched: `ebook/fetch-pdfium.sh` (prebuilt, from pdfium-binaries, into
-`ebook/pdfium`; `PDFIUM_PREFIX` says where else it is). E-books are not drawn yet.
+`ebook/pdfium`; `PDFIUM_PREFIX` says where else it is). EPUB e-books are read and set in pages by the crate's own Ada code (zip, inflate, XHTML, layout in
+`Ebook.Books`), needing no library; their style sheets and pictures are not used.

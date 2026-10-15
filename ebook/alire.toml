@@ -1,5 +1,5 @@
 name = "ebook"
-description = "Pages of PDFs and e-books, rendered with PDFium"
+description = "Pages of PDFs (PDFium) and EPUB e-books (read and set here)"
 version = "0.1.0-dev"
 
 authors = ["Matt Rawcliffe"]

@@ -22,12 +22,16 @@ begin
    pragma Assert (Ebook.Extension_Of ("https://a.b") = "b");
    pragma Assert (Ebook.Is_Document ("http://x.org/files/a.pdf"));
    pragma Assert (not Ebook.Is_Document ("http://x.org/files/a.html"));
-   pragma Assert (not Ebook.Is_Document ("http://x.org/files/a.epub"));
+   pragma Assert (Ebook.Is_Document ("http://x.org/files/a.EPUB?x=1"));
+   pragma Assert (not Ebook.Is_Document ("http://x.org/files/a.mobi"));
    pragma Assert (not Ebook.Is_Document ("http://x.org/a.pdf/index"));
 
    Ebook.Open ("/no/such.pdf", Found, Message, Last);
    pragma Assert (Found.Pages = 0 and then Last >= Message'First);
    Ada.Text_IO.Put_Line ("missing: " & Message (1 .. Last));
+   Ebook.Open ("/no/such.epub", Found, Message, Last);
+   pragma Assert (Found.Pages = 0 and then Last >= Message'First);
+   Ada.Text_IO.Put_Line ("missing e-book: " & Message (1 .. Last));
 
    declare
       File : constant String := Ada.Command_Line.Argument (1);
@@ -35,10 +39,10 @@ begin
    begin
       Ada.Directories.Create_Path (Out_Folder);
       Ebook.Open (File, Found, Message, Last);
-      pragma Assert (Found.Pages > 0);
+      pragma Assert (Found.Pages > 0, Message (1 .. Last));
       Ada.Text_IO.Put_Line
         ("pages:" & Found.Pages'Image & " title: " & Found.Title (1 .. Found.Last));
-      for Page of Pair'[1, Found.Pages] loop
+      for Page of Pair'[1, Found.Pages] when Ebook.File_Extension (File) /= "epub" loop
          Ebook.Render
            (File, Page, Out_Folder & "/" & Ada.Strings.Fixed.Trim (Page'Image, Ada.Strings.Both) & ".png",
             Height, Message, Last);
@@ -70,5 +74,12 @@ begin
       Ebook.Render (File, Found.Pages + 1, Out_Folder & "/none.png", Height, Message, Last);
       pragma Assert (Height = 0 and then Last >= Message'First);
       Ada.Text_IO.Put_Line ("past the end: " & Message (1 .. Last));
+      declare
+         Words   : Pomarine.Words.Result;
+         Content : Pomarine.Pages.Page_Access;
+      begin
+         Ebook.Build_Page (File, Found.Pages + 1, Content, Words, Message, Last);
+         pragma Assert (Content = null and then Last >= Message'First);
+      end;
    end;
 end Ebook_Test;

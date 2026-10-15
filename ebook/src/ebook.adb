@@ -1,4 +1,5 @@
 with Ada.Characters.Handling;
+with Ebook.Books;
 with Interfaces.C;
 with System;
 
@@ -83,7 +84,7 @@ package body Ebook is
    end Extension_Of;
 
    function Is_Document (URL : String) return Boolean is
-     (Extension_Of (URL) = "pdf");
+     (Extension_Of (URL) in "pdf" | "epub");
 
    function File_Extension (Path : String) return String is
    begin
@@ -100,7 +101,7 @@ package body Ebook is
      (Extension_Of (URL) in "txt" | "text" | "md" | "markdown");
 
    function Extensions return String is
-     ("pdf;txt;text;md;markdown");
+     ("pdf;epub;txt;text;md;markdown");
 
    procedure Say
      (Text : Interfaces.C.char_array; Into : out String; Last : out Natural)
@@ -112,6 +113,15 @@ package body Ebook is
         Said (Said'First .. Said'First + Used - 1);
       Last := Into'First + Used - 1;
    end Say;
+
+   procedure Explain (Text : String; Into : out String; Last : out Natural) is
+   begin
+      Into (Into'First .. Into'First + Text'Length - 1) := Text;
+      Last := Into'First + Text'Length - 1;
+   end Explain;
+
+   function Is_Book (File_Name : String) return Boolean is
+     (File_Extension (File_Name) = "epub");
 
    procedure Open
      (File_Name : String;
@@ -125,6 +135,10 @@ package body Ebook is
    begin
       Found := (others => <>);
       Last := Message'First - 1;
+      if Is_Book (File_Name) then
+         Books.Count_Pages (File_Name, Found.Pages, Found.Title, Found.Last, Message, Last);
+         return;
+      end if;
       Title (0) := Interfaces.C.nul;
       Why (0) := Interfaces.C.nul;
       if EB_Info
@@ -157,6 +171,10 @@ package body Ebook is
    begin
       Last := Message'First - 1;
       Height := 0;
+      if Is_Book (File_Name) then
+         Explain ("e-books are drawn as pages, not pictures", Message, Last);
+         return;
+      end if;
       Why (0) := Interfaces.C.nul;
       if EB_Render
            (Interfaces.C.To_C (File_Name), Interfaces.C.int (Page),
@@ -183,6 +201,10 @@ package body Ebook is
    begin
       Content := null;
       Last := Message'First - 1;
+      if Is_Book (File_Name) then
+         Books.Make_Page (File_Name, Page, Content, Found, Message, Last);
+         return;
+      end if;
       Handle :=
         EB_Page_Build
           (Interfaces.C.To_C (File_Name), Interfaces.C.int (Page), Why, Max_Message);
@@ -228,6 +250,25 @@ package body Ebook is
       Why : Interfaces.C.char_array (0 .. Max_Message);
    begin
       Last := Message'First - 1;
+      if Is_Book (File_Name) then
+         declare
+            Pages : Natural;
+            Title : String (1 .. Max_Title);
+            Stop  : Natural;
+         begin
+            Books.Count_Pages (File_Name, Pages, Title, Stop, Message, Last);
+            if Pages < Count then
+               if Last < Message'First then
+                  Explain ("the document has fewer pages", Message, Last);
+               end if;
+               Sizes := null;
+            else
+               Sizes := new Pomarine.Pages.Size_Array'
+                 [1 .. Count => (Width => Books.Sheet_Width, Height => Books.Sheet_Height)];
+            end if;
+         end;
+         return;
+      end if;
       Sizes := new Pomarine.Pages.Size_Array (1 .. Count);
       Why (0) := Interfaces.C.nul;
       if EB_Document_Sizes
