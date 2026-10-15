@@ -65,7 +65,10 @@ package body Items.Sources is
       Last : constant Natural := Natural'Min (Raw'Length, Max_Text);
       Text : String (1 .. 3 * Last);
       Used : Natural := 0;
-      Next : Natural := Raw'First;
+      BOM  : constant String := [Character'Val (16#EF#), Character'Val (16#BB#), Character'Val (16#BF#)];
+      --  A byte order mark is skipped: CoreFoundation drops it.
+      Next : Natural :=
+        Raw'First + (if Raw'Length >= 3 and then Raw (Raw'First .. Raw'First + 2) = BOM then 3 else 0);
       Stop : constant Natural := Raw'First + Last - 1;
 
       procedure Put (C : Character) is
@@ -76,6 +79,20 @@ package body Items.Sources is
 
       function Continuation (At_Index : Natural) return Boolean is
         (At_Index <= Stop and then Character'Pos (Raw (At_Index)) in 16#80# .. 16#BF#);
+
+      --  No overlong forms, surrogates or code points past U+10FFFF: the
+      --  second byte is limited for these leads.
+      function Well_Formed (At_Index, Lead, Size : Natural) return Boolean is
+         Second : constant Natural :=
+           (if Size > 1 then Character'Pos (Raw (At_Index + 1)) else 0);
+      begin
+         return (case Lead is
+                    when 16#E0# => Second >= 16#A0#,
+                    when 16#ED# => Second <= 16#9F#,
+                    when 16#F0# => Second >= 16#90#,
+                    when 16#F4# => Second <= 16#8F#,
+                    when others => True);
+      end Well_Formed;
    begin
       while Next <= Stop loop
          declare
@@ -88,7 +105,8 @@ package body Items.Sources is
                elsif Code in 16#F0# .. 16#F4# then 4 else 0);
             Whole : constant Boolean :=
               Size > 0 and then Next + Size - 1 <= Stop
-              and then (for all Offset in 1 .. Size - 1 => Continuation (Next + Offset));
+              and then (for all Offset in 1 .. Size - 1 => Continuation (Next + Offset))
+              and then Well_Formed (Next, Code, Size);
          begin
             if C = ASCII.CR then
                Put (ASCII.LF);
