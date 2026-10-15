@@ -9,7 +9,6 @@ package body Viewer.Listing is
    package Widgets renames Pomarine.Widgets;
    package Buttons renames Pomarine.Widgets.Buttons;
    package Labels renames Pomarine.Widgets.Labels;
-   package Grips renames Pomarine.Widgets.Grips;
    package Scrollers renames Pomarine.Widgets.Scrollers;
    package Windows renames Items.Windows;
 
@@ -83,46 +82,34 @@ package body Viewer.Listing is
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
    end Close;
 
-   procedure Take (Item : in out Session) is
-      Clicked : Boolean;
+   procedure Respond (Item : in out Session; What : Command; Row : Natural) is
    begin
-      Buttons.Take_Click (Item.Item_List.List_Close, Clicked);
-      if Clicked then
-         Close (Item);
-         return;
-      end if;
-      for Row in Items.Slot loop
-         if Widgets.Is_Shown (Item.Item_List.List_Rows (Row).Panel) then
+      case What is
+         when Close_List =>
+            Close (Item);
+         when Reveal_Item | Toggle_Item | Remove_Item =>
             declare
                Which : constant Items.Slot := Item.Item_List.Row_Slots (Row);
             begin
-               Grips.Take_Click (Item.Item_List.List_Rows (Row).Name, Clicked);
-               if Clicked then
-                  Close (Item);
-                  Canvas_Items.Reveal (Item, Which);
-                  return;
-               end if;
-               Buttons.Take_Click (Item.Item_List.List_Rows (Row).Toggle,
-                                   Clicked);
-               if Clicked then
-                  Canvas_Items.Set_State
-                    (Item, Which,
-                     (if Windows.Details (Item.Windows (Which)).State
-                         = Items.Closed
-                      then Items.Open else Items.Closed));
-                  Refresh (Item);
-                  return;
-               end if;
-               Buttons.Take_Click (Item.Item_List.List_Rows (Row).Remove,
-                                   Clicked);
-               if Clicked then
-                  Canvas_Items.Remove (Item, Which);
-                  Refresh (Item);
-                  return;
-               end if;
+               case What is
+                  when Reveal_Item =>
+                     Close (Item);
+                     Canvas_Items.Reveal (Item, Which);
+                  when Toggle_Item =>
+                     Canvas_Items.Set_State
+                       (Item, Which,
+                        (if Windows.Details (Item.Windows (Which)).State
+                            = Items.Closed
+                         then Items.Open else Items.Closed));
+                     Refresh (Item);
+                  when others =>
+                     Canvas_Items.Remove (Item, Which);
+                     Refresh (Item);
+               end case;
             end;
-         end if;
-      end loop;
-   end Take;
+         when others =>
+            null;
+      end case;
+   end Respond;
 
 end Viewer.Listing;

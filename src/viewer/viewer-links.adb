@@ -7,11 +7,12 @@ with Pomarine.Widgets.Canvases;
 with Pomarine.Widgets.Panels;
 with Pomarine.Widgets.Pins;
 with Viewer.Style;
-with Yoga.Nodes;
+with Pomarine.Widgets.Layouts;
 
 package body Viewer.Links is
 
    package Widgets renames Pomarine.Widgets;
+   package Layouts renames Pomarine.Widgets.Layouts;
    package Boxes renames Pomarine.Boxes;
    package Canvases renames Pomarine.Widgets.Canvases;
    package Pins renames Pomarine.Widgets.Pins;
@@ -99,14 +100,10 @@ package body Viewer.Links is
    end Put_Pin;
 
    procedure Build (Item : in out Session) is
-      use Yoga.Nodes;
-      Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
-
       procedure Size (Part : in out Widgets.Widget'Class; Wide, High : Float)
       is
       begin
-         Set_Width (Widgets.Node (Part), Wide * Pixels);
-         Set_Height (Widgets.Node (Part), High * Pixels);
+         Layouts.Set_Layout (Part, Width => Wide, Height => High);
       end Size;
 
       procedure Tool (Part : in out Buttons.Button; Apart : Boolean) is
@@ -114,22 +111,18 @@ package body Viewer.Links is
          Widgets.Add (Item.Linking.Link_Bar, Part);
          Size (Part, Style.Link_Button_Size, Style.Link_Button_Size);
          if Apart then
-            Set_Margin (Widgets.Node (Part), Yoga.Left,
-                        Style.Link_Group_Gap * Pixels);
+            Layouts.Set_Layout
+              (Part, Margin => (Left => Style.Link_Group_Gap, others => <>));
          end if;
       end Tool;
    begin
       Widgets.Add (Item.Canvas_View, Item.Linking.Link_Bar);
       Pomarine.Widgets.Panels.Set_Fill (Item.Linking.Link_Bar, Style.Toolbar);
-      Set_Position_Type (Widgets.Node (Item.Linking.Link_Bar), Yoga.Absolute);
-      Set_Flex_Direction (Widgets.Node (Item.Linking.Link_Bar), Yoga.Row);
-      Set_Align_Items (Widgets.Node (Item.Linking.Link_Bar), Yoga.Center);
-      Set_Padding (Widgets.Node (Item.Linking.Link_Bar), Yoga.All_Edges,
-                   Style.Link_Bar_Pad * Pixels);
-      Set_Gap (Widgets.Node (Item.Linking.Link_Bar), Yoga.All_Gutters,
-               Style.Link_Bar_Gap * Pixels);
-      Size (Item.Linking.Link_Bar, Style.Link_Bar_Width,
-            Style.Link_Bar_Height);
+      Layouts.Set_Layout
+        (Item.Linking.Link_Bar, Place => Layouts.Absolute, Flow => Layouts.Row,
+         Align => Layouts.Center, Padding => (others => Style.Link_Bar_Pad),
+         Gap => Style.Link_Bar_Gap, Width => Style.Link_Bar_Width,
+         Height => Style.Link_Bar_Height);
 
       for Each in Item_Links.Strokes loop
          Tool (Item.Linking.Stroke_Buttons (Each),
@@ -176,16 +169,16 @@ package body Viewer.Links is
                Pin : Pins.Pin renames Item.Linking.Pins (Which, Side);
             begin
                Widgets.Add (Item.Canvas_View, Pin);
-               Set_Position_Type (Widgets.Node (Pin), Yoga.Absolute);
-               Size (Pin, Pins.Diameter, Pins.Diameter);
+               Layouts.Set_Layout
+                 (Pin, Place => Layouts.Absolute, Width => Pins.Diameter, Height => Pins.Diameter);
                Widgets.Set_Visible (Pin, False);
             end;
          end loop;
       end loop;
       Widgets.Add (Item.Canvas_View, Item.Linking.Link_Handle);
-      Set_Position_Type (Widgets.Node (Item.Linking.Link_Handle),
-                         Yoga.Absolute);
-      Size (Item.Linking.Link_Handle, Pins.Diameter, Pins.Diameter);
+      Layouts.Set_Layout
+        (Item.Linking.Link_Handle, Place => Layouts.Absolute, Width => Pins.Diameter,
+         Height => Pins.Diameter);
       Widgets.Set_Visible (Item.Linking.Link_Handle, False);
    end Build;
 

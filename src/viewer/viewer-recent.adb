@@ -5,13 +5,14 @@ with Previews;
 with Pomarine.Text_Areas;
 with Pomarine.Widgets;
 with Pomarine.Widgets.Labels;
+with Pomarine.Widgets.Layouts;
 with Viewer.Style;
-with Yoga.Nodes;
 
 package body Viewer.Recent is
 
    package Widgets renames Pomarine.Widgets;
    package Labels renames Pomarine.Widgets.Labels;
+   package Layouts renames Pomarine.Widgets.Layouts;
    package Text_Fields renames Pomarine.Widgets.Text_Fields;
    package Docs renames Texts.Documents;
 
@@ -113,8 +114,6 @@ package body Viewer.Recent is
    end Refresh;
 
    procedure Begin_Rename (Item : in out Session; Row : Positive) is
-      use Yoga.Nodes;
-      Pixels : constant Float := Item.Shell.Density;
    begin
       Cancel_Edit (Item);
       Item.Home_View.Editing := Row;
@@ -126,28 +125,14 @@ package body Viewer.Recent is
       Widgets.Add (Item.Home_View.Edit_Panel, Item.Title_Edit.Edit_Field);
       Widgets.Add (Item.Home_View.Edit_Panel, Item.Home_View.Ok_Button);
       Widgets.Add (Item.Home_View.Edit_Panel, Item.Home_View.Cancel_Button);
-      Set_Flex_Direction (Widgets.Node (Item.Home_View.Edit_Panel), Yoga.Row);
-      Set_Align_Items (Widgets.Node (Item.Home_View.Edit_Panel), Yoga.Center);
-      Set_Flex_Grow (Widgets.Node (Item.Home_View.Edit_Panel), 1.0);
-      Set_Width (Widgets.Node (Item.Home_View.Edit_Panel), 0.0);
-      Set_Gap
-        (Widgets.Node (Item.Home_View.Edit_Panel), Yoga.All_Gutters,
-         Style.Row_Gap * Pixels);
-      Set_Flex_Grow (Widgets.Node (Item.Title_Edit.Edit_Field), 1.0);
-      Set_Width (Widgets.Node (Item.Title_Edit.Edit_Field), 0.0);
-      Set_Height
-        (Widgets.Node (Item.Title_Edit.Edit_Field),
-         Style.Card_Button * Pixels);
-      Set_Width
-        (Widgets.Node (Item.Home_View.Ok_Button), Style.Ok_Width * Pixels);
-      Set_Height
-        (Widgets.Node (Item.Home_View.Ok_Button), Style.Card_Button * Pixels);
-      Set_Width
-        (Widgets.Node (Item.Home_View.Cancel_Button),
-         Style.Cancel_Width * Pixels);
-      Set_Height
-        (Widgets.Node (Item.Home_View.Cancel_Button),
-         Style.Card_Button * Pixels);
+      Layouts.Set_Layout
+        (Item.Home_View.Edit_Panel, Flow => Layouts.Row, Align => Layouts.Center, Grow => 1.0, Width => 0.0,
+         Gap => Style.Row_Gap);
+      Layouts.Set_Layout (Item.Title_Edit.Edit_Field, Grow => 1.0, Width => 0.0, Height => Style.Card_Button);
+      Layouts.Set_Layout
+        (Item.Home_View.Ok_Button, Width => Style.Ok_Width, Height => Style.Card_Button);
+      Layouts.Set_Layout
+        (Item.Home_View.Cancel_Button, Width => Style.Cancel_Width, Height => Style.Card_Button);
 
       Docs.Load
         (Item.Title_Edit.Edit_Doc,

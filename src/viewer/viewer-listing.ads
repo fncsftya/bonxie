@@ -13,8 +13,9 @@ private package Viewer.Listing is
    procedure Refresh (Item : in out Session);
    --  Make the rows those of the items there are now.
 
-   procedure Take (Item : in out Session)
+   procedure Respond (Item : in out Session; What : Command; Row : Natural)
      with Pre => Screen (Item) = Project and then Item.Item_List.Showing_List;
-   --  Do what the rows' buttons, and Close, were clicked for.
+   --  Do what a button of the list was clicked for: Close_List, or of the
+   --  row of the item Row, Reveal_Item, Toggle_Item or Remove_Item.
 
 end Viewer.Listing;

@@ -18,9 +18,11 @@ private with Typeset.Views;
 private with Pomarine.Clipboards;
 private with Pomarine.Icons;
 private with Pomarine.Line_Texts;
+private with Pomarine.Widgets;
 private with Pomarine.Widgets.Buttons;
 private with Pomarine.Widgets.Checks;
 private with Pomarine.Widgets.Canvases;
+private with Pomarine.Widgets.Commands;
 private with Pomarine.Widgets.Editors;
 private with Pomarine.Widgets.Grips;
 private with Pomarine.Widgets.Labels;
@@ -69,7 +71,7 @@ package Viewer is
 
    --  Without a window, to test what is shown
 
-   type Session is limited private;
+   type Session is tagged limited private;
    --  What Run shows, and how it is moved about.
 
    procedure Open
@@ -156,6 +158,60 @@ package Viewer is
    --  Draw what is shown, as into the window, into Result.
 
 private
+
+   --  What the buttons, checks and menus are for: each is bound to one
+   --  (see Viewer.Build), and said as its widget is clicked, to be done
+   --  by Viewer.Responses.
+
+   type Command is
+     (Start_Project,      --  the buttons that make a project
+      Open_Settings,
+      Open_Project,       --  Index: the card
+      Rename_Project,     --  Index: the card
+      Delete_Project,     --  Index: the card
+      Accept_Rename,      --  OK, or Return in the field
+      Cancel_Rename,
+      Confirm_Deletion,   --  the dialog over the screens
+      Cancel_Deletion,
+      Close_Settings,
+      Choose_Light,
+      Choose_Dark,
+      Choose_System,
+      Choose_MacOS,
+      Choose_Parakeet,
+      Download_Model,
+      Delete_Model,
+      Leave_Project,      --  the toolbar of a project
+      Show_Canvas,
+      Show_Writing,
+      Add_Document,       --  the tray of the canvas
+      Add_Source,
+      Open_List,
+      Close_List,         --  the list of items
+      Reveal_Item,        --  Index: the item's slot
+      Toggle_Item,        --  Index: the item's slot
+      Remove_Item,        --  Index: the item's slot
+      Add_Page,           --  the writing view
+      Add_Folder,
+      Choose_Source,      --  a row of the menu of a page's sources
+      Choose_Context,     --  a row of the context menu
+      Open_Sources,       --  Index: the rank of the page
+      Dictate,            --  Index: the rank of the page
+      Toggle_Source);     --  Index: the row of the sources' list
+
+   package Commands is new Pomarine.Widgets.Commands (Command);
+
+   type Session_Access is access all Session;
+
+   type Responder is limited new Pomarine.Widgets.Listener with record
+      Owner : Session_Access;
+   end record;
+   --  What the widgets of a session say, heard as the session's.
+
+   overriding procedure Handle_Event
+     (Self   : in out Responder;
+      Source : in out Pomarine.Widgets.Widget'Class;
+      Event  : Pomarine.Widgets.Widget_Event);
 
    type Project_Card is limited record
       Panel   : Pomarine.Widgets.Panels.Panel;
@@ -754,7 +810,8 @@ private
    end record;
    --  The window as the system has it, and the clipboards.
 
-   type Session is limited record
+   type Session is tagged limited record
+      Replies : aliased Responder;
       Root : Root_Parts;
       Home_View : Home_Parts;
       Confirm : Confirm_Parts;

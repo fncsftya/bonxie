@@ -1,11 +1,12 @@
 with Items.Sources;
 with Ada.Strings;
 with Icon_Set;
-with Yoga.Nodes;
+with Pomarine.Widgets.Layouts;
 
 package body Items.Readers is
 
    package Widgets renames Pomarine.Widgets;
+   package Layouts renames Pomarine.Widgets.Layouts;
    package Buttons renames Pomarine.Widgets.Buttons;
    package Labels renames Pomarine.Widgets.Labels;
    package Frames renames Pomarine.Widgets.Frames;
@@ -30,14 +31,12 @@ package body Items.Readers is
       Density : Float;
       Pinned  : Boolean := False)
    is
-      use Yoga.Nodes;
       Pixels : constant Float := Density;
 
       procedure Size (Part : in out Widgets.Widget'Class; Wide, High : Float)
       is
       begin
-         Set_Width (Widgets.Node (Part), Wide * Pixels);
-         Set_Height (Widgets.Node (Part), High * Pixels);
+         Layouts.Set_Layout (Part, Width => Wide, Height => High);
       end Size;
    begin
       Item.Pixels := Pixels;
@@ -61,12 +60,9 @@ package body Items.Readers is
       Buttons.Set_Selected (Item.Pin_Button, Pinned);
       Size (Item.Pin_Button, Button_Size, Button_Size);
 
-      Set_Flex_Grow (Widgets.Node (Item.Picture), 1.0);
-      Set_Height (Widgets.Node (Item.Picture), 0.0);
+      Layouts.Set_Layout (Item.Picture, Grow => 1.0, Height => 0.0);
 
-      Set_Flex_Direction (Widgets.Node (Item.Tools), Yoga.Row);
-      Set_Gap
-        (Widgets.Node (Item.Tools), Yoga.All_Gutters, Button_Gap * Pixels);
+      Layouts.Set_Layout (Item.Tools, Flow => Layouts.Row, Gap => Button_Gap);
       Buttons.Set_Label (Item.Cursor_Button, "Ptr");
       Buttons.Set_Icon (Item.Cursor_Button, Icon_Set.Cursor);
       Buttons.Set_Label (Item.Marker_Button, "Mark");
@@ -81,9 +77,7 @@ package body Items.Readers is
 
       Size (Item.Zoom_Slider, Slider_Width, Row_Height);
       Size (Item.Zoom_Label, Percent_Width, Label_Height);
-      Set_Flex_Grow (Widgets.Node (Item.Status), 1.0);
-      Set_Width (Widgets.Node (Item.Status), 0.0);
-      Set_Height (Widgets.Node (Item.Status), Label_Height * Pixels);
+      Layouts.Set_Layout (Item.Status, Grow => 1.0, Width => 0.0, Height => Label_Height);
    end Build;
 
    function Is_Assigned (Item : Reader) return Boolean is (Item.Assigned);

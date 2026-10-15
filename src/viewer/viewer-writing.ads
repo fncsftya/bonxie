@@ -60,9 +60,12 @@ private package Viewer.Writing is
    --  of the sidebar, a page's text or a source's window; on the canvas,
    --  the text or the picture of a window.
 
-   procedure Take_Context (Item : in out Session; Done : out Boolean)
+   procedure Respond
+     (Item : in out Session; What : Command; Index : Natural; Row : Natural)
      with Pre => Screen (Item) = Project;
-   --  Do what the row clicked of the menu does; Done if one was.
+   --  Do what a button, a row of a menu or a list of the writing view was
+   --  for. Index is which of many it is (a page's rank, a row of the
+   --  sources), and Row the row chosen of a menu.
 
    procedure Delete_Node (Item : in out Session; Node : Tree_Entry)
      with Pre => Screen (Item) = Project

@@ -19,7 +19,7 @@ with Viewer.Style;
 with Viewer.Writing;
 with Vision.Jobs;
 with Webshot;
-with Yoga.Nodes;
+with Pomarine.Widgets.Layouts;
 
 package body Viewer.Canvas_Items is
 
@@ -805,9 +805,9 @@ package body Viewer.Canvas_Items is
       --  The tray of tools, in the middle of the foot.
       if Middle /= Item.Dock.Tray_Left then
          Item.Dock.Tray_Left := Middle;
-         Yoga.Nodes.Set_Position
-           (Widgets.Node (Item.Dock.Tools), Yoga.Left, Middle);
-         Widgets.Request_Layout (Item.Dock.Tools);
+         Pomarine.Widgets.Layouts.Set_Layout
+           (Item.Dock.Tools, Position => (Left => Middle, others => <>),
+            Unit => Pomarine.Widgets.Layouts.Device_Pixels);
       end if;
       if Canvases.Zoom (Item.Canvas_View) /= Item.Nav.Shown_Zoom
         or else Canvases.Origin_X (Item.Canvas_View) /= Item.Nav.Shown_X

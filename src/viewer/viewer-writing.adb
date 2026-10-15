@@ -23,11 +23,12 @@ with Pomarine.Widgets.Text_Fields;
 with Viewer.Canvas_Items;
 with Viewer.Deletion;
 with Viewer.Style;
-with Yoga.Nodes;
+with Pomarine.Widgets.Layouts;
 
 package body Viewer.Writing is
 
    package Widgets renames Pomarine.Widgets;
+   package Layouts renames Pomarine.Widgets.Layouts;
    package Buttons renames Pomarine.Widgets.Buttons;
    package Editors renames Pomarine.Widgets.Editors;
    package Grips renames Pomarine.Widgets.Grips;
@@ -430,10 +431,8 @@ package body Viewer.Writing is
    --  far in it is, and whether it is the one chosen or dropped on.
 
    procedure Show_Tree_Row (Item : in out Session; Row : Tree_Row) is
-      use Yoga.Nodes;
       Each    : Index_Row renames Item.Docs.Doc_Rows (Row);
       Node    : Tree_Entry renames Item.Docs.Tree (Row);
-      Pixels  : constant Float := Widgets.Density (Item.Root.Widgets);
       Dropped : constant Boolean :=
         Item.Docs.Drop.Kind = Into_Node and then Item.Docs.Drop.Row = Row;
       --  While a document is dragged, the nodes it can be dropped on show.
@@ -497,8 +496,7 @@ package body Viewer.Writing is
       if Level /= Each.Indent then
          --  Shrinks the box, not only its text.
          Each.Indent := Level;
-         Set_Margin (Widgets.Node (Each.Row), Yoga.Left, Level * Pixels);
-         Widgets.Request_Layout (Each.Row);
+         Layouts.Set_Layout (Each.Row, Margin => (Left => Level, others => <>));
       end if;
    end Show_Tree_Row;
 
@@ -751,9 +749,7 @@ package body Viewer.Writing is
              (Item.Page_View.Pane_Wide,
               Style.Pane_Share * Widgets.Width_Of (Item.Page_View.Write_View)
               / Widgets.Density (Item.Root.Widgets)));
-      Yoga.Nodes.Set_Width
-        (Widgets.Node (Item.Page_View.Pane),
-         Item.Page_View.Pane_Wide * Widgets.Density (Item.Root.Widgets));
+      Layouts.Set_Layout (Item.Page_View.Pane, Width => Item.Page_View.Pane_Wide);
    end Pin;
 
    procedure Close_Menu (Item : in out Session);
@@ -1203,18 +1199,15 @@ package body Viewer.Writing is
       Content : in out Widgets.Widget'Class;
       Box     : Grips.Grip)
    is
-      use Yoga.Nodes;
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
    begin
-      Set_Position
-        (Widgets.Node (Field), Yoga.Left,
-         Widgets.Left_Of (Box) - Widgets.Left_Of (Content));
-      Set_Position
-        (Widgets.Node (Field), Yoga.Top,
-         Widgets.Top_Of (Box) - Widgets.Top_Of (Content));
-      Set_Width
-        (Widgets.Node (Field),
-         Widgets.Width_Of (Box) - Pomarine.Boxes.Offset (Pixels));
+      Layouts.Set_Layout
+        (Field,
+         Position => (Left => Widgets.Left_Of (Box) - Widgets.Left_Of (Content),
+                      Top  => Widgets.Top_Of (Box) - Widgets.Top_Of (Content),
+                      others => <>),
+         Width => Widgets.Width_Of (Box) - Pomarine.Boxes.Offset (Pixels),
+         Unit => Layouts.Device_Pixels);
       Widgets.Set_Visible (Field, True);
       Widgets.Request_Layout (Field);
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
@@ -1359,28 +1352,30 @@ package body Viewer.Writing is
    procedure Show_Context
      (Item : in out Session; Kind : Context_Kinds; X, Y : Float)
    is
-      use Yoga.Nodes;
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
    begin
       Item.Context.Context_Kind := Kind;
-      Set_Position
-        (Widgets.Node (Item.Context.Context_Menu), Yoga.Left,
-         Float'Rounding
-           (Float'Max
-              (0.0,
-               Float'Min
-                 (X - Widgets.Left_Of (Item.Toolbar.Content_Panel) / Pixels,
-                  Widgets.Width_Of (Item.Toolbar.Content_Panel) / Pixels
-                  - Style.Context_Width)) * Pixels));
-      Set_Position
-        (Widgets.Node (Item.Context.Context_Menu), Yoga.Top,
-         Float'Rounding
-           (Float'Max
-              (0.0,
-               Float'Min
-                 (Y - Widgets.Top_Of (Item.Toolbar.Content_Panel) / Pixels,
-                  Widgets.Height_Of (Item.Toolbar.Content_Panel) / Pixels
-                  - Menus.Height_For (Item.Context.Context_Menu))) * Pixels));
+      Layouts.Set_Layout
+        (Item.Context.Context_Menu,
+         Position =>
+           (Left =>
+              Float'Rounding
+                (Float'Max
+                   (0.0,
+                    Float'Min
+                      (X - Widgets.Left_Of (Item.Toolbar.Content_Panel) / Pixels,
+                       Widgets.Width_Of (Item.Toolbar.Content_Panel) / Pixels
+                       - Style.Context_Width)) * Pixels),
+            Top =>
+              Float'Rounding
+                (Float'Max
+                   (0.0,
+                    Float'Min
+                      (Y - Widgets.Top_Of (Item.Toolbar.Content_Panel) / Pixels,
+                       Widgets.Height_Of (Item.Toolbar.Content_Panel) / Pixels
+                       - Menus.Height_For (Item.Context.Context_Menu))) * Pixels),
+            others => <>),
+         Unit => Layouts.Device_Pixels);
       Widgets.Set_Visible (Item.Context.Context_Menu, True);
       Widgets.Raise_To_Front (Item.Context.Context_Menu);
       Widgets.Request_Layout (Item.Context.Context_Menu);
@@ -1696,16 +1691,6 @@ package body Viewer.Writing is
       end case;
    end Do_Context;
 
-   procedure Take_Context (Item : in out Session; Done : out Boolean) is
-      Chosen : Natural;
-   begin
-      Menus.Take_Choice (Item.Context.Context_Menu, Chosen);
-      Done := Chosen /= 0 and then Item.Context.Context_Kind /= No_Context;
-      if Done then
-         Do_Context (Item, Chosen);
-      end if;
-   end Take_Context;
-
    procedure Remove_Directory (Item : in out Session; Dir : Positive);
    --  Take the directory out, its documents being in none, where they are.
 
@@ -1878,7 +1863,6 @@ package body Viewer.Writing is
    --  Put the line where a row would go between two, or hide it.
 
    procedure Show_Drop_Line (Item : in out Session) is
-      use Yoga.Nodes;
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
       Offset : constant Float := Pomarine.Boxes.Offset (Pixels);
    begin
@@ -1900,17 +1884,16 @@ package body Viewer.Writing is
             then Style.Tree_Indent * Pixels else 0.0);
          Edge  : Grips.Grip renames Item.Docs.Doc_Rows (1).Row;
       begin
-         Set_Position
-           (Widgets.Node (Item.Docs.Drop_Line), Yoga.Left,
-            Widgets.Left_Of (Edge)
-            - Widgets.Left_Of (Item.Page_View.Docs_Content) + Inset);
-         Set_Position
-           (Widgets.Node (Item.Docs.Drop_Line), Yoga.Top,
-            Float'Rounding
-              (Mid - Thick / 2.0
-               - Widgets.Top_Of (Item.Page_View.Docs_Content)));
-         Set_Width (Widgets.Node (Item.Docs.Drop_Line),
-                    Widgets.Width_Of (Edge) - Offset - Inset);
+         Layouts.Set_Layout
+           (Item.Docs.Drop_Line,
+            Position =>
+              (Left => Widgets.Left_Of (Edge)
+                       - Widgets.Left_Of (Item.Page_View.Docs_Content) + Inset,
+               Top  => Float'Rounding
+                         (Mid - Thick / 2.0 - Widgets.Top_Of (Item.Page_View.Docs_Content)),
+               others => <>),
+            Width => Widgets.Width_Of (Edge) - Offset - Inset,
+            Unit => Layouts.Device_Pixels);
       end;
       Widgets.Set_Visible (Item.Docs.Drop_Line, True);
       Widgets.Request_Layout (Item.Docs.Drop_Line);
@@ -2049,17 +2032,8 @@ package body Viewer.Writing is
    --  The list of sources, and their windows and the pane.
 
    procedure Take_Sources (Item : in out Session) is
-      Clicked : Boolean;
       Action  : Readers.Actions;
    begin
-      for Row in 1 .. Item.Reading.Source_Total loop
-         Grips.Take_Click (Item.Reading.Source_Rows (Row).Row, Clicked);
-         if Clicked then
-            Toggle_Source (Item, Item.Reading.Source_Order (Row));
-            Refresh (Item);
-            return;
-         end if;
-      end loop;
       for Which in Items.Slot loop
          if Readers.Is_Assigned (Item.Reading.Readers (Which)) then
             Readers.Poll (Item.Reading.Readers (Which), Action);
@@ -2096,7 +2070,6 @@ package body Viewer.Writing is
    --  The edge of the pane, dragged to size it.
 
    procedure Take_Pane (Item : in out Session) is
-      use Yoga.Nodes;
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
       Across, Down : Float;
    begin
@@ -2113,9 +2086,7 @@ package body Viewer.Writing is
             Item.Page_View.Pane_Wide :=
               Float'Min (Most, Float'Max (Style.Pane_Least,
                                           Item.Page_View.Pane_Wide - Across));
-            Set_Width (Widgets.Node (Item.Page_View.Pane),
-                       Item.Page_View.Pane_Wide * Pixels);
-            Widgets.Request_Layout (Item.Page_View.Pane);
+            Layouts.Set_Layout (Item.Page_View.Pane, Width => Item.Page_View.Pane_Wide);
          end;
       end if;
    end Take_Pane;
@@ -2152,72 +2123,68 @@ package body Viewer.Writing is
    end Take_Rename;
 
    procedure Take_Pages (Item : in out Session);
-   --  The buttons above the pages, and the menu of sources.
+   --  The titles of the pages, renamed at a double press.
 
    procedure Take_Pages (Item : in out Session) is
-      Clicked : Boolean;
    begin
-      Buttons.Take_Click (Item.Page_View.Docs_Add, Clicked);
-      if Clicked then
-         Canvas_Items.Add (Item, Canvas_Items.Untitled_Document);
-         return;
-      end if;
-      Buttons.Take_Click (Item.Page_View.Docs_Folder, Clicked);
-      if Clicked then
-         if Item.Docs.Dirs.Count < Items.Directories.Max_Directories then
-            Make_Directory (Item, Untitled_Directory);
-         end if;
-         return;
-      end if;
-      declare
-         Chosen : Natural;
-      begin
-         Menus.Take_Choice (Item.Page_View.Menu, Chosen);
-         if Item.Page_View.Menu_Page /= 0 and then Chosen /= 0 then
-            if Chosen = Add_Row (Item) then
-               --  On the canvas, where its address can be typed.
-               declare
-                  Document : constant Items.Slot :=
-                    Item.Reading.Write_Order (Item.Page_View.Menu_Page);
-               begin
-                  Close_Menu (Item);
-                  Show (Item, Canvas);
-                  Canvas_Items.Add_Linked_Source (Item, Document);
-               end;
-               return;
-            elsif Chosen - Rows_Before in 1 .. Item.Page_View.Menu_Count then
-               --  Ticked, it is pinned; ticked again, it is let go.
-               declare
-                  Which : constant Items.Slot :=
-                    Item.Page_View.Menu_Slots (Chosen - Rows_Before);
-               begin
-                  if Item.Reading.Pinned_Slot = Which then
-                     Unpin (Item, Reopen => False);
-                  else
-                     Pin (Item, Which);
-                  end if;
-               end;
-               Close_Menu (Item);
-               Refresh (Item);
-               return;
-            end if;
-         end if;
-      end;
       for Rank in 1 .. Item.Reading.Write_Count loop
          Take_Rename (Item, Rank);
-         Buttons.Take_Click (Item.Docs.Pages (Rank).Sources_Button, Clicked);
-         if Clicked then
-            Open_Menu (Item, Rank);
-            return;
-         end if;
-         Buttons.Take_Click (Item.Docs.Pages (Rank).Mic_Button, Clicked);
-         if Clicked then
-            Canvas_Items.Toggle_Dictation (Item,
-                                           Item.Reading.Write_Order (Rank));
-            return;
-         end if;
       end loop;
    end Take_Pages;
+
+   procedure Respond
+     (Item : in out Session; What : Command; Index : Natural; Row : Natural) is
+   begin
+      case What is
+         when Add_Page =>
+            Canvas_Items.Add (Item, Canvas_Items.Untitled_Document);
+         when Add_Folder =>
+            if Item.Docs.Dirs.Count < Items.Directories.Max_Directories then
+               Make_Directory (Item, Untitled_Directory);
+            end if;
+         when Choose_Source =>
+            if Item.Page_View.Menu_Page /= 0 and then Row /= 0 then
+               if Row = Add_Row (Item) then
+                  --  On the canvas, where its address can be typed.
+                  declare
+                     Document : constant Items.Slot :=
+                       Item.Reading.Write_Order (Item.Page_View.Menu_Page);
+                  begin
+                     Close_Menu (Item);
+                     Show (Item, Canvas);
+                     Canvas_Items.Add_Linked_Source (Item, Document);
+                  end;
+               elsif Row - Rows_Before in 1 .. Item.Page_View.Menu_Count then
+                  --  Ticked, it is pinned; ticked again, it is let go.
+                  declare
+                     Which : constant Items.Slot :=
+                       Item.Page_View.Menu_Slots (Row - Rows_Before);
+                  begin
+                     if Item.Reading.Pinned_Slot = Which then
+                        Unpin (Item, Reopen => False);
+                     else
+                        Pin (Item, Which);
+                     end if;
+                  end;
+                  Close_Menu (Item);
+                  Refresh (Item);
+               end if;
+            end if;
+         when Choose_Context =>
+            if Row /= 0 and then Item.Context.Context_Kind /= No_Context then
+               Do_Context (Item, Row);
+            end if;
+         when Open_Sources =>
+            Open_Menu (Item, Index);
+         when Dictate =>
+            Canvas_Items.Toggle_Dictation (Item, Item.Reading.Write_Order (Index));
+         when Toggle_Source =>
+            Toggle_Source (Item, Item.Reading.Source_Order (Index));
+            Refresh (Item);
+         when others =>
+            null;
+      end case;
+   end Respond;
 
    procedure Take (Item : in out Session) is
    begin
@@ -2374,7 +2341,6 @@ package body Viewer.Writing is
    end Update;
 
    procedure Fit (Item : in out Session) is
-      use Yoga.Nodes;
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
       Changed : Boolean;
       Moved   : Boolean := False;
@@ -2403,12 +2369,12 @@ package body Viewer.Writing is
                                (Editors.Area (Each.Text).all)));
                   begin
                      if Wide /= Each.Wide then
-                        Set_Width (Widgets.Node (Each.Box), Wide * Pixels);
+                        Layouts.Set_Layout (Each.Box, Width => Wide);
                         Each.Wide := Wide;
                         Changed := True;
                      end if;
                      if High /= Each.High then
-                        Set_Height (Widgets.Node (Each.Text), High * Pixels);
+                        Layouts.Set_Layout (Each.Text, Height => High);
                         Each.High := High;
                         Changed := True;
                      end if;
@@ -2445,13 +2411,12 @@ package body Viewer.Writing is
             then
                Item.Page_View.Menu_Left := Place_Left;
                Item.Page_View.Menu_Top := Place_Top;
-               Set_Position
-                 (Widgets.Node (Item.Page_View.Menu), Yoga.Left,
-                  Float'Rounding (Place_Left * Pixels));
-               Set_Position
-                 (Widgets.Node (Item.Page_View.Menu), Yoga.Top,
-                  Float'Rounding (Place_Top * Pixels));
-               Widgets.Request_Layout (Item.Page_View.Menu);
+               Layouts.Set_Layout
+                 (Item.Page_View.Menu,
+                  Position => (Left => Float'Rounding (Place_Left * Pixels),
+                               Top  => Float'Rounding (Place_Top * Pixels),
+                               others => <>),
+                  Unit => Layouts.Device_Pixels);
                Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
             end if;
          end;

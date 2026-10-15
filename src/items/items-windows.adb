@@ -7,11 +7,12 @@ with Pomarine.Boxes;
 with Pomarine.Text_Areas;
 with Icon_Set;
 with Pomarine.Line_Texts;
-with Yoga.Nodes;
+with Pomarine.Widgets.Layouts;
 
 package body Items.Windows is
 
    package Widgets renames Pomarine.Widgets;
+   package Layouts renames Pomarine.Widgets.Layouts;
    package Panels renames Pomarine.Widgets.Panels;
    package Buttons renames Pomarine.Widgets.Buttons;
    package Labels renames Pomarine.Widgets.Labels;
@@ -116,15 +117,14 @@ package body Items.Windows is
       Bar     : Pomarine.Themes.Slot;
       Density : Float)
    is
-      use Yoga.Nodes;
       Pixels : constant Float := Density;
       Edge   : constant Float := Pomarine.Boxes.Edge (Outline * Pixels);
+      --  In whole pixels, as the outline is.
 
       procedure Size (Part : in out Widgets.Widget'Class; Wide, High : Float)
       is
       begin
-         Set_Width (Widgets.Node (Part), Wide * Pixels);
-         Set_Height (Widgets.Node (Part), High * Pixels);
+         Layouts.Set_Layout (Part, Width => Wide, Height => High);
       end Size;
    begin
       Item.Pixels := Pixels;
@@ -146,18 +146,15 @@ package body Items.Windows is
       Editors.Configure
         (Item.Body_Text, Pomarine.Line_Texts.Serif, Text_Size, Measure);
       Editors.Set_Paper (Item.Body_Text, Pomarine.Themes.Page);
-      Set_Flex_Grow (Widgets.Node (Item.Body_Text), 1.0);
+      Layouts.Set_Layout (Item.Body_Text, Grow => 1.0, Height => 0.0);
       --  Its own outline is the window's at the sides.
-      Set_Margin
-        (Widgets.Node (Item.Body_Text), Yoga.Horizontal, -Edge);
-      Set_Height (Widgets.Node (Item.Body_Text), 0.0);
+      Layouts.Set_Layout
+        (Item.Body_Text, Margin => (Left | Right => -Edge, others => <>),
+         Unit => Layouts.Device_Pixels);
 
-      Set_Flex_Grow (Widgets.Node (Item.Picture), 1.0);
-      Set_Height (Widgets.Node (Item.Picture), 0.0);
+      Layouts.Set_Layout (Item.Picture, Grow => 1.0, Height => 0.0);
 
-      Set_Flex_Grow (Widgets.Node (Item.Status), 1.0);
-      Set_Width (Widgets.Node (Item.Status), 0.0);
-      Set_Height (Widgets.Node (Item.Status), Label_Height * Pixels);
+      Layouts.Set_Layout (Item.Status, Grow => 1.0, Width => 0.0, Height => Label_Height);
       Frames.Add_Over_Content (Item.Chrome, Item.Zoom_Menu);
       Frames.Add_Over_Content (Item.Chrome, Item.Fetch_Button);
       for Row in Item.Menu_Rows'Range loop
@@ -169,21 +166,15 @@ package body Items.Windows is
       end loop;
 
       --  The progress bar, along the foot of the status line.
-      Set_Position_Type (Widgets.Node (Item.Progress), Yoga.Absolute);
-      Set_Position (Widgets.Node (Item.Progress), Yoga.Left, 0.0);
-      Set_Position (Widgets.Node (Item.Progress), Yoga.Right, 0.0);
-      Set_Position (Widgets.Node (Item.Progress), Yoga.Bottom, 0.0);
-      Set_Height
-        (Widgets.Node (Item.Progress), Progress_Height * Pixels);
+      Layouts.Set_Layout
+        (Item.Progress, Place => Layouts.Absolute, Position => (Left | Right | Bottom => 0.0, others => <>),
+         Height => Progress_Height);
 
       --  The tools, in the middle of the status line (see Place).
-      Set_Position_Type (Widgets.Node (Item.Tools), Yoga.Absolute);
-      Set_Position
-        (Widgets.Node (Item.Tools), Yoga.Top,
-         (Status_Height - Zoom_Row_Height) / 2.0 * Pixels);
-      Set_Flex_Direction (Widgets.Node (Item.Tools), Yoga.Row);
-      Set_Gap
-        (Widgets.Node (Item.Tools), Yoga.All_Gutters, Button_Gap * Pixels);
+      Layouts.Set_Layout
+        (Item.Tools, Place => Layouts.Absolute,
+         Position => (Top => (Status_Height - Zoom_Row_Height) / 2.0, others => <>),
+         Flow => Layouts.Row, Gap => Button_Gap);
       Buttons.Set_Label (Item.Cursor_Button, "Ptr");
       Buttons.Set_Icon (Item.Cursor_Button, Icon_Set.Cursor);
       Buttons.Set_Label (Item.Marker_Button, "Mark");
@@ -196,8 +187,7 @@ package body Items.Windows is
       Size (Item.Marker_Button, Button_Size, Zoom_Row_Height);
 
       --  The zoom bar: a slider, and the button for the menu.
-      Set_Width (Widgets.Node (Item.Zoom_Slider), Zoom_Slider_Width * Pixels);
-      Set_Height (Widgets.Node (Item.Zoom_Slider), Zoom_Row_Height * Pixels);
+      Size (Item.Zoom_Slider, Zoom_Slider_Width, Zoom_Row_Height);
       Buttons.Set_Label (Item.Zoom_Button, "100%");
       Size (Item.Zoom_Button, Zoom_Button_Width, Zoom_Row_Height);
 
@@ -207,27 +197,23 @@ package body Items.Windows is
       Size (Item.Speak_Button, Button_Size, Zoom_Row_Height);
       Buttons.Set_Icon_Size (Item.Speak_Button, Speak_Icon_Size);
       --  In the middle of the status line, as the tools are (see Place).
-      Set_Position_Type (Widgets.Node (Item.Speak_Button), Yoga.Absolute);
-      Set_Position
-        (Widgets.Node (Item.Speak_Button), Yoga.Top,
-         (Status_Height - Zoom_Row_Height) / 2.0 * Pixels);
+      Layouts.Set_Layout
+        (Item.Speak_Button, Place => Layouts.Absolute,
+         Position => (Top => (Status_Height - Zoom_Row_Height) / 2.0, others => <>));
 
       --  The menu: over the picture, at the right, with the window's
       --  outline between its buttons.
       Panels.Set_Fill (Item.Zoom_Menu, Pomarine.Themes.Border);
-      Set_Position_Type (Widgets.Node (Item.Zoom_Menu), Yoga.Absolute);
-      Set_Position
-        (Widgets.Node (Item.Zoom_Menu), Yoga.Right,
-         (Corner_Size + Edge) * Pixels);
-      Set_Position
-        (Widgets.Node (Item.Zoom_Menu), Yoga.Bottom,
-         (Status_Height + Edge) * Pixels);
-      Set_Flex_Direction (Widgets.Node (Item.Zoom_Menu), Yoga.Column);
-      Set_Padding (Widgets.Node (Item.Zoom_Menu), Yoga.All_Edges, Edge);
-      Set_Gap (Widgets.Node (Item.Zoom_Menu), Yoga.All_Gutters, Edge);
-      for Row of Item.Menu_Rows loop
-         Set_Flex_Direction (Widgets.Node (Row), Yoga.Row);
-         Set_Gap (Widgets.Node (Row), Yoga.All_Gutters, Edge);
+      Layouts.Set_Layout
+        (Item.Zoom_Menu, Place => Layouts.Absolute,
+         Position => (Right => (Corner_Size + Edge) * Pixels,
+                      Bottom => (Status_Height + Edge) * Pixels,
+                      others => <>),
+         Flow => Layouts.Column, Padding => (others => Edge), Gap => Edge,
+         Unit => Layouts.Device_Pixels);
+      for Each of Item.Menu_Rows loop
+         Layouts.Set_Layout
+           (Each, Flow => Layouts.Row, Gap => Edge, Unit => Layouts.Device_Pixels);
       end loop;
       for Which in Item.Menu_Buttons'Range loop
          Buttons.Set_Label
@@ -241,10 +227,11 @@ package body Items.Windows is
       Buttons.Set_Label (Item.Fetch_Button, "Add");
       Buttons.Set_Kind (Item.Fetch_Button, Buttons.Primary);
       Size (Item.Fetch_Button, Fetch_Width, Fetch_Height);
-      Set_Position_Type (Widgets.Node (Item.Fetch_Button), Yoga.Absolute);
-      Set_Position
-        (Widgets.Node (Item.Fetch_Button), Yoga.Right,
-         Edge + Pomarine.Boxes.Offset (Pixels) + Fetch_Inset * Pixels);
+      Layouts.Set_Layout
+        (Item.Fetch_Button, Place => Layouts.Absolute,
+         Position => (Right => Edge + Pomarine.Boxes.Offset (Pixels) + Fetch_Inset * Pixels,
+                      others => <>),
+         Unit => Layouts.Device_Pixels);
 
       Widgets.Set_Visible (Item.Fetch_Button, False);
       Widgets.Set_Visible (Item.Tools, False);
@@ -724,7 +711,6 @@ package body Items.Windows is
    --  there is no status line, nor link in a source.
 
    procedure Fit_Zoom (Item : in out Window) is
-      use Yoga.Nodes;
       Chrome : constant Float :=
         Float'Min (1.0, Float'Max (Min_Chrome, Item.Zoom));
       Pixels : constant Float := Item.Pixels;
@@ -734,11 +720,13 @@ package body Items.Windows is
       Frames.Set_Status_Visible (Item.Chrome, not Narrow);
       Widgets.Set_Visible (Item.Body_Text, not (Narrow and then Of_Source));
       Frames.Set_Scale (Item.Chrome, Chrome);
-      Set_Position
-        (Widgets.Node (Item.Fetch_Button), Yoga.Top,
-         Pomarine.Boxes.Edge (Outline * Pixels)
-         + (Bar_Height * Chrome + (Url_Height - Fetch_Height) / 2.0)
-           * Pixels);
+      Layouts.Set_Layout
+        (Item.Fetch_Button,
+         Position => (Top => Pomarine.Boxes.Edge (Outline * Pixels)
+                             + (Bar_Height * Chrome + (Url_Height - Fetch_Height) / 2.0)
+                               * Pixels,
+                      others => <>),
+         Unit => Layouts.Device_Pixels);
       Show_Fetch (Item);
       Widgets.Request_Layout (Item.Body_Text);
    end Fit_Zoom;
@@ -748,9 +736,7 @@ package body Items.Windows is
    --  show the picture of a source.
 
    procedure Show_Kind (Item : in out Window) is
-      use Yoga.Nodes;
       Of_Source : constant Boolean := Item.Details.Kind = Source;
-      Node : constant Yoga.Nodes.Node := Widgets.Node (Item.Body_Text);
    begin
       --  A note's text is in the serif; a source's link, in the face of
       --  the interface.
@@ -775,8 +761,9 @@ package body Items.Windows is
          Editors.Clear_Icon (Item.Body_Text);
          Editors.Set_Placeholder (Item.Body_Text, "");
       end if;
-      Set_Flex_Grow (Node, (if Of_Source then 0.0 else 1.0));
-      Set_Height (Node, (if Of_Source then Url_Height * Item.Pixels else 0.0));
+      Layouts.Set_Layout
+        (Item.Body_Text, Grow => (if Of_Source then 0.0 else 1.0),
+         Height => (if Of_Source then Url_Height else 0.0));
       Widgets.Set_Visible (Item.Speak_Button, not Of_Source);
       Widgets.Set_Visible (Item.Tools, Of_Source);
       Widgets.Set_Visible (Item.Zoom_Slider, Of_Source);
@@ -878,7 +865,6 @@ package body Items.Windows is
    procedure Place
      (Item : in out Window; Zoom, Origin_X, Origin_Y : Float)
    is
-      use Yoga.Nodes;
       Where  : Items.Frame renames Item.Details.Where;
       Pixels : constant Float := Item.Pixels;
    begin
@@ -907,12 +893,16 @@ package body Items.Windows is
               Frames.Status_Width
                 (Item.Chrome, Float'Rounding (Where.Width * Zoom * Pixels));
          begin
-            Set_Position
-              (Widgets.Node (Item.Tools), Yoga.Left,
-               Float'Rounding ((Across - Tools_Width * Pixels) / 2.0));
-            Set_Position
-              (Widgets.Node (Item.Speak_Button), Yoga.Left,
-               Float'Rounding ((Across - Button_Size * Pixels) / 2.0));
+            Layouts.Set_Layout
+              (Item.Tools,
+               Position => (Left => Float'Rounding ((Across - Tools_Width * Pixels) / 2.0),
+                            others => <>),
+               Unit => Layouts.Device_Pixels);
+            Layouts.Set_Layout
+              (Item.Speak_Button,
+               Position => (Left => Float'Rounding ((Across - Button_Size * Pixels) / 2.0),
+                            others => <>),
+               Unit => Layouts.Device_Pixels);
          end;
       end if;
    end Place;

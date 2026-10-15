@@ -44,14 +44,14 @@ package body Previews is
         Float'Max (1.0, Float'Rounding (Dot_Side * Pixels));
       Step   : constant Float := Dot_Step * Pixels;
       Ink    : constant Pomarine.Themes.Color :=
-        Pomarine.Themes.Mix (Colors.Background, Colors.Border, 0.8);
+        Pomarine.Themes.Mix (Colors (Pomarine.Themes.Background), Colors (Pomarine.Themes.Border), 0.8);
       Rule   : constant Pomarine.Themes.Color :=
-        Pomarine.Themes.Mix (Colors.Bar, Pomarine.Themes.White, 0.25);
+        Pomarine.Themes.Mix (Colors (Pomarine.Themes.Bar), Pomarine.Themes.White, 0.25);
       Text   : constant Pomarine.Themes.Color :=
-        Pomarine.Themes.Mix (Colors.Face, Pomarine.Themes.White, 0.35);
+        Pomarine.Themes.Mix (Colors (Pomarine.Themes.Face), Pomarine.Themes.White, 0.35);
       X, Y   : Float;
    begin
-      Fill_Rect (Target, Colors.Background, Left, Top, Wide, High);
+      Fill_Rect (Target, Colors (Pomarine.Themes.Background), Left, Top, Wide, High);
       Y := Step / 2.0;
       while Y < High loop
          X := Step / 2.0;
@@ -114,8 +114,8 @@ package body Previews is
                   Pomarine.Boxes.Draw
                     (Target,
                      (Filled => True, Fill => Pomarine.Themes.White,
-                      Bordered => True, Border => Colors.Border,
-                      Shadowed => True, Shadow => Colors.Shadow,
+                      Bordered => True, Border => Colors (Pomarine.Themes.Border),
+                      Shadowed => True, Shadow => Colors (Pomarine.Themes.Shadow),
                       Dashed => False),
                      L, T, W + Pomarine.Boxes.Offset (Pixels / 2.0),
                      H + Pomarine.Boxes.Offset (Pixels / 2.0), Pixels / 2.0);

@@ -5,14 +5,14 @@ with Ada.Text_IO;
 with Files;
 with SDL3.Events.Redraws;
 with SDL3.Windows.Renderers;
-with Pomarine.Widgets;
 with Viewer.Build;
 with Viewer.Canvas_Items;
-with Viewer.Clicks;
 with Viewer.Deletion;
+with Viewer.Gestures;
 with Viewer.Home_Screen;
 with Viewer.Listing;
 with Viewer.Painting;
+with Viewer.Responses;
 with Viewer.Settings_View;
 with Viewer.Style;
 with Viewer.Writing;
@@ -30,6 +30,16 @@ package body Viewer is
    use SDL3.Windows.Renderers;
 
    package Redraws is new SDL3.Events.Redraws (Session, Painting.Draw);
+
+   overriding procedure Handle_Event
+     (Self   : in out Responder;
+      Source : in out Pomarine.Widgets.Widget'Class;
+      Event  : Pomarine.Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source);
+   begin
+      Responses.Respond (Self.Owner.all, Event);
+   end Handle_Event;
 
    --  Events
 
@@ -183,7 +193,7 @@ package body Viewer is
                      Track_Window (Item, Event, Handled);
                   end if;
                end if;
-               Clicks.Take (Item);
+               Gestures.Take (Item);
                Show_Cursor (Item);
             end if;
             if Item.Nav.Shown = Project then

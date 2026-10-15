@@ -9,7 +9,7 @@ with SDL3.Events;
 with Speech.Models;
 with Viewer.Deletion;
 with Viewer.Style;
-with Yoga.Nodes;
+with Pomarine.Widgets.Layouts;
 
 package body Viewer.Settings_View is
 
@@ -212,77 +212,56 @@ package body Viewer.Settings_View is
       end if;
    end Apply_Theme;
 
-   procedure Take (Item : in out Session) is
-      Clicked : Boolean;
+   procedure Respond (Item : in out Session; What : Command) is
    begin
       if Item.Confirm.Deleting_Model then
          --  The dialog is all that takes clicks.
-         Buttons.Take_Click (Item.Confirm.Confirm_Delete, Clicked);
-         if Clicked then
-            Deletion.Close (Item);
-            if Speech.Models.State /= Speech.Models.Running then
-               Speech.Models.Delete (Model_Directory (Item));
-               Speech.Models.Reset;
+         case What is
+            when Confirm_Deletion =>
+               Deletion.Close (Item);
+               if Speech.Models.State /= Speech.Models.Running then
+                  Speech.Models.Delete (Model_Directory (Item));
+                  Speech.Models.Reset;
+               end if;
+               Refresh (Item);
+               Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
+            when Cancel_Deletion =>
+               Deletion.Close (Item);
+            when others =>
+               null;
+         end case;
+         return;
+      end if;
+      case What is
+         when Close_Settings =>
+            Close (Item);
+         when Choose_Light =>
+            Choose_Appearance (Item, Preferences.Light);
+         when Choose_Dark =>
+            Choose_Appearance (Item, Preferences.Dark);
+         when Choose_System =>
+            Choose_Appearance (Item, Preferences.System);
+         when Choose_MacOS =>
+            Choose (Item, Preferences.MacOS);
+         when Choose_Parakeet =>
+            Choose (Item, Preferences.Parakeet);
+         when Download_Model =>
+            if Speech.Models.State /= Speech.Models.Running
+              and then not Model_Present (Item)
+            then
+               Speech.Models.Start (Model_Directory (Item));
+               Refresh (Item);
+               Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
             end if;
-            Refresh (Item);
-            Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
-            return;
-         end if;
-         Buttons.Take_Click (Item.Confirm.Confirm_Cancel, Clicked);
-         if not Clicked then
-            Buttons.Take_Click (Item.Confirm.Dialog_Close, Clicked);
-         end if;
-         if Clicked then
-            Deletion.Close (Item);
-         end if;
-         return;
-      end if;
-      Buttons.Take_Click (Item.Prefs.Settings_Close, Clicked);
-      if Clicked then
-         Close (Item);
-         return;
-      end if;
-      Checks.Take_Change (Item.Prefs.Theme_Light, Clicked);
-      if Clicked then
-         Choose_Appearance (Item, Preferences.Light);
-         return;
-      end if;
-      Checks.Take_Change (Item.Prefs.Theme_Dark, Clicked);
-      if Clicked then
-         Choose_Appearance (Item, Preferences.Dark);
-         return;
-      end if;
-      Checks.Take_Change (Item.Prefs.Theme_System, Clicked);
-      if Clicked then
-         Choose_Appearance (Item, Preferences.System);
-         return;
-      end if;
-      Checks.Take_Change (Item.Prefs.Model_Native, Clicked);
-      if Clicked then
-         Choose (Item, Preferences.MacOS);
-         return;
-      end if;
-      Checks.Take_Change (Item.Prefs.Model_Parakeet, Clicked);
-      if Clicked then
-         Choose (Item, Preferences.Parakeet);
-         return;
-      end if;
-      Buttons.Take_Click (Item.Prefs.Download_Button, Clicked);
-      if Clicked
-        and then Speech.Models.State /= Speech.Models.Running
-        and then not Model_Present (Item)
-      then
-         Speech.Models.Start (Model_Directory (Item));
-         Refresh (Item);
-         Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
-         return;
-      end if;
-      Buttons.Take_Click (Item.Prefs.Delete_Button, Clicked);
-      if Clicked and then Speech.Models.State /= Speech.Models.Running and then Model_Present (Item) then
-         Deletion.Confirm_Model
-           (Item, "Its " & Size_Text (On_Disk (Item)) & " of files go; they can be downloaded again.");
-      end if;
-   end Take;
+         when Delete_Model =>
+            if Speech.Models.State /= Speech.Models.Running and then Model_Present (Item) then
+               Deletion.Confirm_Model
+                 (Item, "Its " & Size_Text (On_Disk (Item)) & " of files go; they can be downloaded again.");
+            end if;
+         when others =>
+            null;
+      end case;
+   end Respond;
 
    procedure Update (Item : in out Session) is
       Now : constant Speech.Models.States := Speech.Models.State;
@@ -297,7 +276,6 @@ package body Viewer.Settings_View is
    end Update;
 
    procedure Fit (Item : in out Session) is
-      use Yoga.Nodes;
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
       Room   : constant Float :=
         Widgets.Width_Of (Item.Prefs.Settings_Content) / Pixels
@@ -307,8 +285,7 @@ package body Viewer.Settings_View is
    begin
       if Wide /= Item.Prefs.Form_Wide then
          Item.Prefs.Form_Wide := Wide;
-         Set_Width (Widgets.Node (Item.Prefs.Settings_Form), Wide * Pixels);
-         Widgets.Request_Layout (Item.Prefs.Settings_Form);
+         Pomarine.Widgets.Layouts.Set_Layout (Item.Prefs.Settings_Form, Width => Wide);
       end if;
    end Fit;
 

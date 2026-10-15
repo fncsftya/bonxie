@@ -28,9 +28,10 @@ private package Viewer.Settings_View is
    --  which may have changed. Whatever is drawn is drawn again if the
    --  theme has changed.
 
-   procedure Take (Item : in out Session)
+   procedure Respond (Item : in out Session; What : Command)
      with Pre => Item.Prefs.Showing_Settings;
-   --  Act on what has been clicked in the form.
+   --  Act on what has been clicked in the form, or in the dialog that asks
+   --  before the speech model's files are deleted.
 
    procedure Update (Item : in out Session)
      with Pre => Item.Prefs.Showing_Settings;

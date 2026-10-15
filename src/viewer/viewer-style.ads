@@ -176,23 +176,47 @@ private package Viewer.Style is
    --  theme without being built again; what is drawn at once takes Colors,
    --  the theme in use.
 
-   Active : Pomarine.Themes.Theme := Pomarine.Themes.Light;
-   --  The theme of the window shown: Light, or Dark, as Use_Dark says.
+   function Colors return Pomarine.Themes.Theme;
+   --  The theme of the window shown: the library's Light, or Dark, as
+   --  Use_Dark says, and the colours of the screens' own, below.
 
-   function Colors return Pomarine.Themes.Theme is (Active);
+   function Is_Dark return Boolean;
+   --  Whether the theme in use is the dark.
+
+   function Make (Dark : Boolean) return Pomarine.Themes.Theme;
+   --  Light or Dark, with the slots of the application set.
 
    procedure Use_Dark (Dark : Boolean)
-     with Post => Pomarine.Themes."=" (Colors, (if Dark then Pomarine.Themes.Dark
-                                          else Pomarine.Themes.Light));
+     with Post => Is_Dark = Dark;
    --  Draw in the dark theme, or in the light.
+
+   --  The application's own slots of the theme.
+
+   Rail         : constant Pomarine.Themes.Slot := Pomarine.Themes.Custom (0);
+   --  The side rail, and the writing view's desk.
+   Dock_Back    : constant Pomarine.Themes.Slot := Pomarine.Themes.Custom (1);
+   --  Behind the minimised items.
+   Grid_Dot     : constant Pomarine.Themes.Slot := Pomarine.Themes.Custom (2);
+   --  The dots of the canvas's grid.
+   Closed       : constant Pomarine.Themes.Slot := Pomarine.Themes.Custom (3);
+   --  The title of an item that is not shown.
+   New_Project_Ink : constant Pomarine.Themes.Slot := Pomarine.Themes.Custom (4);
+   --  The primary colour, a little toward the text, as a label.
+   Source_1     : constant Pomarine.Themes.Slot := Pomarine.Themes.Custom (5);
+   --  The first source's colour is the theme's own blue, lighter in the
+   --  dark; Source_2 .. Source_8 are the same in both themes.
+
+   Source_Count : constant := 8;
+   Source_First : constant := 5;
+   --  Offset of Source_1 among the application's slots.
 
    Toolbar : constant Pomarine.Themes.Slot := Pomarine.Themes.Bar;
    --  The dark bars: across the top, and of the windows' titles.
-   Mid_Panel : constant Pomarine.Themes.Slot := Pomarine.Themes.Rail;
+   Mid_Panel : constant Pomarine.Themes.Slot := Rail;
    --  Behind the pages, and of the home screen's sidebar.
-   Dock : constant Pomarine.Themes.Slot := Pomarine.Themes.Dock;
+   Dock : constant Pomarine.Themes.Slot := Dock_Back;
    --  Behind the minimised items.
-   Desk : constant Pomarine.Themes.Slot := Pomarine.Themes.Rail;
+   Desk : constant Pomarine.Themes.Slot := Rail;
    Paper : constant Pomarine.Themes.Slot := Pomarine.Themes.Page;
    Side_Fill : constant Pomarine.Themes.Slot := Pomarine.Themes.Background;
    --  Of the writing view's sidebar.
@@ -203,17 +227,15 @@ private package Viewer.Style is
    --  document that is being put elsewhere in the order; and one under
    --  the pointer.
    Edge_Fill : constant Pomarine.Themes.Slot := Pomarine.Themes.Border;
-   Closed_Ink : constant Pomarine.Themes.Slot := Pomarine.Themes.Closed;
+   Closed_Ink : constant Pomarine.Themes.Slot := Closed;
    --  Of the title of an item that is not shown, in the list.
    Quiet_Ink : constant Pomarine.Themes.Slot := Pomarine.Themes.Hint;
    --  Of what is said of something, after its name: a count.
    Rule_Ink : constant Pomarine.Themes.Slot := Pomarine.Themes.Rule;
    --  A line on the dark bar.
 
-   Source_Inks : constant array (1 .. 8) of Pomarine.Themes.Slot :=
-     [Pomarine.Themes.Source_1, Pomarine.Themes.Source_2, Pomarine.Themes.Source_3,
-      Pomarine.Themes.Source_4, Pomarine.Themes.Source_5, Pomarine.Themes.Source_6,
-      Pomarine.Themes.Source_7, Pomarine.Themes.Source_8];
+   Source_Inks : constant array (1 .. Source_Count) of Pomarine.Themes.Slot :=
+     [for K in 1 .. Source_Count => Pomarine.Themes.Custom (Source_First + K - 1)];
    --  Of the sources, in the order they were made, and round again.
 
    function Source_Ink (Rank : Natural) return Pomarine.Themes.Slot is
@@ -235,7 +257,7 @@ private package Viewer.Style is
 
    Link_Inks : constant array (Items.Links.Link_Colors) of Pomarine.Themes.Slot :=
      [Pomarine.Themes.Bar, Pomarine.Themes.Accent, Pomarine.Themes.Primary, Pomarine.Themes.Danger,
-      Pomarine.Themes.Source_1];
+      Source_1];
    --  The colours a link between documents can be drawn in: the theme's,
    --  and a blue.
 
