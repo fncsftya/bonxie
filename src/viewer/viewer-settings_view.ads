@@ -28,8 +28,16 @@ private package Viewer.Settings_View is
    --  which may have changed. Whatever is drawn is drawn again if the
    --  theme has changed.
 
-   procedure Respond (Item : in out Session; What : Command)
+   procedure Download (Item : in out Session)
      with Pre => Item.Prefs.Showing_Settings;
+   --  Fetch the speech model's files, if they are not there.
+
+   procedure Ask_To_Delete (Item : in out Session)
+     with Pre => Item.Prefs.Showing_Settings;
+   --  Ask before the speech model's files are deleted, if they are there.
+
+   procedure Delete_Files (Item : in out Session);
+   --  The answer to that: delete them.
    --  Act on what has been clicked in the form, or in the dialog that asks
    --  before the speech model's files are deleted.
 

@@ -39,6 +39,13 @@ private package Viewer.Canvas_Items is
    function Capturing (Item : Session) return Boolean;
    --  Whether a source's picture is being taken, or a note's dictation is
    --  being heard, readied or made text: the loop is to look at it again soon.
+   --  (Not whether its words are being found, which says when it is done: see
+   --  Busy, and Vision.Jobs.)
+
+   function Busy (Item : Session) return Boolean
+     with Pre => Screen (Item) = Project;
+   --  Whether anything is going on in the background for a window: as
+   --  Capturing, and the words of a picture being found.
 
    procedure Toggle_Dictation (Item : in out Session; Which : Items.Slot)
      with Pre => Items.Windows.Is_Assigned (Item.Windows (Which));
@@ -46,10 +53,9 @@ private package Viewer.Canvas_Items is
    --  listening, in the background, or stop, so that what was heard is
    --  made text and put in the note.
 
-   procedure Take (Item : in out Session)
-     with Pre => Screen (Item) = Project;
-   --  Do what the windows' buttons were clicked for, and keep what has
-   --  been dragged and typed.
+   procedure Listen (Item : in out Session);
+   --  Give the windows the procedure they call when their buttons ask for
+   --  something: once they are built.
 
    procedure Pressed
      (Item : in out Session; X, Y : Float)

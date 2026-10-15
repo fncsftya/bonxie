@@ -212,56 +212,35 @@ package body Viewer.Settings_View is
       end if;
    end Apply_Theme;
 
-   procedure Respond (Item : in out Session; What : Command) is
+   procedure Download (Item : in out Session) is
    begin
-      if Item.Confirm.Deleting_Model then
-         --  The dialog is all that takes clicks.
-         case What is
-            when Confirm_Deletion =>
-               Deletion.Close (Item);
-               if Speech.Models.State /= Speech.Models.Running then
-                  Speech.Models.Delete (Model_Directory (Item));
-                  Speech.Models.Reset;
-               end if;
-               Refresh (Item);
-               Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
-            when Cancel_Deletion =>
-               Deletion.Close (Item);
-            when others =>
-               null;
-         end case;
-         return;
+      if Speech.Models.State /= Speech.Models.Running
+        and then not Model_Present (Item)
+      then
+         Speech.Models.Start (Model_Directory (Item));
+         Refresh (Item);
+         Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
       end if;
-      case What is
-         when Close_Settings =>
-            Close (Item);
-         when Choose_Light =>
-            Choose_Appearance (Item, Preferences.Light);
-         when Choose_Dark =>
-            Choose_Appearance (Item, Preferences.Dark);
-         when Choose_System =>
-            Choose_Appearance (Item, Preferences.System);
-         when Choose_MacOS =>
-            Choose (Item, Preferences.MacOS);
-         when Choose_Parakeet =>
-            Choose (Item, Preferences.Parakeet);
-         when Download_Model =>
-            if Speech.Models.State /= Speech.Models.Running
-              and then not Model_Present (Item)
-            then
-               Speech.Models.Start (Model_Directory (Item));
-               Refresh (Item);
-               Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
-            end if;
-         when Delete_Model =>
-            if Speech.Models.State /= Speech.Models.Running and then Model_Present (Item) then
-               Deletion.Confirm_Model
-                 (Item, "Its " & Size_Text (On_Disk (Item)) & " of files go; they can be downloaded again.");
-            end if;
-         when others =>
-            null;
-      end case;
-   end Respond;
+   end Download;
+
+   procedure Ask_To_Delete (Item : in out Session) is
+   begin
+      if Speech.Models.State /= Speech.Models.Running and then Model_Present (Item) then
+         Deletion.Confirm_Model
+           (Item, "Its " & Size_Text (On_Disk (Item)) & " of files go; they can be downloaded again.");
+      end if;
+   end Ask_To_Delete;
+
+   procedure Delete_Files (Item : in out Session) is
+   begin
+      Deletion.Close (Item);
+      if Speech.Models.State /= Speech.Models.Running then
+         Speech.Models.Delete (Model_Directory (Item));
+         Speech.Models.Reset;
+      end if;
+      Refresh (Item);
+      Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
+   end Delete_Files;
 
    procedure Update (Item : in out Session) is
       Now : constant Speech.Models.States := Speech.Models.State;

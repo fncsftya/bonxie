@@ -101,6 +101,8 @@ package body Viewer.Recent is
                   Name (Name'First ..
                         Name'First - 1
                         + Natural'Min (Name'Length, Labels.Text_Capacity)));
+               --  The picture of its canvas has no words of its own.
+               Widgets.Set_Accessible_Name (Item.Home_View.Cards (I).Peek, "Open " & Name);
             end;
             Item.Home_View.Row_Keys (I) := Item.Home_View.Listed.Items (I).Key;
             Show_Contents (Item, I);

@@ -20,6 +20,7 @@ private with Pomarine.Clipboards;
 private with Pomarine.Native_Menus;
 private with Pomarine.Icons;
 private with Pomarine.Line_Texts;
+private with Pomarine.Models;
 private with Pomarine.Widgets;
 private with Pomarine.Widgets.Buttons;
 private with Pomarine.Widgets.Checks;
@@ -28,6 +29,7 @@ private with Pomarine.Widgets.Commands;
 private with Pomarine.Widgets.Editors;
 private with Pomarine.Widgets.Grips;
 private with Pomarine.Widgets.Labels;
+private with Pomarine.Widgets.Lists;
 private with Pomarine.Widgets.Menus;
 private with Pomarine.Widgets.Text_Fields;
 private with Pomarine.Widgets.Panels;
@@ -161,45 +163,19 @@ package Viewer is
 
 private
 
-   --  What the buttons, checks and menus are for: each is bound to one
-   --  (see Viewer.Build), and said as its widget is clicked, to be done
-   --  by Viewer.Responses.
+   --  What the menu bar and the keys can ask for, apart from what edits
+   --  text: each is said as a command (see Viewer.Menus), to be done by
+   --  Viewer.Responses. The buttons that do the same are given the command
+   --  too (see Viewer.Build), to be on or off as it is. What each button
+   --  does is its own (see Pomarine.Widgets.Callbacks).
 
    type Command is
-     (Start_Project,      --  the buttons that make a project
+     (Start_Project,
       Open_Settings,
-      Open_Project,       --  Index: the card
-      Rename_Project,     --  Index: the card
-      Delete_Project,     --  Index: the card
-      Accept_Rename,      --  OK, or Return in the field
-      Cancel_Rename,
-      Confirm_Deletion,   --  the dialog over the screens
-      Cancel_Deletion,
-      Close_Settings,
-      Choose_Light,
-      Choose_Dark,
-      Choose_System,
-      Choose_MacOS,
-      Choose_Parakeet,
-      Download_Model,
-      Delete_Model,
-      Leave_Project,      --  the toolbar of a project
+      Leave_Project,
       Show_Canvas,
       Show_Writing,
-      Add_Document,       --  the tray of the canvas
-      Add_Source,
-      Open_List,
-      Close_List,         --  the list of items
-      Reveal_Item,        --  Index: the item's slot
-      Toggle_Item,        --  Index: the item's slot
-      Remove_Item,        --  Index: the item's slot
-      Add_Page,           --  the writing view
-      Add_Folder,
-      Choose_Source,      --  a row of the menu of a page's sources
-      Choose_Context,     --  a row of the context menu
-      Open_Sources,       --  Index: the rank of the page
-      Dictate,            --  Index: the rank of the page
-      Toggle_Source);     --  Index: the row of the sources' list
+      Open_List);
 
    package Commands is new Pomarine.Widgets.Commands (Command);
 
@@ -237,20 +213,24 @@ private
    type Card_Array is array (1 .. Projects.Recent_Count) of Project_Card;
    type Key_Array is array (Card_Array'Range) of Projects.Id;
 
-   type Item_Row is limited record
-      Panel  : Pomarine.Widgets.Panels.Panel;
-      Name   : Pomarine.Widgets.Grips.Grip;
-      --  The title: clicked, to show the item.
-      Caption : Pomarine.Widgets.Labels.Label;
-      Toggle : Pomarine.Widgets.Buttons.Button;
-      Remove : Pomarine.Widgets.Buttons.Button;
-   end record;
-   --  A row of the list of items: its title, a button to show it on the
-   --  canvas or hide it, and one to remove it.
-
-   type Item_Row_Array is array (Items.Slot) of Item_Row;
    type Slot_Array is array (Items.Slot) of Items.Slot;
    type Dir_Array is array (Items.Slot) of Natural;
+
+   type Item_Rows is limited new Pomarine.Models.List_Model with record
+      Owner   : Session_Access;
+      Found   : Natural := 0;
+      --  How many items are listed: the slots are the session's Row_Slots.
+      Changed : Natural := 0;
+   end record;
+   --  What the list of items shows, a row for each (see Viewer.Listing).
+
+   overriding function Count (Self : Item_Rows) return Natural;
+   overriding function Version (Self : Item_Rows) return Natural;
+   overriding function Row_Id (Self : Item_Rows; Row : Positive) return Positive;
+   overriding procedure Describe_Row
+     (Self    : Item_Rows;
+      Row     : Positive;
+      Content : out Pomarine.Models.Row_Content);
 
    type Pin_Grid is
      array (Items.Slot, Items.Links.Sides) of aliased Pomarine.Widgets.Pins.Pin;
@@ -625,11 +605,12 @@ private
       --  A dark bar across its top, as a window's: its title, and a
       --  button to close it.
       List_Dialog   : Pomarine.Widgets.Panels.Panel;
-      List_Scroll   : Pomarine.Widgets.Scrollers.Scroller;
-      List_Content  : Pomarine.Widgets.Panels.Panel;
+      List_View     : Pomarine.Widgets.Lists.List;
+      --  A row for each item: its title, to show it, and buttons to show
+      --  or hide it and to remove it.
       List_None     : Pomarine.Widgets.Labels.Label;
       --  Shown when there are no items.
-      List_Rows     : Item_Row_Array;
+      List_Rows     : aliased Item_Rows;
       Row_Slots     : Slot_Array := [others => 1];
       --  The window of the item each row is of.
       Showing_List  : Boolean := False;
@@ -742,6 +723,9 @@ private
       Drag_Moved   : Boolean := False;
       --  The row of the list of documents being dragged, how far, and the
       --  order when it was pressed.
+      Dropped_Moved : Boolean := False;
+      --  Whether the row last let go had been dragged, so that it is not
+      --  clicked as well.
    end record;
    --  The row of the list of documents being dragged.
 

@@ -1,5 +1,6 @@
 with Items.Links;
 with Items.Marks;
+with Items.Readers.Callbacks;
 with Items.Sources;
 with Items.Words;
 with Pomarine.Boxes;
@@ -10,8 +11,8 @@ with Icon_Set;
 with Pomarine.Icons;
 with Pomarine.Line_Texts;
 with Pomarine.Text_Areas;
-with Pomarine.Widgets;
 with Pomarine.Widgets.Buttons;
+with Pomarine.Widgets.Callbacks;
 with Pomarine.Widgets.Editors;
 with Pomarine.Widgets.Grips;
 with Pomarine.Widgets.Labels;
@@ -22,6 +23,7 @@ with Pomarine.Widgets.Scrollers;
 with Pomarine.Widgets.Text_Fields;
 with Viewer.Canvas_Items;
 with Viewer.Deletion;
+with Viewer.Gestures;
 with Viewer.Style;
 with Pomarine.Widgets.Layouts;
 
@@ -40,6 +42,8 @@ package body Viewer.Writing is
    package Readers renames Items.Readers;
    package Windows renames Items.Windows;
    package Docs renames Texts.Documents;
+   package Hooks is new Pomarine.Widgets.Callbacks (Session);
+   package Reader_Events is new Items.Readers.Callbacks (Session);
 
    use type Items.Id;
    use type Widgets.Clipboard_Access;
@@ -1900,159 +1904,293 @@ package body Viewer.Writing is
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
    end Show_Drop_Line;
 
-   procedure Take_Documents (Item : in out Session);
+   function In_Writing (Item : Session) return Boolean is
+     (Gestures.Active (Item) and then Item.Toolbar.Mode = Write);
+   --  Whether the writing view is the one in use, and not under a dialog.
+
+   subtype Source_Widget is Widgets.Widget'Class;
+
    --  The tree of documents: a row dragged is dropped on a directory or
    --  the Overview (a document's) or between two rows; a row clicked
    --  shows the directory or goes to the page; a directory's row pressed
    --  twice is renamed.
 
-   procedure Take_Documents (Item : in out Session) is
-      Clicked      : Boolean;
-      Doubled      : Boolean;
-      Entered      : Boolean;
-      Across, Down : Float;
-      Was_Moved    : Boolean := False;
+   procedure Start_Drag (Item : in out Session; Row : Positive);
+   --  Begin the drag of Row if none is on: not of the Overview, which is
+   --  not put elsewhere.
+
+   procedure Start_Drag (Item : in out Session; Row : Positive) is
    begin
-      if Item.Naming.Renaming_Dir /= 0
-         or else Item.Naming.Renaming_Doc /= 0
+      if Item.Dragging.Drag_Row = 0
+        and then Row <= Item.Docs.Tree_Count
+        and then Item.Docs.Tree (Row).Kind /= Overview_Node
       then
-         Text_Fields.Take_Return (Item.Naming.Dir_Field, Entered);
-         if Entered or else not Widgets.Has_Focus (Item.Naming.Dir_Field) then
-            if Item.Naming.Renaming_Dir /= 0 then
-               End_Rename_Dir (Item);
-            else
-               End_Rename_Doc (Item);
-            end if;
-         end if;
+         Item.Dragging.Drag_Row := Row;
+         Item.Dragging.Drag_Total := 0.0;
+         Item.Dragging.Drag_Moved := False;
+         Item.Docs.Drop := (others => <>);
       end if;
-      if Item.Naming.Renaming_Source /= 0 then
-         Text_Fields.Take_Return (Item.Naming.Source_Field, Entered);
-         if Entered
-            or else not Widgets.Has_Focus (Item.Naming.Source_Field)
-         then
-            End_Rename_Source (Item);
-         end if;
-      end if;
-      if Item.Dragging.Drag_Row = 0 then
-         for Row in 1 .. Item.Docs.Tree_Count loop
-            if Grips.Is_Dragging (Item.Docs.Doc_Rows (Row).Row) then
-               if Item.Docs.Tree (Row).Kind /= Overview_Node then
-                  Item.Dragging.Drag_Row := Row;
-                  Item.Dragging.Drag_Total := 0.0;
-                  Item.Dragging.Drag_Moved := False;
-                  Item.Docs.Drop := (others => <>);
-               else
-                  --  The Overview is not put elsewhere.
-                  Grips.Take_Drag (Item.Docs.Doc_Rows (Row).Row, Across, Down);
-               end if;
-            end if;
-         end loop;
-      end if;
-      if Item.Dragging.Drag_Row /= 0 then
-         declare
-            Row  : constant Tree_Row := Item.Dragging.Drag_Row;
-            Grip : Grips.Grip renames Item.Docs.Doc_Rows (Row).Row;
-         begin
-            Grips.Take_Drag (Grip, Across, Down);
-            Item.Dragging.Drag_Total := Item.Dragging.Drag_Total + abs Across
-               + abs Down;
-            if Item.Dragging.Drag_Total >= Drag_Threshold
-              and then not Item.Dragging.Drag_Moved
-            then
-               Item.Dragging.Drag_Moved := True;
-               Refresh (Item);
-            end if;
-            if Item.Dragging.Drag_Moved then
-               declare
-                  X, Y   : Float;
-                  Target : Drop_Target;
-               begin
-                  Grips.Pointer (Grip, X, Y);
-                  Target := Target_At (Item, X, Y);
-                  if Target /= Item.Docs.Drop then
-                     Item.Docs.Drop := Target;
-                     Refresh (Item);
-                     Show_Drop_Line (Item);
-                  end if;
-               end;
-            end if;
-            if not Grips.Is_Dragging (Grip) then
-               Was_Moved := Item.Dragging.Drag_Moved;
-               declare
-                  Target : constant Drop_Target := Item.Docs.Drop;
-               begin
-                  Item.Dragging.Drag_Row := 0;
-                  Item.Dragging.Drag_Moved := False;
-                  Item.Docs.Drop := (others => <>);
-                  if Was_Moved then
-                     Drop_Row (Item, Row, Target);
-                  end if;
-               end;
-               Show_Drop_Line (Item);
-               Refresh (Item);
-            end if;
-         end;
-      end if;
-      for Row in 1 .. Item.Docs.Tree_Count loop
-         declare
-            Box  : Grips.Grip renames Item.Docs.Doc_Rows (Row).Row;
-            Node : constant Tree_Entry := Item.Docs.Tree (Row);
-         begin
-            if Node.Kind = Directory_Node then
-               Grips.Take_Double_Click (Box, Doubled);
-               if Doubled and then Item.Naming.Renaming_Dir /= Node.Dir then
-                  --  The press that began it is not let go on its row.
-                  Grips.Cancel_Drag (Box);
-                  Grips.Take_Click (Box, Clicked);
-                  Begin_Rename_Dir (Item, Node.Dir);
-                  return;
-               end if;
-            end if;
-            Grips.Take_Click (Box, Clicked);
-            if Clicked and then not Was_Moved
-             and then Item.Dragging.Drag_Row = 0
-            then
-               case Node.Kind is
-                  when Overview_Node =>
-                     Select_Directory (Item, 0);
-                  when Directory_Node =>
-                     if Item.Naming.Renaming_Dir /= Node.Dir then
-                        Select_Directory (Item, Node.Dir);
-                     end if;
-                  when Document_Leaf =>
-                     Show_Page (Item, Node.Doc);
-               end case;
-               return;
-            end if;
-         end;
-      end loop;
-   end Take_Documents;
+   end Start_Drag;
 
-   procedure Take_Sources (Item : in out Session);
-   --  The list of sources, and their windows and the pane.
+   procedure Row_Dragged
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
+   --  A row of the tree was dragged a little (Across, Down): the drag has
+   --  begun if it was far enough, and the row is over what it would be
+   --  dropped on.
 
-   procedure Take_Sources (Item : in out Session) is
-      Action  : Readers.Actions;
+   procedure Row_Dragged
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source);
+      Row : constant Positive := Event.Index;
    begin
-      for Which in Items.Slot loop
-         if Readers.Is_Assigned (Item.Reading.Readers (Which)) then
-            Readers.Poll (Item.Reading.Readers (Which), Action);
-            case Action is
-               when Readers.None =>
-                  null;
-               when Readers.Close =>
-                  Readers.Set_State (Item.Reading.Readers (Which),
-                                     Items.Closed);
-                  Refresh (Item);
-               when Readers.Toggle_Pin =>
-                  Pin (Item, Which);
-                  Refresh (Item);
-                  return;
-            end case;
+      if not In_Writing (Item) or else Row > Item.Docs.Tree_Count then
+         return;
+      end if;
+      Start_Drag (Item, Row);
+      if Item.Dragging.Drag_Row /= Row then
+         return;
+      end if;
+      Item.Dragging.Drag_Total := Item.Dragging.Drag_Total + abs Event.Across + abs Event.Down;
+      if Item.Dragging.Drag_Total >= Drag_Threshold and then not Item.Dragging.Drag_Moved then
+         Item.Dragging.Drag_Moved := True;
+         Refresh (Item);
+      end if;
+      if Item.Dragging.Drag_Moved then
+         declare
+            X, Y   : Float;
+            Target : Drop_Target;
+         begin
+            Grips.Pointer (Item.Docs.Doc_Rows (Row).Row, X, Y);
+            Target := Target_At (Item, X, Y);
+            if Target /= Item.Docs.Drop then
+               Item.Docs.Drop := Target;
+               Refresh (Item);
+               Show_Drop_Line (Item);
+            end if;
+         end;
+      end if;
+   end Row_Dragged;
+
+   procedure Row_Released
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
+   --  A row of the tree was let go: it is dropped, if it was dragged.
+
+   procedure Row_Released
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source);
+      Row : constant Positive := Event.Index;
+   begin
+      Item.Dragging.Dropped_Moved := False;
+      if not In_Writing (Item) or else Row > Item.Docs.Tree_Count then
+         return;
+      end if;
+      Start_Drag (Item, Row);
+      if Item.Dragging.Drag_Row /= Row then
+         return;
+      end if;
+      declare
+         Was_Moved : constant Boolean := Item.Dragging.Drag_Moved;
+         Target    : constant Drop_Target := Item.Docs.Drop;
+      begin
+         Item.Dragging.Drag_Row := 0;
+         Item.Dragging.Drag_Moved := False;
+         Item.Docs.Drop := (others => <>);
+         Item.Dragging.Dropped_Moved := Was_Moved;
+         if Was_Moved then
+            Drop_Row (Item, Row, Target);
          end if;
-      end loop;
-      if Readers.Is_Assigned (Item.Reading.Pane_Reader) then
-         Readers.Poll (Item.Reading.Pane_Reader, Action);
+      end;
+      Show_Drop_Line (Item);
+      Refresh (Item);
+   end Row_Released;
+
+   procedure Row_Clicked
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
+   --  A row of the tree was clicked, and was not dragged.
+
+   procedure Row_Clicked
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source);
+      Row   : constant Positive := Event.Index;
+      Moved : constant Boolean := Item.Dragging.Dropped_Moved;
+   begin
+      Item.Dragging.Dropped_Moved := False;
+      if not In_Writing (Item) or else Row > Item.Docs.Tree_Count
+        or else Moved or else Item.Dragging.Drag_Row /= 0
+      then
+         return;
+      end if;
+      declare
+         Node : constant Tree_Entry := Item.Docs.Tree (Row);
+      begin
+         case Node.Kind is
+            when Overview_Node =>
+               Select_Directory (Item, 0);
+            when Directory_Node =>
+               if Item.Naming.Renaming_Dir /= Node.Dir then
+                  Select_Directory (Item, Node.Dir);
+               end if;
+            when Document_Leaf =>
+               Show_Page (Item, Node.Doc);
+         end case;
+      end;
+   end Row_Clicked;
+
+   procedure Row_Double_Clicked
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
+   --  A directory's row was pressed twice: rename it.
+
+   procedure Row_Double_Clicked
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source);
+      Row : constant Positive := Event.Index;
+   begin
+      if not In_Writing (Item) or else Row > Item.Docs.Tree_Count then
+         return;
+      end if;
+      declare
+         Node : constant Tree_Entry := Item.Docs.Tree (Row);
+      begin
+         if Node.Kind = Directory_Node and then Item.Naming.Renaming_Dir /= Node.Dir then
+            --  The press that began it is not let go on its row.
+            Grips.Cancel_Drag (Item.Docs.Doc_Rows (Row).Row);
+            Begin_Rename_Dir (Item, Node.Dir);
+         end if;
+      end;
+   end Row_Double_Clicked;
+
+   procedure Directory_Field_Ended
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
+   --  Return in the field of a directory's or a document's name, or it
+   --  lost the focus: the renaming is over.
+
+   procedure Directory_Field_Ended
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source, Event);
+   begin
+      if not In_Writing (Item) then
+         return;
+      end if;
+      if Item.Naming.Renaming_Dir /= 0 then
+         End_Rename_Dir (Item);
+      elsif Item.Naming.Renaming_Doc /= 0 then
+         End_Rename_Doc (Item);
+      end if;
+   end Directory_Field_Ended;
+
+   procedure Source_Field_Ended
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
+
+   procedure Source_Field_Ended
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source, Event);
+   begin
+      if In_Writing (Item) and then Item.Naming.Renaming_Source /= 0 then
+         End_Rename_Source (Item);
+      end if;
+   end Source_Field_Ended;
+
+   procedure Pane_Dragged
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
+   --  The edge of the pane was dragged: size it.
+
+   procedure Pane_Dragged
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source);
+      Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
+   begin
+      if In_Writing (Item) and then Event.Across /= 0.0 then
+         declare
+            Most : constant Float :=
+              Float'Max
+                (Style.Pane_Least,
+                 Widgets.Width_Of (Item.Page_View.Write_View) / Pixels
+                 - Style.Sidebar_Width - 2.0 * Style.Sidebar_Margin
+                 - Style.Page_Min_Width);
+         begin
+            Item.Page_View.Pane_Wide :=
+              Float'Min (Most, Float'Max (Style.Pane_Least,
+                                          Item.Page_View.Pane_Wide - Event.Across));
+            Layouts.Set_Layout (Item.Page_View.Pane, Width => Item.Page_View.Pane_Wide);
+         end;
+      end if;
+   end Pane_Dragged;
+
+   procedure Page_Title_Double_Clicked
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
+   --  A page's title was pressed twice: rename it.
+
+   procedure Page_Title_Double_Clicked
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source);
+      Each : Doc_Page renames Item.Docs.Pages (Event.Index);
+   begin
+      if In_Writing (Item) and then not Each.Renaming and then Each.Bound /= 0 then
+         Text_Fields.Attach
+           (Each.Title_Field,
+            Windows.Title_Document (Item.Windows (Each.Bound)));
+         Each.Renaming := True;
+         Widgets.Set_Visible (Each.Heading_Area, False);
+         --  The press that began it is not let go on what is hidden.
+         Grips.Cancel_Drag (Each.Heading_Area);
+         Widgets.Set_Visible (Each.Title_Field, True);
+         Pomarine.Text_Areas.Select_All (Text_Fields.Area (Each.Title_Field).all);
+         Widgets.Focus (Each.Title_Field);
+      end if;
+   end Page_Title_Double_Clicked;
+
+   procedure Page_Title_Ended
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
+   --  Return in a page's title field, or it lost the focus.
+
+   procedure Page_Title_Ended
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source);
+      Each : Doc_Page renames Item.Docs.Pages (Event.Index);
+   begin
+      if Each.Renaming then
+         Each.Renaming := False;
+         Widgets.Set_Visible (Each.Title_Field, False);
+         Widgets.Set_Visible (Each.Heading_Area, True);
+      end if;
+   end Page_Title_Ended;
+
+   procedure Reader_Asked
+     (Item   : in out Session;
+      Which  : Natural;
+      Action : Readers.Actions);
+   --  What a button of a source's window here, or of the pane, asked for:
+   --  Which is 0 for the pane's.
+
+   procedure Reader_Asked
+     (Item   : in out Session;
+      Which  : Natural;
+      Action : Readers.Actions) is
+   begin
+      if not In_Writing (Item) then
+         return;
+      end if;
+      if Which /= 0 then
+         case Action is
+            when Readers.None =>
+               null;
+            when Readers.Close =>
+               Readers.Set_State (Item.Reading.Readers (Which), Items.Closed);
+               Refresh (Item);
+            when Readers.Toggle_Pin =>
+               Pin (Item, Which);
+               Refresh (Item);
+         end case;
+      else
          case Action is
             when Readers.None =>
                null;
@@ -2064,135 +2202,148 @@ package body Viewer.Writing is
                Refresh (Item);
          end case;
       end if;
-   end Take_Sources;
+   end Reader_Asked;
 
-   procedure Take_Pane (Item : in out Session);
-   --  The edge of the pane, dragged to size it.
+   procedure Listen (Item : in out Session) is
+      use all type Widgets.Event_Kind;
 
-   procedure Take_Pane (Item : in out Session) is
-      Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
-      Across, Down : Float;
+      procedure Hear
+        (Part    : in out Widgets.Widget'Class;
+         Kind    : Widgets.Event_Kind;
+         Do_This : Hooks.Handler;
+         Index   : Natural := 0) is
+      begin
+         if Index /= 0 then
+            Widgets.Set_Tag (Part, Widgets.No_Tag, Index);
+         end if;
+         Hooks.On (Part, Kind, Item'Unchecked_Access, Do_This);
+      end Hear;
    begin
-      Grips.Take_Drag (Item.Page_View.Pane_Edge, Across, Down);
-      if Across /= 0.0 then
+      Hear (Item.Naming.Dir_Field, Submit, Directory_Field_Ended'Access);
+      Hear (Item.Naming.Dir_Field, Blur, Directory_Field_Ended'Access);
+      Hear (Item.Naming.Source_Field, Submit, Source_Field_Ended'Access);
+      Hear (Item.Naming.Source_Field, Blur, Source_Field_Ended'Access);
+      for Row in Item.Docs.Doc_Rows'Range loop
          declare
-            Most : constant Float :=
-              Float'Max
-                (Style.Pane_Least,
-                 Widgets.Width_Of (Item.Page_View.Write_View) / Pixels
-                 - Style.Sidebar_Width - 2.0 * Style.Sidebar_Margin
-                 - Style.Page_Min_Width);
+            Box : Grips.Grip renames Item.Docs.Doc_Rows (Row).Row;
          begin
-            Item.Page_View.Pane_Wide :=
-              Float'Min (Most, Float'Max (Style.Pane_Least,
-                                          Item.Page_View.Pane_Wide - Across));
-            Layouts.Set_Layout (Item.Page_View.Pane, Width => Item.Page_View.Pane_Wide);
+            Hear (Box, Drag, Row_Dragged'Access, Row);
+            Hear (Box, Release, Row_Released'Access);
+            Hear (Box, Click, Row_Clicked'Access);
+            Hear (Box, Double_Click, Row_Double_Clicked'Access);
          end;
-      end if;
-   end Take_Pane;
+      end loop;
+      Hear (Item.Page_View.Pane_Edge, Drag, Pane_Dragged'Access);
+      for Rank in Items.Slot loop
+         Hear (Item.Docs.Pages (Rank).Heading_Area, Double_Click, Page_Title_Double_Clicked'Access, Rank);
+         Hear (Item.Docs.Pages (Rank).Title_Field, Submit, Page_Title_Ended'Access, Rank);
+         Hear (Item.Docs.Pages (Rank).Title_Field, Blur, Page_Title_Ended'Access, Rank);
+         Reader_Events.On (Item.Reading.Readers (Rank), Rank, Item'Unchecked_Access, Reader_Asked'Access);
+      end loop;
+      Reader_Events.On (Item.Reading.Pane_Reader, 0, Item'Unchecked_Access, Reader_Asked'Access);
+   end Listen;
 
-   procedure Take_Rename (Item : in out Session; Rank : Positive);
-   --  Begin renaming a document at a double press on its title, and end
-   --  it at Return or when the field is left.
-
-   procedure Take_Rename (Item : in out Session; Rank : Positive) is
-      Each    : Doc_Page renames Item.Docs.Pages (Rank);
-      Doubled : Boolean;
-      Entered : Boolean;
+   procedure Add_Page_Clicked
+     (Item   : in out Session;
+      Source : in out Pomarine.Widgets.Widget'Class;
+      Event  : Pomarine.Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source, Event);
    begin
-      Grips.Take_Double_Click (Each.Heading_Area, Doubled);
-      if Doubled and then not Each.Renaming and then Each.Bound /= 0 then
-         Text_Fields.Attach
-           (Each.Title_Field,
-            Windows.Title_Document (Item.Windows (Each.Bound)));
-         Each.Renaming := True;
-         Widgets.Set_Visible (Each.Heading_Area, False);
-         --  The press that began it is not let go on what is hidden.
-         Grips.Cancel_Drag (Each.Heading_Area);
-         Widgets.Set_Visible (Each.Title_Field, True);
-         Pomarine.Text_Areas.Select_All (Text_Fields.Area (Each.Title_Field).all);
-         Widgets.Focus (Each.Title_Field);
-      elsif Each.Renaming then
-         Text_Fields.Take_Return (Each.Title_Field, Entered);
-         if Entered or else not Widgets.Has_Focus (Each.Title_Field) then
-            Each.Renaming := False;
-            Widgets.Set_Visible (Each.Title_Field, False);
-            Widgets.Set_Visible (Each.Heading_Area, True);
+      Canvas_Items.Add (Item, Canvas_Items.Untitled_Document);
+   end Add_Page_Clicked;
+
+   procedure Add_Folder_Clicked
+     (Item   : in out Session;
+      Source : in out Pomarine.Widgets.Widget'Class;
+      Event  : Pomarine.Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source, Event);
+   begin
+      if Item.Docs.Dirs.Count < Items.Directories.Max_Directories then
+         Make_Directory (Item, Untitled_Directory);
+      end if;
+   end Add_Folder_Clicked;
+
+   procedure Source_Chosen
+     (Item   : in out Session;
+      Source : in out Pomarine.Widgets.Widget'Class;
+      Event  : Pomarine.Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source);
+      Row : constant Natural := Event.Row;
+   begin
+      if Item.Page_View.Menu_Page /= 0 and then Row /= 0 then
+         if Row = Add_Row (Item) then
+            --  On the canvas, where its address can be typed.
+            declare
+               Document : constant Items.Slot :=
+                 Item.Reading.Write_Order (Item.Page_View.Menu_Page);
+            begin
+               Close_Menu (Item);
+               Show (Item, Canvas);
+               Canvas_Items.Add_Linked_Source (Item, Document);
+            end;
+         elsif Row - Rows_Before in 1 .. Item.Page_View.Menu_Count then
+            --  Ticked, it is pinned; ticked again, it is let go.
+            declare
+               Which : constant Items.Slot :=
+                 Item.Page_View.Menu_Slots (Row - Rows_Before);
+            begin
+               if Item.Reading.Pinned_Slot = Which then
+                  Unpin (Item, Reopen => False);
+               else
+                  Pin (Item, Which);
+               end if;
+            end;
+            Close_Menu (Item);
+            Refresh (Item);
          end if;
       end if;
-   end Take_Rename;
+   end Source_Chosen;
 
-   procedure Take_Pages (Item : in out Session);
-   --  The titles of the pages, renamed at a double press.
-
-   procedure Take_Pages (Item : in out Session) is
+   procedure Context_Chosen
+     (Item   : in out Session;
+      Source : in out Pomarine.Widgets.Widget'Class;
+      Event  : Pomarine.Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source);
    begin
-      for Rank in 1 .. Item.Reading.Write_Count loop
-         Take_Rename (Item, Rank);
-      end loop;
-   end Take_Pages;
+      if Event.Row /= 0 and then Item.Context.Context_Kind /= No_Context then
+         Do_Context (Item, Event.Row);
+      end if;
+   end Context_Chosen;
 
-   procedure Respond
-     (Item : in out Session; What : Command; Index : Natural; Row : Natural) is
+   procedure Sources_Clicked
+     (Item   : in out Session;
+      Source : in out Pomarine.Widgets.Widget'Class;
+      Event  : Pomarine.Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source);
    begin
-      case What is
-         when Add_Page =>
-            Canvas_Items.Add (Item, Canvas_Items.Untitled_Document);
-         when Add_Folder =>
-            if Item.Docs.Dirs.Count < Items.Directories.Max_Directories then
-               Make_Directory (Item, Untitled_Directory);
-            end if;
-         when Choose_Source =>
-            if Item.Page_View.Menu_Page /= 0 and then Row /= 0 then
-               if Row = Add_Row (Item) then
-                  --  On the canvas, where its address can be typed.
-                  declare
-                     Document : constant Items.Slot :=
-                       Item.Reading.Write_Order (Item.Page_View.Menu_Page);
-                  begin
-                     Close_Menu (Item);
-                     Show (Item, Canvas);
-                     Canvas_Items.Add_Linked_Source (Item, Document);
-                  end;
-               elsif Row - Rows_Before in 1 .. Item.Page_View.Menu_Count then
-                  --  Ticked, it is pinned; ticked again, it is let go.
-                  declare
-                     Which : constant Items.Slot :=
-                       Item.Page_View.Menu_Slots (Row - Rows_Before);
-                  begin
-                     if Item.Reading.Pinned_Slot = Which then
-                        Unpin (Item, Reopen => False);
-                     else
-                        Pin (Item, Which);
-                     end if;
-                  end;
-                  Close_Menu (Item);
-                  Refresh (Item);
-               end if;
-            end if;
-         when Choose_Context =>
-            if Row /= 0 and then Item.Context.Context_Kind /= No_Context then
-               Do_Context (Item, Row);
-            end if;
-         when Open_Sources =>
-            Open_Menu (Item, Index);
-         when Dictate =>
-            Canvas_Items.Toggle_Dictation (Item, Item.Reading.Write_Order (Index));
-         when Toggle_Source =>
-            Toggle_Source (Item, Item.Reading.Source_Order (Index));
-            Refresh (Item);
-         when others =>
-            null;
-      end case;
-   end Respond;
+      Open_Menu (Item, Event.Index);
+   end Sources_Clicked;
 
-   procedure Take (Item : in out Session) is
+   procedure Dictate_Clicked
+     (Item   : in out Session;
+      Source : in out Pomarine.Widgets.Widget'Class;
+      Event  : Pomarine.Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source);
    begin
-      Take_Pages (Item);
-      Take_Documents (Item);
-      Take_Sources (Item);
-      Take_Pane (Item);
-   end Take;
+      Canvas_Items.Toggle_Dictation (Item, Item.Reading.Write_Order (Event.Index));
+   end Dictate_Clicked;
+
+   procedure Source_Row_Clicked
+     (Item   : in out Session;
+      Source : in out Pomarine.Widgets.Widget'Class;
+      Event  : Pomarine.Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source);
+   begin
+      Toggle_Source (Item, Item.Reading.Source_Order (Event.Index));
+      Refresh (Item);
+   end Source_Row_Clicked;
 
    procedure Pressed (Item : in out Session; X, Y : Float) is
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
@@ -2248,6 +2399,16 @@ package body Viewer.Writing is
 
    procedure Update (Item : in out Session) is
    begin
+      if In_Writing (Item) then
+         for Each of Item.Reading.Readers loop
+            if Readers.Is_Assigned (Each) then
+               Readers.Update (Each);
+            end if;
+         end loop;
+         if Readers.Is_Assigned (Item.Reading.Pane_Reader) then
+            Readers.Update (Item.Reading.Pane_Reader);
+         end if;
+      end if;
       for Which in Items.Slot loop
          if Is_Note (Item, Which) then
             declare
@@ -2433,13 +2594,13 @@ package body Viewer.Writing is
                declare
                   Caret   : constant Texts.Position :=
                     Pomarine.Text_Areas.Caret (Area);
-                  Version : constant Docs.Version :=
+                  Edited  : constant Docs.Version :=
                     Docs.Current (Pomarine.Text_Areas.Document (Area).all);
                begin
-                  if Caret /= Each.Caret_For or else Version /= Each.Caret_Seen
+                  if Caret /= Each.Caret_For or else Edited /= Each.Caret_Seen
                   then
                      Each.Caret_For := Caret;
-                     Each.Caret_Seen := Version;
+                     Each.Caret_Seen := Edited;
                      declare
                         X, Y, Wide, High : Float;
                         Reveal_Top    : constant Float :=

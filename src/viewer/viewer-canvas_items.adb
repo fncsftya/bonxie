@@ -2,6 +2,7 @@ with Items.Links;
 with Items.Marks;
 with Items.Records;
 with Items.Sources;
+with Items.Windows.Callbacks;
 with Items.Words;
 with Ada.Calendar;
 with Ada.Calendar.Formatting;
@@ -14,6 +15,7 @@ with Pomarine.Widgets.Canvases;
 with Pomarine.Widgets.Pictures;
 with Speech.Jobs;
 with Speech.Models;
+with Viewer.Gestures;
 with Viewer.Links;
 with Viewer.Style;
 with Viewer.Writing;
@@ -26,6 +28,7 @@ package body Viewer.Canvas_Items is
    package Widgets renames Pomarine.Widgets;
    package Canvases renames Pomarine.Widgets.Canvases;
    package Windows renames Items.Windows;
+   package Window_Events is new Items.Windows.Callbacks (Session);
 
    use type Items.States;
    use type Preferences.Speech_Models;
@@ -62,6 +65,12 @@ package body Viewer.Canvas_Items is
      (Windows.Is_Assigned (Item.Windows (Which))
       and then Windows.Details (Item.Windows (Which)).Kind = Items.Source);
 
+   function Busy (Item : Session) return Boolean is
+     (Capturing (Item)
+      or else (for some Which in Items.Slot =>
+                 Is_Source (Item, Which)
+                 and then Vision.Jobs.State (Which) = Vision.Jobs.Working));
+
    function Capturing (Item : Session) return Boolean is
    begin
       for Which in Items.Slot loop
@@ -73,8 +82,7 @@ package body Viewer.Canvas_Items is
             return True;
          end if;
          if Is_Source (Item, Which)
-           and then (Webshot.State (Which) = Webshot.Working
-                     or else Vision.Jobs.State (Which) = Vision.Jobs.Working)
+           and then Webshot.State (Which) = Webshot.Working
          then
             return True;
          end if;
@@ -751,29 +759,42 @@ package body Viewer.Canvas_Items is
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
    end Remove;
 
-   procedure Take (Item : in out Session) is
-      Action : Windows.Actions;
+   procedure Window_Asked
+     (Item   : in out Session;
+      Which  : Items.Slot;
+      Action : Windows.Actions);
+   --  What a window's buttons asked for.
+
+   procedure Window_Asked
+     (Item   : in out Session;
+      Which  : Items.Slot;
+      Action : Windows.Actions) is
+   begin
+      if not Gestures.Active (Item) then
+         return;
+      end if;
+      case Action is
+         when Windows.None =>
+            null;
+         when Windows.Minimize =>
+            Set_State (Item, Which, Items.Minimized);
+         when Windows.Restore =>
+            Set_State (Item, Which, Items.Open);
+         when Windows.Close =>
+            Set_State (Item, Which, Items.Closed);
+         when Windows.Capture =>
+            Start_Capture (Item, Which);
+         when Windows.Speak =>
+            Toggle_Dictation (Item, Which);
+      end case;
+   end Window_Asked;
+
+   procedure Listen (Item : in out Session) is
    begin
       for Which in Items.Slot loop
-         if Windows.Is_Assigned (Item.Windows (Which)) then
-            Windows.Poll (Item.Windows (Which), Action);
-            case Action is
-               when Windows.None =>
-                  null;
-               when Windows.Minimize =>
-                  Set_State (Item, Which, Items.Minimized);
-               when Windows.Restore =>
-                  Set_State (Item, Which, Items.Open);
-               when Windows.Close =>
-                  Set_State (Item, Which, Items.Closed);
-               when Windows.Capture =>
-                  Start_Capture (Item, Which);
-               when Windows.Speak =>
-                  Toggle_Dictation (Item, Which);
-            end case;
-         end if;
+         Window_Events.On (Item.Windows (Which), Which, Item'Unchecked_Access, Window_Asked'Access);
       end loop;
-   end Take;
+   end Listen;
 
    procedure Pressed (Item : in out Session; X, Y : Float) is
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
@@ -838,6 +859,13 @@ package body Viewer.Canvas_Items is
       Wrote, Any : Boolean := False;
    begin
       Sync (Item);
+      if Gestures.Active (Item) then
+         for Each of Item.Windows loop
+            if Windows.Is_Assigned (Each) then
+               Windows.Update (Each);
+            end if;
+         end loop;
+      end if;
       for Which in Items.Slot loop
          if Windows.Is_Assigned (Item.Windows (Which))
            and then Windows.Details (Item.Windows (Which)).Kind = Items.Source

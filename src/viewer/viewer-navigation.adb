@@ -1,11 +1,11 @@
 with Ada.Strings.Unbounded;
 with Texts.Documents;
 with Pomarine.Text_Areas;
-with Pomarine.Widgets;
 with Pomarine.Widgets.Grips;
 with Pomarine.Widgets.Labels;
 with Pomarine.Widgets.Text_Fields;
 with Viewer.Canvas_Items;
+with Viewer.Gestures;
 with Viewer.Recent;
 with Viewer.Writing;
 
@@ -66,12 +66,14 @@ package body Viewer.Navigation is
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
    end Finish_Rename;
 
-   procedure Take_Rename (Item : in out Session) is
-      Doubled : Boolean;
-      Entered : Boolean;
+   procedure Title_Double_Clicked
+     (Item   : in out Session;
+      Source : in out Pomarine.Widgets.Widget'Class;
+      Event  : Pomarine.Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source, Event);
    begin
-      Grips.Take_Double_Click (Item.Toolbar.Title_Area, Doubled);
-      if Doubled and then not Item.Toolbar.Renaming then
+      if Gestures.Active (Item) and then not Item.Toolbar.Renaming then
          Texts.Documents.Load
            (Item.Toolbar.Title_Doc, Ada.Strings.Unbounded.To_String (Item.Opened.Project_Name));
          Text_Fields.Attach
@@ -85,14 +87,20 @@ package body Viewer.Navigation is
          Pomarine.Text_Areas.Select_All
            (Text_Fields.Area (Item.Toolbar.Title_Field).all);
          Widgets.Focus (Item.Toolbar.Title_Field);
-      elsif Item.Toolbar.Renaming then
-         Text_Fields.Take_Return (Item.Toolbar.Title_Field, Entered);
-         if Entered or else not Widgets.Has_Focus (Item.Toolbar.Title_Field)
-         then
-            Finish_Rename (Item);
-         end if;
       end if;
-   end Take_Rename;
+   end Title_Double_Clicked;
+
+   procedure Title_Ended
+     (Item   : in out Session;
+      Source : in out Pomarine.Widgets.Widget'Class;
+      Event  : Pomarine.Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source, Event);
+   begin
+      if Item.Toolbar.Renaming then
+         Finish_Rename (Item);
+      end if;
+   end Title_Ended;
 
    procedure Enter (Item : in out Session; Key : Projects.Id) is
    begin

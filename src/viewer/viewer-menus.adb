@@ -43,8 +43,6 @@ package body Viewer.Menus is
                return (if not In_Project then Widgets.Disabled
                        elsif Current.Toolbar.Mode = Write then Widgets.Ticked
                        else Widgets.Enabled);
-            when others =>
-               return Widgets.Enabled;
          end case;
       end;
    end Validate;

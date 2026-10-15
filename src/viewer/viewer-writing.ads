@@ -1,4 +1,5 @@
 with Items.Directories;
+with Pomarine.Widgets;
 with Vision;
 
 --  The writing view: the items that are not sources, as documents, each
@@ -60,12 +61,51 @@ private package Viewer.Writing is
    --  of the sidebar, a page's text or a source's window; on the canvas,
    --  the text or the picture of a window.
 
-   procedure Respond
-     (Item : in out Session; What : Command; Index : Natural; Row : Natural)
-     with Pre => Screen (Item) = Project;
-   --  Do what a button, a row of a menu or a list of the writing view was
-   --  for. Index is which of many it is (a page's rank, a row of the
-   --  sources), and Row the row chosen of a menu.
+   --  What the writing view's widgets say (see Viewer.Responses, which
+   --  gives them to the widgets):
+
+   procedure Add_Page_Clicked
+     (Item   : in out Session;
+      Source : in out Pomarine.Widgets.Widget'Class;
+      Event  : Pomarine.Widgets.Widget_Event);
+   --  Add a document.
+
+   procedure Add_Folder_Clicked
+     (Item   : in out Session;
+      Source : in out Pomarine.Widgets.Widget'Class;
+      Event  : Pomarine.Widgets.Widget_Event);
+   --  Add a directory, if there is room.
+
+   procedure Source_Chosen
+     (Item   : in out Session;
+      Source : in out Pomarine.Widgets.Widget'Class;
+      Event  : Pomarine.Widgets.Widget_Event);
+   --  A row of the menu of a page's sources: pin or let go of the source,
+   --  or add one.
+
+   procedure Context_Chosen
+     (Item   : in out Session;
+      Source : in out Pomarine.Widgets.Widget'Class;
+      Event  : Pomarine.Widgets.Widget_Event);
+   --  A row of the context menu.
+
+   procedure Sources_Clicked
+     (Item   : in out Session;
+      Source : in out Pomarine.Widgets.Widget'Class;
+      Event  : Pomarine.Widgets.Widget_Event);
+   --  A page's Sources button: its Index is the page's rank.
+
+   procedure Dictate_Clicked
+     (Item   : in out Session;
+      Source : in out Pomarine.Widgets.Widget'Class;
+      Event  : Pomarine.Widgets.Widget_Event);
+   --  A page's microphone button: its Index is the page's rank.
+
+   procedure Source_Row_Clicked
+     (Item   : in out Session;
+      Source : in out Pomarine.Widgets.Widget'Class;
+      Event  : Pomarine.Widgets.Widget_Event);
+   --  A row of the sources' list: its Index is the row.
 
    procedure Delete_Node (Item : in out Session; Node : Tree_Entry)
      with Pre => Screen (Item) = Project
@@ -82,10 +122,10 @@ private package Viewer.Writing is
      with Pre => Directory <= Item.Docs.Dirs.Count;
    --  Show only the pages of the directory (all, if 0).
 
-   procedure Take (Item : in out Session)
-     with Pre => Screen (Item) = Project and then Item.Toolbar.Mode = Write;
-   --  Do what the lists, the sources' windows and the pane were clicked
-   --  or dragged for.
+   procedure Listen (Item : in out Session);
+   --  Give the writing view's widgets, and the windows of the sources in
+   --  it, the procedures they call when they are clicked, dragged or have
+   --  their say: once they are built.
 
    procedure Pressed (Item : in out Session; X, Y : Float)
      with Pre => Screen (Item) = Project;

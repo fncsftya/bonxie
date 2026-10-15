@@ -54,9 +54,6 @@ private package Viewer.Style is
 
    List_Width    : constant Float := 440.0;
    List_Height   : constant Float := 380.0;
-   List_Gap      : constant Float := 6.0;
-   Toggle_Width  : constant Float := 44.0;
-   Remove_Width  : constant Float := 44.0;
    --  Of the buttons to show or hide an item, and to remove it.
 
    --  The writing view, in points

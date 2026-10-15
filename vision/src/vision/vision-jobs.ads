@@ -1,7 +1,8 @@
 --  Recognition in the background: each job has a slot, and a task of its
 --  own that does it (Vision.Recognize) while the caller goes on. The
---  caller polls (State) and takes the words when it is Done; as with
---  Webshot, a slot has one job at a time. The words are kept in the slot
+--  caller looks at (State) and takes the words when it is Done; it is
+--  woken, if it is waiting for events, when a job ends (see
+--  Pomarine.Application.Post); as with Webshot, a slot has one job at a time. The words are kept in the slot
 --  until Take.
 package Vision.Jobs is
 

@@ -12,6 +12,7 @@ with Vision;
 with Webshot;
 with Goldens;
 with Items.Windows;
+with Pomarine.Application;
 with Projects;
 with Viewer;
 with Viewer.Canvas_Camera;
@@ -752,6 +753,47 @@ package body Item_Tests is
       Snap (Session, "list-shown");
    end Listing;
 
+   procedure Keyboard_List is
+      Session : Viewer.Session;
+      Was     : Items.States;
+   begin
+      Start (Session);
+      Windows.Add_Item (Session, "First");
+      Windows.Add_Item (Session, "Second");
+      Click_On (Session, List_X, List_Y);
+      Check ("list-keys-shown", "TRUE", Boolean'Image (Proj.Is_Listing (Session)));
+
+      --  The list has the focus: an arrow chooses the first row, and Space
+      --  does what its first button does, as the pointer would.
+      Was := Windows.Item_State (Session, 1);
+      Press_Key (Session, Events.Key_Down_Arrow);
+      Press_Key (Session, Events.Key_Space);
+      Check
+        ("list-keys-space", "TRUE",
+         Boolean'Image (Windows.Item_State (Session, 1) /= Was));
+      Press_Key (Session, Events.Key_Space);
+      Check
+        ("list-keys-space-again", "TRUE",
+         Boolean'Image (Windows.Item_State (Session, 1) = Was));
+
+      --  Delete removes the item chosen.
+      Press_Key (Session, Events.Key_Delete);
+      Check ("list-keys-delete", " 1", Natural'Image (Windows.Item_Count (Session)));
+
+      --  Tab goes round the dialog only: from the list to its button to
+      --  close it, which Return presses, and not on to the screen behind.
+      Press_Key (Session, Events.Key_Tab);
+      Press_Key (Session, Events.Key_Return);
+      Check ("list-keys-closed", "FALSE", Boolean'Image (Proj.Is_Listing (Session)));
+
+      --  Return on a row, chosen with the arrows, shows the item and puts
+      --  the list away.
+      Click_On (Session, List_X, List_Y);
+      Press_Key (Session, Events.Key_Down_Arrow);
+      Press_Key (Session, Events.Key_Return);
+      Check ("list-keys-return", "FALSE", Boolean'Image (Proj.Is_Listing (Session)));
+   end Keyboard_List;
+
    procedure Removing is
       Session : Viewer.Session;
    begin
@@ -1394,10 +1436,25 @@ package body Item_Tests is
 
       --  Once the picture is taken its text is looked for, in the
       --  background, and the loop goes on until it is found.
+      Pomarine.Application.Run_Posted;
       Capture_From (Session, "file://" & Page);
       Words := Windows.Item_Recognized (Session, 1);
       Check
         ("words-found", "TRUE", Boolean'Image (Words >= 8));
+
+      --  The task that found them woke the loop, which was waiting for an
+      --  event, with a post (it is posted just after the words are there).
+      declare
+         Waited : Natural := 0;
+      begin
+         while not Pomarine.Application.Is_Waiting and then Waited < 100 loop
+            delay 0.01;
+            Waited := Waited + 1;
+         end loop;
+      end;
+      Check
+        ("words-woke-the-loop", "TRUE", Boolean'Image (Pomarine.Application.Is_Waiting));
+      Pomarine.Application.Run_Posted;
 
       --  Selected, from the window, and copied.
       Draw;

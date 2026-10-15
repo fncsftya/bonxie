@@ -65,7 +65,7 @@ package body Viewer.Canvas_Windows is
    end Pin_Capture_Time;
 
    function Is_Capturing (Item : Session) return Boolean is
-     (Canvas_Items.Capturing (Item));
+     (Canvas_Items.Busy (Item));
 
    function Item_Zoom (Item : Session; Row : Positive) return Float is
      (Items.Windows.Details (Item.Windows (Window (Item, Row))).Zoom);

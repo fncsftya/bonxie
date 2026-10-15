@@ -1,6 +1,9 @@
 --  The list of the project's items: a dialog over the project screen, with
 --  a scrolling row for each item, to show it on the canvas or hide it, or
 --  remove it for good.
+with Pomarine.Models;
+with Pomarine.Widgets;
+
 private package Viewer.Listing is
 
    procedure Open (Item : in out Session)
@@ -13,9 +16,26 @@ private package Viewer.Listing is
    procedure Refresh (Item : in out Session);
    --  Make the rows those of the items there are now.
 
-   procedure Respond (Item : in out Session; What : Command; Row : Natural)
-     with Pre => Screen (Item) = Project and then Item.Item_List.Showing_List;
-   --  Do what a button of the list was clicked for: Close_List, or of the
-   --  row of the item Row, Reveal_Item, Toggle_Item or Remove_Item.
+   procedure Describe
+     (Item    : Session;
+      Row     : Positive;
+      Content : out Pomarine.Models.Row_Content)
+     with Pre => Row <= Item.Item_List.List_Rows.Found;
+   --  What the list shows for its Rowth item.
+
+   --  What the list says (see Viewer.Responses, which gives them to it):
+
+   procedure Clicked
+     (Item   : in out Session;
+      Source : in out Pomarine.Widgets.Widget'Class;
+      Event  : Pomarine.Widgets.Widget_Event);
+   --  A row was clicked, or Return pressed on it: show the item on the
+   --  canvas, and put the list away.
+
+   procedure Acted
+     (Item   : in out Session;
+      Source : in out Pomarine.Widgets.Widget'Class;
+      Event  : Pomarine.Widgets.Widget_Event);
+   --  A button of a row: show or hide its item, or remove it.
 
 end Viewer.Listing;

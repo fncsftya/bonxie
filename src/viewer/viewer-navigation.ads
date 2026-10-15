@@ -1,4 +1,6 @@
 --  Going between the home screen and a project's.
+with Pomarine.Widgets;
+
 private package Viewer.Navigation is
 
    procedure Enter (Item : in out Session; Key : Projects.Id)
@@ -13,10 +15,18 @@ private package Viewer.Navigation is
      with Pre => Screen (Item) = Project;
    --  Go back to the home screen.
 
-   procedure Take_Rename (Item : in out Session)
-     with Pre => Screen (Item) = Project;
-   --  Begin renaming the project at a double press on its name, and end
-   --  it at Return or when the field is left.
+   procedure Title_Double_Clicked
+     (Item   : in out Session;
+      Source : in out Pomarine.Widgets.Widget'Class;
+      Event  : Pomarine.Widgets.Widget_Event);
+   --  The project's name was pressed twice: begin renaming it.
+
+   procedure Title_Ended
+     (Item   : in out Session;
+      Source : in out Pomarine.Widgets.Widget'Class;
+      Event  : Pomarine.Widgets.Widget_Event);
+   --  Return was pressed in the name's field, or it has lost the focus:
+   --  end the renaming.
 
    procedure Keep
      (Item    : in out Session;

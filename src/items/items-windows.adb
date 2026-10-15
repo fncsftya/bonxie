@@ -7,6 +7,8 @@ with Pomarine.Boxes;
 with Pomarine.Text_Areas;
 with Icon_Set;
 with Pomarine.Line_Texts;
+with Pomarine.Widgets.Callbacks;
+with Pomarine.Widgets.Frames.Handlers;
 with Pomarine.Widgets.Layouts;
 
 package body Items.Windows is
@@ -109,6 +111,9 @@ package body Items.Windows is
       Frames.Share_Title (Item.Chrome, Shared);
       Editors.Set_Shared (Item.Body_Text, Shared);
    end Set_Shared;
+
+   procedure Listen (Item : in out Window);
+   --  Give the window's widgets the procedures they call (see Update).
 
    procedure Build
      (Item    : in out Window;
@@ -240,6 +245,7 @@ package body Items.Windows is
       Widgets.Set_Visible (Item.Zoom_Menu, False);
       Widgets.Set_Visible (Item.Picture, False);
       Widgets.Set_Visible (Item.Progress, False);
+      Listen (Item);
    end Build;
 
    function Is_Assigned (Item : Window) return Boolean is (Item.Assigned);
@@ -940,15 +946,269 @@ package body Items.Windows is
    function Is_Dragging (Item : Window) return Boolean is
      (Frames.Is_Dragging (Item.Chrome));
 
-   procedure Poll (Item : in out Window; Action : out Actions) is
-      Across, Down : Float;
-      Clicked      : Boolean;
-      Entered      : Boolean;
-      Doubled      : Boolean;
-      Used         : Boolean;
-   begin
-      Action := None;
+   package Hooks is new Pomarine.Widgets.Callbacks (Window);
+   package Frame_Hooks is new Pomarine.Widgets.Frames.Handlers (Window);
 
+   subtype Source_Widget is Widgets.Widget'Class;
+
+   procedure Say (Item : in out Window; Action : Actions);
+   --  Tell the application what a button asked for, if it listens.
+
+   procedure Say (Item : in out Window; Action : Actions) is
+   begin
+      if Item.Said /= null then
+         Item.Said (Item.Said_Self, Item.Said_Proc, Item.Said_Which, Action);
+      end if;
+   end Say;
+
+   --  What the window's widgets say: each is for the window it is of.
+
+   procedure Moved
+     (Item : in out Window; From : in out Source_Widget; Event : Widgets.Widget_Event);
+   --  The title bar was dragged: move it, in canvas units.
+
+   procedure Moved
+     (Item : in out Window; From : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (From);
+   begin
+      Item.Details.Where.Left := Item.Details.Where.Left + Event.Across / Item.Zoom;
+      Item.Details.Where.Top := Item.Details.Where.Top + Event.Down / Item.Zoom;
+      Item.Frame_Dirty := True;
+      Place (Item, Item.Zoom, Item.Origin_X, Item.Origin_Y);
+   end Moved;
+
+   procedure Sized
+     (Item : in out Window; From : in out Source_Widget; Event : Widgets.Widget_Event);
+   --  The corner was dragged: size it, in canvas units, but not under the
+   --  least.
+
+   procedure Sized
+     (Item : in out Window; From : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (From);
+   begin
+      if not Item.Resizing then
+         Item.Raw_Width := Item.Details.Where.Width;
+         Item.Raw_Height := Item.Details.Where.Height;
+      end if;
+      Item.Raw_Width := Item.Raw_Width + Event.Across / Item.Zoom;
+      Item.Raw_Height := Item.Raw_Height + Event.Down / Item.Zoom;
+      Item.Details.Where := Sized
+        ((Item.Details.Where with delta
+            Width  => Item.Raw_Width,
+            Height => Item.Raw_Height));
+      Item.Frame_Dirty := True;
+      Place (Item, Item.Zoom, Item.Origin_X, Item.Origin_Y);
+      Item.Resizing := Frames.Is_Sizing (Item.Chrome);
+   end Sized;
+
+   procedure Title_Pressed_Twice
+     (Item : in out Window; From : in out Source_Widget; Event : Widgets.Widget_Event);
+
+   procedure Title_Pressed_Twice
+     (Item : in out Window; From : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (From, Event);
+   begin
+      if Item.Details.State = Open and then not Frames.Is_Editing_Title (Item.Chrome) then
+         Begin_Edit (Item);
+      end if;
+   end Title_Pressed_Twice;
+
+   procedure Title_Ended
+     (Item : in out Window; From : in out Source_Widget; Event : Widgets.Widget_Event);
+   --  Return was pressed in the title's field, or it lost the focus.
+
+   procedure Title_Ended
+     (Item : in out Window; From : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (From, Event);
+   begin
+      if Frames.Is_Editing_Title (Item.Chrome) then
+         End_Edit (Item);
+      end if;
+   end Title_Ended;
+
+   function Is_Open_Source (Item : Window) return Boolean is
+     (Item.Details.Kind = Source and then Item.Details.State = Open);
+
+   procedure Fetch_Asked
+     (Item : in out Window; From : in out Source_Widget; Event : Widgets.Widget_Event);
+   --  Return in a source's link, or its Add button.
+
+   procedure Fetch_Asked
+     (Item : in out Window; From : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (From, Event);
+   begin
+      if Is_Open_Source (Item) then
+         Say (Item, Capture);
+      end if;
+   end Fetch_Asked;
+
+   procedure Zoom_Moved
+     (Item : in out Window; From : in out Source_Widget; Event : Widgets.Widget_Event);
+
+   procedure Zoom_Moved
+     (Item : in out Window; From : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (From, Event);
+   begin
+      if Is_Open_Source (Item) then
+         Set_Zoom (Item, Items.Sources.From_Slider (Sliders.Value (Item.Zoom_Slider)));
+      end if;
+   end Zoom_Moved;
+
+   procedure Pointer_Clicked
+     (Item : in out Window; From : in out Source_Widget; Event : Widgets.Widget_Event);
+   procedure Marker_Clicked
+     (Item : in out Window; From : in out Source_Widget; Event : Widgets.Widget_Event);
+   procedure Eraser_Clicked
+     (Item : in out Window; From : in out Source_Widget; Event : Widgets.Widget_Event);
+
+   procedure Pointer_Clicked
+     (Item : in out Window; From : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (From, Event);
+   begin
+      if Is_Open_Source (Item) then
+         Select_Tool (Item, Pomarine.Widgets.Pictures.Pointer);
+      end if;
+   end Pointer_Clicked;
+
+   procedure Marker_Clicked
+     (Item : in out Window; From : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (From, Event);
+   begin
+      if Is_Open_Source (Item) then
+         Select_Tool (Item, Pomarine.Widgets.Pictures.Highlighter);
+      end if;
+   end Marker_Clicked;
+
+   procedure Eraser_Clicked
+     (Item : in out Window; From : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (From, Event);
+   begin
+      if Is_Open_Source (Item) then
+         Select_Tool (Item, Pomarine.Widgets.Pictures.Eraser);
+      end if;
+   end Eraser_Clicked;
+
+   procedure Zoom_Menu_Clicked
+     (Item : in out Window; From : in out Source_Widget; Event : Widgets.Widget_Event);
+   --  The button that opens the menu of zooms.
+
+   procedure Zoom_Menu_Clicked
+     (Item : in out Window; From : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (From, Event);
+   begin
+      if Is_Open_Source (Item) then
+         Widgets.Set_Visible (Item.Zoom_Menu, not Widgets.Is_Visible (Item.Zoom_Menu));
+         Widgets.Raise_To_Front (Item.Zoom_Menu);
+      end if;
+   end Zoom_Menu_Clicked;
+
+   procedure Preset_Clicked
+     (Item : in out Window; From : in out Source_Widget; Event : Widgets.Widget_Event);
+   --  A zoom of the menu: its Index.
+
+   procedure Preset_Clicked
+     (Item : in out Window; From : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (From);
+   begin
+      if Is_Open_Source (Item) then
+         Set_Zoom (Item, Preset_Zooms (Event.Index));
+         Widgets.Set_Visible (Item.Zoom_Menu, False);
+      end if;
+   end Preset_Clicked;
+
+   procedure Speak_Clicked
+     (Item : in out Window; From : in out Source_Widget; Event : Widgets.Widget_Event);
+
+   procedure Speak_Clicked
+     (Item : in out Window; From : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (From, Event);
+   begin
+      if Item.Details.Kind = Note and then Item.Details.State = Open then
+         Say (Item, Speak);
+      end if;
+   end Speak_Clicked;
+
+   --  Whichever button, of the window or the bar in the dock
+
+   procedure Minimize_Clicked
+     (Item : in out Window; From : in out Source_Widget; Event : Widgets.Widget_Event);
+
+   procedure Minimize_Clicked
+     (Item : in out Window; From : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (From, Event);
+   begin
+      if Item.Details.State = Open then
+         Say (Item, Minimize);
+      end if;
+   end Minimize_Clicked;
+
+   procedure Restore_Clicked
+     (Item : in out Window; From : in out Source_Widget; Event : Widgets.Widget_Event);
+
+   procedure Restore_Clicked
+     (Item : in out Window; From : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (From, Event);
+   begin
+      if Item.Details.State = Minimized then
+         Say (Item, Restore);
+      end if;
+   end Restore_Clicked;
+
+   procedure Close_Clicked
+     (Item : in out Window; From : in out Source_Widget; Event : Widgets.Widget_Event);
+
+   procedure Close_Clicked
+     (Item : in out Window; From : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (From, Event);
+   begin
+      if Item.Details.State in Open | Minimized then
+         Say (Item, Close);
+      end if;
+   end Close_Clicked;
+
+   procedure Listen (Item : in out Window) is
+      use all type Widgets.Event_Kind;
+   begin
+      Frame_Hooks.On (Item.Chrome, Move, Item'Unrestricted_Access, Moved'Access);
+      Frame_Hooks.On (Item.Chrome, Resize, Item'Unrestricted_Access, Sized'Access);
+      Frame_Hooks.On (Item.Chrome, Double_Click, Item'Unrestricted_Access, Title_Pressed_Twice'Access);
+      Frame_Hooks.On (Item.Chrome, Submit, Item'Unrestricted_Access, Title_Ended'Access);
+      Frame_Hooks.On (Item.Chrome, Blur, Item'Unrestricted_Access, Title_Ended'Access);
+      Frame_Hooks.On (Item.Chrome, Minimize, Item'Unrestricted_Access, Minimize_Clicked'Access);
+      Frame_Hooks.On (Item.Chrome, Restore, Item'Unrestricted_Access, Restore_Clicked'Access);
+      Frame_Hooks.On (Item.Chrome, Close, Item'Unrestricted_Access, Close_Clicked'Access);
+      Hooks.On (Item.Body_Text, Submit, Item'Unrestricted_Access, Fetch_Asked'Access);
+      Hooks.On (Item.Fetch_Button, Click, Item'Unrestricted_Access, Fetch_Asked'Access);
+      Hooks.On (Item.Zoom_Slider, Change, Item'Unrestricted_Access, Zoom_Moved'Access);
+      Hooks.On (Item.Cursor_Button, Click, Item'Unrestricted_Access, Pointer_Clicked'Access);
+      Hooks.On (Item.Marker_Button, Click, Item'Unrestricted_Access, Marker_Clicked'Access);
+      Hooks.On (Item.Eraser_Button, Click, Item'Unrestricted_Access, Eraser_Clicked'Access);
+      Hooks.On (Item.Zoom_Button, Click, Item'Unrestricted_Access, Zoom_Menu_Clicked'Access);
+      for Which in Item.Menu_Buttons'Range loop
+         Widgets.Set_Tag (Item.Menu_Buttons (Which), Widgets.No_Tag, Which);
+         Hooks.On (Item.Menu_Buttons (Which), Click, Item'Unrestricted_Access, Preset_Clicked'Access);
+      end loop;
+      Hooks.On (Item.Speak_Button, Click, Item'Unrestricted_Access, Speak_Clicked'Access);
+   end Listen;
+
+   procedure Update (Item : in out Window) is
+      Used : Boolean;
+   begin
       if Item.Scroll_Pending
         and then Item.Details.State = Open
         and then Widgets.Width_Of (Item.Body_Text) > 0.0
@@ -960,29 +1220,12 @@ package body Items.Windows is
          Item.Scroll_Seen := Scroll_Of (Item);
       end if;
 
-      --  Moved and sized, in canvas units.
-      Frames.Take_Move (Item.Chrome, Across, Down);
-      if Across /= 0.0 or else Down /= 0.0 then
-         Item.Details.Where.Left :=
-           Item.Details.Where.Left + Across / Item.Zoom;
-         Item.Details.Where.Top := Item.Details.Where.Top + Down / Item.Zoom;
-         Item.Frame_Dirty := True;
-         Place (Item, Item.Zoom, Item.Origin_X, Item.Origin_Y);
-      end if;
+      --  What is moved and sized is the handlers' (see Listen); here only
+      --  the size the corner asks for, which is the size it has, while it
+      --  is not being dragged.
       if not Item.Resizing then
          Item.Raw_Width := Item.Details.Where.Width;
          Item.Raw_Height := Item.Details.Where.Height;
-      end if;
-      Frames.Take_Size (Item.Chrome, Across, Down);
-      if Across /= 0.0 or else Down /= 0.0 then
-         Item.Raw_Width := Item.Raw_Width + Across / Item.Zoom;
-         Item.Raw_Height := Item.Raw_Height + Down / Item.Zoom;
-         Item.Details.Where := Sized
-           ((Item.Details.Where with delta
-               Width  => Item.Raw_Width,
-               Height => Item.Raw_Height));
-         Item.Frame_Dirty := True;
-         Place (Item, Item.Zoom, Item.Origin_X, Item.Origin_Y);
       end if;
       Item.Resizing := Frames.Is_Sizing (Item.Chrome);
 
@@ -1009,92 +1252,7 @@ package body Items.Windows is
       if Docs.Current (Item.Content_Doc) /= Item.Content_Version then
          Show_Words (Item);
       end if;
-      Frames.Take_Title_Double_Click (Item.Chrome, Doubled);
-      if Doubled and then Item.Details.State = Open
-        and then not Frames.Is_Editing_Title (Item.Chrome)
-      then
-         Begin_Edit (Item);
-      end if;
-      if Item.Details.Kind = Source and then Item.Details.State = Open then
-         Pomarine.Text_Areas.Take_Return
-           (Editors.Area (Item.Body_Text).all, Entered);
-         Buttons.Take_Click (Item.Fetch_Button, Clicked);
-         if Entered or else Clicked then
-            Action := Capture;
-            return;
-         end if;
-      end if;
-      if Item.Details.Kind = Source and then Item.Details.State = Open then
-         Sliders.Take_Change (Item.Zoom_Slider, Entered);
-         if Entered then
-            Set_Zoom
-              (Item,
-               Items.Sources.From_Slider (Sliders.Value (Item.Zoom_Slider)));
-         end if;
-         Buttons.Take_Click (Item.Cursor_Button, Clicked);
-         if Clicked then
-            Select_Tool (Item, Pomarine.Widgets.Pictures.Pointer);
-         end if;
-         Buttons.Take_Click (Item.Marker_Button, Clicked);
-         if Clicked then
-            Select_Tool (Item, Pomarine.Widgets.Pictures.Highlighter);
-         end if;
-         Buttons.Take_Click (Item.Eraser_Button, Clicked);
-         if Clicked then
-            Select_Tool (Item, Pomarine.Widgets.Pictures.Eraser);
-         end if;
-         Buttons.Take_Click (Item.Zoom_Button, Clicked);
-         if Clicked then
-            Widgets.Set_Visible
-              (Item.Zoom_Menu, not Widgets.Is_Visible (Item.Zoom_Menu));
-            Widgets.Raise_To_Front (Item.Zoom_Menu);
-         end if;
-         for Which in Item.Menu_Buttons'Range loop
-            Buttons.Take_Click (Item.Menu_Buttons (Which), Clicked);
-            if Clicked then
-               Set_Zoom (Item, Preset_Zooms (Which));
-               Widgets.Set_Visible (Item.Zoom_Menu, False);
-            end if;
-         end loop;
-      end if;
-      if Frames.Is_Editing_Title (Item.Chrome) then
-         Frames.Take_Title_Return (Item.Chrome, Entered);
-         if Entered or else not Frames.Title_Has_Focus (Item.Chrome) then
-            End_Edit (Item);
-         end if;
-      end if;
-
-      if Item.Details.Kind = Note and then Item.Details.State = Open then
-         Buttons.Take_Click (Item.Speak_Button, Clicked);
-         if Clicked then
-            Action := Speak;
-            return;
-         end if;
-      end if;
-
-      --  Whichever button, of the window or the bar in the dock.
-      if Item.Details.State = Open then
-         Frames.Take_Minimize (Item.Chrome, Clicked);
-         if Clicked then
-            Action := Minimize;
-            return;
-         end if;
-         Frames.Take_Close (Item.Chrome, Clicked);
-         if Clicked then
-            Action := Close;
-         end if;
-      elsif Item.Details.State = Minimized then
-         Frames.Take_Restore (Item.Chrome, Clicked);
-         if Clicked then
-            Action := Restore;
-            return;
-         end if;
-         Frames.Take_Close (Item.Chrome, Clicked);
-         if Clicked then
-            Action := Close;
-         end if;
-      end if;
-   end Poll;
+   end Update;
 
    procedure Flush
      (Item  : in out Window;

@@ -34,6 +34,18 @@ package body Viewer.Deletion is
       return Before & Name (Name'First .. Last) & After;
    end Asked;
 
+   procedure Show_Dialog (Item : in out Session);
+   --  Show the dialog over the rest: Tab goes round only its buttons, and
+   --  Return, which a button has when it has the focus, is for Cancel.
+
+   procedure Show_Dialog (Item : in out Session) is
+   begin
+      Widgets.Set_Visible (Item.Confirm.Overlay, True);
+      Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
+      Widgets.Set_Focus_Scope (Item.Root.Widgets, Item.Confirm.Dialog_Border);
+      Widgets.Focus (Item.Confirm.Confirm_Cancel);
+   end Show_Dialog;
+
    procedure Confirm (Item : in out Session; Row : Positive) is
       Name : constant String :=
         Projects.Titles.To_String (Item.Home_View.Listed.Items (Row).Title);
@@ -41,8 +53,7 @@ package body Viewer.Deletion is
       Recent.Cancel_Edit (Item);
       Item.Confirm.Deleting := Item.Home_View.Listed.Items (Row).Key;
       Labels.Set_Text (Item.Confirm.Confirm_Message, Asked (Name));
-      Widgets.Set_Visible (Item.Confirm.Overlay, True);
-      Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
+      Show_Dialog (Item);
    end Confirm;
 
    procedure Confirm_Node (Item : in out Session; Node : Tree_Entry) is
@@ -66,8 +77,7 @@ package body Viewer.Deletion is
         (Item.Confirm.Confirm_Note,
          (if Node.Kind = Directory_Node then "Its documents are kept."
           else "This cannot be undone."));
-      Widgets.Set_Visible (Item.Confirm.Overlay, True);
-      Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
+      Show_Dialog (Item);
    end Confirm_Node;
 
    procedure Confirm_Model (Item : in out Session; Size : String) is
@@ -90,6 +100,8 @@ package body Viewer.Deletion is
       Item.Confirm.Deleting_Node := (others => <>);
       Labels.Set_Text (Item.Confirm.Dialog_Title, "Delete project");
       Labels.Set_Text (Item.Confirm.Confirm_Note, "This cannot be undone.");
+      Widgets.Clear_Focus_Scope (Item.Root.Widgets);
+      Widgets.Clear_Focus (Item.Root.Widgets);
       Widgets.Set_Visible (Item.Confirm.Overlay, False);
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
    end Close;

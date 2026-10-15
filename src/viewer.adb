@@ -3,13 +3,13 @@ with Ada.Environment_Variables;
 with Ada.Exceptions;
 with Ada.Text_IO;
 with Files;
+with Pomarine.Application;
 with Pomarine.System_Settings;
 with SDL3.Events.Redraws;
 with SDL3.Windows.Renderers;
 with Viewer.Build;
 with Viewer.Canvas_Items;
 with Viewer.Deletion;
-with Viewer.Gestures;
 with Viewer.Home_Screen;
 with Viewer.Menus;
 with Viewer.Listing;
@@ -40,8 +40,26 @@ package body Viewer is
    is
       pragma Unreferenced (Source);
    begin
-      Responses.Respond (Self.Owner.all, Event);
+      Responses.Perform (Self.Owner.all, Event);
    end Handle_Event;
+
+   --  What the list of items shows
+
+   overriding function Count (Self : Item_Rows) return Natural is (Self.Found);
+
+   overriding function Version (Self : Item_Rows) return Natural is (Self.Changed);
+
+   overriding function Row_Id (Self : Item_Rows; Row : Positive) return Positive is
+     (Positive (Self.Owner.Item_List.Row_Slots (Row)));
+   --  An item is its slot: the row of it goes as it is hidden or others go.
+
+   overriding procedure Describe_Row
+     (Self    : Item_Rows;
+      Row     : Positive;
+      Content : out Pomarine.Models.Row_Content) is
+   begin
+      Listing.Describe (Self.Owner.all, Row, Content);
+   end Describe_Row;
 
    --  Events
 
@@ -195,7 +213,6 @@ package body Viewer is
                      Track_Window (Item, Event, Handled);
                   end if;
                end if;
-               Gestures.Take (Item);
                Show_Cursor (Item);
             end if;
             if Item.Nav.Shown = Project then
@@ -313,6 +330,8 @@ package body Viewer is
             Handle (Item, Event);
          end loop;
       end if;
+      --  Work other tasks have posted (Pomarine.Application.Post).
+      Pomarine.Application.Run_Posted;
 
       Tick (Item, SDL3.Events.Ticks);
    end Wait_And_Handle;

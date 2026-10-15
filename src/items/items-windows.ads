@@ -1,3 +1,4 @@
+with System;
 with Items.Marks;
 with Projects;
 with SDL3.Events;
@@ -20,8 +21,8 @@ with Pomarine.Widgets.Editors;
 --
 --  A window is of one item at a time, or of none. It keeps the item's
 --  details, and what has to be written to the database (see Flush); it
---  says what the buttons have asked for, to be taken (Poll), and the
---  application does it. Zoom and pan are the canvas's: it is told them
+--  says what the buttons have asked for (see Items.Windows.Callbacks), and
+--  the application does it. Zoom and pan are the canvas's: it is told them
 --  (Place) and puts the window there; the window's text is zoomed with
 --  the canvas, its title bar and status line are not.
 package Items.Windows is
@@ -328,11 +329,12 @@ package Items.Windows is
      with Pre => Is_Assigned (Item);
    --  Give the text the focus, at its start.
 
-   procedure Poll (Item : in out Window; Action : out Actions)
+   procedure Update (Item : in out Window)
      with Pre => Is_Assigned (Item);
-   --  Move and size it as dragged, raise it when it is used, keep the
-   --  title and word count as edited, and say which button was clicked,
-   --  if any.
+   --  Raise it when it is used, keep the title and word count as edited,
+   --  and scroll a note's text to where it was. What the buttons, the
+   --  bars and the title say is done as it is said, and what is for the
+   --  application is told to it (see Items.Windows.Callbacks).
 
    function Is_Dragging (Item : Window) return Boolean;
    --  Whether it is being moved or sized.
@@ -358,8 +360,16 @@ private
    type Panel_Rows is array (1 .. 2) of Pomarine.Widgets.Panels.Panel;
    type Preset_Buttons is array (Preset_Index) of Pomarine.Widgets.Buttons.Button;
 
+   type Said_Runner is access procedure
+     (Self, Proc : System.Address; Which : Slot; Action : Actions);
+
    type Window is limited record
       Assigned : Boolean := False;
+      Said      : Said_Runner;
+      Said_Self : System.Address := System.Null_Address;
+      Said_Proc : System.Address := System.Null_Address;
+      Said_Which : Slot := Slot'First;
+      --  Who is told what its buttons ask for.
       Details  : Items.Info;
       Title_Doc    : aliased Docs.Document;
       Content_Doc  : aliased Docs.Document;

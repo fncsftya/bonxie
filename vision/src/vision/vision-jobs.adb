@@ -1,3 +1,6 @@
+with System;
+with Pomarine.Application;
+
 package body Vision.Jobs is
 
    Max_Path : constant := 1_024;
@@ -72,6 +75,10 @@ package body Vision.Jobs is
 
    end Board;
 
+   procedure Nothing (Data : System.Address) is null;
+   --  What the application runs when told a job has ended: the waking up
+   --  is all that is wanted, to look at the states.
+
    task type Worker
      with Storage_Size => 4 * 1024 * 1024
    is
@@ -100,6 +107,15 @@ package body Vision.Jobs is
             begin
                Recognize (Name (1 .. Long), Found (Mine), Ok, Why, Last);
                Board.End_Job (Mine, Wher, Ok, Why (1 .. Last));
+               --  Wake the application's loop, which is waiting for an
+               --  event, to see it: it need not look until then.
+               declare
+                  Posted : constant Boolean := Pomarine.Application.Post (Nothing'Access);
+                  pragma Unreferenced (Posted);
+                  --  If the queue is full the loop is busy, and will look.
+               begin
+                  null;
+               end;
             end;
          or
             terminate;

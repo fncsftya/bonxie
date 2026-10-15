@@ -1,8 +1,10 @@
+with System;
 with Items.Links;
 with Pomarine.Boxes;
 with Icon_Set;
 with Pomarine.Widgets;
 with Pomarine.Widgets.Buttons;
+with Pomarine.Widgets.Callbacks;
 with Pomarine.Widgets.Canvases;
 with Pomarine.Widgets.Panels;
 with Pomarine.Widgets.Pins;
@@ -21,6 +23,7 @@ package body Viewer.Links is
    package Item_Links renames Items.Links;
 
    use type Widgets.Widget_Access;
+   use type System.Address;
    subtype Point is Boxes.Spot;
 
    use type Items.Id;
@@ -29,7 +32,12 @@ package body Viewer.Links is
    use type Item_Links.Strokes;
    use type Item_Links.Endings;
 
+   package Hooks is new Pomarine.Widgets.Callbacks (Session);
+
    pragma Assert (Canvases.Max_Lines >= Item_Links.Max_Links);
+
+   procedure Listen (Item : in out Session);
+   --  Give the widgets of the links the procedures they call.
 
    function Diameter (Item : Session) return Float is
      (Float'Rounding (Pins.Diameter * Widgets.Density (Item.Root.Widgets)));
@@ -180,6 +188,7 @@ package body Viewer.Links is
         (Item.Linking.Link_Handle, Place => Layouts.Absolute, Width => Pins.Diameter,
          Height => Pins.Diameter);
       Widgets.Set_Visible (Item.Linking.Link_Handle, False);
+      Listen (Item);
    end Build;
 
    procedure Reload (Item : in out Session) is
@@ -292,150 +301,259 @@ package body Viewer.Links is
    with Pre => Item.Linking.Link_From /= 0;
    --  The pin that is held while a line is dragged.
 
-   procedure Take_Drags (Item : in out Session);
-   --  Start a drag from a pin that was pressed, and end it where the
-   --  button was let go.
+   subtype Source_Widget is Widgets.Widget'Class;
 
-   procedure Take_Drags (Item : in out Session) is
-      Pressed, Released : Boolean;
+   Side_Count : constant := Item_Links.Sides'Pos (Item_Links.Sides'Last) + 1;
+
+   function Pin_Number (Which : Items.Slot; Side : Item_Links.Sides) return Positive is
+     ((Which - 1) * Side_Count + Item_Links.Sides'Pos (Side) + 1);
+   --  What a pin says of itself, as its Index.
+
+   procedure Pin_Pressed
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
+   --  A pin was pressed: start a drag from it, if none is on.
+
+   procedure Pin_Pressed
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source);
+      Which : constant Items.Slot := (Event.Index - 1) / Side_Count + 1;
+      Side  : constant Item_Links.Sides := Item_Links.Sides'Val ((Event.Index - 1) mod Side_Count);
    begin
       if Item.Linking.Link_From = 0 then
-         for Which in Items.Slot loop
-            for Side in Item_Links.Sides loop
-               Pins.Take_Press (Item.Linking.Pins (Which, Side), Pressed);
-               if Pressed and then Item.Linking.Link_From = 0 then
-                  Item.Linking.Link_From := Which;
-                  Item.Linking.Link_From_Side := Side;
-                  Item.Linking.Link_Moving := False;
-                  Set_Accepting (Item, Which);
-               end if;
-            end loop;
-         end loop;
-         Pins.Take_Press (Item.Linking.Link_Handle, Pressed);
-         if Pressed and then Item.Linking.Link_From = 0 then
-            declare
-               Number : constant Natural := Index_Of (Item,
-                  Item.Linking.Link_Key);
-               From   : constant Natural :=
-                 (if Number = 0 then 0
-                  else Slot_Of (Item,
-                                Item.Linking.Link_Set.Links (Number).From));
-            begin
-               if From /= 0 then
-                  Item.Linking.Link_From := From;
-                  Item.Linking.Link_From_Side :=
-                    Item.Linking.Link_Set.Links (Number).From_Side;
-                  Item.Linking.Link_Moving := True;
-                  Set_Accepting (Item, From);
-               else
-                  Pins.Cancel (Item.Linking.Link_Handle);
-               end if;
-            end;
-         end if;
-      else
-         Pins.Take_Release (Dragger (Item).all, Released);
-         if Released then
-            --  The pointer is over the pin it was let go on, if any.
-            for Which in Items.Slot loop
-               for Side in Item_Links.Sides loop
-                  if Which /= Item.Linking.Link_From
-                    and then Widgets.Is_Shown (Item.Linking.Pins (Which, Side))
-                    and then Widgets.Is_Hovered (Item.Linking.Pins (Which,
-                       Side))
-                  then
-                     if Item.Linking.Link_Moving then
-                        Move_Link (Item, Which, Side);
-                     else
-                        Make_Link (Item, Which, Side);
-                     end if;
-                  end if;
-               end loop;
-            end loop;
-            Item.Linking.Link_From := 0;
-            Item.Linking.Link_Moving := False;
-            Set_Accepting (Item, 0);
-         end if;
+         Item.Linking.Link_From := Which;
+         Item.Linking.Link_From_Side := Side;
+         Item.Linking.Link_Moving := False;
+         Set_Accepting (Item, Which);
       end if;
-   end Take_Drags;
+   end Pin_Pressed;
 
-   procedure Take_Clicks (Item : in out Session);
-   --  Do what the toolbar's buttons were clicked for, to the link
-   --  selected.
+   procedure Handle_Pressed
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
+   --  The handle of the link selected was pressed: move the link, if its
+   --  window is there to move it from.
 
-   procedure Take_Clicks (Item : in out Session) is
-      Number  : constant Natural := Index_Of (Item, Item.Linking.Link_Key);
-      Clicked : Boolean;
+   procedure Handle_Pressed
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source, Event);
+   begin
+      if Item.Linking.Link_From /= 0 then
+         return;
+      end if;
+      declare
+         Number : constant Natural := Index_Of (Item, Item.Linking.Link_Key);
+         From   : constant Natural :=
+           (if Number = 0 then 0
+            else Slot_Of (Item, Item.Linking.Link_Set.Links (Number).From));
+      begin
+         if From /= 0 then
+            Item.Linking.Link_From := From;
+            Item.Linking.Link_From_Side := Item.Linking.Link_Set.Links (Number).From_Side;
+            Item.Linking.Link_Moving := True;
+            Set_Accepting (Item, From);
+         else
+            Pins.Cancel (Item.Linking.Link_Handle);
+         end if;
+      end;
+   end Handle_Pressed;
+
+   procedure Pin_Released
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
+   --  The pin that was held, while a line was dragged, was let go: end the
+   --  drag where the button was let go.
+
+   procedure Pin_Released
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Event);
+   begin
+      if Item.Linking.Link_From = 0 or else Source'Address /= Dragger (Item).all'Address then
+         return;
+      end if;
+      --  The pointer is over the pin it was let go on, if any.
+      for Which in Items.Slot loop
+         for Side in Item_Links.Sides loop
+            if Which /= Item.Linking.Link_From
+              and then Widgets.Is_Shown (Item.Linking.Pins (Which, Side))
+              and then Widgets.Is_Hovered (Item.Linking.Pins (Which, Side))
+            then
+               if Item.Linking.Link_Moving then
+                  Move_Link (Item, Which, Side);
+               else
+                  Make_Link (Item, Which, Side);
+               end if;
+            end if;
+         end loop;
+      end loop;
+      Item.Linking.Link_From := 0;
+      Item.Linking.Link_Moving := False;
+      Set_Accepting (Item, 0);
+   end Pin_Released;
+
+   procedure Restyle
+     (Item   : in out Session;
+      Stroke : Item_Links.Strokes;
+      Ending : Item_Links.Endings;
+      Color  : Item_Links.Link_Colors);
+   --  Give the link selected another look.
+
+   procedure Restyle
+     (Item   : in out Session;
+      Stroke : Item_Links.Strokes;
+      Ending : Item_Links.Endings;
+      Color  : Item_Links.Link_Colors)
+   is
+      Number : constant Natural := Index_Of (Item, Item.Linking.Link_Key);
    begin
       if Number = 0 then
          return;
       end if;
       declare
-         Was    : constant Item_Links.Link :=
-           Item.Linking.Link_Set.Links (Number);
-         Stroke : Item_Links.Strokes := Was.Stroke;
-         Ending : Item_Links.Endings := Was.Ending;
-         Color  : Item_Links.Link_Colors := Was.Color;
+         Was : constant Item_Links.Link := Item.Linking.Link_Set.Links (Number);
       begin
-         for Each in Item_Links.Strokes loop
-            Buttons.Take_Click (Item.Linking.Stroke_Buttons (Each), Clicked);
-            if Clicked then
-               Stroke := Each;
-            end if;
-         end loop;
-         for Each in Item_Links.Endings loop
-            Buttons.Take_Click (Item.Linking.End_Buttons (Each), Clicked);
-            if Clicked then
-               Ending := Each;
-            end if;
-         end loop;
-         for Each in Item_Links.Link_Colors loop
-            Buttons.Take_Click (Item.Linking.Color_Buttons (Each), Clicked);
-            if Clicked then
-               Color := Each;
-            end if;
-         end loop;
-         if Stroke /= Was.Stroke or else Ending /= Was.Ending
-           or else Color /= Was.Color
-         then
-            Item_Links.Set_Link_Style (Item.Nav.Store, Was.Key, Stroke, Ending,
-                                  Color);
-            Reload (Item);
-            Projects.Touch (Item.Nav.Store, Item.Opened.Current);
-         end if;
-         Buttons.Take_Click (Item.Linking.Delete_Link, Clicked);
-         if Clicked then
-            Item_Links.Delete_Link (Item.Nav.Store, Was.Key);
+         if Stroke /= Was.Stroke or else Ending /= Was.Ending or else Color /= Was.Color then
+            Item_Links.Set_Link_Style (Item.Nav.Store, Was.Key, Stroke, Ending, Color);
             Reload (Item);
             Projects.Touch (Item.Nav.Store, Item.Opened.Current);
          end if;
       end;
-   end Take_Clicks;
+   end Restyle;
 
-   procedure Take_Selection (Item : in out Session);
-   --  Select the link that was pressed on, or none, and delete the one
-   --  selected if Backspace was pressed.
+   function Was_Of (Item : Session) return Item_Links.Link is
+     (Item.Linking.Link_Set.Links (Index_Of (Item, Item.Linking.Link_Key)))
+     with Pre => Index_Of (Item, Item.Linking.Link_Key) /= 0;
 
-   procedure Take_Selection (Item : in out Session) is
-      Changed, Asked : Boolean;
-      Tag            : Natural;
+   procedure Stroke_Clicked
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
+   --  A stroke button of the toolbar: Index says which.
+
+   procedure Stroke_Clicked
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source);
    begin
-      Canvases.Take_Selection (Item.Canvas_View, Changed, Tag);
-      if Changed then
-         Item.Linking.Link_Key :=
-           (if Tag in 1 .. Item.Linking.Link_Set.Count
-            then Item.Linking.Link_Set.Links (Tag).Key else 0);
-         if Item.Linking.Link_Key /= 0 then
-            --  So that Backspace is not for the text being typed in.
-            Widgets.Clear_Focus (Item.Root.Widgets);
-         end if;
+      if Index_Of (Item, Item.Linking.Link_Key) /= 0 then
+         Restyle (Item, Item_Links.Strokes'Val (Event.Index - 1),
+                  Was_Of (Item).Ending, Was_Of (Item).Color);
       end if;
-      Canvases.Take_Delete (Item.Canvas_View, Asked);
-      if Asked and then Item.Linking.Link_Key /= 0 then
+   end Stroke_Clicked;
+
+   procedure Ending_Clicked
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
+
+   procedure Ending_Clicked
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source);
+   begin
+      if Index_Of (Item, Item.Linking.Link_Key) /= 0 then
+         Restyle (Item, Was_Of (Item).Stroke,
+                  Item_Links.Endings'Val (Event.Index - 1), Was_Of (Item).Color);
+      end if;
+   end Ending_Clicked;
+
+   procedure Color_Clicked
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
+
+   procedure Color_Clicked
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source);
+   begin
+      if Index_Of (Item, Item.Linking.Link_Key) /= 0 then
+         Restyle (Item, Was_Of (Item).Stroke, Was_Of (Item).Ending, Event.Index);
+      end if;
+   end Color_Clicked;
+
+   procedure Delete_Clicked
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
+   --  The toolbar's button to delete the link selected.
+
+   procedure Delete_Clicked
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source, Event);
+   begin
+      if Index_Of (Item, Item.Linking.Link_Key) /= 0 then
          Item_Links.Delete_Link (Item.Nav.Store, Item.Linking.Link_Key);
          Reload (Item);
          Projects.Touch (Item.Nav.Store, Item.Opened.Current);
       end if;
-   end Take_Selection;
+   end Delete_Clicked;
+
+   procedure Line_Selected
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
+   --  A line was pressed on (Row is its tag), or none: select that link.
+
+   procedure Line_Selected
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source);
+   begin
+      Item.Linking.Link_Key :=
+        (if Event.Row in 1 .. Item.Linking.Link_Set.Count
+         then Item.Linking.Link_Set.Links (Event.Row).Key else 0);
+      if Item.Linking.Link_Key /= 0 then
+         --  So that Backspace is not for the text being typed in.
+         Widgets.Clear_Focus (Item.Root.Widgets);
+      end if;
+   end Line_Selected;
+
+   procedure Line_Deleted
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
+   --  Backspace was pressed with a line selected: delete its link.
+
+   procedure Line_Deleted
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source, Event);
+   begin
+      if Item.Linking.Link_Key /= 0 then
+         Item_Links.Delete_Link (Item.Nav.Store, Item.Linking.Link_Key);
+         Reload (Item);
+         Projects.Touch (Item.Nav.Store, Item.Opened.Current);
+      end if;
+   end Line_Deleted;
+
+   procedure Listen (Item : in out Session) is
+      use all type Widgets.Event_Kind;
+
+      procedure Hear
+        (Part    : in out Widgets.Widget'Class;
+         Kind    : Widgets.Event_Kind;
+         Do_This : Hooks.Handler;
+         Index   : Natural := 0) is
+      begin
+         if Index /= 0 then
+            Widgets.Set_Tag (Part, Widgets.No_Tag, Index);
+         end if;
+         Hooks.On (Part, Kind, Item'Unchecked_Access, Do_This);
+      end Hear;
+   begin
+      for Each in Item_Links.Strokes loop
+         Hear (Item.Linking.Stroke_Buttons (Each), Click, Stroke_Clicked'Access,
+               Item_Links.Strokes'Pos (Each) + 1);
+      end loop;
+      for Each in Item_Links.Endings loop
+         Hear (Item.Linking.End_Buttons (Each), Click, Ending_Clicked'Access,
+               Item_Links.Endings'Pos (Each) + 1);
+      end loop;
+      for Each in Item_Links.Link_Colors loop
+         Hear (Item.Linking.Color_Buttons (Each), Click, Color_Clicked'Access, Each);
+      end loop;
+      Hear (Item.Linking.Delete_Link, Click, Delete_Clicked'Access);
+      for Which in Items.Slot loop
+         for Side in Item_Links.Sides loop
+            Hear (Item.Linking.Pins (Which, Side), Press, Pin_Pressed'Access, Pin_Number (Which, Side));
+            Hear (Item.Linking.Pins (Which, Side), Release, Pin_Released'Access);
+         end loop;
+      end loop;
+      Hear (Item.Linking.Link_Handle, Press, Handle_Pressed'Access);
+      Hear (Item.Linking.Link_Handle, Release, Pin_Released'Access);
+      Hear (Item.Canvas_View, Select_Tag, Line_Selected'Access);
+      Hear (Item.Canvas_View, Delete, Line_Deleted'Access);
+   end Listen;
 
    procedure Show_Pins (Item : in out Session; Changed : in out Boolean);
    --  Show the pins of the window the pointer is over, or, in a drag, of
@@ -490,7 +608,7 @@ package body Viewer.Links is
    procedure Draw_Lines (Item : in out Session; Changed : in out Boolean) is
 
       Lines : Canvases.Line_Array (1 .. Item_Links.Max_Links);
-      Count : Natural := 0;
+      Drawn : Natural := 0;
       Chosen : Natural := 0;
       --  The tag of the selected link, if it is drawn.
       Target, Mid : Point := (0.0, 0.0);
@@ -511,8 +629,8 @@ package body Viewer.Links is
                     Middle (Windows.Details (Item.Windows (To)).Where,
                             Each.To_Side);
                begin
-                  Count := Count + 1;
-                  Lines (Count) :=
+                  Drawn := Drawn + 1;
+                  Lines (Drawn) :=
                     (From_X => A.X, From_Y => A.Y, To_X => B.X, To_Y => B.Y,
                      Tag    => Number,
                      Dash   => (case Each.Stroke is
@@ -532,7 +650,7 @@ package body Viewer.Links is
          end;
       end loop;
       Canvases.Set_Selected (Item.Canvas_View, Chosen);
-      Canvases.Set_Lines (Item.Canvas_View, Lines (1 .. Count));
+      Canvases.Set_Lines (Item.Canvas_View, Lines (1 .. Drawn));
 
       --  The handle over the target end, and the toolbar by the middle.
       declare
@@ -614,10 +732,10 @@ package body Viewer.Links is
    procedure Raise_Over (Item : in out Session) is
       Last  : constant Widgets.Widget_Access :=
         Widgets.Widget_Access'(Item.Linking.Link_Handle'Unrestricted_Access);
-      Count : constant Natural := Widgets.Child_Count (Item.Canvas_View);
+      Children : constant Natural := Widgets.Child_Count (Item.Canvas_View);
    begin
-      if Count > 0
-        and then Widgets.Child_At (Item.Canvas_View, Count) /= Last
+      if Children > 0
+        and then Widgets.Child_At (Item.Canvas_View, Children) /= Last
         and then (Widgets.Is_Visible (Item.Linking.Link_Handle)
                   or else Widgets.Is_Visible (Item.Linking.Link_Bar)
                   or else Shown_Pins (Item) > 0)
@@ -646,9 +764,6 @@ package body Viewer.Links is
    procedure Update (Item : in out Session) is
       Changed : Boolean := False;
    begin
-      Take_Selection (Item);
-      Take_Clicks (Item);
-      Take_Drags (Item);
       Show_Pins (Item, Changed);
       Draw_Lines (Item, Changed);
       Raise_Over (Item);

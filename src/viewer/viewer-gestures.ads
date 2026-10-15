@@ -1,10 +1,12 @@
---  What is done by the pointer's and the keys' gestures, which are asked of
---  the widgets as they go on, rather than said when they end: an item's
---  window dragged, a field left, a title pressed twice. A button's click is
---  said as it happens, and is done by Viewer.Responses.
+--  When the pointer's and the keys' gestures on a project's screen are
+--  for it: an item's window dragged, a field left, a title pressed twice.
+--  What each widget says of them is done as it is said, by the procedures
+--  Viewer.Responses gives them; those that are only for a project's screen
+--  ask here whether it is the one in use.
 private package Viewer.Gestures is
 
-   procedure Take (Item : in out Session);
-   --  Do what the gestures asked.
+   function Active (Item : Session) return Boolean;
+   --  Whether a project is shown, and not under a dialog or the list of
+   --  items.
 
 end Viewer.Gestures;

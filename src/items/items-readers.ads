@@ -1,3 +1,4 @@
+with System;
 with Items.Marks;
 with Pomarine.Themes;
 with Pomarine.Widgets.Buttons;
@@ -165,15 +166,24 @@ package Items.Readers is
    function Is_Dragging (Item : Reader) return Boolean;
    --  Whether it is being moved or sized.
 
-   procedure Poll (Item : in out Reader; Action : out Actions)
+   procedure Update (Item : in out Reader)
      with Pre => Is_Assigned (Item);
-   --  Move and size it as dragged, raise it when it is used, and say
-   --  which button was clicked, if any.
+   --  Raise it when it is used. What the buttons, the corner and the bar
+   --  say is done as it is said, and what is for the application is told
+   --  to it (see Items.Readers.Callbacks).
 
 private
 
+   type Said_Runner is access procedure
+     (Self, Proc : System.Address; Which : Natural; Action : Actions);
+
    type Reader is limited record
       Assigned : Boolean := False;
+      Said      : Said_Runner;
+      Said_Self : System.Address := System.Null_Address;
+      Said_Proc : System.Address := System.Null_Address;
+      Said_Which : Natural := 0;
+      --  Who is told what its buttons ask for.
       Pinned   : Boolean := False;
       Details  : Items.Info;
       Pixels   : Float := 1.0;

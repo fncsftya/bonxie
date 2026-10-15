@@ -825,6 +825,61 @@ procedure Golden is
       Goldens.Check ("home-after-close", Drawn);
    end New_And_Close;
 
+   procedure Keyboard_Only is
+      Session : Viewer.Session;
+      Drawn   : Images.Image;
+   begin
+      With_Three (Session);
+
+      --  The dialog that asks before deleting has the focus on Cancel, so
+      --  that Return keeps the project.
+      Click_On (Session, Delete_X (3), Info_Y (3));
+      Goldens.Check_Text
+        ("keys-delete-asks", "TRUE", Boolean'Image (Home.Is_Confirming (Session)));
+      --  A click gave it no ring, a key does.
+      Press (Session, Events.Key_Tab, Times => 3);
+      Viewer.Render (Session, Drawn);
+      Goldens.Check ("keys-dialog-ring", Drawn);
+      Press (Session, Events.Key_Return);
+      Goldens.Check_Text
+        ("keys-delete-return-keeps", "FALSE Episode 1",
+         Boolean'Image (Home.Is_Confirming (Session)) & " " & Home.Row_Title (Session, 3));
+
+      --  Tab goes round the dialog only: Cancel, Delete, and the button to
+      --  close it, and round again: three presses are back at Cancel, and
+      --  none of them reach the screen behind.
+      Click_On (Session, Delete_X (3), Info_Y (3));
+      Press (Session, Events.Key_Tab, Times => 3);
+      Press (Session, Events.Key_Return);
+      Goldens.Check_Text
+        ("keys-delete-tab-round", "FALSE Episode 1",
+         Boolean'Image (Home.Is_Confirming (Session)) & " " & Home.Row_Title (Session, 3));
+      Goldens.Check_Text
+        ("keys-delete-still-home", "HOME", Viewer.Screens'Image (Viewer.Screen (Session)));
+
+      --  One Tab on from Cancel is Delete, which Return does.
+      Click_On (Session, Delete_X (3), Info_Y (3));
+      Press (Session, Events.Key_Tab);
+      Press (Session, Events.Key_Return);
+      Goldens.Check_Text
+        ("keys-delete-done", "FALSE Episode 2",
+         Boolean'Image (Home.Is_Confirming (Session)) & " " & Home.Row_Title (Session, 2));
+
+      --  Tab reaches the first of the screen's buttons, New Project, and
+      --  Return presses it; and, on the project, Tab and Return its button
+      --  back.
+      Press (Session, Events.Key_Tab);
+      Viewer.Render (Session, Drawn);
+      Goldens.Check ("keys-home-ring", Drawn);
+      Press (Session, Events.Key_Return);
+      Goldens.Check_Text
+        ("keys-new-project", "PROJECT", Viewer.Screens'Image (Viewer.Screen (Session)));
+      Press (Session, Events.Key_Tab);
+      Press (Session, Events.Key_Return);
+      Goldens.Check_Text
+        ("keys-back-home", "HOME", Viewer.Screens'Image (Viewer.Screen (Session)));
+   end Keyboard_Only;
+
    procedure Add
      (Store       : in out Projects.Store;
       Title       : String;
@@ -986,6 +1041,7 @@ begin
    Run ("items-closing", Item_Tests.Closing'Access);
    Run ("items-list", Item_Tests.Listing'Access);
    Run ("items-removing", Item_Tests.Removing'Access);
+   Run ("items-list-keys", Item_Tests.Keyboard_List'Access);
    Run ("items-revealing", Item_Tests.Revealing'Access);
    Run ("items-dock-scrolling", Item_Tests.Scrolling_Dock'Access);
    Run ("items-list-scrolling", Item_Tests.Scrolling_List'Access);
@@ -1027,6 +1083,7 @@ begin
    Run ("home-rename-cancel", Rename_Cancelled'Access);
    Run ("home-rename-enter", Rename_Entered'Access);
    Run ("home-delete", Deleting'Access);
+   Run ("home-keys", Keyboard_Only'Access);
    Run ("projects-stored", Stored'Access);
    Run ("projects-kept", Kept'Access);
 

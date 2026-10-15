@@ -1,6 +1,8 @@
 with Items.Sources;
 with Ada.Strings;
 with Icon_Set;
+with Pomarine.Widgets.Callbacks;
+with Pomarine.Widgets.Frames.Handlers;
 with Pomarine.Widgets.Layouts;
 
 package body Items.Readers is
@@ -23,6 +25,9 @@ package body Items.Readers is
    Percent_Width : constant Float := 40.0;
    Tools_Width   : constant Float := 3.0 * Button_Size + 2.0 * Button_Gap;
    Pin_Icon_Size : constant Float := 12.0;
+
+   procedure Listen (Item : in out Reader);
+   --  Give the reader's widgets the procedures they call (see Update).
 
    procedure Build
      (Item    : in out Reader;
@@ -78,6 +83,7 @@ package body Items.Readers is
       Size (Item.Zoom_Slider, Slider_Width, Row_Height);
       Size (Item.Zoom_Label, Percent_Width, Label_Height);
       Layouts.Set_Layout (Item.Status, Grow => 1.0, Width => 0.0, Height => Label_Height);
+      Listen (Item);
    end Build;
 
    function Is_Assigned (Item : Reader) return Boolean is (Item.Assigned);
@@ -312,34 +318,160 @@ package body Items.Readers is
    function Is_Dragging (Item : Reader) return Boolean is
      (Frames.Is_Dragging (Item.Chrome));
 
-   procedure Poll (Item : in out Reader; Action : out Actions) is
-      Across, Down : Float;
-      Clicked      : Boolean;
-      Changed      : Boolean;
-      Used         : Boolean;
-   begin
-      Action := None;
+   package Hooks is new Pomarine.Widgets.Callbacks (Reader);
+   package Frame_Hooks is new Pomarine.Widgets.Frames.Handlers (Reader);
 
-      --  Moved and sized, in points.
-      Frames.Take_Move (Item.Chrome, Across, Down);
-      if not Item.Pinned and then (Across /= 0.0 or else Down /= 0.0) then
-         Item.Details.Where.Left := Item.Details.Where.Left + Across;
-         Item.Details.Where.Top := Item.Details.Where.Top + Down;
+   subtype Source_Widget is Widgets.Widget'Class;
+
+   procedure Say (Item : in out Reader; Action : Actions);
+   --  Tell the application what a button asked for, if it listens.
+
+   procedure Say (Item : in out Reader; Action : Actions) is
+   begin
+      if Item.Said /= null then
+         Item.Said (Item.Said_Self, Item.Said_Proc, Item.Said_Which, Action);
+      end if;
+   end Say;
+
+   procedure Moved
+     (Item : in out Reader; From : in out Source_Widget; Event : Widgets.Widget_Event);
+   --  The title bar was dragged, in points: move it, but not while pinned.
+
+   procedure Moved
+     (Item : in out Reader; From : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (From);
+   begin
+      if not Item.Pinned then
+         Item.Details.Where.Left := Item.Details.Where.Left + Event.Across;
+         Item.Details.Where.Top := Item.Details.Where.Top + Event.Down;
          Place (Item);
       end if;
+   end Moved;
+
+   procedure Sized
+     (Item : in out Reader; From : in out Source_Widget; Event : Widgets.Widget_Event);
+   --  The corner was dragged, in points: size it, but not under the least.
+
+   procedure Sized
+     (Item : in out Reader; From : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (From);
+   begin
       if not Item.Resizing then
          Item.Raw_Width := Item.Details.Where.Width;
          Item.Raw_Height := Item.Details.Where.Height;
       end if;
-      Frames.Take_Size (Item.Chrome, Across, Down);
-      if Across /= 0.0 or else Down /= 0.0 then
-         Item.Raw_Width := Item.Raw_Width + Across;
-         Item.Raw_Height := Item.Raw_Height + Down;
-         Item.Details.Where := Items.Sized
-           ((Item.Details.Where with delta
-               Width  => Float'Max (Least_Width, Item.Raw_Width),
-               Height => Float'Max (Least_Height, Item.Raw_Height)));
-         Place (Item);
+      Item.Raw_Width := Item.Raw_Width + Event.Across;
+      Item.Raw_Height := Item.Raw_Height + Event.Down;
+      Item.Details.Where := Items.Sized
+        ((Item.Details.Where with delta
+            Width  => Float'Max (Least_Width, Item.Raw_Width),
+            Height => Float'Max (Least_Height, Item.Raw_Height)));
+      Place (Item);
+      Item.Resizing := Frames.Is_Sizing (Item.Chrome);
+   end Sized;
+
+   function Is_Open (Item : Reader) return Boolean is (Item.Details.State = Open);
+
+   procedure Zoom_Moved
+     (Item : in out Reader; From : in out Source_Widget; Event : Widgets.Widget_Event);
+
+   procedure Zoom_Moved
+     (Item : in out Reader; From : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (From, Event);
+   begin
+      if Is_Open (Item) then
+         Set_Zoom (Item, Items.Sources.From_Slider (Sliders.Value (Item.Zoom_Slider)));
+      end if;
+   end Zoom_Moved;
+
+   procedure Pointer_Clicked
+     (Item : in out Reader; From : in out Source_Widget; Event : Widgets.Widget_Event);
+   procedure Marker_Clicked
+     (Item : in out Reader; From : in out Source_Widget; Event : Widgets.Widget_Event);
+   procedure Eraser_Clicked
+     (Item : in out Reader; From : in out Source_Widget; Event : Widgets.Widget_Event);
+
+   procedure Pointer_Clicked
+     (Item : in out Reader; From : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (From, Event);
+   begin
+      if Is_Open (Item) then
+         Select_Tool (Item, Pictures.Pointer);
+      end if;
+   end Pointer_Clicked;
+
+   procedure Marker_Clicked
+     (Item : in out Reader; From : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (From, Event);
+   begin
+      if Is_Open (Item) then
+         Select_Tool (Item, Pictures.Highlighter);
+      end if;
+   end Marker_Clicked;
+
+   procedure Eraser_Clicked
+     (Item : in out Reader; From : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (From, Event);
+   begin
+      if Is_Open (Item) then
+         Select_Tool (Item, Pictures.Eraser);
+      end if;
+   end Eraser_Clicked;
+
+   procedure Pin_Clicked
+     (Item : in out Reader; From : in out Source_Widget; Event : Widgets.Widget_Event);
+
+   procedure Pin_Clicked
+     (Item : in out Reader; From : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (From, Event);
+   begin
+      if Is_Open (Item) then
+         Say (Item, Toggle_Pin);
+      end if;
+   end Pin_Clicked;
+
+   procedure Close_Clicked
+     (Item : in out Reader; From : in out Source_Widget; Event : Widgets.Widget_Event);
+
+   procedure Close_Clicked
+     (Item : in out Reader; From : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (From, Event);
+   begin
+      if Is_Open (Item) then
+         Say (Item, Close);
+      end if;
+   end Close_Clicked;
+
+   procedure Listen (Item : in out Reader) is
+      use all type Widgets.Event_Kind;
+   begin
+      Frame_Hooks.On (Item.Chrome, Move, Item'Unrestricted_Access, Moved'Access);
+      Frame_Hooks.On (Item.Chrome, Resize, Item'Unrestricted_Access, Sized'Access);
+      Frame_Hooks.On (Item.Chrome, Close, Item'Unrestricted_Access, Close_Clicked'Access);
+      Hooks.On (Item.Zoom_Slider, Change, Item'Unrestricted_Access, Zoom_Moved'Access);
+      Hooks.On (Item.Cursor_Button, Click, Item'Unrestricted_Access, Pointer_Clicked'Access);
+      Hooks.On (Item.Marker_Button, Click, Item'Unrestricted_Access, Marker_Clicked'Access);
+      Hooks.On (Item.Eraser_Button, Click, Item'Unrestricted_Access, Eraser_Clicked'Access);
+      Hooks.On (Item.Pin_Button, Click, Item'Unrestricted_Access, Pin_Clicked'Access);
+   end Listen;
+
+   procedure Update (Item : in out Reader) is
+      Used : Boolean;
+   begin
+      --  What is moved and sized is the handlers' (see Listen); here only
+      --  the size the corner asks for, which is the size it has while it
+      --  is not being dragged.
+      if not Item.Resizing then
+         Item.Raw_Width := Item.Details.Where.Width;
+         Item.Raw_Height := Item.Details.Where.Height;
       end if;
       Item.Resizing := Frames.Is_Sizing (Item.Chrome);
 
@@ -351,38 +483,6 @@ package body Items.Readers is
          Frames.Raise_To_Front (Item.Chrome);
       end if;
       Item.Was_Used := Used;
-
-      if Item.Details.State /= Open then
-         return;
-      end if;
-
-      Sliders.Take_Change (Item.Zoom_Slider, Changed);
-      if Changed then
-         Set_Zoom
-           (Item,
-            Items.Sources.From_Slider (Sliders.Value (Item.Zoom_Slider)));
-      end if;
-      Buttons.Take_Click (Item.Cursor_Button, Clicked);
-      if Clicked then
-         Select_Tool (Item, Pictures.Pointer);
-      end if;
-      Buttons.Take_Click (Item.Marker_Button, Clicked);
-      if Clicked then
-         Select_Tool (Item, Pictures.Highlighter);
-      end if;
-      Buttons.Take_Click (Item.Eraser_Button, Clicked);
-      if Clicked then
-         Select_Tool (Item, Pictures.Eraser);
-      end if;
-      Buttons.Take_Click (Item.Pin_Button, Clicked);
-      if Clicked then
-         Action := Toggle_Pin;
-         return;
-      end if;
-      Frames.Take_Close (Item.Chrome, Clicked);
-      if Clicked then
-         Action := Close;
-      end if;
-   end Poll;
+   end Update;
 
 end Items.Readers;

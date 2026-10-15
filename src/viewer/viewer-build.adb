@@ -11,15 +11,17 @@ with Pomarine.Boxes;
 with Icon_Set;
 with Pomarine.Icons;
 with Pomarine.Line_Texts;
-with Pomarine.Scrollbars;
 with Pomarine.Themes;
 with Pomarine.Widgets;
 with Pomarine.Widgets.Layouts;
 with Pomarine.Widgets.Scrollers;
 with Pomarine.Text_Areas;
+with Viewer.Canvas_Items;
 with Viewer.Links;
+with Viewer.Responses;
 with Viewer.Recent;
 with Viewer.Style;
+with Viewer.Writing;
 
 package body Viewer.Build is
 
@@ -286,6 +288,9 @@ package body Viewer.Build is
       Set_Layout (Bar.Tabs, Flow => Row, Gap => Tab_Gap);
       Buttons.Set_Label (Bar.Canvas_Tab, "Canvas");
       Buttons.Set_Selected (Bar.Canvas_Tab, True);
+      Buttons.Set_Focusable (Bar.Close_Button, True);
+      Buttons.Set_Focusable (Bar.Canvas_Tab, True);
+      Buttons.Set_Focusable (Bar.Write_Tab, True);
       Buttons.Set_Label (Bar.Write_Tab, "Write");
       Size (Bar.Canvas_Tab, Tab_Width, Tab_Height);
       Size (Bar.Write_Tab, Tab_Width, Tab_Height);
@@ -310,6 +315,7 @@ package body Viewer.Build is
            (Each, Item.Canvas_View, Item.Dock.Dock_Content, Toolbar, Pixels);
       end loop;
       Links.Build (Item);
+      Canvas_Items.Listen (Item);
    end Build_Project;
 
    procedure Build_Tray (Item : in out Session);
@@ -453,6 +459,7 @@ package body Viewer.Build is
       Items.Readers.Build
         (Item.Reading.Pane_Reader, View.Pane_Body, Toolbar, Pixels,
          Pinned => True);
+      Writing.Listen (Item);
 
       Panels.Set_Fill (View.Write_View, Desk);
       Set_Layout (View.Write_View, Flow => Row, Grow => 1.0, Height => 0.0);
@@ -579,6 +586,7 @@ package body Viewer.Build is
       begin
          Checks.Set_Kind (Part, Checks.Radio);
          Checks.Set_Label (Part, Name);
+         Checks.Set_Focusable (Part, True);
          Line (Part, Settings_Line);
       end Radio;
    begin
@@ -663,6 +671,8 @@ package body Viewer.Build is
         (Prefs.Download_Button, Width => Download_Width, Height => Download_Height, Shrink => 0.0);
       Buttons.Set_Label (Prefs.Delete_Button, "Delete");
       Buttons.Set_Kind (Prefs.Delete_Button, Buttons.Danger);
+      Buttons.Set_Focusable (Prefs.Download_Button, True);
+      Buttons.Set_Focusable (Prefs.Delete_Button, True);
       Set_Layout
         (Prefs.Delete_Button, Width => Download_Width, Height => Download_Height, Shrink => 0.0);
       Widgets.Set_Visible (Prefs.Delete_Button, False);
@@ -769,15 +779,11 @@ package body Viewer.Build is
       Widgets.Add (Items_View.List_Border, Items_View.List_Head);
       Widgets.Add (Items_View.List_Head, Items_View.List_Heading, Items_View.List_Close);
       Widgets.Add (Items_View.List_Border, Items_View.List_Dialog);
-      Widgets.Add (Items_View.List_Dialog, Items_View.List_Scroll);
-      Widgets.Add (Items_View.List_Scroll, Items_View.List_Content);
-      Widgets.Add (Items_View.List_Content, Items_View.List_None);
-      for Each of Items_View.List_Rows loop
-         Widgets.Add (Items_View.List_Content, Each.Panel);
-         Widgets.Add (Each.Panel, Each.Name);
-         Widgets.Add (Each.Name, Each.Caption);
-         Widgets.Add (Each.Panel, Each.Toggle, Each.Remove);
-      end loop;
+      Widgets.Add (Items_View.List_Dialog, Items_View.List_View, Items_View.List_None);
+      Items_View.List_Rows.Owner := Item'Unchecked_Access;
+      Pomarine.Widgets.Lists.Set_Model
+        (Items_View.List_View, Items_View.List_Rows'Unchecked_Access);
+      Pomarine.Widgets.Lists.Set_Row_Height (Items_View.List_View, Row_Height);
 
       Panels.Set_Fill (Items_View.List_Overlay, Themes.Scrim);
       Build_Border (Items_View.List_Border);
@@ -795,95 +801,59 @@ package body Viewer.Build is
         (Items_View.List_Dialog, Flow => Column, Grow => 1.0, Height => 0.0,
          Padding => (others => Dialog_Pad));
 
-      --  The scroller takes what the bar leaves; the rows go in a column
-      --  in it, as tall as they are.
-      Set_Layout (Items_View.List_Scroll, Grow => 1.0, Height => 0.0);
-      Set_Layout
-        (Items_View.List_Content, Flow => Column, Shrink => 0.0, Gap => List_Gap,
-         --  Room at the right for the scroll bar.
-         Padding => (Right => Pomarine.Scrollbars.Thickness, others => <>));
+      --  The list takes what the title bar and the border leave.
+      Set_Layout (Items_View.List_View, Grow => 1.0, Height => 0.0);
       Set_Layout (Items_View.List_None, Height => Title_Height);
-      for Each of Items_View.List_Rows loop
-         Panels.Set_Fill (Each.Panel, Themes.Tint);
-         Panels.Set_Border (Each.Panel, Themes.Border);
-         Set_Layout
-           (Each.Panel, Flow => Row, Align => Center, Height => Row_Height, Shrink => 0.0,
-            Padding => (Left => Row_Gap, others => <>), Gap => Row_Gap);
-         Set_Layout
-           (Each.Name, Grow => 1.0, Width => 0.0, Height => Row_Height, Flow => Row, Align => Center,
-            Padding => (Left => Row_Gap, others => <>));
-         Grips.Set_Wanted_Cursor (Each.Name, SDL3.Cursors.Pointer);
-         Grips.Set_Hover_Outline (Each.Name, Themes.Foreground);
-         Set_Layout (Each.Caption, Grow => 1.0, Width => 0.0, Height => Row_Height);
-         Set_Layout (Each.Toggle, Width => Toggle_Width, Height => Row_Height);
-         Set_Layout (Each.Remove, Width => Remove_Width, Height => Row_Height);
-         Buttons.Set_Label (Each.Remove, "Remove");
-         Buttons.Set_Icon (Each.Remove, Icon_Set.Delete);
-         Buttons.Set_Kind (Each.Remove, Buttons.Danger);
-      end loop;
    end Build_List;
 
-   procedure Bind_Commands (Item : in out Session);
-   --  Say what the buttons, checks and menus are for: what each says when
-   --  it is clicked, and which of many it is (see Viewer.Responses).
+   procedure Make_Tab_Stops (Item : in out Session);
+   --  Let Tab reach the buttons, and the cards that are clicked, as it
+   --  does the fields: in the order they are in, which is the order of the
+   --  screen. A click on one does not take the focus from a field.
 
-   procedure Bind_Commands (Item : in out Session) is
+   procedure Make_Tab_Stops (Item : in out Session) is
+      procedure Stop (Part : in out Buttons.Button) is
+      begin
+         Buttons.Set_Focusable (Part, True);
+      end Stop;
+
+      procedure Stop (Part : in out Grips.Grip) is
+      begin
+         Grips.Set_Focusable (Part, True);
+      end Stop;
    begin
-      --  The home screen
-      Commands.Bind (Item.Home_View.New_Button, Start_Project);
-      Commands.Bind (Item.Home_View.New_Card, Start_Project);
-      Commands.Bind (Item.Home_View.New_Card_Plus, Start_Project);
-      Commands.Bind (Item.Home_View.Settings_Button, Open_Settings);
-      Commands.Bind (Item.Home_View.Ok_Button, Accept_Rename);
-      Commands.Bind (Item.Home_View.Cancel_Button, Cancel_Rename);
-      Commands.Bind (Item.Title_Edit.Edit_Field, Accept_Rename);
-      for Card in Item.Home_View.Cards'Range loop
-         Commands.Bind (Item.Home_View.Cards (Card).Peek, Open_Project, Card);
-         Commands.Bind (Item.Home_View.Cards (Card).Name, Open_Project, Card);
-         Commands.Bind (Item.Home_View.Cards (Card).Rename, Rename_Project, Card);
-         Commands.Bind (Item.Home_View.Cards (Card).Delete, Delete_Project, Card);
+      Stop (Item.Home_View.New_Button);
+      Stop (Item.Home_View.Settings_Button);
+      Stop (Item.Home_View.New_Card);
+      Widgets.Set_Accessible_Name (Item.Home_View.New_Card, "New project");
+      --  The plus in the card does what the card does: not a stop of its own,
+      --  nor a button more to an assistive technology.
+      Widgets.Hide_From_Accessibility (Item.Home_View.New_Card_Plus);
+      Stop (Item.Home_View.Ok_Button);
+      Stop (Item.Home_View.Cancel_Button);
+      for Each of Item.Home_View.Cards loop
+         Stop (Each.Peek);
+         Stop (Each.Rename);
+         Stop (Each.Delete);
       end loop;
-
-      --  The dialog that asks before deleting
-      Commands.Bind (Item.Confirm.Confirm_Delete, Confirm_Deletion);
-      Commands.Bind (Item.Confirm.Confirm_Cancel, Cancel_Deletion);
-      Commands.Bind (Item.Confirm.Dialog_Close, Cancel_Deletion);
-
-      --  The settings
-      Commands.Bind (Item.Prefs.Settings_Close, Close_Settings);
-      Commands.Bind (Item.Prefs.Theme_Light, Choose_Light);
-      Commands.Bind (Item.Prefs.Theme_Dark, Choose_Dark);
-      Commands.Bind (Item.Prefs.Theme_System, Choose_System);
-      Commands.Bind (Item.Prefs.Model_Native, Choose_MacOS);
-      Commands.Bind (Item.Prefs.Model_Parakeet, Choose_Parakeet);
-      Commands.Bind (Item.Prefs.Download_Button, Download_Model);
-      Commands.Bind (Item.Prefs.Delete_Button, Delete_Model);
-
-      --  A project: the bar, the tray, and the list of items
-      Commands.Bind (Item.Toolbar.Close_Button, Leave_Project);
-      Commands.Bind (Item.Toolbar.Canvas_Tab, Show_Canvas);
-      Commands.Bind (Item.Toolbar.Write_Tab, Show_Writing);
-      Commands.Bind (Item.Dock.Tool_Item, Add_Document);
-      Commands.Bind (Item.Dock.Tool_Source, Add_Source);
-      Commands.Bind (Item.Dock.Tool_List, Open_List);
-      Commands.Bind (Item.Item_List.List_Close, Close_List);
-      for Slot in Items.Slot loop
-         Commands.Bind (Item.Item_List.List_Rows (Slot).Name, Reveal_Item, Slot);
-         Commands.Bind (Item.Item_List.List_Rows (Slot).Toggle, Toggle_Item, Slot);
-         Commands.Bind (Item.Item_List.List_Rows (Slot).Remove, Remove_Item, Slot);
+      Stop (Item.Confirm.Dialog_Close);
+      Stop (Item.Confirm.Confirm_Cancel);
+      Stop (Item.Confirm.Confirm_Delete);
+      Stop (Item.Prefs.Settings_Close);
+      Stop (Item.Dock.Tool_Item);
+      Stop (Item.Dock.Tool_Source);
+      Stop (Item.Dock.Tool_List);
+      Stop (Item.Item_List.List_Close);
+      Stop (Item.Page_View.Docs_Add);
+      Stop (Item.Page_View.Docs_Folder);
+      for Each of Item.Docs.Pages loop
+         Stop (Each.Sources_Button);
+         Stop (Each.Mic_Button);
       end loop;
-
-      --  The writing view
-      Commands.Bind (Item.Page_View.Docs_Add, Add_Page);
-      Commands.Bind (Item.Page_View.Docs_Folder, Add_Folder);
-      Commands.Bind (Item.Page_View.Menu, Choose_Source);
-      Commands.Bind (Item.Context.Context_Menu, Choose_Context);
-      for Rank in Items.Slot loop
-         Commands.Bind (Item.Docs.Pages (Rank).Sources_Button, Open_Sources, Rank);
-         Commands.Bind (Item.Docs.Pages (Rank).Mic_Button, Dictate, Rank);
-         Commands.Bind (Item.Reading.Source_Rows (Rank).Row, Toggle_Source, Rank);
+      for Each of Item.Reading.Source_Rows loop
+         Stop (Each.Row);
       end loop;
-   end Bind_Commands;
+   end Make_Tab_Stops;
 
    procedure Set_Up
      (Item       : in out Session;
@@ -927,6 +897,9 @@ package body Viewer.Build is
          Widgets.Set_Clipboard (Item.Root.Widgets, Item.Shell.Own_Board);
       end if;
 
+      --  Tab and Shift+Tab move the focus between the controls made
+      --  focusable (see Make_Tab_Stops) and the text fields.
+      Widgets.Set_Tab_Navigation (Item.Root.Widgets, True);
       Widgets.Set_Root (Item.Root.Widgets, Item.Root.Window_Panel);
       Set_Layout (Item.Root.Window_Panel, Flow => Column);
       if Item.Shell.Windowed then
@@ -940,7 +913,8 @@ package body Viewer.Build is
       Build_Modal (Item);
       Build_List (Item);
 
-      Bind_Commands (Item);
+      Responses.Install (Item);
+      Make_Tab_Stops (Item);
       Widgets.Set_Listener (Item.Root.Widgets, Item.Replies'Unchecked_Access);
       Item.Replies.Owner := Item'Unchecked_Access;
       Buttons.Set_Label (Item.Home_View.Ok_Button, "OK");

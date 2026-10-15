@@ -88,7 +88,8 @@ package Viewer.Canvas_Windows is
 
    function Is_Capturing (Item : Session) return Boolean
      with Pre => Is_Open (Item) and then Screen (Item) = Project;
-   --  Whether the picture of a page is being taken, for some source.
+   --  Whether the picture of a page is being taken, or its words found,
+   --  for some source; or a note is being dictated.
 
    function Item_Zoom (Item : Session; Row : Positive) return Float
      with Pre => Is_Open (Item) and then Screen (Item) = Project

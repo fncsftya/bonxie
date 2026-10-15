@@ -17,8 +17,12 @@ dragged into another order and kept, typed on a page and seen on the
 canvas, a source opened and pinned, its highlights shared with the canvas's
 window, which like `sources-pages` needs WebKit), highlighting a picture
 (the tools in the status line, erasing, marks kept, put away by the cursor
-or a click outside), and the order Vision's words of a page of columns are
-read in (`layout-*`).
+or a click outside), the order Vision's words of a page of columns are
+read in (`layout-*`), and working it from the keyboard (`home-keys`: Tab and
+Return on the home screen and round the dialog that asks before deleting, with
+the ring drawn; `items-list-keys`: the list of items by arrows, Space, Delete,
+Tab and Return). `sources-words` also checks that the task that finds the words
+posted to wake the loop.
 
 The widgets themselves (text areas, fields, the sheet, words selected over
 a picture) are tested in pomarine, which this uses for its UI.
