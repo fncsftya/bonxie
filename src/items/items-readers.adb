@@ -431,7 +431,7 @@ package body Items.Readers is
 
    procedure Place (Item : in out Reader) is
       Where  : Items.Frame renames Item.Details.Where;
-      Pixels : constant Float := Item.Pixels;
+      Pixels : constant Float := Frames.Pixels_Per_Point (Item.Chrome);
    begin
       if Item.Pinned then
          return;

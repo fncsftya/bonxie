@@ -35,6 +35,21 @@ package body Viewer.Painting is
          Retained => Keeps_Frame (Item.Host.Target));
    end Paint;
 
+   procedure Fit_Density (Item : in out Session) is
+   begin
+      if Item.Shell.Windowed then
+         declare
+            Now : constant Float := SDL3.Windows.Pixel_Density (Item.Host.Win);
+         begin
+            if Now > 0.0 and then Now /= Item.Shell.Density then
+               Item.Shell.Density := Now;
+               Widgets.Set_Density (Item.Root.Widgets, Now);
+               Widgets.Invalidate_All (Item.Root.Widgets);
+            end if;
+         end;
+      end if;
+   end Fit_Density;
+
    procedure Fit_Buttons (Item : Session) is
    begin
       if Item.Shell.Windowed then
@@ -51,6 +66,7 @@ package body Viewer.Painting is
       if Resized then
          Widgets.Invalidate_All (Item.Root.Widgets);
       end if;
+      Fit_Density (Item);
       Fit_Buttons (Item);
       Paint (Item);
       Present (Item.Host.Target);

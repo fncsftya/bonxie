@@ -472,6 +472,7 @@ package body Viewer is
 
       while not Item.Shell.Done loop
          Show_Title (Item);
+         Painting.Fit_Density (Item);
          Painting.Fit_Buttons (Item);
          if Widgets.Needs_Paint (Item.Root.Widgets) then
             Painting.Draw (Item);

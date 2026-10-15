@@ -952,7 +952,7 @@ package body Items.Windows is
    procedure Fit_Zoom (Item : in out Window) is
       Chrome : constant Float :=
         Float'Min (1.0, Float'Max (Min_Chrome, Item.Zoom));
-      Pixels : constant Float := Item.Pixels;
+      Pixels : constant Float := Frames.Pixels_Per_Point (Item.Chrome);
       Narrow : constant Boolean := Item.Zoom < Compact_Below;
       Of_Source : constant Boolean := Item.Details.Kind = Source;
    begin
@@ -1139,7 +1139,7 @@ package body Items.Windows is
      (Item : in out Window; Zoom, Origin_X, Origin_Y : Float)
    is
       Where  : Items.Frame renames Item.Details.Where;
-      Pixels : constant Float := Item.Pixels;
+      Pixels : constant Float := Frames.Pixels_Per_Point (Item.Chrome);
    begin
       Item.Zoom := Zoom;
       Item.Origin_X := Origin_X;
