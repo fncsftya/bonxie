@@ -1199,6 +1199,45 @@ static void end_word(eb_page *pg, pg_word *cur, int line, const pg_rect *box)
 	w->height = (box->bottom - box->top) / pg->height;
 }
 
+/* A drop cap is often drawn last (or first) in the content stream, so the
+ * text page has it far from its place in the reading order. Move any
+ * one-letter word much taller than the first word beside it to just
+ * before that word, on its line. */
+static void seat_drop_caps(eb_page *pg)
+{
+	pg_word *w = pg->words.data;
+	int n = pg->words.count, c;
+
+	for (c = 0; c < n; c++) {
+		const pg_word cap = w[c];
+		int target = -1, i, cap_line;
+
+		if (cap.last - cap.first != 0) continue;
+		for (i = 0; i < n; i++) {
+			float mid = w[i].top + w[i].height / 2;
+			if (i == c || w[i].left < cap.left + cap.width / 2 || w[i].height * 1.8f > cap.height) continue;
+			if (mid < cap.top || mid > cap.top + cap.height) continue;
+			if (target < 0 || w[i].top < w[target].top - 1e-4f
+			    || (fabsf(w[i].top - w[target].top) <= 1e-4f && w[i].left < w[target].left)) {
+				target = i;
+			}
+		}
+		if (target < 0) continue;
+		cap_line = w[target].line;
+		if (target > c + 1) {
+			memmove(&w[c], &w[c + 1], sizeof(pg_word) * (size_t) (target - c - 1));
+			w[target - 1] = cap;
+			w[target - 1].line = cap_line;
+		} else if (target < c) {
+			memmove(&w[target + 1], &w[target], sizeof(pg_word) * (size_t) (c - target));
+			w[target] = cap;
+			w[target].line = cap_line;
+		} else {
+			w[c].line = cap_line;
+		}
+	}
+}
+
 static void collect_words(eb_page *pg)
 {
 	int n = FPDFText_CountChars(pg->text), i;
@@ -1260,6 +1299,7 @@ static void collect_words(eb_page *pg)
 		have_last = 1;
 	}
 	if (in_word) end_word(pg, &cur, line, &box);
+	seat_drop_caps(pg);
 }
 
 /* ---- a page as a picture ---- */
