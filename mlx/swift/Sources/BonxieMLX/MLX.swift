@@ -1,10 +1,13 @@
 // Local language models on MLX, by mlx-swift-lm, for whoever has the folder
 // of a model's files (a Hugging Face snapshot). Only models converted for
-// MLX run: mx_check says whether one will, and mx_test_begin runs a prompt
-// through one, in the background, for the caller to poll.
+// MLX run: mx_check says whether one will, and mx_generate runs a prompt
+// through one.
 //
-// None of the calls wait for long: mx_check reads two small files, and the
-// test runs on its own thread. They may be called from any thread.
+// This is a thin binding: what is asked, how it is tasked and what is made
+// of the reply are the caller's (see MLX.Jobs). mx_generate waits, for
+// the model to load (once: it is kept until mx_unload or another is asked
+// for) and for the reply, so the caller must not be the main thread. Calls
+// may be made from any thread; the model runs one at a time.
 
 import Dispatch
 import Foundation
@@ -166,91 +169,147 @@ public func mx_check(
     }
 }
 
-// MARK: - The test
+// MARK: - Generation
 
-private let prompt = "This is a test, reply, in a single sentence, if it works"
+// The model in memory: the one last asked for, kept for the next.
+private actor Engine {
+    private var path: String?
+    private var container: ModelContainer?
+
+    func model(at directory: URL) async throws -> ModelContainer {
+        if let container, path == directory.path { return container }
+        container = nil  // let go of one before loading another
+        path = nil
+        if let why = await problem(with: directory) { throw Failure(why: why) }
+        let loaded = try await loadModelContainer(from: directory, using: LocalTokenizers())
+        container = loaded
+        path = directory.path
+        return loaded
+    }
+
+    func unload() {
+        container = nil
+        path = nil
+    }
+
+    var isLoaded: Bool { container != nil }
+}
+
+private let engine = Engine()
 
 private let lock = NSLock()
-private var state: Int32 = 0  // 0 idle, 1 running, 2 done, 3 failed
-private var text = ""  // the reply, or why it failed
-private var running: Task<Void, Never>?
-private var generation = 0  // which test is the current one
+private var running: [Int64: Task<String, Error>] = [:]  // by the caller's job number
 
-// Take out any thinking a model does aloud, which is not the reply.
-private func reply(from raw: String) -> String {
-    var shown = raw
-    while let open = shown.range(of: "<think>") {
-        if let close = shown.range(of: "</think>", range: open.upperBound..<shown.endIndex) {
-            shown.removeSubrange(open.lowerBound..<close.upperBound)
-        } else {
-            shown.removeSubrange(open.lowerBound..<shown.endIndex)
-        }
-    }
-    if let close = shown.range(of: "</think>") {
-        shown.removeSubrange(shown.startIndex..<close.upperBound)
-    }
-    shown = shown.trimmingCharacters(in: .whitespacesAndNewlines)
-    return shown.isEmpty ? raw.trimmingCharacters(in: .whitespacesAndNewlines) : shown
+private func string(_ pointer: UnsafePointer<CChar>?) -> String? {
+    guard let pointer else { return nil }
+    let text = String(cString: pointer)
+    return text.isEmpty ? nil : text
 }
 
-private func conclude(_ new: Int32, _ words: String, of job: Int) {
-    lock.withLock {
-        if state == 1 && generation == job {
-            state = new
-            text = words
-        }
-    }
-}
-
-// Begin to run the test prompt through the model in directory, in the
-// background. 1 if it began, 0 if a test is running already.
-@_cdecl("mx_test_begin")
-public func mx_test_begin(_ directory: UnsafePointer<CChar>) -> Int32 {
+// Ask the model in directory, with the system prompt (none if NULL or
+// empty) and the prompt, and say what it replies, as it said it (a model
+// that thinks aloud says that too: <think>...</think>) in text.
+//
+// What is tuned is left to the model's own where it is negative: the
+// sampling temperature, top_p (0...1), top_k (0 turns it off), min_p,
+// repetition_penalty and its context, the most tokens to make, and seed (to
+// make the same reply again). thinking is 0 to ask a model that can think
+// not to, 1 to ask it to, and otherwise it is left to the model.
+//
+// job is the caller's own number for this call, for mx_cancel. 1 if the
+// model replied; 0 if it could not, and message says why; 2 if the call
+// was cancelled.
+@_cdecl("mx_generate")
+public func mx_generate(
+    _ directory: UnsafePointer<CChar>,
+    _ system: UnsafePointer<CChar>?,
+    _ prompt: UnsafePointer<CChar>,
+    _ maxTokens: Int32,
+    _ temperature: Float,
+    _ topP: Float,
+    _ topK: Int32,
+    _ minP: Float,
+    _ repetitionPenalty: Float,
+    _ repetitionContext: Int32,
+    _ seed: Int64,
+    _ thinking: Int32,
+    _ job: Int64,
+    _ text: UnsafeMutablePointer<CChar>, _ textRoom: Int32,
+    _ message: UnsafeMutablePointer<CChar>, _ messageRoom: Int32
+) -> Int32 {
+    text[0] = 0
+    message[0] = 0
     let there = place(directory)
-    return lock.withLock {
-        if state == 1 { return 0 }
-        state = 1
-        text = ""
-        generation += 1
-        let job = generation
-        running = Task.detached {
-            do {
-                if let why = await problem(with: there) { throw Failure(why: why) }
-                let container = try await loadModelContainer(
-                    from: there, using: LocalTokenizers())
-                let session = ChatSession(
-                    container, generateParameters: GenerateParameters(maxTokens: 512))
-                let said = try await session.respond(to: prompt)
-                conclude(2, reply(from: said), of: job)
-            } catch {
-                conclude(3, reason(error), of: job)
-            }
-        }
+    let instructions = string(system)
+    let asked = String(cString: prompt)
+
+    var tuning = GenerateParameters()
+    if maxTokens >= 0 { tuning.maxTokens = Int(maxTokens) }
+    if temperature >= 0 { tuning.temperature = temperature }
+    if topP >= 0 { tuning.topP = topP }
+    if topK >= 0 { tuning.topK = Int(topK) }
+    if minP >= 0 { tuning.minP = minP }
+    if repetitionPenalty >= 0 { tuning.repetitionPenalty = repetitionPenalty }
+    if repetitionContext >= 0 { tuning.repetitionContextSize = Int(repetitionContext) }
+    if seed >= 0 { tuning.seed = UInt64(seed) }
+    let context: [String: any Sendable]? =
+        thinking < 0 ? nil : ["enable_thinking": thinking == 1]
+    let chosen = tuning
+
+    let done = DispatchSemaphore(value: 0)
+    let outcome = Outcome<String>()
+    let work = Task.detached { () async throws -> String in
+        let container = try await engine.model(at: there)
+        try Task.checkCancellation()
+        let session = ChatSession(
+            container, instructions: instructions, generateParameters: chosen,
+            additionalContext: context)
+        let said = try await session.respond(to: asked)
+        try Task.checkCancellation()
+        return said
+    }
+    lock.withLock { running[job] = work }
+    Task.detached {
+        outcome.result = await work.result
+        done.signal()
+    }
+    done.wait()
+    lock.withLock { _ = running.removeValue(forKey: job) }
+
+    switch outcome.result! {
+    case .success(let said):
+        say(said, text, textRoom)
         return 1
+    case .failure(let error):
+        if error is CancellationError || Task.isCancelled { return 2 }
+        say(reason(error), message, messageRoom)
+        return 0
     }
 }
 
-// 0 if no test was begun (or it was forgotten), 1 running, 2 done, 3 failed.
-@_cdecl("mx_test_state")
-public func mx_test_state() -> Int32 {
-    lock.withLock { state }
+// Stop the call that has this job number, if it is running: it returns 2.
+@_cdecl("mx_cancel")
+public func mx_cancel(_ job: Int64) {
+    lock.withLock { running[job]?.cancel() }
 }
 
-// The reply, once the test is done, or why it failed.
-@_cdecl("mx_test_text")
-public func mx_test_text(_ into: UnsafeMutablePointer<CChar>, _ room: Int32) {
-    into[0] = 0
-    say(lock.withLock { text }, into, room)
+// Stop every call that is running (for when the program is ending).
+@_cdecl("mx_cancel_all")
+public func mx_cancel_all() {
+    lock.withLock { for (_, work) in running { work.cancel() } }
 }
 
-// Forget how the last test ended (and let go of a running one).
-@_cdecl("mx_test_reset")
-public func mx_test_reset() {
-    lock.withLock {
-        running?.cancel()
-        running = nil
-        generation += 1
-        state = 0
-        text = ""
+// Let go of the model in memory, if there is one.
+@_cdecl("mx_unload")
+public func mx_unload() {
+    _ = finish { await engine.unload() }
+}
+
+// 1 if a model is in memory.
+@_cdecl("mx_loaded")
+public func mx_loaded() -> Int32 {
+    switch finish({ await engine.isLoaded }) {
+    case .success(true): return 1
+    default: return 0
     }
 }

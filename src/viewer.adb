@@ -486,6 +486,7 @@ package body Viewer is
       Save_Geometry (Item);
       --  Not to go on fetching what no one will use.
       Speech.Models.Cancel;
+      MLX.Jobs.Shutdown;
    end Run;
 
 end Viewer;

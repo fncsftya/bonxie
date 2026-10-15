@@ -1,3 +1,5 @@
+with Ada.Strings.Fixed;
+with Ada.Strings.Maps;
 with Interfaces.C;
 with System;
 
@@ -11,17 +13,14 @@ package body MLX is
       Message_Room : Interfaces.C.int) return Interfaces.C.int
      with Import, Convention => C, External_Name => "mx_check";
 
-   function MX_Test_Begin (Directory : System.Address) return Interfaces.C.int
-     with Import, Convention => C, External_Name => "mx_test_begin";
+   procedure MX_Unload
+     with Import, Convention => C, External_Name => "mx_unload";
 
-   function MX_Test_State return Interfaces.C.int
-     with Import, Convention => C, External_Name => "mx_test_state";
+   function MX_Loaded return Interfaces.C.int
+     with Import, Convention => C, External_Name => "mx_loaded";
 
-   procedure MX_Test_Text (Into : System.Address; Room : Interfaces.C.int)
-     with Import, Convention => C, External_Name => "mx_test_text";
-
-   procedure MX_Test_Reset
-     with Import, Convention => C, External_Name => "mx_test_reset";
+   procedure MX_Cancel_All
+     with Import, Convention => C, External_Name => "mx_cancel_all";
 
    function Problem (Directory : String) return String is
       Where : aliased constant Interfaces.C.char_array := Interfaces.C.To_C (Directory);
@@ -37,34 +36,67 @@ package body MLX is
       end;
    end Problem;
 
-   procedure Start_Test (Directory : String) is
-      Where : aliased constant Interfaces.C.char_array := Interfaces.C.To_C (Directory);
-      Began : constant Interfaces.C.int := MX_Test_Begin (Where'Address);
+   procedure Unload is
    begin
-      pragma Assert (Began = 1);
-   end Start_Test;
+      MX_Unload;
+   end Unload;
 
-   function State return States is
-     (case MX_Test_State is
-         when 1      => Running,
-         when 2      => Done,
-         when 3      => Failed,
-         when others => Idle);
+   function Is_Loaded return Boolean is (MX_Loaded = 1);
 
-   function Text return String is
-      Raw : aliased Interfaces.C.char_array (0 .. Max_Reply) := [others => Interfaces.C.nul];
+   procedure Cancel_All is
    begin
-      MX_Test_Text (Raw'Address, Raw'Length);
-      declare
-         Said : constant String := Interfaces.C.To_Ada (Raw);
+      MX_Cancel_All;
+   end Cancel_All;
+
+   Spaces : constant Ada.Strings.Maps.Character_Set :=
+     Ada.Strings.Maps.To_Set (" " & ASCII.LF & ASCII.CR & ASCII.HT);
+
+   function Trimmed (Text : String) return String is
+     (Ada.Strings.Fixed.Trim (Text, Left => Spaces, Right => Spaces));
+
+   function Without_Thinking (Raw : String) return String is
+      Open  : constant String := "<think>";
+      Close : constant String := "</think>";
+      Kept  : String (1 .. Raw'Length) := Raw;
+      Last  : Natural := Kept'Last;
+
+      procedure Remove (From, To : Positive) is
       begin
-         return Said (Said'First .. Said'First - 1 + Natural'Min (Said'Length, Max_Reply));
-      end;
-   end Text;
-
-   procedure Reset is
+         Kept (From .. Last - (To - From + 1)) := Kept (To + 1 .. Last);
+         Last := Last - (To - From + 1);
+      end Remove;
    begin
-      MX_Test_Reset;
-   end Reset;
+      --  Whole thoughts, and one that is not closed, which goes to the end.
+      loop
+         declare
+            Start : constant Natural := Ada.Strings.Fixed.Index (Kept (1 .. Last), Open);
+         begin
+            exit when Start = 0;
+            declare
+               Stop : constant Natural :=
+                 Ada.Strings.Fixed.Index (Kept (Start + Open'Length .. Last), Close);
+            begin
+               if Stop = 0 then
+                  Last := Start - 1;
+               else
+                  Remove (Start, Stop + Close'Length - 1);
+               end if;
+            end;
+         end;
+      end loop;
+      --  A thought whose start was not said: all before its end.
+      declare
+         Stop : constant Natural := Ada.Strings.Fixed.Index (Kept (1 .. Last), Close);
+      begin
+         if Stop /= 0 then
+            Remove (1, Stop + Close'Length - 1);
+         end if;
+      end;
+      declare
+         Said : constant String := Trimmed (Kept (1 .. Last));
+      begin
+         return (if Said /= "" then Said else Trimmed (Raw));
+      end;
+   end Without_Thinking;
 
 end MLX;

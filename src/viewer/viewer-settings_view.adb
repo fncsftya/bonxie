@@ -2,6 +2,7 @@ with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 with MLX;
 with MLX.Hub;
+with MLX.Jobs;
 with Pomarine.Themes;
 with Pomarine.Widgets;
 with Pomarine.Widgets.Buttons;
@@ -30,7 +31,7 @@ package body Viewer.Settings_View is
    package Themes renames Pomarine.Themes;
    package Layouts renames Pomarine.Widgets.Layouts;
 
-   use type MLX.States;
+   use type MLX.Jobs.States;
    use type Speech.Models.States;
    use type Preferences.Speech_Models;
    use type Preferences.Theme_Choices;
@@ -50,7 +51,7 @@ package body Viewer.Settings_View is
    function Downloading (Item : Session) return Boolean is
      (Item.Prefs.Showing_Settings
     and then (Speech.Models.State = Speech.Models.Running
-              or else MLX.State = MLX.Running));
+              or else MLX.Jobs.State (Item.Prefs.AI_Job) = MLX.Jobs.Running));
 
    --  AI
 
@@ -79,6 +80,11 @@ package body Viewer.Settings_View is
 
    procedure Save_AI (Item : in out Session);
    --  Keep whether it is on, and the model chosen.
+
+   Test_Prompt : constant String := "This is a test, reply, in a single sentence, if it works";
+   Test_Tokens : constant := 512;
+   --  What the Test button asks the model, and the most it may say: the
+   --  reply, not its thoughts, if it is one that can think.
 
    procedure Judge (Item : in out Session);
    --  Find out whether the model chosen will run, and keep why not.
@@ -217,14 +223,14 @@ package body Viewer.Settings_View is
       Any      : constant Boolean := MLX.Hub.Count (Item.Prefs.AI_Found) > 0;
       Chosen   : constant Boolean := Any and then Name /= "";
       Problem  : constant String := AI_Problem (Item);
-      Running  : constant Boolean := MLX.State = MLX.Running;
+      Running  : constant Boolean := MLX.Jobs.State (Item.Prefs.AI_Job) = MLX.Jobs.Running;
       --  What the test says is of this model only, and not of one that
       --  was chosen since.
       Tested   : constant Boolean :=
         Chosen and then Problem = ""
         and then Ada.Strings.Unbounded.To_String (Item.Prefs.AI_Tested) = Name;
-      Done     : constant Boolean := Tested and then MLX.State = MLX.Done;
-      Failed   : constant Boolean := Tested and then MLX.State = MLX.Failed;
+      Done     : constant Boolean := Tested and then MLX.Jobs.State (Item.Prefs.AI_Job) = MLX.Jobs.Done;
+      Failed   : constant Boolean := Tested and then MLX.Jobs.State (Item.Prefs.AI_Job) = MLX.Jobs.Failed;
    begin
       Switches.Set_On (Item.Prefs.AI_Enable, On);
       Widgets.Set_Visible (Item.Prefs.AI_Model_Name, On);
@@ -248,13 +254,13 @@ package body Viewer.Settings_View is
       if On and then Chosen and then Problem /= "" then
          Say (Item, Problem, Themes.Danger_Ink);
       elsif On and then Done then
-         Say (Item, MLX.Text, Themes.Foreground);
+         Say (Item, MLX.Jobs.Text (Item.Prefs.AI_Job), Themes.Foreground);
       elsif On and then Failed then
-         Say (Item, MLX.Text, Themes.Danger_Ink);
+         Say (Item, MLX.Jobs.Text (Item.Prefs.AI_Job), Themes.Danger_Ink);
       else
          Say (Item, "", Themes.Foreground);
       end if;
-      Item.Prefs.AI_Test_Seen := MLX.State;
+      Item.Prefs.AI_Test_Seen := MLX.Jobs.State (Item.Prefs.AI_Job);
    end Refresh_AI;
 
    procedure Scan_AI (Item : in out Session);
@@ -482,7 +488,8 @@ package body Viewer.Settings_View is
       end if;
       if Now = Speech.Models.Running then
          Refresh (Item);
-      elsif Now /= Item.Prefs.Download_Seen or else MLX.State /= Item.Prefs.AI_Test_Seen then
+      elsif Now /= Item.Prefs.Download_Seen or else MLX.Jobs.State (Item.Prefs.AI_Job) /= Item.Prefs.AI_Test_Seen
+      then
          --  It has ended: the button and the bar change.
          Refresh (Item);
          Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
@@ -534,6 +541,7 @@ package body Viewer.Settings_View is
          Scan_AI (Item);
       else
          Close_AI_Menu (Item);
+         MLX.Unload;  --  it is a few gigabytes of memory
       end if;
       Refresh (Item);
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
@@ -565,6 +573,7 @@ package body Viewer.Settings_View is
              (if Row = 1 then "" else MLX.Hub.Model_At (Found, Row - 1));
          Save_AI (Item);
          Judge (Item);
+         MLX.Unload;  --  the next test loads the model chosen
          Close_AI_Menu (Item);
          Fill_AI_Menu (Item);
          Refresh (Item);
@@ -578,10 +587,12 @@ package body Viewer.Settings_View is
    begin
       Judge (Item);
       if Item.Prefs.AI_On and then Name /= "" and then AI_Problem (Item) = ""
-        and then MLX.State /= MLX.Running and then Folder /= ""
+        and then MLX.Jobs.State (Item.Prefs.AI_Job) /= MLX.Jobs.Running and then Folder /= ""
       then
          Item.Prefs.AI_Tested := Item.Prefs.AI_Model;
-         MLX.Start_Test (Folder);
+         MLX.Jobs.Start
+           (Item.Prefs.AI_Job, Folder, Test_Prompt,
+            Tuning => (Max_Tokens => Test_Tokens, Thinking => MLX.Off, others => <>));
       end if;
       Refresh (Item);
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);

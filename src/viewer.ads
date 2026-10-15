@@ -3,8 +3,8 @@ with SDL3.Cursors;
 with SDL3.Events;
 with SDL3.Windows.Renderers.Images;
 private with Ada.Strings.Unbounded;
-private with MLX;
 private with MLX.Hub;
+private with MLX.Jobs;
 private with Speech.Models;
 private with Items;
 private with Items.Directories;
@@ -506,7 +506,9 @@ private
       --  Why the model chosen will not run, empty if it will.
       AI_Tested      : Ada.Strings.Unbounded.Unbounded_String;
       --  The model the test was begun for: what it says is of that one.
-      AI_Test_Seen   : MLX.States := MLX.Idle;
+      AI_Job         : MLX.Jobs.Job;
+      --  The test of the model chosen, asked in the background.
+      AI_Test_Seen   : MLX.Jobs.States := MLX.Jobs.Idle;
       --  How the test was when the form last showed it.
       Showing_Settings : Boolean := False;
       Speech_Choice  : Preferences.Speech_Models := Preferences.MacOS;
