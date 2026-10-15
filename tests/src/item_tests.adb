@@ -14,6 +14,7 @@ with Vision;
 with Webshot;
 with Goldens;
 with Items.Windows;
+with Pomarine.Page_Builds;
 with Pomarine.Application;
 with Projects;
 with Viewer;
@@ -208,6 +209,7 @@ package body Item_Tests is
       --  and again when it is there.
       Viewer.Render (Session, Drawn);
       SDL3.Pictures.Jobs.Wait_Until_Idle;
+      Pomarine.Page_Builds.Wait_Until_Idle;
       Viewer.Handle (Session, (Kind => Events.Redraw, others => <>));
       Viewer.Render (Session, Drawn);
       Goldens.Check (Name, Drawn);

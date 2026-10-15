@@ -23,9 +23,10 @@ package Items.Vector_Pages is
       Last    : out Natural)
      with Pre => Message'Length >= 160;
    --  Show the first Count pages of the PDF File in Shown. Sizes and Origin
-   --  are kept as long as it is shown (see Close). If the pages cannot be
-   --  shown, Last >= Message'First and Message says why; otherwise Last is
-   --  Message'First - 1.
+   --  are kept as long as it is shown (see Close). They are shown at once, as
+   --  of a guessed size, and Shown is told their sizes when the document has
+   --  been opened, in the background. If the path is too long, Last >=
+   --  Message'First and Message says why; otherwise Last is Message'First - 1.
 
    procedure Close
      (Shown : in out Pomarine.Widgets.Page_Views.Page_View;
@@ -41,6 +42,12 @@ private
       Name   : String (1 .. Path_Capacity) := [others => ' '];
       Length : Natural range 0 .. Path_Capacity := 0;
    end record;
+
+   overriding procedure Measure
+     (Item  : in out File_Source;
+      Count : Positive;
+      Sizes : out Pomarine.Pages.Size_Array_Access;
+      Ok    : out Boolean);
 
    overriding procedure Build
      (Item    : in out File_Source;

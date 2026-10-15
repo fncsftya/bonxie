@@ -1,5 +1,6 @@
 with Ada.Directories;
 with Ada.Text_IO;
+with Pomarine.Page_Builds;
 with SDL3.Events;
 with SDL3.Pictures.Jobs;
 with Webshot;
@@ -145,6 +146,7 @@ package body Write_Tests is
       --  Drawn, as it is between a person's clicks, which lays it out.
       Viewer.Render (Session, Drawn);
       SDL3.Pictures.Jobs.Wait_Until_Idle;
+      Pomarine.Page_Builds.Wait_Until_Idle;
       Viewer.Handle (Session, (Kind => Events.Redraw, others => <>));
    end Settle;
 
@@ -153,6 +155,7 @@ package body Write_Tests is
    begin
       Viewer.Render (Session, Drawn);
       SDL3.Pictures.Jobs.Wait_Until_Idle;
+      Pomarine.Page_Builds.Wait_Until_Idle;
       Viewer.Handle (Session, (Kind => Events.Redraw, others => <>));
       Viewer.Render (Session, Drawn);
       Goldens.Check (Name, Drawn);

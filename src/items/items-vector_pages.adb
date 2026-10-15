@@ -18,6 +18,19 @@ package body Items.Vector_Pages is
       Ok := Content /= null;
    end Build;
 
+   overriding procedure Measure
+     (Item  : in out File_Source;
+      Count : Positive;
+      Sizes : out Pomarine.Pages.Size_Array_Access;
+      Ok    : out Boolean)
+   is
+      Message : String (1 .. Ebook.Max_Message);
+      Last    : Natural;
+   begin
+      Ebook.Document_Sizes (Item.Name (1 .. Item.Length), Count, Sizes, Message, Last);
+      Ok := Sizes /= null;
+   end Measure;
+
    procedure Open
      (Shown   : in out Pomarine.Widgets.Page_Views.Page_View;
       Sizes   : in out Pomarine.Pages.Size_Array_Access;
@@ -36,10 +49,10 @@ package body Items.Vector_Pages is
       end if;
       Origin.Length := File'Length;
       Origin.Name (1 .. File'Length) := File;
-      Ebook.Document_Sizes (File, Count, Sizes, Message, Last);
-      if Sizes /= null then
-         Pomarine.Widgets.Page_Views.Set_Document (Shown, Sizes, Origin'Unchecked_Access);
-      end if;
+      --  The pages are taken to be letter size until the document, which
+      --  takes a while to open, has said (in the background).
+      Sizes := new Pomarine.Pages.Size_Array'[1 .. Count => (Width => 612.0, Height => 792.0)];
+      Pomarine.Widgets.Page_Views.Set_Document (Shown, Sizes, Origin'Unchecked_Access, Guess => True);
    end Open;
 
    procedure Close
