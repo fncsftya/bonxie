@@ -27,6 +27,60 @@ package Items.Sources is
    --  the picture before is of another picture: it is forgotten (see
    --  Clear_Words).
 
+   procedure Set_Document
+     (Store      : in out Projects.Store;
+      Key        : Id;
+      Document   : String;
+      Page_Count : Natural)
+     with Pre => Projects.Is_Open (Store);
+   --  Say the source is a PDF or e-book of that ending (as "epub"), of
+   --  Page_Count pages, at its first; or, with "" and 0, a web page.
+
+   procedure Set_Origin
+     (Store : in out Projects.Store; Key : Id; Origin : Origins)
+     with Pre => Projects.Is_Open (Store);
+   --  Say whether the source is a link or a file (see Origins).
+
+   function Is_Text (Document : String) return Boolean;
+   --  Whether a document with that ending is plain text, shown as text,
+   --  not drawn as a picture.
+
+   function Read_Text (File_Name : String) return String;
+   --  What is in a text file, to be shown: as much of it as Max_Text
+   --  bytes, as UTF-8 (a byte that is not is replaced by U+FFFD), with
+   --  line feeds only (a CR LF, or a CR alone, is one).
+
+   Max_Text : constant := 1_000_000;
+
+   procedure Copy_File (From, To : String);
+   --  Make To a copy of From, written beside it and then put in its place.
+   --  Use_Error if it cannot be.
+
+   procedure Set_Page (Store : in out Projects.Store; Key : Id; Page : Positive)
+     with Pre => Projects.Is_Open (Store);
+   --  Say which page of its document the source's picture is of. The
+   --  picture is another: see Set_Captured.
+
+   function Document_File
+     (Store    : Projects.Store;
+      Project  : Projects.Id;
+      Key      : Id;
+      Document : String) return String
+     with Pre => Projects.Is_Open (Store);
+   --  Where the file of a source that is a PDF or e-book is kept: beside
+   --  its picture (see Image_File), with its ending.
+
+   function Shown_File
+     (Store : Projects.Store; Project : Projects.Id; Of_Item : Info) return String
+     with Pre => Projects.Is_Open (Store);
+   --  What a source's window shows: the text file of one that is a text,
+   --  else its picture.
+
+   procedure Delete_Files
+     (Store : Projects.Store; Project : Projects.Id; Key : Id)
+     with Pre => Projects.Is_Open (Store);
+   --  Throw away the picture of a source, and its document if it has one.
+
    function Image_File
      (Store : Projects.Store; Project : Projects.Id; Key : Id) return String
      with Pre => Projects.Is_Open (Store);

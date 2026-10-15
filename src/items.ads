@@ -1,3 +1,4 @@
+with Ada.Strings.Bounded;
 with Projects;
 
 --  The items of a project's canvas, kept in the same database as the
@@ -27,6 +28,14 @@ package Items is
    type States is (Open, Minimized, Closed);
    --  Open: a window on the canvas. Minimized: only its title, in a bar
    --  above the tools. Closed: not shown, but kept in the list of items.
+
+   package Extensions is new Ada.Strings.Bounded.Generic_Bounded_Length (8);
+   --  The ending of a file's name, without its dot, as "pdf".
+
+   type Origins is (Unchosen, Remote, Local);
+   --  Of a source: whether it is yet to be said where it comes from (a
+   --  window with two buttons to say so), it is a link to fetch, or it is
+   --  a file on this computer, whose path is its text.
 
    type Frame is record
       Left, Top, Width, Height : Float := 0.0;
@@ -76,6 +85,13 @@ package Items is
       --  Of a source: when the text in its picture was found and kept
       --  (see Save_Words); 0 if it has not been, or the picture was taken
       --  again since.
+      Origin : Origins := Remote;
+      Page : Natural := 0;
+      Page_Count : Natural := 0;
+      Document : Extensions.Bounded_String := Extensions.Null_Bounded_String;
+      --  Of a source that is a PDF or e-book, not a web page: its file's
+      --  ending, and which of its Page_Count pages the picture is of
+      --  (from 1). Page_Count is 0 for a web page, and Page too.
    end record;
 
    type Info_Array is array (Positive range <>) of Info;

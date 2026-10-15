@@ -1,4 +1,3 @@
-with Ada.Directories;
 with Items.Sources;
 with Repository.Item;
 
@@ -13,7 +12,14 @@ package body Items.Records is
       Kind    : Kinds := Note) return Id is
    begin
       pragma Assert (Count (Store, Project) < Capacity);
-      return Repository.Item.Insert (Store, Project, Title, Where, Text, Kind);
+      return Made : constant Id :=
+        Repository.Item.Insert (Store, Project, Title, Where, Text, Kind)
+      do
+         --  A source is yet to be said to be a link or a file.
+         if Kind = Source then
+            Repository.Item.Set_Origin (Store, Made, Unchosen);
+         end if;
+      end return;
    end Create;
 
    procedure Load
@@ -67,14 +73,7 @@ package body Items.Records is
    begin
       Repository.Item.Delete (Store, Key);
       if Project /= 0 then
-         declare
-            Picture : constant String :=
-              Sources.Image_File (Store, Project, Key);
-         begin
-            if Ada.Directories.Exists (Picture) then
-               Ada.Directories.Delete_File (Picture);
-            end if;
-         end;
+         Sources.Delete_Files (Store, Project, Key);
       end if;
    end Delete;
 

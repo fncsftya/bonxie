@@ -1,5 +1,7 @@
 with Items.Sources;
 with Ada.Strings;
+with Pomarine.Line_Texts;
+with Pomarine.Text_Areas;
 with Icon_Set;
 with Pomarine.Widgets.Callbacks;
 with Pomarine.Widgets.Frames.Handlers;
@@ -14,6 +16,16 @@ package body Items.Readers is
    package Frames renames Pomarine.Widgets.Frames;
    package Sliders renames Pomarine.Widgets.Sliders;
    package Pictures renames Pomarine.Widgets.Pictures;
+   package Editors renames Pomarine.Widgets.Editors;
+   package Docs renames Texts.Documents;
+
+   function Is_Texty (Item : Reader) return Boolean is
+     (Item.Details.Origin /= Unchosen
+      and then Items.Sources.Is_Text (Items.Extensions.To_String (Item.Details.Document)));
+   --  Whether the source is shown as text, not as a picture.
+
+   procedure Show_Mode (Item : in out Reader);
+   --  Show the text of a text file, or the picture and its tools.
 
    --  In points
 
@@ -25,6 +37,7 @@ package body Items.Readers is
    Percent_Width : constant Float := 40.0;
    Tools_Width   : constant Float := 3.0 * Button_Size + 2.0 * Button_Gap;
    Pin_Icon_Size : constant Float := 12.0;
+   Text_Size     : constant Float := 15.0;
 
    procedure Listen (Item : in out Reader);
    --  Give the reader's widgets the procedures they call (see Update).
@@ -51,6 +64,7 @@ package body Items.Readers is
          Placement => (if Pinned then Frames.Filling else Frames.Floating));
       Frames.Add_Title_Button (Item.Chrome, Item.Pin_Button);
       Frames.Add_Content (Item.Chrome, Item.Picture);
+      Frames.Add_Content (Item.Chrome, Item.Text_View);
       Frames.Add_Status_Item (Item.Chrome, Item.Tools);
       Widgets.Add (Item.Tools, Item.Cursor_Button);
       Widgets.Add (Item.Tools, Item.Marker_Button);
@@ -66,6 +80,12 @@ package body Items.Readers is
       Size (Item.Pin_Button, Button_Size, Button_Size);
 
       Layouts.Set_Layout (Item.Picture, Grow => 1.0, Height => 0.0);
+      Editors.Configure
+        (Item.Text_View, Pomarine.Line_Texts.Serif, Text_Size, 2000.0);
+      Editors.Set_Paper (Item.Text_View, Pomarine.Themes.Page);
+      Pomarine.Text_Areas.Set_Read_Only (Editors.Area (Item.Text_View).all);
+      Layouts.Set_Layout (Item.Text_View, Grow => 1.0, Height => 0.0);
+      Widgets.Set_Visible (Item.Text_View, False);
 
       Layouts.Set_Layout (Item.Tools, Flow => Layouts.Row, Gap => Button_Gap);
       Buttons.Set_Label (Item.Cursor_Button, "Ptr");
@@ -198,9 +218,32 @@ package body Items.Readers is
    begin
       Labels.Set_Text
         (Item.Status,
-         (if Item.Details.Captured_At > 0 then ""
-          else "Not captured yet"));
+         (if Item.Details.Captured_At = 0 then "Not captured yet"
+          elsif Item.Details.Page_Count > 0
+          then "Page" & Item.Details.Page'Image & " of" & Item.Details.Page_Count'Image
+          else ""));
    end Show_Status;
+
+   procedure Show_Mode (Item : in out Reader) is
+      Texty : constant Boolean := Is_Texty (Item);
+   begin
+      Widgets.Set_Visible (Item.Text_View, Texty);
+      Widgets.Set_Visible (Item.Picture, not Texty);
+      Widgets.Set_Visible (Item.Tools, not Texty);
+      Widgets.Set_Visible (Item.Zoom_Slider, not Texty);
+      Widgets.Set_Visible (Item.Zoom_Label, not Texty);
+   end Show_Mode;
+
+   procedure Set_Document
+     (Item : in out Reader; Document : String; Page, Count : Natural) is
+   begin
+      Item.Details.Document :=
+        Items.Extensions.To_Bounded_String (Document, Ada.Strings.Right);
+      Item.Details.Page := Page;
+      Item.Details.Page_Count := Count;
+      Show_Mode (Item);
+      Show_Status (Item);
+   end Set_Document;
 
    procedure Clear_Recognized (Item : in out Reader);
    --  Forget the words, as of a picture that is not the one shown.
@@ -226,9 +269,15 @@ package body Items.Readers is
       Item.Details.Captured_At := At_Time;
       Clear_Recognized (Item);
       Pictures.Clear_Marks (Item.Picture);
-      Pictures.Set_File (Item.Picture, File);
+      if Is_Texty (Item) then
+         Pictures.Set_File (Item.Picture, "");
+         Docs.Load (Item.Text_Doc, Items.Sources.Read_Text (File));
+      else
+         Pictures.Set_File (Item.Picture, File);
+      end if;
+      Show_Mode (Item);
       Show_Status (Item);
-      if Item.Details.State = Open then
+      if Item.Details.State = Open and then not Is_Texty (Item) then
          Pictures.Load_Soon (Item.Picture, Urgent => True);
       end if;
    end Set_Picture;
@@ -268,9 +317,16 @@ package body Items.Readers is
       Pictures.Set_File (Item.Picture, "");
       Select_Tool (Item, Pictures.Pointer);
       Set_Zoom (Item, Of_Item.Zoom);
+      Docs.Load (Item.Text_Doc, "");
+      Editors.Attach (Item.Text_View, Item.Text_Doc'Unchecked_Access);
       if Of_Item.Captured_At > 0 and then Picture_File /= "" then
-         Pictures.Set_File (Item.Picture, Picture_File);
+         if Is_Texty (Item) then
+            Docs.Load (Item.Text_Doc, Items.Sources.Read_Text (Picture_File));
+         else
+            Pictures.Set_File (Item.Picture, Picture_File);
+         end if;
       end if;
+      Show_Mode (Item);
       Show_Status (Item);
       Set_State (Item, Closed);
    end Assign;

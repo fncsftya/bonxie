@@ -1,0 +1,23 @@
+name = "ebook_tests"
+description = "Tests of the pages ebook draws"
+version = "0.1.0-dev"
+
+authors = ["Matt Rawcliffe"]
+licenses = "GPL-3.0-only"
+website = ""
+tags = []
+
+executables = ["ebook_test"]
+
+[[depends-on]]
+ebook = "*"
+
+[[pins]]
+ebook = { path = ".." }
+
+[build-switches]
+"*".ada_version = "Ada2022"
+"*".compile_checks = "Errors"
+"*".runtime_checks = "Everything"
+"*".style_checks = "Yes"
+"*".contracts = "Yes"

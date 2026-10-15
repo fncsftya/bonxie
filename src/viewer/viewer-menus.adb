@@ -81,6 +81,35 @@ package body Viewer.Menus is
       Widgets.Set_Validator (Item.Root.Widgets, Validate'Access);
    end Build;
 
+   procedure Key_Taken (Item : in out Session; Event : SDL3.Events.Event) is
+      use type SDL3.Events.Event_Kind;
+      Tag : Integer := Widgets.No_Tag;
+   begin
+      if not Menu_Bar.Is_Installed (Item.Host.Menus)
+        or else Event.Kind /= SDL3.Events.Key_Down
+        or else not Event.Command or else Event.Option
+      then
+         return;
+      end if;
+      case Event.Key is
+         when SDL3.Events.Key_Z =>
+            Tag := (if Event.Shift then Widgets.Edit_Redo else Widgets.Edit_Undo);
+         when SDL3.Events.Key_X =>
+            Tag := Widgets.Edit_Cut;
+         when SDL3.Events.Key_C =>
+            Tag := Widgets.Edit_Copy;
+         when SDL3.Events.Key_V =>
+            Tag := Widgets.Edit_Paste;
+         when SDL3.Events.Key_A =>
+            Tag := Widgets.Edit_Select_All;
+         when others =>
+            null;
+      end case;
+      if Tag /= Widgets.No_Tag then
+         Menu_Bar.Discard (Item.Host.Menus, Tag);
+      end if;
+   end Key_Taken;
+
    procedure Update (Item : in out Session) is
    begin
       if Menu_Bar.Is_Installed (Item.Host.Menus) then

@@ -67,6 +67,23 @@ package Repository.Item is
      (Store : in out Projects.Store; Key : Items.Id; At_Time : Projects.Seconds)
      with Pre => Projects.Is_Open (Store);
 
+   procedure Set_Document
+     (Store      : in out Projects.Store;
+      Key        : Items.Id;
+      Document   : String;
+      Page_Count : Natural)
+     with Pre => Projects.Is_Open (Store);
+   --  Of a source: its file's ending ("" for a web page) and how many
+   --  pages it has (0 for none); the page is the first, or none.
+
+   procedure Set_Origin
+     (Store : in out Projects.Store; Key : Items.Id; Origin : Items.Origins)
+     with Pre => Projects.Is_Open (Store);
+
+   procedure Set_Page
+     (Store : in out Projects.Store; Key : Items.Id; Page : Natural)
+     with Pre => Projects.Is_Open (Store);
+
    procedure Set_Recognized
      (Store   : in out Projects.Store;
       Key     : Items.Id;

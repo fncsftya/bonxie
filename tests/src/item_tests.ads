@@ -33,5 +33,36 @@ package Item_Tests is
    procedure Source_Windows;
    procedure Source_Pages;
    procedure Source_Words;
+   procedure Source_Documents;
+   procedure Source_Files;
+
+   From_Url_X  : constant Float := 358.0;
+   From_Url_Y  : constant Float := 241.0;
+   From_File_Y : constant Float := 283.0;
+   --  The buttons of a source yet to say where it comes from.
+
+   Pager_Y    : constant Float := 319.0;
+   Next_X     : constant Float := 366.0;
+   Previous_X : constant Float := 346.5;
+   --  The buttons that turn a source's page, over its picture.
+
+   Two_Pages : constant String :=
+     "%PDF-1.4" & ASCII.LF
+     & "1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj" & ASCII.LF
+     & "2 0 obj<</Type/Pages/Count 2/Kids[3 0 R 5 0 R]>>endobj" & ASCII.LF
+     & "3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 612 792]/Contents 4 0 R"
+     & "/Resources<</Font<</F1 7 0 R>>>>>>endobj" & ASCII.LF
+     & "4 0 obj<</Length 63>>stream" & ASCII.LF
+     & "BT /F1 56 Tf 40 600 Td (Bonxies nest on moorland) Tj ET" & ASCII.LF
+     & "endstream endobj" & ASCII.LF
+     & "5 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 612 792]/Contents 6 0 R"
+     & "/Resources<</Font<</F1 7 0 R>>>>>>endobj" & ASCII.LF
+     & "6 0 obj<</Length 55>>stream" & ASCII.LF
+     & "BT /F1 56 Tf 40 600 Td (Skuas winter at sea) Tj ET" & ASCII.LF
+     & "endstream endobj" & ASCII.LF
+     & "7 0 obj<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>endobj" & ASCII.LF
+     & "trailer<</Root 1 0 R/Size 8>>" & ASCII.LF & "%%EOF" & ASCII.LF;
+   --  A PDF of two pages, with no table of where its objects are: it is
+   --  found by reading it through.
 
 end Item_Tests;

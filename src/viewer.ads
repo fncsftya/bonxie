@@ -590,6 +590,20 @@ private
 
       Shown_Zoom, Shown_X, Shown_Y : Float := 0.0;
       --  Of the canvas, as the items' windows have been put by it.
+
+      Fetch_Slot : Natural := 0;
+      Fetch_Key  : Items.Id := 0;
+      Fetch_Document : Items.Extensions.Bounded_String :=
+        Items.Extensions.Null_Bounded_String;
+      --  The window whose source's PDF or e-book is being fetched (see
+      --  Downloads, which does one at a time), 0 if none; its item and the
+      --  ending of the file.
+
+      Pick_Slot : Natural := 0;
+      Pick_Key  : Items.Id := 0;
+      --  The window whose source is having a file chosen, in the system's
+      --  dialog (see SDL3.Dialogs, which shows one at a time), 0 if none;
+      --  its item.
    end record;
    --  Which screen is shown, the database, and what the canvas was last put
    --  by.

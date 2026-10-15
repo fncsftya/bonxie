@@ -13,6 +13,7 @@ executables = ["bonxie"]
 pomarine_native = "*"
 pomarine_ui = "*"
 coretext = "*"
+ebook = "*"
 sdl3 = "*"
 speech = "*"
 texts = "*"
@@ -25,6 +26,7 @@ yoga = "*"
 pomarine_native = { path = "pomarine/native" }
 pomarine_ui = { path = "pomarine/ui" }
 coretext = { path = "pomarine/coretext" }
+ebook = { path = "ebook" }
 sdl3 = { path = "pomarine/sdl3" }
 speech = { path = "speech" }
 texts = { path = "pomarine/texts" }

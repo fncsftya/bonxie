@@ -33,10 +33,16 @@ package Items.Windows is
 
    type Window_Array is array (Slot) of Window;
 
-   type Actions is (None, Minimize, Restore, Close, Capture, Speak);
+   type Actions is (None, Minimize, Restore, Close, Capture, Speak, Previous_Page, Next_Page,
+                    Choose_Link, Choose_File);
    --  What a window's buttons ask for, and, of a source, Return in its
    --  link's field: to take the picture of the page. Speak is the button
-   --  of a note that starts or stops dictating into it.
+   --  of a note that starts or stops dictating into it. Previous_Page and
+   --  Next_Page are the buttons over the picture of a source that is a
+   --  PDF or e-book of more than one page. Choose_Link and Choose_File are
+   --  the two buttons of a source that is yet to say where it comes from;
+   --  Choose_File too is what clicking the path of a source that is a file
+   --  asks: to choose another.
 
    type Dictations is (Silent, Preparing, Listening, Transcribing, Failed);
    --  Of a note: not dictating (or it was taken), the microphone is being
@@ -114,6 +120,44 @@ package Items.Windows is
    --  Say how the source's picture stands, in its status line: Ready
    --  shows the PNG File, read again, as taken at At_Time; Failed says
    --  why, in Detail.
+
+   procedure Set_Origin (Item : in out Window; To : Items.Origins)
+     with Pre => Is_Assigned (Item) and then Details (Item).Kind = Source,
+          Post => Details (Item).Origin = To;
+   --  Say whether the source is yet to be said to be a link or a file
+   --  (it shows two buttons to say so), a link, or a file (its path is
+   --  its text, which cannot be typed over, and clicked asks for another).
+
+   procedure Set_Link (Item : in out Window; To : String)
+     with Pre => Is_Assigned (Item) and then Details (Item).Kind = Source;
+   --  Make the source's text, its link or its file's path, To: as if it
+   --  had been typed, so that it is kept.
+
+   procedure Show_Text (Item : in out Window; File : String; At_Time : Projects.Seconds)
+     with Pre => Is_Assigned (Item) and then Details (Item).Kind = Source
+                 and then File /= "";
+   --  Show the text of the file, which cannot be changed in the window,
+   --  as taken at At_Time, in place of a picture.
+
+   function Selected_Shown_Text (Item : Window) return String
+     with Pre => Is_Assigned (Item) and then Details (Item).Kind = Source;
+   --  What is selected in it.
+
+   function Shown_Text (Item : Window) return String
+     with Pre => Is_Assigned (Item) and then Details (Item).Kind = Source;
+   --  The text of a source that is a text file, as shown.
+
+   procedure Set_Pages
+     (Item : in out Window; Document : String; Page, Count : Natural)
+     with Pre => Is_Assigned (Item)
+                 and then Details (Item).Kind = Source
+                 and then Page <= Count,
+          Post => Details (Item).Page = Page
+                  and then Details (Item).Page_Count = Count;
+   --  Say the source's picture is of the Page'th of the Count pages of its
+   --  document, a file of that ending ("" and 0 for a web page): with more than one, buttons
+   --  to turn the page are over the picture, and the status line says
+   --  which it is once it is shown (Set_Capture Ready).
 
    function Dictation (Item : Window) return Dictations
      with Pre => Is_Assigned (Item);
@@ -446,6 +490,20 @@ private
       Eraser_Button : Pomarine.Widgets.Buttons.Button;
       --  Of a source, in the middle of its status line: the cursor, the
       --  highlighter and the eraser, one of which is chosen.
+      Pager        : Pomarine.Widgets.Panels.Panel;
+      Prev_Button  : Pomarine.Widgets.Buttons.Button;
+      Next_Button  : Pomarine.Widgets.Buttons.Button;
+      --  Of a source of more than one page, over the foot of its picture,
+      --  in the middle: to the page before and after.
+      Wizard       : Pomarine.Widgets.Panels.Panel;
+      Link_Button  : Pomarine.Widgets.Buttons.Button;
+      File_Button  : Pomarine.Widgets.Buttons.Button;
+      --  Of a source that is yet to say where it comes from, in place of
+      --  its link and picture: its two ways.
+      Text_Doc     : aliased Docs.Document;
+      Text_View    : Pomarine.Widgets.Editors.Editor;
+      --  Of a source that is a text file: what it says, which is not for
+      --  changing, in place of a picture.
       Zoom_Menu    : Pomarine.Widgets.Panels.Panel;
       Menu_Rows    : Panel_Rows;
       Menu_Buttons : Preset_Buttons;

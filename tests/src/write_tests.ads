@@ -15,5 +15,6 @@ package Write_Tests is
    procedure Typing;
    procedure Sources;
    procedure Sharing_Marks;
+   procedure Source_Documents;
 
 end Write_Tests;

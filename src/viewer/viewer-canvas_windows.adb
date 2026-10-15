@@ -12,11 +12,39 @@ package body Viewer.Canvas_Windows is
    function Item_Count (Item : Session) return Natural is
      (Canvas_Items.Count (Item));
 
+   procedure Add_Unchosen_Source
+     (Item : in out Session; Name : String := "Untitled source") is
+   begin
+      Canvas_Items.Add (Item, Name, Items.Source);
+   end Add_Unchosen_Source;
+
    procedure Add_Item
      (Item : in out Session;
       Name : String := "Untitled item";
       Kind : Items.Kinds := Items.Note)
-     renames Canvas_Items.Add;
+   is
+      Before : constant Natural := Canvas_Items.Count (Item);
+   begin
+      Canvas_Items.Add (Item, Name, Kind);
+      if Items."=" (Kind, Items.Source) and then Canvas_Items.Count (Item) > Before then
+         Canvas_Items.Choose_Origin
+           (Item, Window (Item, Canvas_Items.Count (Item)), Items.Remote);
+      end if;
+   end Add_Item;
+
+   function Item_Origin (Item : Session; Row : Positive) return Items.Origins is
+     (Items.Windows.Details (Item.Windows (Window (Item, Row))).Origin);
+
+   procedure Pick_File (Item : in out Session; Row : Positive; Path : String) is
+   begin
+      Canvas_Items.File_Picked (Item, Window (Item, Row), Path);
+   end Pick_File;
+
+   function Item_Text_Selected (Item : Session; Row : Positive) return String is
+     (Items.Windows.Selected_Shown_Text (Item.Windows (Window (Item, Row))));
+
+   function Item_Shown_Text (Item : Session; Row : Positive) return String is
+     (Items.Windows.Shown_Text (Item.Windows (Window (Item, Row))));
 
    function Item_Title (Item : Session; Row : Positive) return String is
      (Projects.Titles.To_String

@@ -2,6 +2,7 @@ with "config/bonxie_config.gpr";
 with "pomarine_native.gpr";
 with "pomarine_ui.gpr";
 with "coretext.gpr";
+with "ebook.gpr";
 with "sdl3.gpr";
 with "speech.gpr";
 with "texts.gpr";

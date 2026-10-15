@@ -209,6 +209,9 @@ package body Viewer is
                end if;
                if not Handled then
                   Widgets.Dispatch (Item.Root.Widgets, Event, Handled);
+                  if Handled then
+                     Menus.Key_Taken (Item, Event);
+                  end if;
                   if Item.Shell.Windowed then
                      Track_Window (Item, Event, Handled);
                   end if;

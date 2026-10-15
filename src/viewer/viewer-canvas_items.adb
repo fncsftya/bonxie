@@ -9,6 +9,10 @@ with Ada.Calendar.Formatting;
 with Ada.Directories;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
+with Downloads;
+with Ebook;
+with SDL3.Dialogs;
+with SDL3.Windows;
 with Preferences;
 with Pomarine.Widgets;
 with Pomarine.Widgets.Canvases;
@@ -37,6 +41,10 @@ package body Viewer.Canvas_Items is
    use type Projects.Id;
    use type Items.Kinds;
    use type Webshot.States;
+   use type Downloads.States;
+   use type Items.Origins;
+   use type SDL3.Dialogs.States;
+   use type Items.Extensions.Bounded_String;
    use type Vision.Jobs.States;
    use type Speech.Jobs.States;
    use type Windows.Dictations;
@@ -73,6 +81,9 @@ package body Viewer.Canvas_Items is
 
    function Capturing (Item : Session) return Boolean is
    begin
+      if Item.Nav.Fetch_Slot /= 0 then
+         return True;
+      end if;
       for Which in Items.Slot loop
          if Windows.Is_Assigned (Item.Windows (Which))
            and then Speech.Jobs.State (Which)
@@ -200,19 +211,72 @@ package body Viewer.Canvas_Items is
            (Item.Nav.Store, Item.Opened.Current, Key));
    end Start_Recognition;
 
+   procedure Start_Download
+     (Item : in out Session; Which : Items.Slot; Link : String);
+   --  Begin to fetch the PDF or e-book the source's text links to: it is
+   --  drawn, a page at a time, when it has come (see Poll_Download).
+
+   procedure Start_Download
+     (Item : in out Session; Which : Items.Slot; Link : String)
+   is
+      Ending : constant String := Ebook.Extension_Of (Link);
+      Key    : constant Items.Id :=
+        Windows.Details (Item.Windows (Which)).Key;
+   begin
+      if Item.Nav.Fetch_Slot /= 0 or else Downloads.State = Downloads.Running
+      then
+         Windows.Set_Capture
+           (Item.Windows (Which), Windows.Failed,
+            Detail => "another file is being fetched");
+         return;
+      end if;
+      if Link'Length > Downloads.Max_Path then
+         Windows.Set_Capture
+           (Item.Windows (Which), Windows.Failed, Detail => "the link is too long");
+         return;
+      end if;
+      Items.Sources.Make_Image_Folder (Item.Nav.Store, Item.Opened.Current);
+      Vision.Jobs.Reset (Which);
+      Webshot.Reset (Which);
+      Downloads.Reset;
+      Downloads.Start
+        (Link,
+         Items.Sources.Document_File
+           (Item.Nav.Store, Item.Opened.Current, Key, Ending));
+      Item.Nav.Fetch_Slot := Which;
+      Item.Nav.Fetch_Key := Key;
+      Item.Nav.Fetch_Document :=
+        Items.Extensions.To_Bounded_String (Ending);
+      Windows.Set_Capture (Item.Windows (Which), Windows.Busy);
+   end Start_Download;
+
+   procedure Start_Local (Item : in out Session; Which : Items.Slot; Path : String);
+   --  Take a copy of the file the source's text is the path of, and show it.
+
    procedure Start_Capture (Item : in out Session; Which : Items.Slot);
-   --  Begin to take the picture of the page the source's text links to.
+   --  Begin to take the picture of the page the source's text links to, or
+   --  show the file its text is the path of.
 
    procedure Start_Capture (Item : in out Session; Which : Items.Slot) is
+      Origin : constant Items.Origins := Windows.Details (Item.Windows (Which)).Origin;
       Link : constant String :=
         Link_Of (Windows.Text (Item.Windows (Which)));
    begin
-      if Webshot.State (Which) = Webshot.Working then
+      if Webshot.State (Which) = Webshot.Working or else Origin = Items.Unchosen then
+         return;
+      end if;
+      if Origin = Items.Local then
+         Start_Local
+           (Item, Which, Ada.Strings.Fixed.Trim (Windows.Text (Item.Windows (Which)), Ada.Strings.Both));
          return;
       end if;
       if Link = "" then
          Windows.Set_Capture
            (Item.Windows (Which), Windows.Failed, Detail => "no link");
+         return;
+      end if;
+      if Ebook.Is_Supported (Link) then
+         Start_Download (Item, Which, Link);
          return;
       end if;
       Items.Sources.Make_Image_Folder (Item.Nav.Store, Item.Opened.Current);
@@ -241,11 +305,15 @@ package body Viewer.Canvas_Items is
       Writing.Words_Found (Item, Which, Found);
    end Keep_Recognition;
 
-   procedure Name_From_Page (Item : in out Session; Which : Items.Slot);
-   --  Give a source still called Untitled_Source the title of its page.
+   procedure Name_From_Page
+     (Item : in out Session; Which : Items.Slot; Heading : String);
+   --  Give a source still called Untitled_Source the title of its page,
+   --  or of its document.
 
-   procedure Name_From_Page (Item : in out Session; Which : Items.Slot) is
-      Raw  : String := Webshot.Page_Title (Which);
+   procedure Name_From_Page
+     (Item : in out Session; Which : Items.Slot; Heading : String)
+   is
+      Raw  : String := Heading;
       Last : Natural := 0;
    begin
       for C of Raw loop
@@ -277,11 +345,300 @@ package body Viewer.Canvas_Items is
       end;
    end Name_From_Page;
 
+   procedure Show_Page
+     (Item  : in out Session;
+      Which : Items.Slot;
+      Page  : Positive;
+      Heading : String := "");
+   --  Draw the page of the window's source's document, as its picture,
+   --  and find the words in it.
+
+   procedure Show_Page
+     (Item  : in out Session;
+      Which : Items.Slot;
+      Page  : Positive;
+      Heading : String := "")
+   is
+      Details : constant Items.Info := Windows.Details (Item.Windows (Which));
+      Ending  : constant String := Items.Extensions.To_String (Details.Document);
+      Picture : constant String :=
+        Items.Sources.Image_File (Item.Nav.Store, Item.Opened.Current, Details.Key);
+      Height  : Natural;
+      Message : String (1 .. Ebook.Max_Message);
+      Last    : Natural;
+      Time    : constant Projects.Seconds := Epoch_Now (Item);
+   begin
+      Items.Sources.Make_Image_Folder (Item.Nav.Store, Item.Opened.Current);
+      Ebook.Render
+        (Items.Sources.Document_File
+           (Item.Nav.Store, Item.Opened.Current, Details.Key, Ending),
+         Page, Picture, Height, Message, Last);
+      if Height = 0 then
+         Windows.Set_Capture
+           (Item.Windows (Which), Windows.Failed, Detail => Message (1 .. Last));
+         return;
+      end if;
+      if Heading /= "" then
+         Name_From_Page (Item, Which, Heading);
+      end if;
+      Items.Sources.Set_Captured (Item.Nav.Store, Details.Key, Time);
+      Items.Sources.Set_Page (Item.Nav.Store, Details.Key, Page);
+      Windows.Set_Pages (Item.Windows (Which), Ending, Page, Details.Page_Count);
+      Windows.Set_Capture (Item.Windows (Which), Windows.Ready, Picture, At_Time => Time);
+      Writing.Picture_Taken (Item, Which);
+      Projects.Touch (Item.Nav.Store, Item.Opened.Current);
+      Start_Recognition (Item, Which);
+   end Show_Page;
+
+   procedure Turn_Page (Item : in out Session; Which : Items.Slot; By : Integer);
+   --  Show the page of the source's document By pages on, or back, if
+   --  there is one.
+
+   procedure Turn_Page (Item : in out Session; Which : Items.Slot; By : Integer) is
+      Details : constant Items.Info := Windows.Details (Item.Windows (Which));
+      Page    : constant Integer := Details.Page + By;
+   begin
+      if Details.Kind = Items.Source and then Page in 1 .. Details.Page_Count then
+         Show_Page (Item, Which, Page);
+      end if;
+   end Turn_Page;
+
+   function Name_Of (Where : String) return String;
+   --  The name of the file a link or path is of, without its ending: for a
+   --  title.
+
+   function Name_Of (Where : String) return String is
+      Stop : Natural := Where'Last;
+   begin
+      for I in Where'Range loop
+         if Where (I) in '?' | '#' then
+            Stop := I - 1;
+            exit;
+         end if;
+      end loop;
+      declare
+         First : Natural := Where'First;
+         Dot   : Natural := Stop + 1;
+      begin
+         for I in Where'First .. Stop loop
+            if Where (I) = '/' then
+               First := I + 1;
+               Dot := Stop + 1;
+            elsif Where (I) = '.' then
+               Dot := I;
+            end if;
+         end loop;
+         return Where (First .. Dot - 1);
+      end;
+   end Name_Of;
+
+   procedure Open_Document
+     (Item : in out Session; Which : Items.Slot; Ending : String);
+   --  The file of the source's document has come: count its pages, and
+   --  draw the first.
+
+   procedure Open_Document
+     (Item : in out Session; Which : Items.Slot; Ending : String)
+   is
+      Key     : constant Items.Id := Windows.Details (Item.Windows (Which)).Key;
+      File    : constant String :=
+        Items.Sources.Document_File (Item.Nav.Store, Item.Opened.Current, Key, Ending);
+      Found   : Ebook.Information;
+      Message : String (1 .. Ebook.Max_Message);
+      Last    : Natural;
+   begin
+      Ebook.Open (File, Found, Message, Last);
+      if Found.Pages = 0 then
+         Ada.Directories.Delete_File (File);
+         Windows.Set_Capture
+           (Item.Windows (Which), Windows.Failed, Detail => Message (1 .. Last));
+         return;
+      end if;
+      Items.Sources.Set_Document (Item.Nav.Store, Key, Ending, Found.Pages);
+      Windows.Set_Pages (Item.Windows (Which), Ending, 1, Found.Pages);
+      Show_Page
+        (Item, Which, 1,
+         (if Found.Last > 0 then Found.Title (1 .. Found.Last)
+          else Name_Of (Windows.Text (Item.Windows (Which)))));
+   end Open_Document;
+
+   procedure Open_Text
+     (Item : in out Session; Which : Items.Slot; Ending : String);
+   --  The file of the source's text has come: show it.
+
+   procedure Open_Text
+     (Item : in out Session; Which : Items.Slot; Ending : String)
+   is
+      Key  : constant Items.Id := Windows.Details (Item.Windows (Which)).Key;
+      File : constant String :=
+        Items.Sources.Document_File (Item.Nav.Store, Item.Opened.Current, Key, Ending);
+      Time : constant Projects.Seconds := Epoch_Now (Item);
+      Picture : constant String :=
+        Items.Sources.Image_File (Item.Nav.Store, Item.Opened.Current, Key);
+   begin
+      Vision.Jobs.Reset (Which);
+      Items.Sources.Set_Document (Item.Nav.Store, Key, Ending, 0);
+      Items.Sources.Set_Captured (Item.Nav.Store, Key, Time);
+      if Ada.Directories.Exists (Picture) then
+         Ada.Directories.Delete_File (Picture);
+      end if;
+      Windows.Set_Pages (Item.Windows (Which), Ending, 0, 0);
+      Name_From_Page (Item, Which, Name_Of (Windows.Text (Item.Windows (Which))));
+      Windows.Show_Text (Item.Windows (Which), File, Time);
+      Writing.Picture_Taken (Item, Which);
+      Projects.Touch (Item.Nav.Store, Item.Opened.Current);
+   end Open_Text;
+
+   procedure Finish_File
+     (Item : in out Session; Which : Items.Slot; Ending : String);
+   --  The file of the source has come, here: show it as text, or as the
+   --  pages it is of.
+
+   procedure Finish_File
+     (Item : in out Session; Which : Items.Slot; Ending : String) is
+   begin
+      if Items.Sources.Is_Text (Ending) then
+         Open_Text (Item, Which, Ending);
+      else
+         Open_Document (Item, Which, Ending);
+      end if;
+   end Finish_File;
+
+   procedure Start_Local (Item : in out Session; Which : Items.Slot; Path : String) is
+      Ending : constant String := Ebook.File_Extension (Path);
+      Key    : constant Items.Id := Windows.Details (Item.Windows (Which)).Key;
+   begin
+      if not Ebook.Is_Supported ("." & Ending) then
+         Windows.Set_Capture
+           (Item.Windows (Which), Windows.Failed, Detail => "not a PDF, e-book or text file");
+      elsif not Ada.Directories.Exists (Path)
+        or else Ada.Directories."=" (Ada.Directories.Kind (Path), Ada.Directories.Directory)
+      then
+         Windows.Set_Capture
+           (Item.Windows (Which), Windows.Failed, Detail => "the file is not there");
+      else
+         Items.Sources.Make_Image_Folder (Item.Nav.Store, Item.Opened.Current);
+         Vision.Jobs.Reset (Which);
+         Webshot.Reset (Which);
+         Items.Sources.Copy_File
+           (Path, Items.Sources.Document_File (Item.Nav.Store, Item.Opened.Current, Key, Ending));
+         Finish_File (Item, Which, Ending);
+      end if;
+   exception
+      when Ada.Directories.Use_Error | Ada.Directories.Name_Error =>
+         Windows.Set_Capture
+           (Item.Windows (Which), Windows.Failed, Detail => "the file could not be read");
+   end Start_Local;
+
+   procedure Poll_Download (Item : in out Session);
+   --  Take the file that has been fetched, or say that it was not.
+
+   procedure Poll_Download (Item : in out Session) is
+      Which : constant Natural := Item.Nav.Fetch_Slot;
+   begin
+      if Which = 0 then
+         return;
+      end if;
+      declare
+         Ours : constant Boolean :=
+           Is_Source (Item, Which)
+           and then Windows.Details (Item.Windows (Which)).Key = Item.Nav.Fetch_Key;
+      begin
+         case Downloads.State is
+            when Downloads.Idle =>
+               Item.Nav.Fetch_Slot := 0;
+            when Downloads.Running =>
+               if Ours then
+                  Windows.Set_Progress (Item.Windows (Which), Downloads.Fraction);
+               end if;
+            when Downloads.Done =>
+               if Ours then
+                  Finish_File (Item, Which, Items.Extensions.To_String (Item.Nav.Fetch_Document));
+               end if;
+               Downloads.Reset;
+               Item.Nav.Fetch_Slot := 0;
+            when Downloads.Failed =>
+               if Ours then
+                  Windows.Set_Capture
+                    (Item.Windows (Which), Windows.Failed, Detail => Downloads.Message);
+               end if;
+               Downloads.Reset;
+               Item.Nav.Fetch_Slot := 0;
+         end case;
+      end;
+   end Poll_Download;
+
+   procedure Choose_Origin
+     (Item : in out Session; Which : Items.Slot; To : Items.Origins) is
+   begin
+      Items.Sources.Set_Origin
+        (Item.Nav.Store, Windows.Details (Item.Windows (Which)).Key, To);
+      Windows.Set_Origin (Item.Windows (Which), To);
+      if To = Items.Remote then
+         Windows.Focus_Text (Item.Windows (Which));
+      end if;
+      Projects.Touch (Item.Nav.Store, Item.Opened.Current);
+   end Choose_Origin;
+
+   procedure File_Picked (Item : in out Session; Which : Items.Slot; Path : String) is
+   begin
+      if Windows.Details (Item.Windows (Which)).Origin /= Items.Local then
+         Choose_Origin (Item, Which, Items.Local);
+      end if;
+      Windows.Set_Link (Item.Windows (Which), Path);
+      Start_Capture (Item, Which);
+   end File_Picked;
+
+   procedure Pick_File (Item : in out Session; Which : Items.Slot) is
+   begin
+      if Item.Nav.Pick_Slot /= 0 or else SDL3.Dialogs.State = SDL3.Dialogs.Waiting
+        or else not SDL3.Windows.Is_Open (Item.Host.Win)
+      then
+         return;
+      end if;
+      SDL3.Dialogs.Reset;
+      Item.Nav.Pick_Slot := Which;
+      Item.Nav.Pick_Key := Windows.Details (Item.Windows (Which)).Key;
+      SDL3.Dialogs.Open_File (Item.Host.Win, "PDFs, e-books and text", Ebook.Extensions);
+   end Pick_File;
+
+   procedure Poll_Pick (Item : in out Session);
+   --  Take the file that has been chosen, in the dialog.
+
+   procedure Poll_Pick (Item : in out Session) is
+      Which : constant Natural := Item.Nav.Pick_Slot;
+   begin
+      if Which = 0 then
+         return;
+      end if;
+      case SDL3.Dialogs.State is
+         when SDL3.Dialogs.Waiting =>
+            null;
+         when SDL3.Dialogs.Idle | SDL3.Dialogs.Cancelled | SDL3.Dialogs.Failed =>
+            SDL3.Dialogs.Reset;
+            Item.Nav.Pick_Slot := 0;
+         when SDL3.Dialogs.Chosen =>
+            declare
+               Path : constant String := SDL3.Dialogs.Path;
+            begin
+               SDL3.Dialogs.Reset;
+               Item.Nav.Pick_Slot := 0;
+               if Is_Source (Item, Which)
+                 and then Windows.Details (Item.Windows (Which)).Key = Item.Nav.Pick_Key
+               then
+                  File_Picked (Item, Which, Path);
+               end if;
+            end;
+      end case;
+   end Poll_Pick;
+
    procedure Poll_Captures (Item : in out Session);
    --  Take the pictures that have been taken, and say what failed.
 
    procedure Poll_Captures (Item : in out Session) is
    begin
+      Poll_Pick (Item);
+      Poll_Download (Item);
       for Which in Items.Slot loop
          if Is_Source (Item, Which) then
             case Webshot.State (Which) is
@@ -291,7 +648,13 @@ package body Viewer.Canvas_Items is
                        Windows.Details (Item.Windows (Which)).Key;
                      Time : constant Projects.Seconds := Epoch_Now (Item);
                   begin
-                     Name_From_Page (Item, Which);
+                     Name_From_Page (Item, Which, Webshot.Page_Title (Which));
+                     if Windows.Details (Item.Windows (Which)).Document
+                        /= Items.Extensions.Null_Bounded_String
+                     then
+                        Items.Sources.Set_Document (Item.Nav.Store, Key, "", 0);
+                        Windows.Set_Pages (Item.Windows (Which), "", 0, 0);
+                     end if;
                      Items.Sources.Set_Captured (Item.Nav.Store, Key, Time);
                      Windows.Set_Capture
                        (Item.Windows (Which), Windows.Ready,
@@ -546,8 +909,8 @@ package body Viewer.Canvas_Items is
          Windows.Assign
            (Item.Windows (I), Found.Items (I),
             Items.Records.Content (Item.Nav.Store, Found.Items (I).Key),
-            Items.Sources.Image_File
-              (Item.Nav.Store, Item.Opened.Current, Found.Items (I).Key));
+            Items.Sources.Shown_File
+              (Item.Nav.Store, Item.Opened.Current, Found.Items (I)));
          Recognize_Kept (Item, I);
          if Found.Items (I).Kind = Items.Source then
             declare
@@ -607,6 +970,9 @@ package body Viewer.Canvas_Items is
             Webshot.Reset (Which);
             Vision.Jobs.Reset (Which);
             Speech.Jobs.Reset (Which);
+            if Item.Nav.Fetch_Slot = Which then
+               Downloads.Cancel;
+            end if;
          end if;
       end loop;
       Widgets.Set_Visible (Item.Dock.Dock_Panel, False);
@@ -700,7 +1066,10 @@ package body Viewer.Canvas_Items is
              Zoom  => 1.0,
              Scroll => 0.0,
              Scroll_Across => 0.0,
-             Recognized_At => 0),
+             Recognized_At => 0,
+             Origin => (if Kind = Items.Source then Items.Unchosen else Items.Remote),
+             Page => 0, Page_Count => 0,
+             Document => Items.Extensions.Null_Bounded_String),
             "");
          Windows.Place
            (Item.Windows (Free),
@@ -747,6 +1116,9 @@ package body Viewer.Canvas_Items is
    procedure Remove (Item : in out Session; Which : Items.Slot) is
    begin
       Writing.Removed (Item, Which);
+      if Item.Nav.Fetch_Slot = Which then
+         Downloads.Cancel;
+      end if;
       Webshot.Reset (Which);
       Vision.Jobs.Reset (Which);
       Speech.Jobs.Reset (Which);
@@ -786,6 +1158,14 @@ package body Viewer.Canvas_Items is
             Start_Capture (Item, Which);
          when Windows.Speak =>
             Toggle_Dictation (Item, Which);
+         when Windows.Choose_Link =>
+            Choose_Origin (Item, Which, Items.Remote);
+         when Windows.Choose_File =>
+            Pick_File (Item, Which);
+         when Windows.Previous_Page =>
+            Turn_Page (Item, Which, -1);
+         when Windows.Next_Page =>
+            Turn_Page (Item, Which, 1);
       end case;
    end Window_Asked;
 

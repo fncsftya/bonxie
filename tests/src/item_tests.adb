@@ -1380,10 +1380,24 @@ package body Item_Tests is
         ("source-kind", "SOURCE",
          Items.Kinds'Image (Windows.Item_Kind (Session, 1)));
       Check
-        ("source-status", "Press Return to capture",
+        ("source-status", "Choose where it comes from",
          Windows.Item_Status (Session, 1));
+      Check
+        ("source-origin", "UNCHOSEN",
+         Items.Origins'Image (Windows.Item_Origin (Session, 1)));
       Move_To (Session, 600.0, 60.0);
       Snap (Session, "source-added");
+
+      --  From URL makes it as it was: a link to type.
+      Click_On (Session, From_Url_X, From_Url_Y);
+      Check
+        ("source-chosen-url", "REMOTE",
+         Items.Origins'Image (Windows.Item_Origin (Session, 1)));
+      Check
+        ("source-url-status", "Press Return to capture",
+         Windows.Item_Status (Session, 1));
+      Move_To (Session, 600.0, 60.0);
+      Snap (Session, "source-added-url");
       Type_In (Session, "example.org");
       Check ("source-link", "example.org", Windows.Item_Text (Session, 1));
       Click_On (Session, Add_X, Tools_Y);
@@ -1491,6 +1505,213 @@ package body Item_Tests is
               (Windows.Item_Picture_File (Session, 1))));
       Ada.Directories.Delete_Tree (Folder);
    end Source_Words;
+
+   procedure Source_Documents is
+      Session : Viewer.Session;
+      Folder  : constant String := "/tmp/bonxie-source-document";
+      Book    : constant String := Folder & "/book.pdf";
+      File    : Ada.Text_IO.File_Type;
+      Key     : Projects.Id;
+
+      procedure Wait is
+         Tick   : SDL3.Events.Milliseconds := 1_000;
+         Waited : Natural := 0;
+      begin
+         while Windows.Is_Capturing (Session) and then Waited < 600 loop
+            delay 0.05;
+            Tick := SDL3.Events.Milliseconds (Natural (Tick) + 100);
+            Viewer.Tick (Session, Tick);
+            Waited := Waited + 1;
+         end loop;
+         Pomarine.Application.Run_Posted;
+      end Wait;
+   begin
+      if not Ada.Directories.Exists (Folder) then
+         Ada.Directories.Create_Path (Folder);
+      end if;
+      Ada.Text_IO.Create (File, Ada.Text_IO.Out_File, Book);
+      Ada.Text_IO.Put (File, Two_Pages);
+      Ada.Text_IO.Close (File);
+
+      Start (Session);
+      Windows.Pin_Capture_Time (Session, 1_700_000_000);
+      Key := Proj.Current_Project (Session);
+      Windows.Add_Item (Session, "Book", Items.Source);
+
+      --  A link to a PDF is fetched, not shown by WebKit: its first page
+      --  is the picture.
+      Press_Key (Session, Events.Key_A, Command => True);
+      Type_In (Session, "file://" & Book);
+      Press_Key (Session, Events.Key_Return);
+      Wait;
+      Check
+        ("document-picture", "TRUE",
+         Boolean'Image
+           (Ada.Directories.Exists (Windows.Item_Picture_File (Session, 1))));
+      Check ("document-status", "Page 1 of 2", Windows.Item_Status (Session, 1));
+      declare
+         Picture : constant String := Windows.Item_Picture_File (Session, 1);
+      begin
+         Check
+           ("document-fetched", "TRUE",
+            Boolean'Image
+              (Ada.Directories.Exists
+                 (Picture (Picture'First .. Picture'Last - 3) & "pdf")));
+      end;
+      Move_To (Session, 600.0, 60.0);
+      Snap (Session, "document-first");
+      Check
+        ("document-words-first", "TRUE",
+         Boolean'Image (Windows.Item_Recognized (Session, 1) >= 3));
+
+      --  The next page is drawn, and its words found.
+      Click_On (Session, Next_X, Pager_Y);
+      Wait;
+      Check ("document-status-next", "Page 2 of 2", Windows.Item_Status (Session, 1));
+      Snap (Session, "document-second");
+      Click_On (Session, Next_X, Pager_Y);
+      Check ("document-last", "Page 2 of 2", Windows.Item_Status (Session, 1));
+      Click_On (Session, Previous_X, Pager_Y);
+      Wait;
+      Check ("document-back", "Page 1 of 2", Windows.Item_Status (Session, 1));
+
+      --  Kept, with its page.
+      Click_On (Session, Next_X, Pager_Y);
+      Wait;
+      Proj.Close_Project (Session);
+      Home.Open_Project (Session, Key);
+      Check ("document-kept", "Page 2 of 2", Windows.Item_Status (Session, 1));
+      Check
+        ("document-kept-words", "TRUE",
+         Boolean'Image (Windows.Item_Recognized (Session, 1) >= 3));
+
+      Ada.Directories.Delete_Tree
+        (Ada.Directories.Containing_Directory
+           (Ada.Directories.Containing_Directory
+              (Windows.Item_Picture_File (Session, 1))));
+      Ada.Directories.Delete_Tree (Folder);
+   end Source_Documents;
+
+   procedure Source_Files is
+      Session : Viewer.Session;
+      Folder  : constant String := "/tmp/bonxie-source-files";
+      Book    : constant String := Folder & "/book.pdf";
+      Notes   : constant String := Folder & "/notes.txt";
+      Odd     : constant String := Folder & "/picture.xyz";
+      Words   : constant String :=
+        "Bonxies nest on moorland" & ASCII.CR & ASCII.LF & "and winter at sea.";
+      --  (Closing the file ends its last line.)
+      File    : Ada.Text_IO.File_Type;
+
+      procedure Write (Name, Contents : String) is
+      begin
+         Ada.Text_IO.Create (File, Ada.Text_IO.Out_File, Name);
+         Ada.Text_IO.Put (File, Contents);
+         Ada.Text_IO.Close (File);
+      end Write;
+
+      procedure Wait is
+         Tick   : SDL3.Events.Milliseconds := 1_000;
+         Waited : Natural := 0;
+      begin
+         while Windows.Is_Capturing (Session) and then Waited < 600 loop
+            delay 0.05;
+            Tick := SDL3.Events.Milliseconds (Natural (Tick) + 100);
+            Viewer.Tick (Session, Tick);
+            Waited := Waited + 1;
+         end loop;
+         Pomarine.Application.Run_Posted;
+      end Wait;
+   begin
+      if not Ada.Directories.Exists (Folder) then
+         Ada.Directories.Create_Path (Folder);
+      end if;
+      Write (Book, Two_Pages);
+      Write (Notes, Words);
+      Write (Odd, "not a thing we show");
+
+      Start (Session);
+      Windows.Pin_Capture_Time (Session, 1_700_000_000);
+      Windows.Add_Unchosen_Source (Session);
+
+      --  A file of a kind that cannot be shown is not taken, and the
+      --  source stays as it was.
+      Windows.Pick_File (Session, 1, Odd);
+      Check
+        ("file-unsupported", "Failed: not a PDF, e-book or text file",
+         Windows.Item_Status (Session, 1));
+
+      --  A PDF: its path is the source's text, which cannot be typed
+      --  over, and its first page is shown.
+      Windows.Pick_File (Session, 1, Book);
+      Wait;
+      Check
+        ("file-origin", "LOCAL", Items.Origins'Image (Windows.Item_Origin (Session, 1)));
+      Check ("file-path", Book, Windows.Item_Text (Session, 1));
+      Check ("file-status", "Page 1 of 2", Windows.Item_Status (Session, 1));
+      Check
+        ("file-words", "TRUE", Boolean'Image (Windows.Item_Recognized (Session, 1) >= 3));
+      Check ("file-title", "book", Windows.Item_Title (Session, 1));
+      Move_To (Session, 600.0, 60.0);
+      Snap (Session, "file-pdf");
+      Type_In (Session, "typed over");
+      Check ("file-not-typed", Book, Windows.Item_Text (Session, 1));
+      Click_On (Session, Next_X, Pager_Y);
+      Wait;
+      Check ("file-next", "Page 2 of 2", Windows.Item_Status (Session, 1));
+
+      --  A text file: copied, and shown as text that cannot be changed,
+      --  with line ends as line feeds.
+      Windows.Pick_File (Session, 1, Notes);
+      Wait;
+      Check ("file-text-path", Notes, Windows.Item_Text (Session, 1));
+      Check
+        ("file-text-shown", "Bonxies nest on moorland" & ASCII.LF & "and winter at sea." & ASCII.LF,
+         Windows.Item_Shown_Text (Session, 1));
+      Check
+        ("file-text-status", "Captured 14 Nov 2023", Windows.Item_Status (Session, 1));
+      Move_To (Session, 600.0, 60.0);
+      Snap (Session, "file-text");
+      Click_On (Session, 300.0, Picture_Y);
+      Type_In (Session, "typed over");
+      Check
+        ("file-text-immutable", "Bonxies nest on moorland" & ASCII.LF & "and winter at sea." & ASCII.LF,
+         Windows.Item_Shown_Text (Session, 1));
+      Press_Key (Session, Events.Key_A, Command => True);
+      Check
+        ("file-text-selected", "TRUE",
+         Boolean'Image (Windows.Item_Text_Selected (Session, 1) = Windows.Item_Shown_Text (Session, 1)));
+
+      --  Kept: opening the project again shows it as it was.
+      declare
+         Key : constant Projects.Id := Proj.Current_Project (Session);
+      begin
+         Proj.Close_Project (Session);
+         Home.Open_Project (Session, Key);
+      end;
+      Check
+        ("file-text-kept", "Bonxies nest on moorland" & ASCII.LF & "and winter at sea." & ASCII.LF,
+         Windows.Item_Shown_Text (Session, 1));
+      Check ("file-text-path-kept", Notes, Windows.Item_Text (Session, 1));
+      Check
+        ("file-origin-kept", "LOCAL", Items.Origins'Image (Windows.Item_Origin (Session, 1)));
+
+      --  A link to a text file is fetched and shown as text too.
+      Windows.Add_Item (Session, "Remote", Items.Source);
+      Press_Key (Session, Events.Key_A, Command => True);
+      Type_In (Session, "file://" & Notes);
+      Press_Key (Session, Events.Key_Return);
+      Wait;
+      Check
+        ("remote-text-shown", "Bonxies nest on moorland" & ASCII.LF & "and winter at sea." & ASCII.LF,
+         Windows.Item_Shown_Text (Session, 2));
+
+      Ada.Directories.Delete_Tree
+        (Ada.Directories.Containing_Directory
+           (Ada.Directories.Containing_Directory
+              (Windows.Item_Picture_File (Session, 1))));
+      Ada.Directories.Delete_Tree (Folder);
+   end Source_Files;
 
    procedure Source_Pages is
       Session : Viewer.Session;

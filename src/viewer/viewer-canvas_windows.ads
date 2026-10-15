@@ -17,7 +17,36 @@ package Viewer.Canvas_Windows is
                  and then Name'Length <= Projects.Title_Capacity;
    --  Add one called Name in the middle of the canvas, with the focus in
    --  its text, as the Add Item button does (or, of a Source, as Add
-   --  Source does, in its link); none if the project has Items.Capacity.
+   --  Source does, then as if its From URL button was pressed, to type its
+   --  link); none if the project has Items.Capacity.
+
+   procedure Add_Unchosen_Source
+     (Item : in out Session; Name : String := "Untitled source")
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Name'Length <= Projects.Title_Capacity;
+   --  Add a source as the Add Source button does: with its two buttons
+   --  to say where it comes from.
+
+   function Item_Origin (Item : Session; Row : Positive) return Items.Origins
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item);
+
+   procedure Pick_File (Item : in out Session; Row : Positive; Path : String)
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item)
+                 and then Items."=" (Item_Kind (Item, Row), Items.Source);
+   --  As if the file at Path was chosen in the dialog the source's From
+   --  File button, or its path, shows.
+
+   function Item_Text_Selected (Item : Session; Row : Positive) return String
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item);
+   --  What is selected in the text of a source that is a text file.
+
+   function Item_Shown_Text (Item : Session; Row : Positive) return String
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item);
+   --  The text of a source that is a text file, as its window shows it.
 
    function Item_Title (Item : Session; Row : Positive) return String
      with Pre => Is_Open (Item) and then Screen (Item) = Project

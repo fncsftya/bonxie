@@ -4,6 +4,7 @@ with SDL3.Events;
 with SDL3.Pictures.Jobs;
 with Webshot;
 with Goldens;
+with Item_Tests;
 with Items;
 with Projects;
 with Viewer;
@@ -733,6 +734,72 @@ package body Write_Tests is
       Check ("write-source-closed-again", "FALSE",
              Boolean'Image (Source_List.Source_Is_Open (Session, 1)));
    end Sources;
+
+   procedure Source_Documents is
+      Session : Viewer.Session;
+      Folder  : constant String := "/tmp/bonxie-write-document";
+      Book    : constant String := Folder & "/book.pdf";
+      File    : Ada.Text_IO.File_Type;
+      Tick    : SDL3.Events.Milliseconds := 1_000;
+
+      procedure Wait is
+         Waited : Natural := 0;
+      begin
+         while Windows.Is_Capturing (Session) and then Waited < 600 loop
+            delay 0.05;
+            Tick := SDL3.Events.Milliseconds (Natural (Tick) + 100);
+            Viewer.Tick (Session, Tick);
+            Waited := Waited + 1;
+         end loop;
+      end Wait;
+   begin
+      if not Ada.Directories.Exists (Folder) then
+         Ada.Directories.Create_Path (Folder);
+      end if;
+      Ada.Text_IO.Create (File, Ada.Text_IO.Out_File, Book);
+      Ada.Text_IO.Put (File, Item_Tests.Two_Pages);
+      Ada.Text_IO.Close (File);
+
+      Viewer.Open (Session, "", Width, Height, 2.0);
+      Home.New_Project (Session);
+      Windows.Pin_Capture_Time (Session, 1_700_000_000);
+      Windows.Add_Item (Session, "Book", Items.Source);
+      Viewer.Handle
+        (Session, Events.Event'(Kind => Events.Key_Down,
+                                Key => Events.Key_A, Command => True,
+                                others => <>));
+      Type_In (Session, "file://" & Book);
+      Viewer.Handle
+        (Session, Events.Event'(Kind => Events.Key_Down,
+                                Key => Events.Key_Return, others => <>));
+      Wait;
+
+      --  The page that was drawn on the canvas is in the writing view.
+      Proj.Set_Mode (Session, Viewer.Write);
+      Click_On (Session, Source_Row_X, Source_Row_Y (0));
+      Settle (Session);
+      Check ("write-document-open", "TRUE",
+             Boolean'Image (Source_List.Source_Is_Open (Session, 1)));
+      Move_To (Session, 600.0, 60.0);
+      Snap (Session, "write-source-document");
+
+      --  Turned on the canvas, the next is in the writing view too.
+      Proj.Set_Mode (Session, Viewer.Canvas);
+      Settle (Session);
+      Click_On (Session, Item_Tests.Next_X, Item_Tests.Pager_Y);
+      Wait;
+      Check ("write-document-turned", "Page 2 of 2", Windows.Item_Status (Session, 1));
+      Proj.Set_Mode (Session, Viewer.Write);
+      Settle (Session);
+      Move_To (Session, 600.0, 60.0);
+      Snap (Session, "write-source-document-second");
+
+      Ada.Directories.Delete_Tree
+        (Ada.Directories.Containing_Directory
+           (Ada.Directories.Containing_Directory
+              (Windows.Item_Picture_File (Session, 1))));
+      Ada.Directories.Delete_Tree (Folder);
+   end Source_Documents;
 
    procedure Sharing_Marks is
       Session : Viewer.Session;

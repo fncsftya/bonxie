@@ -53,6 +53,12 @@ package body Items.Windows is
    Level_Steps   : constant Float := 20.0;
    --  How many sizes of the bar that shows how loud the speech is.
    Tools_Width   : constant Float := 3.0 * Button_Size + 2.0 * Button_Gap;
+   Pager_Width   : constant Float := 2.0 * Button_Size + Button_Gap;
+   Pager_Lift    : constant Float := 6.0;
+   Wizard_Gap    : constant Float := 10.0;
+   Wizard_Button_Width  : constant Float := 150.0;
+   Wizard_Button_Height : constant Float := 32.0;
+   --  The page buttons' width, and how far they are above the status line.
 
    Preset_Zooms : constant array (Preset_Index) of Float :=
      [0.5, 0.75, 1.0, 1.5, 2.0, 3.0];
@@ -110,6 +116,7 @@ package body Items.Windows is
    begin
       Frames.Share_Title (Item.Chrome, Shared);
       Editors.Set_Shared (Item.Body_Text, Shared);
+      Editors.Set_Shared (Item.Text_View, Shared);
    end Set_Shared;
 
    procedure Listen (Item : in out Window);
@@ -138,6 +145,10 @@ package body Items.Windows is
          Dock => Dock'Unrestricted_Access);
       Frames.Add_Content (Item.Chrome, Item.Body_Text);
       Frames.Add_Content (Item.Chrome, Item.Picture);
+      Frames.Add_Content (Item.Chrome, Item.Text_View);
+      Frames.Add_Content (Item.Chrome, Item.Wizard);
+      Widgets.Add (Item.Wizard, Item.Link_Button);
+      Widgets.Add (Item.Wizard, Item.File_Button);
       Frames.Add_Status_Item (Item.Chrome, Item.Status);
       Frames.Add_Status_Item (Item.Chrome, Item.Tools);
       Widgets.Add (Item.Tools, Item.Cursor_Button);
@@ -159,8 +170,36 @@ package body Items.Windows is
 
       Layouts.Set_Layout (Item.Picture, Grow => 1.0, Height => 0.0);
 
+      --  A text file's text: the page's paper, in the serif, as a note's,
+      --  to be read and selected.
+      Editors.Configure
+        (Item.Text_View, Pomarine.Line_Texts.Serif, Text_Size, Measure);
+      Editors.Set_Paper (Item.Text_View, Pomarine.Themes.Page);
+      Pomarine.Text_Areas.Set_Read_Only (Editors.Area (Item.Text_View).all);
+      Layouts.Set_Layout (Item.Text_View, Grow => 1.0, Height => 0.0);
+      Layouts.Set_Layout
+        (Item.Text_View, Margin => (Left | Right => -Edge, others => <>),
+         Unit => Layouts.Device_Pixels);
+
+      --  The two ways to say where a source is from, in the middle.
+      Panels.Set_Fill (Item.Wizard, Pomarine.Themes.Page);
+      Layouts.Set_Layout
+        (Item.Wizard, Grow => 1.0, Height => 0.0, Flow => Layouts.Column,
+         Align => Layouts.Center, Spread => Layouts.Center, Gap => Wizard_Gap);
+      Buttons.Set_Label (Item.Link_Button, "From URL");
+      Buttons.Set_Icon (Item.Link_Button, Icon_Set.Link);
+      Buttons.Set_Captioned (Item.Link_Button, True);
+      Buttons.Set_Label (Item.File_Button, "From File");
+      Buttons.Set_Icon (Item.File_Button, Icon_Set.Document);
+      Buttons.Set_Captioned (Item.File_Button, True);
+      Size (Item.Link_Button, Wizard_Button_Width, Wizard_Button_Height);
+      Size (Item.File_Button, Wizard_Button_Width, Wizard_Button_Height);
+
       Layouts.Set_Layout (Item.Status, Grow => 1.0, Width => 0.0, Height => Label_Height);
       Frames.Add_Over_Content (Item.Chrome, Item.Zoom_Menu);
+      Frames.Add_Over_Content (Item.Chrome, Item.Pager);
+      Widgets.Add (Item.Pager, Item.Prev_Button);
+      Widgets.Add (Item.Pager, Item.Next_Button);
       Frames.Add_Over_Content (Item.Chrome, Item.Fetch_Button);
       for Row in Item.Menu_Rows'Range loop
          Widgets.Add (Item.Zoom_Menu, Item.Menu_Rows (Row));
@@ -206,6 +245,18 @@ package body Items.Windows is
         (Item.Speak_Button, Place => Layouts.Absolute,
          Position => (Top => (Status_Height - Zoom_Row_Height) / 2.0, others => <>));
 
+      --  The page buttons: over the picture, at the foot, in the middle (see Place).
+      Layouts.Set_Layout
+        (Item.Pager, Place => Layouts.Absolute,
+         Position => (Bottom => (Status_Height + Edge + Pager_Lift) * Pixels, others => <>),
+         Flow => Layouts.Row, Gap => Button_Gap, Unit => Layouts.Device_Pixels);
+      Buttons.Set_Label (Item.Prev_Button, "Previous page");
+      Buttons.Set_Icon (Item.Prev_Button, Icon_Set.Back);
+      Buttons.Set_Label (Item.Next_Button, "Next page");
+      Buttons.Set_Icon (Item.Next_Button, Icon_Set.Forward);
+      Size (Item.Prev_Button, Button_Size, Zoom_Row_Height);
+      Size (Item.Next_Button, Button_Size, Zoom_Row_Height);
+
       --  The menu: over the picture, at the right, with the window's
       --  outline between its buttons.
       Panels.Set_Fill (Item.Zoom_Menu, Pomarine.Themes.Border);
@@ -243,6 +294,9 @@ package body Items.Windows is
       Widgets.Set_Visible (Item.Zoom_Slider, False);
       Widgets.Set_Visible (Item.Zoom_Button, False);
       Widgets.Set_Visible (Item.Zoom_Menu, False);
+      Widgets.Set_Visible (Item.Pager, False);
+      Widgets.Set_Visible (Item.Text_View, False);
+      Widgets.Set_Visible (Item.Wizard, False);
       Widgets.Set_Visible (Item.Picture, False);
       Widgets.Set_Visible (Item.Progress, False);
       Listen (Item);
@@ -370,6 +424,19 @@ package body Items.Windows is
       Pomarine.Widgets.Progress_Bars.Set_Value (Item.Progress, To);
    end Set_Progress;
 
+   function Is_Unchosen (Item : Window) return Boolean is
+     (Item.Details.Kind = Source and then Item.Details.Origin = Unchosen);
+
+   function Is_Text_Source (Item : Window) return Boolean is
+     (Item.Details.Kind = Source and then Item.Details.Origin /= Unchosen
+      and then Items.Sources.Is_Text (Items.Extensions.To_String (Item.Details.Document)));
+   --  Whether the source is to say where it is from, or shows a text
+   --  file: not a picture.
+
+   procedure Show_Mode (Item : in out Window);
+   --  Show what the source is now: its two buttons, its text or its
+   --  picture, and the tools for a picture.
+
    procedure Show_Fetch (Item : in out Window);
    --  Show the button to take the picture of a source's link, and leave
    --  room for it, while there is none and the link is shown.
@@ -377,6 +444,7 @@ package body Items.Windows is
    procedure Show_Fetch (Item : in out Window) is
       Wanted : constant Boolean :=
         Item.Details.Kind = Source and then Item.Details.Captured_At = 0
+        and then Item.Details.Origin = Remote
         and then Item.Zoom >= Compact_Below;
    begin
       if Wanted /= Widgets.Is_Visible (Item.Fetch_Button) then
@@ -387,6 +455,33 @@ package body Items.Windows is
          Widgets.Request_Layout (Item.Body_Text);
       end if;
    end Show_Fetch;
+
+   function Page_Status (Item : Window) return String is
+     ("Page" & Item.Details.Page'Image & " of" & Item.Details.Page_Count'Image);
+
+   procedure Show_Pager (Item : in out Window);
+   --  Show the buttons to turn the page, if the source has pages to turn.
+
+   procedure Show_Pager (Item : in out Window) is
+      Paged : constant Boolean :=
+        Item.Details.Kind = Source and then Item.Details.Page_Count > 1
+        and then not Is_Text_Source (Item);
+   begin
+      Widgets.Set_Visible (Item.Pager, Paged);
+      Buttons.Set_Enabled (Item.Prev_Button, Paged and then Item.Details.Page > 1);
+      Buttons.Set_Enabled
+        (Item.Next_Button, Paged and then Item.Details.Page < Item.Details.Page_Count);
+   end Show_Pager;
+
+   procedure Set_Pages
+     (Item : in out Window; Document : String; Page, Count : Natural) is
+   begin
+      Item.Details.Document :=
+        Items.Extensions.To_Bounded_String (Document, Ada.Strings.Right);
+      Item.Details.Page := Page;
+      Item.Details.Page_Count := Count;
+      Show_Mode (Item);
+   end Set_Pages;
 
    procedure Set_Capture
      (Item   : in out Window;
@@ -401,7 +496,12 @@ package body Items.Windows is
       end if;
       case To is
          when Waiting =>
-            Labels.Set_Text (Item.Status, "Press Return to capture");
+            Labels.Set_Text
+              (Item.Status,
+               (case Item.Details.Origin is
+                   when Unchosen => "Choose where it comes from",
+                   when Remote   => "Press Return to capture",
+                   when Local    => "Choose a file"));
          when Busy =>
             Labels.Set_Text (Item.Status, "Capturing...");
          when Ready =>
@@ -409,13 +509,59 @@ package body Items.Windows is
             Clear_Recognized (Item);
             Pomarine.Widgets.Pictures.Clear_Marks (Item.Picture);
             Pomarine.Widgets.Pictures.Set_File (Item.Picture, File);
-            Labels.Set_Text (Item.Status, "Captured " & Day (At_Time));
+            Labels.Set_Text
+              (Item.Status,
+               (if Item.Details.Page_Count > 0
+                then Page_Status (Item) else "Captured " & Day (At_Time)));
             Show_Fetch (Item);
          when Failed =>
             Labels.Set_Text
               (Item.Status, Labels.Fitted ("Failed: " & Detail));
       end case;
    end Set_Capture;
+
+   procedure Set_Origin (Item : in out Window; To : Items.Origins) is
+      Is_File : constant Boolean := To = Items.Local;
+   begin
+      Item.Details.Origin := To;
+      --  A file's path is chosen, not typed: pressing it asks to choose
+      --  another (see Listen).
+      Pomarine.Text_Areas.Set_Read_Only (Editors.Area (Item.Body_Text).all, Is_File);
+      Editors.Set_Icon (Item.Body_Text, (if Is_File then Icon_Set.Document else Icon_Set.Link));
+      Editors.Set_Placeholder (Item.Body_Text, (if Is_File then "File" else "https://"));
+      Show_Mode (Item);
+      if Item.Details.Captured_At = 0 then
+         Set_Capture (Item, Waiting);
+      end if;
+   end Set_Origin;
+
+   function Selected_Shown_Text (Item : Window) return String is
+     (Pomarine.Text_Areas.Selected_Text
+        (Editors.Area (Item.Text_View'Unrestricted_Access.all).all));
+   --  (Area takes the editor to change; looking does not.)
+
+   function Shown_Text (Item : Window) return String is
+     (Docs.Whole (Item.Text_Doc));
+
+   procedure Set_Link (Item : in out Window; To : String) is
+   begin
+      Docs.Replace
+        (Item.Content_Doc, (Paragraph => 1, Index => 1),
+         Docs.Text_End (Item.Content_Doc), To);
+      --  Poll shows it, as it does what is typed.
+   end Set_Link;
+
+   procedure Show_Text (Item : in out Window; File : String; At_Time : Projects.Seconds) is
+   begin
+      Item.Details.Captured_At := At_Time;
+      Clear_Recognized (Item);
+      Pomarine.Widgets.Pictures.Clear_Marks (Item.Picture);
+      Pomarine.Widgets.Pictures.Set_File (Item.Picture, "");
+      Docs.Load (Item.Text_Doc, Items.Sources.Read_Text (File));
+      Widgets.Set_Visible (Item.Progress, False);
+      Show_Mode (Item);
+      Labels.Set_Text (Item.Status, "Captured " & Day (At_Time));
+   end Show_Text;
 
    procedure Set_Zoom (Item : in out Window; To : Float) is
    begin
@@ -724,7 +870,8 @@ package body Items.Windows is
       Of_Source : constant Boolean := Item.Details.Kind = Source;
    begin
       Frames.Set_Status_Visible (Item.Chrome, not Narrow);
-      Widgets.Set_Visible (Item.Body_Text, not (Narrow and then Of_Source));
+      Widgets.Set_Visible
+        (Item.Body_Text, not (Narrow and then Of_Source) and then not Is_Unchosen (Item));
       Frames.Set_Scale (Item.Chrome, Chrome);
       Layouts.Set_Layout
         (Item.Fetch_Button,
@@ -736,6 +883,22 @@ package body Items.Windows is
       Show_Fetch (Item);
       Widgets.Request_Layout (Item.Body_Text);
    end Fit_Zoom;
+
+   procedure Show_Mode (Item : in out Window) is
+      Of_Source : constant Boolean := Item.Details.Kind = Source;
+      Pictured  : constant Boolean :=
+        Of_Source and then not Is_Unchosen (Item) and then not Is_Text_Source (Item);
+   begin
+      Widgets.Set_Visible (Item.Tools, Pictured);
+      Widgets.Set_Visible (Item.Zoom_Slider, Pictured);
+      Widgets.Set_Visible (Item.Zoom_Button, Pictured);
+      Widgets.Set_Visible (Item.Zoom_Menu, False);
+      Widgets.Set_Visible (Item.Picture, Pictured);
+      Widgets.Set_Visible (Item.Text_View, Is_Text_Source (Item));
+      Widgets.Set_Visible (Item.Wizard, Is_Unchosen (Item));
+      Show_Pager (Item);
+      Fit_Zoom (Item);
+   end Show_Mode;
 
    procedure Show_Kind (Item : in out Window);
    --  Make the text area the item's text, or its one line, the link; and
@@ -771,12 +934,10 @@ package body Items.Windows is
         (Item.Body_Text, Grow => (if Of_Source then 0.0 else 1.0),
          Height => (if Of_Source then Url_Height else 0.0));
       Widgets.Set_Visible (Item.Speak_Button, not Of_Source);
-      Widgets.Set_Visible (Item.Tools, Of_Source);
-      Widgets.Set_Visible (Item.Zoom_Slider, Of_Source);
-      Widgets.Set_Visible (Item.Zoom_Button, Of_Source);
-      Widgets.Set_Visible (Item.Zoom_Menu, False);
-      Widgets.Set_Visible (Item.Picture, Of_Source);
-      Fit_Zoom (Item);
+      if not Of_Source then
+         Pomarine.Text_Areas.Set_Read_Only (Editors.Area (Item.Body_Text).all, False);
+      end if;
+      Show_Mode (Item);
       Widgets.Request_Layout (Item.Body_Text);
    end Show_Kind;
 
@@ -811,6 +972,8 @@ package body Items.Windows is
       Item.Live_Lost := False;
       Frames.Attach_Title (Item.Chrome, Item.Title_Doc'Unchecked_Access);
       Editors.Attach (Item.Body_Text, Item.Content_Doc'Unchecked_Access);
+      Docs.Load (Item.Text_Doc, "");
+      Editors.Attach (Item.Text_View, Item.Text_Doc'Unchecked_Access);
       Item.Title_Saved := Docs.State (Item.Title_Doc);
       Item.Title_Seen := Item.Title_Saved;
       Item.Content_Saved := Docs.State (Item.Content_Doc);
@@ -830,12 +993,17 @@ package body Items.Windows is
       Item.Marks_Saved := Pomarine.Widgets.Pictures.Marks_Version (Item.Picture);
       Select_Tool (Item, Pomarine.Widgets.Pictures.Pointer);
       if Of_Item.Kind = Source then
+         Set_Origin (Item, Of_Item.Origin);
          Set_Zoom (Item, Of_Item.Zoom);
          Item.Zoom_Dirty := False;
          Item.Content_Version := Docs.Current (Item.Content_Doc);
          if Of_Item.Captured_At > 0 and then Picture_File /= "" then
-            Set_Capture
-              (Item, Ready, Picture_File, At_Time => Of_Item.Captured_At);
+            if Is_Text_Source (Item) then
+               Show_Text (Item, Picture_File, Of_Item.Captured_At);
+            else
+               Set_Capture
+                 (Item, Ready, Picture_File, At_Time => Of_Item.Captured_At);
+            end if;
          else
             Set_Capture (Item, Waiting);
          end if;
@@ -902,6 +1070,12 @@ package body Items.Windows is
             Layouts.Set_Layout
               (Item.Tools,
                Position => (Left => Float'Rounding ((Across - Tools_Width * Pixels) / 2.0),
+                            others => <>),
+               Unit => Layouts.Device_Pixels);
+            Layouts.Set_Layout
+              (Item.Pager,
+               Position => (Left => Float'Rounding ((Across - Pager_Width * Pixels) / 2.0),
+                            Bottom => (Status_Height + Outline + Pager_Lift) * Pixels,
                             others => <>),
                Unit => Layouts.Device_Pixels);
             Layouts.Set_Layout
@@ -1046,6 +1220,42 @@ package body Items.Windows is
          Say (Item, Capture);
       end if;
    end Fetch_Asked;
+
+   procedure Page_Turned
+     (Item : in out Window; From : in out Source_Widget; Event : Widgets.Widget_Event);
+   --  The button before or after: its Index says which, 1 or 2.
+
+   procedure Page_Turned
+     (Item : in out Window; From : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (From);
+   begin
+      if Is_Open_Source (Item) and then Item.Details.Page_Count > 1 then
+         Say (Item, (if Event.Index = 1 then Previous_Page else Next_Page));
+      end if;
+   end Page_Turned;
+
+   procedure Way_Chosen
+     (Item : in out Window; From : in out Source_Widget; Event : Widgets.Widget_Event);
+   --  One of the two buttons of a source yet to say where it is from
+   --  (Index 1, a link; 2, a file), or a file's path that was pressed.
+
+   procedure Way_Chosen
+     (Item : in out Window; From : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (From);
+   begin
+      if Is_Open_Source (Item) then
+         case Event.Index is
+            when 1 =>
+               Say (Item, Choose_Link);
+            when others =>
+               if Item.Details.Origin /= Remote then
+                  Say (Item, Choose_File);
+               end if;
+         end case;
+      end if;
+   end Way_Chosen;
 
    procedure Zoom_Moved
      (Item : in out Window; From : in out Source_Widget; Event : Widgets.Widget_Event);
@@ -1194,10 +1404,20 @@ package body Items.Windows is
       Frame_Hooks.On (Item.Chrome, Close, Item'Unrestricted_Access, Close_Clicked'Access);
       Hooks.On (Item.Body_Text, Submit, Item'Unrestricted_Access, Fetch_Asked'Access);
       Hooks.On (Item.Fetch_Button, Click, Item'Unrestricted_Access, Fetch_Asked'Access);
+      Widgets.Set_Tag (Item.Link_Button, Widgets.No_Tag, 1);
+      Widgets.Set_Tag (Item.File_Button, Widgets.No_Tag, 2);
+      Widgets.Set_Tag (Item.Body_Text, Widgets.No_Tag, 2);
+      Hooks.On (Item.Link_Button, Click, Item'Unrestricted_Access, Way_Chosen'Access);
+      Hooks.On (Item.File_Button, Click, Item'Unrestricted_Access, Way_Chosen'Access);
+      Hooks.On (Item.Body_Text, Click, Item'Unrestricted_Access, Way_Chosen'Access);
       Hooks.On (Item.Zoom_Slider, Change, Item'Unrestricted_Access, Zoom_Moved'Access);
       Hooks.On (Item.Cursor_Button, Click, Item'Unrestricted_Access, Pointer_Clicked'Access);
       Hooks.On (Item.Marker_Button, Click, Item'Unrestricted_Access, Marker_Clicked'Access);
       Hooks.On (Item.Eraser_Button, Click, Item'Unrestricted_Access, Eraser_Clicked'Access);
+      Widgets.Set_Tag (Item.Prev_Button, Widgets.No_Tag, 1);
+      Widgets.Set_Tag (Item.Next_Button, Widgets.No_Tag, 2);
+      Hooks.On (Item.Prev_Button, Click, Item'Unrestricted_Access, Page_Turned'Access);
+      Hooks.On (Item.Next_Button, Click, Item'Unrestricted_Access, Page_Turned'Access);
       Hooks.On (Item.Zoom_Button, Click, Item'Unrestricted_Access, Zoom_Menu_Clicked'Access);
       for Which in Item.Menu_Buttons'Range loop
          Widgets.Set_Tag (Item.Menu_Buttons (Which), Widgets.No_Tag, Which);

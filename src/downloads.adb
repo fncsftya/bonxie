@@ -1,13 +1,16 @@
 with Ada.Characters.Handling;
 with Ada.Directories;
+with Ada.Exceptions;
 with Ada.Strings.Bounded;
 with Ada.Strings.Fixed;
 with Files;
+with Interfaces.C;
 with GNAT.OS_Lib;
 
 package body Downloads is
 
    use type GNAT.OS_Lib.Process_Id;
+   use type Interfaces.C.int;
    use type GNAT.OS_Lib.String_Access;
 
    package Paths is new Ada.Strings.Bounded.Generic_Bounded_Length (Max_Path);
@@ -158,6 +161,49 @@ package body Downloads is
          null;
    end Delete_If_There;
 
+   function Wait_For
+     (Pid    : Interfaces.C.int;
+      Status : out Interfaces.C.int;
+      Flags  : Interfaces.C.int) return Interfaces.C.int
+     with Import, Convention => C, External_Name => "waitpid";
+   --  Wait for that process, and no other (GNAT.OS_Lib.Wait_Process takes
+   --  any child, which is not curl if something else has reaped it).
+
+   Interrupted : constant := 4;
+   --  EINTR.
+
+   type Endings is (Exited_Well, Exited_Badly, Lost);
+   --  How curl ended: with status 0, with another, or it is not known
+   --  (the process was reaped by something else).
+
+   procedure Await
+     (Pid : GNAT.OS_Lib.Process_Id; How : out Endings; Code : out Natural);
+
+   procedure Await
+     (Pid : GNAT.OS_Lib.Process_Id; How : out Endings; Code : out Natural)
+   is
+      Status : Interfaces.C.int := 0;
+      Result : Interfaces.C.int;
+   begin
+      Code := 0;
+      loop
+         Result := Wait_For (Interfaces.C.int (GNAT.OS_Lib.Pid_To_Integer (Pid)), Status, 0);
+         exit when Result >= 0 or else GNAT.OS_Lib.Errno /= Interrupted;
+      end loop;
+      if Result < 0 then
+         How := Lost;
+      elsif Status = 0 then
+         How := Exited_Well;
+      else
+         How := Exited_Badly;
+         --  Its exit status, or 128 and the signal that ended it.
+         Code := Natural ((Status / 256) mod 256);
+         if Code = 0 then
+            Code := 128 + Natural (Status mod 128);
+         end if;
+      end if;
+   end Await;
+
    procedure Fetch;
    --  Do the job in Job, and say how it ended.
 
@@ -169,6 +215,8 @@ package body Downloads is
       Curl   : GNAT.OS_Lib.String_Access :=
         GNAT.OS_Lib.Locate_Exec_On_Path ("curl");
       Ok     : Boolean;
+      How    : Endings := Lost;
+      Code   : Natural := 0;
    begin
       if Curl = null then
          Job.Finish (Failed, "curl was not found");
@@ -199,7 +247,6 @@ package body Downloads is
            [Argument ("-fsL"), Argument ("-o"), Argument (Part),
             Argument (URL)];
          Pid  : GNAT.OS_Lib.Process_Id;
-         Done : GNAT.OS_Lib.Process_Id;
          Stop : Boolean;
       begin
          Pid := GNAT.OS_Lib.Non_Blocking_Spawn (Curl.all, Args);
@@ -213,15 +260,20 @@ package body Downloads is
          if Stop then
             GNAT.OS_Lib.Kill (Pid);
          end if;
-         GNAT.OS_Lib.Wait_Process (Done, Ok);
+         Await (Pid, How, Code);
+         Ok := How = Exited_Well;
       end;
       GNAT.OS_Lib.Free (Curl);
 
-      if Ok
+      --  Not knowing how curl ended is not a failure, if the file is
+      --  all that was said it would be.
+      if (Ok or else (How = Lost and then Job.Total > 0))
         and then Ada.Directories.Exists (Part)
         and then (Job.Total = 0
                   or else Count (Ada.Directories.Size (Part)) = Job.Total)
       then
+         Delete_If_There (Target);
+         --  (Rename does not replace a file that is there.)
          Ada.Directories.Rename (Part, Target);
          Job.Finish (Done);
       else
@@ -229,13 +281,20 @@ package body Downloads is
          Job.Finish
            (Failed,
             (if Messages.Length (Job.Message) = 0
-             then "the transfer did not finish" else ""));
+             then (if How = Exited_Badly
+                   then "the transfer failed (curl exit"
+                        & Code'Image & ")"
+                   else "the transfer did not finish")
+             else ""));
       end if;
    exception
-      when others =>
+      when Problem : others =>
          Delete_If_There (Part);
          Delete_If_There (Head);
-         Job.Finish (Failed, "could not save the file");
+         Job.Finish
+           (Failed,
+            "could not save the file ("
+            & Ada.Exceptions.Exception_Message (Problem) & ")");
    end Fetch;
 
    task Worker is

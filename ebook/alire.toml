@@ -1,0 +1,15 @@
+name = "ebook"
+description = "Pages of PDFs and e-books, rendered with MuPDF"
+version = "0.1.0-dev"
+
+authors = ["Matt Rawcliffe"]
+licenses = "GPL-3.0-only"
+website = ""
+tags = []
+
+[build-switches]
+"*".ada_version = "Ada2022"
+"*".compile_checks = "Errors"
+"*".runtime_checks = "Everything"
+"*".style_checks = "Yes"
+"*".contracts = "Yes"

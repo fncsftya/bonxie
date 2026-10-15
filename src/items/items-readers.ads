@@ -2,6 +2,8 @@ with System;
 with Items.Marks;
 with Pomarine.Themes;
 with Pomarine.Widgets.Buttons;
+with Pomarine.Widgets.Editors;
+with Texts.Documents;
 with Pomarine.Widgets.Frames;
 with Pomarine.Widgets.Labels;
 with Pomarine.Widgets.Panels;
@@ -81,11 +83,20 @@ package Items.Readers is
    procedure Set_Title (Item : in out Reader; To : String)
      with Pre => Is_Assigned (Item);
 
+   procedure Set_Document
+     (Item : in out Reader; Document : String; Page, Count : Natural)
+     with Pre => Is_Assigned (Item);
+   --  Say the source is a file of that ending ("" for a web page), and
+   --  its picture is of its Page'th of Count pages: as a text file, it is
+   --  shown as text, to be read and selected, not as a picture (see
+   --  Set_Picture). Do it before Set_Picture.
+
    procedure Set_Picture
      (Item : in out Reader; File : String; At_Time : Projects.Seconds)
      with Pre => Is_Assigned (Item) and then File /= "";
    --  Show the PNG File, as taken at At_Time: the words and highlights of
-   --  the picture before are forgotten.
+   --  the picture before are forgotten. Of a text file (see
+   --  Set_Document), File is the text file, and its text is shown.
 
    procedure Set_Recognized
      (Item : in out Reader; Found : Vision.Result)
@@ -199,6 +210,9 @@ private
       --  Its tag is a square of the source's colour before the title.
       Pin_Button  : Pomarine.Widgets.Buttons.Button;
       Picture     : Pomarine.Widgets.Pictures.Picture;
+      Text_Doc    : aliased Texts.Documents.Document;
+      Text_View   : Pomarine.Widgets.Editors.Editor;
+      --  Of a source that is a text file, in place of the picture.
       Tools       : Pomarine.Widgets.Panels.Panel;
       Cursor_Button : Pomarine.Widgets.Buttons.Button;
       Marker_Button : Pomarine.Widgets.Buttons.Button;

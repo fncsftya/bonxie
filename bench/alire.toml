@@ -33,6 +33,7 @@ speech = { path = "../speech" }
 texts = { path = "../pomarine/texts" }
 typeset = { path = "../pomarine/typeset" }
 vision = { path = "../vision" }
+ebook = { path = "../ebook" }
 webshot = { path = "../webshot" }
 yoga = { path = "../pomarine/yoga" }
 

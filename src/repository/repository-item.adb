@@ -51,6 +51,11 @@ package body Repository.Item is
       Add_Column (Store, "items", "words_version", Integer_Column);
       Add_Column (Store, "items", "position", Integer_Column);
       Add_Column (Store, "items", "directory_id", Integer_Column);
+      --  Those made before it was said where a source is from are links.
+      Add_Column (Store, "items", "origin", "INTEGER NOT NULL DEFAULT 1");
+      Add_Column (Store, "items", "page", Integer_Column);
+      Add_Column (Store, "items", "page_count", Integer_Column);
+      Add_Column (Store, "items", "document", "TEXT NOT NULL DEFAULT ''");
       Ada_Sqlite3.Execute (DB (Store).all, Index);
    end Prepare;
 
@@ -89,7 +94,8 @@ package body Repository.Item is
         Ada_Sqlite3.Prepare
           (DB (Store).all,
            "SELECT id, title, x, y, w, h, state, kind, "
-           & "captured_at, zoom, recognized_at, scroll, scroll_across "
+           & "captured_at, zoom, recognized_at, scroll, scroll_across, "
+           & "page, page_count, document, origin "
            & "FROM items "
            & "WHERE project_id = :project ORDER BY id LIMIT :limit");
    begin
@@ -119,7 +125,15 @@ package body Repository.Item is
               (0.0, Ada_Sqlite3.Column_Double (Query, 11)),
             Scroll_Across => Float'Min
               (1.0,
-               Float'Max (0.0, Ada_Sqlite3.Column_Double (Query, 12))));
+               Float'Max (0.0, Ada_Sqlite3.Column_Double (Query, 12))),
+            Page => Natural'Max (0, Ada_Sqlite3.Column_Int (Query, 13)),
+            Page_Count => Natural'Max (0, Ada_Sqlite3.Column_Int (Query, 14)),
+            Document => Items.Extensions.To_Bounded_String
+              (Ada_Sqlite3.Column_Text (Query, 15), Ada.Strings.Right),
+            Origin => (if Ada_Sqlite3.Column_Int (Query, 16)
+                          in 0 .. Items.Origins'Pos (Items.Origins'Last)
+                       then Items.Origins'Val (Ada_Sqlite3.Column_Int (Query, 16))
+                       else Items.Remote));
       end loop;
    end Load;
 
@@ -249,6 +263,49 @@ package body Repository.Item is
       Ada_Sqlite3.Bind_Int64 (Update, ":id", Long_Integer (Key));
       Ada_Sqlite3.Step (Update);
    end Set_Captured;
+
+   procedure Set_Document
+     (Store      : in out Projects.Store;
+      Key        : Items.Id;
+      Document   : String;
+      Page_Count : Natural)
+   is
+      Update : Ada_Sqlite3.Statement :=
+        Ada_Sqlite3.Prepare
+          (DB (Store).all,
+           "UPDATE items SET document = :document, page_count = :count, "
+           & "page = :page WHERE id = :id");
+   begin
+      Ada_Sqlite3.Bind_Text (Update, ":document", Document);
+      Ada_Sqlite3.Bind_Int (Update, ":count", Page_Count);
+      Ada_Sqlite3.Bind_Int (Update, ":page", Boolean'Pos (Page_Count > 0));
+      Ada_Sqlite3.Bind_Int64 (Update, ":id", Long_Integer (Key));
+      Ada_Sqlite3.Step (Update);
+   end Set_Document;
+
+   procedure Set_Origin
+     (Store : in out Projects.Store; Key : Items.Id; Origin : Items.Origins)
+   is
+      Update : Ada_Sqlite3.Statement :=
+        Ada_Sqlite3.Prepare
+          (DB (Store).all, "UPDATE items SET origin = :origin WHERE id = :id");
+   begin
+      Ada_Sqlite3.Bind_Int (Update, ":origin", Items.Origins'Pos (Origin));
+      Ada_Sqlite3.Bind_Int64 (Update, ":id", Long_Integer (Key));
+      Ada_Sqlite3.Step (Update);
+   end Set_Origin;
+
+   procedure Set_Page
+     (Store : in out Projects.Store; Key : Items.Id; Page : Natural)
+   is
+      Update : Ada_Sqlite3.Statement :=
+        Ada_Sqlite3.Prepare
+          (DB (Store).all, "UPDATE items SET page = :page WHERE id = :id");
+   begin
+      Ada_Sqlite3.Bind_Int (Update, ":page", Page);
+      Ada_Sqlite3.Bind_Int64 (Update, ":id", Long_Integer (Key));
+      Ada_Sqlite3.Step (Update);
+   end Set_Page;
 
    procedure Set_Recognized
      (Store   : in out Projects.Store;

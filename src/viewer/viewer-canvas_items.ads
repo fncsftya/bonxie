@@ -36,6 +36,17 @@ private package Viewer.Canvas_Items is
    --  Make a source, as Add does, linked to the item of the window To,
    --  from its right to the source's left.
 
+   procedure Choose_Origin
+     (Item : in out Session; Which : Items.Slot; To : Items.Origins)
+     with Pre => Items.Windows.Is_Assigned (Item.Windows (Which));
+   --  Say whether the window's source is a link or a file (the window's
+   --  two buttons do), and keep that.
+
+   procedure File_Picked (Item : in out Session; Which : Items.Slot; Path : String)
+     with Pre => Items.Windows.Is_Assigned (Item.Windows (Which));
+   --  A file was chosen for the window's source, in the dialog: it is a
+   --  file, its path is its text, and the file is shown.
+
    function Capturing (Item : Session) return Boolean;
    --  Whether a source's picture is being taken, or a note's dictation is
    --  being heard, readied or made text: the loop is to look at it again soon.

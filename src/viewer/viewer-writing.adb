@@ -615,9 +615,9 @@ package body Viewer.Writing is
    --  The windows of the sources
 
    function Picture_Of (Item : Session; Which : Items.Slot) return String is
-     (Items.Sources.Image_File
-        (Item.Nav.Store, Item.Opened.Current,
-         Windows.Details (Item.Windows (Which)).Key));
+     (Items.Sources.Shown_File
+        (Item.Nav.Store, Item.Opened.Current, Windows.Details (Item.Windows (Which))));
+   --  The picture of a source, or the text file of one that is a text.
 
    procedure Show_Kept
      (Item : in out Session; Which : Items.Slot;
@@ -1069,6 +1069,8 @@ package body Viewer.Writing is
 
       procedure Show (Shown : in out Readers.Reader; Sync : out Sync_State) is
       begin
+         Readers.Set_Document
+           (Shown, Items.Extensions.To_String (Details.Document), Details.Page, Details.Page_Count);
          Readers.Set_Picture
            (Shown, Picture_Of (Item, Which), Details.Captured_At);
          Sync := (Own  => Readers.Marks_Version (Shown),

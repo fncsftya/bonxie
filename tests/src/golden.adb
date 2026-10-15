@@ -1057,6 +1057,9 @@ begin
    Run ("sources-window", Item_Tests.Source_Windows'Access);
    Run ("sources-pages", Item_Tests.Source_Pages'Access);
    Run ("sources-words", Item_Tests.Source_Words'Access);
+   Run ("sources-documents", Item_Tests.Source_Documents'Access);
+   Run ("sources-files", Item_Tests.Source_Files'Access);
+   Run ("write-source-documents", Write_Tests.Source_Documents'Access);
    Run ("write-pages", Write_Tests.Pages'Access);
    Run ("write-ordering", Write_Tests.Ordering'Access);
    Run ("write-dragging", Write_Tests.Dragging'Access);
