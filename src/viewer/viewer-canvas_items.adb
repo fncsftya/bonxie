@@ -434,12 +434,13 @@ package body Viewer.Canvas_Items is
    end Name_Of;
 
    procedure Open_Document
-     (Item : in out Session; Which : Items.Slot; Ending : String);
+     (Item : in out Session; Which : Items.Slot; Ending : String; Local : Boolean);
    --  The file of the source's document has come: count its pages, and
-   --  draw the first.
+   --  draw the first. A file from disk is titled by its name; one fetched,
+   --  by its own title if it has one.
 
    procedure Open_Document
-     (Item : in out Session; Which : Items.Slot; Ending : String)
+     (Item : in out Session; Which : Items.Slot; Ending : String; Local : Boolean)
    is
       Key     : constant Items.Id := Windows.Details (Item.Windows (Which)).Key;
       File    : constant String :=
@@ -459,7 +460,7 @@ package body Viewer.Canvas_Items is
       Windows.Set_Pages (Item.Windows (Which), Ending, 1, Found.Pages);
       Show_Page
         (Item, Which, 1,
-         (if Found.Last > 0 then Found.Title (1 .. Found.Last)
+         (if Found.Last > 0 and then not Local then Found.Title (1 .. Found.Last)
           else Name_Of (Windows.Text (Item.Windows (Which)))));
    end Open_Document;
 
@@ -491,17 +492,17 @@ package body Viewer.Canvas_Items is
    end Open_Text;
 
    procedure Finish_File
-     (Item : in out Session; Which : Items.Slot; Ending : String);
+     (Item : in out Session; Which : Items.Slot; Ending : String; Local : Boolean := False);
    --  The file of the source has come, here: show it as text, or as the
    --  pages it is of.
 
    procedure Finish_File
-     (Item : in out Session; Which : Items.Slot; Ending : String) is
+     (Item : in out Session; Which : Items.Slot; Ending : String; Local : Boolean := False) is
    begin
       if Items.Sources.Is_Text (Ending) then
          Open_Text (Item, Which, Ending);
       else
-         Open_Document (Item, Which, Ending);
+         Open_Document (Item, Which, Ending, Local);
       end if;
    end Finish_File;
 
@@ -523,7 +524,7 @@ package body Viewer.Canvas_Items is
          Webshot.Reset (Which);
          Items.Sources.Copy_File
            (Path, Items.Sources.Document_File (Item.Nav.Store, Item.Opened.Current, Key, Ending));
-         Finish_File (Item, Which, Ending);
+         Finish_File (Item, Which, Ending, Local => True);
       end if;
    exception
       when Ada.Directories.Use_Error | Ada.Directories.Name_Error =>
