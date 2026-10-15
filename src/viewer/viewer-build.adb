@@ -592,7 +592,7 @@ package body Viewer.Build is
    begin
       Widgets.Add (Item.Root.Window_Panel, Prefs.Settings_Panel);
       Widgets.Add (Prefs.Settings_Panel, Prefs.Settings_Bar);
-      Widgets.Add (Prefs.Settings_Bar, Prefs.Settings_Title, Prefs.Settings_Close);
+      Widgets.Add (Prefs.Settings_Bar, Prefs.Settings_Close, Prefs.Settings_Title);
       Widgets.Add (Prefs.Settings_Panel, Prefs.Settings_Scroll);
       Widgets.Add (Prefs.Settings_Scroll, Prefs.Settings_Content);
       Widgets.Add (Prefs.Settings_Content, Prefs.Settings_Form);
@@ -608,8 +608,8 @@ package body Viewer.Build is
       Set_Layout (Prefs.Settings_Panel, Flow => Column, Grow => 1.0);
       Panels.Set_Fill (Prefs.Settings_Panel, Desk);
 
-      --  The bar, outside what scrolls, so that it stays: the title at the
-      --  left (clear of the window's own buttons) and Close at the right.
+      --  The bar, outside what scrolls, so that it stays: the way back
+      --  at the left (clear of the window's own buttons), as in a project, then the title.
       Panels.Set_Fill (Prefs.Settings_Bar, Toolbar);
       Set_Layout
         (Prefs.Settings_Bar, Height => Toolbar_Size, Shrink => 0.0, Flow => Row, Align => Center,
@@ -620,11 +620,13 @@ package body Viewer.Build is
       Labels.Set_Style (Prefs.Settings_Title, Pomarine.Line_Texts.Heading);
       Labels.Set_Ink (Prefs.Settings_Title, Themes.Bar_Ink);
       Set_Layout (Prefs.Settings_Title, Grow => 1.0, Width => 0.0, Height => Tab_Height);
-      Buttons.Set_Label (Prefs.Settings_Close, "Close");
-      Buttons.Set_Icon (Prefs.Settings_Close, Pomarine.Icons.Close);
+      Buttons.Set_Label (Prefs.Settings_Close, "Projects");
+      Buttons.Set_Icon (Prefs.Settings_Close, Icon_Set.Back);
       Buttons.Set_Captioned (Prefs.Settings_Close, True);
       Buttons.Set_Kind (Prefs.Settings_Close, Buttons.Quiet);
-      Set_Layout (Prefs.Settings_Close, Width => Items_Width, Height => Tab_Height, Shrink => 0.0);
+      Set_Layout
+        (Prefs.Settings_Close, Width => Back_Width, Height => Tab_Height, Shrink => 0.0,
+         Margin => (Right => Name_Gap, others => <>));
 
       --  The form, on a page of its own, in the middle.
       Set_Layout (Prefs.Settings_Scroll, Grow => 1.0, Height => 0.0);
