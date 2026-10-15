@@ -66,6 +66,12 @@ package body Viewer is
    function Cursor (Item : Session) return SDL3.Cursors.Kind is
      (Widgets.Wanted_Cursor (Item.Root.Widgets));
 
+   function Title_Strip_Height (Item : Session) return Float is
+     (if Item.Nav.Shown = Project or else Item.Prefs.Showing_Settings
+      then Style.Toolbar_Size
+      else Style.Header_Size);
+   --  How tall the bar across the top is, on this screen.
+
    procedure Show_Cursor (Item : in out Session);
    --  Give the window the cursor the widgets want, if it is not that now.
 
@@ -82,10 +88,7 @@ package body Viewer is
 
    function In_Title_Strip (Item : Session; Y : Float) return Boolean is
      (Y >= 0.0
-      and then Y < (if Item.Nav.Shown = Project
-                    or else Item.Prefs.Showing_Settings
-                    then Style.Toolbar_Size
-                    else Style.Header_Size));
+      and then Y < Title_Strip_Height (Item));
    --  Whether a point is in the bar across the top, or over the home
    --  screen, where the window is moved from. The window has no native
    --  title bar drag (see Open_Window), so this is what moves it.
@@ -469,6 +472,7 @@ package body Viewer is
 
       while not Item.Shell.Done loop
          Show_Title (Item);
+         Painting.Fit_Buttons (Item);
          if Widgets.Needs_Paint (Item.Root.Widgets) then
             Painting.Draw (Item);
          end if;

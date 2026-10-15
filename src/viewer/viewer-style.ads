@@ -10,6 +10,9 @@ private package Viewer.Style is
    Window_Height : constant := 800;
    Header_Size   : constant Float := 28.0;
    Header_Inset  : constant Float := 80.0;
+   Button_Inset  : constant Float := 13.0;
+   --  From the left of the window to its close button, a little in from
+   --  where the system puts it.
    --  Of a window's own title bar, which the screens leave clear at the
    --  top, and of its close, minimise and zoom buttons at the left.
 

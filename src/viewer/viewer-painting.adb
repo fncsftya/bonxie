@@ -1,3 +1,4 @@
+with SDL3.Windows;
 with SDL3.Windows.Renderers;
 with Pomarine.Line_Texts;
 with Pomarine.Widgets;
@@ -34,6 +35,14 @@ package body Viewer.Painting is
          Retained => Keeps_Frame (Item.Host.Target));
    end Paint;
 
+   procedure Fit_Buttons (Item : Session) is
+   begin
+      if Item.Shell.Windowed then
+         SDL3.Windows.Set_Title_Bar_Height
+           (Item.Host.Win, Style.Toolbar_Size, Style.Button_Inset);
+      end if;
+   end Fit_Buttons;
+
    procedure Draw (Item : in out Session) is
       Resized : Boolean;
    begin
@@ -42,6 +51,7 @@ package body Viewer.Painting is
       if Resized then
          Widgets.Invalidate_All (Item.Root.Widgets);
       end if;
+      Fit_Buttons (Item);
       Paint (Item);
       Present (Item.Host.Target);
    end Draw;
