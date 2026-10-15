@@ -218,8 +218,10 @@ package body Item_Tests is
    begin
       --  The pages of a document in view are made as they are drawn, one to
       --  a frame.
+      --  A tick between them, as the loop's, for the next to be asked for.
       for Pass in 1 .. 3 loop
          Viewer.Render (Session, Drawn);
+         Viewer.Tick (Session, SDL3.Events.Milliseconds (Pass * 100));
       end loop;
    end Draw_Pages;
 
