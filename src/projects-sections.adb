@@ -36,10 +36,18 @@ package body Projects.Sections is
       Repository.Section.Link (Item, Key, Linked);
    end Link;
 
-   procedure Unlink (Item : in out Store; Key : Section_Id) is
+   procedure Unlink (Item : in out Store; Linked : Long_Integer) is
    begin
-      Repository.Section.Unlink (Item, Key);
+      Repository.Section.Unlink (Item, Linked);
    end Unlink;
+
+   procedure Load_Links
+     (Item   : Store;
+      Owner  : Id;
+      Result : out Link_List) is
+   begin
+      Repository.Section.Load_Links (Item, Owner, Result);
+   end Load_Links;
 
    procedure Delete (Item : in out Store; Key : Section_Id) is
    begin

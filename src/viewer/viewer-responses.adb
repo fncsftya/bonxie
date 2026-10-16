@@ -518,6 +518,12 @@ package body Viewer.Responses is
       Hear (Pages.Docs_Folder, Click, Writing.Add_Folder_Clicked'Access);
       Hear (Pages.Menu, Choose, Writing.Source_Chosen'Access);
       Hear (Item.Context.Context_Menu, Choose, Writing.Context_Chosen'Access);
+      for Each in Item.Section_View.Heads'Range loop
+         Hear (Item.Section_View.Heads (Each).Add, Click, Writing.Section_Add_Clicked'Access, Each);
+      end loop;
+      for Each in Item.Section_View.Empties'Range loop
+         Hear (Item.Section_View.Empties (Each).Add, Click, Writing.Section_Add_Clicked'Access, Each);
+      end loop;
       for Rank in Items.Slot loop
          Hear (Item.Docs.Pages (Rank).Sources_Button, Click, Writing.Sources_Clicked'Access, Rank);
          Hear (Item.Docs.Pages (Rank).Mic_Button, Click, Writing.Dictate_Clicked'Access, Rank);

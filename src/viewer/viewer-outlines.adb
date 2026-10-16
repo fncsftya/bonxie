@@ -35,6 +35,7 @@ package body Viewer.Outlines is
 
    use type Docs.Version;
    use type Projects.Id;
+   use type Projects.Sections.Section_Id;
    use type MLX.Jobs.States;
 
    Untitled_Section : constant String := "Untitled section";
@@ -91,6 +92,44 @@ package body Viewer.Outlines is
    function Section_At (Item : Session; Which : Positive) return Projects.Sections.Section is
      (Item.Outline_View.Order.Items (Which));
 
+   function Index_Of_Key (Item : Session; Key : Projects.Sections.Section_Id) return Natural is
+      View : Outline_Parts renames Item.Outline_View;
+   begin
+      for Place in 1 .. View.Order.Count loop
+         if View.Order.Items (Place).Key = Key then
+            return Place;
+         end if;
+      end loop;
+      return 0;
+   end Index_Of_Key;
+
+   function Section_Of_Item (Item : Session; Key : Long_Integer) return Natural is
+      View : Outline_Parts renames Item.Outline_View;
+   begin
+      for Each in 1 .. View.Links.Count loop
+         if View.Links.Items (Each).Item = Key then
+            for Place in 1 .. View.Order.Count loop
+               if View.Order.Items (Place).Key = View.Links.Items (Each).Section then
+                  return Place;
+               end if;
+            end loop;
+         end if;
+      end loop;
+      return 0;
+   end Section_Of_Item;
+
+   function Documents_In (Item : Session; Which : Positive) return Natural is
+      View  : Outline_Parts renames Item.Outline_View;
+      Total : Natural := 0;
+   begin
+      for Each in 1 .. View.Links.Count loop
+         if View.Links.Items (Each).Section = View.Order.Items (Which).Key then
+            Total := Total + 1;
+         end if;
+      end loop;
+      return Total;
+   end Documents_In;
+
    --  What is shown
 
    procedure Style_Blocks (Item : in out Session);
@@ -130,7 +169,7 @@ package body Viewer.Outlines is
                   Section : constant Projects.Sections.Section := View.Order.Items (Each);
                   Ink     : constant Pomarine.Themes.Slot := Style.Section_Ink (Section.Colour);
                begin
-                  if Section.Linked /= 0 then
+                  if Documents_In (Item, Each) > 0 then
                      Panels.Set_Fill (Block.Swatch, Ink);
                   else
                      Panels.Set_Fill (Block.Swatch, Pomarine.Themes.Page);
@@ -326,6 +365,7 @@ package body Viewer.Outlines is
          Sync (Item);
       end if;
       Projects.Sections.Load (Item.Nav.Store, Item.Opened.Current, View.Order);
+      Projects.Sections.Load_Links (Item.Nav.Store, Item.Opened.Current, View.Links);
       Show_Blocks (Item);
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
    end Reload;
@@ -341,6 +381,7 @@ package body Viewer.Outlines is
       View.Drop_Before := 0;
       Load_Form (Item);
       Projects.Sections.Load (Item.Nav.Store, Item.Opened.Current, View.Order);
+      Projects.Sections.Load_Links (Item.Nav.Store, Item.Opened.Current, View.Links);
       Show_Blocks (Item);
       Show_Drop_Line (Item);
       Show_Generate (Item);
@@ -354,6 +395,7 @@ package body Viewer.Outlines is
       View.Drag_Moved := False;
       View.Drop_Before := 0;
       View.Order.Count := 0;
+      View.Links.Count := 0;
       Show_Blocks (Item);
       Show_Drop_Line (Item);
       Show_Ghost (Item);
@@ -393,6 +435,7 @@ package body Viewer.Outlines is
          pragma Unreferenced (Key);
          --  As kept, with the colour it was given.
          Projects.Sections.Load (Item.Nav.Store, Item.Opened.Current, View.Order);
+         Projects.Sections.Load_Links (Item.Nav.Store, Item.Opened.Current, View.Links);
       end;
       Show_Blocks (Item);
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
@@ -437,6 +480,7 @@ package body Viewer.Outlines is
    begin
       Sync (Item);
       Projects.Sections.Delete (Item.Nav.Store, View.Order.Items (Which).Key);
+      Projects.Sections.Load_Links (Item.Nav.Store, Item.Opened.Current, View.Links);
       View.Order.Items (Which .. View.Order.Count - 1) :=
         View.Order.Items (Which + 1 .. View.Order.Count);
       View.Order.Count := View.Order.Count - 1;
@@ -523,6 +567,7 @@ package body Viewer.Outlines is
       --  The blocks now show other sections: nothing is typed in one.
       Widgets.Clear_Focus (Item.Root.Widgets);
       Sects.Load (Item.Nav.Store, Owner, View.Order);
+      Sects.Load_Links (Item.Nav.Store, Owner, View.Links);
       Show_Blocks (Item);
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
    end Apply;

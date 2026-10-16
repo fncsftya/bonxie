@@ -63,6 +63,14 @@ private package Viewer.Style is
    --  The writing view, in points
 
    Sidebar_Width   : constant Float := 206.0;
+   Sidebar_Least   : constant Float := 150.0;
+   Sidebar_Most    : constant Float := 480.0;
+   Sidebar_Edge_Width : constant Float := 6.0;
+   --  Of the list of documents to begin with, the least and most it may
+   --  be sized to, and of the edge it is sized by.
+   Ghost_Leeway    : constant Float := 28.0;
+   --  How far a row dragged is shown to the side of where it was, at
+   --  most, to show what it is over.
    Sidebar_Margin  : constant Float := 0.0;
    Sidebar_Pad     : constant Float := 11.0;
    Sidebar_Gap     : constant Float := 8.0;
@@ -102,6 +110,15 @@ private package Viewer.Style is
    --  Round the pages, in the view, and inside each at the sides.
    Page_Gap        : constant Float := 22.0;
    Page_Head       : constant Float := 40.0;
+   Section_Head_Height : constant Float := 40.0;
+   Section_Empty_Height : constant Float := 100.0;
+   Gap_Mark_Height : constant Float := 24.0;
+   Section_Bar     : constant Float := 8.0;
+   Section_Before  : constant Float := 40.0;
+   Section_After   : constant Float := 10.0;
+   --  Of a section's heading and of the place of its documents when it
+   --  has none, and of the faint line before documents of no section;
+   --  and the room before a heading and after it.
    Page_Foot       : constant Float := 26.0;
    Sources_Width   : constant Float := 120.0;
    Bar_Button_Height : constant Float := 26.0;

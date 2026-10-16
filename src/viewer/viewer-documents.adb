@@ -16,6 +16,13 @@ package body Viewer.Documents is
       Writing.Move (Item, From, To);
    end Move_Document;
 
+   function Sidebar_Width (Item : Session) return Float is (Item.Page_View.Sidebar_Wide);
+
+   procedure Add_For_Section (Item : in out Session; Section : Positive) is
+   begin
+      Writing.Add_For_Section (Item, Section);
+   end Add_For_Section;
+
    function Directory_Count (Item : Session) return Natural is
      (Item.Docs.Dirs.Count);
 

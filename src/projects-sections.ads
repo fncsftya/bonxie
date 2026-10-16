@@ -25,10 +25,6 @@ package Projects.Sections is
       --  Given when the section is made: the one of the project's that is
       --  used least, so that no two are alike until there are more than
       --  Palette_Size, and kept, whatever the order and the others.
-      Linked : Long_Integer := 0;
-      --  The key of the item (a note on the canvas, a document of the
-      --  writing view) that is the section's own, to be read for it; 0 if
-      --  there is none. An item is the own of one section at most.
    end record;
 
    type Section_Array is array (Positive range <>) of Section;
@@ -39,6 +35,33 @@ package Projects.Sections is
       Items : Section_Array (1 .. Max_Sections);
    end record;
    --  Items (1 .. Count) are in order.
+
+   Max_Links : constant := 16;
+   --  The most items a project has (see Items.Capacity), each in at most
+   --  one section.
+
+   type Membership is record
+      Item    : Long_Integer := 0;
+      --  The key of an item: a note on the canvas, a document of the
+      --  writing view.
+      Section : Section_Id := 0;
+   end record;
+   --  An item is of a section, which is to be read for. A section has any
+   --  number of items.
+
+   type Link_Array is array (Positive range <>) of Membership;
+
+   type Link_List is record
+      Count : Natural range 0 .. Max_Links := 0;
+      Items : Link_Array (1 .. Max_Links);
+   end record;
+   --  Items (1 .. Count): the items of the project that are of a section.
+
+   procedure Load_Links
+     (Item   : Store;
+      Owner  : Id;
+      Result : out Link_List)
+     with Pre => Is_Open (Item);
 
    procedure Load
      (Item    : Store;
@@ -69,12 +92,12 @@ package Projects.Sections is
    procedure Link
      (Item : in out Store; Key : Section_Id; Linked : Long_Integer)
      with Pre => Is_Open (Item) and then Linked /= 0;
-   --  Make the item the section's own. Where it was another section's, it
-   --  is not any more; and the item the section had is let go.
+   --  Make the item (by its key) one of the section's; it is not of the
+   --  one it was.
 
-   procedure Unlink (Item : in out Store; Key : Section_Id)
+   procedure Unlink (Item : in out Store; Linked : Long_Integer)
      with Pre => Is_Open (Item);
-   --  The section has no item of its own.
+   --  The item is of no section.
 
    procedure Delete (Item : in out Store; Key : Section_Id)
      with Pre => Is_Open (Item);

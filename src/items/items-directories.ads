@@ -4,8 +4,9 @@ with Projects;
 --  its rows.
 package Items.Directories is
 
-   Max_Directories : constant := 64;
-   --  Of one project.
+   Max_Directories : constant := 128;
+   --  Of one project: those made, and one for each of the outline's
+   --  sections (Projects.Sections.Max_Sections).
 
    type Directory is record
       Key   : Id := 0;
@@ -13,6 +14,13 @@ package Items.Directories is
       --  Where it was put in the tree, with the documents; 0 if never.
       Title : Projects.Titles.Bounded_String :=
         Projects.Titles.Null_Bounded_String;
+      Section : Long_Integer := 0;
+      --  The key of the outline's section that this is the folder of, 0
+      --  for a folder that was made. A section's folder is made for it
+      --  when it is first loaded; the documents in it are the section's
+      --  own, and its title is the section's.
+      Colour : Natural := 0;
+      --  Of a section's: the colour it was given (Projects.Sections).
    end record;
    --  A folder of the writing view's documents.
 

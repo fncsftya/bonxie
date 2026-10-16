@@ -76,6 +76,11 @@ package body Viewer.Writing is
      (Windows.Is_Assigned (Item.Windows (Which))
       and then Windows.Details (Item.Windows (Which)).Kind = Items.Source);
 
+   function Is_Section (Item : Session; Dir : Natural) return Boolean is
+     (Dir /= 0 and then Item.Docs.Dirs.Directories (Dir).Section /= 0);
+   --  Whether the directory is a section's: made for it, with its name,
+   --  not renamed or deleted here, nor moved.
+
    function Title_Of (Item : Session; Which : Items.Slot) return String is
      (Projects.Titles.To_String
         (Windows.Details (Item.Windows (Which)).Title));
@@ -477,25 +482,29 @@ package body Viewer.Writing is
                else Widgets.Has_Focus
                       (Item.Docs.Pages (Rank_Of (Item, Node.Doc)).Text));
       end case;
-      if Node.Kind = Document_Leaf then
+      if Node.Kind = Overview_Node then
+         --  Neither a section, a directory nor a document: a band of its
+         --  own, with a rule in the accent colour, lit when it is shown.
+         Widgets.Set_Visible (Each.Tag, False);
+         Labels.Set_Style (Each.Caption, Pomarine.Line_Texts.Strong);
+         Grips.Set_Fill (Each.Row, (if Chosen then Pomarine.Themes.Selection else Pomarine.Themes.Tint));
+         Grips.Set_Hover_Fill (Each.Row, Pomarine.Themes.Selection);
+         Grips.Clear_Shadow (Each.Row);
+         Grips.Set_Border
+           (Each.Row, (if Chosen then Pomarine.Themes.Accent else Pomarine.Themes.Border));
+      elsif Node.Kind = Document_Leaf then
          --  A box, standing up.
          Choose_Row (Each, Chosen);
          Grips.Set_Border (Each.Row, Pomarine.Themes.Border);
-         --  A square of the colour of the section it is the own of.
-         declare
-            Section : constant Natural := Section_Links.Section_Of (Item, Node.Doc);
-         begin
-            if Section /= 0 then
-               Pomarine.Widgets.Panels.Set_Fill (Each.Tag, Section_Links.Ink_Of (Item, Section));
-            end if;
-            Widgets.Set_Visible (Each.Tag, Section /= 0);
-         end;
+         --  Its colour is the section's, on the section's row.
+         Widgets.Set_Visible (Each.Tag, False);
       else
          --  Not a box: bare, with a marker, in bold; the marker is lit
          --  when it is the one shown, and the row is outlined while a
          --  document is over it.
          Labels.Set_Style (Each.Caption, Pomarine.Line_Texts.Strong);
          Grips.Clear_Fill (Each.Row);
+         Grips.Set_Hover_Fill (Each.Row, Style.Row_Hover);
          Grips.Clear_Shadow (Each.Row);
          if Dropped then
             Grips.Set_Border (Each.Row, Pomarine.Themes.Focus);
@@ -505,7 +514,12 @@ package body Viewer.Writing is
             Grips.Clear_Border (Each.Row);
          end if;
          Pomarine.Widgets.Panels.Set_Fill
-           (Each.Tag, (if Chosen then Pomarine.Themes.Accent else Style.Quiet_Ink));
+           (Each.Tag,
+            (if Is_Section (Item, Node.Dir)
+             then Style.Section_Ink
+                    (Projects.Sections.Colour_Index
+                       (Item.Docs.Dirs.Directories (Node.Dir).Colour mod Projects.Sections.Palette_Size))
+             elsif Chosen then Pomarine.Themes.Accent else Style.Quiet_Ink));
          Widgets.Set_Visible (Each.Tag, True);
       end if;
       if Level /= Each.Indent then
@@ -972,6 +986,26 @@ package body Viewer.Writing is
       Refresh (Item);
    end Enter;
 
+   procedure Rebuild (Item : in out Session);
+   --  Take the folders, and the documents in them and their order, as they
+   --  are kept, which the sections (made, put in another order, or given
+   --  documents elsewhere) may have changed; the folder shown stays.
+
+   procedure Rebuild (Item : in out Session) is
+      Shown : constant Items.Id :=
+        (if Item.Docs.Shown_Dir = 0 then 0
+         else Item.Docs.Dirs.Directories (Item.Docs.Shown_Dir).Key);
+   begin
+      Build_Order (Item);
+      for Dir in 1 .. Item.Docs.Dirs.Count loop
+         if Shown /= 0 and then Item.Docs.Dirs.Directories (Dir).Key = Shown then
+            Item.Docs.Shown_Dir := Dir;
+         end if;
+      end loop;
+      Item.Section_Menu.Seen := Item.Section_Menu.Changes;
+      Refresh (Item);
+   end Rebuild;
+
    procedure Apply (Item : in out Session; To : Modes);
    --  Show the view, without keeping that it is the project's.
 
@@ -992,7 +1026,7 @@ package body Viewer.Writing is
       Widgets.Set_Visible (Item.Dock.Tool_List, To = Canvas);
       Canvas_Items.Show_Dock (Item);
       if To = Write then
-         Refresh (Item);
+         Rebuild (Item);
       elsif To = Outline and then Item.Opened.Current /= 0 then
          Outlines.Shown (Item);
       end if;
@@ -1039,13 +1073,28 @@ package body Viewer.Writing is
       Apply (Item, Canvas);
    end Leave;
 
+   function Dir_Of_Section (Item : Session; Section : Positive) return Natural is
+   begin
+      for Dir in 1 .. Item.Docs.Dirs.Count loop
+         if Item.Docs.Dirs.Directories (Dir).Section
+            = Long_Integer (Outlines.Section_At (Item, Section).Key)
+         then
+            return Dir;
+         end if;
+      end loop;
+      return 0;
+   end Dir_Of_Section;
+   --  The directory that is the section's, 0 if there is none (yet).
+
    procedure Added (Item : in out Session; Which : Items.Slot) is
    begin
       if Is_Note (Item, Which) then
          --  One written while a directory is shown is last in it; else
          --  last of all.
          Item.Docs.Doc_Dir (Which) :=
-           (if Item.Toolbar.Mode = Write then Item.Docs.Shown_Dir else 0);
+           (if Item.Section_View.Pending in 1 .. Outlines.Section_Count (Item)
+            then Dir_Of_Section (Item, Item.Section_View.Pending)
+            elsif Item.Toolbar.Mode = Write then Item.Docs.Shown_Dir else 0);
          Insert_Row
            (Item,
             (if Item.Docs.Doc_Dir (Which) = 0 then Item.Docs.Tree_Count + 1
@@ -1058,6 +1107,12 @@ package body Viewer.Writing is
             Keep_Directory (Item, Which);
          end if;
          Keep_Order (Item);
+         if Is_Section (Item, Item.Docs.Doc_Dir (Which)) then
+            --  Made in a section's folder, it is the section's, and called
+            --  as it if it has no name of its own.
+            Section_Links.Joined (Item, Which);
+            Item.Section_Menu.Seen := Item.Section_Menu.Changes;
+         end if;
          Refresh (Item);
          if Item.Toolbar.Mode = Write then
             Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
@@ -1165,9 +1220,20 @@ package body Viewer.Writing is
      (Item : in out Session; Row, Index, Dir : Natural) is
    begin
       if Item.Docs.Tree (Row).Kind = Document_Leaf then
-         Item.Docs.Doc_Dir (Item.Docs.Tree (Row).Doc) := Dir;
-         Item.Docs.Tree (Row).Dir := Dir;
-         Keep_Directory (Item, Item.Docs.Tree (Row).Doc);
+         declare
+            Was : constant Natural := Item.Docs.Doc_Dir (Item.Docs.Tree (Row).Doc);
+         begin
+            Item.Docs.Doc_Dir (Item.Docs.Tree (Row).Doc) := Dir;
+            Item.Docs.Tree (Row).Dir := Dir;
+            Keep_Directory (Item, Item.Docs.Tree (Row).Doc);
+            if Is_Section (Item, Was) or else Is_Section (Item, Dir) then
+               --  Of another section, or of none: the outline's counts, and
+               --  the colours, follow.
+               Outlines.Reload (Item);
+               Item.Section_Menu.Changes := Item.Section_Menu.Changes + 1;
+               Item.Section_Menu.Seen := Item.Section_Menu.Changes;
+            end if;
+         end;
       end if;
       Move_Block (Item, Row, Index);
       Sync_Order (Item);
@@ -1365,10 +1431,32 @@ package body Viewer.Writing is
                        Natural'Min
                          (Last, First + Projects.Title_Capacity - 1));
          begin
-            Items.Directories.Rename_Directory
-              (Item.Nav.Store, Item.Docs.Dirs.Directories (Dir).Key, Name);
-            Item.Docs.Dirs.Directories (Dir).Title :=
-              Projects.Titles.To_Bounded_String (Name);
+            if Is_Section (Item, Dir) then
+               --  A section's folder has the section's name, which is kept
+               --  with the section, and shown wherever it is.
+               declare
+                  Key : constant Projects.Sections.Section_Id :=
+                    Projects.Sections.Section_Id (Item.Docs.Dirs.Directories (Dir).Section);
+                  Whole : Natural := Natural'Min (Name'Length, Projects.Sections.Max_Title);
+               begin
+                  while Whole > 0 and then Whole < Name'Length
+                    and then Character'Pos (Name (Name'First + Whole)) in 16#80# .. 16#BF#
+                  loop
+                     Whole := Whole - 1;
+                  end loop;
+                  Projects.Sections.Rename
+                    (Item.Nav.Store, Key, Name (Name'First .. Name'First + Whole - 1));
+                  Outlines.Reload (Item);
+                  Item.Section_Menu.Changes := Item.Section_Menu.Changes + 1;
+                  Item.Docs.Dirs.Directories (Dir).Title :=
+                    Projects.Titles.To_Bounded_String (Name (Name'First .. Name'First + Whole - 1));
+               end;
+            else
+               Items.Directories.Rename_Directory
+                 (Item.Nav.Store, Item.Docs.Dirs.Directories (Dir).Key, Name);
+               Item.Docs.Dirs.Directories (Dir).Title :=
+                 Projects.Titles.To_Bounded_String (Name);
+            end if;
             Projects.Touch (Item.Nav.Store, Item.Opened.Current);
          end;
       end if;
@@ -1397,7 +1485,7 @@ package body Viewer.Writing is
       Item.Docs.Dirs.Count := Item.Docs.Dirs.Count + 1;
       Item.Docs.Dirs.Directories (Item.Docs.Dirs.Count) :=
         (Key => Key, Title => Projects.Titles.To_Bounded_String (Name),
-         Position => 0);
+         others => <>);
       --  Last of all.
       Insert_Row
         (Item, Item.Docs.Tree_Count + 1,
@@ -1505,8 +1593,11 @@ package body Viewer.Writing is
          Begin_Menu;
          Item.Context.Context_Node := Node;
          Add_Act (Item, Rename_Act, "Rename", Icon_Set.Edit);
-         Add_Act (Item, Delete_Act, "Delete", Icon_Set.Delete,
-                  Shade => Menus.Danger);
+         --  A section is made and removed in the outline, not here.
+         if not (Node.Kind = Directory_Node and then Is_Section (Item, Node.Dir)) then
+            Add_Act (Item, Delete_Act, "Delete", Icon_Set.Delete,
+                     Shade => Menus.Danger);
+         end if;
          Show_Context (Item, Tree_Context, X, Y);
          Opened := True;
       end Of_Row;
@@ -1696,7 +1787,9 @@ package body Viewer.Writing is
                else
                   Begin_Rename_Doc (Item, Node.Doc);
                end if;
-            elsif Act = Delete_Act then
+            elsif Act = Delete_Act
+              and then not (Node.Kind = Directory_Node and then Is_Section (Item, Node.Dir))
+            then
                Deletion.Confirm_Node (Item, Node);
             end if;
          when Text_Context =>
@@ -1762,6 +1855,9 @@ package body Viewer.Writing is
 
    procedure Remove_Directory (Item : in out Session; Dir : Positive) is
    begin
+      if Is_Section (Item, Dir) then
+         return;
+      end if;
       Items.Directories.Delete_Directory (Item.Nav.Store,
                               Item.Docs.Dirs.Directories (Dir).Key);
       --  Those in it are in none; the directories after it are one
@@ -1977,20 +2073,74 @@ package body Viewer.Writing is
    --  shows the directory or goes to the page; a directory's row pressed
    --  twice is renamed.
 
+   procedure Show_Ghost (Item : in out Session);
+   --  Put the ghost of the row dragged under the pointer, or hide it.
+
+   procedure Show_Ghost (Item : in out Session) is
+      Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
+      Offset : constant Float := Pomarine.Boxes.Offset (Pixels);
+      Row    : constant Natural := Item.Dragging.Drag_Row;
+   begin
+      if Row = 0 or else not Item.Dragging.Drag_Moved or else Row > Item.Docs.Tree_Count then
+         Widgets.Set_Visible (Item.Docs.Ghost, False);
+         return;
+      end if;
+      declare
+         Held  : Grips.Grip renames Item.Docs.Doc_Rows (Row).Row;
+         X, Y  : Float;
+         High  : constant Float := Widgets.Height_Of (Held) - Offset;
+         Most  : constant Float :=
+           Float'Max (0.0, Widgets.Height_Of (Item.Page_View.Docs_Content) - High);
+         --  A little to the side, as far as the pointer is, so that what
+         --  it is over is clear.
+         Leeway : Float;
+      begin
+         Grips.Pointer (Held, X, Y);
+         Leeway := Float'Max (-Style.Ghost_Leeway, Float'Min (Style.Ghost_Leeway, X - Item.Dragging.Drag_From_X));
+         Labels.Set_Text (Item.Docs.Ghost_Title, Labels.Text (Item.Docs.Doc_Rows (Row).Caption));
+         Layouts.Set_Layout
+           (Item.Docs.Ghost,
+            Position =>
+              (Left => Widgets.Left_Of (Held) - Widgets.Left_Of (Item.Page_View.Docs_Content)
+                       + Float'Rounding (Leeway * Pixels),
+               Top  => Float'Min
+                         (Most, Float'Max
+                                  (0.0, Float'Rounding
+                                          (Y * Pixels - High / 2.0
+                                           - Widgets.Top_Of (Item.Page_View.Docs_Content)))),
+               others => <>),
+            Width  => Widgets.Width_Of (Held) - Offset,
+            Height => High,
+            Unit   => Layouts.Device_Pixels);
+      end;
+      Widgets.Set_Visible (Item.Docs.Ghost, True);
+      Widgets.Request_Layout (Item.Docs.Ghost);
+      Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
+   end Show_Ghost;
+
    procedure Start_Drag (Item : in out Session; Row : Positive);
    --  Begin the drag of Row if none is on: not of the Overview, which is
-   --  not put elsewhere.
+   --  not put elsewhere, nor of a section, whose place is the outline's.
 
    procedure Start_Drag (Item : in out Session; Row : Positive) is
    begin
       if Item.Dragging.Drag_Row = 0
         and then Row <= Item.Docs.Tree_Count
         and then Item.Docs.Tree (Row).Kind /= Overview_Node
+        and then not (Item.Docs.Tree (Row).Kind = Directory_Node
+                      and then Is_Section (Item, Item.Docs.Tree (Row).Dir))
       then
          Item.Dragging.Drag_Row := Row;
          Item.Dragging.Drag_Total := 0.0;
          Item.Dragging.Drag_Moved := False;
          Item.Docs.Drop := (others => <>);
+         declare
+            X, Y : Float;
+         begin
+            Grips.Pointer (Item.Docs.Doc_Rows (Row).Row, X, Y);
+            Item.Dragging.Drag_From_X := X;
+            pragma Unreferenced (Y);
+         end;
       end if;
    end Start_Drag;
 
@@ -2024,6 +2174,7 @@ package body Viewer.Writing is
             Target : Drop_Target;
          begin
             Grips.Pointer (Item.Docs.Doc_Rows (Row).Row, X, Y);
+            Show_Ghost (Item);
             Target := Target_At (Item, X, Y);
             if Target /= Item.Docs.Drop then
                Item.Docs.Drop := Target;
@@ -2065,6 +2216,7 @@ package body Viewer.Writing is
          end if;
       end;
       Show_Drop_Line (Item);
+      Show_Ghost (Item);
       Refresh (Item);
    end Row_Released;
 
@@ -2158,6 +2310,55 @@ package body Viewer.Writing is
       end if;
    end Source_Field_Ended;
 
+   procedure Sidebar_Dragged
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
+   --  The edge of the list of documents was dragged: size it.
+
+   procedure Sidebar_Dragged
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source);
+      Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
+   begin
+      if In_Writing (Item) and then Event.Across /= 0.0 then
+         declare
+            Most : constant Float :=
+              Float'Max
+                (Style.Sidebar_Least,
+                 Float'Min
+                   (Style.Sidebar_Most,
+                    Widgets.Width_Of (Item.Page_View.Write_View) / Pixels
+                    - (if Item.Reading.Pinned_Slot /= 0 then Item.Page_View.Pane_Wide else 0.0)
+                    - Style.Page_Min_Width - 2.0 * Style.Page_Margin));
+         begin
+            Item.Page_View.Sidebar_Wide :=
+              Float'Min (Most, Float'Max (Style.Sidebar_Least, Item.Page_View.Sidebar_Wide + Event.Across));
+            Layouts.Set_Layout (Item.Page_View.Sidebar, Width => Item.Page_View.Sidebar_Wide);
+         end;
+      end if;
+   end Sidebar_Dragged;
+
+   procedure Sidebar_Released
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
+   --  The edge was let go: keep how wide the list is.
+
+   procedure Sidebar_Released
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source, Event);
+   begin
+      if Item.Prefs.Persist then
+         begin
+            Preferences.Save_Sidebar_Width
+              (Ada.Strings.Unbounded.To_String (Item.Prefs.Config_Dir),
+               Natural (Float'Rounding (Item.Page_View.Sidebar_Wide)));
+         exception
+            when others =>
+               null;  --  the width is only not kept
+         end;
+      end if;
+   end Sidebar_Released;
+
    procedure Pane_Dragged
      (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
    --  The edge of the pane was dragged: size it.
@@ -2174,7 +2375,7 @@ package body Viewer.Writing is
               Float'Max
                 (Style.Pane_Least,
                  Widgets.Width_Of (Item.Page_View.Write_View) / Pixels
-                 - Style.Sidebar_Width - 2.0 * Style.Sidebar_Margin
+                 - Item.Page_View.Sidebar_Wide - 2.0 * Style.Sidebar_Margin
                  - Style.Page_Min_Width);
          begin
             Item.Page_View.Pane_Wide :=
@@ -2296,6 +2497,8 @@ package body Viewer.Writing is
          end;
       end loop;
       Hear (Item.Page_View.Pane_Edge, Drag, Pane_Dragged'Access);
+      Hear (Item.Page_View.Sidebar_Edge, Drag, Sidebar_Dragged'Access);
+      Hear (Item.Page_View.Sidebar_Edge, Release, Sidebar_Released'Access);
       for Rank in Items.Slot loop
          Hear (Item.Docs.Pages (Rank).Heading_Area, Double_Click, Page_Title_Double_Clicked'Access, Rank);
          Hear (Item.Docs.Pages (Rank).Title_Field, Submit, Page_Title_Ended'Access, Rank);
@@ -2314,6 +2517,27 @@ package body Viewer.Writing is
    begin
       Canvas_Items.Add (Item, Canvas_Items.Untitled_Document);
    end Add_Page_Clicked;
+
+   procedure Add_For_Section (Item : in out Session; Section : Positive) is
+   begin
+      if Section <= Outlines.Section_Count (Item) then
+         --  Made last among the documents, whatever the section; Added
+         --  makes it the section's.
+         Item.Section_View.Pending := Section;
+         Canvas_Items.Add (Item, Canvas_Items.Untitled_Document);
+         Item.Section_View.Pending := 0;
+      end if;
+   end Add_For_Section;
+
+   procedure Section_Add_Clicked
+     (Item   : in out Session;
+      Source : in out Pomarine.Widgets.Widget'Class;
+      Event  : Pomarine.Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source);
+   begin
+      Add_For_Section (Item, Event.Index);
+   end Section_Add_Clicked;
 
    procedure Add_Folder_Clicked
      (Item   : in out Session;
@@ -2461,10 +2685,12 @@ package body Viewer.Writing is
 
    procedure Update (Item : in out Session) is
    begin
-      if In_Writing (Item) and then Section_Links.Changes (Item) /= Item.Section_Menu.Seen then
-         --  A link was made or taken away: the squares of colour change.
-         Item.Section_Menu.Seen := Section_Links.Changes (Item);
-         Refresh (Item);
+      if In_Writing (Item) and then Section_Links.Changes (Item) /= Item.Section_Menu.Seen
+        and then Item.Dragging.Drag_Row = 0
+      then
+         --  A document was made one of a section's, or let go, or a
+         --  section renamed: where the documents are in the tree changes.
+         Rebuild (Item);
          Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
       end if;
       if In_Writing (Item) then
@@ -2571,6 +2797,238 @@ package body Viewer.Writing is
       end if;
    end Update;
 
+   procedure Place_Sections (Item : in out Session);
+   --  Put the sections among the pages, in the order of the tree: each a
+   --  heading, and the pages of its documents or the button to write
+   --  one; and a faint line before each run of documents that are of no
+   --  section (those between two sections, before the first or after
+   --  the last). The pages keep their places in the order of the
+   --  documents; only where they are put changes. With a section shown,
+   --  it is that one alone. Without sections, or with a folder shown,
+   --  the pages are one below the next, as they were.
+
+   procedure Place_Sections (Item : in out Session) is
+      Parts  : Section_View_Parts renames Item.Section_View;
+      Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
+      Total  : constant Natural := Outlines.Section_Count (Item);
+      Group  : constant Boolean :=
+        Total > 0 and then (Item.Docs.Shown_Dir = 0 or else Is_Section (Item, Item.Docs.Shown_Dir));
+
+      procedure Set_Grouped (To : Boolean) is
+      begin
+         if To /= Parts.Grouped then
+            Parts.Grouped := To;
+            Parts.Plan_Count := 0;
+            for Each of Item.Docs.Pages loop
+               Layouts.Set_Layout
+                 (Each.Box, Place => (if To then Layouts.Absolute else Layouts.Flowing));
+            end loop;
+            Widgets.Set_Visible (Parts.Tail, To);
+            Layouts.Set_Layout (Parts.Tail, Height => 0.0);
+            if not To then
+               for Each of Parts.Heads loop
+                  Widgets.Set_Visible (Each.Row, False);
+               end loop;
+               for Each of Parts.Empties loop
+                  Widgets.Set_Visible (Each.Box, False);
+               end loop;
+               for Each of Parts.Gaps loop
+                  Widgets.Set_Visible (Each.Row, False);
+               end loop;
+            end if;
+            Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
+         end if;
+      end Set_Grouped;
+   begin
+      Set_Grouped (Group);
+      if not Group then
+         return;
+      end if;
+      declare
+         Plan   : Plan_Array;
+         Count  : Natural := 0;
+         Runs   : Natural := 0;
+         Open_Run : Boolean := False;
+         --  The pages of documents that are of no section, in the order
+         --  of the tree, which come one after another, are a run.
+
+         procedure Add (Kind : Plan_Kinds; Index : Natural) is
+         begin
+            Count := Count + 1;
+            Plan (Count) := (Kind => Kind, Index => Index, Top => 0.0);
+         end Add;
+
+         procedure Add_Section (Dir : Positive) is
+            Place : constant Natural :=
+              Outlines.Index_Of_Key
+                (Item, Projects.Sections.Section_Id (Item.Docs.Dirs.Directories (Dir).Section));
+         begin
+            if Place = 0 then
+               return;
+            end if;
+            Add (Head_Entry, Place);
+            if Documents_In (Item, Dir) = 0 then
+               Add (Empty_Entry, Place);
+            end if;
+            Open_Run := False;
+         end Add_Section;
+      begin
+         if Item.Docs.Shown_Dir /= 0 then
+            --  A section's own: its documents, or the button to write one.
+            Add_Section (Item.Docs.Shown_Dir);
+            for Row in 2 .. Item.Docs.Tree_Count loop
+               if Item.Docs.Tree (Row).Kind = Document_Leaf
+                 and then Item.Docs.Tree (Row).Dir = Item.Docs.Shown_Dir
+               then
+                  Add (Page_Entry, Rank_Of (Item, Item.Docs.Tree (Row).Doc));
+               end if;
+            end loop;
+         else
+            for Row in 2 .. Item.Docs.Tree_Count loop
+               declare
+                  Node : Tree_Entry renames Item.Docs.Tree (Row);
+               begin
+                  case Node.Kind is
+                     when Directory_Node =>
+                        if Is_Section (Item, Node.Dir) then
+                           Add_Section (Node.Dir);
+                        end if;
+                     when Document_Leaf =>
+                        if not Is_Section (Item, Node.Dir) then
+                           if not Open_Run then
+                              Add (Gap_Entry, Runs);
+                              Runs := Runs + 1;
+                              Open_Run := True;
+                           end if;
+                        end if;
+                        Add (Page_Entry, Rank_Of (Item, Node.Doc));
+                     when Overview_Node =>
+                        null;
+                  end case;
+               end;
+            end loop;
+         end if;
+
+         --  A section may have been renamed: it is the one name.
+         for Each in 1 .. Count loop
+            if Plan (Each).Kind = Head_Entry then
+               Labels.Set_Text
+                 (Parts.Heads (Plan (Each).Index).Title,
+                  Labels.Fitted
+                    (Projects.Sections.Title_Texts.To_String
+                       (Outlines.Section_At (Item, Plan (Each).Index).Title)));
+            end if;
+         end loop;
+
+         --  Where each goes, down the view.
+         declare
+            Y : Float := 0.0;
+         begin
+            for Each in 1 .. Count loop
+               declare
+                  Now  : Plan_Entry renames Plan (Each);
+                  Gap  : constant Float :=
+                    (if Each = 1 then 0.0
+                     elsif Now.Kind = Head_Entry then Style.Section_Before * Pixels
+                     elsif Plan (Each - 1).Kind in Head_Entry | Gap_Entry then Style.Section_After * Pixels
+                     else Style.Page_Gap * Pixels);
+                  High : constant Float :=
+                    (case Now.Kind is
+                        when Head_Entry  => Style.Section_Head_Height * Pixels,
+                        when Empty_Entry => Style.Section_Empty_Height * Pixels,
+                        when Gap_Entry   => Style.Gap_Mark_Height * Pixels,
+                        when Page_Entry  =>
+                          Widgets.Height_Of (Item.Docs.Pages (Now.Index).Box));
+               begin
+                  Y := Y + Gap;
+                  Now.Top := Float'Rounding (Y);
+                  Y := Y + High;
+               end;
+            end loop;
+            if Count /= Parts.Plan_Count
+              or else (for some Each in 1 .. Count => Plan (Each) /= Parts.Plan (Each))
+              or else Float'Rounding (Y) /= Widgets.Height_Of (Parts.Tail)
+            then
+               declare
+                  Wide : constant Float :=
+                    Float'Max (Style.Page_Min_Width,
+                               Float'Min (Style.Page_Width,
+                                          Widgets.Width_Of (Item.Page_View.Pages_Content) / Pixels
+                                          - 2.0 * Style.Page_Margin));
+                  --  Where a page is, across: in the middle of the view.
+                  Home_Left : constant Float :=
+                    Float'Rounding ((Widgets.Width_Of (Item.Page_View.Pages_Content) - Wide * Pixels) / 2.0);
+                  Home_Top  : constant Float :=
+                    Widgets.Top_Of (Parts.Tail) - Widgets.Top_Of (Item.Page_View.Pages_Content);
+                  Shown_Heads  : array (1 .. Section_Capacity) of Boolean := [others => False];
+                  Shown_Empty  : array (1 .. Section_Capacity) of Boolean := [others => False];
+                  Shown_Gaps   : array (0 .. Section_Capacity) of Boolean := [others => False];
+
+                  procedure Put (Part : in out Widgets.Widget'Class; Top : Float) is
+                  begin
+                     Layouts.Set_Layout (Part, Width => Wide);
+                     Layouts.Set_Layout
+                       (Part,
+                        Position => (Left => Home_Left, Top => Home_Top + Top, others => <>),
+                        Unit => Layouts.Device_Pixels);
+                  end Put;
+               begin
+                  Layouts.Set_Layout (Parts.Tail, Width => Wide, Height => Float'Rounding (Y), Unit => Layouts.Points);
+                  Layouts.Set_Layout (Parts.Tail, Height => Float'Rounding (Y), Unit => Layouts.Device_Pixels);
+                  for Each in 1 .. Count loop
+                     declare
+                        Now : Plan_Entry renames Plan (Each);
+                     begin
+                        case Now.Kind is
+                           when Head_Entry =>
+                              declare
+                                 Head    : Section_Head renames Parts.Heads (Now.Index);
+                                 Section : constant Projects.Sections.Section :=
+                                   Outlines.Section_At (Item, Now.Index);
+                                 Owned   : constant Natural := Outlines.Documents_In (Item, Now.Index);
+                              begin
+                                 Shown_Heads (Now.Index) := True;
+                                 Widgets.Set_Visible (Head.Add, Owned > 0);
+                                 Labels.Set_Text
+                                   (Head.Title,
+                                    Labels.Fitted (Projects.Sections.Title_Texts.To_String (Section.Title)));
+                                 Labels.Set_Text
+                                   (Head.Count,
+                                    (if Owned = 0 then ""
+                                     else Count_Image (Owned) & (if Owned = 1 then " document" else " documents")));
+                                 Pomarine.Widgets.Panels.Set_Fill (Head.Bar, Style.Section_Ink (Section.Colour));
+                                 Put (Head.Row, Now.Top);
+                              end;
+                           when Empty_Entry =>
+                              Shown_Empty (Now.Index) := True;
+                              Pomarine.Widgets.Panels.Set_Border
+                                (Parts.Empties (Now.Index).Box,
+                                 Style.Section_Ink (Outlines.Section_At (Item, Now.Index).Colour));
+                              Put (Parts.Empties (Now.Index).Box, Now.Top);
+                           when Gap_Entry =>
+                              Shown_Gaps (Now.Index) := True;
+                              Put (Parts.Gaps (Now.Index).Row, Now.Top);
+                           when Page_Entry =>
+                              Put (Item.Docs.Pages (Now.Index).Box, Now.Top);
+                        end case;
+                     end;
+                  end loop;
+                  for Each in Shown_Heads'Range loop
+                     Widgets.Set_Visible (Parts.Heads (Each).Row, Shown_Heads (Each));
+                     Widgets.Set_Visible (Parts.Empties (Each).Box, Shown_Empty (Each));
+                  end loop;
+                  for Each in Shown_Gaps'Range loop
+                     Widgets.Set_Visible (Parts.Gaps (Each).Row, Shown_Gaps (Each));
+                  end loop;
+                  Parts.Plan := Plan;
+                  Parts.Plan_Count := Count;
+                  Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
+               end;
+            end if;
+         end;
+      end;
+   end Place_Sections;
+
    procedure Fit (Item : in out Session) is
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
       Changed : Boolean;
@@ -2616,6 +3074,8 @@ package body Viewer.Writing is
          exit when not Changed;
          Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
       end loop;
+
+      Place_Sections (Item);
 
       --  The menu stays under its button, its left edge in line with the
       --  button's (or as far left as keeps it in the view), as the pages

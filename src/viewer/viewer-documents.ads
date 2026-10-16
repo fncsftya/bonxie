@@ -22,6 +22,15 @@ package Viewer.Documents is
    --  Put the From-th page at the To-th, as dragging its row in the list
    --  does, and keep that order.
 
+   function Sidebar_Width (Item : Session) return Float
+     with Pre => Is_Open (Item);
+   --  How wide the list of documents is, in points.
+
+   procedure Add_For_Section (Item : in out Session; Section : Positive)
+     with Pre => Is_Open (Item) and then Screen (Item) = Project;
+   --  As the button of a section that has no documents does: write one,
+   --  which is of the section.
+
    function Directory_Count (Item : Session) return Natural
      with Pre => Is_Open (Item) and then Screen (Item) = Project;
    --  How many directories the documents are in.

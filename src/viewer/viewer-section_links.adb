@@ -31,15 +31,7 @@ package body Viewer.Section_Links is
    --  is held to when there is little room.
 
    function Section_Of (Item : Session; Which : Items.Slot) return Natural is
-      Key : constant Long_Integer := Long_Integer (Items.Windows.Details (Item.Windows (Which)).Key);
-   begin
-      for Each in 1 .. Outlines.Section_Count (Item) loop
-         if Outlines.Section_At (Item, Each).Linked = Key then
-            return Each;
-         end if;
-      end loop;
-      return 0;
-   end Section_Of;
+     (Outlines.Section_Of_Item (Item, Long_Integer (Items.Windows.Details (Item.Windows (Which)).Key)));
 
    function Ink_Of (Item : Session; Section : Positive) return Pomarine.Themes.Slot is
      (Style.Section_Ink (Outlines.Section_At (Item, Section).Colour));
@@ -122,9 +114,8 @@ package body Viewer.Section_Links is
 
    procedure Open (Item : in out Session; Which : Items.Slot; Page : Natural := 0) is
       Parts : Section_Menu_Parts renames Item.Section_Menu;
-      Key   : constant Long_Integer := Long_Integer (Items.Windows.Details (Item.Windows (Which)).Key);
       Total : constant Natural := Outlines.Section_Count (Item);
-      Own   : Natural := 0;
+      Own   : constant Natural := Section_Of (Item, Which);
    begin
       if Parts.Which = Which and then Parts.Page = Page then
          Close (Item);
@@ -143,15 +134,10 @@ package body Viewer.Section_Links is
             Menus.Add
               (Parts.Menu, Menus.Check,
                Labels.Fitted (Projects.Sections.Title_Texts.To_String (Section.Title)),
-               Checked => Section.Linked = Key);
+               Checked => Each = Own);
             Row := Menus.Row_Count (Parts.Menu);
             Menus.Set_Swatch (Parts.Menu, Row, Style.Section_Ink (Section.Colour));
-            --  Faint, if it is another item's.
-            Menus.Set_Enabled (Parts.Menu, Row, Section.Linked = 0 or else Section.Linked = Key);
             Parts.Rows (Row) := Each;
-            if Section.Linked = Key then
-               Own := Each;
-            end if;
          end;
       end loop;
       if Total = 0 then
@@ -211,6 +197,28 @@ package body Viewer.Section_Links is
       end if;
    end Name_After;
 
+   procedure Link_To (Item : in out Session; Which : Items.Slot; Section : Positive) is
+      Picked : constant Projects.Sections.Section := Outlines.Section_At (Item, Section);
+   begin
+      Projects.Sections.Link
+        (Item.Nav.Store, Picked.Key, Long_Integer (Items.Windows.Details (Item.Windows (Which)).Key));
+      Name_After (Item, Which, Picked);
+      Item.Section_Menu.Changes := Item.Section_Menu.Changes + 1;
+      Outlines.Reload (Item);
+      Update (Item);
+   end Link_To;
+
+   procedure Joined (Item : in out Session; Which : Items.Slot) is
+      Own : Natural;
+   begin
+      Outlines.Reload (Item);
+      Own := Section_Of (Item, Which);
+      if Own /= 0 then
+         Name_After (Item, Which, Outlines.Section_At (Item, Own));
+      end if;
+      Item.Section_Menu.Changes := Item.Section_Menu.Changes + 1;
+   end Joined;
+
    procedure Choose (Item : in out Session; Row : Positive) is
       Parts : Section_Menu_Parts renames Item.Section_Menu;
    begin
@@ -219,33 +227,21 @@ package body Viewer.Section_Links is
       end if;
       declare
          Which   : constant Items.Slot := Parts.Which;
-         Key     : constant Long_Integer := Long_Integer (Items.Windows.Details (Item.Windows (Which)).Key);
          Section : constant Natural :=
            (if Row in Parts.Rows'Range then Parts.Rows (Row) else 0);
          Own     : constant Natural := Section_Of (Item, Which);
       begin
-         if Section /= 0 then
-            declare
-               Picked : constant Projects.Sections.Section := Outlines.Section_At (Item, Section);
-            begin
-               if Picked.Linked = Key then
-                  Projects.Sections.Unlink (Item.Nav.Store, Picked.Key);
-               elsif Picked.Linked = 0 then
-                  Projects.Sections.Link (Item.Nav.Store, Picked.Key, Key);
-                  Name_After (Item, Which, Picked);
-               else
-                  return;
-               end if;
-            end;
-         elsif Row = Parts.Remove and then Own /= 0 then
-            Projects.Sections.Unlink (Item.Nav.Store, Outlines.Section_At (Item, Own).Key);
-         else
-            return;
-         end if;
-         Parts.Changes := Parts.Changes + 1;
          Close (Item);
-         Outlines.Reload (Item);
-         Update (Item);
+         if Section /= 0 and then Section /= Own then
+            Link_To (Item, Which, Section);
+         elsif (Section = Own and then Own /= 0) or else Row = Parts.Remove then
+            --  Ticked again, or the row to take it away: let go.
+            Projects.Sections.Unlink
+              (Item.Nav.Store, Long_Integer (Items.Windows.Details (Item.Windows (Which)).Key));
+            Item.Section_Menu.Changes := Item.Section_Menu.Changes + 1;
+            Outlines.Reload (Item);
+            Update (Item);
+         end if;
       end;
    end Choose;
 

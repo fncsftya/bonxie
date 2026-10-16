@@ -575,6 +575,10 @@ private
       --  Write: the sidebar, the pages, and the pane of the pinned source;
       --  and the windows of the sources, over them.
       Sidebar       : Pomarine.Widgets.Panels.Panel;
+      Sidebar_Edge  : Pomarine.Widgets.Grips.Grip;
+      --  At the sidebar's right, to size it by.
+      Sidebar_Wide  : Float := 206.0;
+      --  How wide it is, in points: kept with the settings.
       Sidebar_Rule  : Pomarine.Widgets.Panels.Panel;
       --  The line at its right.
       Docs_Head     : Pomarine.Widgets.Panels.Panel;
@@ -728,11 +732,84 @@ private
       Drop_Line    : Pomarine.Widgets.Panels.Panel;
       --  The line between two rows where it would go between documents,
       --  over the rows and out of the way of their layout.
+      Ghost        : Pomarine.Widgets.Panels.Panel;
+      Ghost_Title  : Pomarine.Widgets.Labels.Label;
+      --  Over the rows, under the pointer while one is dragged: a box of
+      --  its name.
    end record;
    --  The pages of the writing view, the tree of documents and where a row
    --  dragged would go.
 
    Section_Capacity : constant := Projects.Sections.Max_Sections;
+
+   type Section_Head is limited record
+      Row   : Pomarine.Widgets.Panels.Panel;
+      Bar   : Pomarine.Widgets.Panels.Panel;
+      --  The section's colour, a bar before its title.
+      Title : Pomarine.Widgets.Labels.Label;
+      Count : Pomarine.Widgets.Labels.Label;
+      --  At the right: how many documents it has.
+      Add   : Pomarine.Widgets.Buttons.Button;
+      --  Beside it, while it has some: writes another, last in the section.
+   end record;
+   --  The heading of a section among the pages of the writing view.
+
+   type Section_Empty is limited record
+      Box  : Pomarine.Widgets.Panels.Panel;
+      Note : Pomarine.Widgets.Labels.Label;
+      Add  : Pomarine.Widgets.Buttons.Button;
+   end record;
+   --  Where a section has no documents, in the place of them: the button
+   --  to write one for it.
+
+   type Gap_Mark is limited record
+      Row     : Pomarine.Widgets.Panels.Panel;
+      Caption : Pomarine.Widgets.Labels.Label;
+      Rule    : Pomarine.Widgets.Panels.Panel;
+   end record;
+   --  Before the documents that are of no section, between those of two
+   --  (or before the first, or after the last): a faint line that says so.
+
+   type Section_Heads is array (1 .. Section_Capacity) of Section_Head;
+   type Section_Empties is array (1 .. Section_Capacity) of Section_Empty;
+   type Gap_Marks is array (0 .. Section_Capacity) of Gap_Mark;
+
+   type Plan_Kinds is (Head_Entry, Empty_Entry, Page_Entry, Gap_Entry);
+
+   type Plan_Entry is record
+      Kind  : Plan_Kinds := Head_Entry;
+      Index : Natural := 0;
+      --  A section (Head_Entry, Empty_Entry), a page's rank (Page_Entry),
+      --  or the section the loose documents come after (Gap_Entry, 0 for
+      --  before the first).
+      Top   : Float := 0.0;
+      --  Where it is, in pixels, from the first.
+   end record;
+
+   Plan_Capacity : constant := 2 * Section_Capacity + Items.Capacity + Section_Capacity + 1;
+
+   type Plan_Array is array (1 .. Plan_Capacity) of Plan_Entry;
+
+   type Section_View_Parts is limited record
+      Heads   : Section_Heads;
+      Empties : Section_Empties;
+      Gaps    : Gap_Marks;
+      Tail    : Pomarine.Widgets.Panels.Panel;
+      --  Last among the pages, flowing, as tall as they all are together
+      --  while they are put by their edges (Grouped): it gives the view
+      --  its height, and its corner is where their places are from.
+      Grouped : Boolean := False;
+      --  Whether the pages are in the sections, each by its edges, and not
+      --  one below the next.
+      Plan    : Plan_Array;
+      Plan_Count : Natural := 0;
+      --  What is shown, in order, and where, as last put.
+      Pending : Natural := 0;
+      --  The section that the document being made is to be of, 0 if none.
+   end record;
+   --  The sections among the pages of the writing view, each a heading
+   --  and the documents that are of it (or the button to make one), with
+   --  those of none between them.
 
    type Section_Block is limited record
       Doc    : aliased Texts.Documents.Document;
@@ -763,6 +840,8 @@ private
       Blocks      : Section_Blocks;
       Order       : Projects.Sections.Section_List;
       --  The sections, as kept: Blocks (1 .. Order.Count) show them.
+      Links       : Projects.Sections.Link_List;
+      --  The items of the project that are of a section, as kept.
       View        : Pomarine.Widgets.Panels.Panel;
       --  A row, in the content area when Mode is Outline: the form, and the
       --  sections.
@@ -890,6 +969,8 @@ private
       Drag_Row     : Natural := 0;
       Drag_Total   : Float := 0.0;
       Drag_Moved   : Boolean := False;
+      Drag_From_X  : Float := 0.0;
+      --  Where across the row was pressed, in points of the window.
       --  The row of the list of documents being dragged, how far, and the
       --  order when it was pressed.
       Dropped_Moved : Boolean := False;
@@ -978,6 +1059,7 @@ private
       Canvas_View   : Pomarine.Widgets.Canvases.Canvas;
       --  In the content area, all of it.
       Page_View : Page_Parts;
+      Section_View : Section_View_Parts;
       Dock : Dock_Parts;
       Nav : Nav_State;
       Item_List : List_Parts;

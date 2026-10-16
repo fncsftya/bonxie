@@ -49,4 +49,11 @@ package Preferences is
    procedure Save_AI_Model (Config : String; To : String);
    --  Keep the choice ("" for none), making Config if need be.
 
+   function Load_Sidebar_Width (Config : String) return Natural;
+   --  How wide the writing view's list of documents was left, in points;
+   --  0 if it was not, or it cannot be read.
+
+   procedure Save_Sidebar_Width (Config : String; To : Natural);
+   --  Keep the width, making Config if need be.
+
 end Preferences;

@@ -34,6 +34,17 @@ private package Viewer.Section_Links is
    --  canvas, or, with Page (from 1), that of the page of the writing view.
    --  If it is shown for the item already, put it away.
 
+   procedure Link_To (Item : in out Session; Which : Items.Slot; Section : Positive)
+     with Pre => Items.Windows.Is_Assigned (Item.Windows (Which))
+                 and then Section <= Outlines.Section_Count (Item);
+   --  Make the item one of the section's, as choosing it in the menu
+   --  does: it is called as the section if it has no name of its own.
+
+   procedure Joined (Item : in out Session; Which : Items.Slot)
+     with Pre => Items.Windows.Is_Assigned (Item.Windows (Which));
+   --  The item has been put in a section's folder: read what is kept, and
+   --  call it as the section if it has no name of its own.
+
    procedure Close (Item : in out Session);
 
    function Row_Count (Item : Session) return Natural;

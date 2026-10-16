@@ -5,7 +5,9 @@ with Goldens;
 with Projects;
 with Viewer;
 with Viewer.Home_Screen;
+with Items;
 with Viewer.Canvas_Windows;
+with Viewer.Documents;
 with Viewer.Outline_Screen;
 with Viewer.Project_Screen;
 with Viewer.Settings;
@@ -17,6 +19,7 @@ package body Outline_Tests is
    package Proj renames Viewer.Project_Screen;
    package Prefs renames Viewer.Settings;
    package Windows renames Viewer.Canvas_Windows;
+   package Docs renames Viewer.Documents;
    package Outline renames Viewer.Outline_Screen;
    package Pictures renames Goldens.Images;
 
@@ -64,7 +67,7 @@ package body Outline_Tests is
       Drawn : Pictures.Image;
    begin
       --  Drawn, as it is between a person's clicks: what was typed is kept.
-      Viewer.Tick (Session, Events.Ticks);
+      Viewer.Tick (Session, 0);
       Viewer.Render (Session, Drawn);
       Pomarine.Page_Builds.Wait_Until_Idle;
       Viewer.Handle (Session, (Kind => Events.Redraw, others => <>));
@@ -92,6 +95,21 @@ package body Outline_Tests is
       end loop;
       return Result (1 .. Last);
    end Titles;
+
+   function Owners_Of (Session : Viewer.Session) return String is
+      Result : String (1 .. 512);
+      Last   : Natural := 0;
+   begin
+      for Row in 1 .. Outline.Section_Count (Session) loop
+         declare
+            Owner : constant String := Outline.Section_Item (Session, Row) & "|";
+         begin
+            Result (Last + 1 .. Last + Owner'Length) := Owner;
+            Last := Last + Owner'Length;
+         end;
+      end loop;
+      return Result (1 .. Last);
+   end Owners_Of;
 
    procedure Reopen (Session : in out Viewer.Session) is
       Key : constant Projects.Id := Proj.Current_Project (Session);
@@ -267,20 +285,7 @@ package body Outline_Tests is
          return Result (1 .. Last);
       end Rows;
 
-      function Owners return String is
-         Result : String (1 .. 256);
-         Last   : Natural := 0;
-      begin
-         for Row in 1 .. Outline.Section_Count (Session) loop
-            declare
-               Owner : constant String := Outline.Section_Item (Session, Row) & "|";
-            begin
-               Result (Last + 1 .. Last + Owner'Length) := Owner;
-               Last := Last + Owner'Length;
-            end;
-         end loop;
-         return Result (1 .. Last);
-      end Owners;
+      function Owners return String is (Owners_Of (Session));
    begin
       Start (Session);
       Outline.Add_Section (Session);
@@ -299,30 +304,33 @@ package body Outline_Tests is
       Snap (Session, "outline-unlinked");
 
       Proj.Set_Mode (Session, Viewer.Canvas);
-      Windows.Add_Item (Session, "Middle");
+      Windows.Add_Item (Session, "Closing");
       Windows.Add_Item (Session, "Opening");
 
-      --  Every section is in the menu, none taken.
+      --  Every section is in the menu.
       Outline.Open_Link_Menu (Session, 2);
       Check ("link-menu-rows", "...", Rows);
       Snap (Session, "link-menu");
       Outline.Choose_Link_Row (Session, 2);
-      Check ("link-owners", "Opening|||", Owners);
+      Check ("link-owners", "Opening,|||", Owners);
 
-      --  Faint for the other item.
+      --  A section has as many items as are linked to it.
       Outline.Open_Link_Menu (Session, 1);
-      Check ("link-menu-taken", "-..", Rows);
+      Check ("link-menu-shared", "...", Rows);
       Outline.Choose_Link_Row (Session, 2);
-      Check ("link-taken-unchanged", "Opening|||", Owners);
+      Check ("link-shared", "Closing,Opening,|||", Owners);
+      --  And an item is of one: it is moved.
+      Outline.Open_Link_Menu (Session, 1);
+      Check ("link-menu-own-first", "x....", Rows);
       Outline.Choose_Link_Row (Session, 3);
-      Check ("link-second", "Opening|Middle||", Owners);
+      Check ("link-moved", "Opening,|Closing,||", Owners);
       Settle (Session);
       Snap (Session, "link-canvas");
 
       --  Ticked for its own, with a row to take the link away: the boxes,
       --  a line, and that.
       Outline.Open_Link_Menu (Session, 2);
-      Check ("link-menu-own", "x-...", Rows);
+      Check ("link-menu-own", "x....", Rows);
       Snap (Session, "link-menu-own");
       Outline.Open_Link_Menu (Session, 2);
 
@@ -331,14 +339,14 @@ package body Outline_Tests is
       Snap (Session, "link-write");
       Reopen (Session);
       Proj.Set_Mode (Session, Viewer.Outline);
-      Check ("link-kept", "Opening|Middle||", Owners);
+      Check ("link-kept", "Opening,|Closing,||", Owners);
       Snap (Session, "outline-linked");
 
       --  Ticked again, it is let go.
       Proj.Set_Mode (Session, Viewer.Canvas);
       Outline.Open_Link_Menu (Session, 2);
       Outline.Choose_Link_Row (Session, 2);
-      Check ("link-let-go", "|Middle||", Owners);
+      Check ("link-let-go", "|Closing,||", Owners);
 
       --  The colours are softer on the dark theme.
       Outline.Open_Link_Menu (Session, 2);
@@ -358,6 +366,243 @@ package body Outline_Tests is
       Outline.Open_Link_Menu (Session, 2);
       Snap (Session, "link-menu-dark");
    end Linking;
+
+   procedure Sidebar is
+      Session : Viewer.Session;
+      Folder  : constant String := "/tmp/bonxie-sidebar-test";
+   begin
+      Start (Session);
+      Proj.Set_Mode (Session, Viewer.Write);
+      Check ("sidebar-begins", "206", Natural (Docs.Sidebar_Width (Session))'Image (2 .. 4));
+      --  Its edge is dragged, and the pages have what is left.
+      Move_To (Session, 209.0, 400.0);
+      Press (Session, 209.0, 400.0);
+      Move_To (Session, 250.0, 400.0, Held => True);
+      Move_To (Session, 309.0, 400.0, Held => True);
+      Snap (Session, "sidebar-wide");
+      Release (Session, 309.0, 400.0);
+      Check ("sidebar-wider", "306", Natural (Docs.Sidebar_Width (Session))'Image (2 .. 4));
+      --  Not narrower than it can be used.
+      Press (Session, 309.0, 400.0);
+      Move_To (Session, 100.0, 400.0, Held => True);
+      Move_To (Session, 0.0, 400.0, Held => True);
+      Release (Session, 0.0, 400.0);
+      Check ("sidebar-narrowest", "150", Natural (Docs.Sidebar_Width (Session))'Image (2 .. 4));
+      Snap (Session, "sidebar-narrow");
+
+      --  What is kept with the settings.
+      Check ("sidebar-none-kept", "0", Preferences.Load_Sidebar_Width (Folder & "-none")'Image (2 .. 2));
+      Preferences.Save_Sidebar_Width (Folder, 333);
+      Check ("sidebar-kept", "333", Preferences.Load_Sidebar_Width (Folder)'Image (2 .. 4));
+   end Sidebar;
+
+   procedure Tiers is
+      Session : Viewer.Session;
+
+      procedure Section (Name : String) is
+      begin
+         Outline.Add_Section (Session);
+         Type_In (Session, Name);
+         Settle (Session);
+      end Section;
+
+      function Order return String is
+         Result : String (1 .. 256);
+         Last   : Natural := 0;
+      begin
+         for Row in 1 .. Docs.Document_Count (Session) loop
+            declare
+               Name : constant String := Docs.Document_Title (Session, Row) & "|";
+            begin
+               Result (Last + 1 .. Last + Name'Length) := Name;
+               Last := Last + Name'Length;
+            end;
+         end loop;
+         return Result (1 .. Last);
+      end Order;
+
+      procedure Drag (From_Y, To_Y : Float; Name : String := "") is
+      begin
+         Move_To (Session, 120.0, From_Y);
+         Press (Session, 120.0, From_Y);
+         Move_To (Session, 140.0, (From_Y + To_Y) / 2.0, Held => True);
+         Move_To (Session, 160.0, To_Y, Held => True);
+         if Name /= "" then
+            Snap (Session, Name);
+         end if;
+         Release (Session, 120.0, To_Y);
+         Settle (Session);
+      end Drag;
+   begin
+      Start (Session);
+      Section ("Beginning");
+      Section ("Middle");
+      Section ("End");
+      Proj.Set_Mode (Session, Viewer.Canvas);
+      Windows.Add_Item (Session, "Alpha");
+      Windows.Add_Item (Session, "Loose");
+      Windows.Add_Item (Session, "Bravo");
+      Windows.Add_Item (Session, "Charlie");
+      Outline.Open_Link_Menu (Session, 1);
+      Outline.Choose_Link_Row (Session, 2);
+      Outline.Open_Link_Menu (Session, 3);
+      Outline.Choose_Link_Row (Session, 2);
+      Outline.Open_Link_Menu (Session, 4);
+      Outline.Choose_Link_Row (Session, 4);
+      Proj.Set_Mode (Session, Viewer.Write);
+      Snap (Session, "tiers-tree");
+
+      --  The order is of the first tier (the sections and what is of none)
+      --  and then of each section's own, and is the same one to read down.
+      Check ("tiers-order", "Loose|Alpha|Bravo|Charlie|", Order);
+
+      --  Within a section, a document is dragged above its neighbour;
+      --  and the ghost is the row, under the pointer.
+      Drag (267.0, 229.0, "tiers-ghost");
+      Check ("tiers-reordered", "Loose|Bravo|Alpha|Charlie|", Order);
+      Check ("tiers-owners", "Alpha,Bravo,||Charlie,|", Owners_Of (Session));
+
+      --  A section cannot be dragged, nor can it come after a document.
+      Drag (191.0, 380.0);
+      Check ("tiers-section-fixed", "Loose|Bravo|Alpha|Charlie|", Order);
+
+      --  Put among another section's, a document is made its own.
+      Docs.Move_Document (Session, 4, 2);
+      Check ("tiers-moved-in", "Loose|Charlie|Bravo|Alpha|", Order);
+      Check ("tiers-moved-owners", "Alpha,Bravo,Charlie,|||", Owners_Of (Session));
+
+      Reopen (Session);
+      Proj.Set_Mode (Session, Viewer.Write);
+      Check ("tiers-kept", "Loose|Charlie|Bravo|Alpha|", Order);
+   end Tiers;
+
+   procedure Section_Rows is
+      Session : Viewer.Session;
+
+      procedure Section (Name : String) is
+      begin
+         Outline.Add_Section (Session);
+         Type_In (Session, Name);
+         Settle (Session);
+      end Section;
+
+      procedure Click_Row (Y : Float; Button : Natural; Clicks : Natural) is
+      begin
+         Move_To (Session, 100.0, Y);
+         Viewer.Handle
+           (Session, Events.Event'(Kind => Events.Mouse_Down, Button => Button, Clicks => Clicks,
+                                   Mouse_X => 100.0, Mouse_Y => Y, others => <>));
+         Viewer.Handle
+           (Session, Events.Event'(Kind => Events.Mouse_Up, Button => Button, Clicks => Clicks,
+                                   Mouse_X => 100.0, Mouse_Y => Y, others => <>));
+      end Click_Row;
+   begin
+      Start (Session);
+      Section ("Beginning");
+      Section ("End");
+      Proj.Set_Mode (Session, Viewer.Write);
+      Snap (Session, "write-section-rows");
+
+      --  Right click: it can be renamed, not deleted.
+      Click_Row (153.0, 3, 1);
+      Snap (Session, "write-section-context");
+      Click_Row (400.0, 1, 1);
+
+      --  Pressed twice, it is renamed in place, and the name is the
+      --  section's wherever it is shown.
+      Click_Row (153.0, 1, 2);
+      Type_In (Session, "Opening");
+      Viewer.Handle (Session, Events.Event'(Kind => Events.Key_Down, Key => Events.Key_Return, others => <>));
+      Settle (Session);
+      Check ("section-renamed", "Opening|End|", Titles (Session));
+      Snap (Session, "write-section-renamed");
+      Reopen (Session);
+      Check ("section-rename-kept", "Opening|End|", Titles (Session));
+   end Section_Rows;
+
+   procedure Writing_Sections is
+      Session : Viewer.Session;
+
+      procedure Section (Name : String) is
+      begin
+         Outline.Add_Section (Session);
+         Type_In (Session, Name);
+         Settle (Session);
+      end Section;
+
+      procedure Link (Slot : Positive; Row : Positive) is
+      begin
+         Outline.Open_Link_Menu (Session, Items.Slot (Slot));
+         Outline.Choose_Link_Row (Session, Row + 1);
+      end Link;
+   begin
+      Start (Session);
+      Section ("Beginning");
+      Section ("Middle");
+      Section ("End");
+      Proj.Set_Mode (Session, Viewer.Canvas);
+      Windows.Add_Item (Session, "Notes one");
+      Windows.Add_Item (Session, "Loose");
+      Windows.Add_Item (Session, "Notes two");
+      Windows.Add_Item (Session, "Last words");
+      --  Two documents are of the first section, one of the last, and the
+      --  second, in between, of none; the middle section has none.
+      Link (1, 1);
+      Link (3, 1);
+      Link (4, 3);
+      Proj.Set_Mode (Session, Viewer.Write);
+      Snap (Session, "write-sections");
+      --  What is on a page, in the sections, is used: the text takes the
+      --  pointer and what is typed, and so do the buttons of its bar.
+      Move_To (Session, 450.0, 300.0);
+      Press (Session, 450.0, 300.0);
+      Release (Session, 450.0, 300.0);
+      Type_In (Session, "x");
+      Check ("write-sections-text", "x", Windows.Item_Text (Session, 2));
+      Move_To (Session, 460.0, 116.0);
+      Press (Session, 460.0, 116.0);
+      Release (Session, 460.0, 116.0);
+      Check ("write-sections-button", "TRUE", Outline.Link_Menu_Open (Session)'Image);
+      Press (Session, 600.0, 400.0);
+      Release (Session, 600.0, 400.0);
+      for Step in 1 .. 4 loop
+         Viewer.Handle
+           (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_Y => -18.0, Mouse_X => 500.0,
+                                   Mouse_Y => 300.0, others => <>));
+         Snap (Session, "write-sections-down-" & Character'Val (Character'Pos ('0') + Step));
+      end loop;
+      Viewer.Handle
+        (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_Y => 200.0, Mouse_X => 500.0,
+                                Mouse_Y => 300.0, others => <>));
+
+      --  Order is the documents' own: moving one changes where the
+      --  documents that are of none come, but not which section is first.
+      Docs.Move_Document (Session, 2, 4);
+      Snap (Session, "write-sections-moved");
+      Docs.Move_Document (Session, 4, 2);
+
+      --  The button of a section with none writes one, of it.
+      Docs.Add_For_Section (Session, 2);
+      Check ("write-section-added", "5", Docs.Document_Count (Session)'Image (2 .. 2));
+      Check ("write-section-owners", "Notes one,Notes two,|Untitled document,|Last words,|",
+             Owners_Of (Session));
+      Snap (Session, "write-sections-added");
+
+      --  The button by the count of a section's documents writes another,
+      --  last among them; a section with none has no such button.
+      Viewer.Handle
+        (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_Y => 400.0, Mouse_X => 500.0,
+                                Mouse_Y => 300.0, others => <>));
+      Viewer.Handle
+        (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_Y => -18.0, Mouse_X => 500.0,
+                                Mouse_Y => 300.0, others => <>));
+      Settle (Session);
+      Move_To (Session, 664.0, 65.0);
+      Press (Session, 664.0, 65.0);
+      Release (Session, 664.0, 65.0);
+      Check ("write-heading-added", "6", Docs.Document_Count (Session)'Image (2 .. 2));
+      Snap (Session, "write-heading-added");
+   end Writing_Sections;
 
    procedure Naming is
       Session : Viewer.Session;
@@ -381,17 +626,17 @@ package body Outline_Tests is
       --  Untitled, it takes the name of the section.
       Outline.Open_Link_Menu (Session, 1);
       Outline.Choose_Link_Row (Session, 2);
-      Viewer.Tick (Session, Events.Ticks);
+      Viewer.Tick (Session, 0);
       Check ("naming-untitled", "Alpha", Windows.Item_Title (Session, 1));
       --  Called as a section is, so too.
       Outline.Open_Link_Menu (Session, 2);
       Outline.Choose_Link_Row (Session, 4);
-      Viewer.Tick (Session, Events.Ticks);
+      Viewer.Tick (Session, 0);
       Check ("naming-matching", "Gamma", Windows.Item_Title (Session, 2));
       --  Called anything else, it is left.
       Outline.Open_Link_Menu (Session, 3);
       Outline.Choose_Link_Row (Session, 3);
-      Viewer.Tick (Session, Events.Ticks);
+      Viewer.Tick (Session, 0);
       Check ("naming-own", "Custom", Windows.Item_Title (Session, 3));
    end Naming;
 

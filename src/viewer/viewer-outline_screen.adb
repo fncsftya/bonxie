@@ -22,22 +22,30 @@ package body Viewer.Outline_Screen is
      (Outlines.Section_At (Item, Row).Colour);
 
    function Section_Item (Item : Session; Row : Positive) return String is
-      Key : constant Long_Integer := Outlines.Section_At (Item, Row).Linked;
+      Result : String (1 .. 512);
+      Last   : Natural := 0;
    begin
       for Each of Item.Windows loop
-         if Items.Windows.Is_Assigned (Each) and then Long_Integer (Items.Windows.Details (Each).Key) = Key
-           and then Key /= 0
+         if Items.Windows.Is_Assigned (Each)
+           and then Outlines.Section_Of_Item (Item, Long_Integer (Items.Windows.Details (Each).Key)) = Row
          then
-            return Projects.Titles.To_String (Items.Windows.Details (Each).Title);
+            declare
+               Name : constant String := Projects.Titles.To_String (Items.Windows.Details (Each).Title);
+            begin
+               Result (Last + 1 .. Last + Name'Length + 1) := Name & ",";
+               Last := Last + Name'Length + 1;
+            end;
          end if;
       end loop;
-      return "";
+      return Result (1 .. Last);
    end Section_Item;
 
    procedure Open_Link_Menu (Item : in out Session; Which : Items.Slot) is
    begin
       Section_Links.Open (Item, Which);
    end Open_Link_Menu;
+
+   function Link_Menu_Open (Item : Session) return Boolean is (Section_Links.Is_Shown (Item));
 
    function Link_Menu_Rows (Item : Session) return Natural is (Section_Links.Row_Count (Item));
 

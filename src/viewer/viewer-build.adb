@@ -430,6 +430,8 @@ package body Viewer.Build is
       Widgets.Add (View.Docs_Content, View.Docs_None);
       Set_Layout (View.Docs_None, Height => Index_Height);
       Widgets.Add (View.Docs_Content, Item.Docs.Drop_Line);
+      Widgets.Add (View.Docs_Content, Item.Docs.Ghost);
+      Widgets.Add (Item.Docs.Ghost, Item.Docs.Ghost_Title);
       Widgets.Add (View.Docs_Content, Item.Naming.Dir_Field);
       Widgets.Add (View.Sidebar, View.Sources_Heading);
       Build_Index (View.Sources_Scroll, View.Sources_Content, View.Sources_None, No_Sources);
@@ -439,8 +441,11 @@ package body Viewer.Build is
       Widgets.Add (View.Sources_Content, View.Sources_None);
       Widgets.Add (View.Sources_Content, Item.Naming.Source_Field);
       Set_Layout (View.Sources_None, Height => Index_Height);
-      Widgets.Add (View.Write_View, View.Sidebar_Rule, View.Pages_Scroll);
+      Widgets.Add (View.Write_View, View.Sidebar_Edge, View.Sidebar_Rule, View.Pages_Scroll);
       Widgets.Add (View.Pages_Scroll, View.Pages_Content);
+      --  The spacer of the sections is first, so that the pages (and what
+      --  is between them) are over it, and take the pointer.
+      Widgets.Add (View.Pages_Content, Item.Section_View.Tail);
       for Each of Item.Docs.Pages loop
          Widgets.Add (View.Pages_Content, Each.Box);
          Widgets.Add (Each.Box, Each.Bar);
@@ -452,6 +457,23 @@ package body Viewer.Build is
          Widgets.Add (Each.Sheet, Each.Text);
          Widgets.Add (Each.Box, Each.Words);
       end loop;
+      declare
+         Sections : Section_View_Parts renames Item.Section_View;
+      begin
+         --  After the pages, which they are among by their edges.
+         for Each of Sections.Heads loop
+            Widgets.Add (View.Pages_Content, Each.Row);
+            Widgets.Add (Each.Row, Each.Bar, Each.Title, Each.Count, Each.Add);
+         end loop;
+         for Each of Sections.Empties loop
+            Widgets.Add (View.Pages_Content, Each.Box);
+            Widgets.Add (Each.Box, Each.Note, Each.Add);
+         end loop;
+         for Each of Sections.Gaps loop
+            Widgets.Add (View.Pages_Content, Each.Row);
+            Widgets.Add (Each.Row, Each.Caption, Each.Rule);
+         end loop;
+      end;
       Widgets.Add (View.Write_View, View.Pane);
       Widgets.Add (View.Pane, View.Pane_Edge, View.Pane_Body);
       --  Over the rest, last.
@@ -461,6 +483,58 @@ package body Viewer.Build is
       Widgets.Add (View.Write_View, View.Menu);
       Set_Layout (View.Menu, Place => Absolute, Width => Menu_Width);
       Widgets.Set_Visible (View.Menu, False);
+      declare
+         Sections : Section_View_Parts renames Item.Section_View;
+      begin
+         Set_Layout (Sections.Tail, Place => Flowing, Height => 0.0, Shrink => 0.0);
+         Widgets.Set_Visible (Sections.Tail, False);
+         for Each of Sections.Heads loop
+            Set_Layout
+              (Each.Row, Place => Absolute, Flow => Row, Align => Center, Gap => Tool_Gap,
+               Height => Section_Head_Height, Width => Page_Width);
+            Set_Layout (Each.Bar, Width => Section_Bar, Height => Section_Head_Height - 12.0, Shrink => 0.0);
+            Panels.Set_Fill (Each.Bar, Themes.Border);
+            Labels.Set_Style (Each.Title, Pomarine.Line_Texts.Heading);
+            Set_Layout (Each.Title, Grow => 1.0, Width => 0.0, Height => Section_Head_Height);
+            Labels.Set_Ink (Each.Count, Quiet_Ink);
+            Labels.Set_Trailing (Each.Count, True);
+            Set_Layout (Each.Count, Width => 140.0, Height => Section_Head_Height);
+            Buttons.Set_Label (Each.Add, "Add document to this section");
+            Buttons.Set_Icon (Each.Add, Icon_Set.Plus);
+            Buttons.Set_Focusable (Each.Add, True);
+            Set_Layout
+              (Each.Add, Width => Outline_Button, Height => Outline_Button, Shrink => 0.0,
+               Margin => (Right => Shadow_Room, others => <>));
+            Widgets.Set_Visible (Each.Row, False);
+         end loop;
+         for Each of Sections.Empties loop
+            Panels.Set_Border (Each.Box, Themes.Border);
+            Set_Layout
+              (Each.Box, Place => Absolute, Flow => Column, Align => Center, Spread => Center,
+               Gap => Tool_Gap, Height => Section_Empty_Height, Width => Page_Width, Outlined => True);
+            Labels.Set_Text (Each.Note, "No documents in this section yet");
+            Labels.Set_Ink (Each.Note, Quiet_Ink);
+            Set_Layout (Each.Note, Height => Heading_Height);
+            Buttons.Set_Label (Each.Add, "Add document");
+            Buttons.Set_Icon (Each.Add, Icon_Set.Plus);
+            Buttons.Set_Captioned (Each.Add, True);
+            Buttons.Set_Focusable (Each.Add, True);
+            Set_Layout (Each.Add, Width => Wide_Tool_Width, Height => Bar_Button_Height);
+            Widgets.Set_Visible (Each.Box, False);
+         end loop;
+         for Each of Sections.Gaps loop
+            Set_Layout
+              (Each.Row, Place => Absolute, Flow => Row, Align => Center, Gap => Tool_Gap,
+               Height => Gap_Mark_Height, Width => Page_Width);
+            Labels.Set_Text (Each.Caption, "Not in a section");
+            Labels.Set_Style (Each.Caption, Pomarine.Line_Texts.Caption);
+            Labels.Set_Ink (Each.Caption, Quiet_Ink);
+            Set_Layout (Each.Caption, Width => 120.0, Height => Gap_Mark_Height, Shrink => 0.0);
+            Panels.Set_Fill (Each.Rule, Themes.Border);
+            Set_Layout (Each.Rule, Grow => 1.0, Width => 0.0, Height => Hairline);
+            Widgets.Set_Visible (Each.Row, False);
+         end loop;
+      end;
       Widgets.Add (Item.Toolbar.Content_Panel, Item.Context.Context_Menu);
       Set_Layout (Item.Context.Context_Menu, Place => Absolute, Width => Context_Width);
       Widgets.Set_Visible (Item.Context.Context_Menu, False);
@@ -480,8 +554,12 @@ package body Viewer.Build is
       --  right.
       Panels.Set_Fill (View.Sidebar, Side_Fill);
       Set_Layout
-        (View.Sidebar, Width => Sidebar_Width, Shrink => 0.0, Flow => Column, Gap => Sidebar_Gap,
+        (View.Sidebar, Width => View.Sidebar_Wide, Shrink => 0.0, Flow => Column, Gap => Sidebar_Gap,
          Padding => (Top => Sidebar_Pad + Heading_Top, others => Sidebar_Pad));
+      Grips.Set_Fill (View.Sidebar_Edge, Side_Fill);
+      Grips.Set_Hover_Fill (View.Sidebar_Edge, Edge_Fill);
+      Grips.Set_Wanted_Cursor (View.Sidebar_Edge, SDL3.Cursors.Resize_Across);
+      Set_Layout (View.Sidebar_Edge, Width => Sidebar_Edge_Width, Shrink => 0.0);
       Panels.Set_Fill (View.Sidebar_Rule, Themes.Border);
       Set_Layout (View.Sidebar_Rule, Width => Hairline, Shrink => 0.0);
       Set_Layout
@@ -503,6 +581,20 @@ package body Viewer.Build is
       --  Over the rows of the tree, out of their layout: the line where a
       --  document dragged would go between two, and the field to rename
       --  a directory by.
+      declare
+         Fill : Themes.Color := Themes.Resolve (Colors, Row_Fill);
+      begin
+         --  The ghost of the row dragged: its name, in a box of the same
+         --  outline, a little clear.
+         Fill.Alpha := 225;
+         Panels.Set_Fill_Color (Item.Docs.Ghost, Fill);
+      end;
+      Panels.Set_Border (Item.Docs.Ghost, Themes.Focus);
+      Set_Layout
+        (Item.Docs.Ghost, Place => Absolute, Flow => Row, Align => Center,
+         Padding => (Left | Right => Index_Pad, others => <>));
+      Set_Layout (Item.Docs.Ghost_Title, Grow => 1.0, Width => 0.0, Height => Index_Height);
+      Widgets.Set_Visible (Item.Docs.Ghost, False);
       Panels.Set_Fill (Item.Docs.Drop_Line, Pomarine.Themes.Accent);
       Set_Layout (Item.Docs.Drop_Line, Place => Absolute, Height => Drop_Line_Height);
       Widgets.Set_Visible (Item.Docs.Drop_Line, False);
@@ -1082,6 +1174,15 @@ package body Viewer.Build is
           (Preferences.Config_Directory (Store_Path));
       Item.Prefs.Persist := Store_Path /= Projects.Memory;
       if Item.Prefs.Persist then
+         declare
+            Kept : constant Natural :=
+              Preferences.Load_Sidebar_Width (Ada.Strings.Unbounded.To_String (Item.Prefs.Config_Dir));
+         begin
+            if Kept /= 0 then
+               Item.Page_View.Sidebar_Wide :=
+                 Float'Max (Sidebar_Least, Float'Min (Sidebar_Most, Float (Kept)));
+            end if;
+         end;
          Item.Prefs.Speech_Choice :=
            Preferences.Load_Speech_Model
              (Ada.Strings.Unbounded.To_String (Item.Prefs.Config_Dir));

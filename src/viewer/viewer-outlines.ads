@@ -12,6 +12,20 @@ private package Viewer.Outlines is
    function Section_Title (Item : Session; Which : Positive) return String
      with Pre => Screen (Item) = Project and then Which <= Section_Count (Item);
 
+   function Section_Of_Item (Item : Session; Key : Long_Integer) return Natural
+     with Pre => Screen (Item) = Project;
+   --  The place in the outline of the section the item (by its key) is
+   --  of; 0 if it is of none.
+
+   function Documents_In (Item : Session; Which : Positive) return Natural
+     with Pre => Screen (Item) = Project and then Which <= Section_Count (Item);
+   --  How many items are of the section.
+
+   function Index_Of_Key (Item : Session; Key : Projects.Sections.Section_Id) return Natural
+     with Pre => Screen (Item) = Project;
+   --  The place in the outline of the section with the key; 0 if there is
+   --  none.
+
    function Section_At (Item : Session; Which : Positive) return Projects.Sections.Section
      with Pre => Screen (Item) = Project and then Which <= Section_Count (Item);
    --  The section, as kept: with its colour, and the item that is its own.

@@ -38,11 +38,17 @@ package Repository.Section is
       Key   : Projects.Sections.Section_Id;
       Item  : Long_Integer)
      with Pre => Projects.Is_Open (Store) and then Item /= 0;
-   --  The item is the section's own, and no other's.
+   --  The item is one of the section's, and of no other.
 
-   procedure Unlink
-     (Store : in out Projects.Store; Key : Projects.Sections.Section_Id)
+   procedure Unlink (Store : in out Projects.Store; Item : Long_Integer)
      with Pre => Projects.Is_Open (Store);
+
+   procedure Load_Links
+     (Store   : Projects.Store;
+      Project : Projects.Id;
+      Result  : out Projects.Sections.Link_List)
+     with Pre => Projects.Is_Open (Store);
+   --  The items of the project that are of a section.
 
    procedure Delete
      (Store : in out Projects.Store; Key : Projects.Sections.Section_Id)

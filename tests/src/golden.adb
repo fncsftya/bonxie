@@ -1219,6 +1219,10 @@ begin
    Run ("outline-replies", Outline_Tests.Replies'Access);
    Run ("outline-linking", Outline_Tests.Linking'Access);
    Run ("outline-naming", Outline_Tests.Naming'Access);
+   Run ("outline-sidebar", Outline_Tests.Sidebar'Access);
+   Run ("outline-tiers", Outline_Tests.Tiers'Access);
+   Run ("outline-section-rows", Outline_Tests.Section_Rows'Access);
+   Run ("outline-writing-sections", Outline_Tests.Writing_Sections'Access);
    Run ("outline-menu-fitting", Outline_Tests.Menu_Fitting'Access);
    Run ("write-source-documents", Write_Tests.Source_Documents'Access);
    Run ("write-pages", Write_Tests.Pages'Access);

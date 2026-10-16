@@ -100,6 +100,15 @@ private package Viewer.Writing is
       Event  : Pomarine.Widgets.Widget_Event);
    --  A row of the context menu.
 
+   procedure Add_For_Section (Item : in out Session; Section : Positive);
+   --  Write a document that is of the section, last among the documents.
+
+   procedure Section_Add_Clicked
+     (Item   : in out Session;
+      Source : in out Pomarine.Widgets.Widget'Class;
+      Event  : Pomarine.Widgets.Widget_Event);
+   --  The button of a section that has no documents: write one, of it.
+
    procedure Sources_Clicked
      (Item   : in out Session;
       Source : in out Pomarine.Widgets.Widget'Class;

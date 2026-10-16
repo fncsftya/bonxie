@@ -26,11 +26,16 @@ package Viewer.Outline_Screen is
    function Section_Item (Item : Session; Row : Positive) return String
      with Pre => Is_Open (Item) and then Screen (Item) = Project
                  and then Row <= Section_Count (Item);
-   --  The title of the item that is the section's own; "" if none.
+   --  The titles of the items that are of the section, each followed by a
+   --  comma, in the order of their windows; "" if none.
 
    procedure Open_Link_Menu (Item : in out Session; Which : Items.Slot)
      with Pre => Is_Open (Item) and then Screen (Item) = Project;
    --  As the Link to Outline button of the item's window does.
+
+   function Link_Menu_Open (Item : Session) return Boolean
+     with Pre => Is_Open (Item);
+   --  Whether the menu is shown.
 
    function Link_Menu_Rows (Item : Session) return Natural
      with Pre => Is_Open (Item);

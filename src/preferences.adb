@@ -153,4 +153,18 @@ package body Preferences is
       Put_Setting (Config, "ai_model", To);
    end Save_AI_Model;
 
+   function Load_Sidebar_Width (Config : String) return Natural is
+      Saved : constant String := Setting (Config, "sidebar");
+   begin
+      return Natural'Value (Saved);
+   exception
+      when Constraint_Error =>
+         return 0;  --  none kept, or not a number
+   end Load_Sidebar_Width;
+
+   procedure Save_Sidebar_Width (Config : String; To : Natural) is
+   begin
+      Put_Setting (Config, "sidebar", Ada.Strings.Fixed.Trim (To'Image, Ada.Strings.Left));
+   end Save_Sidebar_Width;
+
 end Preferences;

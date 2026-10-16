@@ -23,12 +23,15 @@ package body Repository.Section is
 
    procedure Prepare (Store : in out Projects.Store) is
       Coloured : Boolean;
+      Housed   : Boolean;
    begin
       Ada_Sqlite3.Execute (DB (Store).all, Schema);
       Coloured := Has_Column (Store, "sections", "colour");
-      --  Those below were added to the table after it was first made.
+      Housed := Has_Column (Store, "directories", "section_id");
+      --  Those below were added to the tables after they were first made.
       Add_Column (Store, "sections", "colour", "INTEGER NOT NULL DEFAULT 0");
-      Add_Column (Store, "sections", "item_id", "INTEGER REFERENCES items (id) ON DELETE SET NULL");
+      Add_Column (Store, "items", "section_id", "INTEGER REFERENCES sections (id) ON DELETE SET NULL");
+      Add_Column (Store, "directories", "section_id", "INTEGER REFERENCES sections (id) ON DELETE CASCADE");
       if not Coloured then
          --  Those made before: one colour after another, in the order made.
          Ada_Sqlite3.Execute
@@ -36,6 +39,19 @@ package body Repository.Section is
             "UPDATE sections SET colour = (SELECT COUNT(*) FROM sections other "
             & "WHERE other.project_id = sections.project_id AND other.id < sections.id) % "
             & Ada.Strings.Fixed.Trim (Palette'Image, Ada.Strings.Left));
+      end if;
+      if not Housed then
+         --  An item was of a section by a column of its own, before the
+         --  section had a folder for its items: put it in the folder.
+         Ada_Sqlite3.Execute
+           (DB (Store).all,
+            "INSERT INTO directories (project_id, title, section_id) "
+            & "SELECT project_id, title, id FROM sections");
+         Ada_Sqlite3.Execute
+           (DB (Store).all,
+            "UPDATE items SET directory_id = (SELECT directories.id FROM directories "
+            & "WHERE directories.section_id = items.section_id) "
+            & "WHERE section_id IS NOT NULL");
       end if;
       Ada_Sqlite3.Execute (DB (Store).all, Index);
    end Prepare;
@@ -48,7 +64,7 @@ package body Repository.Section is
       Query : Ada_Sqlite3.Statement :=
         Ada_Sqlite3.Prepare
           (DB (Store).all,
-           "SELECT id, title, colour, COALESCE(item_id, 0) FROM sections WHERE project_id = :project "
+           "SELECT id, title, colour FROM sections WHERE project_id = :project "
            & "ORDER BY position, id LIMIT :limit");
    begin
       Result.Count := 0;
@@ -61,8 +77,7 @@ package body Repository.Section is
             Title => Projects.Sections.Title_Texts.To_Bounded_String
               (Ada_Sqlite3.Column_Text (Query, 1), Ada.Strings.Right),
             Colour => Projects.Sections.Colour_Index
-              (Integer'Max (0, Ada_Sqlite3.Column_Int (Query, 2)) mod Palette),
-            Linked => Ada_Sqlite3.Column_Int64 (Query, 3));
+              (Integer'Max (0, Ada_Sqlite3.Column_Int (Query, 2)) mod Palette));
       end loop;
    end Load;
 
@@ -153,33 +168,59 @@ package body Repository.Section is
       Key   : Projects.Sections.Section_Id;
       Item  : Long_Integer)
    is
-      Clear : Ada_Sqlite3.Statement :=
+      Make   : Ada_Sqlite3.Statement :=
         Ada_Sqlite3.Prepare
-          (DB (Store).all, "UPDATE sections SET item_id = NULL WHERE item_id = :item OR id = :id");
-      Set   : Ada_Sqlite3.Statement :=
-        Ada_Sqlite3.Prepare
-          (DB (Store).all, "UPDATE sections SET item_id = :item WHERE id = :id");
-   begin
-      Ada_Sqlite3.Execute (DB (Store).all, "BEGIN");
-      Ada_Sqlite3.Bind_Int64 (Clear, ":item", Item);
-      Ada_Sqlite3.Bind_Int64 (Clear, ":id", Long_Integer (Key));
-      Ada_Sqlite3.Step (Clear);
-      Ada_Sqlite3.Bind_Int64 (Set, ":item", Item);
-      Ada_Sqlite3.Bind_Int64 (Set, ":id", Long_Integer (Key));
-      Ada_Sqlite3.Step (Set);
-      Ada_Sqlite3.Execute (DB (Store).all, "COMMIT");
-   end Link;
-
-   procedure Unlink
-     (Store : in out Projects.Store; Key : Projects.Sections.Section_Id)
-   is
+          (DB (Store).all,
+           "INSERT INTO directories (project_id, title, section_id) "
+           & "SELECT project_id, title, id FROM sections WHERE id = :section "
+           & "AND id NOT IN (SELECT section_id FROM directories WHERE section_id IS NOT NULL)");
       Update : Ada_Sqlite3.Statement :=
         Ada_Sqlite3.Prepare
-          (DB (Store).all, "UPDATE sections SET item_id = NULL WHERE id = :id");
+          (DB (Store).all,
+           "UPDATE items SET directory_id = (SELECT id FROM directories WHERE section_id = :section) "
+           & "WHERE id = :id");
    begin
-      Ada_Sqlite3.Bind_Int64 (Update, ":id", Long_Integer (Key));
+      --  In the section's folder, which it is given if it has none yet.
+      Ada_Sqlite3.Bind_Int64 (Make, ":section", Long_Integer (Key));
+      Ada_Sqlite3.Step (Make);
+      Ada_Sqlite3.Bind_Int64 (Update, ":section", Long_Integer (Key));
+      Ada_Sqlite3.Bind_Int64 (Update, ":id", Item);
+      Ada_Sqlite3.Step (Update);
+   end Link;
+
+   procedure Unlink (Store : in out Projects.Store; Item : Long_Integer) is
+      Update : Ada_Sqlite3.Statement :=
+        Ada_Sqlite3.Prepare
+          (DB (Store).all,
+           "UPDATE items SET directory_id = 0 WHERE id = :id AND directory_id IN "
+           & "(SELECT id FROM directories WHERE section_id IS NOT NULL)");
+   begin
+      Ada_Sqlite3.Bind_Int64 (Update, ":id", Item);
       Ada_Sqlite3.Step (Update);
    end Unlink;
+
+   procedure Load_Links
+     (Store   : Projects.Store;
+      Project : Projects.Id;
+      Result  : out Projects.Sections.Link_List)
+   is
+      Query : Ada_Sqlite3.Statement :=
+        Ada_Sqlite3.Prepare
+          (DB (Store).all,
+           "SELECT items.id, directories.section_id FROM items JOIN directories "
+           & "ON items.directory_id = directories.id WHERE items.project_id = :project "
+           & "AND directories.section_id IS NOT NULL ORDER BY items.id LIMIT :limit");
+   begin
+      Result.Count := 0;
+      Ada_Sqlite3.Bind_Int64 (Query, ":project", Long_Integer (Project));
+      Ada_Sqlite3.Bind_Int (Query, ":limit", Projects.Sections.Max_Links);
+      while Ada_Sqlite3.Step (Query) = Ada_Sqlite3.ROW loop
+         Result.Count := Result.Count + 1;
+         Result.Items (Result.Count) :=
+           (Item    => Ada_Sqlite3.Column_Int64 (Query, 0),
+            Section => Projects.Sections.Section_Id (Ada_Sqlite3.Column_Int64 (Query, 1)));
+      end loop;
+   end Load_Links;
 
    procedure Delete
      (Store : in out Projects.Store; Key : Projects.Sections.Section_Id)
@@ -187,7 +228,16 @@ package body Repository.Section is
       Remove : Ada_Sqlite3.Statement :=
         Ada_Sqlite3.Prepare
           (DB (Store).all, "DELETE FROM sections WHERE id = :id");
+      Free   : Ada_Sqlite3.Statement :=
+        Ada_Sqlite3.Prepare
+          (DB (Store).all,
+           "UPDATE items SET directory_id = 0 WHERE directory_id IN "
+           & "(SELECT id FROM directories WHERE section_id = :id)");
    begin
+      --  Its documents are of none, and not of a folder that may be made
+      --  again under the same number.
+      Ada_Sqlite3.Bind_Int64 (Free, ":id", Long_Integer (Key));
+      Ada_Sqlite3.Step (Free);
       Ada_Sqlite3.Bind_Int64 (Remove, ":id", Long_Integer (Key));
       Ada_Sqlite3.Step (Remove);
    end Delete;
