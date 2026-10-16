@@ -23,6 +23,9 @@ package body JSON.Types is
 
    package SU renames Ada.Strings.Unbounded;
 
+   Initial_Object_Capacity : constant := 8;
+   --  Small objects are common; reserving once avoids repeated vector growth.
+
    function "+" (Text : String) return SU.Unbounded_String
      renames SU.To_Unbounded_String;
 
@@ -208,12 +211,17 @@ package body JSON.Types is
 
    function Create_Object
      (Allocator : Memory_Allocator_Ptr;
-      Depth     : Positive) return JSON_Value is
+      Depth     : Positive) return JSON_Value
+   is
+      Offset : constant Array_Offset := Create_Object (Allocator.all, Depth);
    begin
+      if Natural (Allocator.Object_Levels (Depth).Length) = 0 then
+         Allocator.Object_Levels (Depth).Reserve_Capacity (Initial_Object_Capacity);
+      end if;
       return (Kind      => Object_Kind,
               Allocator => Allocator,
               Depth     => Depth,
-              Offset    => Create_Object (Allocator.all, Depth),
+              Offset    => Offset,
               Length    => 0);
    end Create_Object;
 

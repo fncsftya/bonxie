@@ -28,20 +28,35 @@ package JSON.Streams with SPARK_Mode => On is
    type Stream_Ptr is not null access all Streams.Stream;
 
    function Has_Buffered_Character (Object : Stream) return Boolean;
+   pragma Inline (Has_Buffered_Character);
+
+   function At_End (Object : Stream) return Boolean;
+   pragma Inline (At_End);
 
    procedure Read_Character (Object : in out Stream; Result : out Character)
      with Post => not Object.Has_Buffered_Character;
+   pragma Inline (Read_Character);
 
    procedure Read_Character
      (Object : in out Stream;
       Index  : out AS.Stream_Element_Offset;
       Result : out Character)
    with Post => not Object.Has_Buffered_Character;
+   pragma Inline (Read_Character);
    --  Writes the offset of the read character to Index. This is needed
    --  for string tokens.
 
+   procedure Read_String_Span
+     (Object : in out Stream;
+      Length : out AS.Stream_Element_Offset)
+     with Pre => not Object.Has_Buffered_Character;
+   pragma Inline (Read_String_Span);
+   --  Advance over ordinary UTF-8 bytes, leaving a quote, backslash, or control
+   --  character unread for the tokenizer to handle.
+
    procedure Write_Character (Object : in out Stream; Next : Character)
      with Pre => not Object.Has_Buffered_Character;
+   pragma Inline (Write_Character);
 
    function Is_Equal_String
      (Object : Stream;

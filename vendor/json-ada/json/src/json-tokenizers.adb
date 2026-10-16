@@ -48,6 +48,14 @@ package body JSON.Tokenizers is
       use Ada.Characters.Latin_1;
    begin
       loop
+         if not Escaped then
+            declare
+               Span_Length : Streams.AS.Stream_Element_Offset;
+            begin
+               Stream.Read_String_Span (Span_Length);
+               Length := Length + Span_Length;
+            end;
+         end if;
          Stream.Read_Character (Index, C);
 
          --  An unescaped '"' character denotes the end of the string
@@ -302,6 +310,14 @@ package body JSON.Tokenizers is
       use Ada.Characters.Latin_1;
    begin
       loop
+         if Stream.At_End then
+            if Expect_EOF then
+               Next_Token := Token'(Kind => EOF_Token);
+               return;
+            end if;
+            raise Tokenizer_Error with "Unexpectedly read EOF";
+         end if;
+
          --  Read the first next character and decide which token it could be part of
          Stream.Read_Character (C);
 

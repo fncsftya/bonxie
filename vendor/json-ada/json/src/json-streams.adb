@@ -23,25 +23,24 @@ package body JSON.Streams is
 
    use type AS.Stream_Element_Offset;
 
-   procedure Read_Character_From_Stream (Object : in out Stream; Item : out Character) is
-      function Convert is new Ada.Unchecked_Conversion
-        (Source => AS.Stream_Element, Target => Character);
-   begin
-      if Object.Index not in Object.Bytes'Range then
-         raise Ada.IO_Exceptions.End_Error;
-      end if;
-
-      Item := Convert (Object.Bytes (Object.Index));
-      Object.Index := Object.Index + 1;
-   end Read_Character_From_Stream;
-
    function Has_Buffered_Character (Object : Stream) return Boolean
      is (Object.Next_Character /= Ada.Characters.Latin_1.NUL);
 
+   function At_End (Object : Stream) return Boolean is
+     (not Object.Has_Buffered_Character and then Object.Index > Object.Bytes'Last);
+
    procedure Read_Character (Object : in out Stream; Result : out Character) is
-      Index : AS.Stream_Element_Offset;
    begin
-      Object.Read_Character (Index, Result);
+      if Object.Has_Buffered_Character then
+         Result := Object.Next_Character;
+         Object.Next_Character := Ada.Characters.Latin_1.NUL;
+      else
+         if Object.Index not in Object.Bytes'Range then
+            raise Ada.IO_Exceptions.End_Error;
+         end if;
+         Result := Character'Val (Integer (Object.Bytes (Object.Index)));
+         Object.Index := Object.Index + 1;
+      end if;
    end Read_Character;
 
    procedure Read_Character
@@ -49,17 +48,41 @@ package body JSON.Streams is
       Index  : out AS.Stream_Element_Offset;
       Result : out Character)
    is
-      C : Character;
    begin
       Index := Object.Index;
-      if Object.Next_Character = Ada.Characters.Latin_1.NUL then
-         Object.Read_Character_From_Stream (C);
-      else
-         C := Object.Next_Character;
+      if Object.Has_Buffered_Character then
+         Result := Object.Next_Character;
          Object.Next_Character := Ada.Characters.Latin_1.NUL;
+      else
+         if Object.Index not in Object.Bytes'Range then
+            raise Ada.IO_Exceptions.End_Error;
+         end if;
+         Result := Character'Val (Integer (Object.Bytes (Object.Index)));
+         Object.Index := Object.Index + 1;
       end if;
-      Result := C;
    end Read_Character;
+
+   procedure Read_String_Span
+     (Object : in out Stream;
+      Length : out AS.Stream_Element_Offset)
+   is
+      Bytes : constant not null Stream_Element_Array_Access := Object.Bytes;
+      First : constant AS.Stream_Element_Offset := Object.Index;
+      Index : AS.Stream_Element_Offset := First;
+      Last  : constant AS.Stream_Element_Offset := Bytes'Last;
+   begin
+      while Index <= Last loop
+         declare
+            C : constant Character := Character'Val (Integer (Bytes (Index)));
+         begin
+            exit when C = '"' or C = '\' or C <= Character'Val (16#1F#);
+         end;
+         Index := Index + 1;
+      end loop;
+
+      Object.Index := Index;
+      Length := Index - First;
+   end Read_String_Span;
 
    procedure Write_Character (Object : in out Stream; Next : Character) is
    begin

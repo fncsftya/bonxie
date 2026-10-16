@@ -26,5 +26,6 @@ private
    type Test is new AUnit.Test_Fixtures.Test_Fixture with null record;
 
    procedure Test_Stream_IO (Object : in out Test);
+   procedure Test_At_End (Object : in out Test);
 
 end Test_Streams;
