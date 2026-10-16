@@ -529,6 +529,7 @@ package body Viewer.Build is
                Editors.Configure
                  (Each.Text, Pomarine.Line_Texts.Interface_Font, Edit_Size, 2000.0);
                Editors.Set_Paper (Each.Text, Side_Fill);
+               Editors.Set_Borderless (Each.Text, True);
                Editors.Attach (Each.Text, Item.Outline_View.Blocks (Index).Notes_Doc'Unchecked_Access);
                Set_Layout (Each.Text, Shrink => 0.0, Height => Notes_Min_Height);
                Widgets.Set_Visible (Each.Box, False);

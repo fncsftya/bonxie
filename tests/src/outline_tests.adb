@@ -668,6 +668,11 @@ package body Outline_Tests is
       Reopen (Session);
       Check ("write-notes-kept", "- Open with a story", Outline.Section_Notes (Session, 1));
       Check ("write-notes-kept-second", "Wrap up", Outline.Section_Notes (Session, 2));
+      --  Not being typed in, the notes have no outline of their own.
+      Viewer.Handle
+        (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_Y => 600.0, Mouse_X => 500.0,
+                                Mouse_Y => 300.0, others => <>));
+      Snap (Session, "write-notes-reopened");
    end Write_Notes;
 
    procedure Writing_Sections is
