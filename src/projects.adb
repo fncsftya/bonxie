@@ -56,6 +56,20 @@ package body Projects is
       Repository.Project.Prepare (Item);
    end Open;
 
+   procedure Set_Description
+     (Item : in out Store; Key : Id; Description : String) is
+   begin
+      Repository.Project.Set_Description (Item, Key, Description);
+   end Set_Description;
+
+   procedure Set_Tab (Item : in out Store; Key : Id; To : Natural) is
+   begin
+      Repository.Project.Set_Tab (Item, Key, To);
+   end Set_Tab;
+
+   function Tab (Item : Store; Key : Id) return Natural is
+     (Repository.Project.Tab (Item, Key));
+
    procedure Set_View
      (Item : in out Store; Key : Id; Zoom, Centre_X, Centre_Y : Float) is
    begin

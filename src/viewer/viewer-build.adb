@@ -18,6 +18,7 @@ with Pomarine.Widgets.Scrollers;
 with Pomarine.Text_Areas;
 with Viewer.Canvas_Items;
 with Viewer.Links;
+with Viewer.Outlines;
 with Viewer.Responses;
 with Viewer.Recent;
 with Viewer.Style;
@@ -237,7 +238,7 @@ package body Viewer.Build is
       Widgets.Add (Bar.Title_Area, Bar.Project_Title);
       Widgets.Add (Bar.Toolbar_Start, Bar.Title_Field);
       Widgets.Add (Bar.Toolbar_Panel, Bar.Tabs);
-      Widgets.Add (Bar.Tabs, Bar.Canvas_Tab, Bar.Write_Tab);
+      Widgets.Add (Bar.Tabs, Bar.Outline_Tab, Bar.Canvas_Tab, Bar.Write_Tab);
       Widgets.Add (Bar.Toolbar_Panel, Bar.Toolbar_End);
       Widgets.Add (Bar.Toolbar_End, Item.Dock.Tool_List);
       Widgets.Add (Bar.Project_Panel, Bar.Content_Panel);
@@ -288,12 +289,15 @@ package body Viewer.Build is
       Widgets.Set_Visible (Bar.Title_Field, False);
 
       Set_Layout (Bar.Tabs, Flow => Row, Gap => Tab_Gap);
+      Buttons.Set_Label (Bar.Outline_Tab, "Outline");
       Buttons.Set_Label (Bar.Canvas_Tab, "Canvas");
       Buttons.Set_Selected (Bar.Canvas_Tab, True);
       Buttons.Set_Focusable (Bar.Close_Button, True);
+      Buttons.Set_Focusable (Bar.Outline_Tab, True);
       Buttons.Set_Focusable (Bar.Canvas_Tab, True);
       Buttons.Set_Focusable (Bar.Write_Tab, True);
       Buttons.Set_Label (Bar.Write_Tab, "Write");
+      Size (Bar.Outline_Tab, Tab_Width, Tab_Height);
       Size (Bar.Canvas_Tab, Tab_Width, Tab_Height);
       Size (Bar.Write_Tab, Tab_Width, Tab_Height);
       Buttons.Set_Label (Item.Dock.Tool_List, "Items");
@@ -571,6 +575,140 @@ package body Viewer.Build is
       Set_Layout (View.Pane_Body, Flow => Column, Grow => 1.0, Width => 0.0);
       Widgets.Set_Visible (View.Pane, False);
    end Build_Write;
+
+   procedure Build_Outline (Item : in out Session);
+   --  Add and style the outline view's widgets.
+
+   procedure Build_Outline (Item : in out Session) is
+      View   : Outline_Parts renames Item.Outline_View;
+      Pixels : constant Float := Item.Shell.Density;
+      Offset : constant Float := Pomarine.Boxes.Offset (Pixels);
+
+      procedure Icon_Button
+        (Part : in out Buttons.Button; Name : String; Icon : Pomarine.Icons.Icon) is
+      begin
+         Buttons.Set_Label (Part, Name);
+         Buttons.Set_Icon (Part, Icon);
+         Buttons.Set_Focusable (Part, True);
+         Set_Layout (Part, Width => Outline_Button, Height => Outline_Button, Shrink => 0.0);
+      end Icon_Button;
+   begin
+      Widgets.Add (Item.Toolbar.Content_Panel, View.View);
+      Widgets.Add (View.View, View.Form, View.Sections);
+      Widgets.Add (View.Form, View.Name_Label, View.Name_Field, View.Desc_Label);
+      Widgets.Add (View.Form, View.Desc_Sheet);
+      Widgets.Add (View.Desc_Sheet, View.Desc_Text);
+      Widgets.Add (View.Sections, View.Head, View.Scroll);
+      Widgets.Add (View.Head, View.Heading, View.Add_Button);
+      Widgets.Add (View.Scroll, View.Content);
+
+      Panels.Set_Fill (View.View, Desk);
+      Set_Layout
+        (View.View, Flow => Row, Grow => 1.0, Height => 0.0, Gap => Outline_Gap,
+         Padding => (others => Outline_Gap));
+
+      --  Two columns of the same width: the form, and the sections.
+      Set_Layout (View.Form, Flow => Column, Grow => 1.0, Width => 0.0, Gap => Tool_Gap);
+      Labels.Set_Text (View.Name_Label, "Title");
+      Labels.Set_Style (View.Name_Label, Pomarine.Line_Texts.Caption);
+      Set_Layout (View.Name_Label, Height => Heading_Height, Shrink => 0.0);
+      Text_Fields.Set_Shared (View.Name_Field, Item.Host.Doc_Resources'Unchecked_Access);
+      Text_Fields.Configure
+        (View.Name_Field, Pomarine.Line_Texts.Interface_Font, Edit_Size);
+      Text_Fields.Attach (View.Name_Field, View.Name_Doc'Unchecked_Access);
+      Set_Layout (View.Name_Field, Height => Title_Height, Shrink => 0.0);
+      Labels.Set_Text (View.Desc_Label, "Description");
+      Labels.Set_Style (View.Desc_Label, Pomarine.Line_Texts.Caption);
+      Set_Layout
+        (View.Desc_Label, Height => Heading_Height, Shrink => 0.0,
+         Margin => (Top => Tool_Gap, others => <>));
+      Panels.Set_Fill (View.Desc_Sheet, Paper);
+      --  The editor draws the outline.
+      Set_Layout
+        (View.Desc_Sheet, Flow => Column, Height => Outline_Description_Height,
+         Shrink => 0.0);
+      Editors.Set_Shared (View.Desc_Text, Item.Host.Doc_Resources'Unchecked_Access);
+      Editors.Configure
+        (View.Desc_Text, Pomarine.Line_Texts.Interface_Font, Edit_Size, 2000.0);
+      Editors.Set_Paper (View.Desc_Text, Paper);
+      Editors.Attach (View.Desc_Text, View.Desc_Doc'Unchecked_Access);
+      Set_Layout (View.Desc_Text, Grow => 1.0, Height => 0.0);
+
+      Set_Layout (View.Sections, Flow => Column, Grow => 1.0, Width => 0.0, Gap => Tool_Gap);
+      Set_Layout (View.Head, Flow => Row, Align => Center, Height => Title_Height, Shrink => 0.0);
+      Labels.Set_Text (View.Heading, "Sections");
+      Labels.Set_Style (View.Heading, Pomarine.Line_Texts.Caption);
+      Set_Layout (View.Heading, Grow => 1.0, Width => 0.0, Height => Heading_Height);
+      Buttons.Set_Label (View.Add_Button, "Add Section");
+      Buttons.Set_Icon (View.Add_Button, Icon_Set.Plus);
+      Buttons.Set_Captioned (View.Add_Button, True);
+      Buttons.Set_Focusable (View.Add_Button, True);
+      Set_Layout (View.Add_Button, Width => Wide_Tool_Width, Height => Bar_Button_Height);
+      Set_Layout (View.Scroll, Grow => 1.0, Height => 0.0);
+      Set_Layout
+        (View.Content, Flow => Column, Shrink => 0.0,
+         Gap => Index_Gap * Pixels - Offset, Unit => Device_Pixels);
+
+      for Each in View.Blocks'Range loop
+         declare
+            Block : Section_Block renames View.Blocks (Each);
+         begin
+            Widgets.Add (View.Content, Block.Row);
+            Widgets.Add (Block.Row, Block.Handle, Block.Field, Block.Up);
+            Widgets.Add (Block.Row, Block.Down, Block.Remove);
+            Grips.Set_Fill (Block.Row, Row_Fill);
+            Grips.Set_Hover_Fill (Block.Row, Row_Fill);
+            Grips.Set_Border (Block.Row, Themes.Border);
+            Grips.Set_Shadow (Block.Row, Side_Fill);
+            Grips.Set_Wanted_Cursor (Block.Row, SDL3.Cursors.Grab);
+            Set_Layout
+              (Block.Row, Shrink => 0.0, Flow => Row, Align => Center, Gap => Tool_Gap,
+               Padding => (Left | Right => Index_Pad, others => <>), Shadowed => True);
+            Set_Layout
+              (Block.Row, Height => Outline_Block_Height * Pixels + Offset,
+               Unit => Device_Pixels);
+            Labels.Set_Text (Block.Handle, "::");
+            Labels.Set_Ink (Block.Handle, Quiet_Ink);
+            Set_Layout (Block.Handle, Width => Outline_Handle, Height => Index_Height, Shrink => 0.0);
+            Text_Fields.Set_Shared (Block.Field, Item.Host.Doc_Resources'Unchecked_Access);
+            Text_Fields.Configure
+              (Block.Field, Pomarine.Line_Texts.Interface_Font, Edit_Size);
+            Text_Fields.Attach (Block.Field, Block.Doc'Unchecked_Access);
+            Set_Layout (Block.Field, Grow => 1.0, Width => 0.0, Height => Outline_Field_Height);
+            Icon_Button (Block.Up, "Move up", Pomarine.Icons.Chevron_Up);
+            Icon_Button (Block.Down, "Move down", Pomarine.Icons.Chevron_Down);
+            Icon_Button (Block.Remove, "Delete section", Icon_Set.Delete);
+            Buttons.Set_Kind (Block.Remove, Buttons.Danger);
+            Widgets.Set_Visible (Block.Row, False);
+         end;
+      end loop;
+      Labels.Set_Text (View.None, "No sections yet");
+      Labels.Set_Ink (View.None, Closed_Ink);
+      Widgets.Add (View.Content, View.None);
+      Set_Layout (View.None, Height => Index_Height);
+      Widgets.Add (View.Content, View.Drop_Line);
+      Panels.Set_Fill (View.Drop_Line, Pomarine.Themes.Accent);
+      Set_Layout (View.Drop_Line, Place => Absolute, Height => Drop_Line_Height);
+      Widgets.Set_Visible (View.Drop_Line, False);
+      --  The ghost of the block dragged: its title, in a box of the same
+      --  outline, a little clear.
+      Widgets.Add (View.Content, View.Ghost);
+      Widgets.Add (View.Ghost, View.Ghost_Title);
+      declare
+         Fill : Themes.Color := Themes.Resolve (Colors, Row_Fill);
+      begin
+         Fill.Alpha := 225;
+         Panels.Set_Fill_Color (View.Ghost, Fill);
+      end;
+      Panels.Set_Border (View.Ghost, Themes.Focus);
+      Set_Layout
+        (View.Ghost, Place => Absolute, Flow => Row, Align => Center,
+         Padding => (Left | Right => Index_Pad + Outline_Handle + Tool_Gap, others => <>));
+      Set_Layout (View.Ghost_Title, Grow => 1.0, Width => 0.0, Height => Index_Height);
+      Widgets.Set_Visible (View.Ghost, False);
+      Outlines.Listen (Item);
+      Widgets.Set_Visible (View.View, False);
+   end Build_Outline;
 
    procedure Build_Settings (Item : in out Session);
    --  Add and style the settings: a bar across the top that stays, and the
@@ -962,6 +1100,7 @@ package body Viewer.Build is
       Build_Home (Item);
       Build_Project (Item);
       Build_Write (Item);
+      Build_Outline (Item);
       Build_Tray (Item);
       Build_Settings (Item);
       Build_Modal (Item);
@@ -982,6 +1121,7 @@ package body Viewer.Build is
       --  It starts at the home screen.
       Widgets.Set_Visible (Item.Toolbar.Project_Panel, False);
       Widgets.Set_Visible (Item.Page_View.Write_View, False);
+      Widgets.Set_Visible (Item.Outline_View.View, False);
       Widgets.Set_Visible (Item.Confirm.Overlay, False);
       Widgets.Set_Visible (Item.Item_List.List_Overlay, False);
       Widgets.Set_Visible (Item.Dock.Dock_Panel, False);

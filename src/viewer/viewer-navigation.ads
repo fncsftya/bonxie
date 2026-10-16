@@ -15,6 +15,9 @@ private package Viewer.Navigation is
      with Pre => Screen (Item) = Project;
    --  Go back to the home screen.
 
+   procedure Show_Title_Of_Project (Item : in out Session);
+   --  Put the title of the current project, as kept, on the toolbar.
+
    procedure Title_Double_Clicked
      (Item   : in out Session;
       Source : in out Pomarine.Widgets.Widget'Class;

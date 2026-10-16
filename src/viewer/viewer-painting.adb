@@ -3,6 +3,7 @@ with SDL3.Windows.Renderers;
 with Pomarine.Line_Texts;
 with Pomarine.Widgets;
 with Viewer.Canvas_Items;
+with Viewer.Outlines;
 with Viewer.Style;
 with Viewer.Settings_View;
 with Viewer.Writing;
@@ -23,6 +24,8 @@ package body Viewer.Painting is
          Canvas_Items.Sync (Item);
          if Item.Toolbar.Mode = Write then
             Writing.Fit (Item);
+         elsif Item.Toolbar.Mode = Outline then
+            Outlines.Sync (Item);
          end if;
       elsif Item.Prefs.Showing_Settings then
          Widgets.Layout (Item.Root.Widgets, Item.Host.Target);

@@ -79,6 +79,14 @@ private package Viewer.Style is
    --  Of the count of a document's words, at the right of its row.
    Tree_Indent     : constant Float := 14.0;
    --  How far in the documents of a directory are, in the tree.
+   Outline_Gap     : constant Float := 24.0;
+   --  Between the form and the sections, and round them.
+   Outline_Description_Height : constant Float := 220.0;
+   Outline_Block_Height : constant Float := 40.0;
+   Outline_Field_Height : constant Float := 26.0;
+   Outline_Button  : constant Float := 26.0;
+   Outline_Handle  : constant Float := 14.0;
+
    Drop_Line_Height : constant Float := 2.0;
    --  Of the line where a document dragged would go between two.
    Tag_Size        : constant Float := 8.0;

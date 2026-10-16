@@ -2,6 +2,7 @@ with Repository.Directory;
 with Repository.Item;
 with Repository.Link;
 with Repository.Mark;
+with Repository.Section;
 with Repository.Word;
 
 package body Repository.Schema is
@@ -14,6 +15,7 @@ package body Repository.Schema is
       Repository.Word.Prepare (Store);
       Repository.Mark.Prepare (Store);
       Repository.Link.Prepare (Store);
+      Repository.Section.Prepare (Store);
    end Prepare;
 
 end Repository.Schema;

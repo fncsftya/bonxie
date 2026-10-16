@@ -24,6 +24,7 @@ with Pomarine.Widgets.Text_Fields;
 with Viewer.Canvas_Items;
 with Viewer.Deletion;
 with Viewer.Gestures;
+with Viewer.Outlines;
 with Viewer.Style;
 with Pomarine.Widgets.Layouts;
 
@@ -46,6 +47,7 @@ package body Viewer.Writing is
    package Reader_Events is new Items.Readers.Callbacks (Session);
 
    use type Items.Id;
+   use type Projects.Id;
    use type Widgets.Clipboard_Access;
    use type Items.Kinds;
    use type Items.States;
@@ -953,13 +955,18 @@ package body Viewer.Writing is
       Refresh (Item);
    end Enter;
 
-   procedure Show (Item : in out Session; To : Modes) is
+   procedure Apply (Item : in out Session; To : Modes);
+   --  Show the view, without keeping that it is the project's.
+
+   procedure Apply (Item : in out Session; To : Modes) is
    begin
       Item.Toolbar.Mode := To;
       Close_Menu (Item);
       Close_Context (Item);
+      Widgets.Set_Visible (Item.Outline_View.View, To = Outline);
       Widgets.Set_Visible (Item.Canvas_View, To = Canvas);
       Widgets.Set_Visible (Item.Page_View.Write_View, To = Write);
+      Buttons.Set_Selected (Item.Toolbar.Outline_Tab, To = Outline);
       Buttons.Set_Selected (Item.Toolbar.Canvas_Tab, To = Canvas);
       Buttons.Set_Selected (Item.Toolbar.Write_Tab, To = Write);
       Widgets.Set_Visible (Item.Dock.Tools, To = Canvas);
@@ -967,12 +974,29 @@ package body Viewer.Writing is
       Canvas_Items.Show_Dock (Item);
       if To = Write then
          Refresh (Item);
+      elsif To = Outline and then Item.Opened.Current /= 0 then
+         Outlines.Shown (Item);
       end if;
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
       if To = Canvas then
          Canvas_Items.Sync (Item);
       end if;
+   end Apply;
+
+   procedure Show (Item : in out Session; To : Modes) is
+   begin
+      Apply (Item, To);
+      Projects.Set_Tab (Item.Nav.Store, Item.Opened.Current, Modes'Pos (To));
    end Show;
+
+   procedure Restore (Item : in out Session) is
+   begin
+      Apply
+        (Item,
+         Modes'Val
+           (Natural'Min (Projects.Tab (Item.Nav.Store, Item.Opened.Current),
+                         Modes'Pos (Modes'Last))));
+   end Restore;
 
    procedure Leave (Item : in out Session) is
    begin
@@ -993,7 +1017,7 @@ package body Viewer.Writing is
       Widgets.Set_Visible (Item.Naming.Dir_Field, False);
       Widgets.Set_Visible (Item.Docs.Drop_Line, False);
       Refresh (Item);
-      Show (Item, Canvas);
+      Apply (Item, Canvas);
    end Leave;
 
    procedure Added (Item : in out Session; Which : Items.Slot) is

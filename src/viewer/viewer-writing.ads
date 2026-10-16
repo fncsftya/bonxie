@@ -24,7 +24,13 @@ private package Viewer.Writing is
 
    procedure Show (Item : in out Session; To : Modes)
      with Pre => Screen (Item) = Project;
-   --  Show the view: the writing view in place of the canvas, or back.
+   --  Show the view, in place of the one shown, and keep it as the
+   --  project's.
+
+   procedure Restore (Item : in out Session)
+     with Pre => Screen (Item) = Project;
+   --  Show the view the project was last left at, Outline if none: once
+   --  the project is entered.
 
    procedure Added (Item : in out Session; Which : Items.Slot)
      with Pre => Items.Windows.Is_Assigned (Item.Windows (Which));

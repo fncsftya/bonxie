@@ -45,8 +45,49 @@ package body Repository.Project is
       Add_Column (Store, "projects", "view_zoom", "REAL NOT NULL DEFAULT 1.0");
       Add_Column (Store, "projects", "view_x", "REAL NOT NULL DEFAULT 0.0");
       Add_Column (Store, "projects", "view_y", "REAL NOT NULL DEFAULT 0.0");
+      Add_Column (Store, "projects", "tab", "INTEGER NOT NULL DEFAULT 0");
       Ada_Sqlite3.Execute (DB (Store).all, Index);
    end Prepare;
+
+   procedure Set_Description
+     (Store       : in out Projects.Store;
+      Key         : Projects.Id;
+      Description : String)
+   is
+      Update : Ada_Sqlite3.Statement :=
+        Ada_Sqlite3.Prepare
+          (DB (Store).all,
+           "UPDATE projects SET description = :description WHERE id = :id");
+   begin
+      Ada_Sqlite3.Bind_Text (Update, ":description", Description);
+      Ada_Sqlite3.Bind_Int64 (Update, ":id", Long_Integer (Key));
+      Ada_Sqlite3.Step (Update);
+   end Set_Description;
+
+   procedure Set_Tab
+     (Store : in out Projects.Store; Key : Projects.Id; To : Natural)
+   is
+      Update : Ada_Sqlite3.Statement :=
+        Ada_Sqlite3.Prepare
+          (DB (Store).all, "UPDATE projects SET tab = :tab WHERE id = :id");
+   begin
+      Ada_Sqlite3.Bind_Int (Update, ":tab", To);
+      Ada_Sqlite3.Bind_Int64 (Update, ":id", Long_Integer (Key));
+      Ada_Sqlite3.Step (Update);
+   end Set_Tab;
+
+   function Tab
+     (Store : Projects.Store; Key : Projects.Id) return Natural
+   is
+      Query : Ada_Sqlite3.Statement :=
+        Ada_Sqlite3.Prepare
+          (DB (Store).all, "SELECT tab FROM projects WHERE id = :id");
+   begin
+      Ada_Sqlite3.Bind_Int64 (Query, ":id", Long_Integer (Key));
+      return (if Ada_Sqlite3.Step (Query) = Ada_Sqlite3.ROW
+              then Natural'Max (0, Ada_Sqlite3.Column_Int (Query, 0))
+              else 0);
+   end Tab;
 
    function Insert
      (Store       : in out Projects.Store;

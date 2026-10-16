@@ -6,6 +6,7 @@ with Pomarine.Widgets.Labels;
 with Pomarine.Widgets.Text_Fields;
 with Viewer.Canvas_Items;
 with Viewer.Gestures;
+with Viewer.Outlines;
 with Viewer.Recent;
 with Viewer.Writing;
 
@@ -14,9 +15,6 @@ package body Viewer.Navigation is
    package Widgets renames Pomarine.Widgets;
    package Grips renames Pomarine.Widgets.Grips;
    package Text_Fields renames Pomarine.Widgets.Text_Fields;
-
-   procedure Show_Title_Of_Project (Item : in out Session);
-   --  Put the title of the current project on the toolbar.
 
    procedure Show_Title_Of_Project (Item : in out Session) is
       Found  : Boolean;
@@ -115,6 +113,8 @@ package body Viewer.Navigation is
       --  Once the canvas is laid out, to have an origin.
       Canvas_Items.Enter (Item);
       Writing.Enter (Item);
+      Outlines.Enter (Item);
+      Writing.Restore (Item);
    end Enter;
 
    procedure Enter_New (Item : in out Session) is
@@ -128,6 +128,7 @@ package body Viewer.Navigation is
       if Item.Toolbar.Renaming then
          Finish_Rename (Item);
       end if;
+      Outlines.Leave (Item);
       Writing.Leave (Item);
       Canvas_Items.Leave (Item);
       Item.Item_List.Showing_List := False;

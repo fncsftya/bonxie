@@ -86,6 +86,21 @@ package Projects is
      with Pre => Is_Open (Item) and then Time >= Now;
    --  Say the project was updated at Time.
 
+   procedure Set_Description
+     (Item : in out Store; Key : Id; Description : String)
+     with Pre => Is_Open (Item);
+   --  Keep the project's description (cut to Description_Capacity when it
+   --  is read back). This is not an update of the project.
+
+   procedure Set_Tab (Item : in out Store; Key : Id; To : Natural)
+     with Pre => Is_Open (Item);
+   --  Keep which view of the project was last shown, as the number of its
+   --  tab, from 0. This is not an update of the project.
+
+   function Tab (Item : Store; Key : Id) return Natural
+     with Pre => Is_Open (Item);
+   --  The view kept for the project; 0 if none has been.
+
    procedure Set_View
      (Item : in out Store; Key : Id; Zoom, Centre_X, Centre_Y : Float)
      with Pre => Is_Open (Item);

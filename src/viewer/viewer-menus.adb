@@ -35,6 +35,10 @@ package body Viewer.Menus is
                return (if In_Project then Widgets.Disabled else Widgets.Enabled);
             when Leave_Project | Open_List =>
                return (if In_Project then Widgets.Enabled else Widgets.Disabled);
+            when Show_Outline =>
+               return (if not In_Project then Widgets.Disabled
+                       elsif Current.Toolbar.Mode = Outline then Widgets.Ticked
+                       else Widgets.Enabled);
             when Show_Canvas =>
                return (if not In_Project then Widgets.Disabled
                        elsif Current.Toolbar.Mode = Canvas then Widgets.Ticked
@@ -72,6 +76,7 @@ package body Viewer.Menus is
       Menu_Bar.Add_Item (Bar, Edit, "Select All", Widgets.Edit_Select_All, Key => "a");
 
       Menu_Bar.Add_Menu (Bar, "Go", Go);
+      Menu_Bar.Add_Item (Bar, Go, "Outline", Tag_Of (Show_Outline), Key => "3");
       Menu_Bar.Add_Item (Bar, Go, "Canvas", Tag_Of (Show_Canvas), Key => "1");
       Menu_Bar.Add_Item (Bar, Go, "Writing", Tag_Of (Show_Writing), Key => "2");
       Menu_Bar.Add_Separator (Bar, Go);

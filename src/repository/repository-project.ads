@@ -29,6 +29,21 @@ package Repository.Project is
       Time  : Projects.Seconds)
      with Pre => Projects.Is_Open (Store) and then Time >= Projects.Now;
 
+   procedure Set_Description
+     (Store       : in out Projects.Store;
+      Key         : Projects.Id;
+      Description : String)
+     with Pre => Projects.Is_Open (Store);
+
+   procedure Set_Tab
+     (Store : in out Projects.Store; Key : Projects.Id; To : Natural)
+     with Pre => Projects.Is_Open (Store);
+
+   function Tab
+     (Store : Projects.Store; Key : Projects.Id) return Natural
+     with Pre => Projects.Is_Open (Store);
+   --  The view last chosen for the project; 0 if none has been.
+
    procedure Set_View
      (Store : in out Projects.Store;
       Key   : Projects.Id;

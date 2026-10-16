@@ -10,6 +10,7 @@ with Downloads;
 with Goldens;
 with Item_Tests;
 with Layout_Tests;
+with Outline_Tests;
 with Preferences;
 with Projects;
 with Speech.Jobs;
@@ -110,6 +111,7 @@ procedure Golden is
    begin
       Viewer.Open (Item, "", Width, Height, Density);
       Home.New_Project (Item);
+      Viewer.Project_Screen.Set_Mode (Item, Viewer.Canvas);
    end Start;
    --  A project, at its canvas.
 
@@ -1210,6 +1212,9 @@ begin
    Run ("sources-words", Item_Tests.Source_Words'Access);
    Run ("sources-documents", Item_Tests.Source_Documents'Access);
    Run ("sources-files", Item_Tests.Source_Files'Access);
+   Run ("outline-starting", Outline_Tests.Starting'Access);
+   Run ("outline-sections", Outline_Tests.Sections'Access);
+   Run ("outline-form", Outline_Tests.Form'Access);
    Run ("write-source-documents", Write_Tests.Source_Documents'Access);
    Run ("write-pages", Write_Tests.Pages'Access);
    Run ("write-ordering", Write_Tests.Ordering'Access);

@@ -192,6 +192,7 @@ package body Item_Tests is
    begin
       Viewer.Open (Session, "", Width, Height, 2.0);
       Home.New_Project (Session);
+      Viewer.Project_Screen.Set_Mode (Session, Viewer.Canvas);
    end Start;
 
    procedure Start_With_One (Session : in out Viewer.Session) is
@@ -998,6 +999,7 @@ package body Item_Tests is
       begin
          Proj.Close_Project (Session);
          Home.Open_Project (Session, Key);
+         Viewer.Project_Screen.Set_Mode (Session, Viewer.Canvas);
          Check
            ("view-zoom-kept", "TRUE",
             Near (Zoom, Camera.Canvas_Zoom (Session)));
@@ -1111,6 +1113,7 @@ package body Item_Tests is
    begin
       Viewer.Open (Session, "", Width, Height, 1.5);
       Home.New_Project (Session);
+      Viewer.Project_Screen.Set_Mode (Session, Viewer.Canvas);
       Click_On (Session, Add_X, Tools_Y);
       Type_In (Session, "Six words are in this text");
       Move_To (Session, 650.0, 60.0);
@@ -1152,6 +1155,7 @@ package body Item_Tests is
 
       Proj.Close_Project (Session);
       Home.Open_Project (Session, Key);
+      Viewer.Project_Screen.Set_Mode (Session, Viewer.Canvas);
       Check
         ("item-kept-count", " 2",
          Natural'Image (Windows.Item_Count (Session)));
@@ -1239,6 +1243,7 @@ package body Item_Tests is
       --  Kept.
       Proj.Close_Project (Session);
       Home.Open_Project (Session, Key);
+      Viewer.Project_Screen.Set_Mode (Session, Viewer.Canvas);
       Check ("links-kept", " 1", Count (Links.Link_Count (Session)));
       Move_To (Session, 650.0, 60.0);
       Snap (Session, "links-kept");
@@ -1313,6 +1318,7 @@ package body Item_Tests is
       Snap (Session, "link-styled");
       Proj.Close_Project (Session);
       Home.Open_Project (Session, Key);
+      Viewer.Project_Screen.Set_Mode (Session, Viewer.Canvas);
       Check ("link-edit-style-kept", "DASHED ARROW  2 LEFT",
              Links.Link_Description (Session, 1));
       Move_To (Session, 650.0, 60.0);
@@ -1501,6 +1507,7 @@ package body Item_Tests is
       --  database and does not look again.
       Proj.Close_Project (Session);
       Home.Open_Project (Session, Key);
+      Viewer.Project_Screen.Set_Mode (Session, Viewer.Canvas);
       Check
         ("words-not-looked-for", "FALSE",
          Boolean'Image (Windows.Is_Capturing (Session)));
@@ -1602,6 +1609,7 @@ package body Item_Tests is
       Wait;
       Proj.Close_Project (Session);
       Home.Open_Project (Session, Key);
+      Viewer.Project_Screen.Set_Mode (Session, Viewer.Canvas);
       Check ("document-kept", "Page 2 of 2", Windows.Item_Status (Session, 1));
       Draw_Pages (Session);
       Check
@@ -1793,6 +1801,7 @@ package body Item_Tests is
       begin
          Proj.Close_Project (Session);
          Home.Open_Project (Session, Key);
+         Viewer.Project_Screen.Set_Mode (Session, Viewer.Canvas);
       end;
       Check
         ("file-text-kept", "Bonxies nest on moorland" & ASCII.LF & "and winter at sea." & ASCII.LF,
@@ -1945,6 +1954,7 @@ package body Item_Tests is
       --  Kept with the project, picture and all.
       Proj.Close_Project (Session);
       Home.Open_Project (Session, Key);
+      Viewer.Project_Screen.Set_Mode (Session, Viewer.Canvas);
       Check
         ("source-kept-status", "Captured ",
          Windows.Item_Status (Session, 1) (1 .. 9));

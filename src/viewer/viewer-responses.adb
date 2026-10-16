@@ -327,6 +327,17 @@ package body Viewer.Responses is
       end if;
    end Leave_Project;
 
+   procedure Show_Outline
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
+
+   procedure Show_Outline
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source, Event);
+   begin
+      Writing.Show (Item, Outline);
+   end Show_Outline;
+
    procedure Show_Canvas
      (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
 
@@ -412,6 +423,7 @@ package body Viewer.Responses is
          when Start_Project => Start_Project (Item, Item.Root.Window_Panel, Event);
          when Open_Settings => Open_Settings (Item, Item.Root.Window_Panel, Event);
          when Leave_Project => Leave_Project (Item, Item.Root.Window_Panel, Event);
+         when Show_Outline  => Show_Outline (Item, Item.Root.Window_Panel, Event);
          when Show_Canvas   => Show_Canvas (Item, Item.Root.Window_Panel, Event);
          when Show_Writing  => Show_Writing (Item, Item.Root.Window_Panel, Event);
          when Open_List     => Open_List (Item, Item.Root.Window_Panel, Event);
@@ -481,10 +493,12 @@ package body Viewer.Responses is
 
       --  A project: the bar, the tray, and the list of items
       Commands.Bind (Bar.Close_Button, Leave_Project);
+      Commands.Bind (Bar.Outline_Tab, Show_Outline);
       Commands.Bind (Bar.Canvas_Tab, Show_Canvas);
       Commands.Bind (Bar.Write_Tab, Show_Writing);
       Commands.Bind (Item.Dock.Tool_List, Open_List);
       Hear (Bar.Close_Button, Click, Leave_Project'Access);
+      Hear (Bar.Outline_Tab, Click, Show_Outline'Access);
       Hear (Bar.Canvas_Tab, Click, Show_Canvas'Access);
       Hear (Bar.Write_Tab, Click, Show_Writing'Access);
       Hear (Item.Dock.Tool_Item, Click, Add_Document'Access);

@@ -165,6 +165,7 @@ package body Write_Tests is
    begin
       Viewer.Open (Session, "", Width, Height, 2.0);
       Home.New_Project (Session);
+      Viewer.Project_Screen.Set_Mode (Session, Viewer.Canvas);
       Windows.Add_Item (Session, "Opening");
       Type_In (Session, "It was a dark and stormy night.");
       Windows.Add_Item (Session, "Middle");
@@ -208,6 +209,7 @@ package body Write_Tests is
       Snap (Session, "write-reordered");
       Proj.Close_Project (Session);
       Home.Open_Project (Session, Key);
+      Viewer.Project_Screen.Set_Mode (Session, Viewer.Canvas);
       Proj.Set_Mode (Session, Viewer.Write);
       Check ("write-order-kept", "Ending",
              Docs.Document_Title (Session, 1));
@@ -361,6 +363,7 @@ package body Write_Tests is
       --  Their order, and what is in them, are kept.
       Proj.Close_Project (Session);
       Home.Open_Project (Session, Key);
+      Viewer.Project_Screen.Set_Mode (Session, Viewer.Canvas);
       Proj.Set_Mode (Session, Viewer.Write);
       Check ("write-directories-kept", " 2",
              Natural'Image (Docs.Directory_Count (Session)));
@@ -492,6 +495,7 @@ package body Write_Tests is
       --  They are gone for good.
       Proj.Close_Project (Session);
       Home.Open_Project (Session, Key);
+      Viewer.Project_Screen.Set_Mode (Session, Viewer.Canvas);
       Proj.Set_Mode (Session, Viewer.Write);
       Check ("write-delete-kept-documents", " 2",
              Natural'Image (Docs.Document_Count (Session)));
@@ -685,6 +689,7 @@ package body Write_Tests is
       begin
          Proj.Close_Project (Session);
          Home.Open_Project (Session, Key);
+         Viewer.Project_Screen.Set_Mode (Session, Viewer.Canvas);
          Check ("write-typed-kept", "It was a dark and stormy night. More.",
                 Windows.Item_Text (Session, 1));
       end;
@@ -765,6 +770,7 @@ package body Write_Tests is
 
       Viewer.Open (Session, "", Width, Height, 2.0);
       Home.New_Project (Session);
+      Viewer.Project_Screen.Set_Mode (Session, Viewer.Canvas);
       Windows.Pin_Capture_Time (Session, 1_700_000_000);
       Windows.Add_Item (Session, "Book", Items.Source);
       Viewer.Handle
@@ -823,6 +829,7 @@ package body Write_Tests is
 
       Viewer.Open (Session, "", Width, Height, 2.0);
       Home.New_Project (Session);
+      Viewer.Project_Screen.Set_Mode (Session, Viewer.Canvas);
       Windows.Pin_Capture_Time (Session, 1_700_000_000);
       Windows.Add_Item (Session, "Page", Items.Source);
       Viewer.Handle
@@ -874,6 +881,7 @@ package body Write_Tests is
       begin
          Proj.Close_Project (Session);
          Home.Open_Project (Session, Key);
+         Viewer.Project_Screen.Set_Mode (Session, Viewer.Canvas);
          Proj.Set_Mode (Session, Viewer.Write);
          Check ("write-marks-kept", " 2",
                 Natural'Image (Source_List.Source_Marks (Session, 1)));

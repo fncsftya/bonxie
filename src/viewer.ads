@@ -13,6 +13,7 @@ private with Items.Readers;
 private with Items.Windows;
 private with Preferences;
 private with Previews;
+private with Projects.Sections;
 private with SDL3.Windows;
 private with Scripts;
 private with Texts.Documents;
@@ -51,6 +52,7 @@ private with Pomarine.Widgets.Switches;
 --    Home_Screen     the recent projects, to start or open one
 --    Settings        the speech model and the theme
 --    Project_Screen  the project shown, and the view of it
+--    Outlines        the title, description and sections of the project
 --    Canvas_Camera   how the canvas is zoomed and panned
 --    Canvas_Windows  the items on the canvas
 --    Canvas_Links    the links between them, and their pins
@@ -60,10 +62,13 @@ package Viewer is
 
    type Screens is (Home, Project);
 
-   type Modes is (Canvas, Write);
-   --  The views of a project. Canvas, an infinite canvas to pan and zoom,
-   --  with a toolbar of tools above the main one, is the first, and so the
-   --  one shown. Write shows the items that are not sources, as documents,
+   type Modes is (Outline, Canvas, Write);
+   --  The views of a project, in the order of their tabs. Outline, the
+   --  first, is the project's title and description, and the sections it is
+   --  to be written in, in the order they are to come in; a project opens to
+   --  the one it was last left at, to Outline if it never was. Canvas is an
+   --  infinite canvas to pan and zoom, with a toolbar of tools above the
+   --  main one. Write shows the items that are not sources, as documents,
    --  one after another, each on a page, with a list of them and of the
    --  sources beside them; a source is read in a window of its own, or
    --  pinned in a pane at the right.
@@ -177,6 +182,7 @@ private
      (Start_Project,
       Open_Settings,
       Leave_Project,
+      Show_Outline,
       Show_Canvas,
       Show_Writing,
       Open_List);
@@ -543,13 +549,15 @@ private
       Renaming      : Boolean := False;
       --  In its place while it is renamed.
       Tabs          : Pomarine.Widgets.Panels.Panel;
+      Outline_Tab   : Pomarine.Widgets.Buttons.Button;
       Canvas_Tab    : Pomarine.Widgets.Buttons.Button;
       Write_Tab     : Pomarine.Widgets.Buttons.Button;
       --  A tab for each view, in the middle of the toolbar.
       Toolbar_End   : Pomarine.Widgets.Panels.Panel;
       --  On the right: the list of items.
       Mode          : Modes := Canvas;
-      --  The view shown: its tab is selected.
+      --  The view shown: its tab is selected. Canvas is the one the widgets
+      --  are built showing; a project shown at once goes to its own.
    end record;
    --  The project screen: its panels, the toolbar and the view shown.
 
@@ -716,6 +724,65 @@ private
    --  The pages of the writing view, the tree of documents and where a row
    --  dragged would go.
 
+   Section_Capacity : constant := Projects.Sections.Max_Sections;
+
+   type Section_Block is limited record
+      Doc    : aliased Texts.Documents.Document;
+      --  The title, which the field shows.
+      Seen   : Texts.Documents.Version := 0;
+      --  The version of it that is kept.
+      Row    : Pomarine.Widgets.Grips.Grip;
+      --  The block, which is dragged by anywhere but its field and buttons.
+      Handle : Pomarine.Widgets.Labels.Label;
+      Field  : Pomarine.Widgets.Text_Fields.Text_Field;
+      Up     : Pomarine.Widgets.Buttons.Button;
+      Down   : Pomarine.Widgets.Buttons.Button;
+      Remove : Pomarine.Widgets.Buttons.Button;
+   end record;
+
+   type Section_Blocks is array (1 .. Section_Capacity) of Section_Block;
+
+   type Outline_Parts is limited record
+      Name_Doc    : aliased Texts.Documents.Document;
+      Desc_Doc    : aliased Texts.Documents.Document;
+      Name_Seen   : Texts.Documents.Version := 0;
+      Desc_Seen   : Texts.Documents.Version := 0;
+      --  The project's title and description, and the versions of them
+      --  that are kept.
+      Blocks      : Section_Blocks;
+      Order       : Projects.Sections.Section_List;
+      --  The sections, as kept: Blocks (1 .. Order.Count) show them.
+      View        : Pomarine.Widgets.Panels.Panel;
+      --  A row, in the content area when Mode is Outline: the form, and the
+      --  sections.
+      Form        : Pomarine.Widgets.Panels.Panel;
+      Name_Label  : Pomarine.Widgets.Labels.Label;
+      Name_Field  : Pomarine.Widgets.Text_Fields.Text_Field;
+      Desc_Label  : Pomarine.Widgets.Labels.Label;
+      Desc_Sheet  : Pomarine.Widgets.Panels.Panel;
+      Desc_Text   : Pomarine.Widgets.Editors.Editor;
+      Sections    : Pomarine.Widgets.Panels.Panel;
+      Head        : Pomarine.Widgets.Panels.Panel;
+      Heading     : Pomarine.Widgets.Labels.Label;
+      Add_Button  : Pomarine.Widgets.Buttons.Button;
+      Scroll      : Pomarine.Widgets.Scrollers.Scroller;
+      Content     : Pomarine.Widgets.Panels.Panel;
+      None        : Pomarine.Widgets.Labels.Label;
+      Drop_Line   : Pomarine.Widgets.Panels.Panel;
+      --  Between two blocks, where the one dragged would go.
+      Ghost       : Pomarine.Widgets.Panels.Panel;
+      Ghost_Title : Pomarine.Widgets.Labels.Label;
+      --  Over the blocks, under the pointer while one is dragged: its title.
+      Drag_Block  : Natural := 0;
+      Drag_Total  : Float := 0.0;
+      Drag_Moved  : Boolean := False;
+      Drop_Before : Natural := 0;
+      --  The block being dragged and how far, and the one it would go in
+      --  front of (Order.Count + 1 for last), 0 if it would not move.
+   end record;
+   --  The outline view: the form of the project's title and description,
+   --  and the blocks of its sections.
+
    type Context_State is limited record
       Context_Menu : Pomarine.Widgets.Menus.Menu;
       Context_Kind : Context_Kinds := No_Context;
@@ -872,6 +939,7 @@ private
       --  The windows of the project's items: after Target, which they
       --  draw to.
       Docs : Document_State;
+      Outline_View : Outline_Parts;
       Context : Context_State;
       Naming : Renaming_State;
       Reading : Reading_State;
