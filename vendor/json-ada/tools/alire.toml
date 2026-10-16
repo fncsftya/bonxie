@@ -1,0 +1,23 @@
+name = "json_tools"
+description = "Tools for json-ada"
+version = "6.0.0"
+website = "https://github.com/onox/json-ada"
+licenses = "Apache-2.0"
+tags = ["json"]
+
+executables = ["pretty_print"]
+project-files = ["json_tools.gpr"]
+
+authors = ["onox"]
+maintainers = ["onox <denkpadje@gmail.com>"]
+maintainers-logins = ["onox"]
+
+[[depends-on]]
+json = "^6.0.0"
+
+[[pins]]
+json = { path = "../json" }
+
+[build-switches]
+validation.compile_checks = "warnings"
+"*".style_checks = ["-gnatygAOM120-Is"]

@@ -22,6 +22,7 @@ typeset = "*"
 vision = "*"
 webshot = "*"
 yoga = "*"
+json = "*"
 
 [[pins]]
 pomarine_native = { path = "pomarine/native" }
@@ -36,6 +37,7 @@ typeset = { path = "pomarine/typeset" }
 vision = { path = "vision" }
 webshot = { path = "webshot" }
 yoga = { path = "pomarine/yoga" }
+json = { path = "vendor/json-ada/json" }
 
 [build-switches]
 "*".ada_version = "Ada2022"

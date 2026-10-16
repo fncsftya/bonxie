@@ -11,6 +11,7 @@ with "typeset.gpr";
 with "vision.gpr";
 with "webshot.gpr";
 with "yoga.gpr";
+with "json.gpr";
 project Bonxie is
 
    for Source_Dirs use ("src/**", "config/");
