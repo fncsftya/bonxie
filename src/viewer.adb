@@ -211,6 +211,7 @@ package body Viewer is
                   Canvas_Items.Pressed (Item, Event.Mouse_X, Event.Mouse_Y);
                   Writing.Pressed (Item, Event.Mouse_X, Event.Mouse_Y);
                   Section_Links.Pressed (Item, Event.Mouse_X, Event.Mouse_Y);
+                  Outlines.Pressed (Item, Event.Mouse_X, Event.Mouse_Y);
                   if Event.Button = 3 and then not Item.Item_List.Showing_List
                     and then not Home_Screen.Is_Confirming (Item)
                   then

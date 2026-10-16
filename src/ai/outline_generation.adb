@@ -259,9 +259,13 @@ package body Outline_Generation is
          end case;
       end Skip_Value;
 
+      Added_At : Natural := 0;
+      --  Where the last title added went in Result; 0 if it was left out.
+
       procedure Add_Title (Words : String) is
          Clean : String := Words;
       begin
+         Added_At := 0;
          for Each of Clean loop
             if Character'Pos (Each) < 32 then
                Each := ' ';
@@ -296,11 +300,68 @@ package body Outline_Generation is
             end loop;
             Result.Count := Result.Count + 1;
             Result.Items (Result.Count) := (Title => Titles.To_Bounded_String (Clean (First .. Last)), others => <>);
+            Added_At := Result.Count;
          end;
       end Add_Title;
 
+      function Bullet (Words : String) return String is
+         --  The note as a line, without what is blank or a control character.
+         Clean : String := Words;
+         First : Positive := Clean'First;
+         Last  : Natural := Clean'Last;
+      begin
+         for Each of Clean loop
+            if Character'Pos (Each) < 32 then
+               Each := ' ';
+            end if;
+         end loop;
+         while First <= Last and then Clean (First) = ' ' loop
+            First := First + 1;
+         end loop;
+         while Last >= First and then Clean (Last) = ' ' loop
+            Last := Last - 1;
+         end loop;
+         return (if First > Last then "" else "- " & Clean (First .. Last));
+      end Bullet;
+
+      function Read_Notes return String is
+         --  A list of strings, as bullets, a line each, whole lines only.
+         Text : Unbounded_String;
+      begin
+         Expect ('[');
+         Skip_Blank;
+         if Peek = ']' then
+            Pos := Pos + 1;
+            return "";
+         end if;
+         loop
+            Skip_Blank;
+            declare
+               Line : constant String := Bullet (Read_String);
+               Room : constant Integer :=
+                 Projects.Sections.Max_Notes - Length (Text) - (if Length (Text) > 0 then 1 else 0);
+            begin
+               if Line /= "" and then Line'Length <= Room then
+                  if Length (Text) > 0 then
+                     Append (Text, LF);
+                  end if;
+                  Append (Text, Line);
+               end if;
+            end;
+            Skip_Blank;
+            if Peek = ',' then
+               Pos := Pos + 1;
+            else
+               Expect (']');
+               exit;
+            end if;
+         end loop;
+         return To_String (Text);
+      end Read_Notes;
+
       procedure Read_Section is
          Titled : Boolean := False;
+         Notes  : Unbounded_String;
       begin
          Expect ('{');
          Skip_Blank;
@@ -316,6 +377,18 @@ package body Outline_Generation is
                   Skip_Blank;
                   Add_Title (Read_String);
                   Titled := True;
+                  if Length (Notes) > 0 and then Added_At /= 0 then
+                     --  The notes came first: they are of this title.
+                     Result.Items (Added_At).Notes :=
+                       Projects.Sections.Note_Texts.To_Bounded_String (To_String (Notes));
+                  end if;
+               elsif Key = "notes" then
+                  Skip_Blank;
+                  Notes := To_Unbounded_String (Read_Notes);
+                  if Titled and then Added_At /= 0 then
+                     Result.Items (Added_At).Notes :=
+                       Projects.Sections.Note_Texts.To_Bounded_String (To_String (Notes));
+                  end if;
                else
                   Skip_Value (3);
                end if;

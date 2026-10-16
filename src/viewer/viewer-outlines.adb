@@ -1,5 +1,6 @@
 with Ada.Strings.Equal_Case_Insensitive;
 with Ada.Strings.Unbounded;
+with Icon_Set;
 with MLX;
 with MLX.Hub;
 with MLX.Jobs;
@@ -9,6 +10,8 @@ with Pomarine.Text_Areas;
 with Pomarine.Themes;
 with Pomarine.Widgets.Buttons;
 with Pomarine.Widgets.Callbacks;
+with Pomarine.Widgets.Menus;
+with Preferences;
 with Pomarine.Widgets.Grips;
 with Pomarine.Widgets.Labels;
 with Pomarine.Widgets.Layouts;
@@ -25,6 +28,7 @@ package body Viewer.Outlines is
    package Widgets renames Pomarine.Widgets;
    package Layouts renames Pomarine.Widgets.Layouts;
    package Buttons renames Pomarine.Widgets.Buttons;
+   package Menus renames Pomarine.Widgets.Menus;
    package Grips renames Pomarine.Widgets.Grips;
    package Labels renames Pomarine.Widgets.Labels;
    package Panels renames Pomarine.Widgets.Panels;
@@ -130,6 +134,30 @@ package body Viewer.Outlines is
       return Total;
    end Documents_In;
 
+   procedure Load_Sections (Item : in out Session; Owner : Projects.Id);
+   --  Read the sections and their links again. A section shows its notes
+   --  if it did, or if it has some now.
+
+   procedure Load_Sections (Item : in out Session; Owner : Projects.Id) is
+      View : Outline_Parts renames Item.Outline_View;
+      Was  : constant Projects.Sections.Section_List := View.Order;
+   begin
+      Projects.Sections.Load (Item.Nav.Store, Owner, View.Order);
+      Projects.Sections.Load_Links (Item.Nav.Store, Owner, View.Links);
+      for Each in 1 .. View.Order.Count loop
+         declare
+            Section : Projects.Sections.Section renames View.Order.Items (Each);
+         begin
+            Section.Open := Projects.Sections.Note_Texts.Length (Section.Notes) > 0;
+            for Before in 1 .. Was.Count loop
+               if Was.Items (Before).Key = Section.Key then
+                  Section.Open := Was.Items (Before).Open or else Section.Open;
+               end if;
+            end loop;
+         end;
+      end loop;
+   end Load_Sections;
+
    --  What is shown
 
    procedure Style_Blocks (Item : in out Session);
@@ -163,6 +191,12 @@ package body Viewer.Outlines is
                  (Block.Doc,
                   Projects.Sections.Title_Texts.To_String (View.Order.Items (Each).Title));
                Block.Seen := Docs.Current (Block.Doc);
+               Docs.Load
+                 (Block.Notes_Doc,
+                  Projects.Sections.Note_Texts.To_String (View.Order.Items (Each).Notes));
+               Block.Notes_Seen := Docs.Current (Block.Notes_Doc);
+               Buttons.Set_Selected (Block.Notes, View.Order.Items (Each).Open);
+               Widgets.Set_Visible (Block.Notes_Sheet, View.Order.Items (Each).Open);
             end if;
             if Each <= View.Order.Count then
                declare
@@ -323,6 +357,18 @@ package body Viewer.Outlines is
                     (Item.Nav.Store, View.Order.Items (Each).Key, Name);
                end;
             end if;
+            if Docs.Current (Block.Notes_Doc) /= Block.Notes_Seen then
+               Block.Notes_Seen := Docs.Current (Block.Notes_Doc);
+               declare
+                  Notes : constant String :=
+                    Cut (Docs.Whole (Block.Notes_Doc), Projects.Sections.Max_Notes);
+               begin
+                  View.Order.Items (Each).Notes :=
+                    Projects.Sections.Note_Texts.To_Bounded_String (Notes);
+                  Projects.Sections.Set_Notes
+                    (Item.Nav.Store, View.Order.Items (Each).Key, Notes);
+               end;
+            end if;
          end;
       end loop;
    end Sync;
@@ -359,13 +405,11 @@ package body Viewer.Outlines is
    end Show_Note;
 
    procedure Reload (Item : in out Session) is
-      View : Outline_Parts renames Item.Outline_View;
    begin
       if Item.Toolbar.Mode = Outline then
          Sync (Item);
       end if;
-      Projects.Sections.Load (Item.Nav.Store, Item.Opened.Current, View.Order);
-      Projects.Sections.Load_Links (Item.Nav.Store, Item.Opened.Current, View.Links);
+      Load_Sections (Item, Item.Opened.Current);
       Show_Blocks (Item);
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
    end Reload;
@@ -380,8 +424,8 @@ package body Viewer.Outlines is
       View.Drag_Moved := False;
       View.Drop_Before := 0;
       Load_Form (Item);
-      Projects.Sections.Load (Item.Nav.Store, Item.Opened.Current, View.Order);
-      Projects.Sections.Load_Links (Item.Nav.Store, Item.Opened.Current, View.Links);
+      View.Order.Count := 0;
+      Load_Sections (Item, Item.Opened.Current);
       Show_Blocks (Item);
       Show_Drop_Line (Item);
       Show_Generate (Item);
@@ -390,6 +434,7 @@ package body Viewer.Outlines is
    procedure Leave (Item : in out Session) is
       View : Outline_Parts renames Item.Outline_View;
    begin
+      Close_Menu (Item);
       Sync (Item);
       View.Drag_Block := 0;
       View.Drag_Moved := False;
@@ -434,8 +479,7 @@ package body Viewer.Outlines is
       begin
          pragma Unreferenced (Key);
          --  As kept, with the colour it was given.
-         Projects.Sections.Load (Item.Nav.Store, Item.Opened.Current, View.Order);
-         Projects.Sections.Load_Links (Item.Nav.Store, Item.Opened.Current, View.Links);
+         Load_Sections (Item, Item.Opened.Current);
       end;
       Show_Blocks (Item);
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
@@ -488,6 +532,27 @@ package body Viewer.Outlines is
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
    end Remove_Section;
 
+   procedure Toggle_Notes (Item : in out Session; Which : Positive; Focus : Boolean := True) is
+      View  : Outline_Parts renames Item.Outline_View;
+      Block : Section_Block renames View.Blocks (Which);
+      Now_Open : constant Boolean := not View.Order.Items (Which).Open;
+   begin
+      View.Order.Items (Which).Open := Now_Open;
+      Buttons.Set_Selected (Block.Notes, Now_Open);
+      Widgets.Set_Visible (Block.Notes_Sheet, Now_Open);
+      Widgets.Request_Layout (Block.Row);
+      Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
+      if Now_Open and then Focus then
+         Widgets.Focus (Block.Notes_Text);
+      end if;
+   end Toggle_Notes;
+
+   function Section_Notes (Item : Session; Which : Positive) return String is
+     (Projects.Sections.Note_Texts.To_String (Item.Outline_View.Order.Items (Which).Notes));
+
+   function Notes_Shown (Item : Session; Which : Positive) return Boolean is
+     (Item.Outline_View.Order.Items (Which).Open);
+
    --  Asking the model
 
    function Generating (Item : Session) return Boolean is (Item.Outline_View.Generate_Tries > 0);
@@ -504,6 +569,106 @@ package body Viewer.Outlines is
       end if;
    end Show_Generate;
 
+   function Generate_Label (With_Notes : Boolean) return String is
+     (if With_Notes then "Generate + Notes" else "Generate Sections");
+
+   procedure Show_Choice (Item : in out Session) is
+   begin
+      Buttons.Set_Label (Item.Outline_View.Generate_Button, Generate_Label (Item.Outline_View.With_Notes));
+   end Show_Choice;
+
+   function Generate_Menu_Shown (Item : Session) return Boolean is (Item.Outline_View.Generate_Open);
+
+   procedure Generate_Point (Item : in out Session; Caret : Boolean; X, Y : out Float) is
+      Button : Buttons.Button renames Item.Outline_View.Generate_Button;
+      Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
+      Side   : constant Float := Float'Rounding (Widgets.Height_Of (Button));
+      Right  : constant Float := Widgets.Left_Of (Button) + Widgets.Width_Of (Button);
+   begin
+      Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
+      X := (if Caret then Right - Side / 2.0 else Widgets.Left_Of (Button) + Widgets.Width_Of (Button) / 4.0) / Pixels;
+      Y := (Widgets.Top_Of (Button) + Widgets.Height_Of (Button) / 2.0) / Pixels;
+   end Generate_Point;
+
+   procedure Place_Menu (Item : in out Session);
+   --  Put the menu under the button, its right edge by the button's.
+
+   procedure Place_Menu (Item : in out Session) is
+      View   : Outline_Parts renames Item.Outline_View;
+      Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
+      Button : Buttons.Button renames View.Generate_Button;
+      Panel  : Pomarine.Widgets.Panels.Panel renames Item.Toolbar.Content_Panel;
+      Wide   : constant Float := Style.Generate_Menu_Width * Pixels;
+      Left   : constant Float :=
+        Float'Max
+          (0.0, Widgets.Left_Of (Button) + Widgets.Width_Of (Button) + Pomarine.Boxes.Offset (Pixels) - Wide
+                - Widgets.Left_Of (Panel));
+      Top    : constant Float :=
+        Widgets.Top_Of (Button) + Widgets.Height_Of (Button) + Style.Menu_Gap * Pixels - Widgets.Top_Of (Panel);
+   begin
+      if Float'Rounding (Left) /= View.Generate_Left or else Float'Rounding (Top) /= View.Generate_Top then
+         View.Generate_Left := Float'Rounding (Left);
+         View.Generate_Top := Float'Rounding (Top);
+         Layouts.Set_Layout
+           (View.Generate_Menu,
+            Position => (Left => View.Generate_Left, Top => View.Generate_Top, others => <>),
+            Unit => Layouts.Device_Pixels);
+         Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
+      end if;
+   end Place_Menu;
+
+   procedure Close_Menu (Item : in out Session) is
+      View : Outline_Parts renames Item.Outline_View;
+   begin
+      if View.Generate_Open then
+         View.Generate_Open := False;
+         Widgets.Set_Visible (View.Generate_Menu, False);
+         Buttons.Set_Selected (View.Generate_Button, False);
+      end if;
+   end Close_Menu;
+
+   procedure Open_Menu (Item : in out Session) is
+      View : Outline_Parts renames Item.Outline_View;
+   begin
+      Menus.Clear (View.Generate_Menu);
+      Menus.Add (View.Generate_Menu, Menus.Action, Generate_Label (False));
+      Menus.Set_Icon (View.Generate_Menu, 1, Icon_Set.Sparkles);
+      Menus.Add (View.Generate_Menu, Menus.Action, "Generate + Notes");
+      Menus.Set_Icon (View.Generate_Menu, 2, Icon_Set.Sparkles);
+      View.Generate_Open := True;
+      View.Generate_Left := -1.0E9;
+      Buttons.Set_Selected (View.Generate_Button, True);
+      Widgets.Set_Visible (View.Generate_Menu, True);
+      Widgets.Raise_To_Front (View.Generate_Menu);
+      Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
+      Place_Menu (Item);
+   end Open_Menu;
+
+   procedure Choose_Generate (Item : in out Session; Row : Positive) is
+      View : Outline_Parts renames Item.Outline_View;
+   begin
+      Close_Menu (Item);
+      View.With_Notes := Row = 2;
+      Show_Choice (Item);
+      if Item.Prefs.Persist then
+         Preferences.Save_Generate_Notes
+           (Ada.Strings.Unbounded.To_String (Item.Prefs.Config_Dir), View.With_Notes);
+      end if;
+      Generate_Sections (Item, View.With_Notes);
+   end Choose_Generate;
+
+   procedure Pressed (Item : in out Session; X, Y : Float) is
+      View   : Outline_Parts renames Item.Outline_View;
+      Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
+   begin
+      if View.Generate_Open
+        and then not Widgets.Contains (View.Generate_Menu, X * Pixels, Y * Pixels)
+        and then not Widgets.Contains (View.Generate_Button, X * Pixels, Y * Pixels)
+      then
+         Close_Menu (Item);
+      end if;
+   end Pressed;
+
    procedure Apply (Item : in out Session; Wanted : Projects.Sections.Section_List)
      with Pre => Item.Opened.Current /= 0 and then Wanted.Count > 0;
    --  Make the outline the sections of Wanted, in order. A section that is
@@ -512,7 +677,6 @@ package body Viewer.Outlines is
 
    procedure Apply (Item : in out Session; Wanted : Projects.Sections.Section_List) is
       package Sects renames Projects.Sections;
-      View  : Outline_Parts renames Item.Outline_View;
       Owner : constant Projects.Id := Item.Opened.Current;
       Have  : Sects.Section_List;
       Taken : array (1 .. Sects.Max_Sections) of Boolean := [others => False];
@@ -521,6 +685,13 @@ package body Viewer.Outlines is
       Added : Natural := 0;
       Keys  : Sects.Key_Array (1 .. Sects.Max_Sections);
       Total : Natural := 0;
+
+      procedure Give_Notes (Key : Sects.Section_Id; Notes : Sects.Note_Texts.Bounded_String) is
+      begin
+         if Sects.Note_Texts.Length (Notes) > 0 then
+            Sects.Set_Notes (Item.Nav.Store, Key, Sects.Note_Texts.To_String (Notes));
+         end if;
+      end Give_Notes;
    begin
       if Item.Toolbar.Mode = Outline then
          Sync (Item);
@@ -548,11 +719,16 @@ package body Viewer.Outlines is
             if Match (Each) /= 0 then
                Total := Total + 1;
                Keys (Total) := Have.Items (Match (Each)).Key;
+               --  What the writer wrote is not written over.
+               if Sects.Note_Texts.Length (Have.Items (Match (Each)).Notes) = 0 then
+                  Give_Notes (Keys (Total), Wanted.Items (Each).Notes);
+               end if;
             elsif Added < Room then
                Added := Added + 1;
                Total := Total + 1;
                Keys (Total) :=
                  Sects.Add (Item.Nav.Store, Owner, Sects.Title_Texts.To_String (Wanted.Items (Each).Title));
+               Give_Notes (Keys (Total), Wanted.Items (Each).Notes);
             end if;
          end loop;
       end;
@@ -566,8 +742,7 @@ package body Viewer.Outlines is
       Sects.Set_Order (Item.Nav.Store, Owner, Keys (1 .. Total));
       --  The blocks now show other sections: nothing is typed in one.
       Widgets.Clear_Focus (Item.Root.Widgets);
-      Sects.Load (Item.Nav.Store, Owner, View.Order);
-      Sects.Load_Links (Item.Nav.Store, Owner, View.Links);
+      Load_Sections (Item, Owner);
       Show_Blocks (Item);
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
    end Apply;
@@ -593,7 +768,7 @@ package body Viewer.Outlines is
         (View.Generate_Job,
          Ada.Strings.Unbounded.To_String (View.Generate_Folder),
          Ada.Strings.Unbounded.To_String (View.Generate_Prompt),
-         Outline_Generation.System_Prompt,
+         Outline_Generation.System_Prompt (View.Generate_Notes),
          Tuning => (Max_Tokens => Outline_Generation.Tokens, Temperature => 0.6, Thinking => MLX.On,
                     others => <>));
    exception
@@ -611,7 +786,7 @@ package body Viewer.Outlines is
       Show_Note (Item, Words, Pomarine.Themes.Danger_Ink);
    end Give_Up;
 
-   procedure Generate_Sections (Item : in out Session) is
+   procedure Generate_Sections (Item : in out Session; With_Notes : Boolean) is
       View   : Outline_Parts renames Item.Outline_View;
       Name   : constant String := Ada.Strings.Unbounded.To_String (Item.Prefs.AI_Model);
       Folder : constant String := (if Name = "" then "" else MLX.Hub.Snapshot (Name));
@@ -630,6 +805,7 @@ package body Viewer.Outlines is
       end if;
       Sync (Item);
       View.Generate_Project := Item.Opened.Current;
+      View.Generate_Notes := With_Notes;
       View.Generate_Folder := Ada.Strings.Unbounded.To_Unbounded_String (Folder);
       View.Generate_Prompt :=
         Ada.Strings.Unbounded.To_Unbounded_String
@@ -696,6 +872,13 @@ package body Viewer.Outlines is
                Show_Note (Item, "", Style.Quiet_Ink);
          end case;
       end if;
+      if View.Generate_Open then
+         if In_Outline (Item) and then Buttons.Is_Enabled (View.Generate_Button) then
+            Place_Menu (Item);
+         else
+            Close_Menu (Item);
+         end if;
+      end if;
       Show_Generate (Item);
    end Update;
 
@@ -704,13 +887,36 @@ package body Viewer.Outlines is
    procedure Generate_Clicked
      (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
 
+   procedure Chosen
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
+
+   procedure Chosen
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source);
+   begin
+      if Item.Outline_View.Generate_Open and then Event.Row in 1 .. 2 and then In_Outline (Item) then
+         Choose_Generate (Item, Event.Row);
+      end if;
+   end Chosen;
+
    procedure Generate_Clicked
      (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
    is
       pragma Unreferenced (Source, Event);
    begin
-      if In_Outline (Item) then
-         Generate_Sections (Item);
+      if not In_Outline (Item) then
+         return;
+      end if;
+      if Buttons.Caret_Clicked (Item.Outline_View.Generate_Button) then
+         if Item.Outline_View.Generate_Open then
+            Close_Menu (Item);
+         else
+            Open_Menu (Item);
+         end if;
+      else
+         Close_Menu (Item);
+         Generate_Sections (Item, Item.Outline_View.With_Notes);
       end if;
    end Generate_Clicked;
 
@@ -765,6 +971,19 @@ package body Viewer.Outlines is
          Remove_Section (Item, Event.Index);
       end if;
    end Remove_Clicked;
+
+   procedure Notes_Clicked
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
+
+   procedure Notes_Clicked
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source);
+   begin
+      if In_Outline (Item) and then Event.Index in 1 .. Item.Outline_View.Order.Count then
+         Toggle_Notes (Item, Event.Index);
+      end if;
+   end Notes_Clicked;
 
    procedure Title_Submitted
      (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
@@ -902,6 +1121,7 @@ package body Viewer.Outlines is
    begin
       Hear (Item.Outline_View.Add_Button, Click, Add_Clicked'Access);
       Hear (Item.Outline_View.Generate_Button, Click, Generate_Clicked'Access);
+      Hear (Item.Outline_View.Generate_Menu, Choose, Chosen'Access);
       for Each in Item.Outline_View.Blocks'Range loop
          declare
             Block : Section_Block renames Item.Outline_View.Blocks (Each);
@@ -909,6 +1129,7 @@ package body Viewer.Outlines is
             Hear (Block.Row, Drag, Block_Dragged'Access, Each);
             Hear (Block.Row, Release, Block_Released'Access);
             Hear (Block.Field, Submit, Title_Submitted'Access);
+            Hear (Block.Notes, Click, Notes_Clicked'Access, Each);
             Hear (Block.Up, Click, Up_Clicked'Access, Each);
             Hear (Block.Down, Click, Down_Clicked'Access, Each);
             Hear (Block.Remove, Click, Remove_Clicked'Access, Each);

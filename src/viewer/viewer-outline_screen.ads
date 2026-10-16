@@ -29,6 +29,21 @@ package Viewer.Outline_Screen is
    --  The titles of the items that are of the section, each followed by a
    --  comma, in the order of their windows; "" if none.
 
+   function Section_Notes (Item : Session; Row : Positive) return String
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Section_Count (Item);
+   --  The notes of the Rowth section, as kept.
+
+   function Notes_Shown (Item : Session; Row : Positive) return Boolean
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Section_Count (Item);
+   --  Whether its notes are shown.
+
+   procedure Toggle_Notes (Item : in out Session; Row : Positive)
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Section_Count (Item);
+   --  As its Notes button does; the notes then have the focus.
+
    procedure Open_Link_Menu (Item : in out Session; Which : Items.Slot)
      with Pre => Is_Open (Item) and then Screen (Item) = Project;
    --  As the Link to Outline button of the item's window does.
@@ -55,6 +70,29 @@ package Viewer.Outline_Screen is
      with Pre => Is_Open (Item) and then Screen (Item) = Project;
    --  Whether the Generate Sections button can be pressed: AI is on, and
    --  the model is not being asked.
+
+   procedure Write_Notes_Point (Item : in out Session; Row : Positive; X, Y : out Float)
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Section_Count (Item);
+   --  A point of the window, in points, on the Notes button of the Rowth
+   --  section's heading in the writing view.
+
+   function Generate_Label (Item : Session) return String
+     with Pre => Is_Open (Item) and then Screen (Item) = Project;
+   --  What the Generate button says.
+
+   function Generate_Menu_Shown (Item : Session) return Boolean
+     with Pre => Is_Open (Item) and then Screen (Item) = Project;
+   --  Whether the menu under its caret is shown.
+
+   procedure Generate_Point (Item : in out Session; Caret : Boolean; X, Y : out Float)
+     with Pre => Is_Open (Item) and then Screen (Item) = Project;
+   --  A point of the window, in points, on the caret of the button, or on
+   --  the rest of it.
+
+   procedure Choose_Generate (Item : in out Session; Row : Positive)
+     with Pre => Is_Open (Item) and then Screen (Item) = Project;
+   --  As a row of the menu does.
 
    function Take_Reply (Item : in out Session; Reply : String) return Boolean
      with Pre => Is_Open (Item) and then Screen (Item) = Project;

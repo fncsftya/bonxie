@@ -521,6 +521,9 @@ package body Viewer.Responses is
       for Each in Item.Section_View.Heads'Range loop
          Hear (Item.Section_View.Heads (Each).Add, Click, Writing.Section_Add_Clicked'Access, Each);
       end loop;
+      for Each in Item.Section_View.Heads'Range loop
+         Hear (Item.Section_View.Heads (Each).Notes, Click, Writing.Section_Notes_Clicked'Access, Each);
+      end loop;
       for Each in Item.Section_View.Empties'Range loop
          Hear (Item.Section_View.Empties (Each).Add, Click, Writing.Section_Add_Clicked'Access, Each);
       end loop;

@@ -749,10 +749,23 @@ private
       Title : Pomarine.Widgets.Labels.Label;
       Count : Pomarine.Widgets.Labels.Label;
       --  At the right: how many documents it has.
+      Notes : Pomarine.Widgets.Buttons.Button;
+      --  Before the Add button: shows the section's notes under the
+      --  heading, or puts them away.
       Add   : Pomarine.Widgets.Buttons.Button;
       --  Beside it, while it has some: writes another, last in the section.
    end record;
    --  The heading of a section among the pages of the writing view.
+
+   type Note_Box is limited record
+      Box  : Pomarine.Widgets.Panels.Panel;
+      --  A tinted box with the section's colour round it, not a white
+      --  page, after the heading and before the documents.
+      Text : Pomarine.Widgets.Editors.Editor;
+      --  The section's notes, which its block of the outline shows too.
+      High : Float := 0.0;
+      --  How tall the text is, in points, as last put.
+   end record;
 
    type Section_Empty is limited record
       Box  : Pomarine.Widgets.Panels.Panel;
@@ -771,28 +784,30 @@ private
    --  (or before the first, or after the last): a faint line that says so.
 
    type Section_Heads is array (1 .. Section_Capacity) of Section_Head;
+   type Note_Boxes is array (1 .. Section_Capacity) of Note_Box;
    type Section_Empties is array (1 .. Section_Capacity) of Section_Empty;
    type Gap_Marks is array (0 .. Section_Capacity) of Gap_Mark;
 
-   type Plan_Kinds is (Head_Entry, Empty_Entry, Page_Entry, Gap_Entry);
+   type Plan_Kinds is (Head_Entry, Notes_Entry, Empty_Entry, Page_Entry, Gap_Entry);
 
    type Plan_Entry is record
       Kind  : Plan_Kinds := Head_Entry;
       Index : Natural := 0;
-      --  A section (Head_Entry, Empty_Entry), a page's rank (Page_Entry),
+      --  A section (Head_Entry, Notes_Entry, Empty_Entry), a page's rank (Page_Entry),
       --  or the section the loose documents come after (Gap_Entry, 0 for
       --  before the first).
       Top   : Float := 0.0;
       --  Where it is, in pixels, from the first.
    end record;
 
-   Plan_Capacity : constant := 2 * Section_Capacity + Items.Capacity + Section_Capacity + 1;
+   Plan_Capacity : constant := 3 * Section_Capacity + Items.Capacity + Section_Capacity + 1;
 
    type Plan_Array is array (1 .. Plan_Capacity) of Plan_Entry;
 
    type Section_View_Parts is limited record
       Heads   : Section_Heads;
       Empties : Section_Empties;
+      Notes   : Note_Boxes;
       Gaps    : Gap_Marks;
       Tail    : Pomarine.Widgets.Panels.Panel;
       --  Last among the pages, flowing, as tall as they all are together
@@ -818,14 +833,24 @@ private
       --  The version of it that is kept.
       Row    : Pomarine.Widgets.Grips.Grip;
       --  The block, which is dragged by anywhere but its field and buttons.
+      Line   : Pomarine.Widgets.Panels.Panel;
+      --  The top of the block: the title and its buttons. Notes are under.
       Handle : Pomarine.Widgets.Labels.Label;
       Swatch : Pomarine.Widgets.Panels.Panel;
       --  The section's colour: a square, filled once an item is its own,
       --  and only outlined before.
       Field  : Pomarine.Widgets.Text_Fields.Text_Field;
+      Notes  : Pomarine.Widgets.Buttons.Button;
+      --  Shows or hides the notes, and is down while they are shown.
       Up     : Pomarine.Widgets.Buttons.Button;
       Down   : Pomarine.Widgets.Buttons.Button;
       Remove : Pomarine.Widgets.Buttons.Button;
+      Notes_Doc   : aliased Texts.Documents.Document;
+      --  The notes, which the editor shows.
+      Notes_Seen  : Texts.Documents.Version := 0;
+      --  The version of them that is kept.
+      Notes_Sheet : Pomarine.Widgets.Panels.Panel;
+      Notes_Text  : Pomarine.Widgets.Editors.Editor;
    end record;
 
    type Section_Blocks is array (1 .. Section_Capacity) of Section_Block;
@@ -855,6 +880,13 @@ private
       Head        : Pomarine.Widgets.Panels.Panel;
       Heading     : Pomarine.Widgets.Labels.Label;
       Add_Button  : Pomarine.Widgets.Buttons.Button;
+      Generate_Menu : Pomarine.Widgets.Menus.Menu;
+      --  Under the button's caret, in purple, hidden until it is clicked:
+      --  generate the sections, or with notes.
+      Generate_Open : Boolean := False;
+      With_Notes    : Boolean := False;
+      --  Whether the button makes the sections with notes: the one of its
+      --  actions last chosen, which is kept in the settings.
       Generate_Button : Pomarine.Widgets.Buttons.Button;
       --  Asks the language model for the outline, in purple; off while AI
       --  is, and while it is being asked.
@@ -865,8 +897,12 @@ private
       Generate_Project : Projects.Id := 0;
       Generate_Folder  : Ada.Strings.Unbounded.Unbounded_String;
       Generate_Prompt  : Ada.Strings.Unbounded.Unbounded_String;
+      Generate_Notes   : Boolean := False;
+      Generate_Left, Generate_Top : Float := -1.0E9;
+      --  Where the menu was last put.
       --  The ask: the tries made so far (0 when none is under way), the
-      --  project it is for, the model's folder and what it is asked.
+      --  project it is for, the model's folder and what it is asked, and
+      --  whether it is to give notes.
       Scroll      : Pomarine.Widgets.Scrollers.Scroller;
       Content     : Pomarine.Widgets.Panels.Panel;
       None        : Pomarine.Widgets.Labels.Label;

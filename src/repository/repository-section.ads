@@ -27,6 +27,12 @@ package Repository.Section is
       Title : String)
      with Pre => Projects.Is_Open (Store);
 
+   procedure Set_Notes
+     (Store : in out Projects.Store;
+      Key   : Projects.Sections.Section_Id;
+      Notes : String)
+     with Pre => Projects.Is_Open (Store);
+
    procedure Set_Order
      (Store   : in out Projects.Store;
       Project : Projects.Id;

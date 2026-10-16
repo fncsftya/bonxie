@@ -17,6 +17,20 @@ private package Viewer.Outlines is
    --  The place in the outline of the section the item (by its key) is
    --  of; 0 if it is of none.
 
+   function Section_Notes (Item : Session; Which : Positive) return String
+     with Pre => Screen (Item) = Project and then Which <= Section_Count (Item);
+   --  The notes of the section, as kept.
+
+   function Notes_Shown (Item : Session; Which : Positive) return Boolean
+     with Pre => Screen (Item) = Project and then Which <= Section_Count (Item);
+   --  Whether the section's notes are shown.
+
+   procedure Toggle_Notes (Item : in out Session; Which : Positive; Focus : Boolean := True)
+     with Pre => Screen (Item) = Project and then Which <= Section_Count (Item),
+          Post => Notes_Shown (Item, Which) /= Notes_Shown (Item, Which)'Old;
+   --  As the section's Notes button does: show its notes, or hide them;
+   --  shown, they have the focus if Focus.
+
    function Documents_In (Item : Session; Which : Positive) return Natural
      with Pre => Screen (Item) = Project and then Which <= Section_Count (Item);
    --  How many items are of the section.
@@ -62,13 +76,40 @@ private package Viewer.Outlines is
    function Generate_Enabled (Item : Session) return Boolean;
    --  Whether the Generate Sections button can be pressed.
 
-   procedure Generate_Sections (Item : in out Session)
+   function Generate_Label (With_Notes : Boolean) return String;
+   --  What the Generate button says, as it makes the sections with notes
+   --  or without.
+
+   procedure Show_Choice (Item : in out Session);
+   --  Label the Generate button as the choice kept says.
+
+   function Generate_Menu_Shown (Item : Session) return Boolean;
+   --  Whether the menu under the Generate button's caret is shown.
+
+   procedure Generate_Point (Item : in out Session; Caret : Boolean; X, Y : out Float);
+   --  A point of the window, in points, in the Generate button's caret, or
+   --  in the rest of it.
+
+   procedure Choose_Generate (Item : in out Session; Row : Positive)
      with Pre => Screen (Item) = Project;
-   --  As the Generate Sections button does: ask the model for the whole
+   --  As a row of the menu does: Row 1 makes the sections, 2 makes them
+   --  with notes; the button is then labelled for it, and does the same
+   --  when clicked, as kept in the settings.
+
+   procedure Pressed (Item : in out Session; X, Y : Float);
+   --  A press of the mouse button at X, Y points: put the menu away if it
+   --  is not on it or on the Generate button.
+
+   procedure Close_Menu (Item : in out Session);
+
+   procedure Generate_Sections (Item : in out Session; With_Notes : Boolean)
+     with Pre => Screen (Item) = Project;
+   --  As the Generate button does: ask the model for the whole
    --  outline of the project, from its title, description and sections,
    --  and, once it replies, put them in order. A reply that cannot be
    --  read is asked for again, up to Outline_Generation.Max_Tries times in
-   --  all; then an error is shown. Nothing is done if AI is off.
+   --  all; then an error is shown. Nothing is done if AI is off. With_Notes
+   --  asks for a few bulleted notes to each section too.
 
    procedure Update (Item : in out Session);
    --  See how the asking is going, and act on it: for the loop, now and

@@ -11,6 +11,12 @@ package Projects.Sections is
    package Title_Texts is new Ada.Strings.Bounded.Generic_Bounded_Length
      (Max_Title);
 
+   Max_Notes : constant := 2000;
+   --  Bytes, of a section's notes: longer is cut.
+
+   package Note_Texts is new Ada.Strings.Bounded.Generic_Bounded_Length
+     (Max_Notes);
+
    type Section_Id is new Long_Integer;
 
    Palette_Size : constant := 12;
@@ -21,6 +27,10 @@ package Projects.Sections is
    type Section is record
       Key   : Section_Id := 0;
       Title : Title_Texts.Bounded_String := Title_Texts.Null_Bounded_String;
+      Notes : Note_Texts.Bounded_String := Note_Texts.Null_Bounded_String;
+      --  What is to be said in the section, as the writer typed it.
+      Open  : Boolean := False;
+      --  Whether the notes are shown: not kept, as only the view's.
       Colour : Colour_Index := 0;
       --  Given when the section is made: the one of the project's that is
       --  used least, so that no two are alike until there are more than
@@ -80,6 +90,11 @@ package Projects.Sections is
    procedure Rename
      (Item : in out Store; Key : Section_Id; Title : String)
      with Pre => Is_Open (Item);
+
+   procedure Set_Notes
+     (Item : in out Store; Key : Section_Id; Notes : String)
+     with Pre => Is_Open (Item) and then Notes'Length <= Max_Notes;
+   --  Keep the section's notes.
 
    procedure Set_Order
      (Item    : in out Store;

@@ -2529,6 +2529,23 @@ package body Viewer.Writing is
       end if;
    end Add_For_Section;
 
+   procedure Section_Notes_Clicked
+     (Item   : in out Session;
+      Source : in out Pomarine.Widgets.Widget'Class;
+      Event  : Pomarine.Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source);
+      Place : constant Natural := Event.Index;
+   begin
+      if Place in 1 .. Outlines.Section_Count (Item) then
+         Outlines.Toggle_Notes (Item, Place, Focus => False);
+         Fit (Item);
+         if Outlines.Notes_Shown (Item, Place) then
+            Widgets.Focus (Item.Section_View.Notes (Place).Text);
+         end if;
+      end if;
+   end Section_Notes_Clicked;
+
    procedure Section_Add_Clicked
      (Item   : in out Session;
       Source : in out Pomarine.Widgets.Widget'Class;
@@ -2814,6 +2831,10 @@ package body Viewer.Writing is
       Group  : constant Boolean :=
         Total > 0 and then (Item.Docs.Shown_Dir = 0 or else Is_Section (Item, Item.Docs.Shown_Dir));
 
+      function Notes_Box_Height (Place : Positive) return Float is
+        (Parts.Notes (Place).High + 2.0 * Style.Notes_Pad + 2.0);
+      --  In points: the text, and the padding and outline round it.
+
       procedure Set_Grouped (To : Boolean) is
       begin
          if To /= Parts.Grouped then
@@ -2832,6 +2853,9 @@ package body Viewer.Writing is
                for Each of Parts.Empties loop
                   Widgets.Set_Visible (Each.Box, False);
                end loop;
+               for Each of Parts.Notes loop
+                  Widgets.Set_Visible (Each.Box, False);
+               end loop;
                for Each of Parts.Gaps loop
                   Widgets.Set_Visible (Each.Row, False);
                end loop;
@@ -2844,6 +2868,15 @@ package body Viewer.Writing is
       if not Group then
          return;
       end if;
+      --  The notes are as tall as they need to be, but not less than a few lines.
+      for Place in 1 .. Outlines.Section_Count (Item) loop
+         if Outlines.Notes_Shown (Item, Place) then
+            Parts.Notes (Place).High :=
+              Float'Max
+                (Style.Notes_Min_Height,
+                 Float'Ceiling (Pomarine.Text_Areas.Content_Height (Editors.Area (Parts.Notes (Place).Text).all)));
+         end if;
+      end loop;
       declare
          Plan   : Plan_Array;
          Count  : Natural := 0;
@@ -2867,6 +2900,9 @@ package body Viewer.Writing is
                return;
             end if;
             Add (Head_Entry, Place);
+            if Outlines.Notes_Shown (Item, Place) then
+               Add (Notes_Entry, Place);
+            end if;
             if Documents_In (Item, Dir) = 0 then
                Add (Empty_Entry, Place);
             end if;
@@ -2930,12 +2966,16 @@ package body Viewer.Writing is
                   Gap  : constant Float :=
                     (if Each = 1 then 0.0
                      elsif Now.Kind = Head_Entry then Style.Section_Before * Pixels
-                     elsif Plan (Each - 1).Kind in Head_Entry | Gap_Entry then Style.Section_After * Pixels
+                     elsif Plan (Each - 1).Kind in Head_Entry | Gap_Entry
+                       and then Now.Kind /= Notes_Entry
+                     then Style.Section_After * Pixels
+                     elsif Now.Kind = Notes_Entry then Style.Page_Gap * Pixels
                      else Style.Page_Gap * Pixels);
                   High : constant Float :=
                     (case Now.Kind is
                         when Head_Entry  => Style.Section_Head_Height * Pixels,
                         when Empty_Entry => Style.Section_Empty_Height * Pixels,
+                        when Notes_Entry => Notes_Box_Height (Now.Index) * Pixels,
                         when Gap_Entry   => Style.Gap_Mark_Height * Pixels,
                         when Page_Entry  =>
                           Widgets.Height_Of (Item.Docs.Pages (Now.Index).Box));
@@ -2962,6 +3002,7 @@ package body Viewer.Writing is
                     Widgets.Top_Of (Parts.Tail) - Widgets.Top_Of (Item.Page_View.Pages_Content);
                   Shown_Heads  : array (1 .. Section_Capacity) of Boolean := [others => False];
                   Shown_Empty  : array (1 .. Section_Capacity) of Boolean := [others => False];
+                  Shown_Notes  : array (1 .. Section_Capacity) of Boolean := [others => False];
                   Shown_Gaps   : array (0 .. Section_Capacity) of Boolean := [others => False];
 
                   procedure Put (Part : in out Widgets.Widget'Class; Top : Float) is
@@ -2989,6 +3030,7 @@ package body Viewer.Writing is
                               begin
                                  Shown_Heads (Now.Index) := True;
                                  Widgets.Set_Visible (Head.Add, Owned > 0);
+                                 Pomarine.Widgets.Buttons.Set_Selected (Head.Notes, Section.Open);
                                  Labels.Set_Text
                                    (Head.Title,
                                     Labels.Fitted (Projects.Sections.Title_Texts.To_String (Section.Title)));
@@ -2998,6 +3040,17 @@ package body Viewer.Writing is
                                      else Count_Image (Owned) & (if Owned = 1 then " document" else " documents")));
                                  Pomarine.Widgets.Panels.Set_Fill (Head.Bar, Style.Section_Ink (Section.Colour));
                                  Put (Head.Row, Now.Top);
+                              end;
+                           when Notes_Entry =>
+                              declare
+                                 Note : Note_Box renames Parts.Notes (Now.Index);
+                              begin
+                                 Shown_Notes (Now.Index) := True;
+                                 Pomarine.Widgets.Panels.Set_Border
+                                   (Note.Box, Style.Section_Ink (Outlines.Section_At (Item, Now.Index).Colour));
+                                 Layouts.Set_Layout (Note.Text, Height => Note.High);
+                                 Layouts.Set_Layout (Note.Box, Height => Notes_Box_Height (Now.Index));
+                                 Put (Note.Box, Now.Top);
                               end;
                            when Empty_Entry =>
                               Shown_Empty (Now.Index) := True;
@@ -3016,6 +3069,7 @@ package body Viewer.Writing is
                   for Each in Shown_Heads'Range loop
                      Widgets.Set_Visible (Parts.Heads (Each).Row, Shown_Heads (Each));
                      Widgets.Set_Visible (Parts.Empties (Each).Box, Shown_Empty (Each));
+                     Widgets.Set_Visible (Parts.Notes (Each).Box, Shown_Notes (Each));
                   end loop;
                   for Each in Shown_Gaps'Range loop
                      Widgets.Set_Visible (Parts.Gaps (Each).Row, Shown_Gaps (Each));

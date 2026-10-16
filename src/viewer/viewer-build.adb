@@ -463,7 +463,12 @@ package body Viewer.Build is
          --  After the pages, which they are among by their edges.
          for Each of Sections.Heads loop
             Widgets.Add (View.Pages_Content, Each.Row);
-            Widgets.Add (Each.Row, Each.Bar, Each.Title, Each.Count, Each.Add);
+            Widgets.Add (Each.Row, Each.Bar, Each.Title, Each.Count, Each.Notes);
+            Widgets.Add (Each.Row, Each.Add);
+         end loop;
+         for Each of Sections.Notes loop
+            Widgets.Add (View.Pages_Content, Each.Box);
+            Widgets.Add (Each.Box, Each.Text);
          end loop;
          for Each of Sections.Empties loop
             Widgets.Add (View.Pages_Content, Each.Box);
@@ -499,6 +504,10 @@ package body Viewer.Build is
             Labels.Set_Ink (Each.Count, Quiet_Ink);
             Labels.Set_Trailing (Each.Count, True);
             Set_Layout (Each.Count, Width => 140.0, Height => Section_Head_Height);
+            Buttons.Set_Label (Each.Notes, "Notes");
+            Buttons.Set_Captioned (Each.Notes, True);
+            Buttons.Set_Focusable (Each.Notes, True);
+            Set_Layout (Each.Notes, Width => Notes_Width, Height => Outline_Button, Shrink => 0.0);
             Buttons.Set_Label (Each.Add, "Add document to this section");
             Buttons.Set_Icon (Each.Add, Icon_Set.Plus);
             Buttons.Set_Focusable (Each.Add, True);
@@ -506,6 +515,24 @@ package body Viewer.Build is
               (Each.Add, Width => Outline_Button, Height => Outline_Button, Shrink => 0.0,
                Margin => (Right => Shadow_Room, others => <>));
             Widgets.Set_Visible (Each.Row, False);
+         end loop;
+         for Index in Sections.Notes'Range loop
+            declare
+               Each : Note_Box renames Sections.Notes (Index);
+            begin
+               Panels.Set_Fill (Each.Box, Side_Fill);
+               Panels.Set_Border (Each.Box, Themes.Border);
+               Set_Layout
+                 (Each.Box, Place => Absolute, Flow => Column, Width => Page_Width, Outlined => True,
+                  Padding => (others => Notes_Pad), Shrink => 0.0);
+               Editors.Set_Shared (Each.Text, Item.Host.Doc_Resources'Unchecked_Access);
+               Editors.Configure
+                 (Each.Text, Pomarine.Line_Texts.Interface_Font, Edit_Size, 2000.0);
+               Editors.Set_Paper (Each.Text, Side_Fill);
+               Editors.Attach (Each.Text, Item.Outline_View.Blocks (Index).Notes_Doc'Unchecked_Access);
+               Set_Layout (Each.Text, Shrink => 0.0, Height => Notes_Min_Height);
+               Widgets.Set_Visible (Each.Box, False);
+            end;
          end loop;
          for Each of Sections.Empties loop
             Panels.Set_Border (Each.Box, Themes.Border);
@@ -538,6 +565,10 @@ package body Viewer.Build is
       Widgets.Add (Item.Toolbar.Content_Panel, Item.Context.Context_Menu);
       Set_Layout (Item.Context.Context_Menu, Place => Absolute, Width => Context_Width);
       Widgets.Set_Visible (Item.Context.Context_Menu, False);
+      Widgets.Add (Item.Toolbar.Content_Panel, Item.Outline_View.Generate_Menu);
+      Set_Layout (Item.Outline_View.Generate_Menu, Place => Absolute, Width => Generate_Menu_Width);
+      Pomarine.Widgets.Menus.Set_Accented (Item.Outline_View.Generate_Menu, True);
+      Widgets.Set_Visible (Item.Outline_View.Generate_Menu, False);
       Widgets.Add (Item.Toolbar.Content_Panel, Item.Section_Menu.Menu);
       Set_Layout (Item.Section_Menu.Menu, Place => Absolute, Width => 220.0);
       Widgets.Set_Visible (Item.Section_Menu.Menu, False);
@@ -752,7 +783,9 @@ package body Viewer.Build is
       Buttons.Set_Captioned (View.Add_Button, True);
       Buttons.Set_Focusable (View.Add_Button, True);
       Set_Layout (View.Add_Button, Width => Add_Section_Width, Height => Bar_Button_Height, Shrink => 0.0);
-      Buttons.Set_Label (View.Generate_Button, "Generate Sections");
+      Buttons.Set_Label (View.Generate_Button, Outlines.Generate_Label (View.With_Notes));
+      Buttons.Set_Dropdown (View.Generate_Button, True);
+      Buttons.Set_Split (View.Generate_Button, True);
       Buttons.Set_Icon (View.Generate_Button, Icon_Set.Sparkles);
       Buttons.Set_Captioned (View.Generate_Button, True);
       Buttons.Set_Focusable (View.Generate_Button, True);
@@ -771,19 +804,37 @@ package body Viewer.Build is
             Block : Section_Block renames View.Blocks (Each);
          begin
             Widgets.Add (View.Content, Block.Row);
-            Widgets.Add (Block.Row, Block.Handle, Block.Swatch, Block.Field, Block.Up);
-            Widgets.Add (Block.Row, Block.Down, Block.Remove);
+            Widgets.Add (Block.Row, Block.Line, Block.Notes_Sheet);
+            Widgets.Add (Block.Line, Block.Handle, Block.Swatch, Block.Field, Block.Notes);
+            Widgets.Add (Block.Line, Block.Up, Block.Down, Block.Remove);
+            Widgets.Add (Block.Notes_Sheet, Block.Notes_Text);
             Grips.Set_Fill (Block.Row, Row_Fill);
             Grips.Set_Hover_Fill (Block.Row, Row_Fill);
             Grips.Set_Border (Block.Row, Themes.Border);
             Grips.Set_Shadow (Block.Row, Side_Fill);
             Grips.Set_Wanted_Cursor (Block.Row, SDL3.Cursors.Grab);
             Set_Layout
-              (Block.Row, Shrink => 0.0, Flow => Row, Align => Center, Gap => Tool_Gap,
+              (Block.Row, Shrink => 0.0, Flow => Column,
                Padding => (Left | Right => Index_Pad, others => <>), Shadowed => True);
             Set_Layout
-              (Block.Row, Height => Outline_Block_Height * Pixels + Offset,
-               Unit => Device_Pixels);
+              (Block.Line, Shrink => 0.0, Flow => Row, Align => Center, Gap => Tool_Gap);
+            Set_Layout
+              (Block.Line, Height => Outline_Block_Height * Pixels, Unit => Device_Pixels);
+            Buttons.Set_Label (Block.Notes, "Notes");
+            Buttons.Set_Captioned (Block.Notes, True);
+            Buttons.Set_Focusable (Block.Notes, True);
+            Set_Layout (Block.Notes, Width => Notes_Width, Height => Outline_Button, Shrink => 0.0);
+            Panels.Set_Fill (Block.Notes_Sheet, Paper);
+            Set_Layout
+              (Block.Notes_Sheet, Flow => Column, Height => Outline_Notes_Height, Shrink => 0.0,
+               Margin => (Bottom => Tool_Gap, others => <>));
+            Editors.Set_Shared (Block.Notes_Text, Item.Host.Doc_Resources'Unchecked_Access);
+            Editors.Configure
+              (Block.Notes_Text, Pomarine.Line_Texts.Interface_Font, Edit_Size, 2000.0);
+            Editors.Set_Paper (Block.Notes_Text, Paper);
+            Editors.Attach (Block.Notes_Text, Block.Notes_Doc'Unchecked_Access);
+            Set_Layout (Block.Notes_Text, Grow => 1.0, Height => 0.0);
+            Widgets.Set_Visible (Block.Notes_Sheet, False);
             Labels.Set_Text (Block.Handle, "::");
             Labels.Set_Ink (Block.Handle, Quiet_Ink);
             Set_Layout (Block.Handle, Width => Outline_Handle, Height => Index_Height, Shrink => 0.0);
@@ -1196,6 +1247,10 @@ package body Viewer.Build is
            Ada.Strings.Unbounded.To_Unbounded_String
              (Preferences.Load_AI_Model
                 (Ada.Strings.Unbounded.To_String (Item.Prefs.Config_Dir)));
+         Item.Outline_View.With_Notes :=
+           Preferences.Load_Generate_Notes
+             (Ada.Strings.Unbounded.To_String (Item.Prefs.Config_Dir));
+         Outlines.Show_Choice (Item);
          --  The system may have let go of the compiled model: have it
          --  ready, in the background, before it is wanted.
          if Preferences."=" (Item.Prefs.Speech_Choice, Preferences.Parakeet) then

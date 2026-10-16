@@ -103,6 +103,13 @@ private package Viewer.Writing is
    procedure Add_For_Section (Item : in out Session; Section : Positive);
    --  Write a document that is of the section, last among the documents.
 
+   procedure Section_Notes_Clicked
+     (Item   : in out Session;
+      Source : in out Pomarine.Widgets.Widget'Class;
+      Event  : Pomarine.Widgets.Widget_Event);
+   --  The Notes button of a section's heading (Event.Index its place in
+   --  the outline): show its notes under it, or put them away.
+
    procedure Section_Add_Clicked
      (Item   : in out Session;
       Source : in out Pomarine.Widgets.Widget'Class;

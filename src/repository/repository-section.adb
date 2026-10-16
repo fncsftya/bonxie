@@ -30,6 +30,7 @@ package body Repository.Section is
       Housed := Has_Column (Store, "directories", "section_id");
       --  Those below were added to the tables after they were first made.
       Add_Column (Store, "sections", "colour", "INTEGER NOT NULL DEFAULT 0");
+      Add_Column (Store, "sections", "notes", "TEXT NOT NULL DEFAULT ''");
       Add_Column (Store, "items", "section_id", "INTEGER REFERENCES sections (id) ON DELETE SET NULL");
       Add_Column (Store, "directories", "section_id", "INTEGER REFERENCES sections (id) ON DELETE CASCADE");
       if not Coloured then
@@ -64,7 +65,7 @@ package body Repository.Section is
       Query : Ada_Sqlite3.Statement :=
         Ada_Sqlite3.Prepare
           (DB (Store).all,
-           "SELECT id, title, colour FROM sections WHERE project_id = :project "
+           "SELECT id, title, colour, notes FROM sections WHERE project_id = :project "
            & "ORDER BY position, id LIMIT :limit");
    begin
       Result.Count := 0;
@@ -77,7 +78,10 @@ package body Repository.Section is
             Title => Projects.Sections.Title_Texts.To_Bounded_String
               (Ada_Sqlite3.Column_Text (Query, 1), Ada.Strings.Right),
             Colour => Projects.Sections.Colour_Index
-              (Integer'Max (0, Ada_Sqlite3.Column_Int (Query, 2)) mod Palette));
+              (Integer'Max (0, Ada_Sqlite3.Column_Int (Query, 2)) mod Palette),
+            Notes => Projects.Sections.Note_Texts.To_Bounded_String
+              (Ada_Sqlite3.Column_Text (Query, 3), Ada.Strings.Right),
+            Open  => False);
       end loop;
    end Load;
 
@@ -138,6 +142,20 @@ package body Repository.Section is
       Ada_Sqlite3.Bind_Int64 (Update, ":id", Long_Integer (Key));
       Ada_Sqlite3.Step (Update);
    end Rename;
+
+   procedure Set_Notes
+     (Store : in out Projects.Store;
+      Key   : Projects.Sections.Section_Id;
+      Notes : String)
+   is
+      Update : Ada_Sqlite3.Statement :=
+        Ada_Sqlite3.Prepare
+          (DB (Store).all, "UPDATE sections SET notes = :notes WHERE id = :id");
+   begin
+      Ada_Sqlite3.Bind_Text (Update, ":notes", Notes);
+      Ada_Sqlite3.Bind_Int64 (Update, ":id", Long_Integer (Key));
+      Ada_Sqlite3.Step (Update);
+   end Set_Notes;
 
    procedure Set_Order
      (Store   : in out Projects.Store;

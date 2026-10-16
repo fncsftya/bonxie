@@ -167,4 +167,12 @@ package body Preferences is
       Put_Setting (Config, "sidebar", Ada.Strings.Fixed.Trim (To'Image, Ada.Strings.Left));
    end Save_Sidebar_Width;
 
+   function Load_Generate_Notes (Config : String) return Boolean is
+     (Ada.Characters.Handling.To_Lower (Setting (Config, "generate")) = "notes");
+
+   procedure Save_Generate_Notes (Config : String; To : Boolean) is
+   begin
+      Put_Setting (Config, "generate", (if To then "notes" else "sections"));
+   end Save_Generate_Notes;
+
 end Preferences;

@@ -92,9 +92,13 @@ private package Viewer.Style is
    --  Between the form and the sections, and round them.
    Outline_Description_Height : constant Float := 220.0;
    Outline_Block_Height : constant Float := 40.0;
+   Outline_Notes_Height : constant Float := 96.0;
+   --  Of a section's notes, when shown.
+   Notes_Width     : constant Float := 66.0;
    Outline_Field_Height : constant Float := 26.0;
    Outline_Button  : constant Float := 26.0;
-   Generate_Width  : constant Float := 154.0;
+   Generate_Width  : constant Float := 178.0;
+   Generate_Menu_Width : constant Float := 210.0;
    Add_Section_Width : constant Float := 116.0;
    --  Of the button that asks a model for the sections.
    Outline_Handle  : constant Float := 14.0;
@@ -112,6 +116,9 @@ private package Viewer.Style is
    Page_Head       : constant Float := 40.0;
    Section_Head_Height : constant Float := 40.0;
    Section_Empty_Height : constant Float := 100.0;
+   Notes_Min_Height : constant Float := 72.0;
+   Notes_Pad       : constant Float := 10.0;
+   --  Of the box of a section's notes in the writing view: the least the text is, and the padding round it.
    Gap_Mark_Height : constant Float := 24.0;
    Section_Bar     : constant Float := 8.0;
    Section_Before  : constant Float := 40.0;

@@ -24,6 +24,8 @@ package body Viewer.Painting is
          Canvas_Items.Sync (Item);
          if Item.Toolbar.Mode = Write then
             Writing.Fit (Item);
+            --  What was typed in a section's notes is kept.
+            Outlines.Sync (Item);
          elsif Item.Toolbar.Mode = Outline then
             Outlines.Sync (Item);
          end if;

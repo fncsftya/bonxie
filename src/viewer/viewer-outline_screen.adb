@@ -60,8 +60,43 @@ package body Viewer.Outline_Screen is
       Section_Links.Choose (Item, Row);
    end Choose_Link_Row;
 
+   function Section_Notes (Item : Session; Row : Positive) return String is
+     (Outlines.Section_Notes (Item, Row));
+
+   function Notes_Shown (Item : Session; Row : Positive) return Boolean is
+     (Outlines.Notes_Shown (Item, Row));
+
+   procedure Toggle_Notes (Item : in out Session; Row : Positive) is
+   begin
+      Outlines.Toggle_Notes (Item, Row);
+   end Toggle_Notes;
+
    function Generate_Enabled (Item : Session) return Boolean is
      (Outlines.Generate_Enabled (Item));
+
+   procedure Write_Notes_Point (Item : in out Session; Row : Positive; X, Y : out Float) is
+      Button : Pomarine.Widgets.Buttons.Button renames Item.Section_View.Heads (Row).Notes;
+      Pixels : constant Float := Pomarine.Widgets.Density (Item.Root.Widgets);
+   begin
+      X := (Pomarine.Widgets.Left_Of (Button) + Pomarine.Widgets.Width_Of (Button) / 2.0) / Pixels;
+      Y := (Pomarine.Widgets.Top_Of (Button) + Pomarine.Widgets.Height_Of (Button) / 2.0) / Pixels;
+   end Write_Notes_Point;
+
+   function Generate_Label (Item : Session) return String is
+     (Pomarine.Widgets.Buttons.Label (Item.Outline_View.Generate_Button));
+
+   function Generate_Menu_Shown (Item : Session) return Boolean is
+     (Outlines.Generate_Menu_Shown (Item));
+
+   procedure Generate_Point (Item : in out Session; Caret : Boolean; X, Y : out Float) is
+   begin
+      Outlines.Generate_Point (Item, Caret, X, Y);
+   end Generate_Point;
+
+   procedure Choose_Generate (Item : in out Session; Row : Positive) is
+   begin
+      Outlines.Choose_Generate (Item, Row);
+   end Choose_Generate;
 
    function Take_Reply (Item : in out Session; Reply : String) return Boolean is
      (Outlines.Take_Reply (Item, Reply));

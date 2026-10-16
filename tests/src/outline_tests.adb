@@ -210,6 +210,45 @@ package body Outline_Tests is
       Check ("outline-generate-ai-on", "TRUE", Boolean'Image (Outline.Generate_Enabled (Session)));
       Snap (Session, "outline-generate-enabled");
 
+      --  The button is two: the rest of it generates, its caret opens a
+      --  menu, each with a hover of its own.
+      declare
+         X, Y : Float;
+      begin
+         Check ("outline-generate-label", "Generate Sections", Outline.Generate_Label (Session));
+         Outline.Generate_Point (Session, True, X, Y);
+         Move_To (Session, X, Y);
+         Snap (Session, "outline-generate-caret-hover");
+         Press (Session, X, Y);
+         Release (Session, X, Y);
+         Settle (Session);
+         Check ("outline-generate-menu", "TRUE", Boolean'Image (Outline.Generate_Menu_Shown (Session)));
+         Snap (Session, "outline-generate-menu");
+         Outline.Generate_Point (Session, False, X, Y);
+         Move_To (Session, X, Y);
+         Snap (Session, "outline-generate-main-hover");
+         --  Pressed elsewhere, it is put away.
+         Press (Session, 100.0, 300.0);
+         Release (Session, 100.0, 300.0);
+         Check ("outline-generate-menu-away", "FALSE", Boolean'Image (Outline.Generate_Menu_Shown (Session)));
+
+         --  The choice is the button's label from then on.
+         Outline.Generate_Point (Session, True, X, Y);
+         Press (Session, X, Y);
+         Release (Session, X, Y);
+         Outline.Choose_Generate (Session, 2);
+         Check ("outline-generate-chosen-label", "Generate + Notes", Outline.Generate_Label (Session));
+         Check ("outline-generate-chosen-away", "FALSE", Boolean'Image (Outline.Generate_Menu_Shown (Session)));
+         Snap (Session, "outline-generate-chosen");
+         Outline.Choose_Generate (Session, 1);
+         Check ("outline-generate-chosen-back", "Generate Sections", Outline.Generate_Label (Session));
+      end;
+      Check ("outline-generate-none-kept", "FALSE",
+             Boolean'Image (Preferences.Load_Generate_Notes ("/tmp/bonxie-outline-generate-none")));
+      Preferences.Save_Generate_Notes ("/tmp/bonxie-outline-generate", True);
+      Check ("outline-generate-kept", "TRUE",
+             Boolean'Image (Preferences.Load_Generate_Notes ("/tmp/bonxie-outline-generate")));
+
       Proj.Close_Project (Session);
       Prefs.Open_Settings (Session);
       Prefs.Choose_Theme (Session, Preferences.Dark);
@@ -267,6 +306,60 @@ package body Outline_Tests is
       Reopen (Session);
       Check ("outline-reply-kept", "End|Start|Introduction|Middle|" & Cafe & "|", Titles (Session));
    end Replies;
+
+   procedure Notes is
+      Session : Viewer.Session;
+      Taken   : Boolean;
+   begin
+      Start (Session);
+      Outline.Add_Section (Session);
+      Type_In (Session, "Beginning");
+      Settle (Session);
+      Outline.Add_Section (Session);
+      Type_In (Session, "End");
+      Settle (Session);
+      Check ("outline-notes-hidden", "FALSE", Boolean'Image (Outline.Notes_Shown (Session, 1)));
+      Check ("outline-notes-none", "", Outline.Section_Notes (Session, 1));
+      Snap (Session, "outline-notes-closed");
+
+      --  Shown, and typed in, they are kept.
+      Outline.Toggle_Notes (Session, 1);
+      Check ("outline-notes-shown", "TRUE", Boolean'Image (Outline.Notes_Shown (Session, 1)));
+      Type_In (Session, "- Open with a story");
+      Settle (Session);
+      Check ("outline-notes-typed", "- Open with a story", Outline.Section_Notes (Session, 1));
+      Snap (Session, "outline-notes-open");
+
+      --  Hidden, they are still kept; they go with the section.
+      Outline.Toggle_Notes (Session, 1);
+      Check ("outline-notes-hid", "FALSE", Boolean'Image (Outline.Notes_Shown (Session, 1)));
+      Outline.Move_Section (Session, 1, 2);
+      Check ("outline-notes-moved", "- Open with a story", Outline.Section_Notes (Session, 2));
+      Check ("outline-notes-moved-away", "", Outline.Section_Notes (Session, 1));
+      Reopen (Session);
+      Check ("outline-notes-kept", "- Open with a story", Outline.Section_Notes (Session, 2));
+      --  A section that has notes shows them when the project is opened.
+      Check ("outline-notes-kept-shown", "TRUE", Boolean'Image (Outline.Notes_Shown (Session, 2)));
+      Check ("outline-notes-kept-empty", "FALSE", Boolean'Image (Outline.Notes_Shown (Session, 1)));
+
+      --  A reply with notes gives them to the sections that have none, and
+      --  shows them; what was written is not written over.
+      Taken := Outline.Take_Reply
+        (Session,
+         "{""sections"": [{""title"": ""End"", ""notes"": [""Sum up"", "" "", ""Look ahead""]},"
+         & " {""notes"": [""Early""], ""title"": ""Beginning""}, {""title"": ""Extra"", ""notes"": []}]}");
+      Check ("outline-notes-reply", "TRUE", Boolean'Image (Taken));
+      Check ("outline-notes-reply-order", "End|Beginning|Extra|", Titles (Session));
+      Check ("outline-notes-reply-bullets", "- Sum up" & ASCII.LF & "- Look ahead",
+            Outline.Section_Notes (Session, 1));
+      Check ("outline-notes-reply-shown", "TRUE", Boolean'Image (Outline.Notes_Shown (Session, 1)));
+      Check ("outline-notes-reply-kept", "- Open with a story", Outline.Section_Notes (Session, 2));
+      Check ("outline-notes-reply-empty", "", Outline.Section_Notes (Session, 3));
+      Snap (Session, "outline-notes-generated");
+      Reopen (Session);
+      Check ("outline-notes-reply-saved", "- Sum up" & ASCII.LF & "- Look ahead",
+            Outline.Section_Notes (Session, 1));
+   end Notes;
 
    procedure Linking is
       Session : Viewer.Session;
@@ -519,6 +612,63 @@ package body Outline_Tests is
       Reopen (Session);
       Check ("section-rename-kept", "Opening|End|", Titles (Session));
    end Section_Rows;
+
+   procedure Write_Notes is
+      Session : Viewer.Session;
+      X, Y    : Float;
+
+      procedure Click_Notes (Row : Positive) is
+      begin
+         Outline.Write_Notes_Point (Session, Row, X, Y);
+         Move_To (Session, X, Y);
+         Press (Session, X, Y);
+         Release (Session, X, Y);
+         Settle (Session);
+      end Click_Notes;
+   begin
+      Start (Session);
+      Outline.Add_Section (Session);
+      Type_In (Session, "Beginning");
+      Settle (Session);
+      Outline.Add_Section (Session);
+      Type_In (Session, "End");
+      Settle (Session);
+      Proj.Set_Mode (Session, Viewer.Canvas);
+      Windows.Add_Item (Session, "First words");
+      Outline.Open_Link_Menu (Session, 1);
+      Outline.Choose_Link_Row (Session, 2);
+      Proj.Set_Mode (Session, Viewer.Write);
+      Settle (Session);
+      Snap (Session, "write-notes-closed");
+
+      --  Shown after the heading and before the documents, and typed in.
+      Click_Notes (1);
+      Check ("write-notes-shown", "TRUE", Boolean'Image (Outline.Notes_Shown (Session, 1)));
+      Type_In (Session, "- Open with a story");
+      Settle (Session);
+      Check ("write-notes-typed", "- Open with a story", Outline.Section_Notes (Session, 1));
+      Snap (Session, "write-notes-open");
+
+      --  Put away, they are still kept.
+      Click_Notes (1);
+      Check ("write-notes-hidden", "FALSE", Boolean'Image (Outline.Notes_Shown (Session, 1)));
+      Snap (Session, "write-notes-one-hidden");
+
+      --  A section with no documents shows them above its button.
+      Viewer.Handle
+        (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_Y => -400.0, Mouse_X => 500.0,
+                                Mouse_Y => 300.0, others => <>));
+      Settle (Session);
+      Click_Notes (2);
+      Type_In (Session, "Wrap up");
+      Settle (Session);
+      Check ("write-notes-second", "Wrap up", Outline.Section_Notes (Session, 2));
+      Snap (Session, "write-notes-empty-section");
+
+      Reopen (Session);
+      Check ("write-notes-kept", "- Open with a story", Outline.Section_Notes (Session, 1));
+      Check ("write-notes-kept-second", "Wrap up", Outline.Section_Notes (Session, 2));
+   end Write_Notes;
 
    procedure Writing_Sections is
       Session : Viewer.Session;

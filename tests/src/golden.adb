@@ -1217,6 +1217,8 @@ begin
    Run ("outline-form", Outline_Tests.Form'Access);
    Run ("outline-generate", Outline_Tests.Generating'Access);
    Run ("outline-replies", Outline_Tests.Replies'Access);
+   Run ("outline-notes", Outline_Tests.Notes'Access);
+   Run ("outline-write-notes", Outline_Tests.Write_Notes'Access);
    Run ("outline-linking", Outline_Tests.Linking'Access);
    Run ("outline-naming", Outline_Tests.Naming'Access);
    Run ("outline-sidebar", Outline_Tests.Sidebar'Access);

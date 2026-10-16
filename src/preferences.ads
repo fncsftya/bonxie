@@ -56,4 +56,11 @@ package Preferences is
    procedure Save_Sidebar_Width (Config : String; To : Natural);
    --  Keep the width, making Config if need be.
 
+   function Load_Generate_Notes (Config : String) return Boolean;
+   --  Whether the outline's Generate button was last used to make the
+   --  sections with notes; False if it was not, or it cannot be read.
+
+   procedure Save_Generate_Notes (Config : String; To : Boolean);
+   --  Keep the choice, making Config if need be.
+
 end Preferences;
