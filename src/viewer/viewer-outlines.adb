@@ -1,3 +1,9 @@
+with Ada.Strings.Equal_Case_Insensitive;
+with Ada.Strings.Unbounded;
+with MLX;
+with MLX.Hub;
+with MLX.Jobs;
+with Outline_Generation;
 with Pomarine.Boxes;
 with Pomarine.Text_Areas;
 with Pomarine.Themes;
@@ -6,6 +12,7 @@ with Pomarine.Widgets.Callbacks;
 with Pomarine.Widgets.Grips;
 with Pomarine.Widgets.Labels;
 with Pomarine.Widgets.Layouts;
+with Pomarine.Widgets.Panels;
 with Pomarine.Widgets.Scrollers;
 with Pomarine.Widgets.Text_Fields;
 with Texts.Documents;
@@ -20,6 +27,7 @@ package body Viewer.Outlines is
    package Buttons renames Pomarine.Widgets.Buttons;
    package Grips renames Pomarine.Widgets.Grips;
    package Labels renames Pomarine.Widgets.Labels;
+   package Panels renames Pomarine.Widgets.Panels;
    package Scrollers renames Pomarine.Widgets.Scrollers;
    package Text_Fields renames Pomarine.Widgets.Text_Fields;
    package Docs renames Texts.Documents;
@@ -27,6 +35,7 @@ package body Viewer.Outlines is
 
    use type Docs.Version;
    use type Projects.Id;
+   use type MLX.Jobs.States;
 
    Untitled_Section : constant String := "Untitled section";
 
@@ -79,6 +88,9 @@ package body Viewer.Outlines is
      (Projects.Sections.Title_Texts.To_String
         (Item.Outline_View.Order.Items (Which).Title));
 
+   function Section_At (Item : Session; Which : Positive) return Projects.Sections.Section is
+     (Item.Outline_View.Order.Items (Which));
+
    --  What is shown
 
    procedure Style_Blocks (Item : in out Session);
@@ -112,6 +124,19 @@ package body Viewer.Outlines is
                  (Block.Doc,
                   Projects.Sections.Title_Texts.To_String (View.Order.Items (Each).Title));
                Block.Seen := Docs.Current (Block.Doc);
+            end if;
+            if Each <= View.Order.Count then
+               declare
+                  Section : constant Projects.Sections.Section := View.Order.Items (Each);
+                  Ink     : constant Pomarine.Themes.Slot := Style.Section_Ink (Section.Colour);
+               begin
+                  if Section.Linked /= 0 then
+                     Panels.Set_Fill (Block.Swatch, Ink);
+                  else
+                     Panels.Set_Fill (Block.Swatch, Pomarine.Themes.Page);
+                  end if;
+                  Panels.Set_Border (Block.Swatch, Ink);
+               end;
             end if;
             Widgets.Set_Visible (Block.Row, Each <= View.Order.Count);
             Buttons.Set_Enabled (Block.Up, Each > 1);
@@ -280,9 +305,37 @@ package body Viewer.Outlines is
       end if;
    end Load_Form;
 
+   procedure Show_Generate (Item : in out Session);
+   --  The button is on while AI is on and the model is not being asked.
+
+   procedure Show_Note (Item : in out Session; Words : String; Ink : Pomarine.Themes.Slot);
+   --  Say Words, as much as fits, under the heading in Ink; nothing if "".
+
+   procedure Show_Note (Item : in out Session; Words : String; Ink : Pomarine.Themes.Slot) is
+      View : Outline_Parts renames Item.Outline_View;
+   begin
+      Labels.Set_Text (View.Generate_Error, Labels.Fitted (Words));
+      Labels.Set_Ink (View.Generate_Error, Ink);
+      Widgets.Set_Visible (View.Generate_Error, Words /= "");
+   end Show_Note;
+
+   procedure Reload (Item : in out Session) is
+      View : Outline_Parts renames Item.Outline_View;
+   begin
+      if Item.Toolbar.Mode = Outline then
+         Sync (Item);
+      end if;
+      Projects.Sections.Load (Item.Nav.Store, Item.Opened.Current, View.Order);
+      Show_Blocks (Item);
+      Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
+   end Reload;
+
    procedure Enter (Item : in out Session) is
       View : Outline_Parts renames Item.Outline_View;
    begin
+      if View.Generate_Tries = 0 then
+         Show_Note (Item, "", Style.Quiet_Ink);
+      end if;
       View.Drag_Block := 0;
       View.Drag_Moved := False;
       View.Drop_Before := 0;
@@ -290,6 +343,7 @@ package body Viewer.Outlines is
       Projects.Sections.Load (Item.Nav.Store, Item.Opened.Current, View.Order);
       Show_Blocks (Item);
       Show_Drop_Line (Item);
+      Show_Generate (Item);
    end Enter;
 
    procedure Leave (Item : in out Session) is
@@ -311,6 +365,7 @@ package body Viewer.Outlines is
       Result : Projects.Project;
    begin
       Sync (Item);
+      Show_Generate (Item);
       --  The project may have been renamed on the toolbar.
       Projects.Find (Item.Nav.Store, Item.Opened.Current, Found, Result);
       if Found
@@ -335,10 +390,9 @@ package body Viewer.Outlines is
          Key : constant Projects.Sections.Section_Id :=
            Projects.Sections.Add (Item.Nav.Store, Item.Opened.Current, Untitled_Section);
       begin
-         View.Order.Count := View.Order.Count + 1;
-         View.Order.Items (View.Order.Count) :=
-           (Key   => Key,
-            Title => Projects.Sections.Title_Texts.To_Bounded_String (Untitled_Section));
+         pragma Unreferenced (Key);
+         --  As kept, with the colour it was given.
+         Projects.Sections.Load (Item.Nav.Store, Item.Opened.Current, View.Order);
       end;
       Show_Blocks (Item);
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
@@ -390,7 +444,230 @@ package body Viewer.Outlines is
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
    end Remove_Section;
 
+   --  Asking the model
+
+   function Generating (Item : Session) return Boolean is (Item.Outline_View.Generate_Tries > 0);
+
+   function Generate_Enabled (Item : Session) return Boolean is
+     (Buttons.Is_Enabled (Item.Outline_View.Generate_Button));
+
+   procedure Show_Generate (Item : in out Session) is
+      View : Outline_Parts renames Item.Outline_View;
+      Want : constant Boolean := Item.Prefs.AI_On and then not Generating (Item);
+   begin
+      if Buttons.Is_Enabled (View.Generate_Button) /= Want then
+         Buttons.Set_Enabled (View.Generate_Button, Want);
+      end if;
+   end Show_Generate;
+
+   procedure Apply (Item : in out Session; Wanted : Projects.Sections.Section_List)
+     with Pre => Item.Opened.Current /= 0 and then Wanted.Count > 0;
+   --  Make the outline the sections of Wanted, in order. A section that is
+   --  already there, by its title, is kept, as it is; those the model left
+   --  out go after the rest, and are not lost.
+
+   procedure Apply (Item : in out Session; Wanted : Projects.Sections.Section_List) is
+      package Sects renames Projects.Sections;
+      View  : Outline_Parts renames Item.Outline_View;
+      Owner : constant Projects.Id := Item.Opened.Current;
+      Have  : Sects.Section_List;
+      Taken : array (1 .. Sects.Max_Sections) of Boolean := [others => False];
+      Match : array (1 .. Wanted.Count) of Natural := [others => 0];
+      Kept  : Natural := 0;
+      Added : Natural := 0;
+      Keys  : Sects.Key_Array (1 .. Sects.Max_Sections);
+      Total : Natural := 0;
+   begin
+      if Item.Toolbar.Mode = Outline then
+         Sync (Item);
+      end if;
+      Sects.Load (Item.Nav.Store, Owner, Have);
+      for Each in 1 .. Wanted.Count loop
+         for Other in 1 .. Have.Count loop
+            if not Taken (Other)
+              and then Ada.Strings.Equal_Case_Insensitive
+                         (Sects.Title_Texts.To_String (Have.Items (Other).Title),
+                          Sects.Title_Texts.To_String (Wanted.Items (Each).Title))
+            then
+               Taken (Other) := True;
+               Match (Each) := Other;
+               Kept := Kept + 1;
+               exit;
+            end if;
+         end loop;
+      end loop;
+      declare
+         Room : constant Integer := Sects.Max_Sections - Have.Count;
+         --  Of the sections to add, as many as fit with all that are there.
+      begin
+         for Each in 1 .. Wanted.Count loop
+            if Match (Each) /= 0 then
+               Total := Total + 1;
+               Keys (Total) := Have.Items (Match (Each)).Key;
+            elsif Added < Room then
+               Added := Added + 1;
+               Total := Total + 1;
+               Keys (Total) :=
+                 Sects.Add (Item.Nav.Store, Owner, Sects.Title_Texts.To_String (Wanted.Items (Each).Title));
+            end if;
+         end loop;
+      end;
+      for Each in 1 .. Have.Count loop
+         if not Taken (Each) then
+            Total := Total + 1;
+            Keys (Total) := Have.Items (Each).Key;
+         end if;
+      end loop;
+      pragma Assert (Total <= Sects.Max_Sections and then Kept <= Have.Count);
+      Sects.Set_Order (Item.Nav.Store, Owner, Keys (1 .. Total));
+      --  The blocks now show other sections: nothing is typed in one.
+      Widgets.Clear_Focus (Item.Root.Widgets);
+      Sects.Load (Item.Nav.Store, Owner, View.Order);
+      Show_Blocks (Item);
+      Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
+   end Apply;
+
+   function Take_Reply (Item : in out Session; Reply : String) return Boolean is
+      Parsed : Projects.Sections.Section_List;
+      Valid  : Boolean;
+   begin
+      Outline_Generation.Parse (Reply, Parsed, Valid);
+      if Valid then
+         Apply (Item, Parsed);
+      end if;
+      return Valid;
+   end Take_Reply;
+
+   procedure Start_Try (Item : in out Session);
+   --  Ask the model, thinking first, for the outline.
+
+   procedure Start_Try (Item : in out Session) is
+      View : Outline_Parts renames Item.Outline_View;
+   begin
+      MLX.Jobs.Start
+        (View.Generate_Job,
+         Ada.Strings.Unbounded.To_String (View.Generate_Folder),
+         Ada.Strings.Unbounded.To_String (View.Generate_Prompt),
+         Outline_Generation.System_Prompt,
+         Tuning => (Max_Tokens => Outline_Generation.Tokens, Temperature => 0.6, Thinking => MLX.On,
+                    others => <>));
+   exception
+      when MLX.Jobs.Capacity_Error =>
+         View.Generate_Tries := 0;
+         Show_Note (Item, "The AI is busy, try again", Pomarine.Themes.Danger_Ink);
+   end Start_Try;
+
+   procedure Give_Up (Item : in out Session; Words : String);
+   --  The work is over, and did not come out: say why.
+
+   procedure Give_Up (Item : in out Session; Words : String) is
+   begin
+      Item.Outline_View.Generate_Tries := 0;
+      Show_Note (Item, Words, Pomarine.Themes.Danger_Ink);
+   end Give_Up;
+
+   procedure Generate_Sections (Item : in out Session) is
+      View   : Outline_Parts renames Item.Outline_View;
+      Name   : constant String := Ada.Strings.Unbounded.To_String (Item.Prefs.AI_Model);
+      Folder : constant String := (if Name = "" then "" else MLX.Hub.Snapshot (Name));
+      Reason : constant String :=
+        (if Name = "" then "Choose an AI model in Settings"
+         elsif Folder = "" then "The AI model is not in the cache"
+         elsif Folder'Length > MLX.Max_Path then "The model's folder is too deep"
+         else MLX.Problem (Folder));
+   begin
+      if not Item.Prefs.AI_On or else Generating (Item) then
+         return;
+      end if;
+      if Reason /= "" then
+         Show_Note (Item, Reason, Pomarine.Themes.Danger_Ink);
+         return;
+      end if;
+      Sync (Item);
+      View.Generate_Project := Item.Opened.Current;
+      View.Generate_Folder := Ada.Strings.Unbounded.To_Unbounded_String (Folder);
+      View.Generate_Prompt :=
+        Ada.Strings.Unbounded.To_Unbounded_String
+          (Outline_Generation.Prompt
+             (Trimmed (Docs.Whole (View.Name_Doc)), Docs.Whole (View.Desc_Doc), View.Order));
+      View.Generate_Tries := 1;
+      Show_Note (Item, "Generating sections, this can take a while", Style.Quiet_Ink);
+      Start_Try (Item);
+      Show_Generate (Item);
+   end Generate_Sections;
+
+   procedure Finish_Try (Item : in out Session);
+   --  The model has replied: use the sections, or ask again.
+
+   procedure Finish_Try (Item : in out Session) is
+      View  : Outline_Parts renames Item.Outline_View;
+      Reply : constant String := MLX.Jobs.Text (View.Generate_Job);
+   begin
+      MLX.Jobs.Reset (View.Generate_Job);
+      if Item.Opened.Current /= View.Generate_Project then
+         View.Generate_Tries := 0;
+         Show_Note (Item, "", Style.Quiet_Ink);
+      elsif Take_Reply (Item, Reply) then
+         View.Generate_Tries := 0;
+         Show_Note (Item, "", Style.Quiet_Ink);
+      elsif View.Generate_Tries < Outline_Generation.Max_Tries then
+         View.Generate_Tries := View.Generate_Tries + 1;
+         Start_Try (Item);
+      else
+         Give_Up
+           (Item,
+            "No outline after" & Outline_Generation.Max_Tries'Image & " tries, try again");
+      end if;
+   end Finish_Try;
+
+   procedure Update (Item : in out Session) is
+      View : Outline_Parts renames Item.Outline_View;
+   begin
+      if Generating (Item) then
+         case MLX.Jobs.State (View.Generate_Job) is
+            when MLX.Jobs.Idle =>
+               View.Generate_Tries := 0;
+            when MLX.Jobs.Running =>
+               if Item.Opened.Current /= View.Generate_Project then
+                  MLX.Jobs.Cancel (View.Generate_Job);
+               end if;
+            when MLX.Jobs.Done =>
+               Finish_Try (Item);
+            when MLX.Jobs.Failed =>
+               declare
+                  Why : constant String := MLX.Jobs.Text (View.Generate_Job);
+               begin
+                  MLX.Jobs.Reset (View.Generate_Job);
+                  if Item.Opened.Current = View.Generate_Project then
+                     Give_Up (Item, (if Why = "" then "The AI could not make the outline" else Why));
+                  else
+                     View.Generate_Tries := 0;
+                     Show_Note (Item, "", Style.Quiet_Ink);
+                  end if;
+               end;
+            when MLX.Jobs.Cancelled =>
+               MLX.Jobs.Reset (View.Generate_Job);
+               View.Generate_Tries := 0;
+               Show_Note (Item, "", Style.Quiet_Ink);
+         end case;
+      end if;
+      Show_Generate (Item);
+   end Update;
+
    --  What the widgets say
+
+   procedure Generate_Clicked
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
+
+   procedure Generate_Clicked
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source, Event);
+   begin
+      if In_Outline (Item) then
+         Generate_Sections (Item);
+      end if;
+   end Generate_Clicked;
 
    procedure Add_Clicked
      (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
@@ -579,6 +856,7 @@ package body Viewer.Outlines is
       end Hear;
    begin
       Hear (Item.Outline_View.Add_Button, Click, Add_Clicked'Access);
+      Hear (Item.Outline_View.Generate_Button, Click, Generate_Clicked'Access);
       for Each in Item.Outline_View.Blocks'Range loop
          declare
             Block : Section_Block renames Item.Outline_View.Blocks (Each);

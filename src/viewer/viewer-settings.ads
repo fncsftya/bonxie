@@ -38,6 +38,11 @@ package Viewer.Settings is
           Post => Preferences."=" (Theme_Choice (Item), To);
    --  Choose it, as its radio does.
 
+   procedure Choose_AI_Enabled (Item : in out Session; To : Boolean)
+     with Pre  => Is_Open (Item) and then Is_Settings_Open (Item),
+          Post => AI_Enabled (Item) = To;
+   --  Switch the language model on or off, as its switch does.
+
    function AI_Enabled (Item : Session) return Boolean
      with Pre => Is_Open (Item);
    --  Whether the local language model is switched on.

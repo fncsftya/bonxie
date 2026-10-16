@@ -1,4 +1,5 @@
 with Items.Links;
+with Projects.Sections;
 with Pomarine.Themes;
 
 --  How the screens look: the sizes of what is on them, and its colours.
@@ -85,6 +86,9 @@ private package Viewer.Style is
    Outline_Block_Height : constant Float := 40.0;
    Outline_Field_Height : constant Float := 26.0;
    Outline_Button  : constant Float := 26.0;
+   Generate_Width  : constant Float := 154.0;
+   Add_Section_Width : constant Float := 116.0;
+   --  Of the button that asks a model for the sections.
    Outline_Handle  : constant Float := 14.0;
 
    Drop_Line_Height : constant Float := 2.0;
@@ -102,6 +106,10 @@ private package Viewer.Style is
    Sources_Width   : constant Float := 120.0;
    Bar_Button_Height : constant Float := 26.0;
    Mic_Width       : constant Float := Bar_Button_Height;
+   Outline_Link_Width : constant Float := 90.0;
+   Section_Swatch  : constant Float := 12.0;
+   --  Of the dropdown to link a document to the outline, and of the square
+   --  of its section's colour before the title.
    Mic_Icon_Size   : constant Float := 13.0;
    --  The button to dictate is as tall as the Sources button.
    Menu_Width      : constant Float := 240.0;
@@ -220,6 +228,18 @@ private package Viewer.Style is
    Source_Count : constant := 8;
    Source_First : constant := 5;
    --  Offset of Source_1 among the application's slots.
+
+   Section_First : constant := Source_First + Source_Count;
+   --  Offset of Section_Inks (0) among the application's slots.
+
+   Section_Inks : constant array (Projects.Sections.Colour_Index) of Pomarine.Themes.Slot :=
+     [for K in Projects.Sections.Colour_Index => Pomarine.Themes.Custom (Section_First + K)];
+   --  The pastel colours that tell the outline's sections apart, drawn
+   --  light on the light theme and softer on the dark (see Make), in
+   --  hues that are far apart from one to the next.
+
+   function Section_Ink (Colour : Projects.Sections.Colour_Index) return Pomarine.Themes.Slot is
+     (Section_Inks (Colour));
 
    Toolbar : constant Pomarine.Themes.Slot := Pomarine.Themes.Bar;
    --  The dark bars: across the top, and of the windows' titles.

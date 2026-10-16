@@ -1,0 +1,344 @@
+with Items;
+with Projects;
+with Pomarine.Boxes;
+with Pomarine.Widgets.Buttons;
+with Pomarine.Widgets.Callbacks;
+with Pomarine.Widgets.Labels;
+with Pomarine.Widgets.Layouts;
+with Pomarine.Widgets.Menus;
+with Projects.Sections;
+with Viewer.Canvas_Items;
+with Viewer.Style;
+with Icon_Set;
+
+package body Viewer.Section_Links is
+
+   package Widgets renames Pomarine.Widgets;
+   package Layouts renames Pomarine.Widgets.Layouts;
+   package Menus renames Pomarine.Widgets.Menus;
+   package Labels renames Pomarine.Widgets.Labels;
+   package Hooks is new Pomarine.Widgets.Callbacks (Session);
+
+   use type Items.Kinds;
+
+   subtype Source_Widget is Widgets.Widget'Class;
+
+   Heading_Text : constant String := "LINK TO OUTLINE";
+   Menu_Wide    : constant Float := 220.0;
+   Max_Menu     : constant Float := 320.0;
+   Min_Height   : constant Float := 80.0;
+   --  Of the menu, in points: the most it is as tall as, and the least it
+   --  is held to when there is little room.
+
+   function Section_Of (Item : Session; Which : Items.Slot) return Natural is
+      Key : constant Long_Integer := Long_Integer (Items.Windows.Details (Item.Windows (Which)).Key);
+   begin
+      for Each in 1 .. Outlines.Section_Count (Item) loop
+         if Outlines.Section_At (Item, Each).Linked = Key then
+            return Each;
+         end if;
+      end loop;
+      return 0;
+   end Section_Of;
+
+   function Ink_Of (Item : Session; Section : Positive) return Pomarine.Themes.Slot is
+     (Style.Section_Ink (Outlines.Section_At (Item, Section).Colour));
+
+   function Is_Shown (Item : Session) return Boolean is (Item.Section_Menu.Which /= 0);
+
+   function Is_Open_For (Item : Session; Which : Items.Slot) return Boolean is
+     (Item.Section_Menu.Which = Which);
+
+   function Changes (Item : Session) return Natural is (Item.Section_Menu.Changes);
+
+   procedure Close (Item : in out Session) is
+   begin
+      Item.Section_Menu.Which := 0;
+      Item.Section_Menu.Page := 0;
+      Widgets.Set_Visible (Item.Section_Menu.Menu, False);
+   end Close;
+
+   procedure Place (Item : in out Session);
+   --  Put the menu by its button: above it on the canvas, where the
+   --  button is at the foot of a window, and below it on a page.
+
+   procedure Place (Item : in out Session) is
+      Parts  : Section_Menu_Parts renames Item.Section_Menu;
+      Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
+      Edge   : constant Float := Pomarine.Boxes.Offset (Pixels);
+      Box    : constant Items.Frame :=
+        (if Parts.Page = 0
+         then Items.Windows.Outline_Box (Item.Windows (Parts.Which))
+         else (Left   => Widgets.Left_Of (Item.Docs.Pages (Parts.Page).Outline_Button),
+               Top    => Widgets.Top_Of (Item.Docs.Pages (Parts.Page).Outline_Button),
+               Width  => Widgets.Width_Of (Item.Docs.Pages (Parts.Page).Outline_Button),
+               Height => Widgets.Height_Of (Item.Docs.Pages (Parts.Page).Outline_Button)));
+      Wide   : constant Float := Menu_Wide * Pixels;
+      Full   : constant Float := Menus.Height_For (Parts.Menu) * Pixels;
+      Gap    : constant Float := Style.Menu_Gap * Pixels;
+      Panel_Top : constant Float := Widgets.Top_Of (Item.Toolbar.Content_Panel);
+      Panel_Left : constant Float := Widgets.Left_Of (Item.Toolbar.Content_Panel);
+      Panel_Wide : constant Float := Widgets.Width_Of (Item.Toolbar.Content_Panel);
+      --  What the menu has room in: above the button, or below it; never
+      --  over it.
+      Above  : constant Float := Float'Max (0.0, Box.Top - Panel_Top - Gap);
+      Below  : constant Float :=
+        Float'Max (0.0, Panel_Top + Widgets.Height_Of (Item.Toolbar.Content_Panel) - (Box.Top + Box.Height) - Gap);
+      Up     : constant Boolean :=
+        (if Above >= Full and then Below >= Full then Parts.Page = 0
+         elsif Above >= Full then True
+         elsif Below >= Full then False
+         else Above > Below);
+      --  Where the window is nearer an edge it opens from: the way with
+      --  room for all of it, the one it is for if both have, or else the
+      --  roomier, with the rows scrolled.
+      Room   : constant Float := Float'Min (Max_Menu * Pixels, (if Up then Above else Below));
+      Before : constant Float := Menus.Shown_Height (Parts.Menu);
+      Left   : constant Float :=
+        Float'Max (0.0, Float'Min (Box.Left + Box.Width + Edge - Wide - Panel_Left, Panel_Wide - Wide));
+   begin
+      Menus.Set_Max_Height
+        (Parts.Menu, (if Full <= Room then 0.0 else Float'Max (Min_Height, Room / Pixels)));
+      if Menus.Shown_Height (Parts.Menu) /= Before then
+         Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
+      end if;
+      declare
+         High : constant Float := Menus.Shown_Height (Parts.Menu) * Pixels;
+         Top  : constant Float :=
+           Float'Max (0.0, (if Up then Box.Top - Gap - High else Box.Top + Box.Height + Gap) - Panel_Top);
+      begin
+         if Float'Rounding (Left) /= Parts.Left or else Float'Rounding (Top) /= Parts.Top then
+            Parts.Left := Float'Rounding (Left);
+            Parts.Top := Float'Rounding (Top);
+            Layouts.Set_Layout
+              (Parts.Menu,
+               Position => (Left => Parts.Left, Top => Parts.Top, others => <>),
+               Unit => Layouts.Device_Pixels);
+            Layouts.Set_Layout (Parts.Menu, Width => Menu_Wide);
+            Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
+         end if;
+      end;
+   end Place;
+
+   procedure Open (Item : in out Session; Which : Items.Slot; Page : Natural := 0) is
+      Parts : Section_Menu_Parts renames Item.Section_Menu;
+      Key   : constant Long_Integer := Long_Integer (Items.Windows.Details (Item.Windows (Which)).Key);
+      Total : constant Natural := Outlines.Section_Count (Item);
+      Own   : Natural := 0;
+   begin
+      if Parts.Which = Which and then Parts.Page = Page then
+         Close (Item);
+         return;
+      end if;
+      Close (Item);
+      Menus.Clear (Parts.Menu);
+      Menus.Add (Parts.Menu, Menus.Heading, Heading_Text);
+      Parts.Rows := [others => 0];
+      Parts.Remove := 0;
+      for Each in 1 .. Total loop
+         declare
+            Section : constant Projects.Sections.Section := Outlines.Section_At (Item, Each);
+            Row     : Positive;
+         begin
+            Menus.Add
+              (Parts.Menu, Menus.Check,
+               Labels.Fitted (Projects.Sections.Title_Texts.To_String (Section.Title)),
+               Checked => Section.Linked = Key);
+            Row := Menus.Row_Count (Parts.Menu);
+            Menus.Set_Swatch (Parts.Menu, Row, Style.Section_Ink (Section.Colour));
+            --  Faint, if it is another item's.
+            Menus.Set_Enabled (Parts.Menu, Row, Section.Linked = 0 or else Section.Linked = Key);
+            Parts.Rows (Row) := Each;
+            if Section.Linked = Key then
+               Own := Each;
+            end if;
+         end;
+      end loop;
+      if Total = 0 then
+         Menus.Add (Parts.Menu, Menus.Note, "No sections yet");
+      end if;
+      if Own /= 0 then
+         Menus.Add (Parts.Menu, Menus.Separator);
+         Menus.Add (Parts.Menu, Menus.Action, "Remove link");
+         Menus.Set_Icon (Parts.Menu, Menus.Row_Count (Parts.Menu), Icon_Set.Delete);
+         Parts.Remove := Menus.Row_Count (Parts.Menu);
+      end if;
+      Parts.Which := Which;
+      Parts.Page := Page;
+      Parts.Left := -1.0E9;
+      Widgets.Set_Visible (Parts.Menu, True);
+      Widgets.Raise_To_Front (Parts.Menu);
+      Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
+      Place (Item);
+      if Own /= 0 then
+         Menus.Reveal (Parts.Menu, Own + 1);
+      end if;
+   end Open;
+
+   function Row_Count (Item : Session) return Natural is (Menus.Row_Count (Item.Section_Menu.Menu));
+
+   function Row_Enabled (Item : Session; Row : Positive) return Boolean is
+     (Menus.Is_Enabled (Item.Section_Menu.Menu, Row));
+
+   function Row_Checked (Item : Session; Row : Positive) return Boolean is
+     (Menus.Is_Checked (Item.Section_Menu.Menu, Row));
+
+   procedure Name_After
+     (Item : in out Session; Which : Items.Slot; Section : Projects.Sections.Section);
+   --  Give the item the section's name, if it has none of its own: it is
+   --  untitled, or called as a section is.
+
+   procedure Name_After
+     (Item : in out Session; Which : Items.Slot; Section : Projects.Sections.Section)
+   is
+      Own   : constant String := Projects.Titles.To_String (Items.Windows.Details (Item.Windows (Which)).Title);
+      Name  : constant String := Projects.Sections.Title_Texts.To_String (Section.Title);
+      Most  : constant := 64;
+      Last  : Natural := Natural'Min (Name'Length, Most);
+      Named : Boolean := Own = Canvas_Items.Untitled or else Own = Canvas_Items.Untitled_Document;
+   begin
+      for Each in 1 .. Outlines.Section_Count (Item) loop
+         Named := Named
+           or else Projects.Sections.Title_Texts.To_String (Outlines.Section_At (Item, Each).Title) = Own;
+      end loop;
+      if Named and then Name /= "" and then Name /= Own then
+         while Last > 0 and then Last < Name'Length
+           and then Character'Pos (Name (Name'First + Last)) in 16#80# .. 16#BF#
+         loop
+            Last := Last - 1;
+         end loop;
+         Items.Windows.Set_Title_Text (Item.Windows (Which), Name (Name'First .. Name'First + Last - 1));
+      end if;
+   end Name_After;
+
+   procedure Choose (Item : in out Session; Row : Positive) is
+      Parts : Section_Menu_Parts renames Item.Section_Menu;
+   begin
+      if Parts.Which = 0 or else not Menus.Is_Enabled (Parts.Menu, Row) then
+         return;
+      end if;
+      declare
+         Which   : constant Items.Slot := Parts.Which;
+         Key     : constant Long_Integer := Long_Integer (Items.Windows.Details (Item.Windows (Which)).Key);
+         Section : constant Natural :=
+           (if Row in Parts.Rows'Range then Parts.Rows (Row) else 0);
+         Own     : constant Natural := Section_Of (Item, Which);
+      begin
+         if Section /= 0 then
+            declare
+               Picked : constant Projects.Sections.Section := Outlines.Section_At (Item, Section);
+            begin
+               if Picked.Linked = Key then
+                  Projects.Sections.Unlink (Item.Nav.Store, Picked.Key);
+               elsif Picked.Linked = 0 then
+                  Projects.Sections.Link (Item.Nav.Store, Picked.Key, Key);
+                  Name_After (Item, Which, Picked);
+               else
+                  return;
+               end if;
+            end;
+         elsif Row = Parts.Remove and then Own /= 0 then
+            Projects.Sections.Unlink (Item.Nav.Store, Outlines.Section_At (Item, Own).Key);
+         else
+            return;
+         end if;
+         Parts.Changes := Parts.Changes + 1;
+         Close (Item);
+         Outlines.Reload (Item);
+         Update (Item);
+      end;
+   end Choose;
+
+   procedure Chosen
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
+
+   procedure Chosen
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source);
+   begin
+      if Item.Section_Menu.Which /= 0 and then Event.Row /= 0 then
+         Choose (Item, Event.Row);
+      end if;
+   end Chosen;
+
+   procedure Page_Clicked
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
+
+   procedure Page_Clicked
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source);
+      Rank : constant Natural := Event.Index;
+   begin
+      if Rank in 1 .. Item.Reading.Write_Count then
+         Open (Item, Item.Reading.Write_Order (Rank), Page => Rank);
+      end if;
+   end Page_Clicked;
+
+   procedure Listen (Item : in out Session) is
+      use all type Widgets.Event_Kind;
+   begin
+      Hooks.On (Item.Section_Menu.Menu, Choose, Item'Unchecked_Access, Chosen'Access);
+      for Rank in Items.Slot loop
+         Widgets.Set_Tag (Item.Docs.Pages (Rank).Outline_Button, Widgets.No_Tag, Rank);
+         Hooks.On (Item.Docs.Pages (Rank).Outline_Button, Click, Item'Unchecked_Access, Page_Clicked'Access);
+      end loop;
+   end Listen;
+
+   procedure Update (Item : in out Session) is
+      Parts : Section_Menu_Parts renames Item.Section_Menu;
+   begin
+      for Which in Items.Slot loop
+         if Items.Windows.Is_Assigned (Item.Windows (Which))
+           and then Items.Windows.Details (Item.Windows (Which)).Kind = Items.Note
+         then
+            declare
+               Section : constant Natural := Section_Of (Item, Which);
+            begin
+               Items.Windows.Set_Outline_Link
+                 (Item.Windows (Which),
+                  Linked => Section /= 0,
+                  Ink    => (if Section /= 0 then Ink_Of (Item, Section) else Pomarine.Themes.Border),
+                  Open   => Parts.Which = Which and then Parts.Page = 0);
+            end;
+         end if;
+      end loop;
+      for Rank in 1 .. Item.Reading.Write_Count loop
+         Pomarine.Widgets.Buttons.Set_Selected
+           (Item.Docs.Pages (Rank).Outline_Button, Parts.Which /= 0 and then Parts.Page = Rank);
+      end loop;
+      if Parts.Which /= 0 then
+         if not Items.Windows.Is_Assigned (Item.Windows (Parts.Which)) then
+            Close (Item);
+         else
+            Place (Item);
+         end if;
+      end if;
+   end Update;
+
+   procedure Pressed (Item : in out Session; X, Y : Float) is
+      Parts  : Section_Menu_Parts renames Item.Section_Menu;
+      Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
+   begin
+      if Parts.Which = 0 or else Widgets.Contains (Parts.Menu, X * Pixels, Y * Pixels) then
+         return;
+      end if;
+      --  Its own button, pressed, is to put it away when clicked.
+      if Parts.Page = 0 then
+         declare
+            Box : constant Items.Frame := Items.Windows.Outline_Box (Item.Windows (Parts.Which));
+         begin
+            if X * Pixels in Box.Left .. Box.Left + Box.Width
+              and then Y * Pixels in Box.Top .. Box.Top + Box.Height
+            then
+               return;
+            end if;
+         end;
+      elsif Widgets.Contains (Item.Docs.Pages (Parts.Page).Outline_Button, X * Pixels, Y * Pixels) then
+         return;
+      end if;
+      Close (Item);
+   end Pressed;
+
+end Viewer.Section_Links;

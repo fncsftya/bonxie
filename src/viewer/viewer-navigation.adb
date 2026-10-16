@@ -7,6 +7,7 @@ with Pomarine.Widgets.Text_Fields;
 with Viewer.Canvas_Items;
 with Viewer.Gestures;
 with Viewer.Outlines;
+with Viewer.Section_Links;
 with Viewer.Recent;
 with Viewer.Writing;
 
@@ -128,6 +129,7 @@ package body Viewer.Navigation is
       if Item.Toolbar.Renaming then
          Finish_Rename (Item);
       end if;
+      Section_Links.Close (Item);
       Outlines.Leave (Item);
       Writing.Leave (Item);
       Canvas_Items.Leave (Item);

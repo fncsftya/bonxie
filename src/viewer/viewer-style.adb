@@ -14,6 +14,36 @@ package body Viewer.Style is
       (16#A2#, 16#3B#, 16#72#, 255),   --  plum
       (16#5B#, 16#6B#, 16#2F#, 255)];  --  olive
 
+   function Pastel (Colour : Projects.Sections.Colour_Index; Dark : Boolean) return Themes.Color;
+   --  The Colourth of the sections' colours: a hue round the wheel, the
+   --  neighbours far apart, light and clear on the light theme, softer
+   --  and deeper on the dark.
+
+   function Pastel (Colour : Projects.Sections.Colour_Index; Dark : Boolean) return Themes.Color is
+      Hue        : constant Float := Float ((Colour * 150) mod 360);
+      Saturation : constant Float := (if Dark then 0.42 else 0.62);
+      Lightness  : constant Float := (if Dark then 0.55 else 0.80);
+      Chroma     : constant Float := (1.0 - abs (2.0 * Lightness - 1.0)) * Saturation;
+      Sector     : constant Float := Hue / 60.0;
+      Second     : constant Float := Chroma * (1.0 - abs (Float'Remainder (Sector, 2.0) - 1.0));
+      Shift      : constant Float := Lightness - Chroma / 2.0;
+      R, G, B    : Float;
+
+      function Byte (Value : Float) return SDL3.Windows.Renderers.Color_Component is
+        (SDL3.Windows.Renderers.Color_Component
+           (Float'Rounding (Float'Min (1.0, Float'Max (0.0, Value + Shift)) * 255.0)));
+   begin
+      case Integer (Float'Floor (Sector)) is
+         when 0      => R := Chroma; G := Second; B := 0.0;
+         when 1      => R := Second; G := Chroma; B := 0.0;
+         when 2      => R := 0.0;    G := Chroma; B := Second;
+         when 3      => R := 0.0;    G := Second; B := Chroma;
+         when 4      => R := Second; G := 0.0;    B := Chroma;
+         when others => R := Chroma; G := 0.0;    B := Second;
+      end case;
+      return (Byte (R), Byte (G), Byte (B), 255);
+   end Pastel;
+
    function Make (Dark : Boolean) return Themes.Theme is
       Base : constant Themes.Theme := (if Dark then Themes.Dark else Themes.Light);
       Back : constant Themes.Color := Base (Themes.Background);
@@ -28,6 +58,9 @@ package body Viewer.Style is
          Themes.Set_Custom (Result, Source_First, (if Dark then Source_Blue_Dark else Source_Blue_Light));
          for K in Other_Sources'Range loop
             Themes.Set_Custom (Result, Source_First + K - 1, Other_Sources (K));
+         end loop;
+         for K in Projects.Sections.Colour_Index loop
+            Themes.Set_Custom (Result, Section_First + K, Pastel (K, Dark));
          end loop;
       end return;
    end Make;

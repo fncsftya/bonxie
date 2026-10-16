@@ -270,6 +270,14 @@ private
       --  linked to, and shows how many.
       Mic_Button : Pomarine.Widgets.Buttons.Button;
       --  Starts and stops dictating into the document.
+      Outline_Button : Pomarine.Widgets.Buttons.Button;
+      --  A dropdown: opens the menu of the outline's sections, to make
+      --  the document the one a section is read from.
+      Swatch  : Pomarine.Widgets.Panels.Panel;
+      --  Before the title: the colour of the section the document is the
+      --  own of, if it is.
+      Swatch_Shown : Natural := 0;
+      --  How it was last shown: 0 for none, else 1 and the colour.
       Sheet   : Pomarine.Widgets.Panels.Panel;
       --  The white page.
       Text    : Pomarine.Widgets.Editors.Editor;
@@ -734,6 +742,9 @@ private
       Row    : Pomarine.Widgets.Grips.Grip;
       --  The block, which is dragged by anywhere but its field and buttons.
       Handle : Pomarine.Widgets.Labels.Label;
+      Swatch : Pomarine.Widgets.Panels.Panel;
+      --  The section's colour: a square, filled once an item is its own,
+      --  and only outlined before.
       Field  : Pomarine.Widgets.Text_Fields.Text_Field;
       Up     : Pomarine.Widgets.Buttons.Button;
       Down   : Pomarine.Widgets.Buttons.Button;
@@ -765,6 +776,18 @@ private
       Head        : Pomarine.Widgets.Panels.Panel;
       Heading     : Pomarine.Widgets.Labels.Label;
       Add_Button  : Pomarine.Widgets.Buttons.Button;
+      Generate_Button : Pomarine.Widgets.Buttons.Button;
+      --  Asks the language model for the outline, in purple; off while AI
+      --  is, and while it is being asked.
+      Generate_Error  : Pomarine.Widgets.Labels.Label;
+      --  Under the heading, in red, why the outline could not be made.
+      Generate_Job    : MLX.Jobs.Job;
+      Generate_Tries  : Natural := 0;
+      Generate_Project : Projects.Id := 0;
+      Generate_Folder  : Ada.Strings.Unbounded.Unbounded_String;
+      Generate_Prompt  : Ada.Strings.Unbounded.Unbounded_String;
+      --  The ask: the tries made so far (0 when none is under way), the
+      --  project it is for, the model's folder and what it is asked.
       Scroll      : Pomarine.Widgets.Scrollers.Scroller;
       Content     : Pomarine.Widgets.Panels.Panel;
       None        : Pomarine.Widgets.Labels.Label;
@@ -782,6 +805,30 @@ private
    end record;
    --  The outline view: the form of the project's title and description,
    --  and the blocks of its sections.
+
+   type Section_Rows is array (1 .. Section_Capacity + 1) of Natural;
+   --  The section of each row of the menu, after its heading: 0 for none.
+
+   type Section_Menu_Parts is limited record
+      Menu    : Pomarine.Widgets.Menus.Menu;
+      --  Over the content, hidden until a button to link to the outline is
+      --  clicked: a heading, a box for each section, ticked if it is the
+      --  item's own, and faint if another item's.
+      Which   : Natural := 0;
+      --  The item the menu is of (its slot), 0 if it is not shown.
+      Page    : Natural := 0;
+      --  The page of the writing view whose button opened it, 0 for the
+      --  canvas's window.
+      Left, Top : Float := -1.0E9;
+      --  Where it was last put.
+      Rows    : Section_Rows := [others => 0];
+      Remove  : Natural := 0;
+      --  The row of the sections' boxes, and the row to take the link away.
+      Changes : Natural := 0;
+      Seen    : Natural := 0;
+      --  How many times a link was made or taken away, and as of how many
+      --  the writing view is shown.
+   end record;
 
    type Context_State is limited record
       Context_Menu : Pomarine.Widgets.Menus.Menu;
@@ -941,6 +988,7 @@ private
       Docs : Document_State;
       Outline_View : Outline_Parts;
       Context : Context_State;
+      Section_Menu : Section_Menu_Parts;
       Naming : Renaming_State;
       Reading : Reading_State;
       Dragging : Drag_State;

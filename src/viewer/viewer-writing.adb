@@ -25,6 +25,7 @@ with Viewer.Canvas_Items;
 with Viewer.Deletion;
 with Viewer.Gestures;
 with Viewer.Outlines;
+with Viewer.Section_Links;
 with Viewer.Style;
 with Pomarine.Widgets.Layouts;
 
@@ -480,7 +481,15 @@ package body Viewer.Writing is
          --  A box, standing up.
          Choose_Row (Each, Chosen);
          Grips.Set_Border (Each.Row, Pomarine.Themes.Border);
-         Widgets.Set_Visible (Each.Tag, False);
+         --  A square of the colour of the section it is the own of.
+         declare
+            Section : constant Natural := Section_Links.Section_Of (Item, Node.Doc);
+         begin
+            if Section /= 0 then
+               Pomarine.Widgets.Panels.Set_Fill (Each.Tag, Section_Links.Ink_Of (Item, Section));
+            end if;
+            Widgets.Set_Visible (Each.Tag, Section /= 0);
+         end;
       else
          --  Not a box: bare, with a marker, in bold; the marker is lit
          --  when it is the one shown, and the row is outlined while a
@@ -533,6 +542,14 @@ package body Viewer.Writing is
                   end if;
                   Labels.Set_Text
                     (Each.Heading, Labels.Fitted (Title_Of (Item, Which)));
+                  declare
+                     Section : constant Natural := Section_Links.Section_Of (Item, Which);
+                  begin
+                     Widgets.Set_Visible (Each.Swatch, Section /= 0);
+                     if Section /= 0 then
+                        Pomarine.Widgets.Panels.Set_Fill (Each.Swatch, Section_Links.Ink_Of (Item, Section));
+                     end if;
+                  end;
                   if not In_View (Item, Which) then
                      --  Out of sight, it keeps neither the focus nor a
                      --  title being renamed.
@@ -961,6 +978,8 @@ package body Viewer.Writing is
    procedure Apply (Item : in out Session; To : Modes) is
    begin
       Item.Toolbar.Mode := To;
+      Section_Links.Close (Item);
+      Section_Links.Update (Item);
       Close_Menu (Item);
       Close_Context (Item);
       Widgets.Set_Visible (Item.Outline_View.View, To = Outline);
@@ -2442,6 +2461,12 @@ package body Viewer.Writing is
 
    procedure Update (Item : in out Session) is
    begin
+      if In_Writing (Item) and then Section_Links.Changes (Item) /= Item.Section_Menu.Seen then
+         --  A link was made or taken away: the squares of colour change.
+         Item.Section_Menu.Seen := Section_Links.Changes (Item);
+         Refresh (Item);
+         Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
+      end if;
       if In_Writing (Item) then
          for Each of Item.Reading.Readers loop
             if Readers.Is_Assigned (Each) then

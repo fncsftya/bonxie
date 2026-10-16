@@ -33,6 +33,17 @@ package Repository.Section is
       Order   : Projects.Sections.Key_Array)
      with Pre => Projects.Is_Open (Store);
 
+   procedure Link
+     (Store : in out Projects.Store;
+      Key   : Projects.Sections.Section_Id;
+      Item  : Long_Integer)
+     with Pre => Projects.Is_Open (Store) and then Item /= 0;
+   --  The item is the section's own, and no other's.
+
+   procedure Unlink
+     (Store : in out Projects.Store; Key : Projects.Sections.Section_Id)
+     with Pre => Projects.Is_Open (Store);
+
    procedure Delete
      (Store : in out Projects.Store; Key : Projects.Sections.Section_Id)
      with Pre => Projects.Is_Open (Store);

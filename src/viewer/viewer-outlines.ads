@@ -1,3 +1,5 @@
+with Projects.Sections;
+
 --  The outline view: a form of the project's title and description at the
 --  left, and at the right the titles of its sections, as blocks that are
 --  dragged, or moved up and down, into the order they are to come in, and
@@ -9,6 +11,15 @@ private package Viewer.Outlines is
 
    function Section_Title (Item : Session; Which : Positive) return String
      with Pre => Screen (Item) = Project and then Which <= Section_Count (Item);
+
+   function Section_At (Item : Session; Which : Positive) return Projects.Sections.Section
+     with Pre => Screen (Item) = Project and then Which <= Section_Count (Item);
+   --  The section, as kept: with its colour, and the item that is its own.
+
+   procedure Reload (Item : in out Session)
+     with Pre => Screen (Item) = Project;
+   --  The sections have been changed in the database (their links): read
+   --  them again, and show them.
 
    procedure Enter (Item : in out Session)
      with Pre => Screen (Item) = Project;
@@ -30,6 +41,29 @@ private package Viewer.Outlines is
 
    procedure Listen (Item : in out Session);
    --  Have the view's buttons and blocks do what they are for.
+
+   function Generating (Item : Session) return Boolean;
+   --  Whether the model is being asked for the sections.
+
+   function Generate_Enabled (Item : Session) return Boolean;
+   --  Whether the Generate Sections button can be pressed.
+
+   procedure Generate_Sections (Item : in out Session)
+     with Pre => Screen (Item) = Project;
+   --  As the Generate Sections button does: ask the model for the whole
+   --  outline of the project, from its title, description and sections,
+   --  and, once it replies, put them in order. A reply that cannot be
+   --  read is asked for again, up to Outline_Generation.Max_Tries times in
+   --  all; then an error is shown. Nothing is done if AI is off.
+
+   procedure Update (Item : in out Session);
+   --  See how the asking is going, and act on it: for the loop, now and
+   --  then, whatever view of the project is shown.
+
+   function Take_Reply (Item : in out Session; Reply : String) return Boolean
+     with Pre => Screen (Item) = Project;
+   --  Use a reply of the model as the outline: False, with nothing changed,
+   --  if it is not valid.
 
    procedure Add_Section (Item : in out Session)
      with Pre => Screen (Item) = Project;

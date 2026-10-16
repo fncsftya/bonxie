@@ -21,6 +21,7 @@ with Speech.Jobs;
 with Speech.Models;
 with Viewer.Gestures;
 with Viewer.Links;
+with Viewer.Section_Links;
 with Viewer.Style;
 with Viewer.Writing;
 with Vision.Jobs;
@@ -1178,6 +1179,8 @@ package body Viewer.Canvas_Items is
             Start_Capture (Item, Which);
          when Windows.Speak =>
             Toggle_Dictation (Item, Which);
+         when Windows.Link_To_Outline =>
+            Section_Links.Open (Item, Which);
          when Windows.Choose_Link =>
             Choose_Origin (Item, Which, Items.Remote);
          when Windows.Choose_File =>

@@ -13,9 +13,22 @@ package Projects.Sections is
 
    type Section_Id is new Long_Integer;
 
+   Palette_Size : constant := 12;
+   --  How many colours there are to tell sections apart by.
+
+   subtype Colour_Index is Natural range 0 .. Palette_Size - 1;
+
    type Section is record
       Key   : Section_Id := 0;
       Title : Title_Texts.Bounded_String := Title_Texts.Null_Bounded_String;
+      Colour : Colour_Index := 0;
+      --  Given when the section is made: the one of the project's that is
+      --  used least, so that no two are alike until there are more than
+      --  Palette_Size, and kept, whatever the order and the others.
+      Linked : Long_Integer := 0;
+      --  The key of the item (a note on the canvas, a document of the
+      --  writing view) that is the section's own, to be read for it; 0 if
+      --  there is none. An item is the own of one section at most.
    end record;
 
    type Section_Array is array (Positive range <>) of Section;
@@ -52,6 +65,16 @@ package Projects.Sections is
      with Pre => Is_Open (Item);
    --  Put the sections with these keys in this order, first to last. All
    --  or none are moved.
+
+   procedure Link
+     (Item : in out Store; Key : Section_Id; Linked : Long_Integer)
+     with Pre => Is_Open (Item) and then Linked /= 0;
+   --  Make the item the section's own. Where it was another section's, it
+   --  is not any more; and the item the section had is let go.
+
+   procedure Unlink (Item : in out Store; Key : Section_Id)
+     with Pre => Is_Open (Item);
+   --  The section has no item of its own.
 
    procedure Delete (Item : in out Store; Key : Section_Id)
      with Pre => Is_Open (Item);

@@ -12,6 +12,8 @@ with Viewer.Canvas_Items;
 with Viewer.Deletion;
 with Viewer.Home_Screen;
 with Viewer.Menus;
+with Viewer.Outlines;
+with Viewer.Section_Links;
 with Viewer.Listing;
 with Viewer.Painting;
 with Viewer.Responses;
@@ -208,6 +210,7 @@ package body Viewer is
                then
                   Canvas_Items.Pressed (Item, Event.Mouse_X, Event.Mouse_Y);
                   Writing.Pressed (Item, Event.Mouse_X, Event.Mouse_Y);
+                  Section_Links.Pressed (Item, Event.Mouse_X, Event.Mouse_Y);
                   if Event.Button = 3 and then not Item.Item_List.Showing_List
                     and then not Home_Screen.Is_Confirming (Item)
                   then
@@ -330,6 +333,10 @@ package body Viewer is
       if Item.Nav.Shown = Project and then Canvas_Items.Capturing (Item) then
          Wake_In (Capture_Poll);
       end if;
+      --  The model is being asked for the sections: look at how it is on.
+      if Item.Nav.Shown = Project and then Outlines.Generating (Item) then
+         Wake_In (Capture_Poll);
+      end if;
       --  So is the file for the speech model: look at how far on it is.
       if Settings_View.Downloading (Item) then
          Wake_In (Capture_Poll);
@@ -378,6 +385,8 @@ package body Viewer is
       Widgets.Update (Item.Root.Widgets, Now);
       if Item.Nav.Shown = Project then
          Canvas_Items.Update (Item, Now);
+         Outlines.Update (Item);
+         Section_Links.Update (Item);
       end if;
       if Item.Prefs.Showing_Settings then
          Settings_View.Update (Item);

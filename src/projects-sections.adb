@@ -30,6 +30,17 @@ package body Projects.Sections is
       Repository.Section.Set_Order (Item, Owner, Order);
    end Set_Order;
 
+   procedure Link
+     (Item : in out Store; Key : Section_Id; Linked : Long_Integer) is
+   begin
+      Repository.Section.Link (Item, Key, Linked);
+   end Link;
+
+   procedure Unlink (Item : in out Store; Key : Section_Id) is
+   begin
+      Repository.Section.Unlink (Item, Key);
+   end Unlink;
+
    procedure Delete (Item : in out Store; Key : Section_Id) is
    begin
       Repository.Section.Delete (Item, Key);

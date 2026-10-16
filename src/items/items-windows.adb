@@ -53,6 +53,8 @@ package body Items.Windows is
    Progress_Height   : constant Float := 3.0;
    Preset_Width  : constant Float := 44.0;
    Speak_Icon_Size : constant Float := 12.0;
+   Outline_Button_Width : constant Float := 76.0;
+   --  Of the button of a note's link to the outline.
    Level_Steps   : constant Float := 20.0;
    --  How many sizes of the bar that shows how loud the speech is.
    Tools_Width   : constant Float := 3.0 * Button_Size + 2.0 * Button_Gap;
@@ -159,6 +161,7 @@ package body Items.Windows is
       Widgets.Add (Item.Tools, Item.Marker_Button);
       Widgets.Add (Item.Tools, Item.Eraser_Button);
       Frames.Add_Status_Item (Item.Chrome, Item.Speak_Button);
+      Frames.Add_Status_Item (Item.Chrome, Item.Outline_Button);
       Frames.Add_Status_Item (Item.Chrome, Item.Zoom_Slider);
       Frames.Add_Status_Item (Item.Chrome, Item.Zoom_Button);
       Frames.Add_Over_Status (Item.Chrome, Item.Progress);
@@ -250,6 +253,12 @@ package body Items.Windows is
         (Item.Speak_Button, Place => Layouts.Absolute,
          Position => (Top => (Status_Height - Zoom_Row_Height) / 2.0, others => <>));
 
+      --  The button of a note's link to the outline, at the right of its status line.
+      Buttons.Set_Label (Item.Outline_Button, "Section");
+      Buttons.Set_Captioned (Item.Outline_Button, True);
+      Buttons.Set_Dropdown (Item.Outline_Button, True);
+      Size (Item.Outline_Button, Outline_Button_Width, Zoom_Row_Height);
+
       --  The page buttons: over the picture, at the foot, in the middle (see Place).
       Layouts.Set_Layout
         (Item.Pager, Place => Layouts.Absolute,
@@ -314,6 +323,27 @@ package body Items.Windows is
    begin
       Frames.Set_Tag (Item.Chrome, To);
    end Set_Tag;
+
+   procedure Set_Outline_Link
+     (Item   : in out Window;
+      Linked : Boolean;
+      Ink    : Pomarine.Themes.Slot;
+      Open   : Boolean) is
+   begin
+      if Item.Details.Kind = Note then
+         if Linked then
+            Frames.Set_Tag (Item.Chrome, Ink);
+         end if;
+         Frames.Set_Tag_Visible (Item.Chrome, Linked);
+         Buttons.Set_Selected (Item.Outline_Button, Open);
+      end if;
+   end Set_Outline_Link;
+
+   function Outline_Box (Item : Window) return Items.Frame is
+     ((Left   => Widgets.Left_Of (Item.Outline_Button),
+       Top    => Widgets.Top_Of (Item.Outline_Button),
+       Width  => Widgets.Width_Of (Item.Outline_Button),
+       Height => Widgets.Height_Of (Item.Outline_Button)));
 
    function Details (Item : Window) return Items.Info is (Item.Details);
 
@@ -1022,6 +1052,7 @@ package body Items.Windows is
         (Item.Body_Text, Grow => (if Of_Source then 0.0 else 1.0),
          Height => (if Of_Source then Url_Height else 0.0));
       Widgets.Set_Visible (Item.Speak_Button, not Of_Source);
+      Widgets.Set_Visible (Item.Outline_Button, not Of_Source);
       if not Of_Source then
          Pomarine.Text_Areas.Set_Read_Only (Editors.Area (Item.Body_Text).all, False);
       end if;
@@ -1449,6 +1480,19 @@ package body Items.Windows is
       end if;
    end Speak_Clicked;
 
+   procedure Outline_Clicked
+     (Item : in out Window; From : in out Source_Widget; Event : Widgets.Widget_Event);
+
+   procedure Outline_Clicked
+     (Item : in out Window; From : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (From, Event);
+   begin
+      if Item.Details.Kind = Note and then Item.Details.State = Open then
+         Say (Item, Link_To_Outline);
+      end if;
+   end Outline_Clicked;
+
    --  Whichever button, of the window or the bar in the dock
 
    procedure Minimize_Clicked
@@ -1523,6 +1567,7 @@ package body Items.Windows is
          Hooks.On (Item.Menu_Buttons (Which), Click, Item'Unrestricted_Access, Preset_Clicked'Access);
       end loop;
       Hooks.On (Item.Speak_Button, Click, Item'Unrestricted_Access, Speak_Clicked'Access);
+      Hooks.On (Item.Outline_Button, Click, Item'Unrestricted_Access, Outline_Clicked'Access);
    end Listen;
 
    procedure Update (Item : in out Window) is

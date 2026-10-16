@@ -37,7 +37,7 @@ package Items.Windows is
    type Window_Array is array (Slot) of Window;
 
    type Actions is (None, Minimize, Restore, Close, Capture, Speak, Previous_Page, Next_Page,
-                    Choose_Link, Choose_File);
+                    Choose_Link, Choose_File, Link_To_Outline);
    --  What a window's buttons ask for, and, of a source, Return in its
    --  link's field: to take the picture of the page. Speak is the button
    --  of a note that starts or stops dictating into it. Previous_Page and
@@ -45,7 +45,9 @@ package Items.Windows is
    --  PDF or e-book of more than one page. Choose_Link and Choose_File are
    --  the two buttons of a source that is yet to say where it comes from;
    --  Choose_File too is what clicking the path of a source that is a file
-   --  asks: to choose another.
+   --  asks: to choose another. Link_To_Outline is the button of a note
+   --  that opens the menu of the outline's sections, to make it the one
+   --  that a section is read from.
 
    type Dictations is (Silent, Preparing, Listening, Transcribing, Failed);
    --  Of a note: not dictating (or it was taken), the microphone is being
@@ -96,6 +98,18 @@ package Items.Windows is
    procedure Release (Item : in out Window)
      with Post => not Is_Assigned (Item);
    --  Hide it, and forget the item: whatever was not written is lost.
+
+   procedure Set_Outline_Link
+     (Item   : in out Window;
+      Linked : Boolean;
+      Ink    : Pomarine.Themes.Slot;
+      Open   : Boolean);
+   --  Show, of a note, whether it is the own of a section, by the square
+   --  of the section's colour (Ink) before its title and the button that
+   --  asks for the menu, which looks pressed in while Open.
+
+   function Outline_Box (Item : Window) return Items.Frame;
+   --  Where the button that asks for the menu is, in points of the window.
 
    function Details (Item : Window) return Items.Info
      with Pre => Is_Assigned (Item);
@@ -495,6 +509,9 @@ private
       --  and a button, saying how far, that opens a menu of zooms.
       Speak_Button : Pomarine.Widgets.Buttons.Button;
       --  Of a note, in its status line: starts and stops dictating.
+      Outline_Button : Pomarine.Widgets.Buttons.Button;
+      --  Of a note, at the right of its status line: a dropdown, to link
+      --  it to a section of the outline.
       Dictating    : Dictations := Silent;
       Live_Shown   : Boolean := False;
       Live_Lost    : Boolean := False;

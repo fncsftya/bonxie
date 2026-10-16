@@ -19,6 +19,7 @@ with Pomarine.Text_Areas;
 with Viewer.Canvas_Items;
 with Viewer.Links;
 with Viewer.Outlines;
+with Viewer.Section_Links;
 with Viewer.Responses;
 with Viewer.Recent;
 with Viewer.Style;
@@ -444,8 +445,9 @@ package body Viewer.Build is
          Widgets.Add (View.Pages_Content, Each.Box);
          Widgets.Add (Each.Box, Each.Bar);
          Widgets.Add (Each.Bar, Each.Heading_Area);
-         Widgets.Add (Each.Heading_Area, Each.Heading);
-         Widgets.Add (Each.Bar, Each.Title_Field, Each.Sources_Button, Each.Mic_Button);
+         Widgets.Add (Each.Heading_Area, Each.Swatch, Each.Heading);
+         Widgets.Add (Each.Bar, Each.Title_Field, Each.Outline_Button, Each.Sources_Button);
+         Widgets.Add (Each.Bar, Each.Mic_Button);
          Widgets.Add (Each.Box, Each.Sheet);
          Widgets.Add (Each.Sheet, Each.Text);
          Widgets.Add (Each.Box, Each.Words);
@@ -462,6 +464,10 @@ package body Viewer.Build is
       Widgets.Add (Item.Toolbar.Content_Panel, Item.Context.Context_Menu);
       Set_Layout (Item.Context.Context_Menu, Place => Absolute, Width => Context_Width);
       Widgets.Set_Visible (Item.Context.Context_Menu, False);
+      Widgets.Add (Item.Toolbar.Content_Panel, Item.Section_Menu.Menu);
+      Set_Layout (Item.Section_Menu.Menu, Place => Absolute, Width => 220.0);
+      Widgets.Set_Visible (Item.Section_Menu.Menu, False);
+      Section_Links.Listen (Item);
       Items.Readers.Build
         (Item.Reading.Pane_Reader, View.Pane_Body, Toolbar, Pixels,
          Pinned => True);
@@ -539,6 +545,15 @@ package body Viewer.Build is
          Buttons.Set_Label (Each.Sources_Button, "Sources");
          Buttons.Set_Dropdown (Each.Sources_Button, True);
          Set_Layout (Each.Sources_Button, Width => Sources_Width, Height => Bar_Button_Height);
+         Buttons.Set_Label (Each.Outline_Button, "Section");
+         Buttons.Set_Captioned (Each.Outline_Button, True);
+         Buttons.Set_Dropdown (Each.Outline_Button, True);
+         Set_Layout (Each.Outline_Button, Width => Outline_Link_Width, Height => Bar_Button_Height);
+         Panels.Set_Fill (Each.Swatch, Themes.Border);
+         Set_Layout
+           (Each.Swatch, Width => Section_Swatch, Height => Section_Swatch, Shrink => 0.0,
+            Margin => (Right => Tool_Gap, others => <>));
+         Widgets.Set_Visible (Each.Swatch, False);
          Buttons.Set_Label (Each.Mic_Button, "Mic");
          Buttons.Set_Icon (Each.Mic_Button, Icon_Set.Microphone);
          Buttons.Set_Icon_Size (Each.Mic_Button, Mic_Icon_Size);
@@ -598,8 +613,8 @@ package body Viewer.Build is
       Widgets.Add (View.Form, View.Name_Label, View.Name_Field, View.Desc_Label);
       Widgets.Add (View.Form, View.Desc_Sheet);
       Widgets.Add (View.Desc_Sheet, View.Desc_Text);
-      Widgets.Add (View.Sections, View.Head, View.Scroll);
-      Widgets.Add (View.Head, View.Heading, View.Add_Button);
+      Widgets.Add (View.Sections, View.Head, View.Generate_Error, View.Scroll);
+      Widgets.Add (View.Head, View.Heading, View.Add_Button, View.Generate_Button);
       Widgets.Add (View.Scroll, View.Content);
 
       Panels.Set_Fill (View.View, Desk);
@@ -635,7 +650,8 @@ package body Viewer.Build is
       Set_Layout (View.Desc_Text, Grow => 1.0, Height => 0.0);
 
       Set_Layout (View.Sections, Flow => Column, Grow => 1.0, Width => 0.0, Gap => Tool_Gap);
-      Set_Layout (View.Head, Flow => Row, Align => Center, Height => Title_Height, Shrink => 0.0);
+      Set_Layout
+        (View.Head, Flow => Row, Align => Center, Height => Title_Height, Shrink => 0.0, Gap => Tool_Gap / 2.0);
       Labels.Set_Text (View.Heading, "Sections");
       Labels.Set_Style (View.Heading, Pomarine.Line_Texts.Caption);
       Set_Layout (View.Heading, Grow => 1.0, Width => 0.0, Height => Heading_Height);
@@ -643,7 +659,16 @@ package body Viewer.Build is
       Buttons.Set_Icon (View.Add_Button, Icon_Set.Plus);
       Buttons.Set_Captioned (View.Add_Button, True);
       Buttons.Set_Focusable (View.Add_Button, True);
-      Set_Layout (View.Add_Button, Width => Wide_Tool_Width, Height => Bar_Button_Height);
+      Set_Layout (View.Add_Button, Width => Add_Section_Width, Height => Bar_Button_Height, Shrink => 0.0);
+      Buttons.Set_Label (View.Generate_Button, "Generate Sections");
+      Buttons.Set_Icon (View.Generate_Button, Icon_Set.Sparkles);
+      Buttons.Set_Captioned (View.Generate_Button, True);
+      Buttons.Set_Focusable (View.Generate_Button, True);
+      Buttons.Set_Kind (View.Generate_Button, Buttons.AI);
+      Set_Layout (View.Generate_Button, Width => Generate_Width, Height => Bar_Button_Height, Shrink => 0.0);
+      Labels.Set_Ink (View.Generate_Error, Themes.Danger_Ink);
+      Set_Layout (View.Generate_Error, Height => Heading_Height, Shrink => 0.0);
+      Widgets.Set_Visible (View.Generate_Error, False);
       Set_Layout (View.Scroll, Grow => 1.0, Height => 0.0);
       Set_Layout
         (View.Content, Flow => Column, Shrink => 0.0,
@@ -654,7 +679,7 @@ package body Viewer.Build is
             Block : Section_Block renames View.Blocks (Each);
          begin
             Widgets.Add (View.Content, Block.Row);
-            Widgets.Add (Block.Row, Block.Handle, Block.Field, Block.Up);
+            Widgets.Add (Block.Row, Block.Handle, Block.Swatch, Block.Field, Block.Up);
             Widgets.Add (Block.Row, Block.Down, Block.Remove);
             Grips.Set_Fill (Block.Row, Row_Fill);
             Grips.Set_Hover_Fill (Block.Row, Row_Fill);
@@ -670,6 +695,8 @@ package body Viewer.Build is
             Labels.Set_Text (Block.Handle, "::");
             Labels.Set_Ink (Block.Handle, Quiet_Ink);
             Set_Layout (Block.Handle, Width => Outline_Handle, Height => Index_Height, Shrink => 0.0);
+            Set_Layout
+              (Block.Swatch, Width => Section_Swatch, Height => Section_Swatch, Shrink => 0.0);
             Text_Fields.Set_Shared (Block.Field, Item.Host.Doc_Resources'Unchecked_Access);
             Text_Fields.Configure
               (Block.Field, Pomarine.Line_Texts.Interface_Font, Edit_Size);

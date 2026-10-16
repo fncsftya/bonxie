@@ -26,6 +26,9 @@ package body Viewer.Settings is
      (Item : in out Session; To : Preferences.Theme_Choices)
      renames Settings_View.Choose_Appearance;
 
+   procedure Choose_AI_Enabled (Item : in out Session; To : Boolean)
+     renames Settings_View.Enable_AI;
+
    function AI_Enabled (Item : Session) return Boolean is (Item.Prefs.AI_On);
 
    function AI_Model (Item : Session) return String is
