@@ -1,9 +1,11 @@
---  What Speech.Jobs does, in SPARK: the state of each slot's job, what is
---  heard of it, and the tasks that listen (one to a slot, made when the
---  program begins), which GNATprove proves are free of data races and of
---  run-time errors (`gnatprove -P speech.gpr -XSPEECH_PROOF=yes`). Nothing
---  here is shared between tasks but protected objects (and the state that
---  is C's, which is volatile), and each task's work is its own.
+--  This is the SPARK implementation of Speech.Jobs: per-slot job state,
+--  transcripts and worker tasks. GNATprove checks the Ada code for run-time
+--  errors and analyzes it with the Jorvik tasking profile
+--  (`gnatprove -P speech.gpr -XSPEECH_PROOF=yes`). Shared Ada job state is
+--  accessed through protected objects. This supports the race-freedom
+--  argument for that Ada state under the proof configuration; it does not
+--  prove the native code, Speech.Capture's external state, or behavior under
+--  the program's full-tasking runtime.
 --
 --  What is asked of it is said in Speech.Jobs, which checks it first.
 private package Speech.Jobs.Core

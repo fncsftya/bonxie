@@ -6,11 +6,10 @@
 --  Both calls wait (the first loads the models, downloading them the first
 --  time), so they are not for the main thread. The model runs one at a
 --  time; they may be called from any task.
---  GNATprove proves these contracts, so they are not also checked as the
---  program runs: the postconditions look through the whole ring, or every
---  pair of words, which would cost far more than the work they describe
---  (and in the microphone's thread, would hold it up). The preconditions
---  are still checked.
+--  GNATprove proves the Ada-side contracts under their preconditions. The
+--  imported native implementation is not proved to satisfy them, so its
+--  outputs must be checked or repaired by the Ada caller. Postconditions
+--  are ignored at run time; preconditions remain enabled.
 pragma Assertion_Policy
   (Post => Ignore, Postcondition => Ignore, Type_Invariant => Ignore,
    Loop_Invariant => Ignore, Assert => Ignore);

@@ -6,17 +6,15 @@
 --  The sample's place in the ring is its count (from the first sample
 --  there was) mod Capacity.
 --
---  That is all that is here, and all of it is proved (by GNATprove): that
---  nothing goes outside the ring, nothing is lost or put out of order in
---  the going round, and nothing written is read that was not, whatever the
---  counts. What it does not say is how two threads come to agree on the
---  counts, which is for what uses it (Speech.Capture) to see to, with
---  atomic counts, and test.
---  GNATprove proves these contracts, so they are not also checked as the
---  program runs: the postconditions look through the whole ring, or every
---  pair of words, which would cost far more than the work they describe
---  (and in the microphone's thread, would hold it up). The preconditions
---  are still checked.
+--  GNATprove checks the Ada code for run-time errors and proves the
+--  contracts under their preconditions: Write puts the selected source
+--  samples in the corresponding ring places and preserves other places;
+--  Read copies the requested samples in order and preserves the rest of
+--  its output. This does not prove that concurrent users publish valid,
+--  mutually consistent counts. Speech.Capture handles that boundary with
+--  atomic counts, and tests it.
+--  The postconditions inspect the ring and are ignored at run time; the
+--  preconditions remain enabled.
 pragma Assertion_Policy
   (Post => Ignore, Postcondition => Ignore, Type_Invariant => Ignore,
    Loop_Invariant => Ignore, Assert => Ignore);

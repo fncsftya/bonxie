@@ -5,19 +5,16 @@
 --  told apart by their place in everything heard, from 0, so a sample keeps
 --  its number as the window slides.
 --
---  Nothing here knows of the model or of the microphone, and nothing in it
---  can go wrong (it is proved, by GNATprove, free of run-time errors, and
---  to do what the contracts say). What it holds is kept to what a model
---  can use: every sample in -1.0 .. 1.0, so none is a NaN or an infinity,
---  whatever the sound card (or a bug) gave. None of it touches anything but
---  its parameters (Global => null), so nothing in it can race with
---  another task's.
---  GNATprove proves these contracts (`gnatprove -P speech.gpr -u
---  speech-windows.adb --level=2`), so they are not also checked as the
---  program runs: the
---  postconditions look through the whole window, which would cost far more
---  than the work they describe (and the invariant of a Window is checked
---  for every sample it holds). The preconditions are still checked.
+--  Nothing here knows of the model or microphone. GNATprove checks the Ada
+--  code for run-time errors and proves its contracts under their
+--  preconditions (`gnatprove -P speech.gpr -u speech-windows.adb --level=2`).
+--  Those contracts describe bounds and consistency; they do not prove every
+--  intended behavior. Values passed through Clean are kept usable by the
+--  model: in -1.0 .. 1.0, so no infinity or NaN is returned. GNATprove treats
+--  every Float as a number, so the NaN case is checked by windows_test.
+--  All operations have Global => null, so they access no package state.
+--  Postconditions and invariants inspect whole windows and are ignored at
+--  run time; preconditions remain enabled.
 pragma Assertion_Policy
   (Post => Ignore, Postcondition => Ignore, Type_Invariant => Ignore,
    Loop_Invariant => Ignore, Assert => Ignore);

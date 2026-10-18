@@ -28,8 +28,9 @@ is
    --  here, in protected objects: how each job stands (Board), what is
    --  heard of it (Live), and the gates that tell a slot's task to go on
    --  (Run_Gates, Stop_Gates). A task's own work is its own, on its own
-   --  stack: that GNATprove sees nothing else is shared is the proof that
-   --  there are no races.
+   --  stack. This structure supports the race-freedom argument for the
+   --  shared Ada state analyzed under the proof configuration; it says
+   --  nothing about native state or the full-tasking runtime.
 
    protected Board is
       procedure Begin_Job

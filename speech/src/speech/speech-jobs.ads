@@ -12,9 +12,11 @@
 --  words as they are worked out; the model is loaded meanwhile, so what is
 --  said while it loads is not lost, only late.
 package Speech.Jobs is
-   --  This is the shell: what is asked of it is checked here (as what is
-   --  asked of a slot's state, which is shared, cannot be said in SPARK),
-   --  and what is done is in Speech.Jobs.Core, which is proved.
+   --  This is the public API shell. Its preconditions and postconditions
+   --  describe allowed state transitions, but State is shared and volatile,
+   --  so these contracts do not prove callers cannot race between checking
+   --  a state and acting on it. The Ada implementation is in Speech.Jobs.Core;
+   --  that body is analyzed under the proof configuration described there.
 
    Slot_Count : constant := Max_Sessions;
 

@@ -4,14 +4,13 @@
 --  they are made into the words, and the text of them, with a space
 --  between: and where each word ends in the text, and in the sound.
 --
---  This is where a model's words are turned into what the rest of the
---  program counts on (Speech.Windows.Text_Plausible), so it is proved to:
---  what comes out is as it must be whatever went in, not checked to be.
---  GNATprove proves these contracts, so they are not also checked as the
---  program runs: the postconditions look through the whole ring, or every
---  pair of words, which would cost far more than the work they describe
---  (and in the microphone's thread, would hold it up). The preconditions
---  are still checked.
+--  GNATprove checks the Ada code for run-time errors and proves that Group
+--  satisfies its contract under the preconditions. In particular, the
+--  output word ends are plausible for the produced text and fit the output
+--  arrays. This establishes the structural properties the caller relies
+--  on; it does not prove that token grouping matches the intended spoken
+--  words. The postcondition is ignored at run time; preconditions remain
+--  enabled.
 pragma Assertion_Policy
   (Post => Ignore, Postcondition => Ignore, Type_Invariant => Ignore,
    Loop_Invariant => Ignore, Assert => Ignore);
