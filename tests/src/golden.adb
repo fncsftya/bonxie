@@ -20,6 +20,7 @@ with Viewer.Home_Screen;
 with Viewer.Project_Screen;
 with Viewer.Settings;
 with Write_Tests;
+with Grammar_Tests;
 
 --  Draws the viewer, and a text area by itself, in various setups and
 --  compares what they draw with golden images: golden [part of a test's
@@ -1228,6 +1229,7 @@ begin
    Run ("outline-menu-fitting", Outline_Tests.Menu_Fitting'Access);
    Run ("write-source-documents", Write_Tests.Source_Documents'Access);
    Run ("write-pages", Write_Tests.Pages'Access);
+   Run ("write-grammar", Grammar_Tests.Checking'Access);
    Run ("write-ordering", Write_Tests.Ordering'Access);
    Run ("write-dragging", Write_Tests.Dragging'Access);
    Run ("write-directories", Write_Tests.Directories'Access);

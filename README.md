@@ -2,6 +2,23 @@
 
 A MacOS-only tool for planning and writing podcasts.
 
+## Grammar suggestions
+
+In Write mode, **Show Grammar Suggestions** at the top of the sidebar is on
+by default. Document text is checked locally with Harper, using four Ada
+worker tasks. Edits are checked after a 500 ms pause. Notes are excluded.
+Suggestions use Harper's category colors, with a tinted background and an
+underline. Turning the switch off clears the highlights.
+
+Before the first build, run `harper/fetch-harper.sh` to fetch the pinned Harper
+source and dictionary into its ignored vendor directory.
+
+The button beside the switch counts diagnostics with a suggested correction.
+It turns amber when there are fixes available. Press it to open a scrollable
+list of all diagnostics, then expand a card to read its explanation and
+apply a correction. Each correction can be undone separately. Click outside
+the popout, press its button again, or press Escape to close it.
+
 ## Menus and accessibility
 
 The menu bar (File, Edit, Go) is the system's, and says the same commands as

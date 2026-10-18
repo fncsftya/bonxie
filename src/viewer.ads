@@ -5,6 +5,8 @@ with SDL3.Windows.Renderers.Images;
 private with Ada.Strings.Unbounded;
 private with MLX.Hub;
 private with MLX.Jobs;
+private with Harper;
+private with Grammar_Cards;
 private with Speech.Models;
 private with Items;
 private with Items.Directories;
@@ -575,6 +577,9 @@ private
       --  Write: the sidebar, the pages, and the pane of the pinned source;
       --  and the windows of the sources, over them.
       Sidebar       : Pomarine.Widgets.Panels.Panel;
+      Grammar_Row   : Pomarine.Widgets.Panels.Panel;
+      Grammar_Switch : Pomarine.Widgets.Switches.Switch;
+      Grammar_Count : Pomarine.Widgets.Buttons.Button;
       Sidebar_Edge  : Pomarine.Widgets.Grips.Grip;
       --  At the sidebar's right, to size it by.
       Sidebar_Wide  : Float := 206.0;
@@ -737,8 +742,66 @@ private
       --  Over the rows, under the pointer while one is dragged: a box of
       --  its name.
    end record;
-   --  The pages of the writing view, the tree of documents and where a row
-   --  dragged would go.
+
+   --  Grammar requests use a fixed worker pool and retain no document pointers.
+
+   Grammar_Workers : constant := 4;
+   type Grammar_Document is record
+      Serial   : Natural := 0;
+      Seen     : Texts.Documents.Version := 0;
+      Token    : Harper.Request_Id := 0;
+      Due      : SDL3.Events.Milliseconds := 0;
+      Cursor   : Texts.Position := (1, 1);
+      Retained : Natural range 0 .. 512 := 0;
+      Finished : Boolean := False;
+      Busy     : Boolean := False;
+   end record;
+   type Grammar_Documents is array (Items.Slot) of Grammar_Document;
+   type Grammar_Worker is limited record
+      Checker : Harper.Checker;
+      Busy    : Boolean := False;
+      Rank    : Items.Slot := 1;
+      Token   : Harper.Request_Id := 0;
+      First   : Texts.Position;
+      Next_Position : Texts.Position;
+      Last    : Boolean := False;
+   end record;
+   type Grammar_Worker_Array is array (1 .. Grammar_Workers) of Grammar_Worker;
+   Max_Diagnostics : constant := 512 * Items.Slot'Last;
+   subtype Diagnostic_Index is Positive range 1 .. Max_Diagnostics;
+   type Grammar_Row is limited record
+      Lint : Harper.Diagnostic;
+      Rank : Items.Slot := 1;
+      Token : Harper.Request_Id := 0;
+      First : Texts.Position := (1, 1);
+   end record;
+   type Grammar_Rows is array (Diagnostic_Index) of Grammar_Row;
+   --  Only the viewport's cards need widgets, even with many diagnostics.
+   type Grammar_Card_Array is array (1 .. 32) of Grammar_Cards.Card;
+   type Grammar_Bindings is array (1 .. 32) of Natural range 0 .. Max_Diagnostics;
+   type Grammar_Actions is array (1 .. Harper.Max_Suggestions) of Pomarine.Widgets.Buttons.Button;
+   type Grammar_State is limited record
+      Workers : Grammar_Worker_Array;
+      Documents : Grammar_Documents;
+      Enabled : Boolean := True;
+      Serial  : Harper.Request_Id := 0;
+      Rows : Grammar_Rows;
+      Cards : Grammar_Card_Array;
+      Bindings : Grammar_Bindings := [others => 0];
+      Measure_Card : Grammar_Cards.Card;
+      Offset : Float := -1.0;
+      Popout : Pomarine.Widgets.Panels.Panel;
+      Heading : Pomarine.Widgets.Labels.Label;
+      Empty : Pomarine.Widgets.Labels.Label;
+      Scroll : Pomarine.Widgets.Scrollers.Scroller;
+      Content : Pomarine.Widgets.Panels.Panel;
+      Actions : Grammar_Actions;
+      Expanded : Natural range 0 .. Max_Diagnostics := 0;
+      Showing : Boolean := False;
+      Dirty : Boolean := True;
+      Width : Float := 360.0;
+      Left, Top, Height : Float := -1.0;
+   end record;
 
    Section_Capacity : constant := Projects.Sections.Max_Sections;
 
@@ -1104,6 +1167,7 @@ private
       --  The windows of the project's items: after Target, which they
       --  draw to.
       Docs : Document_State;
+      Grammar_Checks : Grammar_State;
       Outline_View : Outline_Parts;
       Context : Context_State;
       Section_Menu : Section_Menu_Parts;

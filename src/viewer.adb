@@ -20,6 +20,7 @@ with Viewer.Responses;
 with Viewer.Settings_View;
 with Viewer.Style;
 with Viewer.Writing;
+with Viewer.Grammar;
 
 package body Viewer is
 
@@ -149,6 +150,12 @@ package body Viewer is
    procedure Handle (Item : in out Session; Event : SDL3.Events.Event) is
       Handled : Boolean := False;
    begin
+      if Item.Grammar_Checks.Showing and then Event.Kind = SDL3.Events.Key_Down
+        and then Event.Key = SDL3.Events.Key_Escape
+      then
+         Grammar.Close (Item);
+         return;
+      end if;
       case Event.Kind is
          when SDL3.Events.Quit =>
             if Item.Nav.Shown = Project then
@@ -210,6 +217,7 @@ package body Viewer is
                then
                   Canvas_Items.Pressed (Item, Event.Mouse_X, Event.Mouse_Y);
                   Writing.Pressed (Item, Event.Mouse_X, Event.Mouse_Y);
+                  Grammar.Pressed (Item, Event.Mouse_X, Event.Mouse_Y);
                   Section_Links.Pressed (Item, Event.Mouse_X, Event.Mouse_Y);
                   Outlines.Pressed (Item, Event.Mouse_X, Event.Mouse_Y);
                   if Event.Button = 3 and then not Item.Item_List.Showing_List
@@ -330,6 +338,9 @@ package body Viewer is
       if Widgets.Until_Update (Item.Root.Widgets) >= 0 then
          Wake_In (Widgets.Until_Update (Item.Root.Widgets));
       end if;
+      if Grammar.Until_Update (Item, SDL3.Events.Ticks) >= 0 then
+         Wake_In (Grammar.Until_Update (Item, SDL3.Events.Ticks));
+      end if;
       --  A picture of a page is on its way: look for it now and then.
       if Item.Nav.Shown = Project and then Canvas_Items.Capturing (Item) then
          Wake_In (Capture_Poll);
@@ -341,6 +352,11 @@ package body Viewer is
       --  So is the file for the speech model: look at how far on it is.
       if Settings_View.Downloading (Item) then
          Wake_In (Capture_Poll);
+      end if;
+      --  A worker result or popout update collected by Tick needs a
+      --  frame even when no more background work remains to poll.
+      if Widgets.Needs_Paint (Item.Root.Widgets) then
+         Wake_In (0);
       end if;
 
       if SDL3.Events.Wait (Event, Timeout_MS => Timeout) then
@@ -389,6 +405,7 @@ package body Viewer is
          Outlines.Update (Item);
          Section_Links.Update (Item);
       end if;
+      Grammar.Update (Item, Now);
       if Item.Prefs.Showing_Settings then
          Settings_View.Update (Item);
       end if;

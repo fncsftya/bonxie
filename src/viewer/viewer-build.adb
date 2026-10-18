@@ -24,6 +24,7 @@ with Viewer.Responses;
 with Viewer.Recent;
 with Viewer.Style;
 with Viewer.Writing;
+with Viewer.Grammar;
 
 package body Viewer.Build is
 
@@ -420,6 +421,17 @@ package body Viewer.Build is
    begin
       Widgets.Add (Item.Toolbar.Content_Panel, View.Write_View);
       Widgets.Add (View.Write_View, View.Sidebar);
+      Widgets.Add (View.Sidebar, View.Grammar_Row);
+      Widgets.Add (View.Grammar_Row, View.Grammar_Switch, View.Grammar_Count);
+      Set_Layout (View.Grammar_Row, Flow => Row, Align => Center, Height => 52.0, Shrink => 0.0, Gap => 6.0);
+      Switches.Set_Label (View.Grammar_Switch, "Show Grammar Suggestions");
+      Switches.Set_On (View.Grammar_Switch, True);
+      Switches.Set_Focusable (View.Grammar_Switch, True);
+      Set_Layout (View.Grammar_Switch, Height => 52.0, Grow => 1.0, Width => 0.0);
+      Buttons.Set_Label (View.Grammar_Count, "0");
+      Buttons.Set_Focusable (View.Grammar_Count, True);
+      Widgets.Set_Accessible_Name (View.Grammar_Count, "Fixable grammar suggestions: 0");
+      Set_Layout (View.Grammar_Count, Width => 36.0, Height => 28.0, Shrink => 0.0);
       Widgets.Add (View.Sidebar, View.Docs_Head);
       Widgets.Add (View.Docs_Head, View.Docs_Heading, View.Docs_Folder, View.Docs_Add);
       Build_Index (View.Docs_Scroll, View.Docs_Content, View.Docs_None, No_Documents);
@@ -578,6 +590,7 @@ package body Viewer.Build is
         (Item.Reading.Pane_Reader, View.Pane_Body, Toolbar, Pixels,
          Pinned => True);
       Writing.Listen (Item);
+      Grammar.Build (Item);
 
       Panels.Set_Fill (View.Write_View, Desk);
       Set_Layout (View.Write_View, Flow => Row, Grow => 1.0, Height => 0.0);

@@ -27,6 +27,7 @@ with Viewer.Gestures;
 with Viewer.Outlines;
 with Viewer.Section_Links;
 with Viewer.Style;
+with Viewer.Grammar;
 with Pomarine.Widgets.Layouts;
 
 package body Viewer.Writing is
@@ -1053,6 +1054,7 @@ package body Viewer.Writing is
 
    procedure Leave (Item : in out Session) is
    begin
+      Grammar.Reset (Item);
       Unpin (Item, Reopen => False);
       for Which in Items.Slot loop
          if Readers.Is_Assigned (Item.Reading.Readers (Which)) then

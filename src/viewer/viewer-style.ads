@@ -63,7 +63,8 @@ private package Viewer.Style is
    --  The writing view, in points
 
    Sidebar_Width   : constant Float := 206.0;
-   Sidebar_Least   : constant Float := 150.0;
+   Sidebar_Least   : constant Float := 200.0;
+   --  Room for the grammar switch's label and its diagnostic count.
    Sidebar_Most    : constant Float := 480.0;
    Sidebar_Edge_Width : constant Float := 6.0;
    --  Of the list of documents to begin with, the least and most it may

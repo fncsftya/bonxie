@@ -1,0 +1,40 @@
+--- a/harper-core/src/linting/for_free_of_charge.rs
++++ b/harper-core/src/linting/for_free_of_charge.rs
+@@ -13,13 +13,13 @@
+         Self {
+             expr: SequenceExpr::word_seq(&["for", "free", "of", "charge"]).then_any_of(vec![
+                 Box::new(SequenceExpr::default().then_kind_any(&[
+-                    TokenKind::is_sentence_terminator,
++                    TokenKind::is_sentence_terminator as fn(&TokenKind) -> bool,
+                     TokenKind::is_comma,
+                     TokenKind::is_quote,
+                 ])),
+                 Box::new(SequenceExpr::whitespace().then_kind_any_but_not(
+                     &[
+-                        TokenKind::is_conjunction,
++                        TokenKind::is_conjunction as fn(&TokenKind) -> bool,
+                         TokenKind::is_preposition,
+                         TokenKind::is_verb,
+                     ],
+--- a/harper-core/src/linting/in_demand_in_depth.rs
++++ b/harper-core/src/linting/in_demand_in_depth.rs
+@@ -22,7 +22,7 @@
+                     // ✘ [Defense] in Depth                                - abstract/mass noun
+                     // ✘ and [MCP] in depth                                - mass noun
+                     &[
+-                        TokenKind::is_verb_lemma,
++                        TokenKind::is_verb_lemma as fn(&TokenKind) -> bool,
+                         TokenKind::is_preposition,
+                         TokenKind::is_quantifier,
+                         TokenKind::is_degree_adverb,
+--- a/harper-core/src/linting/naked_eye.rs
++++ b/harper-core/src/linting/naked_eye.rs
+@@ -20,7 +20,7 @@
+                     SequenceExpr::optional(
+                         SequenceExpr::default()
+                             .then_kind_any(&[
+-                                TokenKind::is_determiner,
++                                TokenKind::is_determiner as fn(&TokenKind) -> bool,
+                                 TokenKind::is_adjective,
+                                 TokenKind::is_oov,
+                             ])

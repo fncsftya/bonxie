@@ -10,6 +10,13 @@ package Viewer.Documents is
      with Pre => Is_Open (Item) and then Screen (Item) = Project;
    --  How many items there are that are not sources: the pages.
 
+   function Grammar_Suggestions_Shown (Item : Session) return Boolean;
+   function Grammar_Pending (Item : Session) return Boolean;
+   function Grammar_Running (Item : Session) return Natural;
+   function Grammar_Highlights (Item : Session; Row : Positive) return Natural
+     with Pre => Row <= Document_Count (Item);
+   --  Background checking and decorations, for the writing view's tests.
+
    function Document_Title (Item : Session; Row : Positive) return String
      with Pre => Is_Open (Item) and then Screen (Item) = Project
                  and then Row <= Document_Count (Item);

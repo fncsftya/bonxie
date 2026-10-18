@@ -1,0 +1,20 @@
+[package]
+name = "bonxie_harper"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "GPL-3.0-only"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+harper-core = { path = "../vendor/harper/harper-core" }
+
+[workspace]
+
+[profile.release]
+opt-level = 3
+lto = true
+# Recoverable Harper panics must never unwind across the C ABI.
+panic = "unwind"

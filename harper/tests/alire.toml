@@ -1,0 +1,16 @@
+name = "harper_tests"
+description = "Integration checks for the Harper C ABI and Ada tasks"
+version = "0.1.0-dev"
+licenses = "GPL-3.0-only"
+executables = ["check_harper"]
+
+[[depends-on]]
+harper = "*"
+
+[[pins]]
+harper = { path = ".." }
+
+[build-switches]
+"*".ada_version = "Ada2022"
+"*".runtime_checks = "Everything"
+"*".contracts = "Yes"

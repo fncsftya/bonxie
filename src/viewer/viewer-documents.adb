@@ -1,7 +1,31 @@
 with Items.Windows;
 with Viewer.Writing;
+with Pomarine.Widgets.Editors;
+with Pomarine.Widgets.Switches;
 
 package body Viewer.Documents is
+
+   function Grammar_Suggestions_Shown (Item : Session) return Boolean is
+     (Pomarine.Widgets.Switches.Is_On (Item.Page_View.Grammar_Switch));
+
+   function Grammar_Pending (Item : Session) return Boolean is
+     (Item.Nav.Shown = Project and then Item.Toolbar.Mode = Write and then Item.Grammar_Checks.Enabled
+      and then (for some Rank in 1 .. Item.Reading.Write_Count =>
+                   not Item.Grammar_Checks.Documents (Rank).Finished));
+
+   function Grammar_Running (Item : Session) return Natural is
+      Total : Natural := 0;
+   begin
+      for Worker of Item.Grammar_Checks.Workers loop
+         if Worker.Busy then
+            Total := Total + 1;
+         end if;
+      end loop;
+      return Total;
+   end Grammar_Running;
+
+   function Grammar_Highlights (Item : Session; Row : Positive) return Natural is
+     (Pomarine.Widgets.Editors.Highlight_Count (Item.Docs.Pages (Row).Text));
 
    function Document_Count (Item : Session) return Natural is
      (Item.Reading.Write_Count);

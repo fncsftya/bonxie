@@ -1,0 +1,16 @@
+name = "harper"
+description = "Tasked Ada bindings to the vendored Harper spelling and grammar checker"
+version = "0.1.0-dev"
+authors = ["Matt Rawcliffe"]
+licenses = "GPL-3.0-only"
+
+[[actions]]
+type = "pre-build"
+command = ["cargo", "build", "--release", "--locked", "--manifest-path", "rust/Cargo.toml"]
+
+[build-switches]
+"*".ada_version = "Ada2022"
+"*".compile_checks = "Errors"
+"*".runtime_checks = "Everything"
+"*".style_checks = "Yes"
+"*".contracts = "Yes"

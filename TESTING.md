@@ -52,3 +52,21 @@ The software renderer samples geometry without smoothing, so these tests
 do not see how the GPU smooths scaled glyphs. CoreText may also rasterize
 slightly differently on another macOS release; if so, regenerate the
 goldens there or pass a tolerance to `Goldens.Check`.
+
+## Harper bindings
+
+The `write-grammar` viewer test covers the default switch state, concurrent
+document checks, the idle timer, stale results, switching off, document
+reordering, excluding notes, and documents longer than one request buffer.
+Its golden images check Harper's highlight colors and the switch states.
+
+The standalone `harper/tests` crate checks the vendored Harper library through
+the C ABI and Ada tasks, without starting Bonxie or SDL:
+
+```sh
+cd harper/tests
+alr build
+alr exec -- bin/check_harper
+```
+
+See `harper/README.md` for the API, bounds, and build requirements.

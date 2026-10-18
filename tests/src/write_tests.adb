@@ -64,7 +64,7 @@ package body Write_Tests is
    Doc_Row_X : constant Float := 100.0;
 
    function Tree_Row_Y (Row : Positive) return Float is
-     (114.5 + Float (Row - 1) * 38.0);
+     (174.5 + Float (Row - 1) * 38.0);
    --  The rows of the tree of documents, in the sidebar, the Overview's
    --  first.
 
@@ -74,7 +74,7 @@ package body Write_Tests is
 
    Add_Document_X : constant Float := 181.0;
    Add_Directory_X : constant Float := 153.0;
-   Add_Document_Y : constant Float := 80.0;
+   Add_Document_Y : constant Float := 140.0;
    --  The buttons beside the name of the list of documents.
 
    Pane_Edge_X : constant Float := 435.0;
@@ -86,7 +86,7 @@ package body Write_Tests is
    Source_Row_X : constant Float := 100.0;
 
    function Source_Row_Y (Documents : Natural) return Float is
-     (99.0 + 38.0
+     (159.0 + 38.0
       + (if Documents = 0 then 31.0
          else Float (Documents) * 34.0 + Float (Documents - 1) * 4.0)
       + 67.5);
