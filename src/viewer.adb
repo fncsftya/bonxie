@@ -67,7 +67,8 @@ package body Viewer is
    --  Events
 
    function Cursor (Item : Session) return SDL3.Cursors.Kind is
-     (Widgets.Wanted_Cursor (Item.Root.Widgets));
+     (if Item.Grammar_Checks.Over_Diagnostic then SDL3.Cursors.Pointer
+      else Widgets.Wanted_Cursor (Item.Root.Widgets));
 
    function Title_Strip_Height (Item : Session) return Float is
      (if Item.Nav.Shown = Project or else Item.Prefs.Showing_Settings
@@ -150,7 +151,8 @@ package body Viewer is
    procedure Handle (Item : in out Session; Event : SDL3.Events.Event) is
       Handled : Boolean := False;
    begin
-      if Item.Grammar_Checks.Showing and then Event.Kind = SDL3.Events.Key_Down
+      if (Item.Grammar_Checks.Showing or else Item.Grammar_Checks.Inline_Open)
+        and then Event.Kind = SDL3.Events.Key_Down
         and then Event.Key = SDL3.Events.Key_Escape
       then
          Grammar.Close (Item);
@@ -209,6 +211,7 @@ package body Viewer is
                Handled := True;
             end if;
             if not Handled then
+               Grammar.Before_Event (Item, Event);
                if Item.Prefs.Showing_Settings and then Event.Kind = SDL3.Events.Mouse_Down then
                   Settings_View.Pressed (Item, Event.Mouse_X, Event.Mouse_Y);
                end if;
@@ -217,7 +220,6 @@ package body Viewer is
                then
                   Canvas_Items.Pressed (Item, Event.Mouse_X, Event.Mouse_Y);
                   Writing.Pressed (Item, Event.Mouse_X, Event.Mouse_Y);
-                  Grammar.Pressed (Item, Event.Mouse_X, Event.Mouse_Y);
                   Section_Links.Pressed (Item, Event.Mouse_X, Event.Mouse_Y);
                   Outlines.Pressed (Item, Event.Mouse_X, Event.Mouse_Y);
                   if Event.Button = 3 and then not Item.Item_List.Showing_List
@@ -235,7 +237,9 @@ package body Viewer is
                   if Item.Shell.Windowed then
                      Track_Window (Item, Event, Handled);
                   end if;
+                  Grammar.Released (Item, Event);
                end if;
+               Grammar.Update_Cursor (Item);
                Show_Cursor (Item);
             end if;
             if Item.Nav.Shown = Project then
@@ -409,10 +413,13 @@ package body Viewer is
       if Item.Prefs.Showing_Settings then
          Settings_View.Update (Item);
       end if;
+      Grammar.Update_Cursor (Item);
+      Show_Cursor (Item);
    end Tick;
 
    procedure Resize (Item : in out Session; Width, Height : Positive) is
    begin
+      Grammar.Close_Inline (Item);
       SDL3.Windows.Renderers.Resize
         (Item.Host.Target,
          Pixels (Width, Item.Shell.Density), Pixels (Height,

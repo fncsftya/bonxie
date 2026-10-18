@@ -780,6 +780,12 @@ private
    type Grammar_Card_Array is array (1 .. 32) of Grammar_Cards.Card;
    type Grammar_Bindings is array (1 .. 32) of Natural range 0 .. Max_Diagnostics;
    type Grammar_Actions is array (1 .. Harper.Max_Suggestions) of Pomarine.Widgets.Buttons.Button;
+   type Grammar_Choice is record
+      Row : Natural range 0 .. Max_Diagnostics := 0;
+      Suggestion : Natural range 0 .. Harper.Max_Suggestions := 0;
+      Token : Harper.Request_Id := 0;
+   end record;
+   type Grammar_Choices is array (1 .. Pomarine.Widgets.Menus.Row_Capacity) of Grammar_Choice;
    type Grammar_State is limited record
       Workers : Grammar_Worker_Array;
       Documents : Grammar_Documents;
@@ -796,6 +802,15 @@ private
       Scroll : Pomarine.Widgets.Scrollers.Scroller;
       Content : Pomarine.Widgets.Panels.Panel;
       Actions : Grammar_Actions;
+      Inline_Menu : Pomarine.Widgets.Menus.Menu;
+      Inline_Choices : Grammar_Choices;
+      Inline_Count : Natural range 0 .. Pomarine.Widgets.Menus.Row_Capacity := 0;
+      Inline_Open : Boolean := False;
+      Over_Diagnostic : Boolean := False;
+      Pointer_Known, Pointer_Held : Boolean := False;
+      Pointer_X, Pointer_Y : Float := 0.0;
+      Press_Rank : Natural range 0 .. Items.Slot'Last := 0;
+      Press_X, Press_Y : Float := 0.0;
       Expanded : Natural range 0 .. Max_Diagnostics := 0;
       Showing : Boolean := False;
       Dirty : Boolean := True;

@@ -19,6 +19,11 @@ list of all diagnostics, then expand a card to read its explanation and
 apply a correction. Each correction can be undone separately. Click outside
 the popout, press its button again, or press Escape to close it.
 
+Click an inline diagnostic to see a compact list of suggested fixes. Click
+a replacement to apply it, or **Delete** to remove the marked text. Typing,
+scrolling the document, clicking elsewhere, or pressing Escape dismisses
+this popover. Fixes remain undoable.
+
 ## Menus and accessibility
 
 The menu bar (File, Edit, Go) is the system's, and says the same commands as

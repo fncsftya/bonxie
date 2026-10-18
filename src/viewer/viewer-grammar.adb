@@ -7,6 +7,8 @@ with Pomarine.Widgets.Callbacks;
 with Pomarine.Widgets.Labels;
 with Pomarine.Widgets.Layouts;
 with Pomarine.Widgets.Panels;
+with Pomarine.Widgets.Menus;
+with Pomarine.Line_Texts;
 with Pomarine.Widgets.Scrollers;
 with Pomarine.Text_Areas;
 with Pomarine.Themes;
@@ -24,8 +26,12 @@ package body Viewer.Grammar is
    package Buttons renames Pomarine.Widgets.Buttons;
    package Labels renames Pomarine.Widgets.Labels;
    package Layouts renames Pomarine.Widgets.Layouts;
+   package Menus renames Pomarine.Widgets.Menus;
    package Panels renames Pomarine.Widgets.Panels;
    package Hooks is new Pomarine.Widgets.Callbacks (Session);
+   use type Widgets.Widget_Access;
+   use type Widgets.Node_Id;
+   use type SDL3.Events.Event_Kind;
    use type Docs.Version;
    use type Harper.Request_Id;
    use type Harper.Check_Status;
@@ -58,6 +64,11 @@ package body Viewer.Grammar is
    procedure Expand (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
    procedure Apply (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
 
+   procedure Inline_Chosen
+     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
+
+   procedure Apply_Fix (Item : in out Session; Index, Number : Positive; Inline : Boolean);
+
    function Valid (Item : Session; Row : Grammar_Row) return Boolean is
      (Active (Item) and then Row.Token /= 0 and then Row.Rank <= Item.Reading.Write_Count
       and then Row.Token = Item.Grammar_Checks.Documents (Row.Rank).Token
@@ -66,9 +77,18 @@ package body Viewer.Grammar is
       and then Item.Grammar_Checks.Documents (Row.Rank).Seen =
         Docs.Current (Editors.Document (Item.Docs.Pages (Row.Rank).Text).all));
 
+   procedure Close_Inline (Item : in out Session) is
+   begin
+      Item.Grammar_Checks.Inline_Open := False;
+      Item.Grammar_Checks.Inline_Count := 0;
+      Item.Grammar_Checks.Press_Rank := 0;
+      Widgets.Set_Visible (Item.Grammar_Checks.Inline_Menu, False);
+   end Close_Inline;
+
    procedure Close (Item : in out Session) is
       State : Grammar_State renames Item.Grammar_Checks;
    begin
+      Close_Inline (Item);
       if State.Showing then
          for Card of State.Cards loop
             if Widgets.Has_Focus (Card) then
@@ -97,6 +117,67 @@ package body Viewer.Grammar is
          Close (Item);
       end if;
    end Pressed;
+
+   procedure Before_Event (Item : in out Session; Event : SDL3.Events.Event) is
+      State : Grammar_State renames Item.Grammar_Checks;
+      Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
+   begin
+      if Event.Kind in SDL3.Events.Mouse_Down | SDL3.Events.Mouse_Up | SDL3.Events.Mouse_Move |
+        SDL3.Events.Mouse_Wheel | SDL3.Events.Pinch
+      then
+         State.Pointer_Known := True;
+         State.Pointer_X := Event.Mouse_X;
+         State.Pointer_Y := Event.Mouse_Y;
+         if Event.Kind = SDL3.Events.Mouse_Move then
+            State.Pointer_Held := Event.Left_Held;
+         elsif Event.Kind in SDL3.Events.Mouse_Down | SDL3.Events.Mouse_Up and then Event.Button = 1 then
+            State.Pointer_Held := Event.Kind = SDL3.Events.Mouse_Down;
+         end if;
+      end if;
+      case Event.Kind is
+         when SDL3.Events.Mouse_Down =>
+            Pressed (Item, Event.Mouse_X, Event.Mouse_Y);
+            if State.Inline_Open and then not Widgets.Contains
+              (State.Inline_Menu, Event.Mouse_X * Pixels, Event.Mouse_Y * Pixels)
+            then
+               Close_Inline (Item);
+            end if;
+            State.Press_Rank := 0;
+            if Active (Item) and then Event.Button = 1 and then Event.Clicks <= 1
+              and then not Event.Shift and then not Event.Command and then not Event.Option
+            then
+               declare
+                  Hit : constant Widgets.Widget_Access :=
+                    Widgets.Hit (Item.Root.Widgets, Event.Mouse_X * Pixels, Event.Mouse_Y * Pixels);
+               begin
+                  if Hit /= null then
+                     for Rank in 1 .. Item.Reading.Write_Count loop
+                        if Widgets.Id_Of (Hit.all) = Widgets.Id_Of (Item.Docs.Pages (Rank).Text) then
+                           State.Press_Rank := Rank;
+                           State.Press_X := Event.Mouse_X;
+                           State.Press_Y := Event.Mouse_Y;
+                           exit;
+                        end if;
+                     end loop;
+                  end if;
+               end;
+            end if;
+         when SDL3.Events.Mouse_Move =>
+            if abs (Event.Mouse_X - State.Press_X) > 4.0 or else abs (Event.Mouse_Y - State.Press_Y) > 4.0 then
+               State.Press_Rank := 0;
+            end if;
+         when SDL3.Events.Key_Down | SDL3.Events.Text_Input | SDL3.Events.Text_Editing | SDL3.Events.Pinch =>
+            Close_Inline (Item);
+         when SDL3.Events.Mouse_Wheel =>
+            State.Press_Rank := 0;
+            if State.Inline_Open and then not Widgets.Contains
+              (State.Inline_Menu, Event.Mouse_X * Pixels, Event.Mouse_Y * Pixels)
+            then
+               Close_Inline (Item);
+            end if;
+         when others => null;
+      end case;
+   end Before_Event;
 
    procedure Build (Item : in out Session) is
       State : Grammar_State renames Item.Grammar_Checks;
@@ -140,6 +221,11 @@ package body Viewer.Grammar is
       Widgets.Set_Visible (State.Measure_Card, False);
       Hooks.On (Item.Page_View.Grammar_Count, Widgets.Click, Item'Unchecked_Access, Toggle'Access);
       Widgets.Set_Visible (State.Popout, False);
+      Widgets.Add (Item.Toolbar.Content_Panel, State.Inline_Menu);
+      Set_Layout (State.Inline_Menu, Place => Absolute, Width => 200.0);
+      Hooks.On (State.Inline_Menu, Widgets.Choose, Item'Unchecked_Access, Inline_Chosen'Access);
+      Widgets.Set_Visible (State.Inline_Menu, False);
+      pragma Assert (Menus.Text_Capacity >= Harper.Max_Replacement);
    end Build;
 
    procedure Refresh (Item : in out Session) is
@@ -255,6 +341,7 @@ package body Viewer.Grammar is
       if State.Showing then
          Close (Item);
       elsif Item.Nav.Shown = Project and then Item.Toolbar.Mode = Write then
+         Close_Inline (Item);
          Pomarine.Widgets.Scrollers.Scroll_To (State.Scroll, 0.0);
          State.Showing := True;
          State.Dirty := True;
@@ -324,37 +411,204 @@ package body Viewer.Grammar is
       end loop;
    end Advance;
 
-   procedure Apply (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event) is
-      pragma Unreferenced (Source);
+   procedure Update_Cursor (Item : in out Session) is
+      State : Grammar_State renames Item.Grammar_Checks;
+      Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
+      Hit : Widgets.Widget_Access;
+   begin
+      State.Over_Diagnostic := False;
+      if not Active (Item) or else not State.Pointer_Known or else State.Pointer_Held then
+         return;
+      end if;
+      Hit := Widgets.Hit (Item.Root.Widgets, State.Pointer_X * Pixels, State.Pointer_Y * Pixels);
+      if Hit = null then
+         return;
+      end if;
+      for Rank in 1 .. Item.Reading.Write_Count loop
+         if Widgets.Id_Of (Hit.all) = Widgets.Id_Of (Item.Docs.Pages (Rank).Text) then
+            declare
+               Area : Areas.Text_Area renames Editors.Area (Item.Docs.Pages (Rank).Text).all;
+               Doc : Docs.Document renames Areas.Document (Area).all;
+            begin
+               for Row of State.Rows loop
+                  if Row.Rank = Rank and then Valid (Item, Row)
+                    and then Row.Lint.Location.First < Row.Lint.Location.Last
+                    and then Areas.Is_Over_Range
+                      (Area, Advance (Doc, Row.First, Row.Lint.Location.First),
+                       Advance (Doc, Row.First, Row.Lint.Location.Last),
+                       State.Pointer_X * Pixels, State.Pointer_Y * Pixels)
+                  then
+                     State.Over_Diagnostic := True;
+                     return;
+                  end if;
+               end loop;
+            end;
+            return;
+         end if;
+      end loop;
+   end Update_Cursor;
+
+   procedure Apply_Fix (Item : in out Session; Index, Number : Positive; Inline : Boolean) is
       State : Grammar_State renames Item.Grammar_Checks;
    begin
-      if State.Expanded = 0 or else not Valid (Item, State.Rows (State.Expanded)) then
+      if Index not in State.Rows'Range or else not Valid (Item, State.Rows (Index)) then
          return;
       end if;
       declare
-         Row : Grammar_Row renames State.Rows (State.Expanded);
+         Row : Grammar_Row renames State.Rows (Index);
          Lint : Harper.Diagnostic renames Row.Lint;
-         Area : Areas.Text_Area renames Editors.Area (Item.Docs.Pages (Row.Rank).Text).all;
+         Editor : Editors.Editor renames Item.Docs.Pages (Row.Rank).Text;
+         Area : Areas.Text_Area renames Editors.Area (Editor).all;
          Doc : Docs.Document renames Areas.Document (Area).all;
       begin
-         if Event.Index in 1 .. Lint.Suggestion_Count and then not Areas.Is_Composing (Area)
+         if Number in 1 .. Lint.Suggestion_Count and then not Areas.Is_Composing (Area)
            and then not Areas.Is_Read_Only (Area)
          then
             declare
-               Fix : Harper.Suggestion renames Lint.Suggestions (Event.Index);
+               Fix : Harper.Suggestion renames Lint.Suggestions (Number);
                From : constant Texts.Position := Advance (Doc, Row.First, Fix.Location.First);
                To : constant Texts.Position := Advance (Doc, Row.First, Fix.Location.Last);
                Replacement : constant String := Harper.Replacements.To_String (Fix.Text);
             begin
                Areas.Replace_Range (Area, From, To, Replacement);
-               Widgets.Invalidate (Item.Docs.Pages (Row.Rank).Text);
-               Widgets.Focus (Item.Page_View.Grammar_Count);
+               Widgets.Invalidate (Editor);
+               if Inline then
+                  Widgets.Focus (Editor);
+               else
+                  Widgets.Focus (Item.Page_View.Grammar_Count);
+               end if;
                State.Expanded := 0;
                Update (Item, SDL3.Events.Ticks);
             end;
          end if;
       end;
+   end Apply_Fix;
+
+   procedure Apply (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event) is
+      pragma Unreferenced (Source);
+   begin
+      if Item.Grammar_Checks.Expanded /= 0 and then Event.Index > 0 then
+         Apply_Fix (Item, Item.Grammar_Checks.Expanded, Event.Index, Inline => False);
+      end if;
    end Apply;
+
+   procedure Inline_Chosen
+     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source);
+      State : Grammar_State renames Item.Grammar_Checks;
+   begin
+      if State.Inline_Open and then Event.Row in 1 .. State.Inline_Count then
+         declare
+            Choice : constant Grammar_Choice := State.Inline_Choices (Event.Row);
+         begin
+            Close_Inline (Item);
+            if Choice.Row /= 0 and then Choice.Suggestion /= 0
+              and then Choice.Token = State.Rows (Choice.Row).Token
+            then
+               Apply_Fix (Item, Choice.Row, Choice.Suggestion, Inline => True);
+            end if;
+         end;
+      end if;
+   end Inline_Chosen;
+
+   procedure Released (Item : in out Session; Event : SDL3.Events.Event) is
+      State : Grammar_State renames Item.Grammar_Checks;
+      Rank : constant Natural := State.Press_Rank;
+      Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
+   begin
+      if Event.Kind /= SDL3.Events.Mouse_Up then
+         return;
+      end if;
+      State.Press_Rank := 0;
+      if not Active (Item) or else Event.Button /= 1 or else Rank = 0
+        or else Rank > Item.Reading.Write_Count
+        or else abs (Event.Mouse_X - State.Press_X) > 4.0 or else abs (Event.Mouse_Y - State.Press_Y) > 4.0
+      then
+         return;
+      end if;
+      declare
+         Hit : constant Widgets.Widget_Access :=
+           Widgets.Hit (Item.Root.Widgets, Event.Mouse_X * Pixels, Event.Mouse_Y * Pixels);
+         Area : Areas.Text_Area renames Editors.Area (Item.Docs.Pages (Rank).Text).all;
+         Doc : Docs.Document renames Areas.Document (Area).all;
+         First_Match : Natural := 0;
+         Wide : Float := 140.0;
+         Parent_Left : constant Float := Widgets.Left_Of (Item.Toolbar.Content_Panel) / Pixels;
+         Parent_Top : constant Float := Widgets.Top_Of (Item.Toolbar.Content_Panel) / Pixels;
+         Parent_Wide : constant Float := Widgets.Width_Of (Item.Toolbar.Content_Panel) / Pixels;
+         Parent_High : constant Float := Widgets.Height_Of (Item.Toolbar.Content_Panel) / Pixels;
+         use Layouts;
+      begin
+         if Hit = null or else Widgets.Id_Of (Hit.all) /= Widgets.Id_Of (Item.Docs.Pages (Rank).Text)
+           or else Areas.Has_Selection (Area) or else Areas.Is_Composing (Area)
+         then
+            return;
+         end if;
+         Close_Inline (Item);
+         Menus.Clear (State.Inline_Menu);
+         for Index in State.Rows'Range loop
+            declare
+               Row : Grammar_Row renames State.Rows (Index);
+            begin
+               if Row.Rank = Rank and then Valid (Item, Row)
+                 and then Row.Lint.Location.First < Row.Lint.Location.Last
+                 and then Areas.Is_Over_Range
+                   (Area, Advance (Doc, Row.First, Row.Lint.Location.First),
+                    Advance (Doc, Row.First, Row.Lint.Location.Last), Event.Mouse_X * Pixels, Event.Mouse_Y * Pixels)
+               then
+                  if First_Match = 0 then
+                     First_Match := Index;
+                  end if;
+                  for Number in 1 .. Row.Lint.Suggestion_Count loop
+                     exit when State.Inline_Count = State.Inline_Choices'Length;
+                     declare
+                        Replacement : constant String :=
+                          Harper.Replacements.To_String (Row.Lint.Suggestions (Number).Text);
+                        Label : String := (if Replacement'Length = 0 then "Delete" else Replacement);
+                     begin
+                        for C of Label loop
+                           if C in ASCII.LF | ASCII.CR | ASCII.HT then
+                              C := ' ';
+                           end if;
+                        end loop;
+                        Menus.Add (State.Inline_Menu, Menus.Action, Label);
+                        State.Inline_Count := State.Inline_Count + 1;
+                        State.Inline_Choices (State.Inline_Count) := (Index, Number, Row.Token);
+                        Wide := Float'Max (Wide,
+                          Pomarine.Line_Texts.Width (Item.Host.Lines, Label, Pixels) / Pixels + 40.0);
+                     end;
+                  end loop;
+               end if;
+            end;
+            exit when State.Inline_Count = State.Inline_Choices'Length;
+         end loop;
+         if First_Match = 0 then
+            return;
+         elsif State.Inline_Count = 0 then
+            Menus.Add (State.Inline_Menu, Menus.Note, "No suggested fixes");
+            State.Inline_Count := 1;
+            State.Inline_Choices (1) := (First_Match, 0, State.Rows (First_Match).Token);
+            Wide := 180.0;
+         end if;
+         Wide := Float'Max (80.0, Float'Min (Float'Min (Wide, 380.0), Parent_Wide - 16.0));
+         Menus.Set_Max_Height (State.Inline_Menu, Float'Max (40.0, Float'Min (240.0, Parent_High - 16.0)));
+         declare
+            High : constant Float := Menus.Shown_Height (State.Inline_Menu);
+            Left : constant Float := Float'Max (8.0, Float'Min (Event.Mouse_X - Parent_Left, Parent_Wide - Wide - 8.0));
+            Below : constant Float := Event.Mouse_Y - Parent_Top + 14.0;
+            Top : constant Float := Float'Max (8.0,
+              (if Below + High <= Parent_High - 8.0 then Below else Event.Mouse_Y - Parent_Top - High - 8.0));
+         begin
+            Set_Layout (State.Inline_Menu, Width => Wide,
+                        Position => (Left => Left, Top => Top, others => <>));
+         end;
+         State.Inline_Open := True;
+         Widgets.Set_Visible (State.Inline_Menu, True);
+         Widgets.Raise_To_Front (State.Inline_Menu);
+         Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
+      end;
+   end Released;
 
    procedure Chunk
      (Doc : Docs.Document; From : Texts.Position; Buffer : out String;
@@ -445,6 +699,20 @@ package body Viewer.Grammar is
             State.Dirty := True;
          end if;
       end loop;
+      if State.Inline_Open then
+         for Number in 1 .. State.Inline_Count loop
+            declare
+               Choice : Grammar_Choice renames State.Inline_Choices (Number);
+            begin
+               if Choice.Row = 0 or else not Valid (Item, State.Rows (Choice.Row))
+                 or else Choice.Token /= State.Rows (Choice.Row).Token
+               then
+                  Close_Inline (Item);
+                  exit;
+               end if;
+            end;
+         end loop;
+      end if;
       if Item.Nav.Shown /= Project or else Item.Toolbar.Mode /= Write then
          Close (Item);
       end if;
