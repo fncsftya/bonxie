@@ -24,6 +24,9 @@ package body Viewer.Documents is
       return Total;
    end Grammar_Running;
 
+   function Grammar_Count (Item : Session) return String is
+     (Pomarine.Widgets.Buttons.Label (Item.Page_View.Grammar_Count));
+
    function Grammar_Highlights (Item : Session; Row : Positive) return Natural is
      (Pomarine.Widgets.Editors.Highlight_Count (Item.Docs.Pages (Row).Text));
 

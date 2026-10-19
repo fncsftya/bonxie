@@ -13,6 +13,8 @@ package Viewer.Documents is
    function Grammar_Suggestions_Shown (Item : Session) return Boolean;
    function Grammar_Pending (Item : Session) return Boolean;
    function Grammar_Running (Item : Session) return Natural;
+   function Grammar_Count (Item : Session) return String;
+   --  The label of the button that counts the fixable suggestions.
    function Grammar_Highlights (Item : Session; Row : Positive) return Natural
      with Pre => Row <= Document_Count (Item);
    --  Background checking and decorations, for the writing view's tests.

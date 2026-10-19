@@ -51,6 +51,7 @@ package body Grammar_Tests is
    procedure Checking is
       Item : Viewer.Session;
       Now  : Events.Milliseconds := 10_000;
+      Image : Goldens.Images.Image;
    begin
       Viewer.Open (Item, "", 720, 480, 2.0);
       Viewer.Home_Screen.New_Project (Item);
@@ -88,12 +89,14 @@ package body Grammar_Tests is
       Goldens.Check_Text ("grammar-other-text", "This is a speling mistake.", Windows.Item_Text (Item, 2));
       Viewer.Tick (Item, Now);
       Check ("grammar-edit-clears", Docs.Grammar_Highlights (Item, 1) = 0);
+      Check ("grammar-other-counted", Docs.Grammar_Count (Item) /= "0");
       Now := Now + 499;
       Viewer.Tick (Item, Now);
       Check ("grammar-idle-waits", Docs.Grammar_Running (Item) = 0 and then Docs.Grammar_Pending (Item));
       Now := Now + 1;
       Await (Item, Now);
       Check ("grammar-corrected", Docs.Grammar_Highlights (Item, 1) = 0);
+      Check ("grammar-other-still-counted", Docs.Grammar_Count (Item) = "1");
 
       --  A newer edit wins even if the old document is still being checked.
       Viewer.Handle (Item, (Kind => Events.Key_Down, Key => Events.Key_A, Command => True, others => <>));
@@ -108,11 +111,51 @@ package body Grammar_Tests is
       Await (Item, Now);
       Check ("grammar-stale-result", Docs.Grammar_Highlights (Item, 1) = 0);
 
+      --  Diagnostics span all documents: editing a clean one keeps the others' marks, count and menu.
+      Click (Item, 400.0, 140.0);
+      Viewer.Handle (Item, (Kind => Events.Key_Down, Key => Events.Key_A, Command => True, others => <>));
+      Viewer.Handle (Item, Events.Text_Event ("This is a speling mistake."));
+      Viewer.Tick (Item, Now);
+      Now := Now + 500;
+      Await (Item, Now);
+      Check ("grammar-span-first", Docs.Grammar_Highlights (Item, 1) > 0 and then Docs.Grammar_Count (Item) = "2");
+      Click (Item, 100.0, 251.0);
+      Viewer.Tick (Item, Now + 1000);
+      Viewer.Render (Item, Image);
+      Click (Item, 400.0, 460.0);
+      Viewer.Handle (Item, (Kind => Events.Key_Down, Key => Events.Key_A, Command => True, others => <>));
+      for C of String'("Fine and dandy. It is good.") loop
+         Viewer.Handle (Item, Events.Text_Event ([C]));
+         Now := Now + 60;
+         Viewer.Tick (Item, Now);
+         Check ("grammar-span-typing-count", Docs.Grammar_Count (Item) = "1");
+      end loop;
+      Goldens.Check_Text ("grammar-span-edited", "This is a speling mistake.|Fine and dandy. It is good.",
+                          Windows.Item_Text (Item, 1) & "|" & Windows.Item_Text (Item, 2));
+      Now := Now + 500;
+      Await (Item, Now);
+      Check ("grammar-span-kept-marks", Docs.Grammar_Highlights (Item, 1) > 0);
+      Check ("grammar-span-kept-count", Docs.Grammar_Count (Item) = "1");
+
+      Proj.Set_Mode (Item, Viewer.Canvas);
+      Viewer.Tick (Item, Now);
+      Proj.Set_Mode (Item, Viewer.Write);
+      Viewer.Tick (Item, Now);
+      Check ("grammar-tab-return", Docs.Grammar_Count (Item) = "1" and then Docs.Grammar_Highlights (Item, 1) > 0);
+      Click (Item, 181.0, 140.0);
+      Viewer.Tick (Item, Now + 1000);
+      Check ("grammar-added-count", Docs.Document_Count (Item) = 3);
+      Viewer.Handle (Item, Events.Text_Event ("Brand new."));
+      for I in 1 .. 4 loop
+         Now := Now + 300;
+         Viewer.Tick (Item, Now);
+         Check ("grammar-added-typing-count", Docs.Grammar_Count (Item) = "1");
+      end loop;
       Docs.Move_Document (Item, 2, 1);
       Viewer.Tick (Item, Now);
       Await (Item, Now);
-      Check ("grammar-reordered", Docs.Grammar_Highlights (Item, 1) > 0
-             and then Docs.Grammar_Highlights (Item, 2) = 0);
+      Check ("grammar-reordered", Docs.Grammar_Highlights (Item, 1) = 0
+             and then Docs.Grammar_Highlights (Item, 2) > 0);
 
       --  Notes alone never create document checker jobs.
       Proj.Close_Project (Item);

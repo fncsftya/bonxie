@@ -69,8 +69,10 @@ package body Viewer.Grammar is
 
    procedure Apply_Fix (Item : in out Session; Index, Number : Positive; Inline : Boolean);
 
+   --  Whether the row still describes its document. Not tied to Active: the rows
+   --  and the marks outlive a visit to another tab, and are shown again on return.
    function Valid (Item : Session; Row : Grammar_Row) return Boolean is
-     (Active (Item) and then Row.Token /= 0 and then Row.Rank <= Item.Reading.Write_Count
+     (Row.Token /= 0 and then Row.Rank <= Item.Reading.Write_Count
       and then Row.Token = Item.Grammar_Checks.Documents (Row.Rank).Token
       and then Item.Grammar_Checks.Documents (Row.Rank).Serial =
         Docs.Serial (Editors.Document (Item.Docs.Pages (Row.Rank).Text).all)
