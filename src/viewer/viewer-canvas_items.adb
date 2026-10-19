@@ -545,7 +545,7 @@ package body Viewer.Canvas_Items is
       elsif not Ebook.Is_Supported ("." & Ending) then
          Windows.Set_Capture
            (Item.Windows (Which), Windows.Failed,
-            Detail => "not a supported image, PDF, e-book or text file");
+            Detail => "not an image, PDF, e-book or text file");
       elsif not Ada.Directories.Exists (Path)
         or else Ada.Directories."=" (Ada.Directories.Kind (Path), Ada.Directories.Directory)
       then

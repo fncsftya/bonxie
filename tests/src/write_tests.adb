@@ -86,13 +86,13 @@ package body Write_Tests is
    Source_Row_X : constant Float := 100.0;
 
    function Source_Row_Y (Documents : Natural) return Float is
-     (159.0 + 38.0
+     (159.0 + 24.5 + 38.0
       + (if Documents = 0 then 31.0
          else Float (Documents) * 34.0 + Float (Documents - 1) * 4.0)
       + 67.5);
    --  The row of the first source, in the sidebar, below the Overview and
    --  the list of so many documents (or the line that says there are
-   --  none).
+   --  none), and the grammar switch above them and the handle between.
 
    --  Events
 
@@ -161,9 +161,9 @@ package body Write_Tests is
       Goldens.Check (Name, Drawn);
    end Snap;
 
-   procedure Start_With_Three (Session : in out Viewer.Session) is
+   procedure Start_With_Three (Session : in out Viewer.Session; High : Positive := Height) is
    begin
-      Viewer.Open (Session, "", Width, Height, 2.0);
+      Viewer.Open (Session, "", Width, High, 2.0);
       Home.New_Project (Session);
       Viewer.Project_Screen.Set_Mode (Session, Viewer.Canvas);
       Windows.Add_Item (Session, "Opening");
@@ -262,7 +262,8 @@ package body Write_Tests is
       function Where (Row : Positive) return String is
         (Natural'Image (Docs.Document_Directory (Session, Row)));
    begin
-      Start_With_Three (Session);
+      --  Tall enough for all the rows of the tree.
+      Start_With_Three (Session, High => 640);
       Key := Proj.Current_Project (Session);
       Proj.Set_Mode (Session, Viewer.Write);
       Settle (Session);

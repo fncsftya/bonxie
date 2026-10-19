@@ -1787,7 +1787,7 @@ package body Item_Tests is
       --  source stays as it was.
       Windows.Pick_File (Session, 1, Odd);
       Check
-        ("file-unsupported", "Failed: not a PDF, e-book or text file",
+        ("file-unsupported", "Failed: not an image, PDF, e-book or text file",
          Windows.Item_Status (Session, 1));
 
       --  A PDF: its path is the source's text, which cannot be typed

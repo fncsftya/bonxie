@@ -214,11 +214,12 @@ package body Outline_Generation is
             end loop;
          end;
          Valid := Result.Count > 0;
-      exception
-         when JSON_Parsers.Parse_Error | JSON_Types.Invalid_Type_Error | Constraint_Error | Program_Error =>
-            Result.Count := 0;
-            Valid := False;
       end;
+   exception
+      --  Including what is wrong with the reply as a whole, found as it is parsed.
+      when JSON_Parsers.Parse_Error | JSON_Types.Invalid_Type_Error | Constraint_Error | Program_Error =>
+         Result.Count := 0;
+         Valid := False;
    end Parse;
 
 end Outline_Generation;

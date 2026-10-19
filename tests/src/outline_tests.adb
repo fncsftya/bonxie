@@ -482,7 +482,7 @@ package body Outline_Tests is
       Move_To (Session, 100.0, 400.0, Held => True);
       Move_To (Session, 0.0, 400.0, Held => True);
       Release (Session, 0.0, 400.0);
-      Check ("sidebar-narrowest", "150", Natural (Docs.Sidebar_Width (Session))'Image (2 .. 4));
+      Check ("sidebar-narrowest", "200", Natural (Docs.Sidebar_Width (Session))'Image (2 .. 4));
       Snap (Session, "sidebar-narrow");
 
       --  What is kept with the settings.
@@ -553,12 +553,12 @@ package body Outline_Tests is
 
       --  Within a section, a document is dragged above its neighbour;
       --  and the ghost is the row, under the pointer.
-      Drag (267.0, 229.0, "tiers-ghost");
+      Drag (327.0, 289.0, "tiers-ghost");
       Check ("tiers-reordered", "Loose|Bravo|Alpha|Charlie|", Order);
       Check ("tiers-owners", "Alpha,Bravo,||Charlie,|", Owners_Of (Session));
 
       --  A section cannot be dragged, nor can it come after a document.
-      Drag (191.0, 380.0);
+      Drag (251.0, 440.0);
       Check ("tiers-section-fixed", "Loose|Bravo|Alpha|Charlie|", Order);
 
       --  Put among another section's, a document is made its own.
@@ -599,13 +599,13 @@ package body Outline_Tests is
       Snap (Session, "write-section-rows");
 
       --  Right click: it can be renamed, not deleted.
-      Click_Row (153.0, 3, 1);
+      Click_Row (213.0, 3, 1);
       Snap (Session, "write-section-context");
       Click_Row (400.0, 1, 1);
 
       --  Pressed twice, it is renamed in place, and the name is the
       --  section's wherever it is shown.
-      Click_Row (153.0, 1, 2);
+      Click_Row (213.0, 1, 2);
       Type_In (Session, "Opening");
       Viewer.Handle (Session, Events.Event'(Kind => Events.Key_Down, Key => Events.Key_Return, others => <>));
       Settle (Session);
