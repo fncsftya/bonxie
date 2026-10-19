@@ -511,9 +511,35 @@ package body Viewer.Canvas_Items is
       Ending : constant String := Ebook.File_Extension (Path);
       Key    : constant Items.Id := Windows.Details (Item.Windows (Which)).Key;
    begin
-      if not Ebook.Is_Supported ("." & Ending) then
+      if Ending = "png" then
+         if not Ada.Directories.Exists (Path)
+           or else Ada.Directories."="
+             (Ada.Directories.Kind (Path), Ada.Directories.Directory)
+         then
+            Windows.Set_Capture
+              (Item.Windows (Which), Windows.Failed, Detail => "the file is not there");
+            return;
+         end if;
+         Items.Sources.Make_Image_Folder (Item.Nav.Store, Item.Opened.Current);
+         Items.Sources.Copy_File
+           (Path, Items.Sources.Image_File (Item.Nav.Store, Item.Opened.Current, Key));
+         Items.Sources.Set_Document (Item.Nav.Store, Key, "", 0);
+         declare
+            Time : constant Projects.Seconds := Epoch_Now (Item);
+         begin
+            Items.Sources.Set_Captured (Item.Nav.Store, Key, Time);
+            Windows.Set_Pages (Item.Windows (Which), "", 0, 0);
+            Windows.Set_Capture
+              (Item.Windows (Which), Windows.Ready,
+               Items.Sources.Image_File (Item.Nav.Store, Item.Opened.Current, Key),
+               At_Time => Time);
+            Writing.Picture_Taken (Item, Which);
+            Projects.Touch (Item.Nav.Store, Item.Opened.Current);
+         end;
+      elsif not Ebook.Is_Supported ("." & Ending) then
          Windows.Set_Capture
-           (Item.Windows (Which), Windows.Failed, Detail => "not a PDF, e-book or text file");
+           (Item.Windows (Which), Windows.Failed,
+            Detail => "not a PNG, PDF, e-book or text file");
       elsif not Ada.Directories.Exists (Path)
         or else Ada.Directories."=" (Ada.Directories.Kind (Path), Ada.Directories.Directory)
       then
@@ -602,7 +628,8 @@ package body Viewer.Canvas_Items is
       SDL3.Dialogs.Reset;
       Item.Nav.Pick_Slot := Which;
       Item.Nav.Pick_Key := Windows.Details (Item.Windows (Which)).Key;
-      SDL3.Dialogs.Open_File (Item.Host.Win, "PDFs, e-books and text", Ebook.Extensions);
+      SDL3.Dialogs.Open_File
+        (Item.Host.Win, "Images, PDFs, e-books and text", Ebook.Extensions & ";png");
    end Pick_File;
 
    procedure Poll_Pick (Item : in out Session);
