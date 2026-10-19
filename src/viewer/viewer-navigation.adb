@@ -28,12 +28,7 @@ package body Viewer.Navigation is
       begin
          Item.Opened.Project_Name
             := Ada.Strings.Unbounded.To_Unbounded_String (Name);
-         Pomarine.Widgets.Labels.Set_Text
-           (Item.Toolbar.Project_Title,
-            Name (Name'First ..
-                  Name'First - 1
-                  + Natural'Min
-                      (Name'Length, Pomarine.Widgets.Labels.Text_Capacity)));
+         Pomarine.Widgets.Labels.Set_Text (Item.Toolbar.Project_Title, Name);
       end;
    end Show_Title_Of_Project;
 
