@@ -2908,7 +2908,9 @@ package body Viewer.Writing is
             Parts.Plan_Count := 0;
             for Each of Item.Docs.Pages loop
                Layouts.Set_Layout
-                 (Each.Box, Place => (if To then Layouts.Absolute else Layouts.Flowing));
+                 (Each.Box,
+                  Place => (if To then Layouts.Absolute else Layouts.Flowing),
+                  Position => (if To then (others => Layouts.Unset) else (others => 0.0)));
             end loop;
             Widgets.Set_Visible (Parts.Tail, To);
             Layouts.Set_Layout (Parts.Tail, Height => 0.0);
