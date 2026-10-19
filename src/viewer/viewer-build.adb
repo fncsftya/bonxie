@@ -542,6 +542,7 @@ package body Viewer.Build is
                Editors.Set_Shared (Each.Text, Item.Host.Doc_Resources'Unchecked_Access);
                Editors.Configure
                  (Each.Text, Pomarine.Line_Texts.Interface_Font, Edit_Size, 2000.0);
+               Pomarine.Text_Areas.Set_Grows (Editors.Area (Each.Text).all);
                Editors.Set_Paper (Each.Text, Side_Fill);
                Editors.Set_Borderless (Each.Text, True);
                Editors.Attach (Each.Text, Item.Outline_View.Blocks (Index).Notes_Doc'Unchecked_Access);
