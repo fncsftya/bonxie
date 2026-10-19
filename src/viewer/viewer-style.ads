@@ -259,6 +259,10 @@ private package Viewer.Style is
    Section_First : constant := Source_First + Source_Count;
    --  Offset of Section_Inks (0) among the application's slots.
 
+   Link_Default : constant Pomarine.Themes.Slot :=
+     Pomarine.Themes.Custom (Section_First + Projects.Sections.Colour_Index'Last + 1);
+   --  The plain link ink: black in the light theme, white in the dark.
+
    Section_Inks : constant array (Projects.Sections.Colour_Index) of Pomarine.Themes.Slot :=
      [for K in Projects.Sections.Colour_Index => Pomarine.Themes.Custom (Section_First + K)];
    --  The pastel colours that tell the outline's sections apart, drawn
@@ -314,7 +318,7 @@ private package Viewer.Style is
    --  Below the lower end of the link, and centred across it.
 
    Link_Inks : constant array (Items.Links.Link_Colors) of Pomarine.Themes.Slot :=
-     [Pomarine.Themes.Bar, Pomarine.Themes.Accent, Pomarine.Themes.Primary, Pomarine.Themes.Danger,
+     [Link_Default, Pomarine.Themes.Accent, Pomarine.Themes.Primary, Pomarine.Themes.Danger,
       Source_1];
    --  The colours a link between documents can be drawn in: the theme's,
    --  and a blue.

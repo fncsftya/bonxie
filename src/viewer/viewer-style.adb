@@ -55,6 +55,9 @@ package body Viewer.Style is
          Themes.Set_Custom (Result, 3, Themes.Mix (Base (Themes.Foreground), Back, 0.55));
          Themes.Set_Custom
            (Result, 4, Themes.Mix (Base (Themes.Primary), Base (Themes.Foreground), 0.25));
+         Themes.Set_Custom
+           (Result, Section_First + Projects.Sections.Colour_Index'Last + 1,
+            (if Dark then Themes.White else (0, 0, 0, 255)));
          Themes.Set_Custom (Result, Source_First, (if Dark then Source_Blue_Dark else Source_Blue_Light));
          for K in Other_Sources'Range loop
             Themes.Set_Custom (Result, Source_First + K - 1, Other_Sources (K));
