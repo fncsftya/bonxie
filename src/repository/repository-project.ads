@@ -29,6 +29,9 @@ package Repository.Project is
       Time  : Projects.Seconds)
      with Pre => Projects.Is_Open (Store) and then Time >= Projects.Now;
 
+   function Stored_Description (Store : Projects.Store; Key : Projects.Id) return String
+     with Pre => Projects.Is_Open (Store);
+
    procedure Set_Description
      (Store       : in out Projects.Store;
       Key         : Projects.Id;

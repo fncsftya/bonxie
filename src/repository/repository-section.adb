@@ -1,6 +1,7 @@
 with Ada.Strings;
 with Ada.Strings.Fixed;
 with Ada_Sqlite3;
+with Texts.Documents;
 with Repository.Database; use Repository.Database;
 
 package body Repository.Section is
@@ -80,7 +81,7 @@ package body Repository.Section is
             Colour => Projects.Sections.Colour_Index
               (Integer'Max (0, Ada_Sqlite3.Column_Int (Query, 2)) mod Palette),
             Notes => Projects.Sections.Note_Texts.To_Bounded_String
-              (Ada_Sqlite3.Column_Text (Query, 3), Ada.Strings.Right),
+              (Texts.Documents.Plain_Stored (Ada_Sqlite3.Column_Text (Query, 3)), Ada.Strings.Right),
             Open  => False);
       end loop;
    end Load;
@@ -142,6 +143,17 @@ package body Repository.Section is
       Ada_Sqlite3.Bind_Int64 (Update, ":id", Long_Integer (Key));
       Ada_Sqlite3.Step (Update);
    end Rename;
+
+   function Stored_Notes (Store : Projects.Store; Key : Projects.Sections.Section_Id) return String is
+      Query : Ada_Sqlite3.Statement := Ada_Sqlite3.Prepare
+        (DB (Store).all, "SELECT notes FROM sections WHERE id = :id");
+   begin
+      Ada_Sqlite3.Bind_Int64 (Query, ":id", Long_Integer (Key));
+      if Ada_Sqlite3.Step (Query) = Ada_Sqlite3.ROW then
+         return Ada_Sqlite3.Column_Text (Query, 0);
+      end if;
+      return "";
+   end Stored_Notes;
 
    procedure Set_Notes
      (Store : in out Projects.Store;

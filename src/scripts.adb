@@ -16,7 +16,7 @@ package body Scripts is
    procedure Load
      (Item : in out Script; Content : String; Kept_In : String := "") is
    begin
-      Docs.Load (Item.Doc, Content);
+      Docs.Load_Stored (Item.Doc, Content);
       Item.File_Name := To_Unbounded_String (Kept_In);
       Item.Saved := Docs.State (Item.Doc);
    end Load;
@@ -40,7 +40,7 @@ package body Scripts is
 
    procedure Save (Item : in out Script) is
    begin
-      Files.Write (File_Name (Item), Text (Item));
+      Files.Write (File_Name (Item), Docs.Stored (Item.Doc));
       Item.Saved := Docs.State (Item.Doc);
    end Save;
 

@@ -70,3 +70,11 @@ alr exec -- bin/check_harper
 ```
 
 See `harper/README.md` for the API, bounds, and build requirements.
+
+
+## Rich text persistence
+
+`items-stored` also checks all four styles through item content in the `<version>` markup,
+project descriptions, section notes, and saved script files. Plain summaries
+remain plain text. Editor geometry, rendering, formatting, and undo are covered
+by pomarine's `document-rich-text` and `textarea-rich-text` tests.

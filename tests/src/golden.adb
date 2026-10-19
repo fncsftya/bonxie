@@ -134,9 +134,11 @@ procedure Golden is
 
    procedure Canvas_Starts is
       Session : Viewer.Session;
+      Drawn : Images.Image;
    begin
-      Show ("canvas");
       Start (Session);
+      Viewer.Render (Session, Drawn);
+      Goldens.Check ("canvas", Drawn);
       Goldens.Check_Text
         ("canvas-mode", "CANVAS", Viewer.Modes'Image (Proj.Mode (Session)));
       --  The origin in the middle, at a zoom of 1.

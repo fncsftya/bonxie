@@ -9,7 +9,7 @@ package Scripts is
 
    procedure Load
      (Item : in out Script; Content : String; Kept_In : String := "");
-   --  Make Content the text, a paragraph to each line, kept in file
+   --  Load versioned Content (or legacy plain text), kept in file
    --  Kept_In ("" for none yet), and as saved.
 
    function Document
@@ -30,7 +30,7 @@ package Scripts is
 
    procedure Save (Item : in out Script)
      with Pre => File_Name (Item) /= "";
-   --  Write the text to the file, a line to each paragraph.
+   --  Write the versioned text and its formatting to the file.
 
 private
 

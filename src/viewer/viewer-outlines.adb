@@ -191,9 +191,9 @@ package body Viewer.Outlines is
                  (Block.Doc,
                   Projects.Sections.Title_Texts.To_String (View.Order.Items (Each).Title));
                Block.Seen := Docs.Current (Block.Doc);
-               Docs.Load
+               Docs.Load_Stored
                  (Block.Notes_Doc,
-                  Projects.Sections.Note_Texts.To_String (View.Order.Items (Each).Notes));
+                  Projects.Sections.Stored_Notes (Item.Nav.Store, View.Order.Items (Each).Key));
                Block.Notes_Seen := Docs.Current (Block.Notes_Doc);
                Buttons.Set_Selected (Block.Notes, View.Order.Items (Each).Open);
                Widgets.Set_Visible (Block.Notes_Sheet, View.Order.Items (Each).Open);
@@ -339,7 +339,7 @@ package body Viewer.Outlines is
          View.Desc_Seen := Docs.Current (View.Desc_Doc);
          Projects.Set_Description
            (Item.Nav.Store, Item.Opened.Current,
-            Cut (Docs.Whole (View.Desc_Doc), Projects.Description_Capacity));
+            Docs.Stored (View.Desc_Doc));
       end if;
       for Each in 1 .. View.Order.Count loop
          declare
@@ -365,8 +365,8 @@ package body Viewer.Outlines is
                begin
                   View.Order.Items (Each).Notes :=
                     Projects.Sections.Note_Texts.To_Bounded_String (Notes);
-                  Projects.Sections.Set_Notes
-                    (Item.Nav.Store, View.Order.Items (Each).Key, Notes);
+                  Projects.Sections.Set_Stored_Notes
+                    (Item.Nav.Store, View.Order.Items (Each).Key, Docs.Stored (Block.Notes_Doc));
                end;
             end if;
          end;
@@ -385,7 +385,7 @@ package body Viewer.Outlines is
       if Found then
          Docs.Load (View.Name_Doc, Projects.Titles.To_String (Result.Title));
          View.Name_Seen := Docs.Current (View.Name_Doc);
-         Docs.Load (View.Desc_Doc, Projects.Descriptions.To_String (Result.Description));
+         Docs.Load_Stored (View.Desc_Doc, Projects.Stored_Description (Item.Nav.Store, Result.Key));
          View.Desc_Seen := Docs.Current (View.Desc_Doc);
       end if;
    end Load_Form;

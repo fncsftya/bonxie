@@ -1,4 +1,8 @@
 with Items.Records;
+with Texts.Documents;
+with Projects.Sections;
+with Scripts;
+with Files;
 with Items.Schema;
 with Items.Sources;
 with Items.Words;
@@ -289,6 +293,52 @@ package body Item_Tests is
       Check
         ("items-content", "some text",
          Items.Records.Content (Store, Listed.Items (1).Key));
+
+      declare
+         Doc, Reloaded : Texts.Documents.Document;
+      begin
+         Texts.Documents.Load (Doc, "some text");
+         for Style in Texts.Documents.Format loop
+            Texts.Documents.Set_Format (Doc, (1, 1), (1, 5), Style, True);
+         end loop;
+         Items.Records.Set_Content (Store, Notes, Texts.Documents.Stored (Doc));
+         Check ("items-rich-plain-content", "some text", Items.Records.Content (Store, Notes));
+         Texts.Documents.Load_Stored (Reloaded, Items.Records.Stored_Content (Store, Notes));
+         for Style in Texts.Documents.Format loop
+            pragma Assert (Texts.Documents.Has_Format (Reloaded, (1, 1), (1, 5), Style));
+         end loop;
+         Check ("items-rich-persistence", "ok", "ok");
+         declare
+            Section : constant Projects.Sections.Section_Id := Projects.Sections.Add (Store, First, "Rich notes");
+            Sections : Projects.Sections.Section_List;
+            Project : Projects.Project;
+            Found : Boolean;
+            Script : Scripts.Script;
+            Path : constant String := "/tmp/bonxie-rich-script";
+         begin
+            Projects.Set_Description (Store, First, Texts.Documents.Stored (Doc));
+            Projects.Find (Store, First, Found, Project);
+            pragma Assert (Found and then Projects.Descriptions.To_String (Project.Description) = "some text");
+            Texts.Documents.Load_Stored (Reloaded, Projects.Stored_Description (Store, First));
+            pragma Assert (Texts.Documents.Has_Format (Reloaded, (1, 1), (1, 5), Texts.Documents.Bold));
+            Projects.Sections.Set_Stored_Notes (Store, Section, Texts.Documents.Stored (Doc));
+            Projects.Sections.Load (Store, First, Sections);
+            pragma Assert (Projects.Sections.Note_Texts.To_String (Sections.Items (1).Notes) = "some text");
+            Texts.Documents.Load_Stored (Reloaded, Projects.Sections.Stored_Notes (Store, Section));
+            for Style in Texts.Documents.Format loop
+               pragma Assert (Texts.Documents.Has_Format (Reloaded, (1, 1), (1, 5), Style));
+            end loop;
+            Scripts.Load (Script, Texts.Documents.Stored (Doc), Path);
+            Scripts.Save (Script);
+            Texts.Documents.Load_Stored (Reloaded, Files.Read (Path));
+            for Style in Texts.Documents.Format loop
+               pragma Assert (Texts.Documents.Has_Format (Reloaded, (1, 1), (1, 5), Style));
+            end loop;
+            pragma Assert (Scripts.Text (Script) = "some text");
+            Ada.Directories.Delete_File (Path);
+            Check ("projects-rich-persistence", "ok", "ok");
+         end;
+      end;
 
       Items.Records.Set_Title (Store, Listed.Items (1).Key, "Renamed");
       Items.Records.Set_Content

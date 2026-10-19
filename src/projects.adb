@@ -56,6 +56,9 @@ package body Projects is
       Repository.Project.Prepare (Item);
    end Open;
 
+   function Stored_Description (Item : Store; Key : Id) return String is
+     (Repository.Project.Stored_Description (Item, Key));
+
    procedure Set_Description
      (Item : in out Store; Key : Id; Description : String) is
    begin

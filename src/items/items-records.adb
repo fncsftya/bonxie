@@ -1,4 +1,5 @@
 with Items.Sources;
+with Texts.Documents;
 with Repository.Item;
 
 package body Items.Records is
@@ -34,8 +35,11 @@ package body Items.Records is
      (Store : Projects.Store; Project : Projects.Id) return Natural is
      (Repository.Item.Count (Store, Project));
 
-   function Content (Store : Projects.Store; Key : Id) return String is
+   function Stored_Content (Store : Projects.Store; Key : Id) return String is
      (Repository.Item.Content (Store, Key));
+
+   function Content (Store : Projects.Store; Key : Id) return String is
+     (Texts.Documents.Plain_Stored (Stored_Content (Store, Key)));
 
    procedure Set_Title
      (Store : in out Projects.Store; Key : Id; Title : String) is

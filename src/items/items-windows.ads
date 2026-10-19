@@ -91,7 +91,7 @@ package Items.Windows is
       Saved_Text : String;
       Picture_File : String := "")
      with Pre => not Is_Assigned (Item);
-   --  Make it the window of the item, with its text Saved_Text, as saved:
+   --  Make it the window of the item, with its versioned text Saved_Text (or legacy plain text), as saved:
    --  shown as its state says, once it is placed. A source that has been
    --  captured shows Picture_File, a PNG.
 

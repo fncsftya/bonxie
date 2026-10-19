@@ -29,6 +29,10 @@ package Items.Records is
      with Pre => Projects.Is_Open (Store);
    --  The text of the item, "" if there is no such item.
 
+   function Stored_Content (Store : Projects.Store; Key : Id) return String
+     with Pre => Projects.Is_Open (Store);
+   --  Versioned editor content for loading a document, retaining formatting.
+
    procedure Set_Title
      (Store : in out Projects.Store; Key : Id; Title : String)
      with Pre => Projects.Is_Open (Store);

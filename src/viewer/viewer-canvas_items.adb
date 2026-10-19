@@ -963,7 +963,7 @@ package body Viewer.Canvas_Items is
       for I in 1 .. Found.Count loop
          Windows.Assign
            (Item.Windows (I), Found.Items (I),
-            Items.Records.Content (Item.Nav.Store, Found.Items (I).Key),
+            Items.Records.Stored_Content (Item.Nav.Store, Found.Items (I).Key),
             Items.Sources.Shown_File
               (Item.Nav.Store, Item.Opened.Current, Found.Items (I)));
          Recognize_Kept (Item, I);

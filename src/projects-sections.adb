@@ -22,6 +22,14 @@ package body Projects.Sections is
       Repository.Section.Rename (Item, Key, Title);
    end Rename;
 
+   function Stored_Notes (Item : Store; Key : Section_Id) return String is
+     (Repository.Section.Stored_Notes (Item, Key));
+
+   procedure Set_Stored_Notes (Item : in out Store; Key : Section_Id; Notes : String) is
+   begin
+      Repository.Section.Set_Notes (Item, Key, Notes);
+   end Set_Stored_Notes;
+
    procedure Set_Notes
      (Item : in out Store; Key : Section_Id; Notes : String) is
    begin

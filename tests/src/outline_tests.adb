@@ -328,6 +328,8 @@ package body Outline_Tests is
       Type_In (Session, "- Open with a story");
       Settle (Session);
       Check ("outline-notes-typed", "- Open with a story", Outline.Section_Notes (Session, 1));
+      --  The focused notes have a toolbar, faded in by now.
+      Viewer.Tick (Session, 200);
       Snap (Session, "outline-notes-open");
 
       --  Hidden, they are still kept; they go with the section.

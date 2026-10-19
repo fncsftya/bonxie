@@ -12,7 +12,7 @@ package Projects.Sections is
      (Max_Title);
 
    Max_Notes : constant := 2000;
-   --  Bytes, of a section's notes: longer is cut.
+   --  Bytes in the plain summary; the stored rich document retains its full text.
 
    package Note_Texts is new Ada.Strings.Bounded.Generic_Bounded_Length
      (Max_Notes);
@@ -89,6 +89,11 @@ package Projects.Sections is
 
    procedure Rename
      (Item : in out Store; Key : Section_Id; Title : String)
+     with Pre => Is_Open (Item);
+
+   function Stored_Notes (Item : Store; Key : Section_Id) return String
+     with Pre => Is_Open (Item);
+   procedure Set_Stored_Notes (Item : in out Store; Key : Section_Id; Notes : String)
      with Pre => Is_Open (Item);
 
    procedure Set_Notes

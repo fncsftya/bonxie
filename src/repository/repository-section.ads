@@ -27,6 +27,9 @@ package Repository.Section is
       Title : String)
      with Pre => Projects.Is_Open (Store);
 
+   function Stored_Notes (Store : Projects.Store; Key : Projects.Sections.Section_Id) return String
+     with Pre => Projects.Is_Open (Store);
+
    procedure Set_Notes
      (Store : in out Projects.Store;
       Key   : Projects.Sections.Section_Id;

@@ -86,6 +86,9 @@ package Projects is
      with Pre => Is_Open (Item) and then Time >= Now;
    --  Say the project was updated at Time.
 
+   function Stored_Description (Item : Store; Key : Id) return String
+     with Pre => Is_Open (Item);
+
    procedure Set_Description
      (Item : in out Store; Key : Id; Description : String)
      with Pre => Is_Open (Item);

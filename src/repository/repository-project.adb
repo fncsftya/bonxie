@@ -1,5 +1,6 @@
 with Ada.Strings;
 with Ada_Sqlite3;
+with Texts.Documents;
 with Repository.Database; use Repository.Database;
 
 package body Repository.Project is
@@ -32,7 +33,7 @@ package body Repository.Project is
       Title       => Projects.Titles.To_Bounded_String
         (Ada_Sqlite3.Column_Text (Query, 1), Ada.Strings.Right),
       Description => Projects.Descriptions.To_Bounded_String
-        (Ada_Sqlite3.Column_Text (Query, 2), Ada.Strings.Right),
+        (Texts.Documents.Plain_Stored (Ada_Sqlite3.Column_Text (Query, 2)), Ada.Strings.Right),
       Created_At  => Ada_Sqlite3.Column_Int64 (Query, 3),
       Updated_At  => Ada_Sqlite3.Column_Int64 (Query, 4));
 
@@ -48,6 +49,17 @@ package body Repository.Project is
       Add_Column (Store, "projects", "tab", "INTEGER NOT NULL DEFAULT 0");
       Ada_Sqlite3.Execute (DB (Store).all, Index);
    end Prepare;
+
+   function Stored_Description (Store : Projects.Store; Key : Projects.Id) return String is
+      Query : Ada_Sqlite3.Statement := Ada_Sqlite3.Prepare
+        (DB (Store).all, "SELECT description FROM projects WHERE id = :id");
+   begin
+      Ada_Sqlite3.Bind_Int64 (Query, ":id", Long_Integer (Key));
+      if Ada_Sqlite3.Step (Query) = Ada_Sqlite3.ROW then
+         return Ada_Sqlite3.Column_Text (Query, 0);
+      end if;
+      return "";
+   end Stored_Description;
 
    procedure Set_Description
      (Store       : in out Projects.Store;

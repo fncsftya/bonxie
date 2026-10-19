@@ -1087,7 +1087,7 @@ package body Items.Windows is
       Item.Details := Of_Item;
       Docs.Load
         (Item.Title_Doc, Projects.Titles.To_String (Of_Item.Title));
-      Docs.Load (Item.Content_Doc, Saved_Text);
+      Docs.Load_Stored (Item.Content_Doc, Saved_Text);
       Item.Dictating := Silent;
       Item.Live_Shown := False;
       Item.Live_Lost := False;
@@ -1706,7 +1706,7 @@ package body Items.Windows is
          end if;
          if Content_Now /= Item.Content_Saved then
             Items.Records.Set_Content
-              (Store, Item.Details.Key, Docs.Whole (Item.Content_Doc));
+              (Store, Item.Details.Key, Docs.Stored (Item.Content_Doc));
             Item.Content_Saved := Content_Now;
          end if;
          Wrote := True;
