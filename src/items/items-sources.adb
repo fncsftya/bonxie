@@ -3,6 +3,8 @@ with Ada.Numerics.Elementary_Functions;
 with Ada.Strings;
 with Ada.Strings.Fixed;
 with Ebook;
+with Interfaces.C;
+with Interfaces.C.Strings;
 with GNAT.OS_Lib;
 with Files;
 with Items.Marks;
@@ -10,6 +12,13 @@ with Items.Words;
 with Repository.Item;
 
 package body Items.Sources is
+
+   use type Interfaces.C.int;
+   use type Interfaces.C.Strings.chars_ptr;
+
+   function Image_To_PNG
+     (From, To : Interfaces.C.Strings.chars_ptr) return Interfaces.C.int
+     with Import, Convention => C, External_Name => "pn_image_to_png";
 
    function Percent (Zoom : Float) return String is
      (Ada.Strings.Fixed.Trim
@@ -148,6 +157,26 @@ package body Items.Sources is
       end if;
       Ada.Directories.Rename (Part, To);
    end Copy_File;
+
+   procedure Convert_Image (From, To : String) is
+      Input  : Interfaces.C.Strings.chars_ptr := Interfaces.C.Strings.New_String (From);
+      Output : Interfaces.C.Strings.chars_ptr := Interfaces.C.Strings.New_String (To);
+   begin
+      if Image_To_PNG (Input, Output) = 0 then
+         raise Ada.Directories.Use_Error with "could not convert image " & From;
+      end if;
+      Interfaces.C.Strings.Free (Input);
+      Interfaces.C.Strings.Free (Output);
+   exception
+      when others =>
+         if Input /= Interfaces.C.Strings.Null_Ptr then
+            Interfaces.C.Strings.Free (Input);
+         end if;
+         if Output /= Interfaces.C.Strings.Null_Ptr then
+            Interfaces.C.Strings.Free (Output);
+         end if;
+         raise;
+   end Convert_Image;
 
    function Image_Folder
      (Store : Projects.Store; Project : Projects.Id) return String is

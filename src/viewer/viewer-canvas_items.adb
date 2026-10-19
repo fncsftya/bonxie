@@ -507,11 +507,17 @@ package body Viewer.Canvas_Items is
       end if;
    end Finish_File;
 
+   function Is_Image (Ending : String) return Boolean is
+     (Ending = "png" or else Ending = "jpg" or else Ending = "jpeg"
+      or else Ending = "gif" or else Ending = "tif" or else Ending = "tiff"
+      or else Ending = "bmp" or else Ending = "heic" or else Ending = "heif"
+      or else Ending = "webp" or else Ending = "jp2" or else Ending = "exr");
+
    procedure Start_Local (Item : in out Session; Which : Items.Slot; Path : String) is
       Ending : constant String := Ebook.File_Extension (Path);
       Key    : constant Items.Id := Windows.Details (Item.Windows (Which)).Key;
    begin
-      if Ending = "png" then
+      if Is_Image (Ending) then
          if not Ada.Directories.Exists (Path)
            or else Ada.Directories."="
              (Ada.Directories.Kind (Path), Ada.Directories.Directory)
@@ -521,7 +527,7 @@ package body Viewer.Canvas_Items is
             return;
          end if;
          Items.Sources.Make_Image_Folder (Item.Nav.Store, Item.Opened.Current);
-         Items.Sources.Copy_File
+         Items.Sources.Convert_Image
            (Path, Items.Sources.Image_File (Item.Nav.Store, Item.Opened.Current, Key));
          Items.Sources.Set_Document (Item.Nav.Store, Key, "", 0);
          declare
@@ -539,7 +545,7 @@ package body Viewer.Canvas_Items is
       elsif not Ebook.Is_Supported ("." & Ending) then
          Windows.Set_Capture
            (Item.Windows (Which), Windows.Failed,
-            Detail => "not a PNG, PDF, e-book or text file");
+            Detail => "not a supported image, PDF, e-book or text file");
       elsif not Ada.Directories.Exists (Path)
         or else Ada.Directories."=" (Ada.Directories.Kind (Path), Ada.Directories.Directory)
       then
@@ -629,7 +635,8 @@ package body Viewer.Canvas_Items is
       Item.Nav.Pick_Slot := Which;
       Item.Nav.Pick_Key := Windows.Details (Item.Windows (Which)).Key;
       SDL3.Dialogs.Open_File
-        (Item.Host.Win, "Images, PDFs, e-books and text", Ebook.Extensions & ";png");
+        (Item.Host.Win, "Images, PDFs, e-books and text",
+         Ebook.Extensions & ";png;jpg;jpeg;gif;tif;tiff;bmp;heic;heif;webp;jp2;exr");
    end Pick_File;
 
    procedure Poll_Pick (Item : in out Session);

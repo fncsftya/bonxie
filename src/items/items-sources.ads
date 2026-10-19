@@ -60,6 +60,9 @@ package Items.Sources is
    --  Make To a copy of From, written beside it and then put in its place.
    --  Use_Error if it cannot be.
 
+   procedure Convert_Image (From, To : String);
+   --  Convert a system-supported image file to PNG. Use_Error if it cannot.
+
    procedure Set_Page (Store : in out Projects.Store; Key : Id; Page : Positive)
      with Pre => Projects.Is_Open (Store);
    --  Say which page of its document the source's picture is of. The
