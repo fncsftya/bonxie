@@ -710,14 +710,16 @@ package body Viewer.Build is
          Panels.Set_Shadow (Each.Sheet, Themes.Shadow);
          Set_Layout
            (Each.Sheet, Flow => Column, Shrink => 0.0, Shadowed => True,
-            Padding => (Left | Right => Page_Margin - Page_Text_Inset,
-                        Top | Bottom => Page_Top - Page_Text_Inset));
+            Padding => (Bottom => Page_Top - Page_Text_Inset, others => Page_Border));
          Editors.Set_Shared
            (Each.Text, Item.Host.Doc_Resources'Unchecked_Access);
          Editors.Configure
            (Each.Text, Pomarine.Line_Texts.Serif, Page_Text_Size, 2000.0,
             Spacing => 0.35 * Page_Text_Size);
          Editors.Set_Paper (Each.Text, Paper);
+         Editors.Set_Toolbar (Each.Text);
+         --  The page's margin is the text area's, so that its toolbar is the page's width.
+         Editors.Set_Indent (Each.Text, Page_Margin - Page_Text_Inset - Page_Border);
          Pomarine.Text_Areas.Set_Grows (Editors.Area (Each.Text).all);
          Set_Layout (Each.Text, Shrink => 0.0, Height => Page_Min_Height);
          Labels.Set_Trailing (Each.Words, True);

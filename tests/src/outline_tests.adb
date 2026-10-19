@@ -328,8 +328,6 @@ package body Outline_Tests is
       Type_In (Session, "- Open with a story");
       Settle (Session);
       Check ("outline-notes-typed", "- Open with a story", Outline.Section_Notes (Session, 1));
-      --  The focused notes have a toolbar, faded in by now.
-      Viewer.Tick (Session, 200);
       Snap (Session, "outline-notes-open");
 
       --  Hidden, they are still kept; they go with the section.
@@ -724,7 +722,7 @@ package body Outline_Tests is
       Release (Session, 600.0, 400.0);
       for Step in 1 .. 4 loop
          Viewer.Handle
-           (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_Y => -18.0, Mouse_X => 500.0,
+           (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_Y => -17.0, Mouse_X => 500.0,
                                    Mouse_Y => 300.0, others => <>));
          Snap (Session, "write-sections-down-" & Character'Val (Character'Pos ('0') + Step));
       end loop;
@@ -751,7 +749,7 @@ package body Outline_Tests is
         (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_Y => 400.0, Mouse_X => 500.0,
                                 Mouse_Y => 300.0, others => <>));
       Viewer.Handle
-        (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_Y => -18.0, Mouse_X => 500.0,
+        (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_Y => -17.0, Mouse_X => 500.0,
                                 Mouse_Y => 300.0, others => <>));
       Settle (Session);
       Move_To (Session, 664.0, 65.0);

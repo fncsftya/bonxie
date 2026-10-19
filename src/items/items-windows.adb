@@ -169,6 +169,7 @@ package body Items.Windows is
       Editors.Configure
         (Item.Body_Text, Pomarine.Line_Texts.Serif, Text_Size, Measure);
       Editors.Set_Paper (Item.Body_Text, Pomarine.Themes.Page);
+      Editors.Set_Toolbar (Item.Body_Text);  --  not for a source's link, which is one line
       Layouts.Set_Layout (Item.Body_Text, Grow => 1.0, Height => 0.0);
       --  Its own outline is the window's at the sides.
       Layouts.Set_Layout

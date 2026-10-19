@@ -144,6 +144,8 @@ private package Viewer.Style is
    --  The menu of a page's sources, below its button.
    Page_Text_Size  : constant Float := 17.0;
    Page_Text_Inset : constant Float := 12.0;
+   Page_Border     : constant Float := 1.0;
+   --  The outline of a page, which its text area leaves.
    --  The padding of a text area.
    Page_Top        : constant Float := 28.0;
    --  Above the text, in the page.
