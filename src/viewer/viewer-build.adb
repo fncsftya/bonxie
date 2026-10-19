@@ -445,6 +445,8 @@ package body Viewer.Build is
       Widgets.Add (View.Docs_Content, Item.Docs.Ghost);
       Widgets.Add (Item.Docs.Ghost, Item.Docs.Ghost_Title);
       Widgets.Add (View.Docs_Content, Item.Naming.Dir_Field);
+      Widgets.Add (View.Sidebar, View.Sources_Edge);
+      Widgets.Add (View.Sources_Edge, View.Sources_Grab);
       Widgets.Add (View.Sidebar, View.Sources_Heading);
       Build_Index (View.Sources_Scroll, View.Sources_Content, View.Sources_None, No_Sources);
       for Each of Item.Reading.Source_Rows loop
@@ -605,6 +607,13 @@ package body Viewer.Build is
       Grips.Set_Hover_Fill (View.Sidebar_Edge, Edge_Fill);
       Grips.Set_Wanted_Cursor (View.Sidebar_Edge, SDL3.Cursors.Resize_Across);
       Set_Layout (View.Sidebar_Edge, Width => Sidebar_Edge_Width, Shrink => 0.0);
+      Grips.Set_Fill (View.Sources_Edge, Side_Fill);
+      Grips.Set_Hover_Fill (View.Sources_Edge, Edge_Fill);
+      Grips.Set_Wanted_Cursor (View.Sources_Edge, SDL3.Cursors.Resize_Up_Down);
+      Widgets.Set_Accessible_Name (View.Sources_Edge, "Drag to resize Sources");
+      Set_Layout (View.Sources_Edge, Height => 16.0, Shrink => 0.0, Align => Center, Spread => Center);
+      Panels.Set_Fill (View.Sources_Grab, Quiet_Ink);
+      Set_Layout (View.Sources_Grab, Width => 32.0, Height => 3.0, Shrink => 0.0);
       Panels.Set_Fill (View.Sidebar_Rule, Themes.Border);
       Set_Layout (View.Sidebar_Rule, Width => Hairline, Shrink => 0.0);
       Set_Layout

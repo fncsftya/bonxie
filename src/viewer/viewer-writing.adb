@@ -2361,6 +2361,34 @@ package body Viewer.Writing is
       end if;
    end Sidebar_Released;
 
+   procedure Sources_Edge_Dragged
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
+   --  The edge above the sources list was dragged: size the list.
+
+   procedure Sources_Edge_Dragged
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source);
+      Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
+      View   : Page_Parts renames Item.Page_View;
+   begin
+      if In_Writing (Item) and then Event.Down /= 0.0 then
+         declare
+            Current : constant Float := Widgets.Height_Of (View.Docs_Scroll) / Pixels;
+            Available : constant Float := Current + Widgets.Height_Of (View.Sources_Scroll) / Pixels;
+            Minimum : constant Float := Float'Min (2.0 * Style.Index_Pitch, Available / 2.0);
+            Maximum : constant Float := Available - Minimum;
+            Wanted : constant Float := Float'Max (Minimum, Float'Min (Maximum, Current + Event.Down));
+         begin
+            pragma Assert (Available >= 0.0 and then Minimum <= Maximum);
+            --  Fix the space above the divider; Sources takes the remainder.
+            --  Both lists must not shrink together, or the divider lags the pointer.
+            Layouts.Set_Layout (View.Docs_Scroll, Height => Wanted, Grow => 0.0, Shrink => 0.0);
+            Layouts.Set_Layout (View.Sources_Scroll, Height => 0.0, Grow => 1.0, Shrink => 1.0);
+         end;
+      end if;
+   end Sources_Edge_Dragged;
+
    procedure Pane_Dragged
      (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
    --  The edge of the pane was dragged: size it.
@@ -2501,6 +2529,7 @@ package body Viewer.Writing is
       Hear (Item.Page_View.Pane_Edge, Drag, Pane_Dragged'Access);
       Hear (Item.Page_View.Sidebar_Edge, Drag, Sidebar_Dragged'Access);
       Hear (Item.Page_View.Sidebar_Edge, Release, Sidebar_Released'Access);
+      Hear (Item.Page_View.Sources_Edge, Drag, Sources_Edge_Dragged'Access);
       for Rank in Items.Slot loop
          Hear (Item.Docs.Pages (Rank).Heading_Area, Double_Click, Page_Title_Double_Clicked'Access, Rank);
          Hear (Item.Docs.Pages (Rank).Title_Field, Submit, Page_Title_Ended'Access, Rank);

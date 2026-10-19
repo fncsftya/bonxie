@@ -594,6 +594,9 @@ private
       Docs_Scroll   : Pomarine.Widgets.Scrollers.Scroller;
       Docs_Content  : Pomarine.Widgets.Panels.Panel;
       Docs_None     : Pomarine.Widgets.Labels.Label;
+      Sources_Edge  : Pomarine.Widgets.Grips.Grip;
+      --  Between the lists, to size the sources list by.
+      Sources_Grab  : Pomarine.Widgets.Panels.Panel;
       Sources_Heading : Pomarine.Widgets.Labels.Label;
       Sources_Scroll  : Pomarine.Widgets.Scrollers.Scroller;
       Sources_Content : Pomarine.Widgets.Panels.Panel;
