@@ -360,6 +360,17 @@ package body Viewer.Responses is
       Writing.Show (Item, Write);
    end Show_Writing;
 
+   procedure Show_Publish
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
+
+   procedure Show_Publish
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source, Event);
+   begin
+      Writing.Show (Item, Publish);
+   end Show_Publish;
+
    procedure Add_Document
      (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
 
@@ -426,6 +437,7 @@ package body Viewer.Responses is
          when Show_Outline  => Show_Outline (Item, Item.Root.Window_Panel, Event);
          when Show_Canvas   => Show_Canvas (Item, Item.Root.Window_Panel, Event);
          when Show_Writing  => Show_Writing (Item, Item.Root.Window_Panel, Event);
+         when Show_Publish  => Show_Publish (Item, Item.Root.Window_Panel, Event);
          when Open_List     => Open_List (Item, Item.Root.Window_Panel, Event);
       end case;
    end Perform;
@@ -496,11 +508,13 @@ package body Viewer.Responses is
       Commands.Bind (Bar.Outline_Tab, Show_Outline);
       Commands.Bind (Bar.Canvas_Tab, Show_Canvas);
       Commands.Bind (Bar.Write_Tab, Show_Writing);
+      Commands.Bind (Bar.Publish_Tab, Show_Publish);
       Commands.Bind (Item.Dock.Tool_List, Open_List);
       Hear (Bar.Close_Button, Click, Leave_Project'Access);
       Hear (Bar.Outline_Tab, Click, Show_Outline'Access);
       Hear (Bar.Canvas_Tab, Click, Show_Canvas'Access);
       Hear (Bar.Write_Tab, Click, Show_Writing'Access);
+      Hear (Bar.Publish_Tab, Click, Show_Publish'Access);
       Hear (Item.Dock.Tool_Item, Click, Add_Document'Access);
       Hear (Item.Dock.Tool_Source, Click, Add_Source'Access);
       Hear (Item.Dock.Tool_List, Click, Open_List'Access);

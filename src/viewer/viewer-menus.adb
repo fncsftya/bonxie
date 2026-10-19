@@ -47,6 +47,10 @@ package body Viewer.Menus is
                return (if not In_Project then Widgets.Disabled
                        elsif Current.Toolbar.Mode = Write then Widgets.Ticked
                        else Widgets.Enabled);
+            when Show_Publish =>
+               return (if not In_Project then Widgets.Disabled
+                       elsif Current.Toolbar.Mode = Publish then Widgets.Ticked
+                       else Widgets.Enabled);
          end case;
       end;
    end Validate;
@@ -79,6 +83,7 @@ package body Viewer.Menus is
       Menu_Bar.Add_Item (Bar, Go, "Outline", Tag_Of (Show_Outline), Key => "1");
       Menu_Bar.Add_Item (Bar, Go, "Canvas", Tag_Of (Show_Canvas), Key => "2");
       Menu_Bar.Add_Item (Bar, Go, "Writing", Tag_Of (Show_Writing), Key => "3");
+      Menu_Bar.Add_Item (Bar, Go, "Publish", Tag_Of (Show_Publish), Key => "4");
       Menu_Bar.Add_Separator (Bar, Go);
       Menu_Bar.Add_Item (Bar, Go, "Items", Tag_Of (Open_List), Key => "l");
 

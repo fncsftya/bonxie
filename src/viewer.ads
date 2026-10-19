@@ -64,7 +64,7 @@ package Viewer is
 
    type Screens is (Home, Project);
 
-   type Modes is (Outline, Canvas, Write);
+   type Modes is (Outline, Canvas, Write, Publish);
    --  The views of a project, in the order of their tabs. Outline, the
    --  first, is the project's title and description, and the sections it is
    --  to be written in, in the order they are to come in; a project opens to
@@ -187,6 +187,7 @@ private
       Show_Outline,
       Show_Canvas,
       Show_Writing,
+      Show_Publish,
       Open_List);
 
    package Commands is new Pomarine.Widgets.Commands (Command);
@@ -561,6 +562,7 @@ private
       Tabs          : Pomarine.Widgets.Panels.Panel;
       Outline_Tab   : Pomarine.Widgets.Buttons.Button;
       Canvas_Tab    : Pomarine.Widgets.Buttons.Button;
+      Publish_Tab   : Pomarine.Widgets.Buttons.Button;
       Write_Tab     : Pomarine.Widgets.Buttons.Button;
       --  A tab for each view, in the middle of the toolbar.
       Toolbar_End   : Pomarine.Widgets.Panels.Panel;
@@ -570,6 +572,17 @@ private
       --  are built showing; a project shown at once goes to its own.
    end record;
    --  The project screen: its panels, the toolbar and the view shown.
+
+   type Publish_Parts is limited record
+      Content : Pomarine.Widgets.Panels.Panel;
+      Wide    : Float := 760.0;
+      View    : Pomarine.Widgets.Panels.Panel;
+      Sidebar : Pomarine.Widgets.Panels.Panel;
+      Rule    : Pomarine.Widgets.Panels.Panel;
+      Export  : Pomarine.Widgets.Buttons.Button;
+      Doc     : aliased Texts.Documents.Document;
+      Text    : Pomarine.Widgets.Editors.Editor;
+   end record;
 
    type Page_Parts is limited record
       Write_View    : Pomarine.Widgets.Panels.Panel;
@@ -1176,6 +1189,7 @@ private
       Canvas_View   : Pomarine.Widgets.Canvases.Canvas;
       --  In the content area, all of it.
       Page_View : Page_Parts;
+      Publish_View : Publish_Parts;
       Section_View : Section_View_Parts;
       Dock : Dock_Parts;
       Nav : Nav_State;

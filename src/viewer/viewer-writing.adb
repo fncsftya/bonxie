@@ -1,3 +1,4 @@
+with Ada.Strings.Unbounded;
 with Items.Links;
 with Items.Marks;
 with Items.Readers.Callbacks;
@@ -1023,11 +1024,45 @@ package body Viewer.Writing is
       Buttons.Set_Selected (Item.Toolbar.Outline_Tab, To = Outline);
       Buttons.Set_Selected (Item.Toolbar.Canvas_Tab, To = Canvas);
       Buttons.Set_Selected (Item.Toolbar.Write_Tab, To = Write);
+      Buttons.Set_Selected (Item.Toolbar.Publish_Tab, To = Publish);
+      Widgets.Set_Visible (Item.Publish_View.View, To = Publish);
       Widgets.Set_Visible (Item.Dock.Tools, To = Canvas);
       Widgets.Set_Visible (Item.Dock.Tool_List, To = Canvas);
       Canvas_Items.Show_Dock (Item);
-      if To = Write then
+      if To in Write | Publish then
          Rebuild (Item);
+         if To = Publish then
+            declare
+               use Ada.Strings.Unbounded;
+               Content : Unbounded_String;
+            begin
+               for Rank in 1 .. Item.Reading.Write_Count loop
+                  declare
+                     Which : constant Items.Slot := Item.Reading.Write_Order (Rank);
+                     Content_Text : constant String := Texts.Documents.Whole
+                       (Items.Windows.Content_Document (Item.Windows (Which)).all);
+                     First : Positive := Content_Text'First;
+                     Last  : Natural := Content_Text'Last;
+                  begin
+                     --  Join documents with one paragraph break, including when
+                     --  their saved text already ends or starts with a newline.
+                     while First <= Last and then Content_Text (First) in ASCII.LF | ASCII.CR loop
+                        First := First + 1;
+                     end loop;
+                     while Last >= First and then Content_Text (Last) in ASCII.LF | ASCII.CR loop
+                        Last := Last - 1;
+                     end loop;
+                     if First <= Last then
+                        if Length (Content) > 0 then
+                           Append (Content, ASCII.LF);
+                        end if;
+                        Append (Content, Content_Text (First .. Last));
+                     end if;
+                  end;
+               end loop;
+               Texts.Documents.Load (Item.Publish_View.Doc, To_String (Content));
+            end;
+         end if;
       elsif To = Outline and then Item.Opened.Current /= 0 then
          Outlines.Shown (Item);
       end if;
@@ -3119,6 +3154,20 @@ package body Viewer.Writing is
       Changed : Boolean;
       Moved   : Boolean := False;
    begin
+      if Item.Toolbar.Mode = Publish then
+         declare
+            View : Publish_Parts renames Item.Publish_View;
+            Room : constant Float := Widgets.Width_Of (View.Content) / Pixels - 2.0 * Style.Page_Margin;
+            Wide : constant Float := Float'Max (Style.Page_Min_Width, Float'Min (Style.Page_Width, Room));
+         begin
+            if Wide /= View.Wide then
+               Layouts.Set_Layout (View.Text, Width => Wide);
+               View.Wide := Wide;
+               Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
+            end if;
+         end;
+         return;
+      end if;
       --  The text is as tall as it needs to be, at the width the sheet
       --  has: laying out again after a change of either settles it.
       for Pass in 1 .. 3 loop

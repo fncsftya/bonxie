@@ -75,6 +75,42 @@ package body Viewer.Build is
       end if;
    end Share_Directory;
 
+   procedure Build_Publish (Item : in out Session) is
+      View : Publish_Parts renames Item.Publish_View;
+   begin
+      Widgets.Add (Item.Toolbar.Content_Panel, View.View);
+      Widgets.Add (View.View, View.Sidebar, View.Rule, View.Content);
+      Widgets.Add (View.Content, View.Text);
+      Set_Layout
+        (View.Content, Flow => Column, Grow => 1.0, Width => 0.0, Align => Center,
+         Padding => (others => Page_Margin));
+      Widgets.Add (View.Sidebar, View.Export);
+      Panels.Set_Fill (View.View, Desk);
+      Set_Layout (View.View, Flow => Row, Grow => 1.0, Height => 0.0);
+      Panels.Set_Fill (View.Sidebar, Side_Fill);
+      Set_Layout
+        (View.Sidebar, Flow => Column, Width => Item.Page_View.Sidebar_Wide, Shrink => 0.0,
+         Padding => (Top => Sidebar_Pad + Heading_Top, others => Sidebar_Pad));
+      Panels.Set_Fill (View.Rule, Themes.Border);
+      Set_Layout (View.Rule, Width => Hairline, Shrink => 0.0);
+      Buttons.Set_Label (View.Export, "Export");
+      Buttons.Set_Focusable (View.Export, True);
+      Set_Layout (View.Export, Height => Tab_Height);
+      Editors.Set_Shared (View.Text, Item.Host.Doc_Resources'Unchecked_Access);
+      Editors.Configure
+        (View.Text, Pomarine.Line_Texts.Serif, Page_Text_Size, 2000.0,
+         Spacing => 0.35 * Page_Text_Size);
+      Editors.Set_Paper (View.Text, Paper);
+      Editors.Set_Borderless (View.Text, True);
+      Editors.Set_Indent (View.Text, Page_Margin - Page_Text_Inset - Page_Border);
+      Editors.Attach (View.Text, View.Doc'Unchecked_Access);
+      Pomarine.Text_Areas.Set_Read_Only (Editors.Area (View.Text).all);
+      Set_Layout
+        (View.Text, Grow => 1.0, Height => 0.0, Width => Page_Width);
+      View.Wide := Page_Width;
+      Widgets.Set_Visible (View.View, False);
+   end Build_Publish;
+
    procedure Build_Header (Item : in out Session);
    --  Add and style the bar across the top of a window.
 
@@ -241,6 +277,7 @@ package body Viewer.Build is
       Widgets.Add (Bar.Toolbar_Start, Bar.Title_Field);
       Widgets.Add (Bar.Toolbar_Panel, Bar.Tabs);
       Widgets.Add (Bar.Tabs, Bar.Outline_Tab, Bar.Canvas_Tab, Bar.Write_Tab);
+      Widgets.Add (Bar.Tabs, Bar.Publish_Tab);
       Widgets.Add (Bar.Toolbar_Panel, Bar.Toolbar_End);
       Widgets.Add (Bar.Toolbar_End, Item.Dock.Tool_List);
       Widgets.Add (Bar.Project_Panel, Bar.Content_Panel);
@@ -302,6 +339,9 @@ package body Viewer.Build is
       Size (Bar.Outline_Tab, Tab_Width, Tab_Height);
       Size (Bar.Canvas_Tab, Tab_Width, Tab_Height);
       Size (Bar.Write_Tab, Tab_Width, Tab_Height);
+      Buttons.Set_Label (Bar.Publish_Tab, "Publish");
+      Buttons.Set_Focusable (Bar.Publish_Tab, True);
+      Size (Bar.Publish_Tab, Tab_Width, Tab_Height);
       Buttons.Set_Label (Item.Dock.Tool_List, "Items");
       Buttons.Set_Icon (Item.Dock.Tool_List, Icon_Set.List);
       Buttons.Set_Captioned (Item.Dock.Tool_List, True);
@@ -1309,6 +1349,7 @@ package body Viewer.Build is
       Build_Home (Item);
       Build_Project (Item);
       Build_Write (Item);
+      Build_Publish (Item);
       Build_Outline (Item);
       Build_Tray (Item);
       Build_Settings (Item);

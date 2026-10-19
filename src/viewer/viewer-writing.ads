@@ -166,7 +166,7 @@ private package Viewer.Writing is
    --  with the canvas's windows.
 
    procedure Fit (Item : in out Session)
-     with Pre => Screen (Item) = Project and then Item.Toolbar.Mode = Write;
+     with Pre => Screen (Item) = Project and then Item.Toolbar.Mode in Write | Publish;
    --  Size the pages to their text and the window, once it is laid out,
    --  and bring the caret into view.
 

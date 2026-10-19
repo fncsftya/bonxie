@@ -22,7 +22,7 @@ package body Viewer.Painting is
          --  were put on it.
          Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
          Canvas_Items.Sync (Item);
-         if Item.Toolbar.Mode = Write then
+         if Item.Toolbar.Mode in Write | Publish then
             Writing.Fit (Item);
             --  What was typed in a section's notes is kept.
             Outlines.Sync (Item);
