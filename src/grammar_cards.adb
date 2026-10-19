@@ -166,7 +166,6 @@ package body Grammar_Cards is
       Lines.Draw (Text_Lines (Item).all, Target, Colors (Themes.Muted), (if Item.Open then "-" else "+"),
                   Left + (Wide - 24.0) * Pixels, Top + 20.0 * Pixels, Pixels);
       if Item.Open then
-         Text_Block (Item.Caption (1 .. Item.Caption_Length), Header, Wide - 24.0, Colors (Themes.Muted));
          Text_Block (Harper.Messages.To_String (Item.Lint.Message),
                      Header + Text_Height (Item, Item.Caption (1 .. Item.Caption_Length), Wide - 24.0) + 6.0,
                      Wide - 24.0, Colors (Themes.Foreground));
