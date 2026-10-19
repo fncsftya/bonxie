@@ -276,12 +276,12 @@ package body Viewer.Build is
          Margin => (Left | Right => Name_Gap, others => <>));
       Labels.Set_Style (Bar.Project_Title, Pomarine.Line_Texts.Heading);
       Labels.Set_Ink (Bar.Project_Title, Themes.Bar_Ink);
-      Set_Layout (Bar.Project_Title, Grow => 1.0, Width => 0.0, Height => Tab_Height);
-      Grips.Set_Hover_Outline (Bar.Title_Area, Themes.Bar_Ink);
+      Labels.Set_Intrinsic (Bar.Project_Title);
+      Set_Layout (Bar.Project_Title, Shrink => 0.0, Height => Tab_Height);
+      Grips.Set_Hover_Outline (Bar.Title_Area, Themes.Rule);
       Grips.Set_Wanted_Cursor (Bar.Title_Area, SDL3.Cursors.Pointer);
       Set_Layout
-        (Bar.Title_Area, Flow => Row, Align => Center, Grow => 1.0, Width => 0.0,
-         Height => Tab_Height);
+        (Bar.Title_Area, Flow => Row, Align => Center, Shrink => 0.0, Height => Tab_Height);
       Text_Fields.Set_Shared
         (Bar.Title_Field, Item.Host.Doc_Resources'Unchecked_Access);
       Text_Fields.Configure
