@@ -574,6 +574,8 @@ private
    --  The project screen: its panels, the toolbar and the view shown.
 
    type Publish_Parts is limited record
+      Scroll  : Pomarine.Widgets.Scrollers.Scroller;
+      High    : Float := 0.0;
       Content : Pomarine.Widgets.Panels.Panel;
       Wide    : Float := 760.0;
       View    : Pomarine.Widgets.Panels.Panel;

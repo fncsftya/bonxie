@@ -79,10 +79,12 @@ package body Viewer.Build is
       View : Publish_Parts renames Item.Publish_View;
    begin
       Widgets.Add (Item.Toolbar.Content_Panel, View.View);
-      Widgets.Add (View.View, View.Sidebar, View.Rule, View.Content);
+      Widgets.Add (View.View, View.Sidebar, View.Rule, View.Scroll);
+      Widgets.Add (View.Scroll, View.Content);
+      Set_Layout (View.Scroll, Grow => 1.0, Width => 0.0);
       Widgets.Add (View.Content, View.Text);
       Set_Layout
-        (View.Content, Flow => Column, Grow => 1.0, Width => 0.0, Align => Center,
+        (View.Content, Flow => Column, Shrink => 0.0, Align => Center,
          Padding => (others => Page_Margin));
       Widgets.Add (View.Sidebar, View.Section_Headings, View.Document_Headings, View.Export);
       Switches.Set_Label (View.Section_Headings, "Include section headings");
@@ -110,12 +112,14 @@ package body Viewer.Build is
       Editors.Set_Borderless (View.Text, True);
       Editors.Set_Indent (View.Text, Page_Margin - Page_Text_Inset - Page_Border);
       Editors.Attach (View.Text, View.Doc'Unchecked_Access);
+      Pomarine.Text_Areas.Set_Grows (Editors.Area (View.Text).all);
       Pomarine.Text_Areas.Set_Read_Only (Editors.Area (View.Text).all);
       Pomarine.Text_Areas.Set_Caret_Visible (Editors.Area (View.Text).all, False);
       Pomarine.Text_Areas.Set_Keyboard_Navigation (Editors.Area (View.Text).all, False);
       Set_Layout
-        (View.Text, Grow => 1.0, Height => 0.0, Width => Page_Width);
+        (View.Text, Shrink => 0.0, Height => Page_Min_Height, Width => Page_Width);
       View.Wide := Page_Width;
+      View.High := Page_Min_Height;
       Widgets.Set_Visible (View.View, False);
    end Build_Publish;
 

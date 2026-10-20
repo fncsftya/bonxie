@@ -3199,17 +3199,32 @@ package body Viewer.Writing is
       Moved   : Boolean := False;
    begin
       if Item.Toolbar.Mode = Publish then
-         declare
-            View : Publish_Parts renames Item.Publish_View;
-            Room : constant Float := Widgets.Width_Of (View.Content) / Pixels - 2.0 * Style.Page_Margin;
-            Wide : constant Float := Float'Max (Style.Page_Min_Width, Float'Min (Style.Page_Width, Room));
-         begin
-            if Wide /= View.Wide then
-               Layouts.Set_Layout (View.Text, Width => Wide);
-               View.Wide := Wide;
-               Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
-            end if;
-         end;
+         --  The content area owns scrolling; the paper grows to contain
+         --  all its text, and moves together with the surrounding margin.
+         for Pass in 1 .. 3 loop
+            Changed := False;
+            declare
+               View : Publish_Parts renames Item.Publish_View;
+               Room : constant Float := Widgets.Width_Of (View.Scroll) / Pixels - 2.0 * Style.Page_Margin;
+               Wide : constant Float := Float'Max (Style.Page_Min_Width, Float'Min (Style.Page_Width, Room));
+               High : constant Float := Float'Max
+                 (Style.Page_Min_Height,
+                  Float'Ceiling (Pomarine.Text_Areas.Content_Height (Editors.Area (View.Text).all)));
+            begin
+               if Wide /= View.Wide then
+                  Layouts.Set_Layout (View.Text, Width => Wide);
+                  View.Wide := Wide;
+                  Changed := True;
+               end if;
+               if High /= View.High then
+                  Layouts.Set_Layout (View.Text, Height => High);
+                  View.High := High;
+                  Changed := True;
+               end if;
+            end;
+            exit when not Changed;
+            Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
+         end loop;
          return;
       end if;
       --  The text is as tall as it needs to be, at the width the sheet
