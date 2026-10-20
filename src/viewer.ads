@@ -579,6 +579,8 @@ private
       View    : Pomarine.Widgets.Panels.Panel;
       Sidebar : Pomarine.Widgets.Panels.Panel;
       Rule    : Pomarine.Widgets.Panels.Panel;
+      Section_Headings : Pomarine.Widgets.Switches.Switch;
+      Document_Headings : Pomarine.Widgets.Switches.Switch;
       Export  : Pomarine.Widgets.Buttons.Button;
       Doc     : aliased Texts.Documents.Document;
       Text    : Pomarine.Widgets.Editors.Editor;

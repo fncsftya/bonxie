@@ -22,6 +22,7 @@ with Pomarine.Widgets.Panels;
 with Pomarine.Widgets.Pictures;
 with Pomarine.Widgets.Scrollers;
 with Pomarine.Widgets.Text_Fields;
+with Pomarine.Widgets.Switches;
 with Viewer.Canvas_Items;
 with Viewer.Deletion;
 with Viewer.Gestures;
@@ -1008,6 +1009,74 @@ package body Viewer.Writing is
       Refresh (Item);
    end Rebuild;
 
+   procedure Refresh_Publish (Item : in out Session);
+   --  Compose the preview with real paragraph kinds for optional headings.
+
+   procedure Refresh_Publish (Item : in out Session) is
+      View : Publish_Parts renames Item.Publish_View;
+      Started : Boolean := False;
+      Previous_Section : Natural := 0;
+
+      procedure Append (Words : String; Kind : Texts.Paragraph_Kind := Texts.Plain) is
+         First : Positive := Words'First;
+         Last : Natural := Words'Last;
+         Para : Positive;
+      begin
+         while First <= Last and then Words (First) in ASCII.LF | ASCII.CR loop
+            First := First + 1;
+         end loop;
+         while Last >= First and then Words (Last) in ASCII.LF | ASCII.CR loop
+            Last := Last - 1;
+         end loop;
+         if First > Last then
+            return;
+         end if;
+         Para := Docs.Count (View.Doc) + (if Started then 1 else 0);
+         Docs.Replace
+           (View.Doc, Docs.Text_End (View.Doc), Docs.Text_End (View.Doc),
+            (if Started then ASCII.LF & Words (First .. Last) else Words (First .. Last)),
+            Recorded => False, Explicit_Formats => True);
+         Docs.Set_Kind (View.Doc, Para, Kind);
+         if Kind in Texts.Heading_2 | Texts.Heading_3 then
+            Docs.Set_Format (View.Doc, (Para, 1), Docs.Paragraph_End (View.Doc, Para), Docs.Bold, True);
+         end if;
+         Started := True;
+      end Append;
+   begin
+      Docs.Load (View.Doc, "");
+      for Rank in 1 .. Item.Reading.Write_Count loop
+         declare
+            Which : constant Items.Slot := Item.Reading.Write_Order (Rank);
+            Section : constant Natural := Section_Links.Section_Of (Item, Which);
+         begin
+            if Pomarine.Widgets.Switches.Is_On (View.Section_Headings)
+              and then Section /= 0 and then Section /= Previous_Section
+            then
+               Append
+                 (Projects.Sections.Title_Texts.To_String (Outlines.Section_At (Item, Section).Title),
+                  Texts.Heading_2);
+            end if;
+            Previous_Section := Section;
+            if Pomarine.Widgets.Switches.Is_On (View.Document_Headings) then
+               Append (Title_Of (Item, Which), Texts.Heading_3);
+            end if;
+            Append (Docs.Whole (Windows.Content_Document (Item.Windows (Which)).all));
+         end;
+      end loop;
+      Widgets.Invalidate (View.Text);
+   end Refresh_Publish;
+
+   procedure Publish_Options_Changed
+     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
+
+   procedure Publish_Options_Changed
+     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source, Event);
+   begin
+      Refresh_Publish (Item);
+   end Publish_Options_Changed;
+
    procedure Apply (Item : in out Session; To : Modes);
    --  Show the view, without keeping that it is the project's.
 
@@ -1032,36 +1101,7 @@ package body Viewer.Writing is
       if To in Write | Publish then
          Rebuild (Item);
          if To = Publish then
-            declare
-               use Ada.Strings.Unbounded;
-               Content : Unbounded_String;
-            begin
-               for Rank in 1 .. Item.Reading.Write_Count loop
-                  declare
-                     Which : constant Items.Slot := Item.Reading.Write_Order (Rank);
-                     Content_Text : constant String := Texts.Documents.Whole
-                       (Items.Windows.Content_Document (Item.Windows (Which)).all);
-                     First : Positive := Content_Text'First;
-                     Last  : Natural := Content_Text'Last;
-                  begin
-                     --  Join documents with one paragraph break, including when
-                     --  their saved text already ends or starts with a newline.
-                     while First <= Last and then Content_Text (First) in ASCII.LF | ASCII.CR loop
-                        First := First + 1;
-                     end loop;
-                     while Last >= First and then Content_Text (Last) in ASCII.LF | ASCII.CR loop
-                        Last := Last - 1;
-                     end loop;
-                     if First <= Last then
-                        if Length (Content) > 0 then
-                           Append (Content, ASCII.LF);
-                        end if;
-                        Append (Content, Content_Text (First .. Last));
-                     end if;
-                  end;
-               end loop;
-               Texts.Documents.Load (Item.Publish_View.Doc, To_String (Content));
-            end;
+            Refresh_Publish (Item);
          end if;
       elsif To = Outline and then Item.Opened.Current /= 0 then
          Outlines.Shown (Item);
@@ -2547,6 +2587,8 @@ package body Viewer.Writing is
          Hooks.On (Part, Kind, Item'Unchecked_Access, Do_This);
       end Hear;
    begin
+      Hear (Item.Publish_View.Section_Headings, Change, Publish_Options_Changed'Access);
+      Hear (Item.Publish_View.Document_Headings, Change, Publish_Options_Changed'Access);
       Hear (Item.Naming.Dir_Field, Submit, Directory_Field_Ended'Access);
       Hear (Item.Naming.Dir_Field, Blur, Directory_Field_Ended'Access);
       Hear (Item.Naming.Source_Field, Submit, Source_Field_Ended'Access);

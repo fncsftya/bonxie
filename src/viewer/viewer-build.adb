@@ -84,7 +84,13 @@ package body Viewer.Build is
       Set_Layout
         (View.Content, Flow => Column, Grow => 1.0, Width => 0.0, Align => Center,
          Padding => (others => Page_Margin));
-      Widgets.Add (View.Sidebar, View.Export);
+      Widgets.Add (View.Sidebar, View.Section_Headings, View.Document_Headings, View.Export);
+      Switches.Set_Label (View.Section_Headings, "Include section headings");
+      Switches.Set_Label (View.Document_Headings, "Include document headings");
+      Switches.Set_Focusable (View.Section_Headings, True);
+      Switches.Set_Focusable (View.Document_Headings, True);
+      Set_Layout (View.Section_Headings, Height => 32.0);
+      Set_Layout (View.Document_Headings, Height => 32.0);
       Panels.Set_Fill (View.View, Desk);
       Set_Layout (View.View, Flow => Row, Grow => 1.0, Height => 0.0);
       Panels.Set_Fill (View.Sidebar, Side_Fill);
