@@ -48,7 +48,7 @@ package body Previews is
       Rule   : constant Pomarine.Themes.Color :=
         Pomarine.Themes.Mix (Colors (Pomarine.Themes.Bar), Pomarine.Themes.White, 0.25);
       Text   : constant Pomarine.Themes.Color :=
-        Pomarine.Themes.Mix (Colors (Pomarine.Themes.Face), Pomarine.Themes.White, 0.35);
+        Pomarine.Themes.Mix (Colors (Pomarine.Themes.Face), Pomarine.Themes.White, 0.55);
       X, Y   : Float;
    begin
       Fill_Rect (Target, Colors (Pomarine.Themes.Background), Left, Top, Wide, High);
@@ -113,7 +113,7 @@ package body Previews is
                begin
                   Pomarine.Boxes.Draw
                     (Target,
-                     (Filled => True, Fill => Pomarine.Themes.White,
+                     (Filled => True, Fill => Pomarine.Themes.Paper,
                       Bordered => True, Border => Colors (Pomarine.Themes.Border),
                       Shadowed => True, Shadow => Colors (Pomarine.Themes.Shadow),
                       Dashed => False),
