@@ -105,8 +105,9 @@ package Viewer_Parts.Outline is
       Drag_Block  : Natural := 0;
       Drag_Total  : Float := 0.0;
       Drag_Moved  : Boolean := False;
+      Drag_From_X : Float := 0.0;
       Drop_Before : Natural := 0;
-      --  The block being dragged and how far, and the one it would go in
+      --  The block being dragged, how far and from where across, and the one it would go in
       --  front of (Order.Count + 1 for last), 0 if it would not move.
    end record;
    --  The outline view: the form of the project's title and description,

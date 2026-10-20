@@ -146,16 +146,22 @@ package body Viewer.Outlines.Blocks is
       declare
          Held  : Grips.Grip renames View.Blocks (View.Drag_Block).Row;
          X, Y  : Float;
-         High  : constant Float := Widgets.Height_Of (Held) - Offset;
+         --  Of the block folded, whether or not its notes are open.
+         High  : constant Float := Widgets.Height_Of (View.Blocks (View.Drag_Block).Line) - Offset;
          Least : constant Float := 0.0;
          Most  : constant Float :=
            Float'Max (Least, Widgets.Height_Of (View.Content) - High);
+         --  A little to the side, as far as the pointer is, so that what
+         --  it is over is clear.
+         Leeway : Float;
       begin
          Grips.Pointer (Held, X, Y);
+         Leeway := Float'Max (-Style.Ghost_Leeway, Float'Min (Style.Ghost_Leeway, X - View.Drag_From_X));
          Layouts.Set_Layout
            (View.Ghost,
             Position =>
-              (Left => Widgets.Left_Of (Held) - Widgets.Left_Of (View.Content),
+              (Left => Widgets.Left_Of (Held) - Widgets.Left_Of (View.Content)
+                       + Float'Rounding (Leeway * Pixels),
                Top  => Float'Min
                          (Most, Float'Max
                                   (Least, Float'Rounding
@@ -194,6 +200,13 @@ package body Viewer.Outlines.Blocks is
          View.Drag_Total := 0.0;
          View.Drag_Moved := False;
          View.Drop_Before := 0;
+         declare
+            X, Y : Float;
+         begin
+            Grips.Pointer (View.Blocks (Row).Row, X, Y);
+            View.Drag_From_X := X;
+            pragma Unreferenced (Y);
+         end;
       end if;
       if View.Drag_Block /= Row then
          return;
