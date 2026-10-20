@@ -5,6 +5,8 @@ with Pomarine.Widgets.Callbacks;
 with Pomarine.Widgets.Grips;
 with Pomarine.Widgets.Labels;
 with Pomarine.Widgets.Pictures;
+with Pomarine.Widgets.Progress_Bars;
+with Speech.Jobs;
 with Viewer.Canvas_Items;
 with Viewer.Outlines;
 with Viewer.Section_Links;
@@ -29,6 +31,7 @@ package body Viewer.Writing is
    package Grips renames Pomarine.Widgets.Grips;
    package Labels renames Pomarine.Widgets.Labels;
    package Pictures renames Pomarine.Widgets.Pictures;
+   package Progress_Bars renames Pomarine.Widgets.Progress_Bars;
    package Readers renames Items.Readers;
    package Windows renames Items.Windows;
    package Hooks is new Pomarine.Widgets.Callbacks (Session);
@@ -534,6 +537,23 @@ package body Viewer.Writing is
                           (Mic,
                            (if Busy then Icon_Set.Stop
                             else Icon_Set.Microphone));
+                     end if;
+                  end;
+                  declare
+                     Hearing : constant Boolean :=
+                       Windows.Dictation (Item.Windows (Which)) = Windows.Listening;
+                     Level   : Progress_Bars.Progress_Bar renames
+                       Item.Docs.Pages (Rank).Level;
+                     Loud    : constant Float :=
+                       (if Hearing
+                        then Float'Rounding (Speech.Jobs.Loudness (Which) * 20.0) / 20.0
+                        else 0.0);
+                  begin
+                     if Widgets.Is_Visible (Level) /= Hearing then
+                        Widgets.Set_Visible (Level, Hearing);
+                     end if;
+                     if Progress_Bars.Value (Level) /= Loud then
+                        Progress_Bars.Set_Value (Level, Loud);
                      end if;
                   end;
                   declare

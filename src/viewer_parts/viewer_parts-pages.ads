@@ -10,6 +10,7 @@ with Pomarine.Widgets.Labels;
 with Pomarine.Widgets.Menus;
 with Pomarine.Widgets.Text_Fields;
 with Pomarine.Widgets.Panels;
+with Pomarine.Widgets.Progress_Bars;
 with Pomarine.Widgets.Scrollers;
 with Pomarine.Widgets.Switches;
 with Viewer_Parts.Common;
@@ -33,6 +34,9 @@ package Viewer_Parts.Pages is
       --  linked to, and shows how many.
       Mic_Button : Pomarine.Widgets.Buttons.Button;
       --  Starts and stops dictating into the document.
+      Level : Pomarine.Widgets.Progress_Bars.Progress_Bar;
+      --  Along the foot of the bar while dictating: how loud the sound
+      --  heard is.
       Outline_Button : Pomarine.Widgets.Buttons.Button;
       --  A dropdown: opens the menu of the outline's sections, to make
       --  the document the one a section is read from.

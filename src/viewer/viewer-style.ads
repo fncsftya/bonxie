@@ -130,6 +130,8 @@ private package Viewer.Style is
    Page_Foot       : constant Float := 26.0;
    Sources_Width   : constant Float := 120.0;
    Bar_Button_Height : constant Float := 26.0;
+   Level_Height    : constant Float := 3.0;
+   --  The bar of how loud the dictated sound is, under the page bar.
    Mic_Width       : constant Float := Bar_Button_Height;
    Outline_Link_Width : constant Float := 90.0;
    Section_Swatch  : constant Float := 12.0;

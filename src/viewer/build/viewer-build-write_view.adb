@@ -145,6 +145,7 @@ package body Viewer.Build.Write_View is
             Widgets.Add (Each.Heading_Area, Each.Swatch, Each.Heading);
             Widgets.Add (Each.Bar, Each.Title_Field, Each.Outline_Button, Each.Sources_Button);
             Widgets.Add (Each.Bar, Each.Mic_Button);
+            Widgets.Add (Each.Bar, Each.Level);
             Widgets.Add (Each.Box, Each.Sheet);
             Widgets.Add (Each.Sheet, Each.Text);
             Widgets.Add (Each.Box, Each.Words);
@@ -397,6 +398,11 @@ package body Viewer.Build.Write_View is
               (Each.Swatch, Width => Section_Swatch, Height => Section_Swatch, Shrink => 0.0,
                Margin => (Right => Tool_Gap, others => <>));
             Widgets.Set_Visible (Each.Swatch, False);
+            Set_Layout
+              (Each.Level, Place => Absolute,
+               Position => (Left | Bottom => 0.0, Right => Shadow_Room, others => <>),
+               Height => Level_Height);
+            Widgets.Set_Visible (Each.Level, False);
             Buttons.Set_Label (Each.Mic_Button, "Mic");
             Buttons.Set_Icon (Each.Mic_Button, Icon_Set.Microphone);
             Buttons.Set_Icon_Size (Each.Mic_Button, Mic_Icon_Size);
