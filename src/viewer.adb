@@ -1,3 +1,10 @@
+with Speech.Models;
+with Scripts;
+with MLX.Jobs;
+with Pomarine.Accessibility;
+with Preferences;
+with Ada.Strings.Unbounded;
+with Ada.Strings;
 with Ada.Directories;
 with Ada.Environment_Variables;
 with Ada.Exceptions;

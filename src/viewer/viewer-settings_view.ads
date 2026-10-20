@@ -1,3 +1,4 @@
+with Preferences;
 --  The settings, shown in the home screen's place.
 private package Viewer.Settings_View is
 

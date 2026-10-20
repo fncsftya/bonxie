@@ -1,3 +1,4 @@
+with Preferences;
 with Pomarine.Widgets.Callbacks;
 with Pomarine.Widgets.Switches;
 with Viewer.Canvas_Items;
