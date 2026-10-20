@@ -1,3 +1,4 @@
+with Pomarine.Mark_Paths;
 with Projects;
 
 --  The highlighter's marks on a source's picture, kept in a table of
@@ -9,11 +10,13 @@ package Items.Marks is
 
    type Mark is record
       Left, Right, Y : Float := 0.0;
+      Trace : Pomarine.Mark_Paths.Path;
       Page           : Positive := 1;
    end record;
    --  A swipe of the highlighter over a source's picture: from Left to
    --  Right (0.0 .. 1.0, of the picture's width), Y down it (of its
-   --  height). Of a document, Page is the page it is on.
+   --  height), for older marks. Trace holds the freehand path for new marks.
+   --  Of a document, Page is the page it is on.
 
    type Mark_Array is array (Positive range <>) of Mark;
 

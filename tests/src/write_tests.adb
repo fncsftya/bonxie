@@ -855,7 +855,7 @@ package body Write_Tests is
 
       --  Marked in the writing view, they are on the canvas too.
       Click_On (Session, Marker_X, Status_Y);
-      Drag (Session, 340.0, Reader_Y, 440.0, Reader_Y);
+      Drag (Session, 340.0, Reader_Y, 340.0, Reader_Y + 40.0);
       Check ("write-marks-made", " 1",
              Natural'Image (Source_List.Source_Marks (Session, 1)));
       Check ("write-marks-shared", " 1",
@@ -869,7 +869,7 @@ package body Write_Tests is
       --  Marked there, they are in the writing view too.
       Settle (Session);
       Click_On (Session, Canvas_Marker_X, Canvas_Status_Y);
-      Drag (Session, 300.0, Canvas_Picture_Y, 400.0, Canvas_Picture_Y);
+      Drag (Session, 300.0, Canvas_Picture_Y, 400.0, Canvas_Picture_Y - 30.0);
       Check ("write-marks-more", " 2",
              Natural'Image (Windows.Item_Marks (Session, 1)));
       Proj.Set_Mode (Session, Viewer.Write);

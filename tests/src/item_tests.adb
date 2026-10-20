@@ -1,3 +1,5 @@
+with Items.Marks;
+with Pomarine.Mark_Paths;
 with Items.Records;
 with Texts.Documents;
 with Projects.Sections;
@@ -273,6 +275,32 @@ package body Item_Tests is
         Items.Records.Create
           (Store, First, "Ideas", (1.0, 2.0, 3.0, 4.0));
       Other := Items.Records.Create (Store, Second, "Elsewhere", Where);
+      --  Freehand marks and older horizontal bands survive replacement and reload.
+      declare
+         Made, Loaded : Items.Marks.Mark_List;
+         use type Pomarine.Mark_Paths.Point;
+      begin
+         Made.Count := 2;
+         Made.Marks (1) := (Left => 0.1, Right => 0.7, Y => 0.2, Page => 1, Trace => <>);
+         Made.Marks (2).Page := 3;
+         Pomarine.Mark_Paths.Append (Made.Marks (2).Trace, 0.4, 0.1);
+         Pomarine.Mark_Paths.Append (Made.Marks (2).Trace, 0.4, 0.8);
+         Pomarine.Mark_Paths.Append (Made.Marks (2).Trace, 0.2, 0.5);
+         Items.Marks.Save_Marks (Store, Notes, Made);
+         Items.Marks.Load_Marks (Store, Notes, Loaded);
+         pragma Assert (Loaded.Count = 2 and then Loaded.Marks (1).Trace.Count = 0);
+         pragma Assert (Loaded.Marks (1).Right = 0.7);
+         pragma Assert (Loaded.Marks (2).Page = 3 and then Loaded.Marks (2).Trace.Count = 3);
+         for Index in 1 .. 3 loop
+            pragma Assert (Loaded.Marks (2).Trace.Points (Index) = Made.Marks (2).Trace.Points (Index));
+         end loop;
+         Items.Marks.Save_Marks (Store, Notes, Made);
+         Items.Marks.Load_Marks (Store, Notes, Loaded);
+         pragma Assert (Loaded.Marks (2).Trace.Count = 3);
+         Items.Marks.Clear_Marks (Store, Notes);
+         Items.Marks.Load_Marks (Store, Notes, Loaded);
+         pragma Assert (Loaded.Count = 0);
+      end;
       Check ("items-ids", "TRUE",
              Boolean'Image (Notes < Ideas and then Ideas < Other));
       Check

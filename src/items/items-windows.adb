@@ -112,7 +112,7 @@ package body Items.Windows is
                Each : constant Views.Mark := Views.Mark_At (Item.Pages, Index);
             begin
                Into.Marks (Index) :=
-                 (Left => Each.Left, Right => Each.Right, Y => Each.Y, Page => Each.Page);
+                 (Left => Each.Left, Right => Each.Right, Y => Each.Y, Page => Each.Page, Trace => Each.Trace);
             end;
          end loop;
          return;
@@ -124,7 +124,7 @@ package body Items.Windows is
               Pomarine.Widgets.Pictures.Mark_At (Item.Picture, Index);
          begin
             Into.Marks (Index) :=
-              (Left => Each.Left, Right => Each.Right, Y => Each.Y, Page => 1);
+              (Left => Each.Left, Right => Each.Right, Y => Each.Y, Page => 1, Trace => Each.Trace);
          end;
       end loop;
    end Get_Marks;
@@ -164,7 +164,9 @@ package body Items.Windows is
             Shown (Index) :=
               Pomarine.Widgets.Pictures.Clamped_Mark
                 (Each.Left, Each.Right, Each.Y);
+            Shown (Index).Trace := Each.Trace;
             Paged (Index) := Views.Clamped_Mark (Each.Left, Each.Right, Each.Y, Each.Page);
+            Paged (Index).Trace := Each.Trace;
          end;
       end loop;
       Pomarine.Widgets.Pictures.Set_Marks (Item.Picture, Shown);
