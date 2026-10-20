@@ -81,6 +81,24 @@ package body Items.Windows is
    function Text (Item : Window) return String is
      (Docs.Whole (Item.Content_Doc));
 
+   procedure Allow_Find_Sources (Item : in out Window; To : Boolean) is
+   begin
+      if Editors.Assist_Is_Allowed (Item.Body_Text) /= To then
+         Editors.Set_Assist_Allowed (Item.Body_Text, To);
+      end if;
+   end Allow_Find_Sources;
+
+   function Find_Sources_Is_Enabled (Item : Window) return Boolean is
+     (Editors.Assist_Is_Enabled (Item.Body_Text));
+
+   procedure Find_Sources_Center (Item : Window; Shown : out Boolean; X, Y : out Float) is
+      Pixels : constant Float := Widgets.Density (Item.Body_Text);
+   begin
+      Editors.Assist_Center (Item.Body_Text, Shown, X, Y);
+      X := X / Pixels;
+      Y := Y / Pixels;
+   end Find_Sources_Center;
+
    function Words (Item : Window) return Natural is (Item.Word_Count);
 
    function Title_Document

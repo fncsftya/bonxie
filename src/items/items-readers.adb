@@ -421,6 +421,11 @@ package body Items.Readers is
       Set_State (Item, Closed);
    end Assign;
 
+   procedure Set_Pinnable (Item : in out Reader; To : Boolean) is
+   begin
+      Pomarine.Widgets.Set_Visible (Item.Pin_Button, To);
+   end Set_Pinnable;
+
    procedure Release (Item : in out Reader) is
    begin
       Clear_Recognized (Item);

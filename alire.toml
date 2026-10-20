@@ -21,6 +21,7 @@ texts = "*"
 typeset = "*"
 vision = "*"
 webshot = "*"
+websearch = "*"
 yoga = "*"
 json = "*"
 
@@ -37,6 +38,7 @@ texts = { path = "pomarine/texts" }
 typeset = { path = "pomarine/typeset" }
 vision = { path = "vision" }
 webshot = { path = "webshot" }
+websearch = { path = "websearch" }
 yoga = { path = "pomarine/yoga" }
 json = { path = "vendor/json-ada/json" }
 

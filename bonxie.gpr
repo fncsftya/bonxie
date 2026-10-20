@@ -11,6 +11,7 @@ with "texts.gpr";
 with "typeset.gpr";
 with "vision.gpr";
 with "webshot.gpr";
+with "websearch.gpr";
 with "yoga.gpr";
 with "json.gpr";
 project Bonxie is

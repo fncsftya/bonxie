@@ -1,3 +1,4 @@
+with Ada.Strings.Unbounded;
 with Preferences;
 --  The settings, shown in the home screen's place.
 private package Viewer.Settings_View is
@@ -49,6 +50,17 @@ private package Viewer.Settings_View is
    procedure Fit (Item : in out Session)
      with Pre => Item.Prefs.Showing_Settings;
    --  Make the form as wide as a page, or as the window leaves room for.
+
+   procedure Locate_AI_Model
+     (Item    : Session;
+      Folder  : out Ada.Strings.Unbounded.Unbounded_String;
+      Problem : out Ada.Strings.Unbounded.Unbounded_String)
+     with Post => (Ada.Strings.Unbounded.Length (Problem) = 0)
+                  = (Ada.Strings.Unbounded.Length (Folder) > 0);
+   --  Where the language model chosen is kept, to ask it for something. If
+   --  it cannot be asked (none was chosen, it is not in the cache, its
+   --  folder is too deep, or the binding finds it wanting) Folder is empty
+   --  and Problem says why, in few words.
 
    procedure Enable_AI (Item : in out Session; To : Boolean)
      with Pre => Item.Prefs.Showing_Settings;

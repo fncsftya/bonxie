@@ -6,7 +6,8 @@
 --  until Take.
 package Vision.Jobs is
 
-   Slot_Count : constant := 16;
+   Slot_Count : constant := 21;
+   --  As Webshot's: 16 for a project's items, then 5 for finding sources.
 
    subtype Slot is Positive range 1 .. Slot_Count;
 

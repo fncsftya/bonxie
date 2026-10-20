@@ -116,8 +116,8 @@ package body Viewer.Canvas_Items.Polling is
                when Webshot.Working =>
                   Windows.Set_Progress
                     (Item.Windows (Which), Webshot.Progress (Which));
-               when Webshot.Idle =>
-                  null;
+               when Webshot.Idle | Webshot.Looked =>
+                  null;  --  a picture of the top is only asked for by what finds sources
             end case;
             case Vision.Jobs.State (Which) is
                when Vision.Jobs.Done =>

@@ -545,6 +545,7 @@ package body Viewer.Responses is
       for Rank in Items.Slot loop
          Hear (Item.Docs.Pages (Rank).Sources_Button, Click, Writing.Sources_Clicked'Access, Rank);
          Hear (Item.Docs.Pages (Rank).Mic_Button, Click, Writing.Dictate_Clicked'Access, Rank);
+         Hear (Item.Docs.Pages (Rank).Text, Assist, Writing.Find_Clicked'Access, Rank);
          Hear (Item.Reading.Source_Rows (Rank).Row, Click, Writing.Source_Row_Clicked'Access, Rank);
       end loop;
    end Install;

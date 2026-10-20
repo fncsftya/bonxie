@@ -421,6 +421,7 @@ package body Viewer.Build.Write_View is
                Spacing => 0.35 * Page_Text_Size);
             Editors.Set_Paper (Each.Text, Paper);
             Editors.Set_Toolbar (Each.Text);
+            Editors.Set_Assist (Each.Text, "Find Sources");
             --  The page's margin is the text area's, so that its toolbar is the page's width.
             Editors.Set_Indent (Each.Text, Page_Margin - Page_Text_Inset - Page_Border);
             Pomarine.Text_Areas.Set_Grows (Editors.Area (Each.Text).all);

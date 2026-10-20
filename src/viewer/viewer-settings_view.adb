@@ -1,5 +1,4 @@
 with Ada.Strings.Fixed;
-with Ada.Strings.Unbounded;
 with MLX;
 with MLX.Hub;
 with MLX.Jobs;
@@ -580,6 +579,23 @@ package body Viewer.Settings_View is
          Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
       end if;
    end Choose_AI_Model;
+
+   procedure Locate_AI_Model
+     (Item    : Session;
+      Folder  : out Ada.Strings.Unbounded.Unbounded_String;
+      Problem : out Ada.Strings.Unbounded.Unbounded_String)
+   is
+      Name  : constant String := AI_Model (Item);
+      Found : constant String := (if Name = "" then "" else MLX.Hub.Snapshot (Name));
+      Why   : constant String :=
+        (if Name = "" then "Choose an AI model in Settings"
+         elsif Found = "" then "The AI model is not in the cache"
+         elsif Found'Length > MLX.Max_Path then "The model's folder is too deep"
+         else MLX.Problem (Found));
+   begin
+      Folder := Ada.Strings.Unbounded.To_Unbounded_String (if Why = "" then Found else "");
+      Problem := Ada.Strings.Unbounded.To_Unbounded_String (Why);
+   end Locate_AI_Model;
 
    procedure Test_AI (Item : in out Session) is
       Name   : constant String := AI_Model (Item);

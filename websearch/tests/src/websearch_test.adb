@@ -2,6 +2,7 @@
 --  challenge, and the limit on how often a search starts (no network); then,
 --  unless the first argument is --offline, a search of the web for the rest
 --  of the command line (default: ada language), printing each link.
+with Ada.Characters.Handling;
 with Ada.Command_Line;
 with Ada.Directories;
 with Ada.Text_IO;
@@ -108,6 +109,30 @@ begin
                Put_Line ("     " & Websearch.URL (Which, I));
             end loop;
             Check (Websearch.Count (Which) > 0, "some links");
+            Check (not Websearch.Was_Cached (Which), "the first time is not from the cache");
+
+            --  The same query again, in other case and spaces, within the limit's wait:
+            --  answered from memory, with the same links, and no turn of the limit taken.
+            declare
+               Count : constant Natural := Websearch.Count (Which);
+               First : constant String := Websearch.URL (Which, 1);
+               Wait  : constant Duration := Websearch.Retry_After;
+            begin
+               Websearch.Reset (Which);
+               Websearch.Start (2, "  " & Ada.Characters.Handling.To_Upper (Query) & " ", Accepted);
+               Check (Accepted, "the same query is accepted at once");
+               Check (Websearch.State (2) = Websearch.Done, "from the cache it is Done at once");
+               Check (Websearch.Was_Cached (2), "and says it is from the cache");
+               Check (Websearch.Count (2) = Count, "the same number of links");
+               Check (Websearch.URL (2, 1) = First, "the same first link");
+               Check (Websearch.Retry_After <= Wait, "no turn of the limit was taken");
+               Websearch.Reset (2);
+
+               --  Forgotten, it is searched for again, and so is held to the limit.
+               Websearch.Clear_Cache;
+               Websearch.Start (2, Query, Accepted);
+               Check (not Accepted, "after Clear_Cache the limit applies again");
+            end;
          when Websearch.Failed =>
             Put_Line ("Failed: " & Websearch.Message (Which)
                       & (if Websearch.Blocked (Which) then " [blocked]" else ""));

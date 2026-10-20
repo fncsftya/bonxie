@@ -36,6 +36,22 @@ private package Viewer.Canvas_Items is
    --  Make a source, as Add does, linked to the item of the window To,
    --  from its right to the source's left.
 
+   procedure Add_Found_Source
+     (Item      : in out Session;
+      Linked_To : Natural;
+      Page_Title, Address, File : String;
+      Added     : out Boolean;
+      Document  : Boolean := False)
+     with Pre => Screen (Item) = Project
+                 and then (Linked_To = 0 or else Items.Windows.Is_Assigned (Item.Windows (Linked_To)));
+   --  Make a source for a page that was found: called Page_Title, a link to
+   --  Address, and showing the picture in File, a PNG file, which is moved
+   --  to where a source's picture is kept; or, if Document, the PDF in File, which
+   --  is moved to where a source's document is kept and drawn, a page at a time,
+   --  as one that was fetched is. If Linked_To is not 0 the item of
+   --  that window is linked to it, as Add_Linked_Source does. Added is False
+   --  if the project has no room for another item (File is left).
+
    procedure Choose_Origin
      (Item : in out Session; Which : Items.Slot; To : Items.Origins)
      with Pre => Items.Windows.Is_Assigned (Item.Windows (Which));
@@ -115,6 +131,10 @@ private package Viewer.Canvas_Items is
    --  The colour of the source, which its window, its row in the writing
    --  view and its links are shown in: by its place among the project's
    --  sources, the earliest made first (see Style.Source_Ink).
+
+   function Capture_Time (Item : Session) return Projects.Seconds;
+   --  The time a picture taken now is said to be taken at: now, in seconds
+   --  since the epoch, or the time a test has pinned (see Pin_Capture_Time).
 
    function Count (Item : Session) return Natural;
    --  How many items there are.

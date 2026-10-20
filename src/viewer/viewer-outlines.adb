@@ -1,6 +1,5 @@
 with Ada.Strings.Unbounded;
 with MLX;
-with MLX.Hub;
 with MLX.Jobs;
 with Outline_Generation;
 with Pomarine.Text_Areas;
@@ -12,6 +11,7 @@ with Pomarine.Widgets.Scrollers;
 with Pomarine.Widgets.Text_Fields;
 with Texts.Documents;
 with Viewer.Navigation;
+with Viewer.Settings_View;
 with Viewer.Style;
 with Viewer.Outlines.Blocks;
 with Viewer.Outlines.Clicks;
@@ -383,25 +383,21 @@ package body Viewer.Outlines is
 
    procedure Generate_Sections (Item : in out Session; With_Notes : Boolean) is
       View   : Outline_Parts renames Item.Outline_View;
-      Name   : constant String := Ada.Strings.Unbounded.To_String (Item.Prefs.AI_Model);
-      Folder : constant String := (if Name = "" then "" else MLX.Hub.Snapshot (Name));
-      Reason : constant String :=
-        (if Name = "" then "Choose an AI model in Settings"
-         elsif Folder = "" then "The AI model is not in the cache"
-         elsif Folder'Length > MLX.Max_Path then "The model's folder is too deep"
-         else MLX.Problem (Folder));
+      Located : Ada.Strings.Unbounded.Unbounded_String;
+      Why     : Ada.Strings.Unbounded.Unbounded_String;
    begin
       if not Item.Prefs.AI_On or else Generating (Item) then
          return;
       end if;
-      if Reason /= "" then
-         Generation.Show_Note (Item, Reason, Pomarine.Themes.Danger_Ink);
+      Settings_View.Locate_AI_Model (Item, Located, Why);
+      if Ada.Strings.Unbounded.Length (Why) > 0 then
+         Generation.Show_Note (Item, Ada.Strings.Unbounded.To_String (Why), Pomarine.Themes.Danger_Ink);
          return;
       end if;
       Sync (Item);
       View.Generate_Project := Item.Opened.Current;
       View.Generate_Notes := With_Notes;
-      View.Generate_Folder := Ada.Strings.Unbounded.To_Unbounded_String (Folder);
+      View.Generate_Folder := Located;
       View.Generate_Prompt :=
         Ada.Strings.Unbounded.To_Unbounded_String
           (Outline_Generation.Prompt

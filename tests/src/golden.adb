@@ -8,9 +8,11 @@ with SDL3.Cursors;
 with SDL3.Events;
 with Downloads;
 with Goldens;
+with Finding_Tests;
 with Item_Tests;
 with Layout_Tests;
 with Outline_Tests;
+with MLX.Jobs;
 with Preferences;
 with Projects;
 with Speech.Jobs;
@@ -1215,6 +1217,15 @@ begin
    Run ("sources-words", Item_Tests.Source_Words'Access);
    Run ("sources-documents", Item_Tests.Source_Documents'Access);
    Run ("sources-files", Item_Tests.Source_Files'Access);
+   Run ("finding-queries", Finding_Tests.Reading_Queries'Access);
+   Run ("finding-evaluations", Finding_Tests.Reading_Evaluations'Access);
+   Run ("finding-banners", Finding_Tests.Reading_Banners'Access);
+   Run ("finding-links", Finding_Tests.Choosing_Links'Access);
+   Run ("finding-button", Finding_Tests.Button'Access);
+   Run ("finding-review", Finding_Tests.Review'Access);
+   Run ("finding-documents", Finding_Tests.Documents'Access);
+   Run ("finding-messages", Finding_Tests.Messages'Access);
+   Run ("finding-cancel", Finding_Tests.Cancelling'Access);
    Run ("outline-starting", Outline_Tests.Starting'Access);
    Run ("outline-sections", Outline_Tests.Sections'Access);
    Run ("outline-form", Outline_Tests.Form'Access);
@@ -1269,4 +1280,5 @@ begin
       Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
    end if;
    Speech.Jobs.Shutdown;  --  or the tasks that listen would keep it from ending
+   MLX.Jobs.Shutdown;     --  nor the workers that ask the model (finding sources)
 end Golden;

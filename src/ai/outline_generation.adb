@@ -2,6 +2,7 @@ with Ada.Strings.Equal_Case_Insensitive;
 with Ada.Strings.Unbounded;
 with JSON.Parsers;
 with JSON.Types;
+with Model_Replies;
 
 package body Outline_Generation is
 
@@ -43,37 +44,6 @@ package body Outline_Generation is
       Valid  : out Boolean)
    is
       use JSON_Types;
-
-      function Object_End (Text : String; First : Positive) return Natural is
-         Depth : Natural := 0;
-         Quoted, Escaped : Boolean := False;
-      begin
-         for Index in First .. Text'Last loop
-            declare
-               C : constant Character := Text (Index);
-            begin
-               if Quoted then
-                  if Escaped then
-                     Escaped := False;
-                  elsif C = '\' then
-                     Escaped := True;
-                  elsif C = '"' then
-                     Quoted := False;
-                  end if;
-               elsif C = '"' then
-                  Quoted := True;
-               elsif C = '{' then
-                  Depth := Depth + 1;
-               elsif C = '}' then
-                  Depth := Depth - 1;
-                  if Depth = 0 then
-                     return Index;
-                  end if;
-               end if;
-            end;
-         end loop;
-         return 0;
-      end Object_End;
 
       procedure Add_Title (Words : String; At_Index : out Natural) is
          Clean : String := Words;
@@ -166,18 +136,11 @@ package body Outline_Generation is
            Projects.Sections.Note_Texts.To_Bounded_String (To_String (Text));
       end Add_Notes;
 
-      First : Natural := Reply'First;
-      Last  : Natural;
+      First, Last : Natural;
    begin
       Result.Count := 0;
       Valid := False;
-      while First <= Reply'Last and then Reply (First) /= '{' loop
-         First := First + 1;
-      end loop;
-      if First > Reply'Last then
-         return;
-      end if;
-      Last := Object_End (Reply, First);
+      Model_Replies.Find_Object (Reply, First, Last);
       if Last = 0 then
          return;
       end if;

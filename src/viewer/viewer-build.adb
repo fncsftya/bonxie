@@ -9,6 +9,7 @@ with Icon_Set;
 with Pomarine.Line_Texts;
 with Pomarine.Widgets;
 with Pomarine.Widgets.Layouts;
+with Viewer.Find_Sources;
 with Viewer.Outlines;
 with Viewer.Responses;
 with Viewer.Recent;
@@ -184,6 +185,7 @@ package body Viewer.Build is
       Write_View.Build_Write (Item);
       Shell_Views.Build_Publish (Item);
       Outline_View.Build_Outline (Item);
+      Find_Sources.Build (Item);
       Shell_Views.Build_Tray (Item);
       Settings_Form.Build_Settings (Item);
       Dialogs.Build_Modal (Item);

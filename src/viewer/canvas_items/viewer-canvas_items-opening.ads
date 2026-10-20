@@ -5,6 +5,11 @@ private package Viewer.Canvas_Items.Opening is
    --  Begin to take the picture of the page the source's text links to, or
    --  show the file its text is the path of.
 
+   procedure Open_Fetched (Item : in out Session; Which : Items.Slot; Ending : String);
+   --  The file of the source's document (a PDF, of Ending "pdf") is in its place
+   --  already, fetched by another: count its pages and draw the first, as when
+   --  a link to one has been fetched.
+
    procedure Pick_File (Item : in out Session; Which : Items.Slot);
 
    procedure Poll_Download (Item : in out Session);

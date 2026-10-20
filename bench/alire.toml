@@ -34,6 +34,7 @@ typeset = { path = "../pomarine/typeset" }
 vision = { path = "../vision" }
 ebook = { path = "../ebook" }
 webshot = { path = "../webshot" }
+websearch = { path = "../websearch" }
 yoga = { path = "../pomarine/yoga" }
 
 [build-switches]

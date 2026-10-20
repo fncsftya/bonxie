@@ -52,6 +52,19 @@ package Viewer.Canvas_Windows is
      with Pre => Is_Open (Item) and then Screen (Item) = Project
                  and then Row <= Item_Count (Item);
 
+   function Find_Sources_Enabled (Item : Session; Row : Positive) return Boolean
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item);
+   --  Whether the note's Find Sources button can be clicked: the AI is on and
+   --  there is text.
+
+   procedure Find_Sources_Point
+     (Item : Session; Row : Positive; Shown : out Boolean; X, Y : out Float)
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item);
+   --  Whether the note's Find Sources button is shown, and where its middle
+   --  is, in points of the window.
+
    function Item_Text (Item : Session; Row : Positive) return String
      with Pre => Is_Open (Item) and then Screen (Item) = Project
                  and then Row <= Item_Count (Item);

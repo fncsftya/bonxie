@@ -1,3 +1,4 @@
+with Ada.Directories;
 with Items.Links;
 with Items.Marks;
 with Items.Records;
@@ -5,12 +6,14 @@ with Items.Sources;
 with Items.Windows.Callbacks;
 with Ada.Strings.Unbounded;
 with Downloads;
+with Model_Replies;
 with Preferences;
 with Pomarine.Widgets;
 with Pomarine.Widgets.Canvases;
 with Pomarine.Widgets.Pictures;
 with Speech.Jobs;
 with Speech.Models;
+with Viewer.Find_Sources;
 with Viewer.Gestures;
 with Viewer.Links;
 with Viewer.Section_Links;
@@ -43,8 +46,8 @@ package body Viewer.Canvas_Items is
    use type Speech.Jobs.States;
    use type Windows.Dictations;
 
-   pragma Assert (Webshot.Slot_Count = Items.Capacity);
-   pragma Assert (Vision.Jobs.Slot_Count = Items.Capacity);
+   pragma Assert (Webshot.Slot_Count >= Items.Capacity);
+   pragma Assert (Vision.Jobs.Slot_Count >= Items.Capacity);
    pragma Assert (Speech.Jobs.Slot_Count = Items.Capacity);
 
    Cascade_Step  : constant Float := 24.0;
@@ -137,6 +140,8 @@ package body Viewer.Canvas_Items is
       Windows.Set_Link (Item.Windows (Which), Path);
       Opening.Start_Capture (Item, Which);
    end File_Picked;
+
+   function Capture_Time (Item : Session) return Projects.Seconds is (Basics.Epoch_Now (Item));
 
    function Count (Item : Session) return Natural is
       Found : Natural := 0;
@@ -299,25 +304,90 @@ package body Viewer.Canvas_Items is
       Make (Item, Name, Kind, Made);
    end Add;
 
-   procedure Add_Linked_Source (Item : in out Session; To : Items.Slot) is
-      Made  : Natural;
+   procedure Link_Items (Item : in out Session; From, To : Items.Slot) is
       Added : Boolean;
+   begin
+      Items.Links.Add_Link
+        (Item.Nav.Store,
+         (From      => Windows.Details (Item.Windows (From)).Key,
+          To        => Windows.Details (Item.Windows (To)).Key,
+          From_Side => Items.Links.Right,
+          To_Side   => Items.Links.Left,
+          others    => <>),
+         Added);
+      if Added then
+         Links.Reload (Item);
+      end if;
+   end Link_Items;
+   --  Draw a line from the right of one item's window to the left of the other's.
+
+   procedure Add_Linked_Source (Item : in out Session; To : Items.Slot) is
+      Made : Natural;
    begin
       Make (Item, Untitled_Source, Items.Source, Made);
       if Made /= 0 then
-         Items.Links.Add_Link
-           (Item.Nav.Store,
-            (From      => Windows.Details (Item.Windows (To)).Key,
-             To        => Windows.Details (Item.Windows (Made)).Key,
-             From_Side => Items.Links.Right,
-             To_Side   => Items.Links.Left,
-             others    => <>),
-            Added);
-         if Added then
-            Links.Reload (Item);
-         end if;
+         Link_Items (Item, To, Made);
       end if;
    end Add_Linked_Source;
+
+   procedure Add_Found_Source
+     (Item      : in out Session;
+      Linked_To : Natural;
+      Page_Title, Address, File : String;
+      Added     : out Boolean;
+      Document  : Boolean := False)
+   is
+      Made : Natural;
+      Name : constant String :=
+        Model_Replies.Cut ((if Page_Title = "" then Address else Page_Title), Projects.Title_Capacity);
+   begin
+      Made := 0;
+      Added := False;
+      if Count (Item) < Items.Capacity then
+         Make (Item, Name, Items.Source, Made);
+      end if;
+      if Made = 0 then
+         return;
+      end if;
+      Added := True;
+      declare
+         Key  : constant Items.Id := Windows.Details (Item.Windows (Made)).Key;
+         Time : constant Projects.Seconds := Basics.Epoch_Now (Item);
+         Kept : constant String :=
+           (if Document then Items.Sources.Document_File (Item.Nav.Store, Item.Opened.Current, Key, "pdf")
+            else Items.Sources.Image_File (Item.Nav.Store, Item.Opened.Current, Key));
+      begin
+         Choose_Origin (Item, Made, Items.Remote);
+         Windows.Set_Link (Item.Windows (Made), Address);
+         Items.Sources.Make_Image_Folder (Item.Nav.Store, Item.Opened.Current);
+         if Ada.Directories.Exists (Kept) then
+            Ada.Directories.Delete_File (Kept);  --  of an item that was, with this key
+         end if;
+         begin
+            Ada.Directories.Rename (File, Kept);
+         exception
+            when Ada.Directories.Use_Error | Ada.Directories.Name_Error =>
+               Items.Sources.Copy_File (File, Kept);
+               Ada.Directories.Delete_File (File);
+         end;
+         if Document then
+            --  Counted and drawn as a PDF fetched for the source is.
+            Opening.Open_Fetched (Item, Made, "pdf");
+         else
+            Items.Sources.Set_Captured (Item.Nav.Store, Key, Time);
+            Windows.Set_Capture (Item.Windows (Made), Windows.Ready, Kept, At_Time => Time);
+            Writing.Picture_Taken (Item, Made);
+            Recognition.Start_Recognition (Item, Made);
+         end if;
+         if Linked_To /= 0 then
+            Link_Items (Item, Linked_To, Made);
+         end if;
+         Projects.Touch (Item.Nav.Store, Item.Opened.Current);
+      end;
+   exception
+      when Ada.Directories.Use_Error | Ada.Directories.Name_Error =>
+         Windows.Set_Capture (Item.Windows (Made), Windows.Failed, Detail => "the picture could not be kept");
+   end Add_Found_Source;
 
    procedure Make
      (Item : in out Session;
@@ -464,6 +534,8 @@ package body Viewer.Canvas_Items is
             Toggle_Dictation (Item, Which);
          when Windows.Link_To_Outline =>
             Section_Links.Open (Item, Which);
+         when Windows.Find_Sources =>
+            Find_Sources.Start (Item, Which);
          when Windows.Choose_Link =>
             Choose_Origin (Item, Which, Items.Remote);
          when Windows.Choose_File =>

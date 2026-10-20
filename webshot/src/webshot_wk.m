@@ -5,15 +5,186 @@
 #import <AppKit/AppKit.h>
 #import <WebKit/WebKit.h>
 
-#define WS_JOBS 16
+#define WS_JOBS 21
 #define WS_MESSAGE 160
 
-enum { WS_IDLE = 0, WS_WORKING = 1, WS_DONE = 2, WS_FAILED = 3 };
+#define WS_URL 512
+
+enum { WS_IDLE = 0, WS_WORKING = 1, WS_DONE = 2, WS_FAILED = 3, WS_LOOKED = 4 };
 
 static const NSTimeInterval kLoadTimeout = 45.0;
 static const int kPixelsPerPoint = 2;
 static const int kMaxPixels = 16384;  // a texture's side, at most
 static const NSTimeInterval kSettle = 0.6;  // after load, for late layout
+static const NSTimeInterval kBannerWait = 1.0;  // after a click, for the banner to go
+static const int kBannerRounds = 2;  // a banner may lead to another notice
+static const int kMaxFrames = 8;
+static const int kLookHeight = 900;  // points, of the window the page is first seen in
+static const int kTileCount = 4;  // screens of the top of a page that are also written, if asked for
+
+// (What costs something or takes the reader away, as a button to subscribe, to pay or to sign
+// in, is never pressed, whatever it is asked for.)
+//
+// Presses the button of a notice that says what is wanted (a label a person, or a
+// program reading a picture of the page, has given), and answers whether it did. What
+// is read in a picture may be a little wrong, so a label that is not found as it is
+// is looked for as the start of one, as part of one, and with a letter wrong. The
+// page's open shadow roots are searched, and so are the frames, by running it in each.
+// The wanted label is the one argument: see ws_press.
+static NSString *const kPressScript =
+    @"(function (wanted) {"
+     "  function plain(t) {"
+     "    return (t || '').toLowerCase().replace(/[^\\p{L}\\p{N}]+/gu, ' ').trim();"
+     "  }"
+     "  function apart(a, b, most) {"
+     "    if (Math.abs(a.length - b.length) > most) return most + 1;"
+     "    var row = [];"
+     "    for (var j = 0; j <= b.length; j++) row.push(j);"
+     "    for (var i = 1; i <= a.length; i++) {"
+     "      var last = row[0]; row[0] = i;"
+     "      for (var k = 1; k <= b.length; k++) {"
+     "        var up = row[k];"
+     "        row[k] = Math.min(row[k] + 1, row[k - 1] + 1, last + (a[i - 1] === b[k - 1] ? 0 : 1));"
+     "        last = up;"
+     "      }"
+     "    }"
+     "    return row[b.length];"
+     "  }"
+     "  function roots(from, found) {"
+     "    found.push(from);"
+     "    var all = from.querySelectorAll('*');"
+     "    for (var i = 0; i < all.length; i++)"
+     "      if (all[i].shadowRoot) roots(all[i].shadowRoot, found);"
+     "    return found;"
+     "  }"
+     "  function shown(el) {"
+     "    var box = el.getBoundingClientRect();"
+     "    if (box.width < 4 || box.height < 4) return false;"
+     "    var style = getComputedStyle(el);"
+     "    return style.visibility !== 'hidden' && style.display !== 'none' && style.opacity !== '0';"
+     "  }"
+     "  var want = plain(wanted);"
+     "  if (!want) return false;"
+     "  var refused = /subscri|\\bpay\\b|\\bbuy\\b|purchas|checkout|\\bsign ?in\\b|\\blog ?in\\b|\\bregister\\b|"
+     "\\bjoin\\b|\\bdonat|\\bsupport us\\b|[£$€]\\s?\\d|\\d\\s?(£|\\$|€)/i;"
+     "  var best = null, bestRank = 0, bestSize = 1e9;"
+     "  var spots = roots(document, []);"
+     "  for (var s = 0; s < spots.length; s++) {"
+     "    var all = spots[s].querySelectorAll("
+     "      'button, a, [role=button], [role=link], input[type=button], input[type=submit], summary, label, "
+     "[onclick], [tabindex], span, div, p');"
+     "    for (var i = 0; i < all.length; i++) {"
+     "      var el = all[i];"
+     "      var own = el.innerText || el.value || el.getAttribute('aria-label') || el.title || '';"
+     "      if (own.length > 120) continue;"
+     "      var text = plain(own);"
+     "      if (!text || !shown(el) || refused.test(own)) continue;"
+     "      var clickable = el.matches('button, a, [role=button], [role=link], input, summary, label, [onclick], "
+     "[tabindex]') || getComputedStyle(el).cursor === 'pointer';"
+     "      if (!clickable) continue;"
+     "      var rank = text === want ? 4 : (text.indexOf(want) === 0 || want.indexOf(text) === 0 && text.length > 3"
+     "        ? 3 : (text.indexOf(want) >= 0 ? 2 : (apart(text, want, 1 + (want.length >> 3)) <= 1 + (want.length >> 3)"
+     "        ? 1 : 0)));"
+     "      if (rank > bestRank || (rank === bestRank && rank > 0 && text.length < bestSize)) {"
+     "        best = el; bestRank = rank; bestSize = text.length;"
+     "      }"
+     "    }"
+     "  }"
+     "  if (!best) return false;"
+     "  var names = ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click'];"
+     "  for (var n = 0; n < names.length; n++)"
+     "    best.dispatchEvent(new MouseEvent(names[n], {bubbles: true, cancelable: true, view: window}));"
+     "  return true;"
+     "})";
+
+// The address of the PDF a page says it is the page of, as most journals and
+// repositories do (citation_pdf_url, for scholars' indexes): "" if it says none.
+static NSString *const kDocumentScript =
+    @"(function () {"
+     "  var meta = document.querySelector('meta[name=\"citation_pdf_url\"], meta[name=\"eprints.document_url\"]');"
+     "  try {"
+     "    if (meta && meta.content) return new URL(meta.content, location.href).href;"
+     "    var link = document.querySelector('link[rel=\"alternate\"][type=\"application/pdf\"]');"
+     "    if (link && link.href) return link.href;"
+     "  } catch (e) {}"
+     "  return '';"
+     "})()";
+
+// Clicks away a cookie banner or like notice that covers the page, if there is
+// one, and answers whether it did. A button counts only if it is in what looks
+// like such a notice (a dialog, something fixed over the page, or named for
+// cookies or consent) that says as much, and its label is one of a few. Cookies are
+// accepted, as the page is read in a window that keeps nothing: a button that accepts
+// is pressed in preference to one that rejects or keeps to what is necessary, which
+// often leads to a page of choices, not to the page. The page's open shadow roots are searched
+// too, as some banners are kept in one; those of other frames are, by running it
+// in each frame, where a document that is about cookies as a whole is the notice (what
+// is fixed over the page is the frame itself, in the page).
+static NSString *const kDismissScript =
+    @"(function () {"
+     "  var reject = /^(reject|decline|deny|refuse|disagree|no thanks|no, thanks|only (strictly )?necessary|"
+     "necessary only|essential only|use necessary|continue without (accepting|agreeing)|"
+     "(save|confirm) (my )?(choices|preferences|settings))\\b/i;"
+     "  var accept = /^(accept|allow|agree|i agree|i accept|i understand|got it|ok|okay|yes, i agree|"
+     "consent|continue|close|dismiss|understood)\\b/i;"
+     "  var named = /cookie|consent|gdpr|privacy|cmp|onetrust|didomi|truste|cookiebot|sp_message|"
+     "usercentrics|osano|iubenda|quantcast|banner|notice/i;"
+     "  var about = /cookie|consent|privacy|tracking|gdpr|personal data|partners/i;"
+     "  var known = ['#onetrust-accept-btn-handler', '#CybotCookiebotDialogBodyLevelButtonLevelOptinAllowAll',"
+     "    '#didomi-notice-agree-button', 'button[data-testid=\\\"uc-accept-all-button\\\"]',"
+     "    '#truste-consent-button', '.fc-cta-consent', '.sp_choice_type_11', '.cc-allow', '.cc-dismiss',"
+     "    '#onetrust-reject-all-handler', '#CybotCookiebotDialogBodyButtonDecline',"
+     "    '#didomi-notice-disagree-button', 'button[data-testid=\\\"uc-deny-all-button\\\"]'];"
+     "  function roots(from, found) {"
+     "    found.push(from);"
+     "    var all = from.querySelectorAll('*');"
+     "    for (var i = 0; i < all.length; i++)"
+     "      if (all[i].shadowRoot) roots(all[i].shadowRoot, found);"
+     "    return found;"
+     "  }"
+     "  function shown(el) {"
+     "    var box = el.getBoundingClientRect();"
+     "    if (box.width < 4 || box.height < 4) return false;"
+     "    var style = getComputedStyle(el);"
+     "    return style.visibility !== 'hidden' && style.display !== 'none' && style.opacity !== '0';"
+     "  }"
+     "  function noticeOf(el) {"
+     "    for (var up = el, depth = 0; up && depth < 10; up = up.parentNode || up.host, depth++) {"
+     "      if (up.nodeType !== 1) continue;"
+     "      var style = getComputedStyle(up);"
+     "      var covering = style.position === 'fixed' || style.position === 'sticky';"
+     "      var dialog = up.getAttribute('role') === 'dialog' || up.getAttribute('role') === 'alertdialog'"
+     "        || up.getAttribute('aria-modal') === 'true';"
+     "      var label = (up.id || '') + ' ' + (up.className && up.className.baseVal === undefined ? up.className : '')"
+     "        + ' ' + (up.getAttribute('aria-label') || '');"
+     "      if ((covering || dialog || named.test(label)) && about.test(up.innerText || '')"
+     "          && (up.innerText || '').length < 4000) return up;"
+     "    }"
+     "    var own = document.body ? document.body.innerText || '' : '';"
+     "    return (window.top !== window && about.test(own) && own.length < 4000) ? document.body : null;"
+     "  }"
+     "  var spots = roots(document, []);"
+     "  for (var k = 0; k < known.length; k++) {"
+     "    for (var r = 0; r < spots.length; r++) {"
+     "      var hit = spots[r].querySelector(known[k]);"
+     "      if (hit && shown(hit)) { hit.click(); return true; }"
+     "    }"
+     "  }"
+     "  var best = null, wanted = 0;"
+     "  for (var s = 0; s < spots.length; s++) {"
+     "    var buttons = spots[s].querySelectorAll("
+     "      'button, a, [role=button], input[type=button], input[type=submit], [tabindex]');"
+     "    for (var i = 0; i < buttons.length; i++) {"
+     "      var b = buttons[i];"
+     "      var label = (b.innerText || b.value || b.getAttribute('aria-label') || '').trim();"
+     "      if (label.length < 2 || label.length > 40 || !shown(b)) continue;"
+     "      var rank = accept.test(label) ? 2 : (reject.test(label) ? 1 : 0);"
+     "      if (rank > wanted && noticeOf(b)) { best = b; wanted = rank; }"
+     "    }"
+     "  }"
+     "  if (best) { best.click(); return true; }"
+     "  return false;"
+     "})()";
 
 @class WSJob;
 
@@ -22,7 +193,10 @@ static int states[WS_JOBS];
 static int heights[WS_JOBS];
 static double phases[WS_JOBS];  // how far on, 0..1, once the page is loaded
 static char messages[WS_JOBS][WS_MESSAGE];
-static char titles[WS_JOBS][WS_MESSAGE];  // of the page, once Done
+static char titles[WS_JOBS][WS_MESSAGE];  // of the page, once Done or Looked
+static char documents[WS_JOBS][WS_URL];  // of the PDF the page is of, once Looked
+static int pressed[WS_JOBS];  // whether the last press found a button
+static int tile_counts[WS_JOBS];  // screens written beside the whole page, once Done
 
 static void finish(int slot, int state, int height, NSString *message)
 {
@@ -37,8 +211,13 @@ static void finish(int slot, int state, int height, NSString *message)
 @property(strong) WKWebView *view;
 @property(copy) NSString *path;
 @property int width;
-@property int maxHeight;
 @property BOOL finished;
+@property BOOL loaded;  // the page has been loaded
+@property BOOL proceeded;  // it has been gone on with, once: a page may finish loading again
+@property BOOL dismiss;  // click away banners the page's own way
+@property(copy) NSString *lookPath;  // the picture of the top of the page, or nil for none
+@property(copy) NSString *tilePrefix;  // where the first screens of the page are written, or nil for none
+@property(strong) NSMutableArray<WKFrameInfo *> *frames;  // of the page's frames inside it
 @end
 
 @implementation WSJob
@@ -52,10 +231,121 @@ static void finish(int slot, int state, int height, NSString *message)
 
 - (void)webView:(WKWebView *)view didFinishNavigation:(WKNavigation *)nav
 {
+    if (self.proceeded) return;
+    self.proceeded = YES;
     phases[self.slot] = 0.8;
+    self.loaded = YES;
     __weak WSJob *me = self;
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(kSettle * NSEC_PER_SEC)),
-                   dispatch_get_main_queue(), ^{ [me measure]; });
+                   dispatch_get_main_queue(), ^{
+        if (me.dismiss) [me dismissBanners:1]; else [me proceed];
+    });
+}
+
+// The page is ready to be taken: the top of it to be looked at first, if that is
+// asked for, and else the whole of it.
+- (void)proceed
+{
+    if (self.lookPath) [self look]; else [self measure];
+}
+
+// The picture of the top of the page, as it is seen in a window, is made, and the
+// job waits to be told what to do (press a button, or go on).
+- (void)look
+{
+    if (self.finished) return;
+    phases[self.slot] = 0.85;
+    WKSnapshotConfiguration *config = [WKSnapshotConfiguration new];
+    config.rect = NSMakeRect(0, 0, self.width, kLookHeight);
+    double backing = [NSScreen mainScreen].backingScaleFactor;
+    if (backing < 1.0) backing = 1.0;
+    config.snapshotWidth = @(self.width * kPixelsPerPoint / backing);
+    __weak WSJob *me = self;
+    [self.view takeSnapshotWithConfiguration:config completionHandler:^(NSImage *image, NSError *error) {
+        WSJob *job = me;
+        if (!job || job.finished) return;
+        CGImageRef cg = image ? [image CGImageForProposedRect:NULL context:nil hints:nil] : NULL;
+        if (!cg) { [job fail:error.localizedDescription ?: @"No snapshot"]; return; }
+        NSBitmapImageRep *rep = [[NSBitmapImageRep alloc] initWithCGImage:cg];
+        NSData *png = [rep representationUsingType:NSBitmapImageFileTypePNG properties:@{}];
+        NSString *temp = [job.lookPath stringByAppendingString:@".part"];
+        if (![png writeToFile:temp atomically:NO]
+            || rename(temp.fileSystemRepresentation, job.lookPath.fileSystemRepresentation) != 0) {
+            [job fail:@"The picture could not be written"];
+            return;
+        }
+        strlcpy(titles[job.slot], job.view.title.UTF8String ?: "", WS_MESSAGE);
+        [job.view evaluateJavaScript:kDocumentScript completionHandler:^(id result, NSError *err) {
+            WSJob *again = me;
+            if (!again || again.finished) return;
+            strlcpy(documents[again.slot], [result isKindOfClass:[NSString class]] ? [result UTF8String] : "", WS_URL);
+            states[again.slot] = WS_LOOKED;
+        }];
+    }];
+}
+
+// Press the button that says label, in the page and its frames, give the page a
+// moment to change, and look at it again.
+- (void)press:(NSString *)label
+{
+    if (self.finished) return;
+    NSData *json = [NSJSONSerialization dataWithJSONObject:@[label] options:0 error:nil];
+    NSString *array = [[NSString alloc] initWithData:json encoding:NSUTF8StringEncoding];
+    NSString *script = [NSString stringWithFormat:@"%@(%@[0])", kPressScript, array];
+    NSArray<WKFrameInfo *> *frames = [self.frames copy];
+    __block NSUInteger pending = 1 + frames.count;
+    __block BOOL clicked = NO;
+    __weak WSJob *me = self;
+    void (^answered)(id, NSError *) = ^(id result, NSError *error) {
+        if ([result respondsToSelector:@selector(boolValue)] && [result boolValue]) clicked = YES;
+        if (--pending > 0) return;
+        WSJob *job = me;
+        if (!job || job.finished) return;
+        pressed[job.slot] = clicked ? 1 : 0;
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)((clicked ? kBannerWait : 0.1) * NSEC_PER_SEC)),
+                       dispatch_get_main_queue(), ^{ [me look]; });
+    };
+    [self.view evaluateJavaScript:script completionHandler:answered];
+    for (WKFrameInfo *frame in frames) {
+        [self.view evaluateJavaScript:script inFrame:frame inContentWorld:[WKContentWorld pageWorld]
+                    completionHandler:answered];
+    }
+}
+
+// A frame in the page is noted, to look for a banner in it too.
+- (void)webView:(WKWebView *)view decidePolicyForNavigationAction:(WKNavigationAction *)action
+                                                  decisionHandler:(void (^)(WKNavigationActionPolicy))handler
+{
+    if (action.targetFrame && !action.targetFrame.isMainFrame && self.frames.count < kMaxFrames)
+        [self.frames addObject:action.targetFrame];
+    handler(WKNavigationActionPolicyAllow);
+}
+
+// Click away what covers the page, in the page and its frames, as many times as
+// it comes to (a banner may lead to a second notice); then measure it.
+- (void)dismissBanners:(int)round
+{
+    if (self.finished) return;
+    NSArray<WKFrameInfo *> *frames = [self.frames copy];
+    __block NSUInteger pending = 1 + frames.count;
+    __block BOOL clicked = NO;
+    __weak WSJob *me = self;
+    void (^answered)(id, NSError *) = ^(id result, NSError *error) {
+        if ([result respondsToSelector:@selector(boolValue)] && [result boolValue]) clicked = YES;
+        if (--pending > 0) return;
+        WSJob *job = me;
+        if (!job || job.finished) return;
+        if (!clicked) { [job proceed]; return; }
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(kBannerWait * NSEC_PER_SEC)),
+                       dispatch_get_main_queue(), ^{
+            if (round < kBannerRounds) [me dismissBanners:round + 1]; else [me proceed];
+        });
+    };
+    [self.view evaluateJavaScript:kDismissScript completionHandler:answered];
+    for (WKFrameInfo *frame in frames) {
+        [self.view evaluateJavaScript:kDismissScript inFrame:frame inContentWorld:[WKContentWorld pageWorld]
+                    completionHandler:answered];
+    }
 }
 
 - (void)webView:(WKWebView *)view didFailNavigation:(WKNavigation *)nav withError:(NSError *)error
@@ -86,8 +376,43 @@ static void finish(int slot, int state, int height, NSString *message)
         if (!job || job.finished) return;
         int high = [result respondsToSelector:@selector(intValue)] ? [result intValue] : 0;
         if (high < 1) high = 1;
-        if (high > job.maxHeight) high = job.maxHeight;
         [job shoot:high];
+    }];
+}
+
+// The screens at the top of the page, a window's height each, are written at the full
+// scale, as files that can be read by what cannot read a very long page that has been
+// made to fit a picture: its words are too small. Then the job is done.
+- (void)tile:(int)index of:(int)high picture:(int)picture
+{
+    int offset = (index - 1) * kLookHeight;
+    if (self.finished) return;
+    if (!self.tilePrefix || index > kTileCount || offset >= high) {
+        self.finished = YES;
+        finish(self.slot, WS_DONE, picture, @"");
+        return;
+    }
+    WKSnapshotConfiguration *config = [WKSnapshotConfiguration new];
+    config.rect = NSMakeRect(0, offset, self.width, MIN(kLookHeight, high - offset));
+    double backing = [NSScreen mainScreen].backingScaleFactor;
+    if (backing < 1.0) backing = 1.0;
+    config.snapshotWidth = @(self.width * kPixelsPerPoint / backing);
+    __weak WSJob *me = self;
+    [self.view takeSnapshotWithConfiguration:config completionHandler:^(NSImage *image, NSError *error) {
+        WSJob *job = me;
+        if (!job || job.finished) return;
+        CGImageRef cg = image ? [image CGImageForProposedRect:NULL context:nil hints:nil] : NULL;
+        if (!cg) { [job fail:error.localizedDescription ?: @"No snapshot"]; return; }
+        NSBitmapImageRep *rep = [[NSBitmapImageRep alloc] initWithCGImage:cg];
+        NSData *png = [rep representationUsingType:NSBitmapImageFileTypePNG properties:@{}];
+        NSString *name = [job.tilePrefix stringByAppendingFormat:@"-%d.png", index];
+        NSString *temp = [name stringByAppendingString:@".part"];
+        if (![png writeToFile:temp atomically:NO] || rename(temp.fileSystemRepresentation, name.fileSystemRepresentation) != 0) {
+            [job fail:@"The picture could not be written"];
+            return;
+        }
+        tile_counts[job.slot] = index;
+        [job tile:index + 1 of:high picture:picture];
     }];
 }
 
@@ -129,16 +454,16 @@ static void finish(int slot, int state, int height, NSString *message)
                 [again fail:@"The picture could not be written"];
                 return;
             }
-            again.finished = YES;
             strlcpy(titles[again.slot], again.view.title.UTF8String ?: "", WS_MESSAGE);
-            finish(again.slot, WS_DONE, (int)CGImageGetHeight(cg), @"");
+            [again tile:1 of:high picture:(int)CGImageGetHeight(cg)];
         }];
     });
 }
 
 @end
 
-int ws_start(int slot, const char *url, const char *path, int width, int max_height)
+int ws_start(int slot, const char *url, const char *path, int width, const char *look, int dismiss,
+             const char *tiles)
 {
     if (slot < 0 || slot >= WS_JOBS || states[slot] == WS_WORKING) return 0;
     [NSApplication sharedApplication];  // WebKit wants one; SDL's is this
@@ -152,7 +477,13 @@ int ws_start(int slot, const char *url, const char *path, int width, int max_hei
     job.slot = slot;
     job.path = [NSString stringWithUTF8String:path];
     job.width = width;
-    job.maxHeight = max_height;
+    job.frames = [NSMutableArray new];
+    job.dismiss = dismiss != 0;
+    job.lookPath = look && look[0] ? [NSString stringWithUTF8String:look] : nil;
+    job.tilePrefix = tiles && tiles[0] ? [NSString stringWithUTF8String:tiles] : nil;
+    tile_counts[slot] = 0;
+    documents[slot][0] = 0;
+    pressed[slot] = 0;
     WKWebViewConfiguration *config = [WKWebViewConfiguration new];
     job.view = [[WKWebView alloc] initWithFrame:NSMakeRect(0, 0, width, 900)
                                   configuration:config];
@@ -171,7 +502,7 @@ int ws_start(int slot, const char *url, const char *path, int width, int max_hei
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(kLoadTimeout * NSEC_PER_SEC)),
                    dispatch_get_main_queue(), ^{
         WSJob *late = me;
-        if (late && !late.finished) [late fail:@"Timed out"];
+        if (late && !late.finished && !late.loaded) [late fail:@"Timed out"];
     });
     return 1;
 }
@@ -182,6 +513,29 @@ void ws_pump(int milliseconds)
         [NSDate dateWithTimeIntervalSinceNow:milliseconds / 1000.0]];
 }
 
+// What to do with a job that has been looked at (state WS_LOOKED).
+int ws_press(int slot, const char *label)
+{
+    WSJob *job = slot >= 0 && slot < WS_JOBS ? jobs[slot] : nil;
+    if (!job || states[slot] != WS_LOOKED) return 0;
+    states[slot] = WS_WORKING;
+    [job press:[NSString stringWithUTF8String:label]];
+    return 1;
+}
+
+int ws_continue(int slot)
+{
+    WSJob *job = slot >= 0 && slot < WS_JOBS ? jobs[slot] : nil;
+    if (!job || states[slot] != WS_LOOKED) return 0;
+    states[slot] = WS_WORKING;
+    [job measure];
+    return 1;
+}
+
+int ws_tiles(int slot) { return slot >= 0 && slot < WS_JOBS ? tile_counts[slot] : 0; }
+int ws_pressed(int slot) { return slot >= 0 && slot < WS_JOBS ? pressed[slot] : 0; }
+const char *ws_document(int slot) { return slot >= 0 && slot < WS_JOBS ? documents[slot] : ""; }
+
 int ws_state(int slot) { return slot >= 0 && slot < WS_JOBS ? states[slot] : WS_IDLE; }
 int ws_height(int slot) { return slot >= 0 && slot < WS_JOBS ? heights[slot] : 0; }
 const char *ws_message(int slot) { return slot >= 0 && slot < WS_JOBS ? messages[slot] : ""; }
@@ -191,6 +545,7 @@ int ws_progress(int slot)
 {
     if (slot < 0 || slot >= WS_JOBS) return 0;
     if (states[slot] == WS_DONE) return 100;
+    if (states[slot] == WS_LOOKED) return 85;
     if (states[slot] != WS_WORKING) return 0;
     double done = phases[slot];
     WSJob *job = jobs[slot];
@@ -208,4 +563,7 @@ void ws_reset(int slot)
     phases[slot] = 0;
     messages[slot][0] = 0;
     titles[slot][0] = 0;
+    documents[slot][0] = 0;
+    pressed[slot] = 0;
+    tile_counts[slot] = 0;
 }

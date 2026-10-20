@@ -141,6 +141,11 @@ package body Viewer.Canvas_Items.Opening is
       end if;
    end Finish_File;
 
+   procedure Open_Fetched (Item : in out Session; Which : Items.Slot; Ending : String) is
+   begin
+      Finish_File (Item, Which, Ending);
+   end Open_Fetched;
+
    procedure Start_Download
      (Item : in out Session; Which : Items.Slot; Link : String);
    --  Begin to fetch the PDF or e-book the source's text links to: it is

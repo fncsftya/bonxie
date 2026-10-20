@@ -6,6 +6,9 @@
 --  runs its event loop (SDL's does). A search has a slot, and one in a slot
 --  at a time.
 --
+--  What a search found is kept for Cache_Lifetime, so that the same query
+--  asked again soon is answered from memory, and DuckDuckGo is not.
+--
 --  DuckDuckGo turns away what looks like a robot, so searches are spaced
 --  out: Start accepts one only if Min_Interval has passed since the last
 --  that was accepted (in any slot, from any task). After DuckDuckGo blocks
@@ -47,12 +50,29 @@ package Websearch is
 
    procedure Start (Which : Slot; Query : String; Accepted : out Boolean)
      with Pre  => State (Which) /= Working and then Query'Length in 1 .. Max_Query,
-          Post => (if Accepted then State (Which) in Working | Failed);
-   --  Begin to search for Query. If it is too soon after the last search,
+          Post => (if Accepted then State (Which) in Working | Done | Failed);
+   --  Begin to search for Query. If the same query (whatever its case, and
+   --  the spaces in it) found links in the last Cache_Lifetime seconds, they
+   --  are the results: the state is Done at once, Accepted is True, and no
+   --  turn of the limit below is taken. Otherwise, if it is too soon after the last search,
    --  Accepted is False and nothing was begun (the state is as it was);
    --  Retry_After says how long to wait. Else the state is Working.
    --  Tasks may call this at once, but the rest (Pump, State...) is for the
    --  main thread.
+
+   Cache_Lifetime : constant Duration := 900.0;
+   --  Seconds the links a search found are kept, to answer the same query.
+
+   Cache_Capacity : constant := 16;
+   --  Queries kept: when there are more, the oldest goes.
+
+   procedure Clear_Cache;
+   --  Forget the links kept.
+
+   function Was_Cached (Which : Slot) return Boolean
+     with Pre => State (Which) = Done;
+   --  Whether the results of the slot's search were kept from before, not
+   --  found by a search of DuckDuckGo just now.
 
    function Retry_After return Duration
      with Post => Retry_After'Result in 0.0 .. Max_Backoff;

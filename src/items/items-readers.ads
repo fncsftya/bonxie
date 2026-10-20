@@ -54,6 +54,10 @@ package Items.Readers is
    --  column that fills it. Do it once, before the layout, with the
    --  tree's density.
 
+   procedure Set_Pinnable (Item : in out Reader; To : Boolean);
+   --  Show the pin button of the title bar, or not: a reader that is not for
+   --  the writing view's pane (a preview) has no use for it. Shown to begin with.
+
    procedure Set_Tag (Item : in out Reader; To : Pomarine.Themes.Slot);
    --  Show the source's colour, in a square before its title.
 

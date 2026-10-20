@@ -17,6 +17,7 @@ with SDL3.Windows.Renderers;
 with Viewer.Build;
 with Viewer.Canvas_Items;
 with Viewer.Deletion;
+with Viewer.Find_Sources;
 with Viewer.Home_Screen;
 with Viewer.Menus;
 with Viewer.Outlines;
@@ -229,6 +230,7 @@ package body Viewer is
                   Writing.Pressed (Item, Event.Mouse_X, Event.Mouse_Y);
                   Section_Links.Pressed (Item, Event.Mouse_X, Event.Mouse_Y);
                   Outlines.Pressed (Item, Event.Mouse_X, Event.Mouse_Y);
+                  Find_Sources.Pressed (Item, Event.Mouse_X, Event.Mouse_Y);
                   if Event.Button = 3 and then not Item.Item_List.Showing_List
                     and then not Home_Screen.Is_Confirming (Item)
                   then
@@ -360,6 +362,10 @@ package body Viewer is
       if Item.Nav.Shown = Project and then Outlines.Generating (Item) then
          Wake_In (Capture_Poll);
       end if;
+      --  Sources are being found for a text, or a word about it is to be put away.
+      if Find_Sources.Working (Item) then
+         Wake_In (Capture_Poll);
+      end if;
       --  So is the file for the speech model: look at how far on it is.
       if Settings_View.Downloading (Item) then
          Wake_In (Capture_Poll);
@@ -416,6 +422,7 @@ package body Viewer is
          Outlines.Update (Item);
          Section_Links.Update (Item);
       end if;
+      Find_Sources.Update (Item, Now);
       Grammar.Update (Item, Now);
       if Item.Prefs.Showing_Settings then
          Settings_View.Update (Item);
@@ -532,6 +539,7 @@ package body Viewer is
       Save_Geometry (Item);
       --  Not to go on fetching what no one will use.
       Speech.Models.Cancel;
+      Find_Sources.Stop;
       MLX.Jobs.Shutdown;
    end Run;
 
