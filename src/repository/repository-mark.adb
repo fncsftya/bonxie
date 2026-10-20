@@ -1,3 +1,4 @@
+with Pomarine.Marks;
 with Pomarine.Mark_Paths;
 with Ada_Sqlite3;
 with Repository.Database; use Repository.Database;
@@ -94,14 +95,16 @@ package body Repository.Mark is
         (Float'Max (0.0, Float'Min (1.0, Value)));
    begin
       Into.Count := 0;
+      Into.Past := Pomarine.Marks.Empty_History;
       Ada_Sqlite3.Bind_Int64 (Query, ":id", Long_Integer (Key));
       Ada_Sqlite3.Bind_Int (Query, ":limit", Items.Marks.Max_Marks);
       while Ada_Sqlite3.Step (Query) = Ada_Sqlite3.ROW loop
          Into.Count := Into.Count + 1;
          Into.Marks (Into.Count) :=
-           (Left  => Ada_Sqlite3.Column_Double (Query, 0),
-            Right => Ada_Sqlite3.Column_Double (Query, 1),
-            Y     => Ada_Sqlite3.Column_Double (Query, 2),
+           (Left  => Unit (Ada_Sqlite3.Column_Double (Query, 0)),
+            Right => Float'Max (Unit (Ada_Sqlite3.Column_Double (Query, 0)),
+                                Unit (Ada_Sqlite3.Column_Double (Query, 1))),
+            Y     => Unit (Ada_Sqlite3.Column_Double (Query, 2)),
             Page  => Integer'Max (1, Ada_Sqlite3.Column_Int (Query, 3)),
             Trace => <>);
          Ada_Sqlite3.Reset (Points);

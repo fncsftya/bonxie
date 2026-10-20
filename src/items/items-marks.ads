@@ -1,30 +1,21 @@
-with Pomarine.Mark_Paths;
+with Pomarine.Marks;
 with Projects;
 
 --  The highlighter's marks on a source's picture, kept in a table of
 --  their own, one row to a mark, that goes with the item.
 package Items.Marks is
 
-   Max_Marks : constant := 256;
-   --  Of one source's picture.
-
-   type Mark is record
-      Left, Right, Y : Float := 0.0;
-      Trace : Pomarine.Mark_Paths.Path;
-      Page           : Positive := 1;
-   end record;
-   --  A swipe of the highlighter over a source's picture: from Left to
-   --  Right (0.0 .. 1.0, of the picture's width), Y down it (of its
-   --  height), for older marks. Trace holds the freehand path for new marks.
-   --  Of a document, Page is the page it is on.
-
-   type Mark_Array is array (Positive range <>) of Mark;
+   Max_Marks : constant := Pomarine.Marks.Max_Marks;
+   subtype Mark is Pomarine.Marks.Mark;
+   subtype Mark_Array is Pomarine.Marks.Mark_Array;
 
    type Mark_List is record
       Count : Natural range 0 .. Max_Marks := 0;
       Marks : Mark_Array (1 .. Max_Marks);
+      Past : Pomarine.Marks.History;
    end record;
-   --  Marks (1 .. Count), the earliest made first.
+   --  Marks (1 .. Count), the earliest made first. Past follows the marks
+   --  between views, during this session; it is not kept in the database.
 
    procedure Save_Marks
      (Store : in out Projects.Store; Key : Id; Made : Mark_List)

@@ -105,6 +105,8 @@ package body Items.Windows is
 
    procedure Get_Marks (Item : Window; Into : out Items.Marks.Mark_List) is
    begin
+      Into.Past := (if Item.Paged then Views.History_Of (Item.Pages)
+                    else Pomarine.Widgets.Pictures.History_Of (Item.Picture));
       if Item.Paged then
          Into.Count := Views.Mark_Count (Item.Pages);
          for Index in 1 .. Into.Count loop
@@ -169,8 +171,8 @@ package body Items.Windows is
             Paged (Index).Trace := Each.Trace;
          end;
       end loop;
-      Pomarine.Widgets.Pictures.Set_Marks (Item.Picture, Shown);
-      Views.Set_Marks (Item.Pages, Paged);
+      Pomarine.Widgets.Pictures.Set_Marks (Item.Picture, Shown, Kept.Past);
+      Views.Set_Marks (Item.Pages, Paged, Kept.Past);
       Item.Marks_Saved := Parts.Shown_Marks_Version (Item);
    end Set_Marks;
 

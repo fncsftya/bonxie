@@ -872,11 +872,29 @@ package body Write_Tests is
       Drag (Session, 300.0, Canvas_Picture_Y, 400.0, Canvas_Picture_Y - 30.0);
       Check ("write-marks-more", " 2",
              Natural'Image (Windows.Item_Marks (Session, 1)));
+      --  Undo can cross from the canvas stroke back through the reader's
+      --  stroke; redo restores both, and every change is shared and saved.
+      Viewer.Handle (Session, (Kind => Events.Key_Down, Key => Events.Key_Z, Command => True, others => <>));
+      Check ("write-marks-undo-canvas", " 1", Natural'Image (Windows.Item_Marks (Session, 1)));
+      Viewer.Handle (Session, (Kind => Events.Key_Down, Key => Events.Key_Z, Command => True, others => <>));
+      Check ("write-marks-undo-reader", " 0", Natural'Image (Windows.Item_Marks (Session, 1)));
+      for Index in 1 .. 2 loop
+         Viewer.Handle
+           (Session, (Kind => Events.Key_Down, Key => Events.Key_Z, Command => True, Shift => True, others => <>));
+      end loop;
+      Check ("write-marks-redone", " 2", Natural'Image (Windows.Item_Marks (Session, 1)));
       Proj.Set_Mode (Session, Viewer.Write);
       Check ("write-marks-more-shared", " 2",
              Natural'Image (Source_List.Source_Marks (Session, 1)));
 
-      --  They are kept.
+      --  Undo from the reader also reaches edits made on the canvas.
+      Settle (Session);
+      Click_On (Session, 340.0, Reader_Y);
+      Viewer.Handle (Session, (Kind => Events.Key_Down, Key => Events.Key_Z, Command => True, others => <>));
+      Check ("write-marks-undo-shared", " 1", Natural'Image (Source_List.Source_Marks (Session, 1)));
+      Check ("write-marks-undo-in-canvas", " 1", Natural'Image (Windows.Item_Marks (Session, 1)));
+
+      --  The undone result is kept when reopened.
       declare
          Key : constant Projects.Id := Proj.Current_Project (Session);
       begin
@@ -884,7 +902,7 @@ package body Write_Tests is
          Home.Open_Project (Session, Key);
          Viewer.Project_Screen.Set_Mode (Session, Viewer.Canvas);
          Proj.Set_Mode (Session, Viewer.Write);
-         Check ("write-marks-kept", " 2",
+         Check ("write-marks-kept", " 1",
                 Natural'Image (Source_List.Source_Marks (Session, 1)));
       end;
    end Sharing_Marks;

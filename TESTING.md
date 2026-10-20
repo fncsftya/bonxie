@@ -15,7 +15,8 @@ selected and kept in the database, without a golden, as WebKit's text
 differs between releases), the outline view (`outline-*`: a project opens to the tab it was last left at, Outline at first; sections added, typed in, moved, removed and kept in the database), the writing view (`write-*`: documents on pages,
 dragged into another order and kept, typed on a page and seen on the
 canvas, a source opened and pinned, its highlights shared with the canvas's
-window, including vertical and diagonal strokes kept when reopened; like
+window, including vertical and diagonal strokes, shared undo/redo, and marks
+kept when reopened; like
 `sources-pages`, this needs WebKit), highlighting a picture
 (the tools in the status line, erasing, marks kept, put away by the cursor
 or a click outside), PDFs (`sources-documents`, `write-source-documents`: a link to a

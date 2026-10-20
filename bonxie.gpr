@@ -31,8 +31,8 @@ project Bonxie is
    end Compiler;
 
    package Linker is
-      --  The session keeps its text areas and fixed freehand path storage
-      --  where it is declared: about 69 MB, plus space for calls and temporaries.
+      --  The session keeps its text areas, fixed freehand paths and undo storage
+      --  where it is declared: about 72 MB, plus space for calls and temporaries.
       for Default_Switches ("Ada") use ("-Wl,-stack_size,0x6000000");
    end Linker;
 
