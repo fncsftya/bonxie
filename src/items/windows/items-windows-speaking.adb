@@ -1,7 +1,6 @@
 with Pomarine.Text_Areas;
 with Icon_Set;
 with Items.Windows.Metrics;
-with Items.Windows.Parts;
 
 package body Items.Windows.Speaking is
 
@@ -62,7 +61,7 @@ package body Items.Windows.Speaking is
          (if To in Preparing | Listening then "Stop" else "Dictate"));
       case To is
          when Silent =>
-            Labels.Set_Text (Item.Status, Parts.Status_Text (Item.Word_Count));
+            Labels.Set_Text (Item.Status, "");
          when Preparing =>
             Labels.Set_Text (Item.Status, "Getting ready...");
          when Listening =>

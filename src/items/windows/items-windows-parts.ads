@@ -1,8 +1,6 @@
 --  Small questions and texts about a window, shared by the rest.
 private package Items.Windows.Parts is
 
-   function Status_Text (Number : Natural) return String;
-
    function Day (Taken : Projects.Seconds) return String;
    --  As 13 Oct 2026, in UTC.
 

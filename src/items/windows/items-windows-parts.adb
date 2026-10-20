@@ -11,10 +11,6 @@ package body Items.Windows.Parts is
 
    use type Ada.Calendar.Time;
 
-   function Status_Text (Number : Natural) return String is
-     (Ada.Strings.Fixed.Trim (Number'Image, Ada.Strings.Both)
-      & (if Number = 1 then " word" else " words"));
-
    function Day (Taken : Projects.Seconds) return String is
       Image : constant String :=
         Ada.Calendar.Formatting.Image

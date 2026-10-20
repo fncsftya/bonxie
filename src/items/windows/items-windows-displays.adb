@@ -101,7 +101,7 @@ package body Items.Windows.Displays is
          --  is going on is told while it is.
          if Item.Dictating in Silent | Failed then
             Item.Dictating := Silent;
-            Labels.Set_Text (Item.Status, Parts.Status_Text (Item.Word_Count));
+            Labels.Set_Text (Item.Status, "");
          end if;
       end if;
    end Show_Words;
