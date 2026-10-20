@@ -3,7 +3,7 @@ description = "Local language models on MLX (Apple silicon), by mlx-swift-lm"
 version = "0.1.0-dev"
 
 authors = ["Matt Rawcliffe"]
-licenses = "GPL-3.0-only"
+licenses = "LicenseRef-Proprietary"
 website = ""
 tags = []
 
