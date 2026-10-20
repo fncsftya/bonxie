@@ -126,6 +126,8 @@ package body Items.Windows.Displays is
       Frames.Set_Tag_Visible (Item.Chrome, Of_Source);
       Pomarine.Text_Areas.Set_Single_Line
         (Editors.Area (Item.Body_Text).all, Of_Source);
+      Pomarine.Text_Areas.Set_Radius
+        (Editors.Area (Item.Body_Text).all, (if Of_Source then 0.0 else Pomarine.Themes.Small_Radius));
       if Of_Source then
          Editors.Set_Icon (Item.Body_Text, Icon_Set.Link);
          Editors.Set_Placeholder (Item.Body_Text, "https://");
