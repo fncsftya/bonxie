@@ -3,7 +3,6 @@ description = "Benchmarks for laying out and drawing long documents"
 version = "0.1.0-dev"
 
 authors = ["Matt Rawcliffe"]
-licenses = "LicenseRef-Proprietary"
 website = ""
 tags = []
 

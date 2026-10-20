@@ -2,7 +2,6 @@ name = "harper"
 description = "Tasked Ada bindings to the vendored Harper spelling and grammar checker"
 version = "0.1.0-dev"
 authors = ["Matt Rawcliffe"]
-licenses = "LicenseRef-Proprietary"
 
 [[actions]]
 type = "pre-build"

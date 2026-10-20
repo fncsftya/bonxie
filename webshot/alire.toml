@@ -3,7 +3,6 @@ description = "Pictures of web pages, taken with WebKit (macOS only)"
 version = "0.1.0-dev"
 
 authors = ["Matt Rawcliffe"]
-licenses = "LicenseRef-Proprietary"
 website = ""
 tags = []
 

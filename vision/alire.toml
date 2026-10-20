@@ -3,7 +3,6 @@ description = "Text in pictures, recognized with Apple's Vision (macOS only)"
 version = "0.1.0-dev"
 
 authors = ["Matt Rawcliffe"]
-licenses = "LicenseRef-Proprietary"
 website = ""
 tags = []
 

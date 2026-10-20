@@ -3,7 +3,6 @@ description = "Speech to text: SpeechAnalyzer or Parakeet on Core ML (macOS 26+)
 version = "0.1.0-dev"
 
 authors = ["Matt Rawcliffe"]
-licenses = "LicenseRef-Proprietary"
 website = ""
 tags = []
 
