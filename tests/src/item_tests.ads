@@ -41,10 +41,10 @@ package Item_Tests is
    From_File_Y : constant Float := 283.0;
    --  The buttons of a source yet to say where it comes from.
 
-   Pager_Y    : constant Float := 319.0;
-   Next_X     : constant Float := 366.0;
-   Previous_X : constant Float := 346.5;
-   --  The buttons that turn a source's page, over its picture.
+   Pager_Y    : constant Float := 339.0;
+   Next_X     : constant Float := 244.0;
+   Previous_X : constant Float := 208.0;
+   --  The buttons that turn a source's page, at the left of its status line.
 
    Two_Pages : constant String :=
      "%PDF-1.4" & ASCII.LF

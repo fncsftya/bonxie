@@ -61,17 +61,18 @@ package body Item_Tests is
 
    --  A source's window is 360 x 200, from 180, 162 to 540, 362; its status
    --  line is the 26 above the foot of it, less the shadow.
-   Menu_X   : constant Float := 493.0;
-   Marker_X : constant Float := 357.5;
-   Eraser_X : constant Float := 379.5;
-   Cursor_X : constant Float := 335.5;
-   Status_Y : constant Float := 346.0;
-   Preset_X : constant Float := 452.0;
-   Preset_Y : constant Float := 323.5;
+   Menu_X   : constant Float := 464.0;
+   Marker_X : constant Float := 387.5;
+   Eraser_X : constant Float := 423.0;
+   Cursor_X : constant Float := 351.0;
+   Status_Y : constant Float := 339.0;
+   Preset_X : constant Float := 486.5;
+   Preset_Y : constant Float := 305.5;
    --  A zoom's button in the menu of a source's window: 200%.
-   Slider_X : constant Float := 433.0;
-   Slider_End_X : constant Float := 466.0;
-   --  Along its slider, and near its end.
+   Slider_X : constant Float := 467.0;
+   Slider_Y : constant Float := 246.0;
+   Slider_End_X : constant Float := 516.0;
+   --  Along its slider, in the menu, and near its end.
    Picture_Y : constant Float := 242.0;
    --  In the picture, below the link.
 
@@ -89,7 +90,7 @@ package body Item_Tests is
    Corner_Y   : constant Float := 346.0;
    --  The corner to size it by, in the status line.
    Text_X   : constant Float := 300.0;
-   Text_Y   : constant Float := 254.0;
+   Text_Y   : constant Float := 290.0;
    --  In the text.
 
    --  The bar in the dock, when the item is minimised: from 8, 446, with
@@ -1977,19 +1978,22 @@ package body Item_Tests is
       --  Dragged part of the way, with the knob held: the zoom it is
       --  rounded to is not where the knob is, which it must leave alone
       --  while it is held (this once failed a postcondition).
-      Press (Session, Slider_X, Status_Y);
-      Move_To (Session, Slider_X + 6.3, Status_Y - 16.0, Held => True);
-      Move_To (Session, Slider_X + 12.7, Status_Y - 16.0, Held => True);
-      Release (Session, Slider_X + 12.7, Status_Y);
+      Click_On (Session, Menu_X, Status_Y);
+      Snap (Session, "source-zoom-menu-open");
+      Press (Session, Slider_X, Slider_Y);
+      Move_To (Session, Slider_X + 6.3, Slider_Y - 16.0, Held => True);
+      Move_To (Session, Slider_X + 12.7, Slider_Y - 16.0, Held => True);
+      Release (Session, Slider_X + 12.7, Slider_Y);
       Check
         ("source-zoom-dragged", "TRUE",
          Boolean'Image
            (Windows.Item_Zoom (Session, 1) > 1.0
             and then Windows.Item_Zoom (Session, 1) < 4.0));
-      Click_On (Session, Slider_End_X, Status_Y);
+      Click_On (Session, Slider_End_X, Slider_Y);
       Check
         ("source-zoom-slider", " 4.00000E+00",
          Float'Image (Windows.Item_Zoom (Session, 1)));
+      Click_On (Session, Menu_X, Status_Y);
 
       --  Scrolled with the wheel, over the picture.
       Viewer.Handle

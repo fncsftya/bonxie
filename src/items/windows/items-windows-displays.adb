@@ -72,7 +72,6 @@ package body Items.Windows.Displays is
         Of_Source and then not Parts.Is_Unchosen (Item) and then not Parts.Is_Text_Source (Item);
    begin
       Widgets.Set_Visible (Item.Tools, Pictured);
-      Widgets.Set_Visible (Item.Zoom_Slider, Pictured);
       Widgets.Set_Visible (Item.Zoom_Button, Pictured);
       Widgets.Set_Visible (Item.Zoom_Menu, False);
       Widgets.Set_Visible (Item.Picture, Pictured and then not Item.Paged);
@@ -128,6 +127,9 @@ package body Items.Windows.Displays is
         (Editors.Area (Item.Body_Text).all, Of_Source);
       Pomarine.Text_Areas.Set_Radius
         (Editors.Area (Item.Body_Text).all, (if Of_Source then 0.0 else Pomarine.Themes.Small_Radius));
+      --  A source's link is a band like the toolbar's, without a box.
+      Editors.Set_Paper (Item.Body_Text, (if Of_Source then Pomarine.Themes.Strip else Pomarine.Themes.Page));
+      Editors.Set_Borderless (Item.Body_Text, Of_Source);
       if Of_Source then
          Editors.Set_Icon (Item.Body_Text, Icon_Set.Link);
          Editors.Set_Placeholder (Item.Body_Text, "https://");

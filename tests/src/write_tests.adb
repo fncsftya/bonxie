@@ -43,8 +43,8 @@ package body Write_Tests is
    Reader_Y  : constant Float := 120.0;
    --  In its picture.
 
-   Canvas_Marker_X : constant Float := 357.5;
-   Canvas_Status_Y : constant Float := 346.0;
+   Canvas_Marker_X : constant Float := 387.5;
+   Canvas_Status_Y : constant Float := 339.0;
    --  The highlighter in the status line of the source's window on the
    --  canvas.
    Canvas_Picture_Y : constant Float := 272.0;

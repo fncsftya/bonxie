@@ -1,6 +1,5 @@
 with Items.Sources;
 with Pomarine.Text_Areas;
-with Pomarine.Widgets.Layouts;
 with Items.Windows.Builder;
 with Items.Windows.Displays;
 with Items.Windows.Fetching;
@@ -12,7 +11,6 @@ with Items.Windows.Syncing;
 package body Items.Windows is
 
    package Widgets renames Pomarine.Widgets;
-   package Layouts renames Pomarine.Widgets.Layouts;
    package Buttons renames Pomarine.Widgets.Buttons;
    package Labels renames Pomarine.Widgets.Labels;
    package Frames renames Pomarine.Widgets.Frames;
@@ -257,6 +255,10 @@ package body Items.Windows is
       Views.Set_Zoom (Item.Pages, To);
       Sliders.Set_Value (Item.Zoom_Slider, Items.Sources.To_Slider (To));
       Buttons.Set_Label (Item.Zoom_Button, Items.Sources.Percent (To));
+      for Which in Item.Menu_Buttons'Range loop
+         Buttons.Set_Selected
+           (Item.Menu_Buttons (Which), abs (Metrics.Preset_Zooms (Which) - To) < 0.005);
+      end loop;
    end Set_Zoom;
 
    function Box (Item : Window) return Items.Frame is
@@ -474,30 +476,6 @@ package body Items.Windows is
          Editors.Set_Zoom
            (Item.Body_Text,
             (if Item.Details.Kind = Source then 1.0 else Zoom));
-         --  The tools are in the middle of the status line, which is as
-         --  wide as the window within its outline.
-         declare
-            Across : constant Float :=
-              Frames.Status_Width
-                (Item.Chrome, Float'Rounding (Where.Width * Zoom * Pixels));
-         begin
-            Layouts.Set_Layout
-              (Item.Tools,
-               Position => (Left => Float'Rounding ((Across - Metrics.Tools_Width * Pixels) / 2.0),
-                            others => <>),
-               Unit => Layouts.Device_Pixels);
-            Layouts.Set_Layout
-              (Item.Pager,
-               Position => (Left => Float'Rounding ((Across - Metrics.Pager_Width * Pixels) / 2.0),
-                            Bottom => (Metrics.Status_Height + Metrics.Outline + Metrics.Pager_Lift) * Pixels,
-                            others => <>),
-               Unit => Layouts.Device_Pixels);
-            Layouts.Set_Layout
-              (Item.Speak_Button,
-               Position => (Left => Float'Rounding ((Across - Metrics.Button_Size * Pixels) / 2.0),
-                            others => <>),
-               Unit => Layouts.Device_Pixels);
-         end;
       end if;
    end Place;
 

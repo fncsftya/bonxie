@@ -59,7 +59,7 @@ package body Items.Windows.Speaking is
           then Icon_Set.Stop else Icon_Set.Microphone));
       Buttons.Set_Label
         (Item.Speak_Button,
-         (if To in Preparing | Listening then "Stop" else "Mic"));
+         (if To in Preparing | Listening then "Stop" else "Dictate"));
       case To is
          when Silent =>
             Labels.Set_Text (Item.Status, Parts.Status_Text (Item.Word_Count));

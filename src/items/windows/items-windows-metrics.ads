@@ -24,31 +24,31 @@ private package Items.Windows.Metrics is
 
    Measure       : constant Float := 2000.0;
 
-   Zoom_Row_Height : constant Float := 19.0;
+   Zoom_Row_Height : constant Float := 28.0;
 
-   Zoom_Button_Width : constant Float := 44.0;
+   Zoom_Button_Width : constant Float := 72.0;
 
-   Zoom_Slider_Width : constant Float := 56.0;
+   Zoom_Slider_Width : constant Float := 194.0;
 
    Progress_Height   : constant Float := 3.0;
 
-   Preset_Width  : constant Float := 44.0;
+   Preset_Width  : constant Float := 64.0;
 
-   Speak_Icon_Size : constant Float := 12.0;
+   Speak_Icon_Size : constant Float := 14.0;
 
-   Outline_Button_Width : constant Float := 76.0;
+   Speak_Width   : constant Float := 88.0;
+   --  Of the button to dictate, with its caption.
+
+   Tool_Size     : constant Float := 32.0;
+   --  Of the buttons of the status line that are a symbol: the tools, the pages.
+
+   Outline_Button_Width : constant Float := 96.0;
    --  Of the button of a note's link to the outline.
 
    Level_Steps   : constant Float := 20.0;
    --  How many sizes of the bar that shows how loud the speech is.
 
-   Tools_Width   : constant Float := 3.0 * Button_Size + 2.0 * Button_Gap;
-
-   Pager_Width   : constant Float := 2.0 * Button_Size + Button_Gap;
-
-   Pager_Lift    : constant Float := 6.0;
-
-   Wizard_Gap    : constant Float := 10.0;
+      Wizard_Gap    : constant Float := 10.0;
 
    Wizard_Button_Width  : constant Float := 150.0;
 
@@ -56,10 +56,10 @@ private package Items.Windows.Metrics is
    --  The page buttons' width, and how far they are above the status line.
 
    Preset_Zooms : constant array (Preset_Index) of Float :=
-     [0.5, 0.75, 1.0, 1.5, 2.0, 3.0];
-   --  The menu's, in two rows of three.
+     [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
+   --  The menu's, in two rows of three, under its slider.
 
-   Url_Height    : constant Float := 30.0;
+   Url_Height    : constant Float := 38.0;
 
    Fetch_Width   : constant Float := 40.0;
 

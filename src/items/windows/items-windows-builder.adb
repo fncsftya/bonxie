@@ -44,14 +44,14 @@ package body Items.Windows.Builder is
       Frames.Add_Content (Item.Chrome, Item.Wizard);
       Widgets.Add (Item.Wizard, Item.Link_Button);
       Widgets.Add (Item.Wizard, Item.File_Button);
+      Frames.Add_Status_Item (Item.Chrome, Item.Pager);
+      Frames.Add_Status_Item (Item.Chrome, Item.Speak_Button);
       Frames.Add_Status_Item (Item.Chrome, Item.Status);
       Frames.Add_Status_Item (Item.Chrome, Item.Tools);
       Widgets.Add (Item.Tools, Item.Cursor_Button);
       Widgets.Add (Item.Tools, Item.Marker_Button);
       Widgets.Add (Item.Tools, Item.Eraser_Button);
-      Frames.Add_Status_Item (Item.Chrome, Item.Speak_Button);
       Frames.Add_Status_Item (Item.Chrome, Item.Outline_Button);
-      Frames.Add_Status_Item (Item.Chrome, Item.Zoom_Slider);
       Frames.Add_Status_Item (Item.Chrome, Item.Zoom_Button);
       Frames.Add_Over_Status (Item.Chrome, Item.Progress);
 
@@ -95,10 +95,10 @@ package body Items.Windows.Builder is
 
       Layouts.Set_Layout (Item.Status, Grow => 1.0, Width => 0.0, Height => Metrics.Label_Height);
       Frames.Add_Over_Content (Item.Chrome, Item.Zoom_Menu);
-      Frames.Add_Over_Content (Item.Chrome, Item.Pager);
       Widgets.Add (Item.Pager, Item.Prev_Button);
       Widgets.Add (Item.Pager, Item.Next_Button);
       Frames.Add_Over_Content (Item.Chrome, Item.Fetch_Button);
+      Widgets.Add (Item.Zoom_Menu, Item.Zoom_Slider);
       for Row in Item.Menu_Rows'Range loop
          Widgets.Add (Item.Zoom_Menu, Item.Menu_Rows (Row));
       end loop;
@@ -112,11 +112,8 @@ package body Items.Windows.Builder is
         (Item.Progress, Place => Layouts.Absolute, Position => (Left | Right | Bottom => 0.0, others => <>),
          Height => Metrics.Progress_Height);
 
-      --  The tools, in the middle of the status line (see Place).
-      Layouts.Set_Layout
-        (Item.Tools, Place => Layouts.Absolute,
-         Position => (Top => (Metrics.Status_Height - Metrics.Zoom_Row_Height) / 2.0, others => <>),
-         Flow => Layouts.Row, Gap => Metrics.Button_Gap);
+      --  The tools, in the status line.
+      Layouts.Set_Layout (Item.Tools, Flow => Layouts.Row, Gap => Metrics.Button_Gap);
       Buttons.Set_Label (Item.Cursor_Button, "Ptr");
       Buttons.Set_Icon (Item.Cursor_Button, Icon_Set.Cursor);
       Buttons.Set_Label (Item.Marker_Button, "Mark");
@@ -124,24 +121,23 @@ package body Items.Windows.Builder is
       Buttons.Set_Label (Item.Eraser_Button, "Rub");
       Buttons.Set_Icon (Item.Eraser_Button, Icon_Set.Eraser);
       Buttons.Set_Selected (Item.Cursor_Button, True);
-      Size (Item.Eraser_Button, Metrics.Button_Size, Metrics.Zoom_Row_Height);
-      Size (Item.Cursor_Button, Metrics.Button_Size, Metrics.Zoom_Row_Height);
-      Size (Item.Marker_Button, Metrics.Button_Size, Metrics.Zoom_Row_Height);
+      Size (Item.Eraser_Button, Metrics.Tool_Size, Metrics.Zoom_Row_Height);
+      Size (Item.Cursor_Button, Metrics.Tool_Size, Metrics.Zoom_Row_Height);
+      Size (Item.Marker_Button, Metrics.Tool_Size, Metrics.Zoom_Row_Height);
 
-      --  The zoom bar: a slider, and the button for the menu.
+      --  The zoom: the button for the menu, which has the slider.
       Size (Item.Zoom_Slider, Metrics.Zoom_Slider_Width, Metrics.Zoom_Row_Height);
       Buttons.Set_Label (Item.Zoom_Button, "100%");
+      Buttons.Set_Captioned (Item.Zoom_Button, True);
+      Buttons.Set_Dropdown (Item.Zoom_Button, True);
       Size (Item.Zoom_Button, Metrics.Zoom_Button_Width, Metrics.Zoom_Row_Height);
 
       --  The button to dictate, of a note.
-      Buttons.Set_Label (Item.Speak_Button, "Mic");
+      Buttons.Set_Label (Item.Speak_Button, "Dictate");
       Buttons.Set_Icon (Item.Speak_Button, Icon_Set.Microphone);
-      Size (Item.Speak_Button, Metrics.Button_Size, Metrics.Zoom_Row_Height);
+      Buttons.Set_Captioned (Item.Speak_Button, True);
+      Size (Item.Speak_Button, Metrics.Speak_Width, Metrics.Zoom_Row_Height);
       Buttons.Set_Icon_Size (Item.Speak_Button, Metrics.Speak_Icon_Size);
-      --  In the middle of the status line, as the tools are (see Place).
-      Layouts.Set_Layout
-        (Item.Speak_Button, Place => Layouts.Absolute,
-         Position => (Top => (Metrics.Status_Height - Metrics.Zoom_Row_Height) / 2.0, others => <>));
 
       --  The button of a note's link to the outline, at the right of its status line.
       Buttons.Set_Label (Item.Outline_Button, "Section");
@@ -149,17 +145,14 @@ package body Items.Windows.Builder is
       Buttons.Set_Dropdown (Item.Outline_Button, True);
       Size (Item.Outline_Button, Metrics.Outline_Button_Width, Metrics.Zoom_Row_Height);
 
-      --  The page buttons: over the picture, at the foot, in the middle (see Place).
-      Layouts.Set_Layout
-        (Item.Pager, Place => Layouts.Absolute,
-         Position => (Bottom => (Metrics.Status_Height + Edge + Metrics.Pager_Lift) * Pixels, others => <>),
-         Flow => Layouts.Row, Gap => Metrics.Button_Gap, Unit => Layouts.Device_Pixels);
+      --  The page buttons: at the left of the status line.
+      Layouts.Set_Layout (Item.Pager, Flow => Layouts.Row, Gap => Metrics.Button_Gap);
       Buttons.Set_Label (Item.Prev_Button, "Previous page");
       Buttons.Set_Icon (Item.Prev_Button, Icon_Set.Back);
       Buttons.Set_Label (Item.Next_Button, "Next page");
       Buttons.Set_Icon (Item.Next_Button, Icon_Set.Forward);
-      Size (Item.Prev_Button, Metrics.Button_Size, Metrics.Zoom_Row_Height);
-      Size (Item.Next_Button, Metrics.Button_Size, Metrics.Zoom_Row_Height);
+      Size (Item.Prev_Button, Metrics.Tool_Size, Metrics.Zoom_Row_Height);
+      Size (Item.Next_Button, Metrics.Tool_Size, Metrics.Zoom_Row_Height);
 
       --  The menu: over the picture, at the right, with the window's
       --  outline between its buttons.
@@ -195,7 +188,6 @@ package body Items.Windows.Builder is
 
       Widgets.Set_Visible (Item.Fetch_Button, False);
       Widgets.Set_Visible (Item.Tools, False);
-      Widgets.Set_Visible (Item.Zoom_Slider, False);
       Widgets.Set_Visible (Item.Zoom_Button, False);
       Widgets.Set_Visible (Item.Zoom_Menu, False);
       Widgets.Set_Visible (Item.Pager, False);
