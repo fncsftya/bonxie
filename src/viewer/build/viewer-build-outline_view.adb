@@ -67,7 +67,6 @@ package body Viewer.Build.Outline_View is
       Set_Layout
         (View.Desc_Label, Height => Heading_Height, Shrink => 0.0,
          Margin => (Top => Tool_Gap, others => <>));
-      Panels.Set_Fill (View.Desc_Sheet, Paper);
       --  The editor draws the outline.
       Set_Layout
         (View.Desc_Sheet, Flow => Column, Height => Outline_Description_Height,
@@ -131,7 +130,6 @@ package body Viewer.Build.Outline_View is
             Buttons.Set_Captioned (Block.Notes, True);
             Buttons.Set_Focusable (Block.Notes, True);
             Set_Layout (Block.Notes, Width => Notes_Width, Height => Outline_Button, Shrink => 0.0);
-            Panels.Set_Fill (Block.Notes_Sheet, Paper);
             Set_Layout
               (Block.Notes_Sheet, Flow => Column, Height => Outline_Notes_Height, Shrink => 0.0,
                Margin => (Bottom => Tool_Gap, others => <>));

@@ -56,7 +56,7 @@ package body Viewer.Menus is
    end Validate;
 
    procedure Build (Item : in out Session) is
-      File, Edit, Go : Menu_Bar.Menu;
+      File, Edit, View : Menu_Bar.Menu;
       Bar : Menu_Bar.Menu_Bar renames Item.Host.Menus;
    begin
       Menu_Bar.Install (Bar);
@@ -79,13 +79,13 @@ package body Viewer.Menus is
       Menu_Bar.Add_Item (Bar, Edit, "Paste", Widgets.Edit_Paste, Key => "v");
       Menu_Bar.Add_Item (Bar, Edit, "Select All", Widgets.Edit_Select_All, Key => "a");
 
-      Menu_Bar.Add_Menu (Bar, "Go", Go);
-      Menu_Bar.Add_Item (Bar, Go, "Outline", Tag_Of (Show_Outline), Key => "1");
-      Menu_Bar.Add_Item (Bar, Go, "Canvas", Tag_Of (Show_Canvas), Key => "2");
-      Menu_Bar.Add_Item (Bar, Go, "Writing", Tag_Of (Show_Writing), Key => "3");
-      Menu_Bar.Add_Item (Bar, Go, "Publish", Tag_Of (Show_Publish), Key => "4");
-      Menu_Bar.Add_Separator (Bar, Go);
-      Menu_Bar.Add_Item (Bar, Go, "Items", Tag_Of (Open_List), Key => "l");
+      Menu_Bar.Add_Menu (Bar, "View", View);
+      Menu_Bar.Add_Item (Bar, View, "Outline", Tag_Of (Show_Outline), Key => "1");
+      Menu_Bar.Add_Item (Bar, View, "Canvas", Tag_Of (Show_Canvas), Key => "2");
+      Menu_Bar.Add_Item (Bar, View, "Writing", Tag_Of (Show_Writing), Key => "3");
+      Menu_Bar.Add_Item (Bar, View, "Publish", Tag_Of (Show_Publish), Key => "4");
+      Menu_Bar.Add_Separator (Bar, View);
+      Menu_Bar.Add_Item (Bar, View, "Items", Tag_Of (Open_List));
 
       Current := Item'Unchecked_Access;
       Widgets.Set_Validator (Item.Root.Widgets, Validate'Access);
