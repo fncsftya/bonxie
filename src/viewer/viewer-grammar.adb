@@ -147,6 +147,7 @@ package body Viewer.Grammar is
       Panels.Set_Fill (State.Popout, Pomarine.Themes.Background);
       Panels.Set_Border (State.Popout, Pomarine.Themes.Border);
       Panels.Set_Shadow (State.Popout, Pomarine.Themes.Shadow);
+      Panels.Set_Radius (State.Popout, Pomarine.Themes.Large_Radius);
       Set_Layout (State.Popout, Place => Absolute, Width => 360.0, Height => 520.0,
                   Flow => Column, Outlined => True, Shadowed => True, Padding => (others => 8.0));
       Widgets.Add (State.Popout, State.Heading, State.Scroll);

@@ -51,6 +51,7 @@ package body Viewer.Build.Dialogs is
    procedure Build_Border (Border : in out Panels.Panel) is
    begin
       Panels.Set_Fill (Border, Themes.Border);
+      Panels.Set_Radius (Border, Themes.Large_Radius, Framed => True);
       Set_Layout (Border, Flow => Column, Outlined => True);
    end Build_Border;
 

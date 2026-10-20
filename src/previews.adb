@@ -116,7 +116,7 @@ package body Previews is
                      (Filled => True, Fill => Pomarine.Themes.Paper,
                       Bordered => True, Border => Colors (Pomarine.Themes.Border),
                       Shadowed => True, Shadow => Colors (Pomarine.Themes.Shadow),
-                      Dashed => False),
+                      Dashed => False, others => <>),
                      L, T, W + Pomarine.Boxes.Offset (Pixels / 2.0),
                      H + Pomarine.Boxes.Offset (Pixels / 2.0), Pixels / 2.0);
                   if Inner > 0.0 then

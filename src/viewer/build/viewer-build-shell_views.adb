@@ -116,6 +116,7 @@ package body Viewer.Build.Shell_Views is
          Panels.Set_Fill (Card.Panel, Themes.Tint);
          Panels.Set_Border (Card.Panel, Themes.Border);
          Panels.Set_Shadow (Card.Panel, Themes.Shadow);
+         Panels.Set_Radius (Card.Panel, Themes.Large_Radius, Framed => True);
          Set_Layout
            (Card.Panel, Flow => Column, Width => Card_Width, Height => Card_Height, Shrink => 0.0,
             Outlined => True, Shadowed => True);
@@ -146,6 +147,7 @@ package body Viewer.Build.Shell_Views is
 
       --  The outline of a card, to make a project.
       Grips.Set_Border (Front.New_Card, Themes.Border, Dashed => True);
+      Grips.Set_Radius (Front.New_Card, Themes.Large_Radius);
       Grips.Set_Wanted_Cursor (Front.New_Card, SDL3.Cursors.Pointer);
       Set_Layout
         (Front.New_Card, Width => Card_Width - Themes.Shadow_Offset,

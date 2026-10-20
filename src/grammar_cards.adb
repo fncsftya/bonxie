@@ -155,7 +155,8 @@ package body Grammar_Cards is
       end Text_Block;
    begin
       Pomarine.Boxes.Draw_Flat
-        (Target, Colors (Themes.Page), Colors (Themes.Border), Left, Top, Width_Of (Item), Height_Of (Item), Pixels);
+        (Target, Colors (Themes.Page), Colors (Themes.Border), Left, Top, Width_Of (Item), Height_Of (Item), Pixels,
+         Radius => Themes.Large_Radius);
       SDL3.Painters.Fill_Rect (Target, Item.Ink, Left + 12.0 * Pixels, Top + 16.0 * Pixels,
                               8.0 * Pixels, 8.0 * Pixels);
       if Text_Lines (Item) = null then
@@ -176,7 +177,8 @@ package body Grammar_Cards is
       end if;
       if Has_Focus (Item) then
          Pomarine.Boxes.Outline (Target, Colors (Themes.Focus), Left, Top,
-                                 Width_Of (Item), Header * Pixels, Pixels);
+                                 Width_Of (Item), Header * Pixels, Pixels, Density => Pixels,
+                                 Radius => Themes.Large_Radius, Round => Pomarine.Boxes.Top_Corners);
       end if;
    end Draw;
 
