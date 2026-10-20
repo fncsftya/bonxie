@@ -340,7 +340,7 @@ procedure Golden is
         ("tools-item-clicked", "PROJECT",
          Viewer.Screens'Image (Viewer.Screen (Session)));
       Goldens.Check_Text
-        ("tools-item-cursor", "DEFAULT",
+        ("tools-item-cursor", "POINTER",
          SDL3.Cursors.Kind'Image (Viewer.Cursor (Session)));
    end Tools_Item_Click;
 
