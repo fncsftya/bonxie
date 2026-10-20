@@ -407,7 +407,7 @@ package body Viewer.Build.Write_View is
             Panels.Set_Shadow (Each.Sheet, Themes.Shadow);
             Set_Layout
               (Each.Sheet, Flow => Column, Shrink => 0.0, Shadowed => True,
-               Padding => (Bottom => Page_Top - Page_Text_Inset, others => Page_Border));
+               Padding => (others => Page_Border));
             Editors.Set_Shared
               (Each.Text, Item.Host.Doc_Resources'Unchecked_Access);
             Editors.Configure

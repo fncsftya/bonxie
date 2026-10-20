@@ -147,8 +147,6 @@ private package Viewer.Style is
    Page_Border     : constant Float := 1.0;
    --  The outline of a page, which its text area leaves.
    --  The padding of a text area.
-   Page_Top        : constant Float := 28.0;
-   --  Above the text, in the page.
    Pane_Default    : constant Float := 420.0;
    Pane_Share      : constant Float := 0.4;
    Pane_Least      : constant Float := 260.0;
