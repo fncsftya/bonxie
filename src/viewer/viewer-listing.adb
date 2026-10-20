@@ -38,10 +38,11 @@ package body Viewer.Listing is
    end Describe;
 
    procedure Refresh (Item : in out Session) is
-      Slots : Canvas_Items.Slot_List (1 .. Items.Capacity);
+      Slots : Canvas_Items.Slot_List;
       Found : Natural;
    begin
-      Canvas_Items.Order (Item, Slots, Found);
+      Canvas_Items.Order (Item, Slots);
+      Found := Slots.Count;
       for Row in 1 .. Found loop
          Item.Item_List.Row_Slots (Row) := Slots (Row);
       end loop;

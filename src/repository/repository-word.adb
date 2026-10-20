@@ -1,3 +1,4 @@
+with Pomarine.Words;
 with Ada_Sqlite3;
 with Repository.Database; use Repository.Database;
 with Repository.Item;
@@ -75,21 +76,15 @@ package body Repository.Word is
         Ada_Sqlite3.Prepare
           (DB (Store).all,
            "SELECT line, word, x, y, w, h FROM item_words "
-           & "WHERE item_id = :id ORDER BY seq LIMIT :limit");
+           & "WHERE item_id = :id ORDER BY seq");
    begin
-      Into.Count := 0;
-      Into.Length := 0;
-      Into.Truncated := False;
+      Pomarine.Words.Clear (Into);
       Ada_Sqlite3.Bind_Int64 (Query, ":id", Long_Integer (Key));
-      Ada_Sqlite3.Bind_Int (Query, ":limit", Vision.Max_Words);
       while Ada_Sqlite3.Step (Query) = Ada_Sqlite3.ROW loop
          declare
             Text : constant String := Ada_Sqlite3.Column_Text (Query, 1);
          begin
-            if Into.Length + Text'Length > Vision.Text_Capacity then
-               Into.Truncated := True;
-               exit;
-            end if;
+            Pomarine.Words.Reserve (Into, Into.Count + 1, Into.Length + Text'Length);
             Into.Count := Into.Count + 1;
             Into.Text (Into.Length + 1 .. Into.Length + Text'Length) := Text;
             Into.Words (Into.Count) :=

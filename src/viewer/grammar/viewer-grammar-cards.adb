@@ -56,7 +56,7 @@ package body Viewer.Grammar.Cards is
          Widgets.Set_Visible (Action, False);
       end loop;
       State.Bindings := [others => 0];
-      for Index in State.Rows'Range loop
+      for Index in 1 .. State.Rows.Count loop
          declare
             Row : Grammar_Row renames State.Rows (Index);
          begin
@@ -170,7 +170,7 @@ package body Viewer.Grammar.Cards is
    procedure Apply_Fix (Item : in out Session; Index, Number : Positive; Inline : Boolean) is
       State : Grammar_State renames Item.Grammar_Checks;
    begin
-      if Index not in State.Rows'Range or else not Basics.Valid (Item, State.Rows (Index)) then
+      if Index not in 1 .. State.Rows.Count or else not Basics.Valid (Item, State.Rows (Index)) then
          return;
       end if;
       declare

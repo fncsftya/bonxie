@@ -1,7 +1,3 @@
-with Items;
-with Items.Directories;
-with Projects;
-
 --  The documents of the writing view, and the directories they are in: for
 --  tests.
 package Viewer.Documents is
@@ -60,10 +56,7 @@ package Viewer.Documents is
 
    procedure Add_Directory
      (Item : in out Session; Name : String := "Untitled folder")
-     with Pre => Is_Open (Item) and then Screen (Item) = Project
-                 and then Directory_Count (Item)
-                          < Items.Directories.Max_Directories
-                 and then Name'Length <= Projects.Title_Capacity;
+     with Pre => Is_Open (Item) and then Screen (Item) = Project;
    --  Make a directory, as the button in the sidebar does, and begin to
    --  rename it.
 

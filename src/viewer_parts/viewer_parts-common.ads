@@ -2,8 +2,8 @@ with SDL3.Windows.Renderers;
 with Projects;
 with SDL3.Cursors;
 with Ada.Strings.Unbounded;
+with Growing;
 with Items;
-with Projects.Sections;
 with SDL3.Windows;
 with Scripts;
 with Typeset.Views;
@@ -19,9 +19,12 @@ with Pomarine.Widgets.Panels;
 --  What the other parts of a viewer's session share, and the small parts of it.
 package Viewer_Parts.Common is
 
-   type Slot_Array is array (Items.Slot) of Items.Slot;
+   package Slot_Lists is new Growing (Items.Slot);
+   subtype Slot_Array is Slot_Lists.List;
+   --  Slots (of windows), in some order; sized to the slots there are.
 
-   type Dir_Array is array (Items.Slot) of Natural;
+   package Dir_Lists is new Growing (Natural);
+   subtype Dir_Array is Dir_Lists.List;
 
    type Sync_State is record
       Own, Peer : Natural := 0;
@@ -29,9 +32,11 @@ package Viewer_Parts.Common is
    --  Of a reader's highlights: the version of its picture's, and of its
    --  window's on the canvas, when they were last made the same.
 
-   type Sync_Array is array (Items.Slot) of Sync_State;
+   package Sync_Lists is new Growing (Sync_State);
+   subtype Sync_Array is Sync_Lists.List;
 
-   type Placed_Array is array (Items.Slot) of Boolean;
+   package Placed_Lists is new Growing (Boolean);
+   subtype Placed_Array is Placed_Lists.List;
 
    type Root_Parts is limited record
       Widgets      : Pomarine.Widgets.Tree;
@@ -61,8 +66,6 @@ package Viewer_Parts.Common is
    end record;
    --  The text, the window and what draws to it: declared in the order they
    --  are destroyed in, the last first.
-
-   Section_Capacity : constant := Projects.Sections.Max_Sections;
 
    type Opened_State is limited record
       Current      : Projects.Id := 0;

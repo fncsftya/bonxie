@@ -47,7 +47,7 @@ package body Viewer.Writing is
    procedure Enter (Item : in out Session) is
    begin
       Order.Build_Order (Item);
-      for Which in Items.Slot loop
+      for Which in 1 .. Item.Windows.Count loop
          if Support.Is_Source (Item, Which) then
             Reader_Windows.Make_Reader (Item, Which);
          end if;
@@ -114,7 +114,7 @@ package body Viewer.Writing is
    begin
       Grammar.Reset (Item);
       Reader_Windows.Unpin (Item, Reopen => False);
-      for Which in Items.Slot loop
+      for Which in 1 .. Item.Windows.Count loop
          if Readers.Is_Assigned (Item.Reading.Readers (Which)) then
             Readers.Release (Item.Reading.Readers (Which));
          end if;
@@ -279,28 +279,38 @@ package body Viewer.Writing is
       Hear (Item.Naming.Dir_Field, Blur, Panes.Directory_Field_Ended'Access);
       Hear (Item.Naming.Source_Field, Submit, Panes.Source_Field_Ended'Access);
       Hear (Item.Naming.Source_Field, Blur, Panes.Source_Field_Ended'Access);
-      for Row in Item.Docs.Doc_Rows'Range loop
-         declare
-            Box : Grips.Grip renames Item.Docs.Doc_Rows (Row).Row;
-         begin
-            Hear (Box, Drag, Row_Drags.Row_Dragged'Access, Row);
-            Hear (Box, Release, Row_Drags.Row_Released'Access);
-            Hear (Box, Click, Panes.Row_Clicked'Access);
-            Hear (Box, Double_Click, Panes.Row_Double_Clicked'Access);
-         end;
-      end loop;
       Hear (Item.Page_View.Pane_Edge, Drag, Panes.Pane_Dragged'Access);
       Hear (Item.Page_View.Sidebar_Edge, Drag, Panes.Sidebar_Dragged'Access);
       Hear (Item.Page_View.Sidebar_Edge, Release, Panes.Sidebar_Released'Access);
       Hear (Item.Page_View.Sources_Edge, Drag, Panes.Sources_Edge_Dragged'Access);
-      for Rank in Items.Slot loop
-         Hear (Item.Docs.Pages (Rank).Heading_Area, Double_Click, Panes.Page_Title_Double_Clicked'Access, Rank);
-         Hear (Item.Docs.Pages (Rank).Title_Field, Submit, Panes.Page_Title_Ended'Access, Rank);
-         Hear (Item.Docs.Pages (Rank).Title_Field, Blur, Panes.Page_Title_Ended'Access, Rank);
-         Reader_Events.On (Item.Reading.Readers (Rank), Rank, Item'Unchecked_Access, Panes.Reader_Asked'Access);
-      end loop;
       Reader_Events.On (Item.Reading.Pane_Reader, 0, Item'Unchecked_Access, Panes.Reader_Asked'Access);
    end Listen;
+
+   procedure Listen_Row (Item : in out Session; Row : Positive) is
+      use all type Widgets.Event_Kind;
+      Box : Grips.Grip renames Item.Docs.Doc_Rows (Row).Row;
+   begin
+      Widgets.Set_Tag (Box, Widgets.No_Tag, Row);
+      Hooks.On (Box, Drag, Item'Unchecked_Access, Row_Drags.Row_Dragged'Access);
+      Hooks.On (Box, Release, Item'Unchecked_Access, Row_Drags.Row_Released'Access);
+      Hooks.On (Box, Click, Item'Unchecked_Access, Panes.Row_Clicked'Access);
+      Hooks.On (Box, Double_Click, Item'Unchecked_Access, Panes.Row_Double_Clicked'Access);
+   end Listen_Row;
+
+   procedure Listen_Slot (Item : in out Session; Rank : Items.Slot) is
+      use all type Widgets.Event_Kind;
+
+      procedure Hear (Part : in out Widgets.Widget'Class; Kind : Widgets.Event_Kind; Do_This : Hooks.Handler) is
+      begin
+         Widgets.Set_Tag (Part, Widgets.No_Tag, Rank);
+         Hooks.On (Part, Kind, Item'Unchecked_Access, Do_This);
+      end Hear;
+   begin
+      Hear (Item.Docs.Pages (Rank).Heading_Area, Double_Click, Panes.Page_Title_Double_Clicked'Access);
+      Hear (Item.Docs.Pages (Rank).Title_Field, Submit, Panes.Page_Title_Ended'Access);
+      Hear (Item.Docs.Pages (Rank).Title_Field, Blur, Panes.Page_Title_Ended'Access);
+      Reader_Events.On (Item.Reading.Readers (Rank), Rank, Item'Unchecked_Access, Panes.Reader_Asked'Access);
+   end Listen_Slot;
 
    procedure Add_Page_Clicked
      (Item   : in out Session;
@@ -357,9 +367,7 @@ package body Viewer.Writing is
    is
       pragma Unreferenced (Source, Event);
    begin
-      if Item.Docs.Dirs.Count < Items.Directories.Max_Directories then
-         Rename.New_Directory (Item, Untitled_Directory);
-      end if;
+      Rename.New_Directory (Item, Untitled_Directory);
    end Add_Folder_Clicked;
 
    procedure Source_Chosen
@@ -524,7 +532,7 @@ package body Viewer.Writing is
             Readers.Update (Item.Reading.Pane_Reader);
          end if;
       end if;
-      for Which in Items.Slot loop
+      for Which in 1 .. Item.Windows.Count loop
          if Support.Is_Note (Item, Which) then
             declare
                Rank : constant Natural := Support.Rank_Of (Item, Which);

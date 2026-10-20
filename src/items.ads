@@ -1,10 +1,11 @@
-with Ada.Strings.Bounded;
+with Growing;
+with Long_Texts;
 with Projects;
 
 --  The items of a project's canvas, kept in the same database as the
 --  projects: a window on the canvas with a title and some text, where it
 --  is and how big, and whether it is shown, minimised to a bar, or closed.
---  A project has at most Capacity of them. They go with their project.
+--  A project has as many as are made. They go with their project.
 --
 --  This is what an item is; the children are what is done with it. See
 --  Items.Schema (the tables), Items.Records (the items themselves),
@@ -14,10 +15,8 @@ with Projects;
 --  writing view's tree). The SQL they are kept by is in the Repository.
 package Items is
 
-   Capacity : constant := 16;
-   --  Of one project.
-
-   subtype Slot is Positive range 1 .. Capacity;
+   subtype Slot is Positive;
+   --  Which of a project's items, from 1: the earliest made first.
 
    type Id is new Long_Integer;
 
@@ -29,7 +28,7 @@ package Items is
    --  Open: a window on the canvas. Minimized: only its title, in a bar
    --  above the tools. Closed: not shown, but kept in the list of items.
 
-   package Extensions is new Ada.Strings.Bounded.Generic_Bounded_Length (8);
+   package Extensions renames Long_Texts;
    --  The ending of a file's name, without its dot, as "pdf".
 
    type Origins is (Unchosen, Remote, Local);
@@ -64,8 +63,8 @@ package Items is
 
    type Info is record
       Key   : Id := 0;
-      Title : Projects.Titles.Bounded_String :=
-        Projects.Titles.Null_Bounded_String;
+      Title : Projects.Titles.Text :=
+        Projects.Titles.Null_Text;
       Where : Frame;
       State : States := Open;
       Kind  : Kinds := Note;
@@ -88,26 +87,18 @@ package Items is
       Origin : Origins := Remote;
       Page : Natural := 0;
       Page_Count : Natural := 0;
-      Document : Extensions.Bounded_String := Extensions.Null_Bounded_String;
+      Document : Extensions.Text := Extensions.Null_Text;
       --  Of a source that is a PDF or e-book, not a web page: its file's
       --  ending, and which of its Page_Count pages the picture is of
       --  (from 1). Page_Count is 0 for a web page, and Page too.
    end record;
 
-   type Info_Array is array (Positive range <>) of Info;
+   package Info_Lists is new Growing (Info);
+   subtype Info_List is Info_Lists.List;
+   --  The earliest made first.
 
-   type Info_List is record
-      Count : Natural range 0 .. Capacity := 0;
-      Items : Info_Array (1 .. Capacity);
-   end record;
-   --  Items (1 .. Count), the earliest made first.
-
-   type Id_Array is array (Positive range <>) of Id;
-
-   type Id_List is record
-      Count : Natural range 0 .. Capacity := 0;
-      Keys  : Id_Array (1 .. Capacity) := [others => 0];
-   end record;
-   --  Keys (1 .. Count).
+   package Id_Lists is new Growing (Id);
+   subtype Id_List is Id_Lists.List;
+   --  Keys, in an order given.
 
 end Items;

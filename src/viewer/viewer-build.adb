@@ -9,7 +9,11 @@ with Icon_Set;
 with Pomarine.Line_Texts;
 with Pomarine.Widgets;
 with Pomarine.Widgets.Layouts;
+with Viewer.Canvas_Items;
 with Viewer.Find_Sources;
+with Viewer.Links;
+with Viewer.Section_Links;
+with Viewer.Writing;
 with Viewer.Outlines;
 with Viewer.Responses;
 with Viewer.Recent;
@@ -101,14 +105,92 @@ package body Viewer.Build is
       Stop (Item.Item_List.List_Close);
       Stop (Item.Page_View.Docs_Add);
       Stop (Item.Page_View.Docs_Folder);
-      for Each of Item.Docs.Pages loop
-         Stop (Each.Sources_Button);
-         Stop (Each.Mic_Button);
-      end loop;
-      for Each of Item.Reading.Source_Rows loop
-         Stop (Each.Row);
-      end loop;
    end Make_Tab_Stops;
+
+   procedure Make_Slot (Item : in out Session; Which : Items.Slot) is
+      Slots : constant Natural := Which;
+   begin
+      Item.Windows.Grow (Slots);
+      Item.Docs.Pages.Grow (Slots);
+      Item.Reading.Readers.Grow (Slots);
+      Item.Reading.Source_Rows.Grow (Slots);
+      Item.Linking.Pins.Grow (Slots);
+      Item.Linking.Pin_Left.Resize (Slots, [others => -1.0E9]);
+      Item.Linking.Pin_Top.Resize (Slots, [others => -1.0E9]);
+      Item.Docs.Doc_Dir.Resize (Slots, 0);
+      Item.Reading.Reader_Sync.Resize (Slots, (others => <>));
+      Item.Reading.Reader_Placed.Resize (Slots, False);
+      Item.Reading.Write_Order.Resize (Slots, 1);
+      Item.Reading.Source_Order.Resize (Slots, 1);
+      Item.Page_View.Menu_Slots.Resize (Slots, 1);
+      Item.Item_List.Row_Slots.Resize (Slots, 1);
+      Item.Grammar_Checks.Documents.Resize (Slots, (others => <>));
+      Shell_Views.Make_Window (Item, Which);
+      Canvas_Items.Listen (Item, Which);
+      Links.Make_Pins (Item, Which);
+      Write_View.Make_Page (Item, Which);
+      Write_View.Make_Source_Row (Item, Which);
+      Write_View.Make_Reader (Item, Which);
+      Buttons.Set_Focusable (Item.Docs.Pages (Which).Sources_Button, True);
+      Buttons.Set_Focusable (Item.Docs.Pages (Which).Mic_Button, True);
+      Grips.Set_Focusable (Item.Reading.Source_Rows (Which).Row, True);
+      Responses.Listen_Slot (Item, Which);
+      Writing.Listen_Slot (Item, Which);
+      Section_Links.Listen_Page (Item, Which);
+   end Make_Slot;
+   --  The widgets of one more item.
+
+   procedure Make_Section (Item : in out Session; Index : Positive) is
+   begin
+      Item.Outline_View.Blocks.Grow (Index);
+      Item.Section_View.Heads.Grow (Index);
+      Item.Section_View.Notes.Grow (Index);
+      Item.Section_View.Empties.Grow (Index);
+      Item.Section_Menu.Rows.Resize (Index + 1, 0);
+      Outline_View.Make_Block (Item, Index);
+      Outlines.Listen_Block (Item, Index);
+      Write_View.Make_Section (Item, Index);
+      Responses.Listen_Section (Item, Index);
+      --  One more mark than there are sections: before the first, and after each.
+      Item.Section_View.Gaps.Grow (Index + 1);
+      Write_View.Make_Gap (Item, Index);
+   end Make_Section;
+   --  The widgets of one more section.
+
+   procedure Reserve_Items (Item : in out Session; Count : Natural) is
+   begin
+      for Which in Item.Windows.Count + 1 .. Count loop
+         Make_Slot (Item, Which);
+      end loop;
+      Reserve_Rows (Item);
+   end Reserve_Items;
+
+   procedure Reserve_Sections (Item : in out Session; Count : Natural) is
+   begin
+      if Item.Section_View.Gaps.Count = 0 then
+         --  The mark before the first section is there with none.
+         Item.Section_View.Gaps.Grow (1);
+         Write_View.Make_Gap (Item, 0);
+      end if;
+      for Index in Item.Section_View.Heads.Count + 1 .. Count loop
+         Make_Section (Item, Index);
+      end loop;
+   end Reserve_Sections;
+
+   procedure Reserve_Rows (Item : in out Session) is
+      First : constant Natural := Item.Docs.Doc_Rows.Count + 1;
+      Rows  : constant Natural := 1 + Item.Docs.Dirs.Count + Item.Windows.Count;
+   begin
+      if Rows < First then
+         return;
+      end if;
+      Item.Docs.Doc_Rows.Grow (Rows);
+      Item.Docs.Tree.Resize (Rows, (others => <>));
+      for Each in First .. Rows loop
+         Write_View.Make_Tree_Row (Item, Each);
+         Writing.Listen_Row (Item, Each);
+      end loop;
+   end Reserve_Rows;
 
    procedure Set_Up
      (Item       : in out Session;
@@ -190,6 +272,8 @@ package body Viewer.Build is
       Settings_Form.Build_Settings (Item);
       Dialogs.Build_Modal (Item);
       Dialogs.Build_List (Item);
+      Reserve_Sections (Item, 0);
+      Reserve_Rows (Item);
 
       Responses.Install (Item);
       Make_Tab_Stops (Item);

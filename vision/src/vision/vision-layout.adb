@@ -24,8 +24,8 @@ package body Vision.Layout is
    type Height_Array is array (Positive range <>) of Float;
 
    procedure Reading_Order (Item : in out Result; Aspect : Float) is
-      Runs   : Run_Array (1 .. Max_Words);
-      Order  : Index_Array (1 .. Max_Words);
+      Runs   : Run_Array (1 .. Item.Count);
+      Order  : Index_Array (1 .. Item.Count);
       Count  : Natural := 0;
       Usual  : Float := 0.0;
 
@@ -162,7 +162,7 @@ package body Vision.Layout is
 
       --  Put the words in the order of the runs, and number the lines.
       declare
-         Words : constant Word_Array := Item.Words;
+         Words : constant Word_Array := Item.Words (1 .. Item.Count);
          Next  : Natural := 0;
       begin
          for K in 1 .. Count loop

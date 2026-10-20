@@ -1,3 +1,4 @@
+with Ada.Strings.Unbounded;
 with Texts.Documents;
 with Items.Windows;
 with Projects;
@@ -22,8 +23,7 @@ package body Viewer.Outline_Screen is
      (Outlines.Section_At (Item, Row).Colour);
 
    function Section_Item (Item : Session; Row : Positive) return String is
-      Result : String (1 .. 512);
-      Last   : Natural := 0;
+      Result : Ada.Strings.Unbounded.Unbounded_String;
    begin
       for Each of Item.Windows loop
          if Items.Windows.Is_Assigned (Each)
@@ -32,12 +32,11 @@ package body Viewer.Outline_Screen is
             declare
                Name : constant String := Projects.Titles.To_String (Items.Windows.Details (Each).Title);
             begin
-               Result (Last + 1 .. Last + Name'Length + 1) := Name & ",";
-               Last := Last + Name'Length + 1;
+               Ada.Strings.Unbounded.Append (Result, Name & ",");
             end;
          end if;
       end loop;
-      return Result (1 .. Last);
+      return Ada.Strings.Unbounded.To_String (Result);
    end Section_Item;
 
    procedure Open_Link_Menu (Item : in out Session; Which : Items.Slot) is

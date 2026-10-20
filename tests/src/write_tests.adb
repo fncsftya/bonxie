@@ -255,6 +255,19 @@ package body Write_Tests is
       Settle (Session);
    end Name_Directory;
 
+   procedure Many_Directories is
+      Session : Viewer.Session;
+      Many    : constant := 140;
+   begin
+      Start_With_Three (Session, High => 640);
+      Proj.Set_Mode (Session, Viewer.Write);
+      Settle (Session);
+      for Each in 1 .. Many loop
+         Docs.Add_Directory (Session);
+      end loop;
+      Check ("write-many-directories", Natural'Image (Many), Natural'Image (Docs.Directory_Count (Session)));
+   end Many_Directories;
+
    procedure Directories is
       Session : Viewer.Session;
       Key     : Projects.Id;

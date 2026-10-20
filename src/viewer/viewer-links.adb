@@ -25,8 +25,6 @@ package body Viewer.Links is
    use type Item_Links.Strokes;
    use type Item_Links.Endings;
 
-   pragma Assert (Canvases.Max_Lines >= Item_Links.Max_Links);
-
    procedure Listen (Item : in out Session);
    --  Give the widgets of the links the procedures they call.
 
@@ -94,18 +92,6 @@ package body Viewer.Links is
       Buttons.Set_Kind (Item.Linking.Delete_Link, Buttons.Danger);
       Widgets.Set_Visible (Item.Linking.Link_Bar, False);
 
-      for Which in Items.Slot loop
-         for Side in Item_Links.Sides loop
-            declare
-               Pin : Pins.Pin renames Item.Linking.Pins (Which, Side);
-            begin
-               Widgets.Add (Item.Canvas_View, Pin);
-               Layouts.Set_Layout
-                 (Pin, Place => Layouts.Absolute, Width => Pins.Diameter, Height => Pins.Diameter);
-               Widgets.Set_Visible (Pin, False);
-            end;
-         end loop;
-      end loop;
       Widgets.Add (Item.Canvas_View, Item.Linking.Link_Handle);
       Layouts.Set_Layout
         (Item.Linking.Link_Handle, Place => Layouts.Absolute, Width => Pins.Diameter,
@@ -113,6 +99,24 @@ package body Viewer.Links is
       Widgets.Set_Visible (Item.Linking.Link_Handle, False);
       Listen (Item);
    end Build;
+
+   procedure Make_Pins (Item : in out Session; Which : Items.Slot) is
+      use all type Widgets.Event_Kind;
+   begin
+      for Side in Item_Links.Sides loop
+         declare
+            Pin : Pins.Pin renames Item.Linking.Pins (Which) (Side);
+         begin
+            Widgets.Add (Item.Canvas_View, Pin);
+            Layouts.Set_Layout
+              (Pin, Place => Layouts.Absolute, Width => Pins.Diameter, Height => Pins.Diameter);
+            Widgets.Set_Visible (Pin, False);
+            Widgets.Set_Tag (Pin, Widgets.No_Tag, Events.Pin_Number (Which, Side));
+            Hooks.On (Pin, Press, Item'Unchecked_Access, Events.Pin_Pressed'Access);
+            Hooks.On (Pin, Release, Item'Unchecked_Access, Events.Pin_Released'Access);
+         end;
+      end loop;
+   end Make_Pins;
 
    procedure Reload (Item : in out Session) is
    begin
@@ -133,10 +137,10 @@ package body Viewer.Links is
 
    procedure Leave (Item : in out Session) is
    begin
-      for Which in Items.Slot loop
+      for Each of Item.Linking.Pins loop
          for Side in Item_Links.Sides loop
-            Pins.Cancel (Item.Linking.Pins (Which, Side));
-            Widgets.Set_Visible (Item.Linking.Pins (Which, Side), False);
+            Pins.Cancel (Each (Side));
+            Widgets.Set_Visible (Each (Side), False);
          end loop;
       end loop;
       Pins.Cancel (Item.Linking.Link_Handle);
@@ -179,12 +183,6 @@ package body Viewer.Links is
          Hear (Item.Linking.Color_Buttons (Each), Click, Events.Color_Clicked'Access, Each);
       end loop;
       Hear (Item.Linking.Delete_Link, Click, Events.Delete_Clicked'Access);
-      for Which in Items.Slot loop
-         for Side in Item_Links.Sides loop
-            Hear (Item.Linking.Pins (Which, Side), Press, Events.Pin_Pressed'Access, Events.Pin_Number (Which, Side));
-            Hear (Item.Linking.Pins (Which, Side), Release, Events.Pin_Released'Access);
-         end loop;
-      end loop;
       Hear (Item.Linking.Link_Handle, Press, Events.Handle_Pressed'Access);
       Hear (Item.Linking.Link_Handle, Release, Events.Pin_Released'Access);
       Hear (Item.Canvas_View, Select_Tag, Events.Line_Selected'Access);
@@ -195,9 +193,11 @@ package body Viewer.Links is
       Found : Natural := 0;
    begin
       for Each of Item.Linking.Pins loop
-         if Widgets.Is_Shown (Each) then
-            Found := Found + 1;
-         end if;
+         for Side in Item_Links.Sides loop
+            if Widgets.Is_Shown (Each (Side)) then
+               Found := Found + 1;
+            end if;
+         end loop;
       end loop;
       return Found;
    end Shown_Pins;

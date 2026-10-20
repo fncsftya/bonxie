@@ -62,9 +62,7 @@ package body Viewer.Writing.Tree is
               Windows.Details
                 (Item.Windows (Item.Reading.Source_Order (Row))).Key;
          begin
-            for Each of Item.Linking.Link_Set.Links
-                          (1 .. Item.Linking.Link_Set.Count)
-            loop
+            for Each of Item.Linking.Link_Set loop
                if (Each.From = Key and then Each.To = Other)
                  or else (Each.From = Other and then Each.To = Key)
                then
@@ -103,7 +101,7 @@ package body Viewer.Writing.Tree is
             Labels.Set_Text
               (Each.Caption,
                Labels.Fitted (Projects.Titles.To_String
-                         (Item.Docs.Dirs.Directories (Node.Dir).Title)));
+                         (Item.Docs.Dirs (Node.Dir).Title)));
             Labels.Set_Text
               (Each.Count, Support.Count_Image (Support.Documents_In (Item, Node.Dir)));
             Chosen := Item.Docs.Shown_Dir = Node.Dir;
@@ -157,7 +155,7 @@ package body Viewer.Writing.Tree is
             (if Support.Is_Section (Item, Node.Dir)
              then Style.Section_Ink
                     (Projects.Sections.Colour_Index
-                       (Item.Docs.Dirs.Directories (Node.Dir).Colour mod Projects.Sections.Palette_Size))
+                       (Item.Docs.Dirs (Node.Dir).Colour mod Projects.Sections.Palette_Size))
              elsif Chosen then Pomarine.Themes.Accent else Style.Quiet_Ink));
          Widgets.Set_Visible (Each.Tag, True);
       end if;
@@ -170,7 +168,7 @@ package body Viewer.Writing.Tree is
 
    procedure Refresh (Item : in out Session) is
    begin
-      for Rank in Items.Slot loop
+      for Rank in 1 .. Item.Windows.Count loop
          declare
             Each : Doc_Page renames Item.Docs.Pages (Rank);
          begin
@@ -227,11 +225,9 @@ package body Viewer.Writing.Tree is
       end loop;
       Widgets.Set_Visible (Item.Page_View.Docs_None,
                            Item.Reading.Write_Count = 0);
-      Buttons.Set_Enabled
-        (Item.Page_View.Docs_Folder,
-         Item.Docs.Dirs.Count < Items.Directories.Max_Directories);
+      Buttons.Set_Enabled (Item.Page_View.Docs_Folder, True);
 
-      for Row in Tree_Row loop
+      for Row in 1 .. Item.Docs.Doc_Rows.Count loop
          if Row <= Item.Docs.Tree_Count then
             Show_Tree_Row (Item, Row);
          end if;
@@ -239,7 +235,7 @@ package body Viewer.Writing.Tree is
                               Row <= Item.Docs.Tree_Count);
       end loop;
 
-      for Row in Items.Slot loop
+      for Row in 1 .. Item.Windows.Count loop
          declare
             Each : Index_Row renames Item.Reading.Source_Rows (Row);
          begin
@@ -300,11 +296,11 @@ package body Viewer.Writing.Tree is
    procedure Rebuild (Item : in out Session) is
       Shown : constant Items.Id :=
         (if Item.Docs.Shown_Dir = 0 then 0
-         else Item.Docs.Dirs.Directories (Item.Docs.Shown_Dir).Key);
+         else Item.Docs.Dirs (Item.Docs.Shown_Dir).Key);
    begin
       Order.Build_Order (Item);
       for Dir in 1 .. Item.Docs.Dirs.Count loop
-         if Shown /= 0 and then Item.Docs.Dirs.Directories (Dir).Key = Shown then
+         if Shown /= 0 and then Item.Docs.Dirs (Dir).Key = Shown then
             Item.Docs.Shown_Dir := Dir;
          end if;
       end loop;

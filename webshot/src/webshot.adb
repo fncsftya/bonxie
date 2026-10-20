@@ -37,7 +37,7 @@ package body Webshot is
      with Import, Convention => C, External_Name => "ws_reset";
 
    function Index (Which : Slot) return Interfaces.C.int is
-     (Interfaces.C.int (Which - 1));
+     (Interfaces.C.int (Which - 1 + Lane_Count));
 
    function WS_Press (Which : Interfaces.C.int; Label : Interfaces.C.char_array) return Interfaces.C.int
      with Import, Convention => C, External_Name => "ws_press";

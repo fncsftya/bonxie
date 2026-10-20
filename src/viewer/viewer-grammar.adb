@@ -37,6 +37,36 @@ package body Viewer.Grammar is
    use type SDL3.Events.Milliseconds;
    use type Texts.Position;
 
+   Row_Chunk : constant := 64;
+   --  How many rows are made at once when there is none to take.
+
+   procedure Keep_Row
+     (State  : in out Grammar_State;
+      Worker : Grammar_Worker;
+      Lint   : Harper.Diagnostic;
+      Seen   : in out Grammar_Document)
+   is
+      procedure Take (Row : in out Grammar_Row) is
+      begin
+         Row.Rank := Worker.Rank;
+         Row.Token := Worker.Token;
+         Row.First := Worker.First;
+         Row.Lint := Lint;
+         Seen.Retained := Seen.Retained + 1;
+         State.Dirty := True;
+      end Take;
+   begin
+      for Row of State.Rows loop
+         if Row.Token = 0 then
+            Take (Row);
+            return;
+         end if;
+      end loop;
+      State.Rows.Grow (State.Rows.Count + Row_Chunk);
+      Take (State.Rows (State.Rows.Count - Row_Chunk + 1));
+   end Keep_Row;
+   --  Keep the diagnostic in a row that is free, or in one made for it.
+
    procedure Close_Inline (Item : in out Session) is
    begin
       Item.Grammar_Checks.Inline_Open := False;
@@ -283,7 +313,7 @@ package body Viewer.Grammar is
          end if;
          Close_Inline (Item);
          Menus.Clear (State.Inline_Menu);
-         for Index in State.Rows'Range loop
+         for Index in 1 .. State.Rows.Count loop
             declare
                Row : Grammar_Row renames State.Rows (Index);
             begin
@@ -427,7 +457,7 @@ package body Viewer.Grammar is
          end loop;
       end if;
 
-      for Index in State.Rows'Range loop
+      for Index in 1 .. State.Rows.Count loop
          if State.Rows (Index).Token /= 0 and then not Basics.Valid (Item, State.Rows (Index)) then
             State.Rows (Index).Token := 0;
             if State.Expanded = Index then
@@ -482,17 +512,7 @@ package body Viewer.Grammar is
                                  Ink  : constant Pomarine.Themes.Color := Basics.Colors (Lint.Kind);
                               begin
                                  if Seen.Retained < Areas.Max_Highlights then
-                                    for Row of State.Rows loop
-                                       if Row.Token = 0 then
-                                          Row.Rank := Worker.Rank;
-                                          Row.Token := Worker.Token;
-                                          Row.First := Worker.First;
-                                          Row.Lint := Lint;
-                                          Seen.Retained := Seen.Retained + 1;
-                                          State.Dirty := True;
-                                          exit;
-                                       end if;
-                                    end loop;
+                                    Keep_Row (State, Worker, Lint, Seen);
                                  end if;
                                  if Lint.Location.First < Lint.Location.Last
                                    and then Areas.Highlight_Count (Area) < Areas.Max_Highlights

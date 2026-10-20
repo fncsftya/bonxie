@@ -9,11 +9,13 @@
 --  at a time.
 package Webshot is
 
-   Slot_Count : constant := 21;
-   --  The first 16 are for the items of a project's canvas, a slot to each;
-   --  the last 5 are for the pages found when finding sources.
+   Lane_Count : constant := 5;
+   --  How many slots, before those of the items, are for the pages found
+   --  when finding sources.
 
-   subtype Slot is Positive range 1 .. Slot_Count;
+   subtype Slot is Integer range 1 - Lane_Count .. Integer'Last;
+   --  From 1: the items of a project's canvas, a slot to each, however
+   --  many there are. From 1 - Lane_Count to 0: the pages found.
 
    type States is (Idle, Working, Looked, Done, Failed);
    --  Idle: nothing was started, or it was taken (Reset). Working: not

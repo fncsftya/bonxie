@@ -39,25 +39,25 @@ package body Viewer.Outlines.Blocks is
    procedure Show_Blocks (Item : in out Session) is
       View : Outline_Parts renames Item.Outline_View;
    begin
-      for Each in View.Blocks'Range loop
+      for Each in 1 .. View.Blocks.Count loop
          declare
             Block : Section_Block renames View.Blocks (Each);
          begin
             if Each <= View.Order.Count then
                Docs.Load
                  (Block.Doc,
-                  Projects.Sections.Title_Texts.To_String (View.Order.Items (Each).Title));
+                  Projects.Sections.Title_Texts.To_String (View.Order (Each).Title));
                Block.Seen := Docs.Current (Block.Doc);
                Docs.Load_Stored
                  (Block.Notes_Doc,
-                  Projects.Sections.Stored_Notes (Item.Nav.Store, View.Order.Items (Each).Key));
+                  Projects.Sections.Stored_Notes (Item.Nav.Store, View.Order (Each).Key));
                Block.Notes_Seen := Docs.Current (Block.Notes_Doc);
-               Buttons.Set_Selected (Block.Notes, View.Order.Items (Each).Open);
-               Widgets.Set_Visible (Block.Notes_Sheet, View.Order.Items (Each).Open);
+               Buttons.Set_Selected (Block.Notes, View.Order (Each).Open);
+               Widgets.Set_Visible (Block.Notes_Sheet, View.Order (Each).Open);
             end if;
             if Each <= View.Order.Count then
                declare
-                  Section : constant Projects.Sections.Section := View.Order.Items (Each);
+                  Section : constant Projects.Sections.Section := View.Order (Each);
                   Ink     : constant Pomarine.Themes.Slot := Style.Section_Ink (Section.Colour);
                begin
                   if Documents_In (Item, Each) > 0 then
@@ -74,7 +74,7 @@ package body Viewer.Outlines.Blocks is
          end;
       end loop;
       Widgets.Set_Visible (View.None, View.Order.Count = 0);
-      Buttons.Set_Enabled (View.Add_Button, View.Order.Count < Section_Capacity);
+      Buttons.Set_Enabled (View.Add_Button, True);
       Style_Blocks (Item);
    end Show_Blocks;
 
@@ -180,7 +180,7 @@ package body Viewer.Outlines.Blocks is
    procedure Keep_Order (Item : in out Session) is
       View : Outline_Parts renames Item.Outline_View;
       Keys : constant Projects.Sections.Key_Array (1 .. View.Order.Count) :=
-        [for Each in 1 .. View.Order.Count => View.Order.Items (Each).Key];
+        [for Each in 1 .. View.Order.Count => View.Order (Each).Key];
    begin
       Projects.Sections.Set_Order (Item.Nav.Store, Item.Opened.Current, Keys);
    end Keep_Order;

@@ -1,7 +1,9 @@
 with SDL3.Events;
 with Harper;
 with Grammar_Cards;
+with Growing;
 with Items;
+with Slot_Tables;
 with Texts.Documents;
 with Pomarine.Widgets;
 with Pomarine.Widgets.Buttons;
@@ -28,7 +30,9 @@ package Viewer_Parts.Grammar is
       Busy     : Boolean := False;
    end record;
 
-   type Grammar_Documents is array (Items.Slot) of Grammar_Document;
+   package Document_Lists is new Growing (Grammar_Document);
+   subtype Grammar_Documents is Document_Lists.List;
+   --  One to each slot.
 
    type Grammar_Worker is limited record
       Checker : Harper.Checker;
@@ -42,10 +46,6 @@ package Viewer_Parts.Grammar is
 
    type Grammar_Worker_Array is array (1 .. Grammar_Workers) of Grammar_Worker;
 
-   Max_Diagnostics : constant := 512 * Items.Slot'Last;
-
-   subtype Diagnostic_Index is Positive range 1 .. Max_Diagnostics;
-
    type Grammar_Row is limited record
       Lint : Harper.Diagnostic;
       Rank : Items.Slot := 1;
@@ -53,22 +53,24 @@ package Viewer_Parts.Grammar is
       First : Texts.Position := (1, 1);
    end record;
 
-   type Grammar_Rows is array (Diagnostic_Index) of Grammar_Row;
+   package Row_Tables is new Slot_Tables (Grammar_Row);
+   subtype Grammar_Rows is Row_Tables.Table;
    --  Only the viewport's cards need widgets, even with many diagnostics.
 
    type Grammar_Card_Array is array (1 .. 32) of Grammar_Cards.Card;
 
-   type Grammar_Bindings is array (1 .. 32) of Natural range 0 .. Max_Diagnostics;
+   type Grammar_Bindings is array (1 .. 32) of Natural;
 
    type Grammar_Actions is array (1 .. Harper.Max_Suggestions) of Pomarine.Widgets.Buttons.Button;
 
    type Grammar_Choice is record
-      Row : Natural range 0 .. Max_Diagnostics := 0;
+      Row : Natural := 0;
       Suggestion : Natural range 0 .. Harper.Max_Suggestions := 0;
       Token : Harper.Request_Id := 0;
    end record;
 
-   type Grammar_Choices is array (1 .. Pomarine.Widgets.Menus.Row_Capacity) of Grammar_Choice;
+   type Grammar_Choices is array (1 .. 64) of Grammar_Choice;
+   --  The fixes offered at one place at once: those that overlap there, more than are ever shown.
 
    type Grammar_State is limited record
       Workers : Grammar_Worker_Array;
@@ -88,14 +90,14 @@ package Viewer_Parts.Grammar is
       Actions : Grammar_Actions;
       Inline_Menu : Pomarine.Widgets.Menus.Menu;
       Inline_Choices : Grammar_Choices;
-      Inline_Count : Natural range 0 .. Pomarine.Widgets.Menus.Row_Capacity := 0;
+      Inline_Count : Natural range 0 .. 64 := 0;
       Inline_Open : Boolean := False;
       Over_Diagnostic : Boolean := False;
       Pointer_Known, Pointer_Held : Boolean := False;
       Pointer_X, Pointer_Y : Float := 0.0;
-      Press_Rank : Natural range 0 .. Items.Slot'Last := 0;
+      Press_Rank : Natural := 0;
       Press_X, Press_Y : Float := 0.0;
-      Expanded : Natural range 0 .. Max_Diagnostics := 0;
+      Expanded : Natural := 0;
       Showing : Boolean := False;
       Dirty : Boolean := True;
       Width : Float := 360.0;

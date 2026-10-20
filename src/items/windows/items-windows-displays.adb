@@ -84,8 +84,8 @@ package body Items.Windows.Displays is
 
    procedure Show_Title (Item : in out Window) is
       Typed : constant String := Docs.Whole (Item.Title_Doc);
-      Title : constant Projects.Titles.Bounded_String :=
-        Projects.Titles.To_Bounded_String (Typed, Ada.Strings.Right);
+      Title : constant Projects.Titles.Text :=
+        Projects.Titles.To_Text (Typed);
    begin
       Item.Details.Title := Title;
       Item.Title_Version := Docs.Current (Item.Title_Doc);

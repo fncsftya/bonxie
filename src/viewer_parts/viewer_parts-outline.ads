@@ -1,5 +1,7 @@
+with Growing;
 with Projects;
 with Ada.Strings.Unbounded;
+with Slot_Tables;
 with MLX.Jobs;
 with Projects.Sections;
 with Texts.Documents;
@@ -12,7 +14,6 @@ with Pomarine.Widgets.Menus;
 with Pomarine.Widgets.Text_Fields;
 with Pomarine.Widgets.Panels;
 with Pomarine.Widgets.Scrollers;
-with Viewer_Parts.Common;
 
 --  The outline view: the form of the project's title and description, and the blocks of its sections.
 package Viewer_Parts.Outline is
@@ -44,7 +45,8 @@ package Viewer_Parts.Outline is
       Notes_Text  : Pomarine.Widgets.Editors.Editor;
    end record;
 
-   type Section_Blocks is array (1 .. Common.Section_Capacity) of Section_Block;
+   package Block_Tables is new Slot_Tables (Section_Block);
+   subtype Section_Blocks is Block_Tables.Table;
 
    type Outline_Parts is limited record
       Name_Doc    : aliased Texts.Documents.Document;
@@ -113,7 +115,8 @@ package Viewer_Parts.Outline is
    --  The outline view: the form of the project's title and description,
    --  and the blocks of its sections.
 
-   type Section_Rows is array (1 .. Common.Section_Capacity + 1) of Natural;
+   package Row_Lists is new Growing (Natural);
+   subtype Section_Rows is Row_Lists.List;
    --  The section of each row of the menu, after its heading: 0 for none.
 
    type Section_Menu_Parts is limited record
@@ -128,7 +131,7 @@ package Viewer_Parts.Outline is
       --  canvas's window.
       Left, Top : Float := -1.0E9;
       --  Where it was last put.
-      Rows    : Section_Rows := [others => 0];
+      Rows    : Section_Rows;
       Remove  : Natural := 0;
       --  The row of the sections' boxes, and the row to take the link away.
       Changes : Natural := 0;

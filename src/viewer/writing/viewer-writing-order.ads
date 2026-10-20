@@ -7,7 +7,7 @@ private package Viewer.Writing.Order is
    procedure Insert_Row
      (Item : in out Session; Index : Positive; Node : Tree_Entry)
      with Pre => Index in 2 .. Item.Docs.Tree_Count + 1
-                 and then Item.Docs.Tree_Count < Tree_Capacity;
+                 and then Item.Docs.Tree_Count < Item.Docs.Tree.Count;
    --  Put the row before the Indexth.
 
    procedure Delete_Row (Item : in out Session; Index : Positive)

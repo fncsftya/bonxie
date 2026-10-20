@@ -15,7 +15,7 @@ package body Items.Windows.Fetching is
      (Item : in out Window; Document : String; Page, Count : Natural) is
    begin
       Item.Details.Document :=
-        Items.Extensions.To_Bounded_String (Document, Ada.Strings.Right);
+        Items.Extensions.To_Text (Document);
       Item.Details.Page := Page;
       Item.Details.Page_Count := Count;
       Displays.Show_Mode (Item);

@@ -1,4 +1,5 @@
 with Goldens;
+with Pomarine.Words;
 with Vision.Layout;
 with Vision;
 
@@ -14,6 +15,7 @@ package body Layout_Tests is
       procedure Add (Text : String; Line : Positive; Left, Top : Float) is
       begin
          Page.Count := Page.Count + 1;
+         Pomarine.Words.Reserve (Page, Page.Count, Used + Text'Length);
          Page.Text (Used + 1 .. Used + Text'Length) := Text;
          Page.Words (Page.Count) :=
            (Line => Line, First => Used + 1, Last => Used + Text'Length,

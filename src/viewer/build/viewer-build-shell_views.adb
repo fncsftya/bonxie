@@ -9,7 +9,6 @@ with Pomarine.Widgets;
 with Pomarine.Widgets.Layouts;
 with Pomarine.Widgets.Scrollers;
 with Pomarine.Text_Areas;
-with Viewer.Canvas_Items;
 with Viewer.Links;
 with Viewer.Style;
 
@@ -168,8 +167,6 @@ package body Viewer.Build.Shell_Views is
 
    procedure Build_Project (Item : in out Session) is
       Bar : Toolbar_Parts renames Item.Toolbar;
-      Pixels : constant Float := Item.Shell.Density;
-
       procedure Size (Part : in out Widgets.Widget'Class; Wide, High : Float) is
       begin
          Set_Layout (Part, Width => Wide, Height => High, Shrink => 0.0);
@@ -267,15 +264,16 @@ package body Viewer.Build.Shell_Views is
       Set_Layout
         (Item.Dock.Dock_Content, Flow => Row, Shrink => 0.0, Align => Center, Gap => Dock_Gap,
          Padding => (Left | Right => Dock_Inset, others => <>));
-      for Each of Item.Windows loop
-         Items.Windows.Set_Shared
-           (Each, Item.Host.Doc_Resources'Unchecked_Access);
-         Items.Windows.Build
-           (Each, Item.Canvas_View, Item.Dock.Dock_Content, Toolbar, Pixels);
-      end loop;
       Links.Build (Item);
-      Canvas_Items.Listen (Item);
    end Build_Project;
+
+   procedure Make_Window (Item : in out Session; Which : Items.Slot) is
+   begin
+      Items.Windows.Set_Shared
+        (Item.Windows (Which), Item.Host.Doc_Resources'Unchecked_Access);
+      Items.Windows.Build
+        (Item.Windows (Which), Item.Canvas_View, Item.Dock.Dock_Content, Toolbar, Item.Shell.Density);
+   end Make_Window;
 
    procedure Build_Tray (Item : in out Session) is
       Tray : Dock_Parts renames Item.Dock;

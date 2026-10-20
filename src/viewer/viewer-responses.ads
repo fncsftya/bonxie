@@ -9,6 +9,12 @@ private package Viewer.Responses is
    --  Give each widget the procedure it calls when it is clicked, chosen
    --  or has its say.
 
+   procedure Listen_Section (Item : in out Session; Index : Positive);
+   --  Give the buttons of the section's parts among the pages the procedures they call.
+
+   procedure Listen_Slot (Item : in out Session; Which : Items.Slot);
+   --  Give the buttons of the page and the source row of the slot the procedures they call.
+
    procedure Perform
      (Item  : in out Session;
       Event : Pomarine.Widgets.Widget_Event);

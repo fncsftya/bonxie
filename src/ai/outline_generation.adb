@@ -27,7 +27,7 @@ package body Outline_Generation is
          for Each in 1 .. Existing.Count loop
             Append
               (Text,
-               Each'Image & ". " & Titles.To_String (Existing.Items (Each).Title) & LF);
+               Each'Image & ". " & Titles.To_String (Existing (Each).Title) & LF);
          end loop;
          Append (Text, LF);
       end if;
@@ -64,25 +64,17 @@ package body Outline_Generation is
             while Last >= First and then Clean (Last) = ' ' loop
                Last := Last - 1;
             end loop;
-            if First > Last or else Result.Count = Projects.Sections.Max_Sections then
+            if First > Last then
                return;
-            end if;
-            if Last - First + 1 > Projects.Sections.Max_Title then
-               Last := First + Projects.Sections.Max_Title - 1;
-               while Last >= First and then Character'Pos (Clean (Last + 1)) in 16#80# .. 16#BF# loop
-                  Last := Last - 1;
-               end loop;
             end if;
             for Each in 1 .. Result.Count loop
                if Ada.Strings.Equal_Case_Insensitive
-                    (Titles.To_String (Result.Items (Each).Title), Clean (First .. Last))
+                    (Titles.To_String (Result (Each).Title), Clean (First .. Last))
                then
                   return;
                end if;
             end loop;
-            Result.Count := Result.Count + 1;
-            Result.Items (Result.Count) :=
-              (Title => Titles.To_Bounded_String (Clean (First .. Last)), others => <>);
+            Result.Append ((Title => Titles.To_Text (Clean (First .. Last)), others => <>));
             At_Index := Result.Count;
          end;
       end Add_Title;
@@ -121,10 +113,8 @@ package body Outline_Generation is
             end if;
             declare
                Line : constant String := Bullet (Each.Value);
-               Room : constant Integer :=
-                 Projects.Sections.Max_Notes - Length (Text) - (if Length (Text) > 0 then 1 else 0);
             begin
-               if Line /= "" and then Line'Length <= Room then
+               if Line /= "" then
                   if Length (Text) > 0 then
                      Append (Text, LF);
                   end if;
@@ -132,13 +122,13 @@ package body Outline_Generation is
                end if;
             end;
          end loop;
-         Result.Items (At_Index).Notes :=
-           Projects.Sections.Note_Texts.To_Bounded_String (To_String (Text));
+         Result (At_Index).Notes :=
+           Projects.Sections.Note_Texts.To_Text (To_String (Text));
       end Add_Notes;
 
       First, Last : Natural;
    begin
-      Result.Count := 0;
+      Result.Clear;
       Valid := False;
       Model_Replies.Find_Object (Reply, First, Last);
       if Last = 0 then
@@ -181,7 +171,7 @@ package body Outline_Generation is
    exception
       --  Including what is wrong with the reply as a whole, found as it is parsed.
       when JSON_Parsers.Parse_Error | JSON_Types.Invalid_Type_Error | Constraint_Error | Program_Error =>
-         Result.Count := 0;
+         Result.Clear;
          Valid := False;
    end Parse;
 

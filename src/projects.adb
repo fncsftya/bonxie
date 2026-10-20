@@ -38,19 +38,18 @@ package body Projects is
          Ada.Directories.Create_Path
            (Ada.Directories.Containing_Directory (Path));
          Item.Root :=
-           Paths.To_Bounded_String
-             (Ada.Directories.Containing_Directory (Path), Ada.Strings.Error);
+           Paths.To_Text
+             (Ada.Directories.Containing_Directory (Path));
       else
          Item.Root :=
-           Paths.To_Bounded_String
+           Paths.To_Text
              ((if Ada.Environment_Variables.Exists ("TMPDIR")
                  and then Ada.Environment_Variables.Value ("TMPDIR") /= ""
                then Ada.Strings.Fixed.Trim
                       (Ada.Environment_Variables.Value ("TMPDIR"),
                        Ada.Strings.Right)
                else "/tmp")
-              & "/bonxie-memory",
-              Ada.Strings.Right);
+              & "/bonxie-memory");
       end if;
       Item.Base := new Ada_Sqlite3.Database'(Ada_Sqlite3.Open (Path));
       Repository.Project.Prepare (Item);

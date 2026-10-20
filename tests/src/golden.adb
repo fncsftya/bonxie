@@ -1,6 +1,7 @@
 with Ada.Command_Line;
 with Ada.Directories;
 with Ada.Environment_Variables;
+with Ada.Exceptions;
 with Ada.Streams.Stream_IO;
 with Ada.Strings.Fixed;
 with Ada.Text_IO;
@@ -1208,6 +1209,8 @@ begin
    Run ("items-repainting", Item_Tests.Repainting'Access);
    Run ("items-density", Item_Tests.Fractional_Density'Access);
    Run ("items-full", Item_Tests.Full'Access);
+   Run ("items-long-title", Item_Tests.Long_Title'Access);
+   Run ("items-many-marks-and-words", Item_Tests.Many_Marks_And_Words'Access);
    Run ("items-kept", Item_Tests.Kept'Access);
    Run ("layout-columns", Layout_Tests.Columns'Access);
    Run ("items-linking", Item_Tests.Linking'Access);
@@ -1228,6 +1231,7 @@ begin
    Run ("finding-cancel", Finding_Tests.Cancelling'Access);
    Run ("outline-starting", Outline_Tests.Starting'Access);
    Run ("outline-sections", Outline_Tests.Sections'Access);
+   Run ("outline-many-sections", Outline_Tests.Many_Sections'Access);
    Run ("outline-form", Outline_Tests.Form'Access);
    Run ("outline-generate", Outline_Tests.Generating'Access);
    Run ("outline-replies", Outline_Tests.Replies'Access);
@@ -1246,6 +1250,7 @@ begin
    Run ("write-ordering", Write_Tests.Ordering'Access);
    Run ("write-dragging", Write_Tests.Dragging'Access);
    Run ("write-directories", Write_Tests.Directories'Access);
+   Run ("write-many-directories", Write_Tests.Many_Directories'Access);
    Run ("write-context-menus", Write_Tests.Context_Menus'Access);
    Run ("write-context-elsewhere",
         Write_Tests.Context_Menus_Elsewhere'Access);
@@ -1281,4 +1286,11 @@ begin
    end if;
    Speech.Jobs.Shutdown;  --  or the tasks that listen would keep it from ending
    MLX.Jobs.Shutdown;     --  nor the workers that ask the model (finding sources)
+exception
+   --  Said here: left unhandled, it ends with no message, as the tasks that listen hold it up.
+   when Failure : others =>
+      Ada.Text_IO.Put_Line ("FAIL  unhandled: " & Ada.Exceptions.Exception_Information (Failure));
+      Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+      Speech.Jobs.Shutdown;
+      MLX.Jobs.Shutdown;
 end Golden;

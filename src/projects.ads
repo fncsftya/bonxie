@@ -1,18 +1,12 @@
 with Ada.Finalization;
-with Ada.Strings.Bounded;
 with Ada_Sqlite3;
+with Long_Texts;
 
 --  The projects bonxie keeps, in a SQLite database on disk.
 package Projects is
 
-   Title_Capacity       : constant := 64;
-   Description_Capacity : constant := 512;
-   --  Bytes, of what is read back: longer is cut.
-
-   package Titles is new Ada.Strings.Bounded.Generic_Bounded_Length
-     (Title_Capacity);
-   package Descriptions is new Ada.Strings.Bounded.Generic_Bounded_Length
-     (Description_Capacity);
+   package Titles renames Long_Texts;
+   package Descriptions renames Long_Texts;
 
    type Id is new Long_Integer;
 
@@ -24,9 +18,9 @@ package Projects is
 
    type Project is record
       Key         : Id := 0;
-      Title       : Titles.Bounded_String := Titles.Null_Bounded_String;
-      Description : Descriptions.Bounded_String :=
-        Descriptions.Null_Bounded_String;
+      Title       : Titles.Text := Titles.Null_Text;
+      Description : Descriptions.Text :=
+        Descriptions.Null_Text;
       Created_At  : Seconds := 0;
       Updated_At  : Seconds := 0;
    end record;
@@ -92,8 +86,7 @@ package Projects is
    procedure Set_Description
      (Item : in out Store; Key : Id; Description : String)
      with Pre => Is_Open (Item);
-   --  Keep the project's description (cut to Description_Capacity when it
-   --  is read back). This is not an update of the project.
+   --  Keep the project's description. This is not an update of the project.
 
    procedure Set_Tab (Item : in out Store; Key : Id; To : Natural)
      with Pre => Is_Open (Item);
@@ -149,14 +142,11 @@ private
 
    type Database_Access is access Ada_Sqlite3.Database;
 
-   Path_Capacity : constant := 1024;
-
-   package Paths is new Ada.Strings.Bounded.Generic_Bounded_Length
-     (Path_Capacity);
+   package Paths renames Long_Texts;
 
    type Store is new Ada.Finalization.Limited_Controlled with record
       Base : Database_Access;
-      Root : Paths.Bounded_String;
+      Root : Paths.Text;
       --  The folder the project folders are in.
       --  Database is limited and can only be made by Ada_Sqlite3.Open.
    end record;

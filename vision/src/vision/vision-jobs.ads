@@ -6,10 +6,13 @@
 --  until Take.
 package Vision.Jobs is
 
-   Slot_Count : constant := 21;
-   --  As Webshot's: 16 for a project's items, then 5 for finding sources.
+   Lane_Count : constant := 5;
+   --  How many slots, before those of the items, are for the pages found
+   --  when finding sources.
 
-   subtype Slot is Positive range 1 .. Slot_Count;
+   subtype Slot is Integer range 1 - Lane_Count .. Integer'Last;
+   --  As Webshot's: from 1, the items of a project, however many there
+   --  are; from 1 - Lane_Count to 0, the pages found when finding sources.
 
    type States is (Idle, Working, Done, Failed);
    --  Idle: nothing was started, or it was taken (Reset). Working: not

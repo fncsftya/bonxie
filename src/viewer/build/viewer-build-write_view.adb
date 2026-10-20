@@ -32,6 +32,230 @@ package body Viewer.Build.Write_View is
    use Style;
    use Pomarine.Widgets.Layouts;
 
+   procedure Build_Row
+     (Item    : Session;
+      Content : in out Panels.Panel;
+      Before  : Widgets.Widget'Class;
+      Each    : in out Index_Row;
+      Counted : Boolean)
+   is
+      Pixels : constant Float := Item.Shell.Density;
+      Offset : constant Float := Pomarine.Boxes.Offset (Pixels);
+   begin
+      Widgets.Add_Before (Content, Each.Row, Before);
+      Widgets.Add (Each.Row, Each.Tag, Each.Caption, Each.Count);
+      --  Each row casts a shadow, inside its box: it is that much
+      --  taller, and the gap less.
+      Grips.Set_Fill (Each.Row, Row_Fill);
+      Grips.Set_Hover_Fill (Each.Row, Row_Hover);
+      Grips.Set_Border (Each.Row, Themes.Border);
+      Grips.Set_Shadow (Each.Row, Side_Fill);
+      Grips.Set_Wanted_Cursor (Each.Row, SDL3.Cursors.Pointer);
+      Set_Layout
+        (Each.Row, Shrink => 0.0, Flow => Row, Align => Center,
+         Padding => (Left | Right => Index_Pad, others => <>), Shadowed => True);
+      Set_Layout
+        (Each.Row, Height => Index_Height * Pixels + Offset, Unit => Device_Pixels);
+      Set_Layout
+        (Each.Tag, Width => Tag_Size, Height => Tag_Size, Shrink => 0.0,
+         Margin => (Right => Index_Pad, others => <>));
+      Widgets.Set_Visible (Each.Tag, not Counted);
+      Set_Layout (Each.Caption, Grow => 1.0, Width => 0.0, Height => Index_Height);
+      Labels.Set_Trailing (Each.Count, True);
+      Labels.Set_Ink (Each.Count, Quiet_Ink);
+      Set_Layout (Each.Count, Width => Count_Width, Height => Index_Height);
+      Widgets.Set_Visible (Each.Count, Counted);
+   end Build_Row;
+
+   procedure Make_Tree_Row (Item : in out Session; Index : Positive) is
+      Each : Index_Row renames Item.Docs.Doc_Rows (Index);
+   begin
+      Build_Row (Item, Item.Page_View.Docs_Content, Item.Page_View.Docs_None, Each, Counted => True);
+      Panels.Set_Fill (Each.Tag, Quiet_Ink);
+   end Make_Tree_Row;
+
+   procedure Make_Source_Row (Item : in out Session; Which : Items.Slot) is
+   begin
+      Build_Row
+        (Item, Item.Page_View.Sources_Content, Item.Page_View.Sources_None,
+         Item.Reading.Source_Rows (Which), Counted => False);
+   end Make_Source_Row;
+
+   procedure Make_Page (Item : in out Session; Rank : Items.Slot) is
+      Each : Doc_Page renames Item.Docs.Pages (Rank);
+   begin
+      Widgets.Add (Item.Page_View.Pages_Content, Each.Box);
+      Widgets.Add (Each.Box, Each.Bar);
+      Widgets.Add (Each.Bar, Each.Heading_Area);
+      Widgets.Add (Each.Heading_Area, Each.Swatch, Each.Heading);
+      Widgets.Add (Each.Bar, Each.Title_Field, Each.Outline_Button, Each.Sources_Button);
+      Widgets.Add (Each.Bar, Each.Mic_Button);
+      Widgets.Add (Each.Bar, Each.Level);
+      Widgets.Add (Each.Box, Each.Sheet);
+      Widgets.Add (Each.Sheet, Each.Text);
+      Widgets.Add (Each.Box, Each.Words);
+         Set_Layout (Each.Box, Flow => Column, Shrink => 0.0, Width => Page_Width);
+         Set_Layout
+           (Each.Bar, Flow => Row, Align => Center, Height => Page_Head, Gap => Tool_Gap,
+            Padding => (Right => Shadow_Room, others => <>));
+         Labels.Set_Style (Each.Heading, Pomarine.Line_Texts.Heading);
+         Set_Layout
+           (Each.Heading_Area, Flow => Row, Align => Center, Grow => 1.0, Width => 0.0,
+            Height => Page_Head);
+         Set_Layout (Each.Heading, Grow => 1.0, Width => 0.0, Height => Page_Head);
+         Text_Fields.Set_Shared
+           (Each.Title_Field, Item.Host.Doc_Resources'Unchecked_Access);
+         Text_Fields.Configure
+           (Each.Title_Field, Pomarine.Line_Texts.Interface_Font,
+            Pomarine.Line_Texts.Heading_Size);
+         Set_Layout (Each.Title_Field, Grow => 1.0, Width => 0.0, Height => Title_Height);
+         Widgets.Set_Visible (Each.Title_Field, False);
+         Buttons.Set_Label (Each.Sources_Button, "Sources");
+         Buttons.Set_Dropdown (Each.Sources_Button, True);
+         Set_Layout (Each.Sources_Button, Width => Sources_Width, Height => Bar_Button_Height);
+         Buttons.Set_Label (Each.Outline_Button, "Section");
+         Buttons.Set_Captioned (Each.Outline_Button, True);
+         Buttons.Set_Dropdown (Each.Outline_Button, True);
+         Set_Layout (Each.Outline_Button, Width => Outline_Link_Width, Height => Bar_Button_Height);
+         Panels.Set_Fill (Each.Swatch, Themes.Border);
+         Set_Layout
+           (Each.Swatch, Width => Section_Swatch, Height => Section_Swatch, Shrink => 0.0,
+            Margin => (Right => Tool_Gap, others => <>));
+         Widgets.Set_Visible (Each.Swatch, False);
+         Set_Layout
+           (Each.Level, Place => Absolute,
+            Position => (Left | Bottom => 0.0, Right => Shadow_Room, others => <>),
+            Height => Level_Height);
+         Widgets.Set_Visible (Each.Level, False);
+         Buttons.Set_Label (Each.Mic_Button, "Mic");
+         Buttons.Set_Icon (Each.Mic_Button, Icon_Set.Microphone);
+         Buttons.Set_Icon_Size (Each.Mic_Button, Mic_Icon_Size);
+         Set_Layout (Each.Mic_Button, Width => Mic_Width, Height => Bar_Button_Height);
+         --  The page: white, outlined, with a shadow it leaves room for.
+         Panels.Set_Fill (Each.Sheet, Paper);
+         Panels.Set_Border (Each.Sheet, Themes.Border);
+         Panels.Set_Shadow (Each.Sheet, Themes.Shadow);
+         Set_Layout
+           (Each.Sheet, Flow => Column, Shrink => 0.0, Shadowed => True,
+            Padding => (others => Page_Border));
+         Editors.Set_Shared
+           (Each.Text, Item.Host.Doc_Resources'Unchecked_Access);
+         Editors.Configure
+           (Each.Text, Pomarine.Line_Texts.Serif, Page_Text_Size, 2000.0,
+            Spacing => 0.35 * Page_Text_Size);
+         Editors.Set_Paper (Each.Text, Paper);
+         Editors.Set_Toolbar (Each.Text);
+         Editors.Set_Assist (Each.Text, "Find Sources");
+         --  The page's margin is the text area's, so that its toolbar is the page's width.
+         Editors.Set_Indent (Each.Text, Page_Margin - Page_Text_Inset - Page_Border);
+         Pomarine.Text_Areas.Set_Grows (Editors.Area (Each.Text).all);
+         Set_Layout (Each.Text, Shrink => 0.0, Height => Page_Min_Height);
+         Labels.Set_Trailing (Each.Words, True);
+         Labels.Set_Ink (Each.Words, Quiet_Ink);
+         Set_Layout
+           (Each.Words, Height => Page_Foot, Margin => (Right => Shadow_Room, others => <>));
+         Widgets.Set_Visible (Each.Box, False);
+      if Item.Section_View.Grouped then
+         --  As the pages there are were put when the sections were shown (see Fit_Pages).
+         Set_Layout (Each.Box, Place => Absolute, Position => (others => Unset));
+      end if;
+   end Make_Page;
+
+   procedure Make_Reader (Item : in out Session; Which : Items.Slot) is
+   begin
+      Items.Readers.Build
+        (Item.Reading.Readers (Which), Item.Page_View.Write_View, Toolbar, Item.Shell.Density);
+      --  Over the rest, but under the menu.
+      Widgets.Raise_To_Front (Item.Page_View.Menu);
+   end Make_Reader;
+
+   procedure Make_Section (Item : in out Session; Index : Positive) is
+      Sections : Section_View_Parts renames Item.Section_View;
+      View     : Page_Parts renames Item.Page_View;
+   begin
+      declare
+         Head  : Section_Head renames Sections.Heads (Index);
+         Notes : Note_Box renames Sections.Notes (Index);
+         Empty : Section_Empty renames Sections.Empties (Index);
+      begin
+         Widgets.Add (View.Pages_Content, Head.Row);
+         Widgets.Add (Head.Row, Head.Bar, Head.Title, Head.Count, Head.Notes);
+         Widgets.Add (Head.Row, Head.Add);
+         Widgets.Add (View.Pages_Content, Notes.Box);
+         Widgets.Add (Notes.Box, Notes.Text);
+         Widgets.Add (View.Pages_Content, Empty.Box);
+         Widgets.Add (Empty.Box, Empty.Note, Empty.Add);
+
+         Set_Layout
+           (Head.Row, Place => Absolute, Flow => Row, Align => Center, Gap => Tool_Gap,
+            Height => Section_Head_Height, Width => Page_Width);
+         Set_Layout (Head.Bar, Width => Section_Bar, Height => Section_Head_Height - 12.0, Shrink => 0.0);
+         Panels.Set_Fill (Head.Bar, Themes.Border);
+         Labels.Set_Style (Head.Title, Pomarine.Line_Texts.Heading);
+         Set_Layout (Head.Title, Grow => 1.0, Width => 0.0, Height => Section_Head_Height);
+         Labels.Set_Ink (Head.Count, Quiet_Ink);
+         Labels.Set_Trailing (Head.Count, True);
+         Set_Layout (Head.Count, Width => 140.0, Height => Section_Head_Height);
+         Buttons.Set_Label (Head.Notes, "Notes");
+         Buttons.Set_Captioned (Head.Notes, True);
+         Buttons.Set_Focusable (Head.Notes, True);
+         Set_Layout (Head.Notes, Width => Notes_Width, Height => Outline_Button, Shrink => 0.0);
+         Buttons.Set_Label (Head.Add, "Add document to this section");
+         Buttons.Set_Icon (Head.Add, Icon_Set.Plus);
+         Buttons.Set_Focusable (Head.Add, True);
+         Set_Layout
+           (Head.Add, Width => Outline_Button, Height => Outline_Button, Shrink => 0.0,
+            Margin => (Right => Shadow_Room, others => <>));
+         Widgets.Set_Visible (Head.Row, False);
+
+         Panels.Set_Fill (Notes.Box, Side_Fill);
+         Panels.Set_Border (Notes.Box, Themes.Border);
+         Set_Layout
+           (Notes.Box, Place => Absolute, Flow => Column, Width => Page_Width, Outlined => True,
+            Padding => (others => Notes_Pad), Shrink => 0.0);
+         Editors.Set_Shared (Notes.Text, Item.Host.Doc_Resources'Unchecked_Access);
+         Editors.Configure (Notes.Text, Pomarine.Line_Texts.Interface_Font, Edit_Size, 2000.0);
+         Pomarine.Text_Areas.Set_Grows (Editors.Area (Notes.Text).all);
+         Editors.Set_Paper (Notes.Text, Side_Fill);
+         Editors.Set_Borderless (Notes.Text, True);
+         Editors.Attach (Notes.Text, Item.Outline_View.Blocks (Index).Notes_Doc'Unchecked_Access);
+         Set_Layout (Notes.Text, Shrink => 0.0, Height => Notes_Min_Height);
+         Widgets.Set_Visible (Notes.Box, False);
+
+         Panels.Set_Border (Empty.Box, Themes.Border);
+         Set_Layout
+           (Empty.Box, Place => Absolute, Flow => Column, Align => Center, Spread => Center,
+            Gap => Tool_Gap, Height => Section_Empty_Height, Width => Page_Width, Outlined => True);
+         Labels.Set_Text (Empty.Note, "No documents in this section yet");
+         Labels.Set_Ink (Empty.Note, Quiet_Ink);
+         Set_Layout (Empty.Note, Height => Heading_Height);
+         Buttons.Set_Label (Empty.Add, "Add document");
+         Buttons.Set_Icon (Empty.Add, Icon_Set.Plus);
+         Buttons.Set_Captioned (Empty.Add, True);
+         Buttons.Set_Focusable (Empty.Add, True);
+         Set_Layout (Empty.Add, Width => Wide_Tool_Width, Height => Bar_Button_Height);
+         Widgets.Set_Visible (Empty.Box, False);
+      end;
+   end Make_Section;
+
+   procedure Make_Gap (Item : in out Session; Index : Natural) is
+      Sections : Section_View_Parts renames Item.Section_View;
+      Each     : Gap_Mark renames Sections.Gaps (Index + 1);
+   begin
+      Widgets.Add (Item.Page_View.Pages_Content, Each.Row);
+      Widgets.Add (Each.Row, Each.Caption, Each.Rule);
+      Set_Layout
+        (Each.Row, Place => Absolute, Flow => Row, Align => Center, Gap => Tool_Gap,
+         Height => Gap_Mark_Height, Width => Page_Width);
+      Labels.Set_Text (Each.Caption, "Not in a section");
+      Labels.Set_Style (Each.Caption, Pomarine.Line_Texts.Caption);
+      Labels.Set_Ink (Each.Caption, Quiet_Ink);
+      Set_Layout (Each.Caption, Width => 120.0, Height => Gap_Mark_Height, Shrink => 0.0);
+      Panels.Set_Fill (Each.Rule, Themes.Border);
+      Set_Layout (Each.Rule, Grow => 1.0, Width => 0.0, Height => Hairline);
+      Widgets.Set_Visible (Each.Row, False);
+   end Make_Gap;
+
    procedure Build_Write (Item : in out Session) is
       View   : Page_Parts renames Item.Page_View;
       Pixels : constant Float := Item.Shell.Density;
@@ -56,36 +280,6 @@ package body Viewer.Build.Write_View is
          Set_Layout
            (Content, Gap => Index_Gap * Pixels - Offset, Unit => Device_Pixels);
       end Build_Index;
-
-      procedure Build_Row
-        (Content : in out Panels.Panel;
-         Each    : in out Index_Row;
-         Counted : Boolean) is
-      begin
-         Widgets.Add (Content, Each.Row);
-         Widgets.Add (Each.Row, Each.Tag, Each.Caption, Each.Count);
-         --  Each row casts a shadow, inside its box: it is that much
-         --  taller, and the gap less.
-         Grips.Set_Fill (Each.Row, Row_Fill);
-         Grips.Set_Hover_Fill (Each.Row, Row_Hover);
-         Grips.Set_Border (Each.Row, Themes.Border);
-         Grips.Set_Shadow (Each.Row, Side_Fill);
-         Grips.Set_Wanted_Cursor (Each.Row, SDL3.Cursors.Pointer);
-         Set_Layout
-           (Each.Row, Shrink => 0.0, Flow => Row, Align => Center,
-            Padding => (Left | Right => Index_Pad, others => <>), Shadowed => True);
-         Set_Layout
-           (Each.Row, Height => Index_Height * Pixels + Offset, Unit => Device_Pixels);
-         Set_Layout
-           (Each.Tag, Width => Tag_Size, Height => Tag_Size, Shrink => 0.0,
-            Margin => (Right => Index_Pad, others => <>));
-         Widgets.Set_Visible (Each.Tag, not Counted);
-         Set_Layout (Each.Caption, Grow => 1.0, Width => 0.0, Height => Index_Height);
-         Labels.Set_Trailing (Each.Count, True);
-         Labels.Set_Ink (Each.Count, Quiet_Ink);
-         Set_Layout (Each.Count, Width => Count_Width, Height => Index_Height);
-         Widgets.Set_Visible (Each.Count, Counted);
-      end Build_Row;
 
       procedure Heading (Label : in out Labels.Label; Name : String) is
       begin
@@ -113,10 +307,6 @@ package body Viewer.Build.Write_View is
          Widgets.Add (View.Sidebar, View.Docs_Head);
          Widgets.Add (View.Docs_Head, View.Docs_Heading, View.Docs_Folder, View.Docs_Add);
          Build_Index (View.Docs_Scroll, View.Docs_Content, View.Docs_None, No_Documents);
-         for Each of Item.Docs.Doc_Rows loop
-            Build_Row (View.Docs_Content, Each, Counted => True);
-            Panels.Set_Fill (Each.Tag, Quiet_Ink);
-         end loop;
          Widgets.Add (View.Docs_Content, View.Docs_None);
          Set_Layout (View.Docs_None, Height => Index_Height);
          Widgets.Add (View.Docs_Content, Item.Docs.Drop_Line);
@@ -127,9 +317,6 @@ package body Viewer.Build.Write_View is
          Widgets.Add (View.Sources_Edge, View.Sources_Grab);
          Widgets.Add (View.Sidebar, View.Sources_Heading);
          Build_Index (View.Sources_Scroll, View.Sources_Content, View.Sources_None, No_Sources);
-         for Each of Item.Reading.Source_Rows loop
-            Build_Row (View.Sources_Content, Each, Counted => False);
-         end loop;
          Widgets.Add (View.Sources_Content, View.Sources_None);
          Widgets.Add (View.Sources_Content, Item.Naming.Source_Field);
          Set_Layout (View.Sources_None, Height => Index_Height);
@@ -138,46 +325,9 @@ package body Viewer.Build.Write_View is
          --  The spacer of the sections is first, so that the pages (and what
          --  is between them) are over it, and take the pointer.
          Widgets.Add (View.Pages_Content, Item.Section_View.Tail);
-         for Each of Item.Docs.Pages loop
-            Widgets.Add (View.Pages_Content, Each.Box);
-            Widgets.Add (Each.Box, Each.Bar);
-            Widgets.Add (Each.Bar, Each.Heading_Area);
-            Widgets.Add (Each.Heading_Area, Each.Swatch, Each.Heading);
-            Widgets.Add (Each.Bar, Each.Title_Field, Each.Outline_Button, Each.Sources_Button);
-            Widgets.Add (Each.Bar, Each.Mic_Button);
-            Widgets.Add (Each.Bar, Each.Level);
-            Widgets.Add (Each.Box, Each.Sheet);
-            Widgets.Add (Each.Sheet, Each.Text);
-            Widgets.Add (Each.Box, Each.Words);
-         end loop;
-         declare
-            Sections : Section_View_Parts renames Item.Section_View;
-         begin
-            --  After the pages, which they are among by their edges.
-            for Each of Sections.Heads loop
-               Widgets.Add (View.Pages_Content, Each.Row);
-               Widgets.Add (Each.Row, Each.Bar, Each.Title, Each.Count, Each.Notes);
-               Widgets.Add (Each.Row, Each.Add);
-            end loop;
-            for Each of Sections.Notes loop
-               Widgets.Add (View.Pages_Content, Each.Box);
-               Widgets.Add (Each.Box, Each.Text);
-            end loop;
-            for Each of Sections.Empties loop
-               Widgets.Add (View.Pages_Content, Each.Box);
-               Widgets.Add (Each.Box, Each.Note, Each.Add);
-            end loop;
-            for Each of Sections.Gaps loop
-               Widgets.Add (View.Pages_Content, Each.Row);
-               Widgets.Add (Each.Row, Each.Caption, Each.Rule);
-            end loop;
-         end;
          Widgets.Add (View.Write_View, View.Pane);
          Widgets.Add (View.Pane, View.Pane_Edge, View.Pane_Body);
          --  Over the rest, last.
-         for Each of Item.Reading.Readers loop
-            Items.Readers.Build (Each, View.Write_View, Toolbar, Pixels);
-         end loop;
          Widgets.Add (View.Write_View, View.Menu);
          Set_Layout (View.Menu, Place => Absolute, Width => Menu_Width);
          Widgets.Set_Visible (View.Menu, False);
@@ -191,76 +341,6 @@ package body Viewer.Build.Write_View is
          begin
             Set_Layout (Sections.Tail, Place => Flowing, Height => 0.0, Shrink => 0.0);
             Widgets.Set_Visible (Sections.Tail, False);
-            for Each of Sections.Heads loop
-               Set_Layout
-                 (Each.Row, Place => Absolute, Flow => Row, Align => Center, Gap => Tool_Gap,
-                  Height => Section_Head_Height, Width => Page_Width);
-               Set_Layout (Each.Bar, Width => Section_Bar, Height => Section_Head_Height - 12.0, Shrink => 0.0);
-               Panels.Set_Fill (Each.Bar, Themes.Border);
-               Labels.Set_Style (Each.Title, Pomarine.Line_Texts.Heading);
-               Set_Layout (Each.Title, Grow => 1.0, Width => 0.0, Height => Section_Head_Height);
-               Labels.Set_Ink (Each.Count, Quiet_Ink);
-               Labels.Set_Trailing (Each.Count, True);
-               Set_Layout (Each.Count, Width => 140.0, Height => Section_Head_Height);
-               Buttons.Set_Label (Each.Notes, "Notes");
-               Buttons.Set_Captioned (Each.Notes, True);
-               Buttons.Set_Focusable (Each.Notes, True);
-               Set_Layout (Each.Notes, Width => Notes_Width, Height => Outline_Button, Shrink => 0.0);
-               Buttons.Set_Label (Each.Add, "Add document to this section");
-               Buttons.Set_Icon (Each.Add, Icon_Set.Plus);
-               Buttons.Set_Focusable (Each.Add, True);
-               Set_Layout
-                 (Each.Add, Width => Outline_Button, Height => Outline_Button, Shrink => 0.0,
-                  Margin => (Right => Shadow_Room, others => <>));
-               Widgets.Set_Visible (Each.Row, False);
-            end loop;
-            for Index in Sections.Notes'Range loop
-               declare
-                  Each : Note_Box renames Sections.Notes (Index);
-               begin
-                  Panels.Set_Fill (Each.Box, Side_Fill);
-                  Panels.Set_Border (Each.Box, Themes.Border);
-                  Set_Layout
-                    (Each.Box, Place => Absolute, Flow => Column, Width => Page_Width, Outlined => True,
-                     Padding => (others => Notes_Pad), Shrink => 0.0);
-                  Editors.Set_Shared (Each.Text, Item.Host.Doc_Resources'Unchecked_Access);
-                  Editors.Configure
-                    (Each.Text, Pomarine.Line_Texts.Interface_Font, Edit_Size, 2000.0);
-                  Pomarine.Text_Areas.Set_Grows (Editors.Area (Each.Text).all);
-                  Editors.Set_Paper (Each.Text, Side_Fill);
-                  Editors.Set_Borderless (Each.Text, True);
-                  Editors.Attach (Each.Text, Item.Outline_View.Blocks (Index).Notes_Doc'Unchecked_Access);
-                  Set_Layout (Each.Text, Shrink => 0.0, Height => Notes_Min_Height);
-                  Widgets.Set_Visible (Each.Box, False);
-               end;
-            end loop;
-            for Each of Sections.Empties loop
-               Panels.Set_Border (Each.Box, Themes.Border);
-               Set_Layout
-                 (Each.Box, Place => Absolute, Flow => Column, Align => Center, Spread => Center,
-                  Gap => Tool_Gap, Height => Section_Empty_Height, Width => Page_Width, Outlined => True);
-               Labels.Set_Text (Each.Note, "No documents in this section yet");
-               Labels.Set_Ink (Each.Note, Quiet_Ink);
-               Set_Layout (Each.Note, Height => Heading_Height);
-               Buttons.Set_Label (Each.Add, "Add document");
-               Buttons.Set_Icon (Each.Add, Icon_Set.Plus);
-               Buttons.Set_Captioned (Each.Add, True);
-               Buttons.Set_Focusable (Each.Add, True);
-               Set_Layout (Each.Add, Width => Wide_Tool_Width, Height => Bar_Button_Height);
-               Widgets.Set_Visible (Each.Box, False);
-            end loop;
-            for Each of Sections.Gaps loop
-               Set_Layout
-                 (Each.Row, Place => Absolute, Flow => Row, Align => Center, Gap => Tool_Gap,
-                  Height => Gap_Mark_Height, Width => Page_Width);
-               Labels.Set_Text (Each.Caption, "Not in a section");
-               Labels.Set_Style (Each.Caption, Pomarine.Line_Texts.Caption);
-               Labels.Set_Ink (Each.Caption, Quiet_Ink);
-               Set_Layout (Each.Caption, Width => 120.0, Height => Gap_Mark_Height, Shrink => 0.0);
-               Panels.Set_Fill (Each.Rule, Themes.Border);
-               Set_Layout (Each.Rule, Grow => 1.0, Width => 0.0, Height => Hairline);
-               Widgets.Set_Visible (Each.Row, False);
-            end loop;
          end;
       end Style_Sections;
 
@@ -369,69 +449,6 @@ package body Viewer.Build.Write_View is
          Set_Layout
            (View.Pages_Content, Flow => Column, Shrink => 0.0, Align => Center, Gap => Page_Gap,
             Padding => (Top => Page_Margin - Page_Gap, others => Page_Margin));
-         for Each of Item.Docs.Pages loop
-            Set_Layout (Each.Box, Flow => Column, Shrink => 0.0, Width => Page_Width);
-            Set_Layout
-              (Each.Bar, Flow => Row, Align => Center, Height => Page_Head, Gap => Tool_Gap,
-               Padding => (Right => Shadow_Room, others => <>));
-            Labels.Set_Style (Each.Heading, Pomarine.Line_Texts.Heading);
-            Set_Layout
-              (Each.Heading_Area, Flow => Row, Align => Center, Grow => 1.0, Width => 0.0,
-               Height => Page_Head);
-            Set_Layout (Each.Heading, Grow => 1.0, Width => 0.0, Height => Page_Head);
-            Text_Fields.Set_Shared
-              (Each.Title_Field, Item.Host.Doc_Resources'Unchecked_Access);
-            Text_Fields.Configure
-              (Each.Title_Field, Pomarine.Line_Texts.Interface_Font,
-               Pomarine.Line_Texts.Heading_Size);
-            Set_Layout (Each.Title_Field, Grow => 1.0, Width => 0.0, Height => Title_Height);
-            Widgets.Set_Visible (Each.Title_Field, False);
-            Buttons.Set_Label (Each.Sources_Button, "Sources");
-            Buttons.Set_Dropdown (Each.Sources_Button, True);
-            Set_Layout (Each.Sources_Button, Width => Sources_Width, Height => Bar_Button_Height);
-            Buttons.Set_Label (Each.Outline_Button, "Section");
-            Buttons.Set_Captioned (Each.Outline_Button, True);
-            Buttons.Set_Dropdown (Each.Outline_Button, True);
-            Set_Layout (Each.Outline_Button, Width => Outline_Link_Width, Height => Bar_Button_Height);
-            Panels.Set_Fill (Each.Swatch, Themes.Border);
-            Set_Layout
-              (Each.Swatch, Width => Section_Swatch, Height => Section_Swatch, Shrink => 0.0,
-               Margin => (Right => Tool_Gap, others => <>));
-            Widgets.Set_Visible (Each.Swatch, False);
-            Set_Layout
-              (Each.Level, Place => Absolute,
-               Position => (Left | Bottom => 0.0, Right => Shadow_Room, others => <>),
-               Height => Level_Height);
-            Widgets.Set_Visible (Each.Level, False);
-            Buttons.Set_Label (Each.Mic_Button, "Mic");
-            Buttons.Set_Icon (Each.Mic_Button, Icon_Set.Microphone);
-            Buttons.Set_Icon_Size (Each.Mic_Button, Mic_Icon_Size);
-            Set_Layout (Each.Mic_Button, Width => Mic_Width, Height => Bar_Button_Height);
-            --  The page: white, outlined, with a shadow it leaves room for.
-            Panels.Set_Fill (Each.Sheet, Paper);
-            Panels.Set_Border (Each.Sheet, Themes.Border);
-            Panels.Set_Shadow (Each.Sheet, Themes.Shadow);
-            Set_Layout
-              (Each.Sheet, Flow => Column, Shrink => 0.0, Shadowed => True,
-               Padding => (others => Page_Border));
-            Editors.Set_Shared
-              (Each.Text, Item.Host.Doc_Resources'Unchecked_Access);
-            Editors.Configure
-              (Each.Text, Pomarine.Line_Texts.Serif, Page_Text_Size, 2000.0,
-               Spacing => 0.35 * Page_Text_Size);
-            Editors.Set_Paper (Each.Text, Paper);
-            Editors.Set_Toolbar (Each.Text);
-            Editors.Set_Assist (Each.Text, "Find Sources");
-            --  The page's margin is the text area's, so that its toolbar is the page's width.
-            Editors.Set_Indent (Each.Text, Page_Margin - Page_Text_Inset - Page_Border);
-            Pomarine.Text_Areas.Set_Grows (Editors.Area (Each.Text).all);
-            Set_Layout (Each.Text, Shrink => 0.0, Height => Page_Min_Height);
-            Labels.Set_Trailing (Each.Words, True);
-            Labels.Set_Ink (Each.Words, Quiet_Ink);
-            Set_Layout
-              (Each.Words, Height => Page_Foot, Margin => (Right => Shadow_Room, others => <>));
-            Widgets.Set_Visible (Each.Box, False);
-         end loop;
       end Style_Pages;
 
       --  The pane of the pinned source.

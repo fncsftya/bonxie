@@ -18,6 +18,9 @@ private package Viewer.Section_Links is
      with Pre => Section <= Outlines.Section_Count (Item);
    --  The colour of the section, in the theme.
 
+   procedure Listen_Page (Item : in out Session; Rank : Items.Slot);
+   --  Have the Section button of the page of the slot do what it is for.
+
    procedure Listen (Item : in out Session);
    --  Have the menu, and the buttons of the writing view's pages, do what
    --  they are for.

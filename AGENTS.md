@@ -5,6 +5,9 @@ We are using Ada and Alire.
 DO use assertions to improve robustness.
 PREFER static/fixed memory or arena allocation.
 AVOID dynamic allocation unless strictly required.
+DO NOT cap what a person makes or types (items, sections, links, folders, titles, notes, paths):
+  hold it in growing storage (Growing, Slot_Tables, Long_Texts). A fixed capacity is for what the
+  program itself bounds (buffers, protocol and token limits, what a widget library holds).
 PREFER design by contract (DbC), e.g.
   - pre and post conditions
   - static and dynamic predicates

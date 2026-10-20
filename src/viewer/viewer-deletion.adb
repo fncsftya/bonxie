@@ -60,7 +60,7 @@ package body Viewer.Deletion is
       Name : constant String :=
         (if Node.Kind = Directory_Node
          then Projects.Titles.To_String
-                (Item.Docs.Dirs.Directories (Node.Dir).Title)
+                (Item.Docs.Dirs (Node.Dir).Title)
          else Projects.Titles.To_String
                 (Items.Windows.Details (Item.Windows (Node.Doc)).Title));
    begin

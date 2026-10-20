@@ -17,7 +17,7 @@ package body Viewer.Writing.Support is
       and then Windows.Details (Item.Windows (Which)).Kind = Items.Source);
 
    function Is_Section (Item : Session; Dir : Natural) return Boolean is
-     (Dir /= 0 and then Item.Docs.Dirs.Directories (Dir).Section /= 0);
+     (Dir /= 0 and then Item.Docs.Dirs (Dir).Section /= 0);
 
    function Title_Of (Item : Session; Which : Items.Slot) return String is
      (Projects.Titles.To_String
@@ -102,7 +102,7 @@ package body Viewer.Writing.Support is
    function Dir_Of_Section (Item : Session; Section : Positive) return Natural is
    begin
       for Dir in 1 .. Item.Docs.Dirs.Count loop
-         if Item.Docs.Dirs.Directories (Dir).Section
+         if Item.Docs.Dirs (Dir).Section
             = Long_Integer (Outlines.Section_At (Item, Section).Key)
          then
             return Dir;

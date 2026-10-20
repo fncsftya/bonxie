@@ -13,7 +13,7 @@ package body Viewer.Canvas_Items.Polling is
 
    use type Items.Kinds;
    use type Webshot.States;
-   use type Items.Extensions.Bounded_String;
+   use type Items.Extensions.Text;
    use type Vision.Jobs.States;
    use type Speech.Jobs.States;
    use type Windows.Dictations;
@@ -21,7 +21,7 @@ package body Viewer.Canvas_Items.Polling is
    procedure Poll_Dictation (Item : in out Session) is
       Heard : Speech.Transcript;
    begin
-      for Which in Items.Slot loop
+      for Which in 1 .. Item.Windows.Count loop
          if Windows.Is_Assigned (Item.Windows (Which))
            and then Windows.Details (Item.Windows (Which)).Kind = Items.Note
          then
@@ -65,7 +65,7 @@ package body Viewer.Canvas_Items.Polling is
    begin
       Opening.Poll_Pick (Item);
       Opening.Poll_Download (Item);
-      for Which in Items.Slot loop
+      for Which in 1 .. Item.Windows.Count loop
          if Basics.Is_Source (Item, Which) and then Windows.Is_Paged (Item.Windows (Which)) then
             --  Which page is being read, of a document one page under
             --  another, as the window is scrolled.
@@ -92,7 +92,7 @@ package body Viewer.Canvas_Items.Polling is
                   begin
                      Recognition.Name_From_Page (Item, Which, Webshot.Page_Title (Which));
                      if Windows.Details (Item.Windows (Which)).Document
-                        /= Items.Extensions.Null_Bounded_String
+                        /= Items.Extensions.Null_Text
                      then
                         Items.Sources.Set_Document (Item.Nav.Store, Key, "", 0);
                         Windows.Set_Pages (Item.Windows (Which), "", 0, 0);

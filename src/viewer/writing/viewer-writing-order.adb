@@ -1,3 +1,5 @@
+with Items.Directories;
+with Viewer.Build;
 with Viewer.Writing.Support;
 
 package body Viewer.Writing.Order is
@@ -84,7 +86,7 @@ package body Viewer.Writing.Order is
          if Next_Dir <= Item.Docs.Dirs.Count
            and then
              (Next_Doc > Item.Reading.Write_Count
-              or else Key_Of (Item.Docs.Dirs.Directories (Next_Dir).Position)
+              or else Key_Of (Item.Docs.Dirs (Next_Dir).Position)
                       <= Key_Of
                            (Items.Directories.Position_Of
                               (Item.Nav.Store,
@@ -125,25 +127,28 @@ package body Viewer.Writing.Order is
       Item.Reading.Write_Count := 0;
       Item.Reading.Source_Total := 0;
       Item.Docs.Shown_Dir := 0;
-      Item.Docs.Doc_Dir := [others => 0];
+      for Each of Item.Docs.Doc_Dir loop
+         Each := 0;
+      end loop;
       Items.Directories.Load_Directories
         (Item.Nav.Store, Item.Opened.Current, Item.Docs.Dirs);
+      Build.Reserve_Rows (Item);
       Items.Directories.Load_Order
         (Item.Nav.Store, Item.Opened.Current, Ordered);
       for Place in 1 .. Ordered.Count loop
-         for Which in Items.Slot loop
+         for Which in 1 .. Item.Windows.Count loop
             if Windows.Is_Assigned (Item.Windows (Which))
               and then Windows.Details (Item.Windows (Which)).Key
-                       = Ordered.Keys (Place)
+                       = Ordered (Place)
             then
                if Support.Is_Note (Item, Which) then
                   declare
                      Inside : constant Items.Id :=
                        Items.Directories.Directory_Of (Item.Nav.Store,
-                                           Ordered.Keys (Place));
+                                           Ordered (Place));
                   begin
                      for Dir in 1 .. Item.Docs.Dirs.Count loop
-                        if Item.Docs.Dirs.Directories (Dir).Key = Inside then
+                        if Item.Docs.Dirs (Dir).Key = Inside then
                            Item.Docs.Doc_Dir (Which) := Dir;
                         end if;
                      end loop;
@@ -166,7 +171,7 @@ package body Viewer.Writing.Order is
    begin
       Items.Directories.Set_Directory
         (Item.Nav.Store, Windows.Details (Item.Windows (Which)).Key,
-         (if Dir = 0 then 0 else Item.Docs.Dirs.Directories (Dir).Key));
+         (if Dir = 0 then 0 else Item.Docs.Dirs (Dir).Key));
    end Keep_Directory;
 
    procedure Keep_Order (Item : in out Session) is
@@ -178,7 +183,7 @@ package body Viewer.Writing.Order is
             when Directory_Node =>
                Items.Directories.Set_Directory_Position
                  (Item.Nav.Store,
-                  Item.Docs.Dirs.Directories (Item.Docs.Tree (Row).Dir).Key,
+                  Item.Docs.Dirs (Item.Docs.Tree (Row).Dir).Key,
                      Row);
             when Document_Leaf =>
                Items.Directories.Set_Position

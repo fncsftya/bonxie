@@ -6,13 +6,13 @@ with Items.Sources;
 with Items.Windows.Callbacks;
 with Ada.Strings.Unbounded;
 with Downloads;
-with Model_Replies;
 with Preferences;
 with Pomarine.Widgets;
 with Pomarine.Widgets.Canvases;
 with Pomarine.Widgets.Pictures;
 with Speech.Jobs;
 with Speech.Models;
+with Viewer.Build;
 with Viewer.Find_Sources;
 with Viewer.Gestures;
 with Viewer.Links;
@@ -46,10 +46,6 @@ package body Viewer.Canvas_Items is
    use type Speech.Jobs.States;
    use type Windows.Dictations;
 
-   pragma Assert (Webshot.Slot_Count >= Items.Capacity);
-   pragma Assert (Vision.Jobs.Slot_Count >= Items.Capacity);
-   pragma Assert (Speech.Jobs.Slot_Count = Items.Capacity);
-
    Cascade_Step  : constant Float := 24.0;
 
    Cascade_Count : constant := 6;
@@ -58,7 +54,7 @@ package body Viewer.Canvas_Items is
 
    function Busy (Item : Session) return Boolean is
      (Capturing (Item)
-      or else (for some Which in Items.Slot =>
+      or else (for some Which in 1 .. Item.Windows.Count =>
                  Basics.Is_Source (Item, Which)
                  and then Vision.Jobs.State (Which) = Vision.Jobs.Working));
 
@@ -67,7 +63,7 @@ package body Viewer.Canvas_Items is
       if Item.Nav.Fetch_Slot /= 0 then
          return True;
       end if;
-      for Which in Items.Slot loop
+      for Which in 1 .. Item.Windows.Count loop
          if Windows.Is_Assigned (Item.Windows (Which))
            and then Speech.Jobs.State (Which)
                     in Speech.Jobs.Starting | Speech.Jobs.Listening
@@ -154,41 +150,35 @@ package body Viewer.Canvas_Items is
       return Found;
    end Count;
 
-   procedure Order
-     (Item : Session; Slots : out Slot_List; Found : out Natural) is
+   procedure Order (Item : Session; Slots : in out Slot_List) is
    begin
-      Found := 0;
-      Slots := [others => Items.Slot'First];
-      for Which in Items.Slot loop
+      Slots.Clear;
+      for Which in 1 .. Item.Windows.Count loop
          if Windows.Is_Assigned (Item.Windows (Which)) then
             --  Inserted among those before it by when they were made,
             --  which the ids give.
             declare
                Key : constant Items.Id :=
                  Windows.Details (Item.Windows (Which)).Key;
-               At_Index : Natural := Found;
+               At_Index : Natural := Slots.Count;
             begin
+               Slots.Append (Which);
                while At_Index >= 1
-                 and then Windows.Details
-                            (Item.Windows
-                               (Slots (Slots'First + At_Index - 1))).Key > Key
+                 and then Windows.Details (Item.Windows (Slots (At_Index))).Key > Key
                loop
-                  Slots (Slots'First + At_Index) :=
-                    Slots (Slots'First + At_Index - 1);
+                  Slots (At_Index + 1) := Slots (At_Index);
                   At_Index := At_Index - 1;
                end loop;
-               Slots (Slots'First + At_Index) := Which;
-               Found := Found + 1;
+               Slots (At_Index + 1) := Which;
             end;
          end if;
       end loop;
    end Order;
 
    function Nth (Item : Session; Row : Positive) return Items.Slot is
-      Slots : Slot_List (1 .. Items.Capacity);
-      Found : Natural;
+      Slots : Slot_List;
    begin
-      Order (Item, Slots, Found);
+      Order (Item, Slots);
       return Slots (Row);
    end Nth;
 
@@ -214,19 +204,20 @@ package body Viewer.Canvas_Items is
       Restored : Boolean;
    begin
       Items.Records.Load (Item.Nav.Store, Item.Opened.Current, Found);
+      Build.Reserve_Items (Item, Found.Count);
       for I in 1 .. Found.Count loop
          Windows.Assign
-           (Item.Windows (I), Found.Items (I),
-            Items.Records.Stored_Content (Item.Nav.Store, Found.Items (I).Key),
+           (Item.Windows (I), Found (I),
+            Items.Records.Stored_Content (Item.Nav.Store, Found (I).Key),
             Items.Sources.Shown_File
-              (Item.Nav.Store, Item.Opened.Current, Found.Items (I)));
+              (Item.Nav.Store, Item.Opened.Current, Found (I)));
          Recognition.Recognize_Kept (Item, I);
-         if Found.Items (I).Kind = Items.Source then
+         if Found (I).Kind = Items.Source then
             declare
                Kept : Items.Marks.Mark_List;
             begin
                Items.Marks.Load_Marks
-                 (Item.Nav.Store, Found.Items (I).Key, Kept);
+                 (Item.Nav.Store, Found (I).Key, Kept);
                Windows.Set_Marks (Item.Windows (I), Kept);
             end;
          end if;
@@ -234,7 +225,7 @@ package body Viewer.Canvas_Items is
       --  The pictures of those shown first, then the others.
       for Shown in reverse Boolean loop
          for I in 1 .. Found.Count loop
-            if (Found.Items (I).State = Items.Open) = Shown then
+            if (Found (I).State = Items.Open) = Shown then
                Windows.Warm (Item.Windows (I));
             end if;
          end loop;
@@ -273,7 +264,7 @@ package body Viewer.Canvas_Items is
    begin
       Save_All (Item);
       Links.Leave (Item);
-      for Which in Items.Slot loop
+      for Which in 1 .. Item.Windows.Count loop
          if Windows.Is_Assigned (Item.Windows (Which)) then
             Windows.Release (Item.Windows (Which));
             Webshot.Reset (Which);
@@ -338,14 +329,11 @@ package body Viewer.Canvas_Items is
       Document  : Boolean := False)
    is
       Made : Natural;
-      Name : constant String :=
-        Model_Replies.Cut ((if Page_Title = "" then Address else Page_Title), Projects.Title_Capacity);
+      Name : constant String := (if Page_Title = "" then Address else Page_Title);
    begin
       Made := 0;
       Added := False;
-      if Count (Item) < Items.Capacity then
-         Make (Item, Name, Items.Source, Made);
-      end if;
+      Make (Item, Name, Items.Source, Made);
       if Made = 0 then
          return;
       end if;
@@ -414,16 +402,18 @@ package body Viewer.Canvas_Items is
          Height => Items.Default_Height);
       Free   : Natural := 0;
    begin
-      for Which in Items.Slot loop
+      for Which in 1 .. Item.Windows.Count loop
          if Free = 0 and then not Windows.Is_Assigned (Item.Windows (Which))
          then
             Free := Which;
          end if;
       end loop;
-      Made := Free;
       if Free = 0 then
-         return;
+         --  Every window there is has an item: a window more is made.
+         Build.Reserve_Items (Item, Item.Windows.Count + 1);
+         Free := Item.Windows.Count;
       end if;
+      Made := Free;
       declare
          Key : constant Items.Id :=
            Items.Records.Create
@@ -432,7 +422,7 @@ package body Viewer.Canvas_Items is
          Windows.Assign
            (Item.Windows (Free),
             (Key   => Key,
-             Title => Projects.Titles.To_Bounded_String (Name),
+             Title => Projects.Titles.To_Text (Name),
              Where => Where,
              State => Items.Open,
              Kind  => Kind,
@@ -443,7 +433,7 @@ package body Viewer.Canvas_Items is
              Recognized_At => 0,
              Origin => (if Kind = Items.Source then Items.Unchosen else Items.Remote),
              Page => 0, Page_Count => 0,
-             Document => Items.Extensions.Null_Bounded_String),
+             Document => Items.Extensions.Null_Text),
             "");
          Windows.Place
            (Item.Windows (Free),
@@ -547,11 +537,9 @@ package body Viewer.Canvas_Items is
       end case;
    end Window_Asked;
 
-   procedure Listen (Item : in out Session) is
+   procedure Listen (Item : in out Session; Which : Items.Slot) is
    begin
-      for Which in Items.Slot loop
-         Window_Events.On (Item.Windows (Which), Which, Item'Unchecked_Access, Window_Asked'Access);
-      end loop;
+      Window_Events.On (Item.Windows (Which), Which, Item'Unchecked_Access, Window_Asked'Access);
    end Listen;
 
    procedure Pressed (Item : in out Session; X, Y : Float) is
@@ -624,7 +612,7 @@ package body Viewer.Canvas_Items is
             end if;
          end loop;
       end if;
-      for Which in Items.Slot loop
+      for Which in 1 .. Item.Windows.Count loop
          if Windows.Is_Assigned (Item.Windows (Which))
            and then Windows.Details (Item.Windows (Which)).Kind = Items.Source
          then

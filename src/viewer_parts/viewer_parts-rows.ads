@@ -1,6 +1,6 @@
-with Items;
-with Items.Directories;
+with Growing;
 with Texts.Documents;
+with Slot_Tables;
 with Pomarine.Widgets;
 with Pomarine.Widgets.Grips;
 with Pomarine.Widgets.Labels;
@@ -11,12 +11,9 @@ with Pomarine.Widgets.Panels;
 --  The tree of documents, the lists of rows beside the pages, and the menu, renaming and drag of them.
 package Viewer_Parts.Rows is
 
-   Tree_Capacity : constant :=
-     1 + Items.Directories.Max_Directories + Items.Capacity;
-   --  The rows of the tree of documents: the Overview, every directory,
-   --  and every document.
-
-   subtype Tree_Row is Positive range 1 .. Tree_Capacity;
+   subtype Tree_Row is Positive;
+   --  A row of the tree of documents: the Overview, every directory, and
+   --  every document.
 
    type Tree_Kinds is (Overview_Node, Directory_Node, Document_Leaf);
 
@@ -30,7 +27,8 @@ package Viewer_Parts.Rows is
    end record;
    --  What a row of the tree is of.
 
-   type Tree_Entry_Array is array (Tree_Row) of Tree_Entry;
+   package Tree_Entry_Lists is new Growing (Tree_Entry);
+   subtype Tree_Entry_Array is Tree_Entry_Lists.List;
 
    type Drop_Kinds is (No_Drop, Into_Node, Between);
    --  Where a row dragged would go: nowhere, into the Overview or a
@@ -75,9 +73,10 @@ package Viewer_Parts.Rows is
    end record;
    --  A row of a list in the writing view's sidebar.
 
-   type Index_Row_Array is array (Items.Slot) of Index_Row;
+   package Index_Row_Tables is new Slot_Tables (Index_Row);
+   subtype Index_Row_Array is Index_Row_Tables.Table;
 
-   type Tree_Row_Array is array (Tree_Row) of Index_Row;
+   subtype Tree_Row_Array is Index_Row_Tables.Table;
 
    type Context_State is limited record
       Context_Menu : Pomarine.Widgets.Menus.Menu;

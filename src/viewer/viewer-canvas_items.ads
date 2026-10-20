@@ -2,10 +2,11 @@
 --  from the database when the project is entered, kept in step with the
 --  canvas as it is panned and zoomed, and written back as they change.
 with Pomarine.Themes;
+with Viewer_Parts.Common;
 
 private package Viewer.Canvas_Items is
 
-   type Slot_List is array (Positive range <>) of Items.Slot;
+   subtype Slot_List is Viewer_Parts.Common.Slot_Array;
 
    procedure Enter (Item : in out Session)
      with Pre => Screen (Item) = Project;
@@ -25,10 +26,8 @@ private package Viewer.Canvas_Items is
      (Item : in out Session;
       Name : String := Untitled;
       Kind : Items.Kinds := Items.Note)
-     with Pre => Screen (Item) = Project
-                 and then Name'Length <= Projects.Title_Capacity;
-   --  Make an item called Name in the middle of the canvas, if there is
-   --  room for one.
+     with Pre => Screen (Item) = Project;
+   --  Make an item called Name in the middle of the canvas.
 
    procedure Add_Linked_Source (Item : in out Session; To : Items.Slot)
      with Pre => Screen (Item) = Project
@@ -50,7 +49,7 @@ private package Viewer.Canvas_Items is
    --  is moved to where a source's document is kept and drawn, a page at a time,
    --  as one that was fetched is. If Linked_To is not 0 the item of
    --  that window is linked to it, as Add_Linked_Source does. Added is False
-   --  if the project has no room for another item (File is left).
+   --  if the tree of widgets has no room for another item's (File is left).
 
    procedure Choose_Origin
      (Item : in out Session; Which : Items.Slot; To : Items.Origins)
@@ -80,9 +79,9 @@ private package Viewer.Canvas_Items is
    --  listening, in the background, or stop, so that what was heard is
    --  made text and put in the note.
 
-   procedure Listen (Item : in out Session);
-   --  Give the windows the procedure they call when their buttons ask for
-   --  something: once they are built.
+   procedure Listen (Item : in out Session; Which : Items.Slot);
+   --  Give the window the procedure it calls when its buttons ask for
+   --  something: once it is built.
 
    procedure Pressed
      (Item : in out Session; X, Y : Float)
@@ -139,11 +138,8 @@ private package Viewer.Canvas_Items is
    function Count (Item : Session) return Natural;
    --  How many items there are.
 
-   procedure Order
-     (Item : Session; Slots : out Slot_List; Found : out Natural)
-     with Pre => Slots'Length >= Items.Capacity;
-   --  The windows of the items, the earliest made first, in
-   --  Slots (Slots'First .. Slots'First + Found - 1).
+   procedure Order (Item : Session; Slots : in out Slot_List);
+   --  The windows of the items, the earliest made first, as Slots (1 .. Slots.Count).
 
    function Nth (Item : Session; Row : Positive) return Items.Slot
      with Pre => Row <= Count (Item);

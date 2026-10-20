@@ -7,6 +7,7 @@ package Write_Tests is
    procedure Ordering;
    procedure Dragging;
    procedure Directories;
+   procedure Many_Directories;
    procedure Context_Menus;
    procedure Context_Menus_Elsewhere;
    procedure Context_Menus_On_Canvas;

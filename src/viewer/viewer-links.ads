@@ -15,6 +15,10 @@ private package Viewer.Links is
    --  Add the pins and the toolbar to the canvas, hidden, once the windows
    --  have been built, with the density known.
 
+   procedure Make_Pins (Item : in out Session; Which : Items.Slot);
+   --  Add the pins of the window in the slot to the canvas, hidden, and
+   --  have them listened to.
+
    procedure Enter (Item : in out Session)
      with Pre => Screen (Item) = Project;
    --  Load the project's links, once its windows are on the canvas.

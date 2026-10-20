@@ -5,6 +5,10 @@ with System;
 
 package body Ebook is
 
+   First_Room_Words : constant := 4_096;
+   First_Room_Bytes : constant := 48_000;
+   --  What is made room for to begin with; more if there are more words.
+
    use type Interfaces.C.int;
 
    function EB_Info
@@ -257,12 +261,18 @@ package body Ebook is
             Content.Op'Address, Content.Corner'Address, Content.Letters'Address,
             Content.Fonts'Address, Content.Clip'Address, Content.Pictures'Address,
             Content.Pixels'Address);
-         EB_Page_Words
-           (Handle, Found.Words'Address, Pomarine.Words.Max_Words,
-            Found.Text'Address, Pomarine.Words.Text_Capacity, Words, Length, Cut);
+         Pomarine.Words.Clear (Found);
+         Pomarine.Words.Reserve (Found, First_Room_Words, First_Room_Bytes);
+         loop
+            EB_Page_Words
+              (Handle, Found.Words.all'Address, Interfaces.C.int (Found.Words'Length),
+               Found.Text.all'Address, Interfaces.C.int (Found.Text'Length), Words, Length, Cut);
+            --  If it was cut short for room, it is done again with more.
+            exit when Cut = 0;
+            Pomarine.Words.Reserve (Found, 2 * Found.Words'Length, 2 * Found.Text'Length);
+         end loop;
          Found.Count := Natural (Words);
          Found.Length := Natural (Length);
-         Found.Truncated := Cut /= 0;
          EB_Page_Free (Handle);
       end;
    end Build_Page;

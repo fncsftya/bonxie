@@ -1,4 +1,3 @@
-with Ada.Strings;
 with Ada_Sqlite3;
 with Repository.Database; use Repository.Database;
 
@@ -97,18 +96,15 @@ package body Repository.Item is
            & "captured_at, zoom, recognized_at, scroll, scroll_across, "
            & "page, page_count, document, origin "
            & "FROM items "
-           & "WHERE project_id = :project ORDER BY id LIMIT :limit");
+           & "WHERE project_id = :project ORDER BY id");
    begin
-      Result.Count := 0;
+      Result.Clear;
       Ada_Sqlite3.Bind_Int64 (Query, ":project", Long_Integer (Project));
-      Ada_Sqlite3.Bind_Int (Query, ":limit", Items.Capacity);
       while Ada_Sqlite3.Step (Query) = Ada_Sqlite3.ROW loop
-         pragma Assert (Result.Count < Items.Capacity);
-         Result.Count := Result.Count + 1;
-         Result.Items (Result.Count) :=
-           (Key   => Items.Id (Ada_Sqlite3.Column_Int64 (Query, 0)),
-            Title => Projects.Titles.To_Bounded_String
-              (Ada_Sqlite3.Column_Text (Query, 1), Ada.Strings.Right),
+         Result.Append
+           ((Key   => Items.Id (Ada_Sqlite3.Column_Int64 (Query, 0)),
+            Title => Projects.Titles.To_Text
+              (Ada_Sqlite3.Column_Text (Query, 1)),
             Where => (Left   => Ada_Sqlite3.Column_Double (Query, 2),
                       Top    => Ada_Sqlite3.Column_Double (Query, 3),
                       Width  => Ada_Sqlite3.Column_Double (Query, 4),
@@ -128,12 +124,12 @@ package body Repository.Item is
                Float'Max (0.0, Ada_Sqlite3.Column_Double (Query, 12))),
             Page => Natural'Max (0, Ada_Sqlite3.Column_Int (Query, 13)),
             Page_Count => Natural'Max (0, Ada_Sqlite3.Column_Int (Query, 14)),
-            Document => Items.Extensions.To_Bounded_String
-              (Ada_Sqlite3.Column_Text (Query, 15), Ada.Strings.Right),
+            Document => Items.Extensions.To_Text
+              (Ada_Sqlite3.Column_Text (Query, 15)),
             Origin => (if Ada_Sqlite3.Column_Int (Query, 16)
                           in 0 .. Items.Origins'Pos (Items.Origins'Last)
                        then Items.Origins'Val (Ada_Sqlite3.Column_Int (Query, 16))
-                       else Items.Remote));
+                       else Items.Remote)));
       end loop;
    end Load;
 
@@ -377,16 +373,12 @@ package body Repository.Item is
         Ada_Sqlite3.Prepare
           (DB (Store).all,
            "SELECT id FROM items WHERE project_id = :project "
-           & "ORDER BY position = 0, position, id LIMIT :limit");
+           & "ORDER BY position = 0, position, id");
    begin
-      Result.Count := 0;
+      Result.Clear;
       Ada_Sqlite3.Bind_Int64 (Query, ":project", Long_Integer (Project));
-      Ada_Sqlite3.Bind_Int (Query, ":limit", Items.Capacity);
       while Ada_Sqlite3.Step (Query) = Ada_Sqlite3.ROW loop
-         pragma Assert (Result.Count < Items.Capacity);
-         Result.Count := Result.Count + 1;
-         Result.Keys (Result.Count) :=
-           Items.Id (Ada_Sqlite3.Column_Int64 (Query, 0));
+         Result.Append (Items.Id (Ada_Sqlite3.Column_Int64 (Query, 0)));
       end loop;
    end Load_Order;
 

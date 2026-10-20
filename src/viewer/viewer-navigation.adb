@@ -54,8 +54,7 @@ package body Viewer.Navigation is
       if Last >= First then
          Projects.Rename
            (Item.Nav.Store, Item.Opened.Current,
-            Content (First .. Natural'Min
-                                (Last, First + Projects.Title_Capacity - 1)));
+            Content (First .. Last));
          Show_Title_Of_Project (Item);
       end if;
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);

@@ -1,21 +1,12 @@
-with Ada.Strings.Bounded;
+with Growing;
+with Long_Texts;
 
 --  The sections of a project's outline: their titles, in the order they
 --  are to be read in, each kept in a table of its own.
 package Projects.Sections is
 
-   Max_Sections   : constant := 64;
-   Max_Title : constant := 128;
-   --  Bytes, of what is read back: longer is cut.
-
-   package Title_Texts is new Ada.Strings.Bounded.Generic_Bounded_Length
-     (Max_Title);
-
-   Max_Notes : constant := 2000;
-   --  Bytes in the plain summary; the stored rich document retains its full text.
-
-   package Note_Texts is new Ada.Strings.Bounded.Generic_Bounded_Length
-     (Max_Notes);
+   package Title_Texts renames Long_Texts;
+   package Note_Texts renames Long_Texts;
 
    type Section_Id is new Long_Integer;
 
@@ -26,8 +17,8 @@ package Projects.Sections is
 
    type Section is record
       Key   : Section_Id := 0;
-      Title : Title_Texts.Bounded_String := Title_Texts.Null_Bounded_String;
-      Notes : Note_Texts.Bounded_String := Note_Texts.Null_Bounded_String;
+      Title : Title_Texts.Text := Title_Texts.Null_Text;
+      Notes : Note_Texts.Text := Note_Texts.Null_Text;
       --  What is to be said in the section, as the writer typed it.
       Open  : Boolean := False;
       --  Whether the notes are shown: not kept, as only the view's.
@@ -37,18 +28,11 @@ package Projects.Sections is
       --  Palette_Size, and kept, whatever the order and the others.
    end record;
 
-   type Section_Array is array (Positive range <>) of Section;
    type Key_Array is array (Positive range <>) of Section_Id;
 
-   type Section_List is record
-      Count : Natural range 0 .. Max_Sections := 0;
-      Items : Section_Array (1 .. Max_Sections);
-   end record;
-   --  Items (1 .. Count) are in order.
-
-   Max_Links : constant := 16;
-   --  The most items a project has (see Items.Capacity), each in at most
-   --  one section.
+   package Section_Lists is new Growing (Section);
+   subtype Section_List is Section_Lists.List;
+   --  In order.
 
    type Membership is record
       Item    : Long_Integer := 0;
@@ -59,13 +43,9 @@ package Projects.Sections is
    --  An item is of a section, which is to be read for. A section has any
    --  number of items.
 
-   type Link_Array is array (Positive range <>) of Membership;
-
-   type Link_List is record
-      Count : Natural range 0 .. Max_Links := 0;
-      Items : Link_Array (1 .. Max_Links);
-   end record;
-   --  Items (1 .. Count): the items of the project that are of a section.
+   package Link_Lists is new Growing (Membership);
+   subtype Link_List is Link_Lists.List;
+   --  The items of the project that are of a section.
 
    procedure Load_Links
      (Item   : Store;
@@ -78,7 +58,7 @@ package Projects.Sections is
       Owner : Id;
       Result  : out Section_List)
      with Pre => Is_Open (Item);
-   --  The project's sections, in order; at most Max_Sections.
+   --  The project's sections, in order.
 
    function Add
      (Item    : in out Store;
@@ -98,7 +78,7 @@ package Projects.Sections is
 
    procedure Set_Notes
      (Item : in out Store; Key : Section_Id; Notes : String)
-     with Pre => Is_Open (Item) and then Notes'Length <= Max_Notes;
+     with Pre => Is_Open (Item);
    --  Keep the section's notes.
 
    procedure Set_Order

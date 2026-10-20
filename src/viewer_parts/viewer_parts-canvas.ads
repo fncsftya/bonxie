@@ -1,4 +1,6 @@
+with Growing;
 with Items;
+with Slot_Tables;
 with Items.Links;
 with Texts.Documents;
 with Pomarine.Widgets;
@@ -11,9 +13,12 @@ with Pomarine.Widgets.Scrollers;
 --  The canvas's pins and links, its dock of minimised items and tray of tools, and the title being edited.
 package Viewer_Parts.Canvas is
 
-   type Pin_Grid is
-     array (Items.Slot, Items.Links.Sides) of aliased Pomarine.Widgets.Pins.Pin;
-   --  The handles to link items by: four round each window.
+   type Pin_Set is array (Items.Links.Sides) of aliased Pomarine.Widgets.Pins.Pin;
+   --  The handles to link an item by: four round its window.
+
+   package Pin_Tables is new Slot_Tables (Pin_Set);
+   subtype Pin_Grid is Pin_Tables.Table;
+   --  One set to each window.
 
    type Stroke_Button_Array is
      array (Items.Links.Strokes) of Pomarine.Widgets.Buttons.Button;
@@ -24,7 +29,10 @@ package Viewer_Parts.Canvas is
    type Color_Button_Array is
      array (Items.Links.Link_Colors) of Pomarine.Widgets.Buttons.Button;
 
-   type Pin_Places is array (Items.Slot, Items.Links.Sides) of Float;
+   type Pin_Place_Set is array (Items.Links.Sides) of Float;
+
+   package Place_Lists is new Growing (Pin_Place_Set);
+   subtype Pin_Places is Place_Lists.List;
 
    type Dock_Parts is limited record
       Dock_Panel    : Pomarine.Widgets.Panels.Panel;
@@ -49,7 +57,7 @@ package Viewer_Parts.Canvas is
    type Link_State is limited record
       Pins         : Pin_Grid;
       --  On the canvas, over the windows, shown where the pointer is.
-      Pin_Left, Pin_Top : Pin_Places := [others => [others => -1.0E9]];
+      Pin_Left, Pin_Top : Pin_Places;
       --  Where each was last put, in pixels, to put it again only if it
       --  moves.
       Link_Handle  : Pomarine.Widgets.Pins.Pin;

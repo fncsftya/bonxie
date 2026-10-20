@@ -32,6 +32,14 @@ the ring drawn; `items-list-keys`: the list of items by arrows, Space, Delete,
 Tab and Return). `sources-words` also checks that the task that finds the words
 posted to wake the loop.
 
+Nothing a person makes has a number it stops at, and the tests say so with
+more than there was once room for: `items-full` (250 items, all with their
+windows), `outline-many-sections` (90 sections, one with a title of 300 bytes, kept),
+`write-many-directories` (140 folders), `items-long-title` (a title of 300 bytes,
+kept whole) and `items-many-marks-and-words` (400 highlights and 5,000 words of one
+picture, kept). The tree of widgets holds up to 2,097,151 (what a widget's number
+keeps of its place), and the memory of those that are made.
+
 The widgets themselves (text areas, fields, the sheet, words selected over
 a picture) are tested in pomarine, which this uses for its UI.
 

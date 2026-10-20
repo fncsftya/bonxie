@@ -13,17 +13,15 @@ package Viewer.Canvas_Windows is
      (Item : in out Session;
       Name : String := "Untitled item";
       Kind : Items.Kinds := Items.Note)
-     with Pre => Is_Open (Item) and then Screen (Item) = Project
-                 and then Name'Length <= Projects.Title_Capacity;
+     with Pre => Is_Open (Item) and then Screen (Item) = Project;
    --  Add one called Name in the middle of the canvas, with the focus in
    --  its text, as the Add Item button does (or, of a Source, as Add
    --  Source does, then as if its From URL button was pressed, to type its
-   --  link); none if the project has Items.Capacity.
+   --  link).
 
    procedure Add_Unchosen_Source
      (Item : in out Session; Name : String := "Untitled source")
-     with Pre => Is_Open (Item) and then Screen (Item) = Project
-                 and then Name'Length <= Projects.Title_Capacity;
+     with Pre => Is_Open (Item) and then Screen (Item) = Project;
    --  Add a source as the Add Source button does: with its two buttons
    --  to say where it comes from.
 

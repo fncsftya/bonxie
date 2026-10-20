@@ -1,3 +1,4 @@
+with Pomarine.Marks;
 with Items.Sources;
 with Pomarine.Text_Areas;
 with Items.Windows.Builder;
@@ -20,9 +21,6 @@ package body Items.Windows is
    package Views renames Pomarine.Widgets.Page_Views;
 
    use type Widgets.Clipboard_Access;
-
-   pragma Assert (Items.Marks.Max_Marks = Pomarine.Widgets.Pictures.Max_Marks);
-   pragma Assert (Items.Marks.Max_Marks = Pomarine.Widgets.Page_Views.Max_Marks);
 
    function Count_Words (Of_Text : String) return Natural is
       Total  : Natural := 0;
@@ -127,23 +125,25 @@ package body Items.Windows is
                     else Pomarine.Widgets.Pictures.History_Of (Item.Picture));
       if Item.Paged then
          Into.Count := Views.Mark_Count (Item.Pages);
+         Pomarine.Marks.Reserve (Into.Marks, Into.Count);
          for Index in 1 .. Into.Count loop
             declare
                Each : constant Views.Mark := Views.Mark_At (Item.Pages, Index);
             begin
-               Into.Marks (Index) :=
+               Into.Marks.Data (Index) :=
                  (Left => Each.Left, Right => Each.Right, Y => Each.Y, Page => Each.Page, Trace => Each.Trace);
             end;
          end loop;
          return;
       end if;
       Into.Count := Pomarine.Widgets.Pictures.Mark_Count (Item.Picture);
+      Pomarine.Marks.Reserve (Into.Marks, Into.Count);
       for Index in 1 .. Into.Count loop
          declare
             Each : constant Pomarine.Widgets.Pictures.Mark :=
               Pomarine.Widgets.Pictures.Mark_At (Item.Picture, Index);
          begin
-            Into.Marks (Index) :=
+            Into.Marks.Data (Index) :=
               (Left => Each.Left, Right => Each.Right, Y => Each.Y, Page => 1, Trace => Each.Trace);
          end;
       end loop;
@@ -179,7 +179,7 @@ package body Items.Windows is
    begin
       for Index in Shown'Range loop
          declare
-            Each : Items.Marks.Mark renames Kept.Marks (Index);
+            Each : Items.Marks.Mark renames Kept.Marks.Data (Index);
          begin
             Shown (Index) :=
               Pomarine.Widgets.Pictures.Clamped_Mark

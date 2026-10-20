@@ -862,9 +862,8 @@ package body Ebook.Books is
                         Op.Box.Top := Float'Min (Op.Box.Top, Top);
                         Op.Box.Bottom := Float'Max (Op.Box.Bottom, Top + Tall);
                      end;
-                     if Found.Count < Pomarine.Words.Max_Words
-                       and then Found.Length + Text'Length <= Pomarine.Words.Text_Capacity
-                     then
+                     begin
+                        Pomarine.Words.Reserve (Found, Found.Count + 1, Found.Length + Text'Length);
                         Found.Count := Found.Count + 1;
                         Found.Text (Found.Length + 1 .. Found.Length + Text'Length) := Text;
                         Found.Words (Found.Count) :=
@@ -873,9 +872,7 @@ package body Ebook.Books is
                            Left => Word.X / Sheet_Width, Top => Top / Sheet_Height,
                            Width => Word.Width / Sheet_Width, Height => Tall / Sheet_Height);
                         Found.Length := Found.Length + Text'Length;
-                     else
-                        Found.Truncated := True;
-                     end if;
+                     end;
                   end;
                end loop;
             end;

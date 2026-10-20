@@ -124,7 +124,9 @@ package body Viewer.Section_Links is
       Close (Item);
       Menus.Clear (Parts.Menu);
       Menus.Add (Parts.Menu, Menus.Heading, Heading_Text);
-      Parts.Rows := [others => 0];
+      for Each of Parts.Rows loop
+         Each := 0;
+      end loop;
       Parts.Remove := 0;
       for Each in 1 .. Total loop
          declare
@@ -179,8 +181,6 @@ package body Viewer.Section_Links is
    is
       Own   : constant String := Projects.Titles.To_String (Items.Windows.Details (Item.Windows (Which)).Title);
       Name  : constant String := Projects.Sections.Title_Texts.To_String (Section.Title);
-      Most  : constant := 64;
-      Last  : Natural := Natural'Min (Name'Length, Most);
       Named : Boolean := Own = Canvas_Items.Untitled or else Own = Canvas_Items.Untitled_Document;
    begin
       for Each in 1 .. Outlines.Section_Count (Item) loop
@@ -188,12 +188,7 @@ package body Viewer.Section_Links is
            or else Projects.Sections.Title_Texts.To_String (Outlines.Section_At (Item, Each).Title) = Own;
       end loop;
       if Named and then Name /= "" and then Name /= Own then
-         while Last > 0 and then Last < Name'Length
-           and then Character'Pos (Name (Name'First + Last)) in 16#80# .. 16#BF#
-         loop
-            Last := Last - 1;
-         end loop;
-         Items.Windows.Set_Title_Text (Item.Windows (Which), Name (Name'First .. Name'First + Last - 1));
+         Items.Windows.Set_Title_Text (Item.Windows (Which), Name);
       end if;
    end Name_After;
 
@@ -228,7 +223,7 @@ package body Viewer.Section_Links is
       declare
          Which   : constant Items.Slot := Parts.Which;
          Section : constant Natural :=
-           (if Row in Parts.Rows'Range then Parts.Rows (Row) else 0);
+           (if Row in 1 .. Parts.Rows.Count then Parts.Rows (Row) else 0);
          Own     : constant Natural := Section_Of (Item, Which);
       begin
          Close (Item);
@@ -276,16 +271,19 @@ package body Viewer.Section_Links is
       use all type Widgets.Event_Kind;
    begin
       Hooks.On (Item.Section_Menu.Menu, Choose, Item'Unchecked_Access, Chosen'Access);
-      for Rank in Items.Slot loop
-         Widgets.Set_Tag (Item.Docs.Pages (Rank).Outline_Button, Widgets.No_Tag, Rank);
-         Hooks.On (Item.Docs.Pages (Rank).Outline_Button, Click, Item'Unchecked_Access, Page_Clicked'Access);
-      end loop;
    end Listen;
+
+   procedure Listen_Page (Item : in out Session; Rank : Items.Slot) is
+      use all type Widgets.Event_Kind;
+   begin
+      Widgets.Set_Tag (Item.Docs.Pages (Rank).Outline_Button, Widgets.No_Tag, Rank);
+      Hooks.On (Item.Docs.Pages (Rank).Outline_Button, Click, Item'Unchecked_Access, Page_Clicked'Access);
+   end Listen_Page;
 
    procedure Update (Item : in out Session) is
       Parts : Section_Menu_Parts renames Item.Section_Menu;
    begin
-      for Which in Items.Slot loop
+      for Which in 1 .. Item.Windows.Count loop
          if Items.Windows.Is_Assigned (Item.Windows (Which))
            and then Items.Windows.Details (Item.Windows (Which)).Kind = Items.Note
          then

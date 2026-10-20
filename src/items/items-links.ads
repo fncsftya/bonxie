@@ -1,3 +1,4 @@
+with Growing;
 with Projects;
 
 --  The lines between a project's items. They go with the items.
@@ -27,16 +28,9 @@ package Items.Links is
    --  link to itself, and two items at most one between them (in either
    --  direction).
 
-   Max_Links : constant := Capacity * (Capacity - 1) / 2;
-   --  Of one project: one to each pair of its items.
-
-   type Link_Array is array (Positive range <>) of Link;
-
-   type Link_List is record
-      Count : Natural range 0 .. Max_Links := 0;
-      Links : Link_Array (1 .. Max_Links);
-   end record;
-   --  Links (1 .. Count), the earliest made first.
+   package Link_Lists is new Growing (Link);
+   subtype Link_List is Link_Lists.List;
+   --  The earliest made first.
 
    function Is_Linked
      (Store : Projects.Store; A, B : Id) return Boolean

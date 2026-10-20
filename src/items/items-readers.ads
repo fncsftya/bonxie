@@ -31,8 +31,6 @@ package Items.Readers is
 
    type Reader is limited private;
 
-   type Reader_Array is array (Slot) of Reader;
-
    type Actions is (None, Close, Toggle_Pin);
    --  What a reader's buttons ask for. Toggle_Pin pins a window, and lets
    --  go of the pinned one.

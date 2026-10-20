@@ -1,19 +1,16 @@
+with Growing;
 with Projects;
 
 --  The tree of the writing view: the items in folders, and the order of
 --  its rows.
 package Items.Directories is
 
-   Max_Directories : constant := 128;
-   --  Of one project: those made, and one for each of the outline's
-   --  sections (Projects.Sections.Max_Sections).
-
    type Directory is record
       Key   : Id := 0;
       Position : Natural := 0;
       --  Where it was put in the tree, with the documents; 0 if never.
-      Title : Projects.Titles.Bounded_String :=
-        Projects.Titles.Null_Bounded_String;
+      Title : Projects.Titles.Text :=
+        Projects.Titles.Null_Text;
       Section : Long_Integer := 0;
       --  The key of the outline's section that this is the folder of, 0
       --  for a folder that was made. A section's folder is made for it
@@ -24,13 +21,9 @@ package Items.Directories is
    end record;
    --  A folder of the writing view's documents.
 
-   type Directory_Array is array (Positive range <>) of Directory;
-
-   type Directory_List is record
-      Count       : Natural range 0 .. Max_Directories := 0;
-      Directories : Directory_Array (1 .. Max_Directories);
-   end record;
-   --  Directories (1 .. Count), the earliest made first.
+   package Directory_Lists is new Growing (Directory);
+   subtype Directory_List is Directory_Lists.List;
+   --  The earliest made first.
 
    procedure Load_Order
      (Store   : Projects.Store;
@@ -63,8 +56,7 @@ package Items.Directories is
      (Store   : in out Projects.Store;
       Project : Projects.Id;
       Title   : String) return Id
-     with Pre => Projects.Is_Open (Store)
-                 and then Directory_Count (Store, Project) < Max_Directories;
+     with Pre => Projects.Is_Open (Store);
    --  Add a directory to the project, after those it has.
 
    procedure Load_Directories

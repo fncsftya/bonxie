@@ -31,7 +31,7 @@ package body Viewer.Canvas_Links is
    function Link_Description
      (Item : Session; Number : Positive) return String
    is
-      Each : Items.Links.Link renames Item.Linking.Link_Set.Links (Number);
+      Each : Items.Links.Link renames Item.Linking.Link_Set (Number);
    begin
       return Items.Links.Strokes'Image (Each.Stroke) & ' '
         & Items.Links.Endings'Image (Each.Ending) & ' '

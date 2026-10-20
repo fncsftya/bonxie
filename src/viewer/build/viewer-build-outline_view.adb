@@ -24,10 +24,10 @@ package body Viewer.Build.Outline_View is
    use Style;
    use Pomarine.Widgets.Layouts;
 
-   procedure Build_Outline (Item : in out Session) is
+   procedure Make_Block (Item : in out Session; Index : Positive) is
       View   : Outline_Parts renames Item.Outline_View;
+      Block  : Section_Block renames View.Blocks (Index);
       Pixels : constant Float := Item.Shell.Density;
-      Offset : constant Float := Pomarine.Boxes.Offset (Pixels);
 
       procedure Icon_Button
         (Part : in out Buttons.Button; Name : String; Icon : Pomarine.Icons.Icon) is
@@ -37,6 +37,60 @@ package body Viewer.Build.Outline_View is
          Buttons.Set_Focusable (Part, True);
          Set_Layout (Part, Width => Outline_Button, Height => Outline_Button, Shrink => 0.0);
       end Icon_Button;
+   begin
+      Widgets.Add_Before (View.Content, Block.Row, View.None);
+      Widgets.Add (Block.Row, Block.Line, Block.Notes_Sheet);
+      Widgets.Add (Block.Line, Block.Handle, Block.Swatch, Block.Field, Block.Notes);
+      Widgets.Add (Block.Line, Block.Up, Block.Down, Block.Remove);
+      Widgets.Add (Block.Notes_Sheet, Block.Notes_Text);
+      Grips.Set_Fill (Block.Row, Row_Fill);
+      Grips.Set_Hover_Fill (Block.Row, Row_Fill);
+      Grips.Set_Border (Block.Row, Themes.Border);
+      Grips.Set_Shadow (Block.Row, Side_Fill);
+      Grips.Set_Wanted_Cursor (Block.Row, SDL3.Cursors.Grab);
+      Set_Layout
+        (Block.Row, Shrink => 0.0, Flow => Column,
+         Padding => (Left | Right => Index_Pad, others => <>), Shadowed => True);
+      Set_Layout
+        (Block.Line, Shrink => 0.0, Flow => Row, Align => Center, Gap => Tool_Gap);
+      Set_Layout
+        (Block.Line, Height => Outline_Block_Height * Pixels, Unit => Device_Pixels);
+      Buttons.Set_Label (Block.Notes, "Notes");
+      Buttons.Set_Captioned (Block.Notes, True);
+      Buttons.Set_Focusable (Block.Notes, True);
+      Set_Layout (Block.Notes, Width => Notes_Width, Height => Outline_Button, Shrink => 0.0);
+      Set_Layout
+        (Block.Notes_Sheet, Flow => Column, Height => Outline_Notes_Height, Shrink => 0.0,
+         Margin => (Bottom => Tool_Gap, others => <>));
+      Editors.Set_Shared (Block.Notes_Text, Item.Host.Doc_Resources'Unchecked_Access);
+      Editors.Configure
+        (Block.Notes_Text, Pomarine.Line_Texts.Interface_Font, Edit_Size, 2000.0);
+      Editors.Set_Paper (Block.Notes_Text, Paper);
+      Editors.Attach (Block.Notes_Text, Block.Notes_Doc'Unchecked_Access);
+      Set_Layout (Block.Notes_Text, Grow => 1.0, Height => 0.0);
+      Widgets.Set_Visible (Block.Notes_Sheet, False);
+      Labels.Set_Text (Block.Handle, "::");
+      Labels.Set_Ink (Block.Handle, Quiet_Ink);
+      Set_Layout (Block.Handle, Width => Outline_Handle, Height => Index_Height, Shrink => 0.0);
+      Set_Layout
+        (Block.Swatch, Width => Section_Swatch, Height => Section_Swatch, Shrink => 0.0);
+      Text_Fields.Set_Shared (Block.Field, Item.Host.Doc_Resources'Unchecked_Access);
+      Text_Fields.Configure
+        (Block.Field, Pomarine.Line_Texts.Interface_Font, Edit_Size);
+      Text_Fields.Attach (Block.Field, Block.Doc'Unchecked_Access);
+      Set_Layout (Block.Field, Grow => 1.0, Width => 0.0, Height => Outline_Field_Height);
+      Icon_Button (Block.Up, "Move up", Pomarine.Icons.Chevron_Up);
+      Icon_Button (Block.Down, "Move down", Pomarine.Icons.Chevron_Down);
+      Icon_Button (Block.Remove, "Delete section", Icon_Set.Delete);
+      Buttons.Set_Kind (Block.Remove, Buttons.Danger);
+      Widgets.Set_Visible (Block.Row, False);
+   end Make_Block;
+
+   procedure Build_Outline (Item : in out Session) is
+      View   : Outline_Parts renames Item.Outline_View;
+      Pixels : constant Float := Item.Shell.Density;
+      Offset : constant Float := Pomarine.Boxes.Offset (Pixels);
+
    begin
       Widgets.Add (Item.Toolbar.Content_Panel, View.View);
       Widgets.Add (View.View, View.Form, View.Sections);
@@ -105,58 +159,6 @@ package body Viewer.Build.Outline_View is
         (View.Content, Flow => Column, Shrink => 0.0,
          Gap => Index_Gap * Pixels - Offset, Unit => Device_Pixels);
 
-      for Each in View.Blocks'Range loop
-         declare
-            Block : Section_Block renames View.Blocks (Each);
-         begin
-            Widgets.Add (View.Content, Block.Row);
-            Widgets.Add (Block.Row, Block.Line, Block.Notes_Sheet);
-            Widgets.Add (Block.Line, Block.Handle, Block.Swatch, Block.Field, Block.Notes);
-            Widgets.Add (Block.Line, Block.Up, Block.Down, Block.Remove);
-            Widgets.Add (Block.Notes_Sheet, Block.Notes_Text);
-            Grips.Set_Fill (Block.Row, Row_Fill);
-            Grips.Set_Hover_Fill (Block.Row, Row_Fill);
-            Grips.Set_Border (Block.Row, Themes.Border);
-            Grips.Set_Shadow (Block.Row, Side_Fill);
-            Grips.Set_Wanted_Cursor (Block.Row, SDL3.Cursors.Grab);
-            Set_Layout
-              (Block.Row, Shrink => 0.0, Flow => Column,
-               Padding => (Left | Right => Index_Pad, others => <>), Shadowed => True);
-            Set_Layout
-              (Block.Line, Shrink => 0.0, Flow => Row, Align => Center, Gap => Tool_Gap);
-            Set_Layout
-              (Block.Line, Height => Outline_Block_Height * Pixels, Unit => Device_Pixels);
-            Buttons.Set_Label (Block.Notes, "Notes");
-            Buttons.Set_Captioned (Block.Notes, True);
-            Buttons.Set_Focusable (Block.Notes, True);
-            Set_Layout (Block.Notes, Width => Notes_Width, Height => Outline_Button, Shrink => 0.0);
-            Set_Layout
-              (Block.Notes_Sheet, Flow => Column, Height => Outline_Notes_Height, Shrink => 0.0,
-               Margin => (Bottom => Tool_Gap, others => <>));
-            Editors.Set_Shared (Block.Notes_Text, Item.Host.Doc_Resources'Unchecked_Access);
-            Editors.Configure
-              (Block.Notes_Text, Pomarine.Line_Texts.Interface_Font, Edit_Size, 2000.0);
-            Editors.Set_Paper (Block.Notes_Text, Paper);
-            Editors.Attach (Block.Notes_Text, Block.Notes_Doc'Unchecked_Access);
-            Set_Layout (Block.Notes_Text, Grow => 1.0, Height => 0.0);
-            Widgets.Set_Visible (Block.Notes_Sheet, False);
-            Labels.Set_Text (Block.Handle, "::");
-            Labels.Set_Ink (Block.Handle, Quiet_Ink);
-            Set_Layout (Block.Handle, Width => Outline_Handle, Height => Index_Height, Shrink => 0.0);
-            Set_Layout
-              (Block.Swatch, Width => Section_Swatch, Height => Section_Swatch, Shrink => 0.0);
-            Text_Fields.Set_Shared (Block.Field, Item.Host.Doc_Resources'Unchecked_Access);
-            Text_Fields.Configure
-              (Block.Field, Pomarine.Line_Texts.Interface_Font, Edit_Size);
-            Text_Fields.Attach (Block.Field, Block.Doc'Unchecked_Access);
-            Set_Layout (Block.Field, Grow => 1.0, Width => 0.0, Height => Outline_Field_Height);
-            Icon_Button (Block.Up, "Move up", Pomarine.Icons.Chevron_Up);
-            Icon_Button (Block.Down, "Move down", Pomarine.Icons.Chevron_Down);
-            Icon_Button (Block.Remove, "Delete section", Icon_Set.Delete);
-            Buttons.Set_Kind (Block.Remove, Buttons.Danger);
-            Widgets.Set_Visible (Block.Row, False);
-         end;
-      end loop;
       Labels.Set_Text (View.None, "No sections yet");
       Labels.Set_Ink (View.None, Closed_Ink);
       Widgets.Add (View.Content, View.None);

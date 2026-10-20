@@ -16,10 +16,10 @@ package body Viewer.Links.Events is
 
    procedure Set_Accepting (Item : in out Session; Except : Natural) is
    begin
-      for Which in Items.Slot loop
+      for Which in 1 .. Item.Windows.Count loop
          for Side in Item_Links.Sides loop
             Pins.Set_Accepting
-              (Item.Linking.Pins (Which, Side),
+              (Item.Linking.Pins (Which) (Side),
                Except /= 0 and then Which /= Except);
          end loop;
       end loop;
@@ -104,11 +104,11 @@ package body Viewer.Links.Events is
          Number : constant Natural := Support.Index_Of (Item, Item.Linking.Link_Key);
          From   : constant Natural :=
            (if Number = 0 then 0
-            else Support.Slot_Of (Item, Item.Linking.Link_Set.Links (Number).From));
+            else Support.Slot_Of (Item, Item.Linking.Link_Set (Number).From));
       begin
          if From /= 0 then
             Item.Linking.Link_From := From;
-            Item.Linking.Link_From_Side := Item.Linking.Link_Set.Links (Number).From_Side;
+            Item.Linking.Link_From_Side := Item.Linking.Link_Set (Number).From_Side;
             Item.Linking.Link_Moving := True;
             Set_Accepting (Item, From);
          else
@@ -126,11 +126,11 @@ package body Viewer.Links.Events is
          return;
       end if;
       --  The pointer is over the pin it was let go on, if any.
-      for Which in Items.Slot loop
+      for Which in 1 .. Item.Windows.Count loop
          for Side in Item_Links.Sides loop
             if Which /= Item.Linking.Link_From
-              and then Widgets.Is_Shown (Item.Linking.Pins (Which, Side))
-              and then Widgets.Is_Hovered (Item.Linking.Pins (Which, Side))
+              and then Widgets.Is_Shown (Item.Linking.Pins (Which) (Side))
+              and then Widgets.Is_Hovered (Item.Linking.Pins (Which) (Side))
             then
                if Item.Linking.Link_Moving then
                   Move_Link (Item, Which, Side);
@@ -164,7 +164,7 @@ package body Viewer.Links.Events is
          return;
       end if;
       declare
-         Was : constant Item_Links.Link := Item.Linking.Link_Set.Links (Number);
+         Was : constant Item_Links.Link := Item.Linking.Link_Set (Number);
       begin
          if Stroke /= Was.Stroke or else Ending /= Was.Ending or else Color /= Was.Color then
             Item_Links.Set_Link_Style (Item.Nav.Store, Was.Key, Stroke, Ending, Color);
@@ -175,7 +175,7 @@ package body Viewer.Links.Events is
    end Restyle;
 
    function Was_Of (Item : Session) return Item_Links.Link is
-     (Item.Linking.Link_Set.Links (Support.Index_Of (Item, Item.Linking.Link_Key)))
+     (Item.Linking.Link_Set (Support.Index_Of (Item, Item.Linking.Link_Key)))
      with Pre => Support.Index_Of (Item, Item.Linking.Link_Key) /= 0;
 
    procedure Stroke_Clicked
@@ -229,7 +229,7 @@ package body Viewer.Links.Events is
    begin
       Item.Linking.Link_Key :=
         (if Event.Row in 1 .. Item.Linking.Link_Set.Count
-         then Item.Linking.Link_Set.Links (Event.Row).Key else 0);
+         then Item.Linking.Link_Set (Event.Row).Key else 0);
       if Item.Linking.Link_Key /= 0 then
          --  So that Backspace is not for the text being typed in.
          Widgets.Clear_Focus (Item.Root.Widgets);

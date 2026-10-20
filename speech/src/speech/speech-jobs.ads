@@ -19,8 +19,17 @@ package Speech.Jobs is
    --  that body is analyzed under the proof configuration described there.
 
    Slot_Count : constant := Max_Sessions;
+   --  How many jobs can be going at once (a microphone to each, of the
+   --  tasks made when the program begins).
 
-   subtype Slot is Positive range 1 .. Slot_Count;
+   subtype Lane is Positive range 1 .. Slot_Count;
+   --  What a job goes on in, while it is not yet Reset.
+
+   subtype Slot is Positive;
+   --  Any number the caller likes to tell its jobs apart by (a project's
+   --  items, however many there are): it is given a lane when a job is
+   --  started, and keeps it until it is Taken or Reset. If all the lanes
+   --  are kept, the job fails, saying so.
 
    type States is (Idle, Starting, Listening, Finishing, Done, Failed);
    --  Idle: nothing was started, or it was taken (Reset). Starting: the

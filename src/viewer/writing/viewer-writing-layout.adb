@@ -103,14 +103,14 @@ package body Viewer.Writing.Layout is
 
          procedure Add (Kind : Plan_Kinds; Index : Natural) is
          begin
-            Planned := Planned + 1;
-            Plan (Planned) := (Kind => Kind, Index => Index, Top => 0.0);
+            Plan.Append ((Kind => Kind, Index => Index, Top => 0.0));
+            Planned := Plan.Count;
          end Add;
 
          procedure Add_Section (Dir : Positive) is
             Place : constant Natural :=
               Outlines.Index_Of_Key
-                (Item, Projects.Sections.Section_Id (Item.Docs.Dirs.Directories (Dir).Section));
+                (Item, Projects.Sections.Section_Id (Item.Docs.Dirs (Dir).Section));
          begin
             if Place = 0 then
                return;
@@ -216,10 +216,10 @@ package body Viewer.Writing.Layout is
                     Float'Rounding ((Widgets.Width_Of (Item.Page_View.Pages_Content) - Wide * Pixels) / 2.0);
                   Home_Top  : constant Float :=
                     Widgets.Top_Of (Parts.Tail) - Widgets.Top_Of (Item.Page_View.Pages_Content);
-                  Shown_Heads  : array (1 .. Section_Capacity) of Boolean := [others => False];
-                  Shown_Empty  : array (1 .. Section_Capacity) of Boolean := [others => False];
-                  Shown_Notes  : array (1 .. Section_Capacity) of Boolean := [others => False];
-                  Shown_Gaps   : array (0 .. Section_Capacity) of Boolean := [others => False];
+                  Shown_Heads  : array (1 .. Parts.Heads.Count) of Boolean := [others => False];
+                  Shown_Empty  : array (1 .. Parts.Heads.Count) of Boolean := [others => False];
+                  Shown_Notes  : array (1 .. Parts.Heads.Count) of Boolean := [others => False];
+                  Shown_Gaps   : array (0 .. Parts.Gaps.Count - 1) of Boolean := [others => False];
 
                   procedure Put (Part : in out Widgets.Widget'Class; Top : Float) is
                   begin
@@ -277,7 +277,7 @@ package body Viewer.Writing.Layout is
                               Put (Parts.Empties (Now.Index).Box, Now.Top);
                            when Gap_Entry =>
                               Shown_Gaps (Now.Index) := True;
-                              Put (Parts.Gaps (Now.Index).Row, Now.Top);
+                              Put (Parts.Gaps (Now.Index + 1).Row, Now.Top);
                            when Page_Entry =>
                               Put (Item.Docs.Pages (Now.Index).Box, Now.Top);
                         end case;
@@ -289,7 +289,7 @@ package body Viewer.Writing.Layout is
                      Widgets.Set_Visible (Parts.Notes (Each).Box, Shown_Notes (Each));
                   end loop;
                   for Each in Shown_Gaps'Range loop
-                     Widgets.Set_Visible (Parts.Gaps (Each).Row, Shown_Gaps (Each));
+                     Widgets.Set_Visible (Parts.Gaps (Each + 1).Row, Shown_Gaps (Each));
                   end loop;
                   Parts.Plan := Plan;
                   Parts.Plan_Count := Planned;

@@ -1,6 +1,7 @@
-with Items;
 with Items.Directories;
-with Items.Readers;
+with Growing;
+with Slot_Tables;
+with Items.Readers.Tables;
 with Texts.Documents;
 with Pomarine.Widgets;
 with Pomarine.Widgets.Buttons;
@@ -62,7 +63,8 @@ package Viewer_Parts.Pages is
       --  brought into view.
    end record;
 
-   type Page_Array is array (Items.Slot) of Doc_Page;
+   package Page_Tables is new Slot_Tables (Doc_Page);
+   subtype Page_Array is Page_Tables.Table;
 
    type Publish_Parts is limited record
       Scroll  : Pomarine.Widgets.Scrollers.Scroller;
@@ -126,7 +128,7 @@ package Viewer_Parts.Pages is
       --  none), a line, and Add Source.
       Menu_Page     : Natural := 0;
       --  The page the menu is of, 0 if it is not shown.
-      Menu_Slots    : Common.Slot_Array := [others => 1];
+      Menu_Slots    : Common.Slot_Array;
       Menu_Count    : Natural := 0;
       --  The windows of the sources the boxes are of, from the second
       --  row.
@@ -149,7 +151,7 @@ package Viewer_Parts.Pages is
       --  then each directory directly followed by its documents, and
       --  the documents in none among them. What each is of.
       Dirs         : Items.Directories.Directory_List;
-      Doc_Dir      : Common.Dir_Array := [others => 0];
+      Doc_Dir      : Common.Dir_Array;
       --  The directories, and which of them each document's window is in,
       --  0 if none. Tree is the order of it all.
       Shown_Dir    : Natural := 0;
@@ -207,13 +209,18 @@ package Viewer_Parts.Pages is
    --  Before the documents that are of no section, between those of two
    --  (or before the first, or after the last): a faint line that says so.
 
-   type Section_Heads is array (1 .. Common.Section_Capacity) of Section_Head;
+   package Head_Tables is new Slot_Tables (Section_Head);
+   subtype Section_Heads is Head_Tables.Table;
 
-   type Note_Boxes is array (1 .. Common.Section_Capacity) of Note_Box;
+   package Note_Tables is new Slot_Tables (Note_Box);
+   subtype Note_Boxes is Note_Tables.Table;
 
-   type Section_Empties is array (1 .. Common.Section_Capacity) of Section_Empty;
+   package Empty_Tables is new Slot_Tables (Section_Empty);
+   subtype Section_Empties is Empty_Tables.Table;
 
-   type Gap_Marks is array (0 .. Common.Section_Capacity) of Gap_Mark;
+   package Gap_Tables is new Slot_Tables (Gap_Mark);
+   subtype Gap_Marks is Gap_Tables.Table;
+   --  One more than there are sections: the first is before the first section.
 
    type Plan_Kinds is (Head_Entry, Notes_Entry, Empty_Entry, Page_Entry, Gap_Entry);
 
@@ -227,9 +234,8 @@ package Viewer_Parts.Pages is
       --  Where it is, in pixels, from the first.
    end record;
 
-   Plan_Capacity : constant := 3 * Common.Section_Capacity + Items.Capacity + Common.Section_Capacity + 1;
-
-   type Plan_Array is array (1 .. Plan_Capacity) of Plan_Entry;
+   package Plan_Lists is new Growing (Plan_Entry);
+   subtype Plan_Array is Plan_Lists.List;
 
    type Section_View_Parts is limited record
       Heads   : Section_Heads;
@@ -255,19 +261,19 @@ package Viewer_Parts.Pages is
 
    type Reading_State is limited record
       Source_Rows  : Rows.Index_Row_Array;
-      Readers      : Items.Readers.Reader_Array;
+      Readers      : Items.Readers.Tables.Table;
       --  The windows of the sources in the writing view, of the same
       --  slots as Windows.
       Pane_Reader  : Items.Readers.Reader;
       --  The pinned source, in the pane.
       Reader_Sync  : Common.Sync_Array;
       Pane_Sync    : Common.Sync_State;
-      Reader_Placed : Common.Placed_Array := [others => False];
+      Reader_Placed : Common.Placed_Array;
       --  Whether a reader has been given a place yet.
-      Write_Order  : Common.Slot_Array := [others => 1];
+      Write_Order  : Common.Slot_Array;
       Write_Count  : Natural := 0;
       --  The windows of the documents, in the order they are written in.
-      Source_Order : Common.Slot_Array := [others => 1];
+      Source_Order : Common.Slot_Array;
       Source_Total : Natural := 0;
       --  The windows of the sources, the earliest made first.
       Pinned_Slot  : Natural := 0;

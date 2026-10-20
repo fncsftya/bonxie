@@ -1,5 +1,5 @@
-with Items;
 with MLX;
+with Webshot;
 
 --  Finding sources for a text, on the web, in the background: the model
 --  writes a few web searches from the text (see Source_Finding), which are
@@ -30,10 +30,10 @@ package Source_Finder is
 
    Max_Directory : constant := 900;
 
-   First_Slot : constant := Items.Capacity + 1;
+   First_Slot : constant := 1 - Webshot.Lane_Count;
    Last_Slot  : constant := First_Slot + Max_Pages - 1;
-   --  The slots of Webshot and Vision.Jobs that the pages use: after those
-   --  of a project's items.
+   --  The slots of Webshot and Vision.Jobs that the pages use: the lanes
+   --  before those of a project's items.
 
    Max_Wait : constant Duration := 30.0;
    --  The longest a search is waited for its turn (see Websearch.Retry_After),

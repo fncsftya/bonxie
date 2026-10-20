@@ -126,14 +126,8 @@ package body Viewer.Outlines.Generation is
       package Sects renames Projects.Sections;
       Owner : constant Projects.Id := Item.Opened.Current;
       Have  : Sects.Section_List;
-      Taken : array (1 .. Sects.Max_Sections) of Boolean := [others => False];
-      Match : array (1 .. Wanted.Count) of Natural := [others => 0];
-      Kept  : Natural := 0;
-      Added : Natural := 0;
-      Keys  : Sects.Key_Array (1 .. Sects.Max_Sections);
-      Total : Natural := 0;
 
-      procedure Give_Notes (Key : Sects.Section_Id; Notes : Sects.Note_Texts.Bounded_String) is
+      procedure Give_Notes (Key : Sects.Section_Id; Notes : Sects.Note_Texts.Text) is
       begin
          if Sects.Note_Texts.Length (Notes) > 0 then
             Sects.Set_Notes (Item.Nav.Store, Key, Sects.Note_Texts.To_String (Notes));
@@ -144,49 +138,48 @@ package body Viewer.Outlines.Generation is
          Sync (Item);
       end if;
       Sects.Load (Item.Nav.Store, Owner, Have);
-      for Each in 1 .. Wanted.Count loop
-         for Other in 1 .. Have.Count loop
-            if not Taken (Other)
-              and then Ada.Strings.Equal_Case_Insensitive
-                         (Sects.Title_Texts.To_String (Have.Items (Other).Title),
-                          Sects.Title_Texts.To_String (Wanted.Items (Each).Title))
-            then
-               Taken (Other) := True;
-               Match (Each) := Other;
-               Kept := Kept + 1;
-               exit;
-            end if;
-         end loop;
-      end loop;
       declare
-         Room : constant Integer := Sects.Max_Sections - Have.Count;
-         --  Of the sections to add, as many as fit with all that are there.
+         Taken : array (1 .. Have.Count) of Boolean := [others => False];
+         Match : array (1 .. Wanted.Count) of Natural := [others => 0];
+         Keys  : Sects.Key_Array (1 .. Have.Count + Wanted.Count);
+         Total : Natural := 0;
       begin
+         for Each in 1 .. Wanted.Count loop
+            for Other in 1 .. Have.Count loop
+               if not Taken (Other)
+                 and then Ada.Strings.Equal_Case_Insensitive
+                            (Sects.Title_Texts.To_String (Have (Other).Title),
+                             Sects.Title_Texts.To_String (Wanted (Each).Title))
+               then
+                  Taken (Other) := True;
+                  Match (Each) := Other;
+                  exit;
+               end if;
+            end loop;
+         end loop;
          for Each in 1 .. Wanted.Count loop
             if Match (Each) /= 0 then
                Total := Total + 1;
-               Keys (Total) := Have.Items (Match (Each)).Key;
+               Keys (Total) := Have (Match (Each)).Key;
                --  What the writer wrote is not written over.
-               if Sects.Note_Texts.Length (Have.Items (Match (Each)).Notes) = 0 then
-                  Give_Notes (Keys (Total), Wanted.Items (Each).Notes);
+               if Sects.Note_Texts.Length (Have (Match (Each)).Notes) = 0 then
+                  Give_Notes (Keys (Total), Wanted (Each).Notes);
                end if;
-            elsif Added < Room then
-               Added := Added + 1;
+            else
                Total := Total + 1;
                Keys (Total) :=
-                 Sects.Add (Item.Nav.Store, Owner, Sects.Title_Texts.To_String (Wanted.Items (Each).Title));
-               Give_Notes (Keys (Total), Wanted.Items (Each).Notes);
+                 Sects.Add (Item.Nav.Store, Owner, Sects.Title_Texts.To_String (Wanted (Each).Title));
+               Give_Notes (Keys (Total), Wanted (Each).Notes);
             end if;
          end loop;
+         for Each in 1 .. Have.Count loop
+            if not Taken (Each) then
+               Total := Total + 1;
+               Keys (Total) := Have (Each).Key;
+            end if;
+         end loop;
+         Sects.Set_Order (Item.Nav.Store, Owner, Keys (1 .. Total));
       end;
-      for Each in 1 .. Have.Count loop
-         if not Taken (Each) then
-            Total := Total + 1;
-            Keys (Total) := Have.Items (Each).Key;
-         end if;
-      end loop;
-      pragma Assert (Total <= Sects.Max_Sections and then Kept <= Have.Count);
-      Sects.Set_Order (Item.Nav.Store, Owner, Keys (1 .. Total));
       --  The blocks now show other sections: nothing is typed in one.
       Widgets.Clear_Focus (Item.Root.Widgets);
       Support.Load_Sections (Item, Owner);

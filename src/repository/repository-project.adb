@@ -1,4 +1,3 @@
-with Ada.Strings;
 with Ada_Sqlite3;
 with Texts.Documents;
 with Repository.Database; use Repository.Database;
@@ -30,10 +29,10 @@ package body Repository.Project is
 
    function Row (Query : Ada_Sqlite3.Statement) return Projects.Project is
      (Key         => Projects.Id (Ada_Sqlite3.Column_Int64 (Query, 0)),
-      Title       => Projects.Titles.To_Bounded_String
-        (Ada_Sqlite3.Column_Text (Query, 1), Ada.Strings.Right),
-      Description => Projects.Descriptions.To_Bounded_String
-        (Texts.Documents.Plain_Stored (Ada_Sqlite3.Column_Text (Query, 2)), Ada.Strings.Right),
+      Title       => Projects.Titles.To_Text
+        (Ada_Sqlite3.Column_Text (Query, 1)),
+      Description => Projects.Descriptions.To_Text
+        (Texts.Documents.Plain_Stored (Ada_Sqlite3.Column_Text (Query, 2))),
       Created_At  => Ada_Sqlite3.Column_Int64 (Query, 3),
       Updated_At  => Ada_Sqlite3.Column_Int64 (Query, 4));
 

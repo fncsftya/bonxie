@@ -12,7 +12,6 @@ package body Items.Records is
       Text    : String := "";
       Kind    : Kinds := Note) return Id is
    begin
-      pragma Assert (Count (Store, Project) < Capacity);
       return Made : constant Id :=
         Repository.Item.Insert (Store, Project, Title, Where, Text, Kind)
       do

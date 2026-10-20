@@ -68,7 +68,7 @@ package body Viewer.Documents is
      (Item.Docs.Dirs.Count);
 
    function Directory_Title (Item : Session; Row : Positive) return String is
-     (Projects.Titles.To_String (Item.Docs.Dirs.Directories (Row).Title));
+     (Projects.Titles.To_String (Item.Docs.Dirs (Row).Title));
 
    procedure Add_Directory
      (Item : in out Session; Name : String := "Untitled folder") is

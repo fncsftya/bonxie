@@ -4,6 +4,7 @@ with SDL3.Events;
 with SDL3.Windows.Renderers.Images;
 private with Items;
 private with Items.Windows;
+private with Items.Windows.Tables;
 private with SDL3.Windows;
 private with Texts.Documents;
 private with Pomarine.Models;
@@ -259,8 +260,8 @@ private
 
       Fetch_Slot : Natural := 0;
       Fetch_Key  : Items.Id := 0;
-      Fetch_Document : Items.Extensions.Bounded_String :=
-        Items.Extensions.Null_Bounded_String;
+      Fetch_Document : Items.Extensions.Text :=
+        Items.Extensions.Null_Text;
       --  The window whose source's PDF or e-book is being fetched (see
       --  Downloads, which does one at a time), 0 if none; its item and the
       --  ending of the file.
@@ -291,7 +292,7 @@ private
       List_None     : Pomarine.Widgets.Labels.Label;
       --  Shown when there are no items.
       List_Rows     : aliased Item_Rows;
-      Row_Slots     : Slot_Array := [others => 1];
+      Row_Slots     : Slot_Array;
       --  The window of the item each row is of.
       Showing_List  : Boolean := False;
    end record;
@@ -313,7 +314,7 @@ private
       Nav : Nav_State;
       Item_List : List_Parts;
       Host : Host_Resources;
-      Windows      : Items.Windows.Window_Array;
+      Windows      : Items.Windows.Tables.Table;
       --  The windows of the project's items: after Target, which they
       --  draw to.
       Docs : Document_State;

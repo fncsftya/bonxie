@@ -1,5 +1,5 @@
+with Pomarine.Marks;
 with Items.Sources;
-with Ada.Strings;
 with Pomarine.Line_Texts;
 with Pomarine.Text_Areas;
 with Icon_Set;
@@ -181,23 +181,25 @@ package body Items.Readers is
                     else Pictures.History_Of (Item.Picture));
       if Item.Paged then
          Into.Count := Views.Mark_Count (Item.Pages);
+         Pomarine.Marks.Reserve (Into.Marks, Into.Count);
          for Index in 1 .. Into.Count loop
             declare
                Each : constant Views.Mark := Views.Mark_At (Item.Pages, Index);
             begin
-               Into.Marks (Index) :=
+               Into.Marks.Data (Index) :=
                  (Left => Each.Left, Right => Each.Right, Y => Each.Y, Page => Each.Page, Trace => Each.Trace);
             end;
          end loop;
          return;
       end if;
       Into.Count := Pictures.Mark_Count (Item.Picture);
+      Pomarine.Marks.Reserve (Into.Marks, Into.Count);
       for Index in 1 .. Into.Count loop
          declare
             Each : constant Pictures.Mark :=
               Pictures.Mark_At (Item.Picture, Index);
          begin
-            Into.Marks (Index) :=
+            Into.Marks.Data (Index) :=
               (Left => Each.Left, Right => Each.Right, Y => Each.Y, Page => 1, Trace => Each.Trace);
          end;
       end loop;
@@ -209,7 +211,7 @@ package body Items.Readers is
    begin
       for Index in Shown'Range loop
          declare
-            Each : Items.Marks.Mark renames Kept.Marks (Index);
+            Each : Items.Marks.Mark renames Kept.Marks.Data (Index);
          begin
             Shown (Index) :=
               Pictures.Clamped_Mark
@@ -243,8 +245,8 @@ package body Items.Readers is
 
    procedure Set_Title (Item : in out Reader; To : String) is
    begin
-      Item.Details.Title := Projects.Titles.To_Bounded_String
-        (To, Ada.Strings.Right);
+      Item.Details.Title := Projects.Titles.To_Text
+        (To);
       Frames.Set_Title (Item.Chrome, To);
    end Set_Title;
 
@@ -276,7 +278,7 @@ package body Items.Readers is
      (Item : in out Reader; Document : String; Page, Count : Natural) is
    begin
       Item.Details.Document :=
-        Items.Extensions.To_Bounded_String (Document, Ada.Strings.Right);
+        Items.Extensions.To_Text (Document);
       Item.Details.Page := Page;
       Item.Details.Page_Count := Count;
       Show_Mode (Item);

@@ -1,3 +1,4 @@
+with Viewer.Build;
 with Viewer.Gestures;
 
 package body Viewer.Outlines.Support is
@@ -40,14 +41,15 @@ package body Viewer.Outlines.Support is
    begin
       Projects.Sections.Load (Item.Nav.Store, Owner, View.Order);
       Projects.Sections.Load_Links (Item.Nav.Store, Owner, View.Links);
+      Build.Reserve_Sections (Item, View.Order.Count);
       for Each in 1 .. View.Order.Count loop
          declare
-            Section : Projects.Sections.Section renames View.Order.Items (Each);
+            Section : Projects.Sections.Section renames View.Order (Each);
          begin
             Section.Open := Projects.Sections.Note_Texts.Length (Section.Notes) > 0;
             for Before in 1 .. Was.Count loop
-               if Was.Items (Before).Key = Section.Key then
-                  Section.Open := Was.Items (Before).Open or else Section.Open;
+               if Was (Before).Key = Section.Key then
+                  Section.Open := Was (Before).Open or else Section.Open;
                end if;
             end loop;
          end;

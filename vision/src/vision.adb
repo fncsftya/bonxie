@@ -7,6 +7,10 @@ package body Vision is
    use type Interfaces.C.int;
    use type Interfaces.C.double;
 
+   First_Room_Words : constant := 4_096;
+   First_Room_Bytes : constant := 48_000;
+   --  What is made room for to begin with; more if there are more words.
+
    function VN_Recognize
      (Path           : Interfaces.C.char_array;
       Words          : System.Address;
@@ -36,24 +40,26 @@ package body Vision is
       Shape   : Interfaces.C.double;
       Done    : Interfaces.C.int;
    begin
-      Into.Count := 0;
-      Into.Length := 0;
-      Into.Truncated := False;
-      Done :=
-        VN_Recognize
-          (Interfaces.C.To_C (File_Name),
-           Into.Words'Address, Max_Words,
-           Into.Text'Address, Text_Capacity,
-           Words, Length, Cut, Shape,
-           Raw'Address, Raw'Length);
+      Pomarine.Words.Clear (Into);
+      Pomarine.Words.Reserve (Into, First_Room_Words, First_Room_Bytes);
+      loop
+         Done :=
+           VN_Recognize
+             (Interfaces.C.To_C (File_Name),
+              Into.Words.all'Address, Interfaces.C.int (Into.Words'Length),
+              Into.Text.all'Address, Interfaces.C.int (Into.Text'Length),
+              Words, Length, Cut, Shape,
+              Raw'Address, Raw'Length);
+         --  If it was cut short for room, it is done again with more.
+         exit when Done /= 1 or else Cut = 0;
+         Pomarine.Words.Reserve (Into, 2 * Into.Words'Length, 2 * Into.Text'Length);
+      end loop;
       Ok := Done = 1;
       Last := 0;
       if Ok then
-         pragma Assert (Words in 0 .. Max_Words);
-         pragma Assert (Length in 0 .. Text_Capacity);
          Into.Count := Natural (Words);
          Into.Length := Natural (Length);
-         Into.Truncated := Cut /= 0;
+         Into.Truncated := False;
          if Shape > 0.0 then
             Layout.Reading_Order (Into, Float (Shape));
          end if;

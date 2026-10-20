@@ -533,21 +533,34 @@ package body Viewer.Responses is
       Hear (Pages.Docs_Folder, Click, Writing.Add_Folder_Clicked'Access);
       Hear (Pages.Menu, Choose, Writing.Source_Chosen'Access);
       Hear (Item.Context.Context_Menu, Choose, Writing.Context_Chosen'Access);
-      for Each in Item.Section_View.Heads'Range loop
-         Hear (Item.Section_View.Heads (Each).Add, Click, Writing.Section_Add_Clicked'Access, Each);
-      end loop;
-      for Each in Item.Section_View.Heads'Range loop
-         Hear (Item.Section_View.Heads (Each).Notes, Click, Writing.Section_Notes_Clicked'Access, Each);
-      end loop;
-      for Each in Item.Section_View.Empties'Range loop
-         Hear (Item.Section_View.Empties (Each).Add, Click, Writing.Section_Add_Clicked'Access, Each);
-      end loop;
-      for Rank in Items.Slot loop
-         Hear (Item.Docs.Pages (Rank).Sources_Button, Click, Writing.Sources_Clicked'Access, Rank);
-         Hear (Item.Docs.Pages (Rank).Mic_Button, Click, Writing.Dictate_Clicked'Access, Rank);
-         Hear (Item.Docs.Pages (Rank).Text, Assist, Writing.Find_Clicked'Access, Rank);
-         Hear (Item.Reading.Source_Rows (Rank).Row, Click, Writing.Source_Row_Clicked'Access, Rank);
-      end loop;
    end Install;
+
+   procedure Listen_Section (Item : in out Session; Index : Positive) is
+      use all type Widgets.Event_Kind;
+   begin
+      Widgets.Set_Tag (Item.Section_View.Heads (Index).Add, Widgets.No_Tag, Index);
+      Hooks.On (Item.Section_View.Heads (Index).Add, Click, Item'Unchecked_Access, Writing.Section_Add_Clicked'Access);
+      Widgets.Set_Tag (Item.Section_View.Heads (Index).Notes, Widgets.No_Tag, Index);
+      Hooks.On
+        (Item.Section_View.Heads (Index).Notes, Click, Item'Unchecked_Access, Writing.Section_Notes_Clicked'Access);
+      Widgets.Set_Tag (Item.Section_View.Empties (Index).Add, Widgets.No_Tag, Index);
+      Hooks.On
+        (Item.Section_View.Empties (Index).Add, Click, Item'Unchecked_Access, Writing.Section_Add_Clicked'Access);
+   end Listen_Section;
+
+   procedure Listen_Slot (Item : in out Session; Which : Items.Slot) is
+      use all type Widgets.Event_Kind;
+
+      procedure Hear (Part : in out Widgets.Widget'Class; Kind : Widgets.Event_Kind; Do_This : Hooks.Handler) is
+      begin
+         Widgets.Set_Tag (Part, Widgets.No_Tag, Which);
+         Hooks.On (Part, Kind, Item'Unchecked_Access, Do_This);
+      end Hear;
+   begin
+      Hear (Item.Docs.Pages (Which).Sources_Button, Click, Writing.Sources_Clicked'Access);
+      Hear (Item.Docs.Pages (Which).Mic_Button, Click, Writing.Dictate_Clicked'Access);
+      Hear (Item.Docs.Pages (Which).Text, Assist, Writing.Find_Clicked'Access);
+      Hear (Item.Reading.Source_Rows (Which).Row, Click, Writing.Source_Row_Clicked'Access);
+   end Listen_Slot;
 
 end Viewer.Responses;

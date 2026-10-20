@@ -1,3 +1,4 @@
+with Items.Directories;
 with Items.Readers;
 with Icon_Set;
 with Pomarine.Icons;
@@ -217,7 +218,7 @@ package body Viewer.Writing.Context is
             Under : constant Widgets.Widget_Access :=
               Widgets.Hit (Item.Root.Widgets, PX, PY);
          begin
-            for Which in Items.Slot loop
+            for Which in 1 .. Item.Windows.Count loop
                if Windows.Is_Assigned (Item.Windows (Which))
                  and then Windows.Owns (Item.Windows (Which), Under)
                then
@@ -248,7 +249,7 @@ package body Viewer.Writing.Context is
          end loop;
       end if;
       --  A source's window is over the pages.
-      for Which in Items.Slot loop
+      for Which in 1 .. Item.Windows.Count loop
          if Readers.Is_Assigned (Item.Reading.Readers (Which))
            and then Readers.Details (Item.Reading.Readers (Which)).State
               = Items.Open
@@ -384,10 +385,10 @@ package body Viewer.Writing.Context is
          return;
       end if;
       Items.Directories.Delete_Directory (Item.Nav.Store,
-                              Item.Docs.Dirs.Directories (Dir).Key);
+                              Item.Docs.Dirs (Dir).Key);
       --  Those in it are in none; the directories after it are one
       --  sooner.
-      for Which in Items.Slot loop
+      for Which in 1 .. Item.Windows.Count loop
          if Item.Docs.Doc_Dir (Which) = Dir then
             Item.Docs.Doc_Dir (Which) := 0;
          elsif Item.Docs.Doc_Dir (Which) > Dir then
@@ -405,7 +406,7 @@ package body Viewer.Writing.Context is
          end if;
       end loop;
       for Each in Dir .. Item.Docs.Dirs.Count - 1 loop
-         Item.Docs.Dirs.Directories (Each) := Item.Docs.Dirs.Directories (Each
+         Item.Docs.Dirs (Each) := Item.Docs.Dirs (Each
             + 1);
       end loop;
       Item.Docs.Dirs.Count := Item.Docs.Dirs.Count - 1;

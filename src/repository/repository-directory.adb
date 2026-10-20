@@ -1,4 +1,4 @@
-with Ada.Strings;
+with Growing;
 with Ada_Sqlite3;
 with Repository.Database; use Repository.Database;
 
@@ -14,7 +14,8 @@ package body Repository.Directory is
      & "title TEXT NOT NULL, "
      & "position INTEGER NOT NULL DEFAULT 0)";
 
-   type Natural_Array is array (Positive range <>) of Natural;
+   package Natural_Lists is new Growing (Natural);
+   subtype Natural_Array is Natural_Lists.List;
 
    procedure Prepare (Store : in out Projects.Store) is
    begin
@@ -55,9 +56,9 @@ package body Repository.Directory is
       Which  : array (1 .. List.Count) of Positive;
    begin
       for Each in 1 .. List.Count loop
-         if List.Directories (Each).Section /= 0 then
+         if List (Each).Section /= 0 then
             Held := Held + 1;
-            Places (Held) := List.Directories (Each).Position;
+            Places (Held) := List (Each).Position;
             Which (Held) := Each;
          end if;
       end loop;
@@ -75,28 +76,28 @@ package body Repository.Directory is
          end;
       end loop;
       for Each in 1 .. Held loop
-         List.Directories (Which (Each)).Position := Places (Each);
+         List (Which (Each)).Position := Places (Each);
       end loop;
       --  And all in their places.
       for Each in 2 .. List.Count loop
          declare
-            Mover : constant Items.Directories.Directory := List.Directories (Each);
+            Mover : constant Items.Directories.Directory := List (Each);
             Mover_Rank : constant Natural := Rank (Each);
             Back  : Natural := Each - 1;
          begin
             --  Not yet put, sections come in the order of the outline.
             while Back >= 1
-              and then (Key_Of (List.Directories (Back).Position) > Key_Of (Mover.Position)
-                        or else (Key_Of (List.Directories (Back).Position) = Key_Of (Mover.Position)
-                                 and then List.Directories (Back).Section /= 0
+              and then (Key_Of (List (Back).Position) > Key_Of (Mover.Position)
+                        or else (Key_Of (List (Back).Position) = Key_Of (Mover.Position)
+                                 and then List (Back).Section /= 0
                                  and then Mover.Section /= 0
                                  and then Rank (Back) > Mover_Rank))
             loop
-               List.Directories (Back + 1) := List.Directories (Back);
+               List (Back + 1) := List (Back);
                Rank (Back + 1) := Rank (Back);
                Back := Back - 1;
             end loop;
-            List.Directories (Back + 1) := Mover;
+            List (Back + 1) := Mover;
             Rank (Back + 1) := Mover_Rank;
          end;
       end loop;
@@ -120,27 +121,24 @@ package body Repository.Directory is
            & "COALESCE(s.colour, 0), COALESCE(s.position, 0) "
            & "FROM directories d LEFT JOIN sections s ON s.id = d.section_id "
            & "WHERE d.project_id = :project "
-           & "ORDER BY d.position = 0, d.position, d.id LIMIT :limit");
-      Rank : Natural_Array (1 .. Items.Directories.Max_Directories) := [others => 0];
+           & "ORDER BY d.position = 0, d.position, d.id");
+      Rank : Natural_Array;
       --  Of a section's folder: where the section is in the outline.
    begin
       --  Every section has a folder.
       Ada_Sqlite3.Bind_Int64 (Make, ":project", Long_Integer (Project));
       Ada_Sqlite3.Step (Make);
-      Result.Count := 0;
+      Result.Clear;
       Ada_Sqlite3.Bind_Int64 (Query, ":project", Long_Integer (Project));
-      Ada_Sqlite3.Bind_Int (Query, ":limit", Items.Directories.Max_Directories);
       while Ada_Sqlite3.Step (Query) = Ada_Sqlite3.ROW loop
-         pragma Assert (Result.Count < Items.Directories.Max_Directories);
-         Result.Count := Result.Count + 1;
-         Result.Directories (Result.Count) :=
-           (Key   => Items.Id (Ada_Sqlite3.Column_Int64 (Query, 0)),
-            Title => Projects.Titles.To_Bounded_String
-              (Ada_Sqlite3.Column_Text (Query, 1), Ada.Strings.Right),
+         Result.Append
+           ((Key   => Items.Id (Ada_Sqlite3.Column_Int64 (Query, 0)),
+            Title => Projects.Titles.To_Text
+              (Ada_Sqlite3.Column_Text (Query, 1)),
             Position => Natural'Max (0, Ada_Sqlite3.Column_Int (Query, 2)),
             Section => Ada_Sqlite3.Column_Int64 (Query, 3),
-            Colour => Natural'Max (0, Ada_Sqlite3.Column_Int (Query, 4)));
-         Rank (Result.Count) := Natural'Max (0, Ada_Sqlite3.Column_Int (Query, 5));
+            Colour => Natural'Max (0, Ada_Sqlite3.Column_Int (Query, 4))));
+         Rank.Append (Natural'Max (0, Ada_Sqlite3.Column_Int (Query, 5)));
       end loop;
       Order_Sections (Result, Rank);
    end Load;

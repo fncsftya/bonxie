@@ -11,8 +11,8 @@ package Items.Records is
       Text    : String := "";
       Kind    : Kinds := Note) return Id
      with Pre => Projects.Is_Open (Store);
-   --  Add an item, open, to the project. The project must exist, and have
-   --  fewer than Capacity items. The text of a source is its link.
+   --  Add an item, open, to the project. The project must exist. The text of
+   --  a source is its link.
 
    procedure Load
      (Store   : Projects.Store;

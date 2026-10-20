@@ -67,22 +67,20 @@ package body Repository.Section is
         Ada_Sqlite3.Prepare
           (DB (Store).all,
            "SELECT id, title, colour, notes FROM sections WHERE project_id = :project "
-           & "ORDER BY position, id LIMIT :limit");
+           & "ORDER BY position, id");
    begin
-      Result.Count := 0;
+      Result.Clear;
       Ada_Sqlite3.Bind_Int64 (Query, ":project", Long_Integer (Project));
-      Ada_Sqlite3.Bind_Int (Query, ":limit", Projects.Sections.Max_Sections);
       while Ada_Sqlite3.Step (Query) = Ada_Sqlite3.ROW loop
-         Result.Count := Result.Count + 1;
-         Result.Items (Result.Count) :=
-           (Key   => Projects.Sections.Section_Id (Ada_Sqlite3.Column_Int64 (Query, 0)),
-            Title => Projects.Sections.Title_Texts.To_Bounded_String
-              (Ada_Sqlite3.Column_Text (Query, 1), Ada.Strings.Right),
+         Result.Append
+           ((Key   => Projects.Sections.Section_Id (Ada_Sqlite3.Column_Int64 (Query, 0)),
+            Title => Projects.Sections.Title_Texts.To_Text
+              (Ada_Sqlite3.Column_Text (Query, 1)),
             Colour => Projects.Sections.Colour_Index
               (Integer'Max (0, Ada_Sqlite3.Column_Int (Query, 2)) mod Palette),
-            Notes => Projects.Sections.Note_Texts.To_Bounded_String
-              (Texts.Documents.Plain_Stored (Ada_Sqlite3.Column_Text (Query, 3)), Ada.Strings.Right),
-            Open  => False);
+            Notes => Projects.Sections.Note_Texts.To_Text
+              (Texts.Documents.Plain_Stored (Ada_Sqlite3.Column_Text (Query, 3))),
+            Open  => False));
       end loop;
    end Load;
 
@@ -239,16 +237,14 @@ package body Repository.Section is
           (DB (Store).all,
            "SELECT items.id, directories.section_id FROM items JOIN directories "
            & "ON items.directory_id = directories.id WHERE items.project_id = :project "
-           & "AND directories.section_id IS NOT NULL ORDER BY items.id LIMIT :limit");
+           & "AND directories.section_id IS NOT NULL ORDER BY items.id");
    begin
-      Result.Count := 0;
+      Result.Clear;
       Ada_Sqlite3.Bind_Int64 (Query, ":project", Long_Integer (Project));
-      Ada_Sqlite3.Bind_Int (Query, ":limit", Projects.Sections.Max_Links);
       while Ada_Sqlite3.Step (Query) = Ada_Sqlite3.ROW loop
-         Result.Count := Result.Count + 1;
-         Result.Items (Result.Count) :=
-           (Item    => Ada_Sqlite3.Column_Int64 (Query, 0),
-            Section => Projects.Sections.Section_Id (Ada_Sqlite3.Column_Int64 (Query, 1)));
+         Result.Append
+           ((Item    => Ada_Sqlite3.Column_Int64 (Query, 0),
+            Section => Projects.Sections.Section_Id (Ada_Sqlite3.Column_Int64 (Query, 1))));
       end loop;
    end Load_Links;
 

@@ -1,5 +1,7 @@
+with Pomarine.Words;
 with Items.Marks;
 with Pomarine.Mark_Paths;
+with Pomarine.Marks;
 with Items.Records;
 with Texts.Documents;
 with Projects.Sections;
@@ -281,22 +283,23 @@ package body Item_Tests is
          use type Pomarine.Mark_Paths.Point;
       begin
          Made.Count := 2;
-         Made.Marks (1) := (Left => 0.1, Right => 0.7, Y => 0.2, Page => 1, Trace => <>);
-         Made.Marks (2).Page := 3;
-         Pomarine.Mark_Paths.Append (Made.Marks (2).Trace, 0.4, 0.1);
-         Pomarine.Mark_Paths.Append (Made.Marks (2).Trace, 0.4, 0.8);
-         Pomarine.Mark_Paths.Append (Made.Marks (2).Trace, 0.2, 0.5);
+         Pomarine.Marks.Reserve (Made.Marks, 2);
+         Made.Marks.Data (1) := (Left => 0.1, Right => 0.7, Y => 0.2, Page => 1, Trace => <>);
+         Made.Marks.Data (2).Page := 3;
+         Pomarine.Mark_Paths.Append (Made.Marks.Data (2).Trace, 0.4, 0.1);
+         Pomarine.Mark_Paths.Append (Made.Marks.Data (2).Trace, 0.4, 0.8);
+         Pomarine.Mark_Paths.Append (Made.Marks.Data (2).Trace, 0.2, 0.5);
          Items.Marks.Save_Marks (Store, Notes, Made);
          Items.Marks.Load_Marks (Store, Notes, Loaded);
-         pragma Assert (Loaded.Count = 2 and then Loaded.Marks (1).Trace.Count = 0);
-         pragma Assert (Loaded.Marks (1).Right = 0.7);
-         pragma Assert (Loaded.Marks (2).Page = 3 and then Loaded.Marks (2).Trace.Count = 3);
+         pragma Assert (Loaded.Count = 2 and then Loaded.Marks.Data (1).Trace.Count = 0);
+         pragma Assert (Loaded.Marks.Data (1).Right = 0.7);
+         pragma Assert (Loaded.Marks.Data (2).Page = 3 and then Loaded.Marks.Data (2).Trace.Count = 3);
          for Index in 1 .. 3 loop
-            pragma Assert (Loaded.Marks (2).Trace.Points (Index) = Made.Marks (2).Trace.Points (Index));
+            pragma Assert (Loaded.Marks.Data (2).Trace.Points (Index) = Made.Marks.Data (2).Trace.Points (Index));
          end loop;
          Items.Marks.Save_Marks (Store, Notes, Made);
          Items.Marks.Load_Marks (Store, Notes, Loaded);
-         pragma Assert (Loaded.Marks (2).Trace.Count = 3);
+         pragma Assert (Loaded.Marks.Data (2).Trace.Count = 3);
          Items.Marks.Clear_Marks (Store, Notes);
          Items.Marks.Load_Marks (Store, Notes, Loaded);
          pragma Assert (Loaded.Count = 0);
@@ -311,17 +314,17 @@ package body Item_Tests is
       Items.Records.Load (Store, First, Listed);
       Check
         ("items-loaded", "Notes,Ideas,",
-         Projects.Titles.To_String (Listed.Items (1).Title) & ","
-         & Projects.Titles.To_String (Listed.Items (2).Title) & ",");
+         Projects.Titles.To_String (Listed (1).Title) & ","
+         & Projects.Titles.To_String (Listed (2).Title) & ",");
       Check
         ("items-loaded-frame", " 10 20 300 150",
-         Place (Listed.Items (1).Where));
+         Place (Listed (1).Where));
       Check
         ("items-loaded-state", "OPEN",
-         Items.States'Image (Listed.Items (1).State));
+         Items.States'Image (Listed (1).State));
       Check
         ("items-content", "some text",
-         Items.Records.Content (Store, Listed.Items (1).Key));
+         Items.Records.Content (Store, Listed (1).Key));
 
       declare
          Doc, Reloaded : Texts.Documents.Document;
@@ -352,7 +355,7 @@ package body Item_Tests is
             pragma Assert (Texts.Documents.Has_Format (Reloaded, (1, 1), (1, 5), Texts.Documents.Bold));
             Projects.Sections.Set_Stored_Notes (Store, Section, Texts.Documents.Stored (Doc));
             Projects.Sections.Load (Store, First, Sections);
-            pragma Assert (Projects.Sections.Note_Texts.To_String (Sections.Items (1).Notes) = "some text");
+            pragma Assert (Projects.Sections.Note_Texts.To_String (Sections (1).Notes) = "some text");
             Texts.Documents.Load_Stored (Reloaded, Projects.Sections.Stored_Notes (Store, Section));
             for Style in Texts.Documents.Format loop
                pragma Assert (Texts.Documents.Has_Format (Reloaded, (1, 1), (1, 5), Style));
@@ -369,46 +372,46 @@ package body Item_Tests is
          end;
       end;
 
-      Items.Records.Set_Title (Store, Listed.Items (1).Key, "Renamed");
+      Items.Records.Set_Title (Store, Listed (1).Key, "Renamed");
       Items.Records.Set_Content
-        (Store, Listed.Items (1).Key, "other" & ASCII.LF & "text");
+        (Store, Listed (1).Key, "other" & ASCII.LF & "text");
       Items.Records.Set_Frame
-        (Store, Listed.Items (1).Key, (5.0, 6.0, 7.0, 8.0));
-      Items.Records.Set_State (Store, Listed.Items (1).Key, Items.Minimized);
-      Items.Records.Set_State (Store, Listed.Items (2).Key, Items.Closed);
+        (Store, Listed (1).Key, (5.0, 6.0, 7.0, 8.0));
+      Items.Records.Set_State (Store, Listed (1).Key, Items.Minimized);
+      Items.Records.Set_State (Store, Listed (2).Key, Items.Closed);
       Items.Records.Load (Store, First, Listed);
       Check
         ("items-changed", "Renamed MINIMIZED 5 6 7 8",
-         Projects.Titles.To_String (Listed.Items (1).Title) & " "
-         & Items.States'Image (Listed.Items (1).State)
-         & Place (Listed.Items (1).Where));
+         Projects.Titles.To_String (Listed (1).Title) & " "
+         & Items.States'Image (Listed (1).State)
+         & Place (Listed (1).Where));
       Check
         ("items-changed-closed", "CLOSED",
-         Items.States'Image (Listed.Items (2).State));
+         Items.States'Image (Listed (2).State));
       Check
         ("items-changed-content", "other" & ASCII.LF & "text",
-         Items.Records.Content (Store, Listed.Items (1).Key));
+         Items.Records.Content (Store, Listed (1).Key));
 
       Check
         ("items-scroll-none", "TRUE",
-         Boolean'Image (Listed.Items (1).Scroll = 0.0));
-      Items.Records.Set_Scroll (Store, Listed.Items (1).Key, 42.5, 0.25);
+         Boolean'Image (Listed (1).Scroll = 0.0));
+      Items.Records.Set_Scroll (Store, Listed (1).Key, 42.5, 0.25);
       Items.Records.Load (Store, First, Listed);
       Check
         ("items-scroll-kept", "TRUE",
          Boolean'Image
-           (Listed.Items (1).Scroll = 42.5
-            and then Listed.Items (1).Scroll_Across = 0.25));
+           (Listed (1).Scroll = 42.5
+            and then Listed (1).Scroll_Across = 0.25));
 
       --  One goes.
-      Items.Records.Delete (Store, Listed.Items (1).Key);
+      Items.Records.Delete (Store, Listed (1).Key);
       Items.Records.Delete (Store, 9999);  --  none such
       Check
         ("items-deleted", " 1",
          Natural'Image (Items.Records.Count (Store, First)));
       Check
         ("items-deleted-content", "",
-         Items.Records.Content (Store, Listed.Items (1).Key));
+         Items.Records.Content (Store, Listed (1).Key));
 
       --  A source: a link, and a picture that goes with it.
       declare
@@ -425,13 +428,13 @@ package body Item_Tests is
          Items.Records.Load (Store, First, Found);
          Check
            ("source-stored", "SOURCE 1700000000 https://example.org",
-            Items.Kinds'Image (Found.Items (Found.Count).Kind)
-            & Projects.Seconds'Image (Found.Items (Found.Count).Captured_At)
+            Items.Kinds'Image (Found (Found.Count).Kind)
+            & Projects.Seconds'Image (Found (Found.Count).Captured_At)
             & " " & Items.Records.Content (Store, Link));
          Check
            ("source-note-kind", "NOTE 0",
-            Items.Kinds'Image (Found.Items (1).Kind)
-            & Projects.Seconds'Image (Found.Items (1).Captured_At));
+            Items.Kinds'Image (Found (1).Kind)
+            & Projects.Seconds'Image (Found (1).Captured_At));
          Check
            ("source-picture-place", "TRUE",
             Boolean'Image
@@ -450,6 +453,7 @@ package body Item_Tests is
             Check
               ("words-none", "FALSE",
                Boolean'Image (Items.Words.Has_Words (Store, Link)));
+            Pomarine.Words.Reserve (Words, 2, 10);
             Words.Text (1 .. 10) := "helloworld";
             Words.Length := 10;
             Words.Count := 2;
@@ -1200,15 +1204,73 @@ package body Item_Tests is
       Goldens.Check ("item-density-1-5", Drawn);
    end Fractional_Density;
 
+   procedure Long_Title is
+      Session : Viewer.Session;
+      Key     : Projects.Id;
+      Name    : constant String (1 .. 300) := [others => 'w'];
+   begin
+      Start (Session);
+      Key := Proj.Current_Project (Session);
+      Windows.Add_Item (Session, Name);
+      Check ("item-long-title", Natural'Image (Name'Length), Natural'Image (Windows.Item_Title (Session, 1)'Length));
+      Proj.Close_Project (Session);
+      Home.Open_Project (Session, Key);
+      Viewer.Project_Screen.Set_Mode (Session, Viewer.Canvas);
+      Check ("item-long-title-kept", Natural'Image (Name'Length),
+             Natural'Image (Windows.Item_Title (Session, 1)'Length));
+   end Long_Title;
+
+   procedure Many_Marks_And_Words is
+      Store  : Projects.Store;
+      Where  : constant Items.Frame := (10.0, 20.0, 300.0, 150.0);
+      Marks  : constant := 400;
+      Words  : constant := 5_000;
+      Made, Loaded : Items.Marks.Mark_List;
+      Found, Back  : Vision.Result;
+      Project : Projects.Id;
+      Item    : Items.Id;
+   begin
+      Projects.Open (Store, Projects.Memory);
+      Items.Schema.Prepare (Store);
+      Project := Projects.Create (Store, "Many");
+      Item := Items.Records.Create (Store, Project, "Source", Where, "link", Items.Source);
+      --  More marks than a picture once had room for.
+      Made.Count := Marks;
+      Pomarine.Marks.Reserve (Made.Marks, Marks);
+      for Each in 1 .. Marks loop
+         Made.Marks.Data (Each) := (Left => 0.1, Right => 0.7, Y => 0.2, Page => 1, Trace => <>);
+      end loop;
+      Items.Marks.Save_Marks (Store, Item, Made);
+      Items.Marks.Load_Marks (Store, Item, Loaded);
+      Check ("marks-many", Natural'Image (Marks), Natural'Image (Loaded.Count));
+      --  And more words.
+      Pomarine.Words.Reserve (Found, Words, Words * 4);
+      for Each in 1 .. Words loop
+         Found.Words (Each) :=
+           (Line => 1, First => (Each - 1) * 4 + 1, Last => Each * 4, Left => 0.1, Top => 0.1,
+            Width => 0.1, Height => 0.1);
+         Found.Text ((Each - 1) * 4 + 1 .. Each * 4) := "word";
+      end loop;
+      Found.Count := Words;
+      Found.Length := Words * 4;
+      Items.Words.Save_Words (Store, Item, Found, 1);
+      Items.Words.Load_Words (Store, Item, Back);
+      Check ("words-many", Natural'Image (Words), Natural'Image (Back.Count));
+      Check ("words-many-text", Natural'Image (Words * 4), Natural'Image (Back.Length));
+   end Many_Marks_And_Words;
+
+   Many : constant := 250;
+   --  More items than a project ever had room for.
+
    procedure Full is
       Session : Viewer.Session;
    begin
       Start (Session);
-      for I in 1 .. Items.Capacity + 3 loop
+      for I in 1 .. Many loop
          Windows.Add_Item (Session);
       end loop;
       Check
-        ("item-full", Natural'Image (Items.Capacity),
+        ("item-full", Natural'Image (Many),
          Natural'Image (Windows.Item_Count (Session)));
    end Full;
 

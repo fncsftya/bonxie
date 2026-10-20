@@ -5,12 +5,6 @@ with Pomarine.Words;
 
 package Vision is
 
-   Max_Words : constant := Pomarine.Words.Max_Words;
-   --  Of one picture: more are left out (Result.Truncated).
-
-   Text_Capacity : constant := Pomarine.Words.Text_Capacity;
-   --  Bytes of all the words together.
-
    subtype Word is Pomarine.Words.Word;
    subtype Word_Array is Pomarine.Words.Word_Array;
    subtype Result is Pomarine.Words.Result;
@@ -28,6 +22,7 @@ package Vision is
       Message   : out String;
       Last      : out Natural)
      with Pre => Message'First = 1;
+   --  Into has room made for as many words as are found.
    --  Read the PNG file and find its text, now, on this thread, which
    --  Vision permits of any. On failure Ok is False and Message
    --  (1 .. Last) says why, and Into is empty. See Vision.Jobs to do it

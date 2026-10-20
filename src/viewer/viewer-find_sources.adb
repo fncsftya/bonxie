@@ -47,7 +47,7 @@ package body Viewer.Find_Sources is
 
    function Note_Window (Item : Session) return Natural is
    begin
-      for Which in Items.Slot loop
+      for Which in 1 .. Item.Windows.Count loop
          if Windows.Is_Assigned (Item.Windows (Which))
            and then Windows.Details (Item.Windows (Which)).Key = Item.Finder.Note
          then
@@ -90,15 +90,15 @@ package body Viewer.Find_Sources is
       end if;
       Readers.Assign
         (Item.Finder.Preview,
-         (Title       => Projects.Titles.To_Bounded_String
-                           (Model_Replies.Cut (Source_Finder.Title (Index), Projects.Title_Capacity)),
+         (Title       => Projects.Titles.To_Text
+                           (Source_Finder.Title (Index)),
           Where       => Where,
           State       => Items.Open,
           Kind        => Items.Source,
           Captured_At => Canvas_Items.Capture_Time (Item),
           Origin      => Items.Remote,
-          Document    => (if Source_Finder.Is_Document (Index) then Items.Extensions.To_Bounded_String ("pdf")
-                          else Items.Extensions.Null_Bounded_String),
+          Document    => (if Source_Finder.Is_Document (Index) then Items.Extensions.To_Text ("pdf")
+                          else Items.Extensions.Null_Text),
           Page        => (if Source_Finder.Is_Document (Index) then 1 else 0),
           Page_Count  => Source_Finder.Pages (Index),
           others      => <>),
@@ -308,12 +308,12 @@ package body Viewer.Find_Sources is
    procedure Allow_Buttons (Item : in out Session) is
       On : constant Boolean := Item.Prefs.AI_On;
    begin
-      for Which in Items.Slot loop
+      for Which in 1 .. Item.Windows.Count loop
          if Windows.Is_Assigned (Item.Windows (Which)) then
             Windows.Allow_Find_Sources (Item.Windows (Which), On);
          end if;
       end loop;
-      for Rank in Items.Slot loop
+      for Rank in 1 .. Item.Windows.Count loop
          if Editors.Assist_Is_Allowed (Item.Docs.Pages (Rank).Text) /= On then
             Editors.Set_Assist_Allowed (Item.Docs.Pages (Rank).Text, On);
          end if;

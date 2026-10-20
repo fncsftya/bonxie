@@ -13,15 +13,15 @@ is
    subtype Message_Text is String (1 .. Max_Message);
    subtype Directory_Text is String (1 .. Max_Path);
 
-   type Job_Numbers is array (Slot) of Natural;
-   type Directory_Lengths is array (Slot) of Natural range 0 .. Max_Path;
-   type Message_Lengths is array (Slot) of Natural range 0 .. Max_Message;
-   type State_Array is array (Slot) of States;
-   type Flag_Array is array (Slot) of Boolean;
-   type Message_Array is array (Slot) of Message_Text;
-   type Directory_Array is array (Slot) of Directory_Text;
-   type Engine_Array is array (Slot) of Engines;
-   type Transcripts is array (Slot) of Transcript;
+   type Job_Numbers is array (Lane) of Natural;
+   type Directory_Lengths is array (Lane) of Natural range 0 .. Max_Path;
+   type Message_Lengths is array (Lane) of Natural range 0 .. Max_Message;
+   type State_Array is array (Lane) of States;
+   type Flag_Array is array (Lane) of Boolean;
+   type Message_Array is array (Lane) of Message_Text;
+   type Directory_Array is array (Lane) of Directory_Text;
+   type Engine_Array is array (Lane) of Engines;
+   type Transcripts is array (Lane) of Transcript;
 
    ---------------------------------------------------------------------
    --  What is shared. Everything that more than one task can reach is
@@ -34,11 +34,11 @@ is
 
    protected Board is
       procedure Begin_Job
-        (Which : Slot; Engine : Engines; Directory : String; Job : out Natural)
+        (Which : Lane; Engine : Engines; Directory : String; Job : out Natural)
         with Pre => Directory'Length <= Max_Path;
       --  Say it is Starting: Job tells this one from an earlier, reset one.
       procedure Job_Of
-        (Which     : Slot;
+        (Which     : Lane;
          Job       : out Natural;
          Engine    : out Engines;
          Directory : in out Directory_Text;
@@ -47,21 +47,21 @@ is
       --  What the slot is to do: the latest begun (Job is 0 if there is
       --  none, or it was reset); Directory (1 .. Last) is the model's.
       procedure Begin_Waiting
-        (Which : Slot; Job : Natural; Stop_Now : out Boolean);
+        (Which : Lane; Job : Natural; Stop_Now : out Boolean);
       --  The microphone is listening: Listening, unless it was to stop
       --  while it started, or was reset, when Stop_Now says not to wait.
-      procedure Request_Stop (Which : Slot; Wake : out Boolean);
+      procedure Request_Stop (Which : Lane; Wake : out Boolean);
       --  Wake says the task is to be told to go on (it is waiting).
       procedure End_Job
-        (Which : Slot; Job : Natural; Ok : Boolean; Why : String)
+        (Which : Lane; Job : Natural; Ok : Boolean; Why : String)
         with Pre => Why'First >= 1 and then Why'Last < Positive'Last / 2;
       --  Ignored if the slot was reset since.
-      procedure Forget (Which : Slot; Wake : out Boolean);
-      function Stand (Which : Slot) return States;
-      function Engine_Of (Which : Slot) return Engines;
-      function Phase (Which : Slot; Job : Natural) return States;
+      procedure Forget (Which : Lane; Wake : out Boolean);
+      function Stand (Which : Lane) return States;
+      function Engine_Of (Which : Lane) return Engines;
+      function Phase (Which : Lane; Job : Natural) return States;
       --  How the job stands, Idle if it was reset (or a later one began).
-      function Said_Why (Which : Slot) return String
+      function Said_Why (Which : Lane) return String
         with Post => Said_Why'Result'Length <= Max_Message;
    private
       Current   : Job_Numbers := [others => 0];
@@ -78,7 +78,7 @@ is
    protected body Board is
 
       procedure Begin_Job
-        (Which : Slot; Engine : Engines; Directory : String; Job : out Natural) is
+        (Which : Lane; Engine : Engines; Directory : String; Job : out Natural) is
       begin
          Using (Which) := Engine;
          Counter := (if Counter = Natural'Last then 1 else Counter + 1);
@@ -92,7 +92,7 @@ is
       end Begin_Job;
 
       procedure Job_Of
-        (Which     : Slot;
+        (Which     : Lane;
          Job       : out Natural;
          Engine    : out Engines;
          Directory : in out Directory_Text;
@@ -105,7 +105,7 @@ is
       end Job_Of;
 
       procedure Begin_Waiting
-        (Which : Slot; Job : Natural; Stop_Now : out Boolean) is
+        (Which : Lane; Job : Natural; Stop_Now : out Boolean) is
       begin
          if Current (Which) /= Job then
             Stop_Now := True;
@@ -118,7 +118,7 @@ is
          end if;
       end Begin_Waiting;
 
-      procedure Request_Stop (Which : Slot; Wake : out Boolean) is
+      procedure Request_Stop (Which : Lane; Wake : out Boolean) is
       begin
          Wake := False;
          case Stated (Which) is
@@ -134,7 +134,7 @@ is
       end Request_Stop;
 
       procedure End_Job
-        (Which : Slot; Job : Natural; Ok : Boolean; Why : String) is
+        (Which : Lane; Job : Natural; Ok : Boolean; Why : String) is
       begin
          if Current (Which) /= Job then
             return;
@@ -149,7 +149,7 @@ is
          end if;
       end End_Job;
 
-      procedure Forget (Which : Slot; Wake : out Boolean) is
+      procedure Forget (Which : Lane; Wake : out Boolean) is
       begin
          Wake := Stated (Which) = Listening and then Using (Which) = System;
          Current (Which) := 0;
@@ -158,27 +158,27 @@ is
          Said_Last (Which) := 0;
       end Forget;
 
-      function Stand (Which : Slot) return States is (Stated (Which));
+      function Stand (Which : Lane) return States is (Stated (Which));
 
-      function Engine_Of (Which : Slot) return Engines is (Using (Which));
+      function Engine_Of (Which : Lane) return Engines is (Using (Which));
 
-      function Phase (Which : Slot; Job : Natural) return States is
+      function Phase (Which : Lane; Job : Natural) return States is
         (if Current (Which) = Job then Stated (Which) else Idle);
 
-      function Said_Why (Which : Slot) return String is
+      function Said_Why (Which : Lane) return String is
         (Said (Which) (1 .. Said_Last (Which)));
 
    end Board;
 
    protected Live is
-      procedure Put (Which : Slot; Words : String; Cut : Boolean; Settled : Natural := 0)
+      procedure Put (Which : Lane; Words : String; Cut : Boolean; Settled : Natural := 0)
         with Pre => Words'First >= 1 and then Words'Last < Positive'Last;
       --  What is heard so far, the first Settled bytes of it settled, for the caller's polling.
-      procedure Get (Which : Slot; Into : out Transcript);
-      procedure Put_Final (Which : Slot; Words : String; Cut : Boolean)
+      procedure Get (Which : Lane; Into : out Transcript);
+      procedure Put_Final (Which : Lane; Words : String; Cut : Boolean)
         with Pre => Words'First >= 1 and then Words'Last < Positive'Last;
       --  What was heard in all, for the caller to take once it is Done.
-      procedure Get_Final (Which : Slot; Into : out Transcript);
+      procedure Get_Final (Which : Lane; Into : out Transcript);
    private
       Texts  : Transcripts;
       Finals : Transcripts;
@@ -187,7 +187,7 @@ is
 
    protected body Live is
 
-      procedure Put (Which : Slot; Words : String; Cut : Boolean; Settled : Natural := 0) is
+      procedure Put (Which : Lane; Words : String; Cut : Boolean; Settled : Natural := 0) is
          Used : constant Natural := Natural'Min (Words'Length, Text_Capacity);
       begin
          Texts (Which).Length := Used;
@@ -197,12 +197,12 @@ is
            Words (Words'First .. Words'First + Used - 1);
       end Put;
 
-      procedure Get (Which : Slot; Into : out Transcript) is
+      procedure Get (Which : Lane; Into : out Transcript) is
       begin
          Into := Texts (Which);
       end Get;
 
-      procedure Put_Final (Which : Slot; Words : String; Cut : Boolean) is
+      procedure Put_Final (Which : Lane; Words : String; Cut : Boolean) is
          Used : constant Natural := Natural'Min (Words'Length, Text_Capacity);
       begin
          Finals (Which).Length := Used;
@@ -211,7 +211,7 @@ is
            Words (Words'First .. Words'First + Used - 1);
       end Put_Final;
 
-      procedure Get_Final (Which : Slot; Into : out Transcript) is
+      procedure Get_Final (Which : Lane; Into : out Transcript) is
       begin
          Into := Finals (Which);
       end Get_Final;
@@ -251,9 +251,9 @@ is
 
    end Gate;
 
-   Run_Gates  : array (Slot) of Gate;
+   Run_Gates  : array (Lane) of Gate;
    --  One to a slot, so that starting a job never waits for another's.
-   Stop_Gates : array (Slot) of Gate;
+   Stop_Gates : array (Lane) of Gate;
 
    function Trimmed (Words : String) return String
      with Pre  => Words'First >= 1 and then Words'Last >= 0 and then Words'Last < Positive'Last,
@@ -281,12 +281,12 @@ is
       return Words (First .. Last);
    end Trimmed;
 
-   procedure Run_Model (Which : Slot; Job : Natural; Path : String)
+   procedure Run_Model (Which : Lane; Job : Natural; Path : String)
      with Pre => Path'First = 1 and then Path'Length <= Max_Path;
    --  Hear the microphone and make it text with the model, until the job
    --  is told to stop (or is reset); then the rest. In the slot's task.
 
-   procedure Run_Model (Which : Slot; Job : Natural; Path : String) is
+   procedure Run_Model (Which : Lane; Job : Natural; Path : String) is
       Pause      : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Milliseconds (50);
       Item       : Streams.Stream;
       --  What it hears with: a window of sound, so it is large, and the
@@ -400,11 +400,11 @@ is
       Board.End_Job (Which, Job, True, "");
    end Run_Model;
 
-   procedure Run_System (Which : Slot; Job : Natural);
+   procedure Run_System (Which : Lane; Job : Natural);
    --  Listen with the system's engine (SpeechAnalyzer) until told to
    --  stop. In the slot's task.
 
-   procedure Run_System (Which : Slot; Job : Natural) is
+   procedure Run_System (Which : Lane; Job : Natural) is
       Ok       : Boolean;
       Why      : String (1 .. Max_Message);
       Last     : Natural;
@@ -432,10 +432,10 @@ is
       Board.End_Job (Which, Job, Ok, Why (1 .. Last));
    end Run_System;
 
-   procedure Do_Job (Which : Slot);
+   procedure Do_Job (Which : Lane);
    --  What the slot's task has been told to do, if there is any.
 
-   procedure Do_Job (Which : Slot) is
+   procedure Do_Job (Which : Lane) is
       Job       : Natural;
       Engine    : Engines;
       Directory : Directory_Text := [others => ' '];
@@ -453,14 +453,14 @@ is
    end Do_Job;
 
    protected Numbers is
-      procedure Next (Which : out Slot);
+      procedure Next (Which : out Lane);
    private
       Given : Natural range 0 .. Slot_Count := 0;
    end Numbers;
    --  Which slot a task is for: they are told, as they begin, one each.
 
    protected body Numbers is
-      procedure Next (Which : out Slot) is
+      procedure Next (Which : out Lane) is
       begin
          Given := Natural'Min (Given + 1, Slot_Count);
          Which := Given;
@@ -478,7 +478,7 @@ is
       "a task ends only when the program does: see Shutdown");
 
    task body Worker is
-      Mine : Slot;
+      Mine : Lane;
       Quit : Boolean;
    begin
       Numbers.Next (Mine);
@@ -489,12 +489,12 @@ is
       end loop;
    end Worker;
 
-   Workers : array (Slot) of Worker;
+   Workers : array (Lane) of Worker;
    --  One to a slot, from the start, so that starting a job never waits
    --  for another's (and nothing is made while the program runs).
 
    procedure Start_Job
-     (Which           : Slot;
+     (Which           : Lane;
       Engine          : Engines := System;
       Model_Directory : String  := "")
    is
@@ -507,7 +507,7 @@ is
       Run_Gates (Which).Release;
    end Start_Job;
 
-   procedure Stop_Job (Which : Slot) is
+   procedure Stop_Job (Which : Lane) is
       Wake : Boolean;
    begin
       Board.Request_Stop (Which, Wake);
@@ -516,9 +516,9 @@ is
       end if;
    end Stop_Job;
 
-   function Job_State (Which : Slot) return States is (Board.Stand (Which));
+   function Job_State (Which : Lane) return States is (Board.Stand (Which));
 
-   function Job_Loudness (Which : Slot) return Float is
+   function Job_Loudness (Which : Lane) return Float is
       Standing : constant States := Board.Stand (Which);
       Hearing  : constant Engines := Board.Engine_Of (Which);
    begin
@@ -531,7 +531,7 @@ is
       end if;
    end Job_Loudness;
 
-   procedure Words_So_Far (Which : Slot; Into : in out Transcript) is
+   procedure Words_So_Far (Which : Lane; Into : in out Transcript) is
       Standing : constant States := Board.Stand (Which);
       Hearing  : constant Engines := Board.Engine_Of (Which);
    begin
@@ -547,9 +547,9 @@ is
       end if;
    end Words_So_Far;
 
-   function Job_Message (Which : Slot) return String is (Board.Said_Why (Which));
+   function Job_Message (Which : Lane) return String is (Board.Said_Why (Which));
 
-   procedure Take_Words (Which : Slot; Into : out Transcript) is
+   procedure Take_Words (Which : Lane; Into : out Transcript) is
       Wake : Boolean;
       pragma Warnings
         (GNATprove, Off, "is set by ""Forget"" but not used",
@@ -559,7 +559,7 @@ is
       Board.Forget (Which, Wake);
    end Take_Words;
 
-   procedure Reset_Job (Which : Slot) is
+   procedure Reset_Job (Which : Lane) is
       Wake : Boolean;
    begin
       Board.Forget (Which, Wake);
@@ -570,7 +570,7 @@ is
 
    procedure End_Jobs is
    begin
-      for Which in Slot loop
+      for Which in Lane loop
          Run_Gates (Which).Close_Down;
          Stop_Gates (Which).Close_Down;
       end loop;

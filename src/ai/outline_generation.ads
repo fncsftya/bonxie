@@ -12,7 +12,7 @@ package Outline_Generation is
 
    Tokens : constant := 8192;
    --  The most a model may make, thoughts and reply: the model is to think
-   --  first, and a reply of Max_Sections titles is a few thousand bytes.
+   --  first, and a reply of many titles is a few thousand bytes.
 
    function System_Prompt (With_Notes : Boolean) return String
      with Post => System_Prompt'Result'Length > 0;
@@ -38,11 +38,9 @@ package Outline_Generation is
       Valid  : out Boolean)
      with Post => (if Valid then Result.Count > 0 else Result.Count = 0);
    --  The sections the model replied with, as the reply's JSON gives them:
-   --  titles trimmed, cut to Max_Title and, beyond Max_Sections, left out;
-   --  those that are blank or a title already given are left out too, and
+   --  titles trimmed; those that are blank or a title already given are left out too, and
    --  the keys are 0. A section's "notes", if it has them, are made into
-   --  bullets, a line each starting with "- ", whole ones only, up to
-   --  Max_Notes. Valid is False, and Result empty, if there is no
+   --  bullets, a line each starting with "- ". Valid is False, and Result empty, if there is no
    --  JSON object in Reply that fits Schema, or no title in it. The reply
    --  may have words about the object, or fences round it: they are
    --  passed over.

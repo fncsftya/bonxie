@@ -1,4 +1,3 @@
-with Items.Directories;
 with Pomarine.Widgets;
 with Vision;
 
@@ -85,7 +84,7 @@ private package Viewer.Writing is
      (Item   : in out Session;
       Source : in out Pomarine.Widgets.Widget'Class;
       Event  : Pomarine.Widgets.Widget_Event);
-   --  Add a directory, if there is room.
+   --  Add a directory.
 
    procedure Source_Chosen
      (Item   : in out Session;
@@ -146,8 +145,7 @@ private package Viewer.Writing is
    --  Delete the document, or the directory (whose documents are kept,
    --  in none), and keep that.
 
-   procedure Make_Directory (Item : in out Session; Name : String)
-     with Pre => Item.Docs.Dirs.Count < Items.Directories.Max_Directories;
+   procedure Make_Directory (Item : in out Session; Name : String);
    --  Make a directory, put its row last of the directories, and begin to
    --  rename it.
 
@@ -159,6 +157,12 @@ private package Viewer.Writing is
    --  Give the writing view's widgets, and the windows of the sources in
    --  it, the procedures they call when they are clicked, dragged or have
    --  their say: once they are built.
+
+   procedure Listen_Row (Item : in out Session; Row : Positive);
+   --  Give a row of the tree of documents the procedures it calls.
+
+   procedure Listen_Slot (Item : in out Session; Rank : Items.Slot);
+   --  Give the page and the reader of the slot the procedures they call.
 
    procedure Pressed (Item : in out Session; X, Y : Float)
      with Pre => Screen (Item) = Project;

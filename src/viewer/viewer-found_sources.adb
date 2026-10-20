@@ -42,7 +42,7 @@ package body Viewer.Found_Sources is
 
    function Preview_Is_Paged (Item : Session) return Boolean is
      (Items.Extensions."/="
-        (Items.Readers.Details (Item.Finder.Preview).Document, Items.Extensions.Null_Bounded_String));
+        (Items.Readers.Details (Item.Finder.Preview).Document, Items.Extensions.Null_Text));
 
    function Preview_Title (Item : Session) return String is
      (Projects.Titles.To_String (Items.Readers.Details (Item.Finder.Preview).Title));

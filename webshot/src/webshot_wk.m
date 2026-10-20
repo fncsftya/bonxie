@@ -5,7 +5,6 @@
 #import <AppKit/AppKit.h>
 #import <WebKit/WebKit.h>
 
-#define WS_JOBS 21
 #define WS_MESSAGE 160
 
 #define WS_URL 512
@@ -235,22 +234,60 @@ static NSString *const kDismissScript =
 
 @class WSJob;
 
-static WSJob *jobs[WS_JOBS];
-static int states[WS_JOBS];
-static int heights[WS_JOBS];
-static double phases[WS_JOBS];  // how far on, 0..1, once the page is loaded
-static char messages[WS_JOBS][WS_MESSAGE];
-static char titles[WS_JOBS][WS_MESSAGE];  // of the page, once Done or Looked
-static char documents[WS_JOBS][WS_URL];  // of the PDF the page is of, once Looked
-static int pressed[WS_JOBS];  // whether the last press found a button
-static int tile_counts[WS_JOBS];  // screens written beside the whole page, once Done
+// What is kept of each job, in the slot it is given. A slot is made when a job is first
+// begun in it, so there is no number of them it stops at.
+typedef struct {
+    int state;
+    int height;
+    double phase;  // how far on, 0..1, once the page is loaded
+    char message[WS_MESSAGE];
+    char title[WS_MESSAGE];  // of the page, once Done or Looked
+    char document[WS_URL];  // of the PDF the page is of, once Looked
+    int pressed;  // whether the last press found a button
+    int tile_count;  // screens written beside the whole page, once Done
+} WSSlot;
+
+static WSSlot **slot_table;
+static int slot_count;
+static NSMutableArray *job_table;  // a WSJob, or NSNull where there is none
+static WSSlot empty_slot;  // what a slot not made is: never written
+
+static WSSlot *slot_data(int slot)
+{
+    return slot >= 0 && slot < slot_count ? slot_table[slot] : &empty_slot;
+}
+
+static void ensure_slot(int slot)
+{
+    if (slot < slot_count) return;
+    int count = MAX(slot + 1, slot_count * 2);
+    slot_table = realloc(slot_table, sizeof(WSSlot *) * count);
+    if (!job_table) job_table = [NSMutableArray new];
+    for (int index = slot_count; index < count; index++) {
+        slot_table[index] = calloc(1, sizeof(WSSlot));
+        [job_table addObject:[NSNull null]];
+    }
+    slot_count = count;
+}
+
+static WSJob *job_of(int slot)
+{
+    if (slot < 0 || slot >= slot_count) return nil;
+    id job = job_table[slot];
+    return job == [NSNull null] ? nil : job;
+}
+
+static void set_job(int slot, WSJob *job)
+{
+    job_table[slot] = job ?: (id)[NSNull null];
+}
 
 static void finish(int slot, int state, int height, NSString *message)
 {
-    states[slot] = state;
-    heights[slot] = height;
-    strlcpy(messages[slot], message.UTF8String ?: "", WS_MESSAGE);
-    jobs[slot] = nil;
+    slot_data(slot)->state = state;
+    slot_data(slot)->height = height;
+    strlcpy(slot_data(slot)->message, message.UTF8String ?: "", WS_MESSAGE);
+    set_job(slot, nil);
 }
 
 @interface WSJob : NSObject <WKNavigationDelegate, WKDownloadDelegate>
@@ -348,7 +385,7 @@ static void finish(int slot, int state, int height, NSString *message)
     }
     if (self.proceeded) return;
     self.proceeded = YES;
-    phases[self.slot] = 0.8;
+    slot_data(self.slot)->phase = 0.8;
     self.loaded = YES;
     __weak WSJob *me = self;
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(kSettle * NSEC_PER_SEC)),
@@ -369,7 +406,7 @@ static void finish(int slot, int state, int height, NSString *message)
 - (void)look
 {
     if (self.finished) return;
-    phases[self.slot] = 0.85;
+    slot_data(self.slot)->phase = 0.85;
     WKSnapshotConfiguration *config = [WKSnapshotConfiguration new];
     config.rect = NSMakeRect(0, 0, self.width, kLookHeight);
     double backing = [NSScreen mainScreen].backingScaleFactor;
@@ -389,12 +426,12 @@ static void finish(int slot, int state, int height, NSString *message)
             [job fail:@"The picture could not be written"];
             return;
         }
-        strlcpy(titles[job.slot], job.view.title.UTF8String ?: "", WS_MESSAGE);
+        strlcpy(slot_data(job.slot)->title, job.view.title.UTF8String ?: "", WS_MESSAGE);
         [job.view evaluateJavaScript:kDocumentScript completionHandler:^(id result, NSError *err) {
             WSJob *again = me;
             if (!again || again.finished) return;
-            strlcpy(documents[again.slot], [result isKindOfClass:[NSString class]] ? [result UTF8String] : "", WS_URL);
-            states[again.slot] = WS_LOOKED;
+            strlcpy(slot_data(again.slot)->document, [result isKindOfClass:[NSString class]] ? [result UTF8String] : "", WS_URL);
+            slot_data(again.slot)->state = WS_LOOKED;
         }];
     }];
 }
@@ -440,7 +477,7 @@ static void finish(int slot, int state, int height, NSString *message)
         if (--pending > 0) return;
         WSJob *job = me;
         if (!job || job.finished) return;
-        pressed[job.slot] = clicked ? 1 : 0;
+        slot_data(job.slot)->pressed = clicked ? 1 : 0;
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)((clicked ? kBannerWait : 0.1) * NSEC_PER_SEC)),
                        dispatch_get_main_queue(), ^{ [me look]; });
     };
@@ -511,7 +548,7 @@ static BOOL stopped_for_download(WSJob *job, NSError *error)
 - (void)measure
 {
     if (self.finished) return;
-    phases[self.slot] = 0.9;
+    slot_data(self.slot)->phase = 0.9;
     NSString *script =
         @"Math.max(document.documentElement.scrollHeight,"
          "document.body ? document.body.scrollHeight : 0)";
@@ -556,7 +593,7 @@ static BOOL stopped_for_download(WSJob *job, NSError *error)
             [job fail:@"The picture could not be written"];
             return;
         }
-        tile_counts[job.slot] = index;
+        slot_data(job.slot)->tile_count = index;
         [job tile:index + 1 of:high picture:picture];
     }];
 }
@@ -599,7 +636,7 @@ static BOOL stopped_for_download(WSJob *job, NSError *error)
                 [again fail:@"The picture could not be written"];
                 return;
             }
-            strlcpy(titles[again.slot], again.view.title.UTF8String ?: "", WS_MESSAGE);
+            strlcpy(slot_data(again.slot)->title, again.view.title.UTF8String ?: "", WS_MESSAGE);
             [again tile:1 of:high picture:(int)CGImageGetHeight(cg)];
         }];
     });
@@ -612,12 +649,14 @@ static BOOL stopped_for_download(WSJob *job, NSError *error)
 // page that is not a file fails.
 int ws_download(int slot, const char *url, const char *path)
 {
-    if (slot < 0 || slot >= WS_JOBS || states[slot] == WS_WORKING) return 0;
+    if (slot < 0) return 0;
+    ensure_slot(slot);
+    if (slot_data(slot)->state == WS_WORKING) return 0;
     [NSApplication sharedApplication];
     NSURL *target = [NSURL URLWithString:[NSString stringWithUTF8String:url]];
     if (!target || !target.scheme) {
-        states[slot] = WS_FAILED;
-        strlcpy(messages[slot], "Not a link", WS_MESSAGE);
+        slot_data(slot)->state = WS_FAILED;
+        strlcpy(slot_data(slot)->message, "Not a link", WS_MESSAGE);
         return 1;
     }
     WSJob *job = [WSJob new];
@@ -629,14 +668,14 @@ int ws_download(int slot, const char *url, const char *path)
     job.view = [[WKWebView alloc] initWithFrame:NSMakeRect(0, 0, 1024, kLookHeight)
                                   configuration:[WKWebViewConfiguration new]];
     job.view.navigationDelegate = job;
-    jobs[slot] = job;
-    states[slot] = WS_WORKING;
-    titles[slot][0] = 0;
-    documents[slot][0] = 0;
-    pressed[slot] = 0;
-    tile_counts[slot] = 0;
-    phases[slot] = 0;
-    messages[slot][0] = 0;
+    set_job(slot, job);
+    slot_data(slot)->state = WS_WORKING;
+    slot_data(slot)->title[0] = 0;
+    slot_data(slot)->document[0] = 0;
+    slot_data(slot)->pressed = 0;
+    slot_data(slot)->tile_count = 0;
+    slot_data(slot)->phase = 0;
+    slot_data(slot)->message[0] = 0;
     if ([target isFileURL]) {
         [job.view loadFileURL:target allowingReadAccessToURL:[target URLByDeletingLastPathComponent]];
     } else {
@@ -654,12 +693,14 @@ int ws_download(int slot, const char *url, const char *path)
 int ws_start(int slot, const char *url, const char *path, int width, const char *look, int dismiss,
              const char *tiles)
 {
-    if (slot < 0 || slot >= WS_JOBS || states[slot] == WS_WORKING) return 0;
+    if (slot < 0) return 0;
+    ensure_slot(slot);
+    if (slot_data(slot)->state == WS_WORKING) return 0;
     [NSApplication sharedApplication];  // WebKit wants one; SDL's is this
     NSURL *target = [NSURL URLWithString:[NSString stringWithUTF8String:url]];
     if (!target || !target.scheme) {
-        states[slot] = WS_FAILED;
-        strlcpy(messages[slot], "Not a link", WS_MESSAGE);
+        slot_data(slot)->state = WS_FAILED;
+        strlcpy(slot_data(slot)->message, "Not a link", WS_MESSAGE);
         return 1;
     }
     WSJob *job = [WSJob new];
@@ -670,18 +711,18 @@ int ws_start(int slot, const char *url, const char *path, int width, const char 
     job.dismiss = dismiss != 0;
     job.lookPath = look && look[0] ? [NSString stringWithUTF8String:look] : nil;
     job.tilePrefix = tiles && tiles[0] ? [NSString stringWithUTF8String:tiles] : nil;
-    tile_counts[slot] = 0;
-    documents[slot][0] = 0;
-    pressed[slot] = 0;
+    slot_data(slot)->tile_count = 0;
+    slot_data(slot)->document[0] = 0;
+    slot_data(slot)->pressed = 0;
     WKWebViewConfiguration *config = [WKWebViewConfiguration new];
     job.view = [[WKWebView alloc] initWithFrame:NSMakeRect(0, 0, width, kLookHeight)
                                   configuration:config];
     job.view.navigationDelegate = job;
-    jobs[slot] = job;
-    states[slot] = WS_WORKING;
-    titles[slot][0] = 0;
-    phases[slot] = 0;
-    messages[slot][0] = 0;
+    set_job(slot, job);
+    slot_data(slot)->state = WS_WORKING;
+    slot_data(slot)->title[0] = 0;
+    slot_data(slot)->phase = 0;
+    slot_data(slot)->message[0] = 0;
     if ([target isFileURL]) {
         [job.view loadFileURL:target allowingReadAccessToURL:[target URLByDeletingLastPathComponent]];
     } else {
@@ -705,55 +746,55 @@ void ws_pump(int milliseconds)
 // What to do with a job that has been looked at (state WS_LOOKED).
 int ws_press(int slot, const char *label)
 {
-    WSJob *job = slot >= 0 && slot < WS_JOBS ? jobs[slot] : nil;
-    if (!job || states[slot] != WS_LOOKED) return 0;
-    states[slot] = WS_WORKING;
+    WSJob *job = job_of(slot);
+    if (!job || slot_data(slot)->state != WS_LOOKED) return 0;
+    slot_data(slot)->state = WS_WORKING;
     [job press:[NSString stringWithUTF8String:label]];
     return 1;
 }
 
 int ws_continue(int slot)
 {
-    WSJob *job = slot >= 0 && slot < WS_JOBS ? jobs[slot] : nil;
-    if (!job || states[slot] != WS_LOOKED) return 0;
-    states[slot] = WS_WORKING;
+    WSJob *job = job_of(slot);
+    if (!job || slot_data(slot)->state != WS_LOOKED) return 0;
+    slot_data(slot)->state = WS_WORKING;
     if (job.lookPath) [job recheck:0]; else [job measure];
     return 1;
 }
 
-int ws_tiles(int slot) { return slot >= 0 && slot < WS_JOBS ? tile_counts[slot] : 0; }
-int ws_pressed(int slot) { return slot >= 0 && slot < WS_JOBS ? pressed[slot] : 0; }
-const char *ws_document(int slot) { return slot >= 0 && slot < WS_JOBS ? documents[slot] : ""; }
+int ws_tiles(int slot) { return slot >= 0 && slot < slot_count ? slot_data(slot)->tile_count : 0; }
+int ws_pressed(int slot) { return slot >= 0 && slot < slot_count ? slot_data(slot)->pressed : 0; }
+const char *ws_document(int slot) { return slot >= 0 && slot < slot_count ? slot_data(slot)->document : ""; }
 
-int ws_state(int slot) { return slot >= 0 && slot < WS_JOBS ? states[slot] : WS_IDLE; }
-int ws_height(int slot) { return slot >= 0 && slot < WS_JOBS ? heights[slot] : 0; }
-const char *ws_message(int slot) { return slot >= 0 && slot < WS_JOBS ? messages[slot] : ""; }
+int ws_state(int slot) { return slot >= 0 && slot < slot_count ? slot_data(slot)->state : WS_IDLE; }
+int ws_height(int slot) { return slot >= 0 && slot < slot_count ? slot_data(slot)->height : 0; }
+const char *ws_message(int slot) { return slot >= 0 && slot < slot_count ? slot_data(slot)->message : ""; }
 // Percent done: the page's load is the first four fifths, then the wait
 // for late layout, the measure and the snapshot.
 int ws_progress(int slot)
 {
-    if (slot < 0 || slot >= WS_JOBS) return 0;
-    if (states[slot] == WS_DONE) return 100;
-    if (states[slot] == WS_LOOKED) return 85;
-    if (states[slot] != WS_WORKING) return 0;
-    double done = phases[slot];
-    WSJob *job = jobs[slot];
+    if (slot < 0) return 0;
+    if (slot_data(slot)->state == WS_DONE) return 100;
+    if (slot_data(slot)->state == WS_LOOKED) return 85;
+    if (slot_data(slot)->state != WS_WORKING) return 0;
+    double done = slot_data(slot)->phase;
+    WSJob *job = job_of(slot);
     if (job && done < 0.8) done = MAX(done, job.view.estimatedProgress * 0.8);
     return (int)(done * 100.0);
 }
-const char *ws_title(int slot) { return slot >= 0 && slot < WS_JOBS ? titles[slot] : ""; }
+const char *ws_title(int slot) { return slot >= 0 && slot < slot_count ? slot_data(slot)->title : ""; }
 void ws_reset(int slot)
 {
-    if (slot < 0 || slot >= WS_JOBS) return;
-    if (jobs[slot].download) [jobs[slot].download cancel:^(NSData *resume) {}];
-    jobs[slot].finished = YES;
-    jobs[slot] = nil;
-    states[slot] = WS_IDLE;
-    heights[slot] = 0;
-    phases[slot] = 0;
-    messages[slot][0] = 0;
-    titles[slot][0] = 0;
-    documents[slot][0] = 0;
-    pressed[slot] = 0;
-    tile_counts[slot] = 0;
+    if (slot < 0 || slot >= slot_count) return;
+    if (job_of(slot).download) [job_of(slot).download cancel:^(NSData *resume) {}];
+    job_of(slot).finished = YES;
+    set_job(slot, nil);
+    slot_data(slot)->state = WS_IDLE;
+    slot_data(slot)->height = 0;
+    slot_data(slot)->phase = 0;
+    slot_data(slot)->message[0] = 0;
+    slot_data(slot)->title[0] = 0;
+    slot_data(slot)->document[0] = 0;
+    slot_data(slot)->pressed = 0;
+    slot_data(slot)->tile_count = 0;
 }

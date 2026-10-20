@@ -181,7 +181,7 @@ package body Viewer.Canvas_Items.Opening is
       Item.Nav.Fetch_Slot := Which;
       Item.Nav.Fetch_Key := Key;
       Item.Nav.Fetch_Document :=
-        Items.Extensions.To_Bounded_String (Ending);
+        Items.Extensions.To_Text (Ending);
       Windows.Set_Capture (Item.Windows (Which), Windows.Busy);
    end Start_Download;
 

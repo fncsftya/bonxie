@@ -13,29 +13,29 @@ private package Speech.Jobs.Core
 is
 
    procedure Start_Job
-     (Which           : Slot;
+     (Which           : Lane;
       Engine          : Engines := System;
       Model_Directory : String  := "")
      with Pre => Model_Directory'Length <= Max_Path;
 
-   procedure Stop_Job (Which : Slot);
+   procedure Stop_Job (Which : Lane);
 
-   function Job_State (Which : Slot) return States
+   function Job_State (Which : Lane) return States
      with Volatile_Function;
 
-   function Job_Loudness (Which : Slot) return Float
+   function Job_Loudness (Which : Lane) return Float
      with Volatile_Function,
           Post => Job_Loudness'Result in 0.0 .. 1.0;
 
-   procedure Words_So_Far (Which : Slot; Into : in out Transcript);
+   procedure Words_So_Far (Which : Lane; Into : in out Transcript);
 
-   function Job_Message (Which : Slot) return String
+   function Job_Message (Which : Lane) return String
      with Volatile_Function,
           Post => Job_Message'Result'Length <= Max_Message;
 
-   procedure Take_Words (Which : Slot; Into : out Transcript);
+   procedure Take_Words (Which : Lane; Into : out Transcript);
 
-   procedure Reset_Job (Which : Slot);
+   procedure Reset_Job (Which : Lane);
 
    procedure End_Jobs;
 

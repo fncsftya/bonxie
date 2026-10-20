@@ -185,6 +185,28 @@ package body Outline_Tests is
       Check ("outline-order-kept", "Middle|Beginning|", Titles (Session));
    end Sections;
 
+   procedure Many_Sections is
+      Session : Viewer.Session;
+      Many    : constant := 90;
+      Long    : constant String (1 .. 300) := [others => 'w'];
+   begin
+      Start (Session);
+      for Each in 1 .. Many - 1 loop
+         Outline.Add_Section (Session);
+      end loop;
+      --  A long title is not cut.
+      Outline.Add_Section (Session);
+      for Part in 0 .. 2 loop
+         Type_In (Session, Long (Part * 100 + 1 .. Part * 100 + 100));
+      end loop;
+      Settle (Session);
+      Check ("outline-many", Natural'Image (Many), Natural'Image (Outline.Section_Count (Session)));
+      Reopen (Session);
+      Check ("outline-many-kept", Natural'Image (Many), Natural'Image (Outline.Section_Count (Session)));
+      Check ("outline-long-title", Natural'Image (Long'Length),
+             Natural'Image (Outline.Section_Title (Session, Many)'Length));
+   end Many_Sections;
+
    procedure Form is
       Session : Viewer.Session;
    begin

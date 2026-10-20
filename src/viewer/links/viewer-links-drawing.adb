@@ -33,15 +33,15 @@ package body Viewer.Links.Drawing is
       Spot   : constant Support.Point := Support.Pixels_Of (Item, Support.Middle (Where, Side));
       Half   : constant Float := Support.Diameter (Item) / 2.0;
    begin
-      Widgets.Move_To (Item.Linking.Pins (Which, Side), Spot.X - Half, Spot.Y - Half,
-               Item.Linking.Pin_Left (Which, Side),
-                  Item.Linking.Pin_Top (Which, Side),
+      Widgets.Move_To (Item.Linking.Pins (Which) (Side), Spot.X - Half, Spot.Y - Half,
+               Item.Linking.Pin_Left (Which) (Side),
+                  Item.Linking.Pin_Top (Which) (Side),
                Changed);
    end Put_Pin;
 
    procedure Show_Pins (Item : in out Session; Changed : in out Boolean) is
    begin
-      for Which in Items.Slot loop
+      for Which in 1 .. Item.Windows.Count loop
          declare
             Near : Boolean := False;
          begin
@@ -49,7 +49,7 @@ package body Viewer.Links.Drawing is
                Near := Windows.Is_Hovered (Item.Windows (Which));
                for Side in Item_Links.Sides loop
                   Near := Near or else Widgets.Is_Hovered
-                            (Item.Linking.Pins (Which, Side));
+                            (Item.Linking.Pins (Which) (Side));
                end loop;
             end if;
             for Side in Item_Links.Sides loop
@@ -62,7 +62,7 @@ package body Viewer.Links.Drawing is
                           then Which /= Item.Linking.Link_From
                        else Which /= Item.Linking.Link_From
                             or else Side = Item.Linking.Link_From_Side);
-                  Pin : Pins.Pin renames Item.Linking.Pins (Which, Side);
+                  Pin : Pins.Pin renames Item.Linking.Pins (Which) (Side);
                begin
                   if Want /= Widgets.Is_Visible (Pin) then
                      if not Want then
@@ -82,7 +82,7 @@ package body Viewer.Links.Drawing is
 
    procedure Draw_Lines (Item : in out Session; Changed : in out Boolean) is
 
-      Lines : Canvases.Line_Array (1 .. Item_Links.Max_Links);
+      Lines : Canvases.Line_Array (1 .. Item.Linking.Link_Set.Count);
       Drawn : Natural := 0;
       Chosen : Natural := 0;
       --  The tag of the selected link, if it is drawn.
@@ -91,7 +91,7 @@ package body Viewer.Links.Drawing is
       for Number in 1 .. Item.Linking.Link_Set.Count loop
          declare
             Each : Item_Links.Link renames
-              Item.Linking.Link_Set.Links (Number);
+              Item.Linking.Link_Set (Number);
             From : constant Natural := Support.Slot_Of (Item, Each.From);
             To   : constant Natural := Support.Slot_Of (Item, Each.To);
          begin
@@ -162,7 +162,7 @@ package body Viewer.Links.Drawing is
                      Item.Linking.Bar_Left, Item.Linking.Bar_Top, Changed);
             declare
                Was : constant Item_Links.Link
-                  := Item.Linking.Link_Set.Links (Chosen);
+                  := Item.Linking.Link_Set (Chosen);
             begin
                for Each in Item_Links.Strokes loop
                   Buttons.Set_Selected
@@ -212,9 +212,9 @@ package body Viewer.Links.Drawing is
                   or else Shown_Pins (Item) > 0)
       then
          Widgets.Raise_To_Front (Item.Linking.Link_Bar);
-         for Which in Items.Slot loop
+         for Which in 1 .. Item.Windows.Count loop
             for Side in Item_Links.Sides loop
-               Widgets.Raise_To_Front (Item.Linking.Pins (Which, Side));
+               Widgets.Raise_To_Front (Item.Linking.Pins (Which) (Side));
             end loop;
          end loop;
          Widgets.Raise_To_Front (Item.Linking.Link_Handle);

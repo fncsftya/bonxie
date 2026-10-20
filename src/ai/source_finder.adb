@@ -10,7 +10,6 @@ with Model_Replies;
 with Source_Finding;
 with Source_Links;
 with Vision.Jobs;
-with Webshot;
 with Websearch;
 
 package body Source_Finder is
@@ -32,7 +31,7 @@ package body Source_Finder is
    use type Ada.Real_Time.Time_Span;
    use type Ada.Directories.File_Size;
 
-   pragma Assert (Last_Slot <= Webshot.Slot_Count and then Last_Slot <= Vision.Jobs.Slot_Count);
+   pragma Assert (Max_Pages <= Webshot.Lane_Count and then Max_Pages <= Vision.Jobs.Lane_Count);
 
    Search_Slot : constant Websearch.Slot := 1;
 
@@ -195,7 +194,7 @@ package body Source_Finder is
 
    --  Helpers
 
-   function Slot_Of (Which : Positive) return Positive is (First_Slot + Which - 1);
+   function Slot_Of (Which : Positive) return Integer is (First_Slot + Which - 1);
 
    function Image (Number : Natural) return String is
      (Model_Replies.Tidy (Natural'Image (Number), 10));
@@ -783,7 +782,7 @@ package body Source_Finder is
    end Read_Document;
 
    procedure Poll_Lane (Which : Positive) is
-      Slot : constant Positive := Slot_Of (Which);
+      Slot : constant Integer := Slot_Of (Which);
       Page : Lane renames Lanes (Which);
    begin
       case Page.State is

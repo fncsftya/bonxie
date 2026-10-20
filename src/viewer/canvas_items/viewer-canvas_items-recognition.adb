@@ -12,6 +12,9 @@ package body Viewer.Canvas_Items.Recognition is
 
    use type Items.Kinds;
 
+   Longest_Title : constant := 64;
+   --  Of a title made from the words of a picture: what is more is left out.
+
    procedure Start_Recognition (Item : in out Session; Which : Items.Slot) is
       Key : constant Items.Id :=
         Windows.Details (Item.Windows (Which)).Key;
@@ -75,7 +78,7 @@ package body Viewer.Canvas_Items.Recognition is
          Page : constant String :=
            Ada.Strings.Fixed.Trim (Raw, Ada.Strings.Both);
       begin
-         Last := Natural'Min (Page'Length, Projects.Title_Capacity);
+         Last := Natural'Min (Page'Length, Longest_Title);
          --  Not in the middle of a UTF-8 character.
          while Last > 0 and then Last < Page'Length
            and then Character'Pos (Page (Page'First + Last))

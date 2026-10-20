@@ -148,22 +148,20 @@ package body Repository.Link is
            "SELECT l.from_id, l.to_id, l.from_side, l.to_side, "
            & "l.id, l.stroke, l.ending, l.color "
            & "FROM item_links l JOIN items i ON i.id = l.from_id "
-           & "WHERE i.project_id = :project ORDER BY l.id LIMIT :limit");
+           & "WHERE i.project_id = :project ORDER BY l.id");
    begin
-      Result.Count := 0;
+      Result.Clear;
       Ada_Sqlite3.Bind_Int64 (Query, ":project", Long_Integer (Project));
-      Ada_Sqlite3.Bind_Int (Query, ":limit", Items.Links.Max_Links);
       while Ada_Sqlite3.Step (Query) = Ada_Sqlite3.ROW loop
-         Result.Count := Result.Count + 1;
-         Result.Links (Result.Count) :=
-           (From      => Items.Id (Ada_Sqlite3.Column_Int64 (Query, 0)),
+         Result.Append
+           ((From      => Items.Id (Ada_Sqlite3.Column_Int64 (Query, 0)),
             To        => Items.Id (Ada_Sqlite3.Column_Int64 (Query, 1)),
             From_Side => Side_Of (Ada_Sqlite3.Column_Int (Query, 2)),
             To_Side   => Side_Of (Ada_Sqlite3.Column_Int (Query, 3)),
             Key       => Items.Id (Ada_Sqlite3.Column_Int64 (Query, 4)),
             Stroke    => Stroke_Of (Ada_Sqlite3.Column_Int (Query, 5)),
             Ending    => Ending_Of (Ada_Sqlite3.Column_Int (Query, 6)),
-            Color     => Color_Of (Ada_Sqlite3.Column_Int (Query, 7)));
+            Color     => Color_Of (Ada_Sqlite3.Column_Int (Query, 7))));
       end loop;
    end Load;
 

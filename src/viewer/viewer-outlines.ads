@@ -54,6 +54,9 @@ private package Viewer.Outlines is
    --  Show the title, the description and the sections of the project: once
    --  it is current.
 
+   procedure Listen_Block (Item : in out Session; Index : Positive);
+   --  Give the widgets of the section's block the procedures they call.
+
    procedure Leave (Item : in out Session);
    --  Keep what was typed, and let go of the project's sections.
 

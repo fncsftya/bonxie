@@ -5,16 +5,15 @@ with Projects;
 --  their own, one row to a mark, that goes with the item.
 package Items.Marks is
 
-   Max_Marks : constant := Pomarine.Marks.Max_Marks;
    subtype Mark is Pomarine.Marks.Mark;
    subtype Mark_Array is Pomarine.Marks.Mark_Array;
 
    type Mark_List is record
-      Count : Natural range 0 .. Max_Marks := 0;
-      Marks : Mark_Array (1 .. Max_Marks);
+      Count : Natural := 0;
+      Marks : Pomarine.Marks.Mark_Store;
       Past : Pomarine.Marks.History;
    end record;
-   --  Marks (1 .. Count), the earliest made first. Past follows the marks
+   --  Marks.Data (1 .. Count), the earliest made first. Past follows the marks
    --  between views, during this session; it is not kept in the database.
 
    procedure Save_Marks

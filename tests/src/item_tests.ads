@@ -27,6 +27,8 @@ package Item_Tests is
    procedure Repainting;
    procedure Fractional_Density;
    procedure Full;
+   procedure Long_Title;
+   procedure Many_Marks_And_Words;
    procedure Kept;
    procedure Linking;
    procedure Editing_Links;

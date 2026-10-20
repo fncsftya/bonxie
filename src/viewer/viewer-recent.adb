@@ -62,7 +62,7 @@ package body Viewer.Recent is
    begin
       Items.Records.Load
         (Item.Nav.Store, Item.Home_View.Row_Keys (Row), Found);
-      for Each of Found.Items (1 .. Found.Count) loop
+      for Each of Found.Slice loop
          if Each.Kind = Items.Source then
             Sources := Sources + 1;
          else
@@ -162,8 +162,7 @@ package body Viewer.Recent is
       if Last >= First and then Item.Home_View.Editing /= 0 then
          Projects.Rename
            (Item.Nav.Store, Item.Home_View.Row_Keys (Item.Home_View.Editing),
-            Content (First .. Natural'Min
-                                (Last, First + Projects.Title_Capacity - 1)));
+            Content (First .. Last));
          Refresh (Item);
          Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
       end if;

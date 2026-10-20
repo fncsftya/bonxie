@@ -34,8 +34,6 @@ package Items.Windows is
 
    type Window is limited private;
 
-   type Window_Array is array (Slot) of Window;
-
    type Actions is (None, Minimize, Restore, Close, Capture, Speak, Previous_Page, Next_Page,
                     Choose_Link, Choose_File, Link_To_Outline, Find_Sources);
    --  What a window's buttons ask for, and, of a source, Return in its
@@ -230,7 +228,7 @@ package Items.Windows is
    --  faintly.
 
    procedure Set_Title_Text (Item : in out Window; To : String)
-     with Pre => Is_Assigned (Item) and then To'Length <= 64;
+     with Pre => Is_Assigned (Item);
    --  Replace the title as if typed, to be written with the rest.
 
    procedure Set_Progress (Item : in out Window; To : Float)

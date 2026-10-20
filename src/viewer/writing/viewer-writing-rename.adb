@@ -1,4 +1,6 @@
+with Items.Directories;
 with Projects.Sections;
+with Viewer.Build;
 with Pomarine.Boxes;
 with Texts.Documents;
 with Pomarine.Text_Areas;
@@ -57,7 +59,7 @@ package body Viewer.Writing.Rename is
       end if;
       Docs.Load
         (Item.Naming.Dir_Doc,
-         Projects.Titles.To_String (Item.Docs.Dirs.Directories (Dir).Title));
+         Projects.Titles.To_String (Item.Docs.Dirs (Dir).Title));
       Text_Fields.Attach (Item.Naming.Dir_Field,
                           Item.Naming.Dir_Doc'Unchecked_Access);
       Item.Naming.Renaming_Dir := Dir;
@@ -119,36 +121,26 @@ package body Viewer.Writing.Rename is
       end loop;
       if Dir /= 0 and then Last >= First then
          declare
-            Name : constant String :=
-              Content (First ..
-                       Natural'Min
-                         (Last, First + Projects.Title_Capacity - 1));
+            Name : constant String := Content (First .. Last);
          begin
             if Support.Is_Section (Item, Dir) then
                --  A section's folder has the section's name, which is kept
                --  with the section, and shown wherever it is.
                declare
                   Key : constant Projects.Sections.Section_Id :=
-                    Projects.Sections.Section_Id (Item.Docs.Dirs.Directories (Dir).Section);
-                  Whole : Natural := Natural'Min (Name'Length, Projects.Sections.Max_Title);
+                    Projects.Sections.Section_Id (Item.Docs.Dirs (Dir).Section);
                begin
-                  while Whole > 0 and then Whole < Name'Length
-                    and then Character'Pos (Name (Name'First + Whole)) in 16#80# .. 16#BF#
-                  loop
-                     Whole := Whole - 1;
-                  end loop;
-                  Projects.Sections.Rename
-                    (Item.Nav.Store, Key, Name (Name'First .. Name'First + Whole - 1));
+                  Projects.Sections.Rename (Item.Nav.Store, Key, Name);
                   Outlines.Reload (Item);
                   Item.Section_Menu.Changes := Item.Section_Menu.Changes + 1;
-                  Item.Docs.Dirs.Directories (Dir).Title :=
-                    Projects.Titles.To_Bounded_String (Name (Name'First .. Name'First + Whole - 1));
+                  Item.Docs.Dirs (Dir) :=
+                    (Item.Docs.Dirs (Dir) with delta Title => Projects.Titles.To_Text (Name));
                end;
             else
                Items.Directories.Rename_Directory
-                 (Item.Nav.Store, Item.Docs.Dirs.Directories (Dir).Key, Name);
-               Item.Docs.Dirs.Directories (Dir).Title :=
-                 Projects.Titles.To_Bounded_String (Name);
+                 (Item.Nav.Store, Item.Docs.Dirs (Dir).Key, Name);
+               Item.Docs.Dirs (Dir) :=
+                 (Item.Docs.Dirs (Dir) with delta Title => Projects.Titles.To_Text (Name));
             end if;
             Projects.Touch (Item.Nav.Store, Item.Opened.Current);
          end;
@@ -168,10 +160,8 @@ package body Viewer.Writing.Rename is
         Items.Directories.Create_Directory
           (Item.Nav.Store, Item.Opened.Current, Name);
    begin
-      Item.Docs.Dirs.Count := Item.Docs.Dirs.Count + 1;
-      Item.Docs.Dirs.Directories (Item.Docs.Dirs.Count) :=
-        (Key => Key, Title => Projects.Titles.To_Bounded_String (Name),
-         others => <>);
+      Item.Docs.Dirs.Append ((Key => Key, Title => Projects.Titles.To_Text (Name), others => <>));
+      Build.Reserve_Rows (Item);
       --  Last of all.
       Order.Insert_Row
         (Item, Item.Docs.Tree_Count + 1,
