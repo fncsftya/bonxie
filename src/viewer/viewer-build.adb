@@ -111,6 +111,8 @@ package body Viewer.Build is
       Editors.Set_Indent (View.Text, Page_Margin - Page_Text_Inset - Page_Border);
       Editors.Attach (View.Text, View.Doc'Unchecked_Access);
       Pomarine.Text_Areas.Set_Read_Only (Editors.Area (View.Text).all);
+      Pomarine.Text_Areas.Set_Caret_Visible (Editors.Area (View.Text).all, False);
+      Pomarine.Text_Areas.Set_Keyboard_Navigation (Editors.Area (View.Text).all, False);
       Set_Layout
         (View.Text, Grow => 1.0, Height => 0.0, Width => Page_Width);
       View.Wide := Page_Width;
