@@ -74,6 +74,13 @@ package Webshot is
    --  How far on a Working job is, as a fraction: the page's load, then
    --  the settling and the snapshot. 1.0 when Done, 0.0 otherwise.
 
+   procedure Start_Download (Which : Slot; URL : String; File_Name : String)
+     with Pre => State (Which) /= Working;
+   --  Begin to fetch the file the address is of, to be written as File_Name, as the browser
+   --  would download it: with whatever pages loaded before have told it (that it is a person,
+   --  say), which a plain fetch of the address has not. The state is Working, then Done, with
+   --  nothing to Height or Tile_Count; or Failed if it was not a file (a page), or not had.
+
    procedure Press (Which : Slot; Label : String)
      with Pre  => State (Which) = Looked and then Label'Length > 0,
           Post => State (Which) = Working;

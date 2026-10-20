@@ -18,7 +18,9 @@ package Source_Links is
    --  The address of the PDF that a page at a known site is the front of: for
    --  arXiv, /abs/, /html/ and /pdf/ of a paper are all /pdf/<id>.pdf; for
    --  Taylor & Francis, a /doi/ abs, full, epdf or figure page is /doi/pdf/ of the
-   --  same DOI. Empty if the address is none of those (or is no address).
+   --  same DOI; for the ACM Digital Library, a /doi/ page of a paper (with abs, full,
+   --  fullHtml, epdf or none before its DOI) is /doi/pdf/ of it. Empty if the address
+   --  is none of those (or is no address).
 
    function Is_PDF_File (Start : String) return Boolean;
    --  Whether a file that begins with Start (its first few bytes) is a PDF.
@@ -26,6 +28,8 @@ package Source_Links is
    function Name_Of (URL : String) return String
      with Post => Name_Of'Result'Length <= URL'Length;
    --  What the address names, to call a source by when nothing better is known:
-   --  the last part of its path, less its ending, the query and the fragment.
+   --  the last part of its path, less its ending (a number, or one with a version, after the last dot is
+   --  no ending, as in a DOI or an arXiv id), the query and the fragment; or, if the path has a
+   --  DOI in it (a segment that starts 10. and what is after), the DOI.
 
 end Source_Links;

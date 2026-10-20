@@ -41,16 +41,24 @@ the text, on relevance, support and quality; those that score 80% or more are ke
 - **PDFs are preferred.** A PDF is drawn well in a project, so a link to one is fetched
   and its own text is read, and so is the PDF that a page is the front of: arXiv's
   abstract and HTML pages and Taylor & Francis's preview pages are taken as their PDFs, and
-  any page that says which PDF it is of (`citation_pdf_url`) is taken as that. They go first.
+  any page that says which PDF it is of (`citation_pdf_url`) is taken as that, and so is
+  one whose only PDF button (PDF, Download PDF, PDF/ePub) leads to one, as the ACM Digital
+  Library's do. They go first. A PDF is fetched plainly, within a minute; if the site turns
+  that away (some sites will give a file only to a browser) the browser is asked for it, as
+  it would download it, and if that fails too, the page it is the front of is taken in its
+  place. Its text is read from the PDF as it is, with no drawing of pages.
 - **A page is photographed** by `webshot`: the whole of it, however long (it is shrunk to
   fit a picture 16,384 pixels tall when it is longer than 8,192 points), and so that its
   words can be read all the same, the first four screens of it at full size, which `vision`
   reads for the model to judge.
-- **Cookie banners are cleared by the model.** `webshot` first takes the top of the page, and
-  the words `vision` reads from that are given to the model, which cannot see; it says if
-  something covers the page and the exact words of the button that closes it, and `webshot`
-  presses the button with those words (a letter wrong, or the start of them, is found), and
-  looks again. Cookies are accepted (the page is read in a window that keeps nothing); a
+- **Cookie banners are cleared by the model.** `webshot` first takes the top of the page (a
+  window 1024 points high, for a notice to be in one screen), and the words `vision` reads
+  from that are given to the model, which cannot see; it says if something covers the page
+  and the exact words of the button that closes it, and `webshot` presses the button with
+  those words (a letter wrong, or the start of them, is found), and looks again. Notices are
+  put up a while after a page has loaded, more so when many are loading: so when the whole
+  page is to be taken, `webshot` looks once more for one that has come since (and waits a few
+  seconds for a known consent tool that has not yet shown), and the model is asked again. Cookies are accepted (the page is read in a window that keeps nothing); a
   button that subscribes, pays or signs in is never pressed, however it is asked for, and the
   model is told when a button could not be, to choose another. Ordinary captures of a source
   use a plainer way, by what the page says of itself.

@@ -62,6 +62,33 @@ package body Ebook is
       Message_Cap : Interfaces.C.int) return Interfaces.C.int
      with Import, Convention => C, External_Name => "eb_document_sizes";
 
+   function EB_Page_Text
+     (Path        : Interfaces.C.char_array;
+      Page        : Interfaces.C.int;
+      Text        : out Interfaces.C.char_array;
+      Text_Cap    : Interfaces.C.int;
+      Message     : out Interfaces.C.char_array;
+      Message_Cap : Interfaces.C.int) return Interfaces.C.int
+     with Import, Convention => C, External_Name => "eb_page_text";
+
+   function Page_Text (File_Name : String; Page : Positive; Most : Positive := 8_000) return String is
+      Buffer  : Interfaces.C.char_array (0 .. Interfaces.C.size_t (Most));
+      Message : Interfaces.C.char_array (0 .. Max_Message);
+      Found   : constant Interfaces.C.int :=
+        EB_Page_Text
+          (Interfaces.C.To_C (File_Name), Interfaces.C.int (Page), Buffer, Interfaces.C.int (Most) + 1,
+           Message, Interfaces.C.int (Max_Message) + 1);
+   begin
+      if Found = 0 then
+         return "";
+      end if;
+      declare
+         Text : constant String := Interfaces.C.To_Ada (Buffer);
+      begin
+         return Text (Text'First .. Text'First + Natural'Min (Text'Length, Most) - 1);
+      end;
+   end Page_Text;
+
    procedure EB_Page_Free (Handle : System.Address)
      with Import, Convention => C, External_Name => "eb_page_free";
 

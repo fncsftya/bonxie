@@ -3,7 +3,7 @@ project Finder_Run is
    for Source_Dirs use ("run/");
    for Object_Dir use "obj/run";
    for Exec_Dir use "bin/";
-   for Main use ("finder_run.adb", "page_probe.adb", "banner_probe.adb");
+   for Main use ("finder_run.adb", "page_probe.adb", "banner_probe.adb", "links_probe.adb", "fetch_probe.adb");
    package Compiler is
       for Default_Switches ("Ada") use ("-g", "-gnata", "-gnatwa", "-gnat2022", "-gnato", "-gnatVa");
    end Compiler;

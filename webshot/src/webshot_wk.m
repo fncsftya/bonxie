@@ -19,7 +19,8 @@ static const NSTimeInterval kSettle = 0.6;  // after load, for late layout
 static const NSTimeInterval kBannerWait = 1.0;  // after a click, for the banner to go
 static const int kBannerRounds = 2;  // a banner may lead to another notice
 static const int kMaxFrames = 8;
-static const int kLookHeight = 900;  // points, of the window the page is first seen in
+static const int kLookHeight = 1024;  // points, of the window the page is first seen in, and of a screen
+// (tall enough for a notice to be all in one: a notice cut across two screens is hard to read)
 static const int kTileCount = 4;  // screens of the top of a page that are also written, if asked for
 
 // (What costs something or takes the reader away, as a button to subscribe, to pay or to sign
@@ -97,6 +98,38 @@ static NSString *const kPressScript =
      "  return true;"
      "})";
 
+// Whether a notice about cookies covers the page now (1), or one of the common
+// consent tools is in the page and not yet shown (2), as these are put up a
+// moment after the page has loaded; or none (0).
+static NSString *const kNoticeScript =
+    @"(function () {"
+     "  var about = /cookie|consent|privacy|tracking|gdpr|partners/i;"
+     "  var named = /cookie|consent|gdpr|cmp|onetrust|didomi|truste|cookiebot|sp_message|usercentrics|osano|"
+     "iubenda|quantcast/i;"
+     "  var tool = /cookiebot|onetrust|didomi|usercentrics|sp_message|truste|osano|iubenda|quantcast/i;"
+     "  var pending = false;"
+     "  var all = document.querySelectorAll('div, section, aside, dialog, [role=dialog]');"
+     "  for (var i = 0; i < all.length; i++) {"
+     "    var el = all[i];"
+     "    var label = (el.id || '') + ' ' + (typeof el.className === 'string' ? el.className : '');"
+     "    var style = getComputedStyle(el);"
+     "    var covering = style.position === 'fixed' || style.position === 'sticky' ||"
+     "      el.getAttribute('role') === 'dialog' || el.tagName === 'DIALOG';"
+     "    if (!covering && !named.test(label)) continue;"
+     "    var box = el.getBoundingClientRect();"
+     "    var visible = box.width > 40 && box.height > 40 && style.visibility !== 'hidden' &&"
+     "      style.display !== 'none' && style.opacity !== '0';"
+     "    if (!visible) { if (tool.test(label)) pending = true; continue; }"
+     "    var text = el.innerText || '';"
+     "    if (text.length < 4000 && about.test(text) &&"
+     "        el.querySelector('button, a, [role=button], input[type=button]')) return 1;"
+     "  }"
+     "  return pending ? 2 : 0;"
+     "})()";
+
+// (Else a link to a PDF that is labelled so, as PDF, Download PDF, View PDF or PDF/ePub, if the
+// page has only one such, as the front of a paper has: a page that lists many is no front.)
+//
 // The address of the PDF a page says it is the page of, as most journals and
 // repositories do (citation_pdf_url, for scholars' indexes): "" if it says none.
 static NSString *const kDocumentScript =
@@ -107,7 +140,21 @@ static NSString *const kDocumentScript =
      "    var link = document.querySelector('link[rel=\"alternate\"][type=\"application/pdf\"]');"
      "    if (link && link.href) return link.href;"
      "  } catch (e) {}"
-     "  return '';"
+     "  var label = /^(download |view |get |full[- ]?text )?pdf\\b|\\bpdf ?\\/ ?e/i;"
+     "  var shape = /\\.pdf($|[?#])|\\/e?pdf(plus)?\\//i;"
+     "  function key(h) { return h.split(/[?#]/)[0].replace(/\\/e?pdf(plus)?\\//, '/pdf/'); }"
+     "  var links = document.querySelectorAll('a[href]');"
+     "  var found = {}, count = 0, first = '', direct = '';"
+     "  for (var i = 0; i < links.length; i++) {"
+     "    var text = (links[i].innerText || links[i].getAttribute('aria-label') || links[i].title || '').trim();"
+     "    if (text.length > 40 || !label.test(text)) continue;"
+     "    var href;"
+     "    try { href = new URL(links[i].getAttribute('href'), location.href).href; } catch (e) { continue; }"
+     "    if (!/^(https?|file):/.test(href) || !shape.test(href)) continue;"
+     "    if (!found[key(href)]) { found[key(href)] = true; count++; first = first || href; }"
+     "    if (!direct && !/\\/(e|plus)/.test(href.replace(/^[a-z]+:\\/\\/[^\\/]+/, '')) && /\\/pdf\\//.test(href)) direct = href;"
+     "  }"
+     "  return count === 1 ? (direct || first) : '';"
      "})()";
 
 // Clicks away a cookie banner or like notice that covers the page, if there is
@@ -206,7 +253,7 @@ static void finish(int slot, int state, int height, NSString *message)
     jobs[slot] = nil;
 }
 
-@interface WSJob : NSObject <WKNavigationDelegate>
+@interface WSJob : NSObject <WKNavigationDelegate, WKDownloadDelegate>
 @property int slot;
 @property(strong) WKWebView *view;
 @property(copy) NSString *path;
@@ -214,6 +261,9 @@ static void finish(int slot, int state, int height, NSString *message)
 @property BOOL finished;
 @property BOOL loaded;  // the page has been loaded
 @property BOOL proceeded;  // it has been gone on with, once: a page may finish loading again
+@property BOOL rechecked;  // it has been looked at again, for a notice that came late
+@property(copy) NSString *fetchPath;  // where a file the address is of is to be put, if it is to be fetched
+@property(strong) WKDownload *download;  // the file, on its way
 @property BOOL dismiss;  // click away banners the page's own way
 @property(copy) NSString *lookPath;  // the picture of the top of the page, or nil for none
 @property(copy) NSString *tilePrefix;  // where the first screens of the page are written, or nil for none
@@ -229,8 +279,73 @@ static void finish(int slot, int state, int height, NSString *message)
     finish(self.slot, WS_FAILED, 0, why);
 }
 
+// Of a job that is to fetch a file: a response that is one (a PDF, or what the server says is
+// to be saved) is downloaded; a page is let load, as it may be one that asks the browser to
+// show it is a person, and sends it on to the file when it has.
+- (void)webView:(WKWebView *)view decidePolicyForNavigationResponse:(WKNavigationResponse *)response
+                                                    decisionHandler:(void (^)(WKNavigationResponsePolicy))handler
+{
+    if (self.fetchPath && !self.finished) {
+        NSString *type = response.response.MIMEType.lowercaseString ?: @"";
+        NSString *how = @"";
+        if ([response.response isKindOfClass:[NSHTTPURLResponse class]])
+            how = [((NSHTTPURLResponse *)response.response).allHeaderFields[@"Content-Disposition"] description].lowercaseString ?: @"";
+        if ([type isEqualToString:@"application/pdf"] || [type isEqualToString:@"application/octet-stream"]
+            || [how hasPrefix:@"attachment"]) {
+            handler(WKNavigationResponsePolicyDownload);
+            return;
+        }
+    }
+    handler(WKNavigationResponsePolicyAllow);
+}
+
+// A response that is a file to be had: the download is ours to follow.
+- (void)webView:(WKWebView *)view navigationResponse:(WKNavigationResponse *)response
+                                    didBecomeDownload:(WKDownload *)download
+{
+    self.download = download;
+    download.delegate = self;
+}
+
+- (void)download:(WKDownload *)download decideDestinationUsingResponse:(NSURLResponse *)response
+                                                     suggestedFilename:(NSString *)name
+                                                     completionHandler:(void (^)(NSURL *))handler
+{
+    NSString *temp = [self.fetchPath stringByAppendingString:@".part"];
+    [[NSFileManager defaultManager] removeItemAtPath:temp error:nil];
+    handler([NSURL fileURLWithPath:temp]);
+}
+
+- (void)downloadDidFinish:(WKDownload *)download
+{
+    if (self.finished) return;
+    NSString *temp = [self.fetchPath stringByAppendingString:@".part"];
+    if (rename(temp.fileSystemRepresentation, self.fetchPath.fileSystemRepresentation) != 0) {
+        [self fail:@"The file could not be written"];
+        return;
+    }
+    self.finished = YES;
+    finish(self.slot, WS_DONE, 0, @"");
+}
+
+- (void)download:(WKDownload *)download didFailWithError:(NSError *)error resumeData:(NSData *)resumeData
+{
+    [self fail:error.localizedDescription ?: @"The file could not be had"];
+}
+
 - (void)webView:(WKWebView *)view didFinishNavigation:(WKNavigation *)nav
 {
+    if (self.fetchPath) {
+        // A page that is no file: it may send the browser on to one in a moment (when it has
+        // seen it is a person); if it has not, it was no file.
+        __weak WSJob *me = self;
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(10.0 * NSEC_PER_SEC)),
+                       dispatch_get_main_queue(), ^{
+            WSJob *job = me;
+            if (job && !job.download && !job.finished) [job fail:@"Not a file"];
+        });
+        return;
+    }
     if (self.proceeded) return;
     self.proceeded = YES;
     phases[self.slot] = 0.8;
@@ -281,6 +396,30 @@ static void finish(int slot, int state, int height, NSString *message)
             strlcpy(documents[again.slot], [result isKindOfClass:[NSString class]] ? [result UTF8String] : "", WS_URL);
             states[again.slot] = WS_LOOKED;
         }];
+    }];
+}
+
+// Before the whole page is taken, a notice that has come since the top was looked at (it
+// may be put up a good while after the page has loaded, more so when many are loading) is
+// looked at too, once: the job is Looked again, to be told what to press. If one is on its way,
+// it is waited for a little.
+- (void)recheck:(int)waits
+{
+    if (self.finished) return;
+    __weak WSJob *me = self;
+    [self.view evaluateJavaScript:kNoticeScript completionHandler:^(id result, NSError *error) {
+        WSJob *job = me;
+        if (!job || job.finished) return;
+        int seen = [result respondsToSelector:@selector(intValue)] ? [result intValue] : 0;
+        if (seen == 1 && !job.rechecked && job.lookPath) {
+            job.rechecked = YES;
+            [job look];
+        } else if (seen == 2 && waits < 4 && !job.rechecked) {
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.7 * NSEC_PER_SEC)),
+                           dispatch_get_main_queue(), ^{ [me recheck:waits + 1]; });
+        } else {
+            [job measure];
+        }
     }];
 }
 
@@ -348,14 +487,20 @@ static void finish(int slot, int state, int height, NSString *message)
     }
 }
 
+// A load that is stopped because it is to be a download is no failure (WebKit error 102).
+static BOOL stopped_for_download(WSJob *job, NSError *error)
+{
+    return job.fetchPath && [error.domain isEqualToString:@"WebKitErrorDomain"] && error.code == 102;
+}
+
 - (void)webView:(WKWebView *)view didFailNavigation:(WKNavigation *)nav withError:(NSError *)error
 {
-    [self fail:error.localizedDescription];
+    if (!stopped_for_download(self, error)) [self fail:error.localizedDescription];
 }
 
 - (void)webView:(WKWebView *)view didFailProvisionalNavigation:(WKNavigation *)nav withError:(NSError *)error
 {
-    [self fail:error.localizedDescription];
+    if (!stopped_for_download(self, error)) [self fail:error.localizedDescription];
 }
 
 - (void)webViewWebContentProcessDidTerminate:(WKWebView *)view
@@ -462,6 +607,50 @@ static void finish(int slot, int state, int height, NSString *message)
 
 @end
 
+// Begin to fetch the file the address is of, as the browser would download it (with what it has
+// been told by pages loaded before, which a program that is only given the address has not): a
+// page that is not a file fails.
+int ws_download(int slot, const char *url, const char *path)
+{
+    if (slot < 0 || slot >= WS_JOBS || states[slot] == WS_WORKING) return 0;
+    [NSApplication sharedApplication];
+    NSURL *target = [NSURL URLWithString:[NSString stringWithUTF8String:url]];
+    if (!target || !target.scheme) {
+        states[slot] = WS_FAILED;
+        strlcpy(messages[slot], "Not a link", WS_MESSAGE);
+        return 1;
+    }
+    WSJob *job = [WSJob new];
+    job.slot = slot;
+    job.path = [NSString stringWithUTF8String:path];
+    job.fetchPath = job.path;
+    job.width = 1024;
+    job.frames = [NSMutableArray new];
+    job.view = [[WKWebView alloc] initWithFrame:NSMakeRect(0, 0, 1024, kLookHeight)
+                                  configuration:[WKWebViewConfiguration new]];
+    job.view.navigationDelegate = job;
+    jobs[slot] = job;
+    states[slot] = WS_WORKING;
+    titles[slot][0] = 0;
+    documents[slot][0] = 0;
+    pressed[slot] = 0;
+    tile_counts[slot] = 0;
+    phases[slot] = 0;
+    messages[slot][0] = 0;
+    if ([target isFileURL]) {
+        [job.view loadFileURL:target allowingReadAccessToURL:[target URLByDeletingLastPathComponent]];
+    } else {
+        [job.view loadRequest:[NSURLRequest requestWithURL:target]];
+    }
+    __weak WSJob *me = job;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2 * kLoadTimeout * NSEC_PER_SEC)),
+                   dispatch_get_main_queue(), ^{
+        WSJob *late = me;
+        if (late && !late.finished) [late fail:@"Timed out"];
+    });
+    return 1;
+}
+
 int ws_start(int slot, const char *url, const char *path, int width, const char *look, int dismiss,
              const char *tiles)
 {
@@ -485,7 +674,7 @@ int ws_start(int slot, const char *url, const char *path, int width, const char 
     documents[slot][0] = 0;
     pressed[slot] = 0;
     WKWebViewConfiguration *config = [WKWebViewConfiguration new];
-    job.view = [[WKWebView alloc] initWithFrame:NSMakeRect(0, 0, width, 900)
+    job.view = [[WKWebView alloc] initWithFrame:NSMakeRect(0, 0, width, kLookHeight)
                                   configuration:config];
     job.view.navigationDelegate = job;
     jobs[slot] = job;
@@ -528,7 +717,7 @@ int ws_continue(int slot)
     WSJob *job = slot >= 0 && slot < WS_JOBS ? jobs[slot] : nil;
     if (!job || states[slot] != WS_LOOKED) return 0;
     states[slot] = WS_WORKING;
-    [job measure];
+    if (job.lookPath) [job recheck:0]; else [job measure];
     return 1;
 }
 
@@ -556,6 +745,7 @@ const char *ws_title(int slot) { return slot >= 0 && slot < WS_JOBS ? titles[slo
 void ws_reset(int slot)
 {
     if (slot < 0 || slot >= WS_JOBS) return;
+    if (jobs[slot].download) [jobs[slot].download cancel:^(NSData *resume) {}];
     jobs[slot].finished = YES;
     jobs[slot] = nil;
     states[slot] = WS_IDLE;

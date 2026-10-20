@@ -462,6 +462,10 @@ package body Viewer.Find_Sources is
          exit when Source_Finder.State /= Source_Finder.Running;
          delay 0.02;
       end loop;
+      --  What was found and not added is not kept.
+      if Source_Finder.State /= Source_Finder.Running then
+         Source_Finder.Reset;
+      end if;
    end Stop;
 
 end Viewer.Find_Sources;

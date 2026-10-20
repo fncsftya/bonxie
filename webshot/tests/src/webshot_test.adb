@@ -10,6 +10,7 @@ with Webshot;
 procedure Webshot_Test is
    use Ada.Text_IO;
    use type Webshot.States;
+   use type Ada.Directories.File_Size;
 
    Folder   : constant String := "/tmp/bonxie-webshot-test";
    Which    : constant Webshot.Slot := 1;
@@ -262,6 +263,110 @@ begin
       Check (Webshot.Document_Link (Which) = "file://" & Folder & "/paper.pdf",
              "front: its PDF is " & Webshot.Document_Link (Which));
    end if;
+
+   --  A page with no meta tag, but a button for its PDF (as the front of a paper has, twice, one
+   --  of them for a viewer): the one PDF.
+   Write_Page
+     ("front2",
+      "<title>front2</title><a href='doc/epdf/10.1/x'>PDF/eReader</a><p>Abstract.</p>"
+      & "<a href='doc/pdf/10.1/x?download=true'>Download PDF</a>");
+   if Look ("front2") then
+      Check (Webshot.Document_Link (Which) = "file://" & Folder & "/doc/pdf/10.1/x?download=true",
+             "front2: its PDF is found by its buttons, " & Webshot.Document_Link (Which));
+   end if;
+
+   --  A page that lists many PDFs is no front of one, nor are words that are no PDF's link.
+   Write_Page
+     ("listing",
+      "<title>listing</title><a href='a.pdf'>PDF</a> <a href='b.pdf'>PDF</a> <a href='c.pdf'>[PDF]</a>");
+   if Look ("listing") then
+      Check (Webshot.Document_Link (Which) = "", "listing: many PDFs are no front's");
+   end if;
+   Write_Page ("about", "<title>about</title><a href='about-pdfs.html'>PDF</a><a href='report.pdf'>The report</a>");
+   if Look ("about") then
+      Check (Webshot.Document_Link (Which) = "", "about: a PDF's name, or a PDF not called so, is not taken");
+   end if;
+
+   --  A notice that is put up a good while after the page has loaded, as consent tools do: it is
+   --  seen when the whole page is to be taken, which is looked at again, and then it is pressed.
+   Write_Page
+     ("late",
+      "<title>waiting</title><p>Text of a page.</p><script>setTimeout(function () {"
+      & "var d = document.createElement('div'); d.id = 'b';"
+      & "d.style.cssText = 'position:fixed;left:0;right:0;bottom:0;background:#222;color:#fff;padding:24px';"
+      & "d.innerHTML = 'We use cookies on this site.<button onclick=""document.title=&quot;accepted&quot;;"
+      & "b.remove()"">Accept all</button>';"
+      & "document.body.appendChild(d); }, 2500);</script>");
+   if Look ("late") then
+      Check (Webshot.Page_Title (Which) = "waiting", "late: nothing yet at the first look");
+      Webshot.Pump (3_000);
+      Webshot.Continue (Which);
+      declare
+         Waited : Natural := 0;
+      begin
+         while Webshot.State (Which) = Webshot.Working and then Waited < 60_000 loop
+            Webshot.Pump (50);
+            Waited := Waited + 50;
+         end loop;
+      end;
+      Check (Webshot.State (Which) = Webshot.Looked, "late: a notice that came late is looked at, not photographed");
+      if Webshot.State (Which) = Webshot.Looked then
+         Check (Press ("Accept all"), "late: and pressed");
+         Check (Webshot.Page_Title (Which) = "accepted", "late: it was the notice's button");
+         Webshot.Continue (Which);
+         declare
+            Waited : Natural := 0;
+         begin
+            while Webshot.State (Which) = Webshot.Working and then Waited < 60_000 loop
+               Webshot.Pump (50);
+               Waited := Waited + 50;
+            end loop;
+         end;
+         Check (Webshot.State (Which) = Webshot.Done, "late: and then the page is taken");
+      end if;
+   end if;
+
+   --  A file is fetched as a browser would download it: a PDF is saved as it is; a page is no file.
+   declare
+      Paper : constant String := Folder & "/paper.pdf";
+      Waited : Natural := 0;
+      File  : File_Type;
+   begin
+      Create (File, Out_File, Paper);
+      Put_Line (File, "%PDF-1.4");
+      Put_Line (File, "1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj");
+      Put_Line (File, "2 0 obj<</Type/Pages/Count 1/Kids[3 0 R]>>endobj");
+      Put_Line (File, "3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 200 200]>>endobj");
+      Put_Line (File, "trailer<</Root 1 0 R/Size 4>>");
+      Put_Line (File, "%%EOF");
+      Close (File);
+      Remove (Folder & "/fetched.pdf");
+      Webshot.Reset (Which);
+      Webshot.Start_Download (Which, "file://" & Paper, Folder & "/fetched.pdf");
+      while Webshot.State (Which) = Webshot.Working and then Waited < 60_000 loop
+         Webshot.Pump (50);
+         Waited := Waited + 50;
+      end loop;
+      Check (Webshot.State (Which) = Webshot.Done,
+             "fetch: a PDF is fetched" & (if Webshot.State (Which) = Webshot.Failed
+                                          then ", " & Webshot.Message (Which) else ""));
+      Check (Ada.Directories.Exists (Folder & "/fetched.pdf"), "fetch: and its file is there");
+      if Ada.Directories.Exists (Folder & "/fetched.pdf") then
+         Check (Ada.Directories.Size (Folder & "/fetched.pdf") = Ada.Directories.Size (Paper),
+                "fetch: all of it, as it is");
+      end if;
+
+      Waited := 0;
+      Remove (Folder & "/notfile.pdf");
+      Webshot.Reset (Which);
+      Webshot.Start_Download (Which, "file://" & Folder & "/terms.html", Folder & "/notfile.pdf");
+      while Webshot.State (Which) = Webshot.Working and then Waited < 60_000 loop
+         Webshot.Pump (50);
+         Waited := Waited + 50;
+      end loop;
+      Check (Webshot.State (Which) = Webshot.Failed, "fetch: a page is no file");
+      Check (not Ada.Directories.Exists (Folder & "/notfile.pdf"), "fetch: and nothing is left of it");
+   end;
 
    Webshot.Reset (Which);
    if Failures > 0 then

@@ -1,4 +1,5 @@
 with Ada.Directories;
+with Ada.Real_Time;
 with Ada.Streams.Stream_IO;
 with Ada.Strings;
 with Ada.Strings.Bounded;
@@ -6,7 +7,6 @@ with Downloads;
 with Ebook;
 with MLX.Jobs;
 with Model_Replies;
-with Pomarine.Pages;
 with Source_Finding;
 with Source_Links;
 with Vision.Jobs;
@@ -20,7 +20,6 @@ package body Source_Finder is
    use type Webshot.States;
    use type Websearch.States;
    use type Downloads.States;
-   use type Pomarine.Pages.Page_Access;
 
    package Addresses is new Ada.Strings.Bounded.Generic_Bounded_Length (Websearch.Max_URL);
    package Titles is new Ada.Strings.Bounded.Generic_Bounded_Length (Websearch.Max_Title);
@@ -28,6 +27,10 @@ package body Source_Finder is
    package Files is new Ada.Strings.Bounded.Generic_Bounded_Length (Max_Directory + 32);
 
    use type Titles.Bounded_String;
+   use type Addresses.Bounded_String;
+   use type Ada.Real_Time.Time;
+   use type Ada.Real_Time.Time_Span;
+   use type Ada.Directories.File_Size;
 
    pragma Assert (Last_Slot <= Webshot.Slot_Count and then Last_Slot <= Vision.Jobs.Slot_Count);
 
@@ -38,8 +41,19 @@ package body Source_Finder is
    --  the model takes one at a time whatever the number, and the jobs it has are
    --  few (see MLX.Jobs.Max_Jobs).
 
-   Document_Pages : constant := 3;
-   --  How many pages of a PDF are read, for the model to judge it by.
+   Document_Pages : constant := 10;
+   --  How many pages of a PDF are read, at the most, for the model to judge it by: as many as
+   --  it takes to have Document_Text bytes of words (the first pages of a long work are its
+   --  title and its contents, with next to nothing to judge it by).
+
+   Document_Text : constant := 4_000;
+
+   Fetch_Limit : constant Duration := 60.0;
+   --  Seconds a PDF may take to come, by the plain fetch: a slow server would hold the one
+   --  download there is (and so every other PDF) for as long as it liked.
+
+   Max_Document : constant := 100 * 1024 * 1024;
+   --  Bytes of a PDF that is taken: a larger is no paper, and takes too long.
 
    --  The work
 
@@ -76,6 +90,9 @@ package body Source_Finder is
       Address  : Addresses.Bounded_String;
       Document : Boolean := False;
       --  Whether it is of a PDF.
+      Fallback : Addresses.Bounded_String;
+      --  Of a PDF that was had by the address of the page it is the front of: that page,
+      --  to be taken if the PDF cannot be had.
    end record;
 
    type Candidate_Array is array (1 .. Max_Candidates) of Candidate;
@@ -88,15 +105,17 @@ package body Source_Finder is
    --  The pages
 
    type Lane_States is
-     (Free, Loading, Glimpsed, Glancing, To_Ask, Asking, Queued, Fetching, Pictured, Recognizing, Waiting,
-      Judging, Judged);
+     (Free, Loading, Glimpsed, Glancing, To_Ask, Asking, Queued, Fetching, Browsing, Pictured, Recognizing,
+      Waiting, Judging, Judged);
    --  Free: nothing, or what it had could not be had. Loading: Webshot has the page
    --  (the first look at it, a button being pressed, or the whole of it). Glimpsed:
    --  the top of the page is photographed, and waits its turn to be read: Vision is
    --  given one picture at a time (read at once, some come back with no words).
    --  Glancing: Vision is reading it. To_Ask: its words wait for the model to be
    --  asked what covers the page. Asking: a job has them. Queued: a PDF waits its
-   --  turn to be fetched (one at a time). Fetching: it is on its way. Pictured: the
+   --  turn to be fetched (one at a time). Fetching: it is on its way. Browsing: the plain fetch
+   --  was turned away (some sites will not give a file but to a browser), and the browser has it.
+   --  Pictured: the
    --  whole of a page is photographed, and waits to be read. Recognizing: Vision
    --  is reading it. Waiting: its text is to be judged. Judging: a job has it.
    --  Judged: it has its marks.
@@ -105,6 +124,15 @@ package body Source_Finder is
       State    : Lane_States := Free;
       Document : Boolean := False;
       Address  : Addresses.Bounded_String;
+      Fallback : Addresses.Bounded_String;
+      --  Of a PDF, the page it is the front of, to be taken if it cannot be had.
+      Fetch_Began : Ada.Real_Time.Time := Ada.Real_Time.Time_First;
+      --  When the plain fetch of a PDF began.
+      Tried_Browser : Boolean := False;
+      --  Of a PDF, whether the browser has been asked for it, after the plain fetch failed.
+      No_Redirect : Boolean := False;
+      --  Whether the page is not to be taken for the front of a PDF (it was, and the PDF
+      --  could not be had).
       Title    : Titles.Bounded_String;
       Text     : Page_Texts.Bounded_String;
       --  The words of the page, or the pages of the PDF, for judging.
@@ -215,7 +243,8 @@ package body Source_Finder is
    end Count_Lanes;
 
    function Is_Reading (Of_State : Lane_States) return Boolean is
-     (Of_State in Loading | Glimpsed | Glancing | To_Ask | Asking | Queued | Fetching | Pictured | Recognizing);
+     (Of_State in Loading | Glimpsed | Glancing | To_Ask | Asking | Queued | Fetching | Browsing | Pictured
+                  | Recognizing);
    --  Whether the page, or the PDF, is still being had and read.
 
    function Busy_Reading return Boolean is
@@ -247,6 +276,7 @@ package body Source_Finder is
    begin
       Remove_File (Picture (Which));
       Remove_File (Document_File (Which));
+      Remove_File (Document_File (Which) & ".part");
       Remove_File (Look_Picture (Which));
       for Tile in 1 .. Webshot.Max_Tiles loop
          Remove_File (Tile_Picture (Which, Tile));
@@ -370,6 +400,8 @@ package body Source_Finder is
       Folder (1 .. Folder_Last) := Directory;
       Writing := Page_Texts.To_Bounded_String (Model_Replies.Cut (Text, Source_Finding.Max_Text));
       Ada.Directories.Create_Path (Directory);
+      --  What an earlier run left (the program was ended with sources found, say) is not wanted.
+      Remove_Pictures;
       Public := Running;
       Stage := Asking;
       Query_Tries := 1;
@@ -459,7 +491,10 @@ package body Source_Finder is
             --  Text and e-books are of kinds the project takes in another way.
             if not Known (Where) and then (Document or else not Ebook.Is_Supported (Where)) then
                Candidate_Count := Candidate_Count + 1;
-               Candidates (Candidate_Count) := (Address => Addresses.To_Bounded_String (Where), Document => Document);
+               Candidates (Candidate_Count) :=
+                 (Address  => Addresses.To_Bounded_String (Where), Document => Document,
+                  Fallback => (if Where /= Link and then Link'Length <= Websearch.Max_URL
+                               then Addresses.To_Bounded_String (Link) else Addresses.Null_Bounded_String));
                Taken := Taken + 1;
             end if;
          end;
@@ -553,23 +588,44 @@ package body Source_Finder is
       Lanes (Which) := (others => <>);
    end Lose_Lane;
 
+   --  The lane's page is begun: the top of it is looked at first, for what covers it: the
+   --  model, not the page's own script, says which button to press.
+   procedure Begin_Page (Which : Positive) is
+   begin
+      Webshot.Reset (Slot_Of (Which));
+      Vision.Jobs.Reset (Slot_Of (Which));
+      Webshot.Start
+        (Slot_Of (Which), Addresses.To_String (Lanes (Which).Address), Picture (Which),
+         Look_File => Look_Picture (Which), Dismiss_Banners => False, Tile_Prefix => Tile_Prefix (Which));
+   end Begin_Page;
+
    procedure Start_Lane (Which : Positive) is
       Next : Candidate renames Candidates (Candidate_Next);
    begin
       Lanes (Which) :=
         (State => (if Next.Document then Queued else Loading), Document => Next.Document,
-         Address => Next.Address, others => <>);
+         Address => Next.Address, Fallback => Next.Fallback, others => <>);
       Candidate_Next := Candidate_Next + 1;
       Webshot.Reset (Slot_Of (Which));
       Vision.Jobs.Reset (Slot_Of (Which));
       if not Lanes (Which).Document then
-         --  The top is looked at first, for what covers it: the model, not the
-         --  page's own script, says which button to press.
-         Webshot.Start
-           (Slot_Of (Which), Addresses.To_String (Lanes (Which).Address), Picture (Which),
-            Look_File => Look_Picture (Which), Dismiss_Banners => False, Tile_Prefix => Tile_Prefix (Which));
+         Begin_Page (Which);
       end if;
    end Start_Lane;
+
+   --  The PDF could not be had (the address gave a page that asks for something, or nothing): the
+   --  page it is the front of is taken in its place, if there is one that is not had already.
+   procedure Retry_As_Page (Which : Positive) is
+      Page : constant Addresses.Bounded_String := Lanes (Which).Fallback;
+   begin
+      Remove_Files_Of (Which);
+      if Page = Addresses.Null_Bounded_String or else Known (Addresses.To_String (Page)) then
+         Lanes (Which) := (others => <>);
+      else
+         Lanes (Which) := (State => Loading, Address => Page, No_Redirect => True, others => <>);
+         Begin_Page (Which);
+      end if;
+   end Retry_As_Page;
 
    --  Whether the first bytes of the file are a PDF's.
    function Is_PDF (Name : String) return Boolean is
@@ -591,48 +647,136 @@ package body Source_Finder is
          return False;
    end Is_PDF;
 
-   --  The PDF is here: its title, and the words of its first pages, for judging.
+   --  The plain fetch of the PDF did not give one: the browser is asked, which has what the
+   --  site may want of it (it has been to the site's pages, and been taken for a person), and
+   --  if it was asked already, the page the PDF is the front of is taken in its place.
+   procedure Fall_Back (Which : Positive) is
+   begin
+      if Lanes (Which).Tried_Browser then
+         Retry_As_Page (Which);
+      else
+         Lanes (Which).Tried_Browser := True;
+         Remove_File (Document_File (Which));
+         Webshot.Reset (Slot_Of (Which));
+         Webshot.Start_Download (Slot_Of (Which), Addresses.To_String (Lanes (Which).Address), Document_File (Which));
+         Lanes (Which).State := Browsing;
+      end if;
+   end Fall_Back;
+
+   --  Whether words have been read wrongly, as a scan's are: two or more have letters and digits
+   --  among them (Pr09ramm1n9).
+   function Garbled (Text : String) return Boolean is
+      Mixed : Natural := 0;
+      First : Positive := Text'First;
+   begin
+      for Each in Text'First .. Text'Last + 1 loop
+         if Each > Text'Last or else Text (Each) = ' ' then
+            declare
+               Word : constant String := Text (First .. Each - 1);
+            begin
+               if (for some C of Word => C in 'A' .. 'Z' | 'a' .. 'z') and then (for some C of Word => C in '0' .. '9')
+               then
+                  Mixed := Mixed + 1;
+               end if;
+            end;
+            First := Each + 1;
+         end if;
+      end loop;
+      return Mixed >= 2;
+   end Garbled;
+
+   --  The first lines of a page's text as a heading: up to three that are not blank, put
+   --  together till there is enough of a title.
+   function Heading_Of (Raw : String) return String is
+      Result : String (1 .. 160);
+      Used   : Natural := 0;
+      Lines  : Natural := 0;
+      First  : Positive := Raw'First;
+   begin
+      for Each in Raw'First .. Raw'Last + 1 loop
+         if Each > Raw'Last or else Raw (Each) in ASCII.LF | ASCII.CR then
+            declare
+               Line : constant String := Model_Replies.Tidy (Raw (First .. Each - 1), 100);
+            begin
+               if Line'Length > 1 and then Used + Line'Length + 1 <= Result'Length then
+                  Result (Used + 1 .. Used + Line'Length) := Line;
+                  Used := Used + Line'Length;
+                  Result (Used + 1) := ' ';
+                  Used := Used + 1;
+                  Lines := Lines + 1;
+               end if;
+            end;
+            First := Each + 1;
+            exit when Lines = 3 or else Used >= 40;
+         end if;
+      end loop;
+      return (if Used = 0 then "" else Result (1 .. Used - 1));
+   end Heading_Of;
+
+   --  The PDF is here: its title, and the words of its first pages, for judging. Only the text
+   --  is had, not the pages drawn: a long work of scanned pages is a good many seconds to draw.
    procedure Read_Document (Which : Positive) is
       Where   : constant String := Document_File (Which);
       Info    : Ebook.Information;
       Said    : String (1 .. Ebook.Max_Message);
       Last    : Natural;
       Text    : Page_Texts.Bounded_String;
+      Heading : String (1 .. 160) := [others => ' '];
+      Heading_Last : Natural := 0;
    begin
-      if not Is_PDF (Where) then
-         Lose_Lane (Which);   --  a page that asks for something, or is gone
+      if not Is_PDF (Where) or else Ada.Directories.Size (Where) > Max_Document then
+         Fall_Back (Which);   --  a page that asks for something, or is gone, or too large
          return;
       end if;
       Ebook.Open (Where, Info, Said, Last);
       if Info.Pages = 0 then
-         Lose_Lane (Which);
+         Fall_Back (Which);
          return;
       end if;
       Lanes (Which).Count_Of_Pages := Info.Pages;
       Documents_Read := Documents_Read + 1;
-      Lanes (Which).Title :=
-        Titles.To_Bounded_String
-          (Model_Replies.Cut
-             ((if Info.Last > 0 then Info.Title (1 .. Info.Last)
-               else Source_Links.Name_Of (Addresses.To_String (Lanes (Which).Address))),
-              Websearch.Max_Title));
       for Page in 1 .. Natural'Min (Document_Pages, Info.Pages) loop
+         exit when Page_Texts.Length (Text) >= Document_Text;
          declare
-            Content : Pomarine.Pages.Page_Access;
-            Got     : Natural;
+            Raw   : constant String := Ebook.Page_Text (Where, Page, Source_Finding.Max_Text);
+            Words_Here : constant String := Model_Replies.Tidy (Raw, Source_Finding.Max_Text);
          begin
-            Ebook.Build_Page (Where, Page, Content, Words, Said, Got);
-            exit when Content = null;
-            Pomarine.Pages.Free (Content);
-            if Page_Texts.Length (Text) > 0 then
-               Page_Texts.Append (Text, [ASCII.LF], Ada.Strings.Right);
+            if Heading_Last = 0 and then Raw /= "" then
+               declare
+                  Top : constant String := Heading_Of (Raw);
+               begin
+                  Heading_Last := Top'Length;
+                  Heading (1 .. Heading_Last) := Top;
+               end;
             end if;
-            Page_Texts.Append (Text, Text_Of (Words), Ada.Strings.Right);
+            if Words_Here /= "" then
+               if Page_Texts.Length (Text) > 0 then
+                  Page_Texts.Append (Text, " ", Ada.Strings.Right);
+               end if;
+               Page_Texts.Append (Text, Words_Here, Ada.Strings.Right);
+            end if;
          end;
-         exit when Page_Texts.Length (Text) = Source_Finding.Max_Text;
       end loop;
-      Lanes (Which).Text :=
-        Page_Texts.To_Bounded_String (Model_Replies.Cut (Page_Texts.To_String (Text), Source_Finding.Max_Text));
+      --  The PDF's own title, unless it has none worth the name (a number, say): then the page
+      --  it is the front of has its own, or its first page begins with one, or the address says.
+      declare
+         Own  : constant String := (if Info.Last > 0 then Info.Title (1 .. Info.Last) else "");
+         Poor : constant Boolean :=
+           Own'Length < 8 or else (for all C of Own => C in '0' .. '9' | '.' | '-' | ' ') or else Garbled (Own);
+      begin
+         if not Poor then
+            Lanes (Which).Title := Titles.To_Bounded_String (Model_Replies.Cut (Own, Websearch.Max_Title));
+         elsif Lanes (Which).Title = Titles.Null_Bounded_String then
+            Lanes (Which).Title :=
+              Titles.To_Bounded_String
+                (Model_Replies.Cut
+                   ((if Heading_Last > 4 and then not Garbled (Heading (1 .. Heading_Last))
+                     then Heading (1 .. Heading_Last)
+                     else Source_Links.Name_Of (Addresses.To_String (Lanes (Which).Address))),
+                    Websearch.Max_Title));
+         end if;
+      end;
+      Lanes (Which).Text := Page_Texts.To_Bounded_String (Page_Texts.To_String (Text));
       Arrivals := Arrivals + 1;
       Lanes (Which).Arrived := Arrivals;
       Lanes (Which).State := Waiting;
@@ -651,7 +795,9 @@ package body Source_Finder is
                   declare
                      Link : constant String := Webshot.Document_Link (Slot);
                   begin
-                     if Page.Presses = 0 and then Link /= "" and then Link'Length <= Websearch.Max_URL then
+                     if Page.Presses = 0 and then not Page.No_Redirect and then Link /= ""
+                       and then Link'Length <= Websearch.Max_URL
+                     then
                         --  The page is the front of a PDF, which is what is wanted: unless
                         --  it is of one that is had already, which makes the page no use.
                         Webshot.Reset (Slot);
@@ -660,7 +806,7 @@ package body Source_Finder is
                         else
                            Remove_File (Look_Picture (Which));
                            Page := (State => Queued, Document => True, Address => Addresses.To_Bounded_String (Link),
-                                    Title => Page.Title, others => <>);
+                                    Fallback => Page.Address, Title => Page.Title, others => <>);
                         end if;
                      elsif Page.Presses > 0 and then Page.Presses < Source_Finding.Max_Presses
                        and then not Webshot.Pressed (Slot)
@@ -719,6 +865,7 @@ package body Source_Finder is
                Remove_File (Document_File (Which));
                Downloads.Start (Addresses.To_String (Page.Address), Document_File (Which));
                Download_Lane := Which;
+               Page.Fetch_Began := Ada.Real_Time.Clock;
                Page.State := Fetching;
             end if;
          when Fetching =>
@@ -730,11 +877,25 @@ package body Source_Finder is
                when Downloads.Failed =>
                   Downloads.Reset;
                   Download_Lane := 0;
-                  Lose_Lane (Which);
+                  Fall_Back (Which);
                when Downloads.Idle =>
                   Download_Lane := 0;
-                  Lose_Lane (Which);
+                  Fall_Back (Which);
                when Downloads.Running =>
+                  --  Too slow: stopped, which is said by a failure, and then the browser is tried.
+                  if Ada.Real_Time.Clock - Page.Fetch_Began > Ada.Real_Time.To_Time_Span (Fetch_Limit) then
+                     Downloads.Cancel;
+                  end if;
+            end case;
+         when Browsing =>
+            case Webshot.State (Slot) is
+               when Webshot.Done =>
+                  Webshot.Reset (Slot);
+                  Read_Document (Which);
+               when Webshot.Failed | Webshot.Idle =>
+                  Webshot.Reset (Slot);
+                  Retry_As_Page (Which);
+               when Webshot.Working | Webshot.Looked =>
                   null;
             end case;
          when Recognizing =>
@@ -999,11 +1160,16 @@ package body Source_Finder is
                Count_Of_Pages => Lanes (Which).Count_Of_Pages);
          end if;
       end loop;
-      --  The files of the others are of no use, nor the looks at the tops of all.
+      --  The files of the others are of no use, nor the looks at the tops of all, nor the screens
+      --  that were read (the words are in the lanes): only the picture or the PDF of what is kept.
       for Which in Lanes'Range loop
-         Remove_File (Look_Picture (Which));
          if (for all Each in 1 .. Total => Order (Each) /= Which) then
             Remove_Files_Of (Which);
+         else
+            Remove_File (Look_Picture (Which));
+            for Tile in 1 .. Webshot.Max_Tiles loop
+               Remove_File (Tile_Picture (Which, Tile));
+            end loop;
          end if;
       end loop;
       declare

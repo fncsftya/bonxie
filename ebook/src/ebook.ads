@@ -91,6 +91,13 @@ package Ebook is
    --  picture, drawn by PDFium. If it cannot be made, Content is null and
    --  Message says why. The document stays open for the next page.
 
+   function Page_Text (File_Name : String; Page : Positive; Most : Positive := 8_000) return String
+     with Post => Page_Text'Result'Length <= Most;
+   --  The text of the page (counted from 1) of a PDF, as it is in the file, with no drawing of
+   --  the page: its lines are broken by the PDF's own breaks (a CR and LF, or one of them), and
+   --  it is cut off at Most bytes. Empty if the page has no text (a picture of one has none), or
+   --  cannot be had.
+
    procedure Document_Sizes
      (File_Name : String;
       Count     : Natural;

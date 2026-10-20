@@ -13,9 +13,11 @@
 #include <ImageIO/ImageIO.h>
 #include <fpdfview.h>
 #include <fpdf_doc.h>
+#include <fpdf_text.h>
 #include <pthread.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 
@@ -161,6 +163,52 @@ static void utf16_to_utf8(const uint8_t *in, unsigned long bytes, char *out, int
 		n += len;
 	}
 	out[n] = '\0';
+}
+
+/* The text of a page, as UTF-8 (cut short if it does not fit), with no drawing of the page: what
+ * a program that reads a document, not a person who looks at it, wants. Empty if the page has
+ * no text. Not 0 if the document and the page could be had. */
+int eb_page_text(const char *path, int page, char *out, int cap, char *message, int message_cap)
+{
+	FPDF_DOCUMENT doc;
+	int ok = 0;
+
+	if (cap > 0) {
+		out[0] = '\0';
+	}
+	pthread_mutex_lock(&lock);
+	doc = eb_open_locked(path, message, message_cap);
+	if (doc) {
+		if (page < 1 || page > FPDF_GetPageCount(doc)) {
+			put_message(message, message_cap, "there is no such page");
+		} else {
+			FPDF_PAGE pg = FPDF_LoadPage(doc, page - 1);
+			if (pg) {
+				FPDF_TEXTPAGE tp = FPDFText_LoadPage(pg);
+				if (tp) {
+					int n = FPDFText_CountChars(tp);
+					if (n > 0) {
+						int want = n > cap ? cap : n;
+						uint16_t *buffer = malloc(((size_t) want + 1) * 2);
+						if (buffer) {
+							int got = FPDFText_GetText(tp, 0, want, buffer);
+							if (got > 0) {
+								utf16_to_utf8((const uint8_t *) buffer, (unsigned long) got * 2, out, cap);
+							}
+							free(buffer);
+						}
+					}
+					ok = 1;
+					FPDFText_ClosePage(tp);
+				}
+				FPDF_ClosePage(pg);
+			} else {
+				put_message(message, message_cap, "the page cannot be read");
+			}
+		}
+	}
+	pthread_mutex_unlock(&lock);
+	return ok;
 }
 
 int eb_info(const char *path, int *pages, char *title, int title_cap,

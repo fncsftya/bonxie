@@ -83,6 +83,16 @@ package body Webshot is
          when 4 => Looked,
          when others => Idle);
 
+   function WS_Download (Which : Interfaces.C.int; URL, Path : Interfaces.C.char_array) return Interfaces.C.int
+     with Import, Convention => C, External_Name => "ws_download";
+
+   procedure Start_Download (Which : Slot; URL : String; File_Name : String) is
+      Started : constant Interfaces.C.int :=
+        WS_Download (Index (Which), Interfaces.C.To_C (URL), Interfaces.C.To_C (File_Name));
+   begin
+      pragma Assert (Started = 1);
+   end Start_Download;
+
    procedure Press (Which : Slot; Label : String) is
       Asked : constant Interfaces.C.int := WS_Press (Index (Which), Interfaces.C.To_C (Label));
    begin

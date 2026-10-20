@@ -120,6 +120,29 @@ package body Source_Links is
             --  A paper's id has no slash but an old one has, as astro-ph/0601001.
             return (if Bare = "" then "" else "https://arxiv.org/pdf/" & Bare & ".pdf");
          end;
+      elsif Has_Host (URL, "acm.org") and then Host_Of (URL) = "dl.acm.org" then
+         declare
+            Rest  : constant String := After (Path, "/doi/");
+            Slash : Natural := 0;
+         begin
+            for Each in Rest'Range loop
+               if Rest (Each) = '/' then
+                  Slash := Each;
+                  exit;
+               end if;
+            end loop;
+            --  The DOI starts 10.: with or without a word before it.
+            if Rest'Length > 3 and then Rest (Rest'First .. Rest'First + 2) = "10." then
+               return "https://dl.acm.org/doi/pdf/" & Without_Slashes (Rest);
+            elsif Slash > Rest'First and then Slash < Rest'Last
+              and then Rest (Slash + 1 .. Natural'Min (Rest'Last, Slash + 3)) = "10."
+              and then Lower (Rest (Rest'First .. Slash - 1))
+                       in "abs" | "full" | "fullhtml" | "epdf" | "pdf" | "pdfplus"
+            then
+               return "https://dl.acm.org/doi/pdf/" & Without_Slashes (Rest (Slash + 1 .. Rest'Last));
+            end if;
+            return "";
+         end;
       elsif Has_Host (URL, "tandfonline.com") then
          declare
             Rest : constant String :=
@@ -160,6 +183,14 @@ package body Source_Links is
       if First > Stop then
          return "";
       end if;
+      --  A DOI: from its segment (10.1145) to the end.
+      for Each in Path'First .. Stop - 3 loop
+         if (Each = Path'First or else Path (Each - 1) = '/') and then Path (Each .. Each + 2) = "10."
+           and then (for some C of Path (Each .. Stop) => C = '/')
+         then
+            return Path (Each .. Stop);
+         end if;
+      end loop;
       declare
          Name : constant String := Path (First .. Stop);
          Dot  : Natural := 0;
@@ -169,7 +200,11 @@ package body Source_Links is
                Dot := Each;
             end if;
          end loop;
-         return (if Dot > Name'First then Name (Name'First .. Dot - 1) else Name);
+         --  What follows the last dot is an ending, unless it is a number (or a number and a
+         --  version, v2, as the ids of arXiv have).
+         return (if Dot > Name'First
+                   and then not (for all C of Name (Dot + 1 .. Name'Last) => C in '0' .. '9' | 'v')
+                 then Name (Name'First .. Dot - 1) else Name);
       end;
    end Name_Of;
 

@@ -92,7 +92,9 @@ cache alone; `webshot/tests` (`alr exec -- gprbuild -P webshot_test.gpr`, then
 picture, with the first screens of it beside, and that cookie banners are pressed, by the page's own
 way (in the page, a shadow root and a frame; the accepting button first; a second notice; and not a
 button that is no cookie banner's) or as told (the top looked at first; a button found by words a
-letter wrong or by part of them; none pressed that costs something; the PDF a page says it is of).
+letter wrong or by part of them; none pressed that costs something; a notice that comes late is looked
+at again; the PDF a page says it is of, by its meta tag or by its one PDF button; a file fetched as a
+browser would download it, and a page that is no file failing).
 
 ## Harper bindings
 

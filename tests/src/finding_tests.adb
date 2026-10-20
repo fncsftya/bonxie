@@ -182,6 +182,20 @@ package body Finding_Tests is
       Direct ("link-tandf-epdf", "https://www.tandfonline.com/doi/epdf/10.1080/x.y",
               "https://www.tandfonline.com/doi/pdf/10.1080/x.y");
       Direct ("link-tandf-toc", "https://www.tandfonline.com/toc/tcph20/current", "");
+
+      --  The ACM Digital Library: the page of a paper, with or without a word before its DOI.
+      Direct ("link-acm-doi", "https://dl.acm.org/doi/10.1145/956653.956654",
+              "https://dl.acm.org/doi/pdf/10.1145/956653.956654");
+      Direct ("link-acm-abs", "https://dl.acm.org/doi/abs/10.1145/956653.956654?cookieSet=1",
+              "https://dl.acm.org/doi/pdf/10.1145/956653.956654");
+      Direct ("link-acm-epdf", "https://dl.acm.org/doi/epdf/10.1145/956653.956654",
+              "https://dl.acm.org/doi/pdf/10.1145/956653.956654");
+      Direct ("link-acm-fullhtml", "https://dl.acm.org/doi/fullHtml/10.1145/3530019",
+              "https://dl.acm.org/doi/pdf/10.1145/3530019");
+      Direct ("link-acm-toc", "https://dl.acm.org/toc/sigplan/1979/14/6b", "");
+      Direct ("link-acm-journal", "https://dl.acm.org/journal/sigplan", "");
+      Direct ("link-acm-home", "https://dl.acm.org/", "");
+      Direct ("link-acm-other-host", "https://www.acm.org/doi/10.1145/956653.956654", "");
       Direct ("link-not-a-link", "", "");
 
       Document ("link-ends-pdf", "https://example.org/files/paper.pdf", True);
@@ -201,6 +215,10 @@ package body Finding_Tests is
       Check ("link-name", "paper-final", Source_Links.Name_Of ("https://example.org/files/paper-final.pdf?x=1#y"));
       Check ("link-name-folder", "files", Source_Links.Name_Of ("https://example.org/files/"));
       Check ("link-name-none", "", Source_Links.Name_Of ("https://example.org"));
+      Check ("link-name-doi", "10.1145/956653.956654",
+             Source_Links.Name_Of ("https://dl.acm.org/doi/pdf/10.1145/956653.956654?download=true"));
+      Check ("link-name-number", "956653.956654", Source_Links.Name_Of ("https://example.org/files/956653.956654"));
+      Check ("link-name-arxiv", "2501.17078v2", Source_Links.Name_Of ("https://arxiv.org/pdf/2501.17078v2"));
    end Choosing_Links;
 
    procedure Reading_Evaluations is
