@@ -20,6 +20,9 @@ package Grammar_Cards is
      with Pre => Width >= 120.0;
    function Action_Top (Item : Card; Number : Positive; Width : Float) return Float
      with Pre => Number <= Diagnostic (Item).Suggestion_Count and then Width >= 120.0;
+   function Footer_Top (Item : Card; Width : Float) return Float
+     with Pre => Width >= 120.0;
+   --  Where the buttons for the rules go, under the suggestions, when it is expanded.
    function Kind_Name (Kind : Harper.Lint_Kind) return String;
 
    overriding procedure Draw

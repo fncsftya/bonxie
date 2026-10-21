@@ -51,9 +51,12 @@ package Harper is
       Suggestion_Count      : Natural range 0 .. Max_Suggestions := 0;
       Suggestions_Truncated : Boolean := False;
       Suggestions           : Suggestion_Array;
+      Custom                : Boolean := False;
    end record;
    --  Lower priority numbers are more important. Messages contain Harper's
    --  Markdown. Oversized replacements are omitted rather than shortened.
+   --  Custom is never set by Harper: the application sets it on a diagnostic
+   --  that one of its own rules made or changed.
 
    type Diagnostic_Array is array (Positive range 1 .. Max_Lints) of Diagnostic;
    type Check_Result is record

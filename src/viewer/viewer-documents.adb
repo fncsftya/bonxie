@@ -1,5 +1,6 @@
 with Items.Windows;
 with Viewer.Deletion;
+with Viewer.Grammar;
 with Pomarine.Widgets.Checks;
 with Viewer.Writing;
 with Pomarine.Widgets;
@@ -29,6 +30,46 @@ package body Viewer.Documents is
 
    function Grammar_Count (Item : Session) return String is
      (Pomarine.Widgets.Buttons.Label (Item.Page_View.Grammar_Count));
+
+   function Grammar_Marking (Item : Session; Marked : String) return Natural is (Grammar.Marking (Item, Marked));
+   function Grammar_Made_By_Rule (Item : Session; Marked : String) return Natural is
+     (Grammar.Made_By_Rule (Item, Marked));
+   function Grammar_First_Suggestion (Item : Session; Marked : String) return String is
+     (Grammar.First_Suggestion (Item, Marked));
+   procedure Grammar_Expand (Item : in out Session; Marked : String) is
+   begin
+      Grammar.Expand (Item, Marked);
+   end Grammar_Expand;
+
+   procedure Grammar_Begin_Rule (Item : in out Session; Marked : String) is
+   begin
+      Grammar.Begin_Rule (Item, Marked);
+   end Grammar_Begin_Rule;
+
+   procedure Grammar_Show (Item : in out Session) is
+   begin
+      Grammar.Show (Item);
+   end Grammar_Show;
+
+   function Grammar_First_Card_Made_By_Rule (Item : Session) return Boolean is
+     (Grammar.First_Card_Made_By_Rule (Item));
+
+   function Grammar_Rule_Count (Item : Session) return Natural is (Grammar.Rule_Count (Item));
+
+   procedure Grammar_Ignore (Item : in out Session; Marked : String) is
+   begin
+      Grammar.Ignore (Item, Marked);
+   end Grammar_Ignore;
+
+   procedure Grammar_Correct (Item : in out Session; Marked, To : String) is
+   begin
+      Grammar.Correct (Item, Marked, To);
+   end Grammar_Correct;
+
+   procedure Grammar_Remove_Rule (Item : in out Session; Marked : String) is
+   begin
+      Grammar.Remove_Rule (Item, Marked);
+   end Grammar_Remove_Rule;
 
    function Grammar_Highlights (Item : Session; Row : Positive) return Natural is
      (Pomarine.Widgets.Editors.Highlight_Count (Item.Docs.Pages (Row).Text));

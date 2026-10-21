@@ -1,5 +1,10 @@
 with Ada.Real_Time;
 with Goldens;
+with Grammar_Rules;
+with Harper;
+with Items.Schema;
+with Long_Texts;
+with Projects.Rules;
 with SDL3.Events;
 with Viewer;
 with Viewer.Canvas_Windows;
@@ -175,4 +180,175 @@ package body Grammar_Tests is
       Await (Item, Now);
       Check ("grammar-long-document", Docs.Grammar_Highlights (Item, 1) > 0);
    end Checking;
+
+   procedure Rules is
+      use type Harper.Span;
+      use type Harper.Lint_Kind;
+      package PR renames Projects.Rules;
+
+      Text : constant String := "This is a speling mistake. ADA is here. ADAM is not. ADA.";
+      --  speling is bytes 10 .. 17, the first ADA 27 .. 30, ADAM 40 .. 44, the last ADA 53 .. 56.
+
+      Rule_List : PR.Rule_List;
+      Result : Harper.Check_Result;
+
+      procedure Rule_For (Action : PR.Actions; Kind : PR.Kind_Code; Pattern, Replacement : String) is
+      begin
+         Rule_List.Append
+           ((Key => PR.Rule_Id (Rule_List.Count + 1), Action => Action, Kind => Kind,
+             Pattern => Long_Texts.To_Text (Pattern), Replacement => Long_Texts.To_Text (Replacement)));
+      end Rule_For;
+
+      procedure Lint (First, Last : Natural; Kind : Harper.Lint_Kind; Fix : String) is
+      begin
+         Result.Count := Result.Count + 1;
+         Result.Lints (Result.Count) :=
+           (Location => (First, Last), Kind => Kind, Suggestion_Count => 1, Priority => 31,
+            Suggestions => [1 => ((First, Last), Harper.Replacements.To_Bounded_String (Fix)),
+                            others => <>],
+            others => <>);
+      end Lint;
+   begin
+      --  Nothing ruled: nothing changes.
+      Lint (10, 17, Harper.Spelling, "spelling");
+      Lint (27, 30, Harper.Capitalization, "Ada");
+      Grammar_Rules.Apply (Rule_List, Text, Result);
+      Check ("rules-none-kept", Result.Count = 2 and then not Result.Lints (1).Custom);
+
+      --  An ignored text is dropped only as the kind it was ignored as.
+      Rule_For (PR.Ignore, Grammar_Rules.Kind_Code (Harper.Typo), "speling", "");
+      Grammar_Rules.Apply (Rule_List, Text, Result);
+      Check ("rules-ignore-other-kind", Result.Count = 2);
+      Rule_For (PR.Ignore, Grammar_Rules.Kind_Code (Harper.Spelling), "speling", "");
+      Grammar_Rules.Apply (Rule_List, Text, Result);
+      Check ("rules-ignore", Result.Count = 1 and then Result.Lints (1).Location = (27, 30));
+
+      --  A correction goes first at a diagnostic on its text, and is not offered twice.
+      Rule_For (PR.Correct, 0, "ADA", "Ada");
+      Grammar_Rules.Apply (Rule_List, Text, Result);
+      Check ("rules-correct-upgrades", Result.Lints (1).Custom and then Result.Lints (1).Suggestion_Count = 1
+             and then Harper.Replacements.To_String (Result.Lints (1).Suggestions (1).Text) = "Ada");
+      Check ("rules-correct-message", Harper.Messages.To_String (Result.Lints (1).Message)
+             = "Your rule: replace ""ADA"" with ""Ada"".");
+
+      --  And makes its own where Harper found nothing: at whole words only, in the order of the places.
+      Check ("rules-correct-adds", Result.Count = 2 and then Result.Lints (2).Location = (53, 56)
+             and then Result.Lints (2).Custom and then Result.Lints (2).Kind = Harper.Spelling);
+
+      --  Harper's own order is kept, and a rule is no one's diagnostic twice.
+      Grammar_Rules.Apply (Rule_List, Text, Result);
+      Check ("rules-idempotent", Result.Count = 2);
+      Check ("rules-adam-left", (for all Index in 1 .. Result.Count => Result.Lints (Index).Location /= (40, 44)));
+
+      --  Text of other places and cases is not touched.
+      Result := (others => <>);
+      Grammar_Rules.Apply (Rule_List, "Ada and ada and ADAM", Result);
+      Check ("rules-case", Result.Count = 0);
+
+      --  A correction too long for a suggestion is left out, not cut.
+      Result := (others => <>);
+      Rule_List.Clear;
+      Rule_For (PR.Correct, 0, "ADA", String'[1 .. Harper.Max_Replacement + 1 => 'x']);
+      Grammar_Rules.Apply (Rule_List, Text, Result);
+      Check ("rules-too-long", Result.Count = 0);
+
+      --  Many places: the result stays within its room.
+      Result := (others => <>);
+      Rule_List.Clear;
+      Rule_For (PR.Correct, 0, "ADA", "Ada");
+      declare
+         Words : String (1 .. 5 * 200);
+      begin
+         for Index in 0 .. 199 loop
+            Words (Index * 5 + 1 .. Index * 5 + 5) := "ADA, ";
+         end loop;
+         Grammar_Rules.Apply (Rule_List, Words, Result);
+         Check ("rules-capacity", Result.Count = Harper.Max_Lints and then Result.Truncated);
+      end;
+   end Rules;
+
+   procedure Rule_Cards is
+      use type Projects.Rules.Rule_Id;
+      Item : Viewer.Session;
+      Now  : Events.Milliseconds := 10_000;
+      Store : Projects.Store;
+   begin
+      Viewer.Open (Item, "", 720, 480, 2.0);
+      Viewer.Home_Screen.New_Project (Item);
+      Proj.Set_Mode (Item, Viewer.Canvas);
+      Windows.Add_Item (Item, "Notes");
+      Viewer.Handle (Item, Events.Text_Event ("This is a speling mistake. Another speling here, and a the the."));
+      Proj.Set_Mode (Item, Viewer.Write);
+      Await (Item, Now);
+      Check ("rule-cards-marked", Docs.Grammar_Marking (Item, "speling") = 2);
+      Check ("rule-cards-none-made", Docs.Grammar_Made_By_Rule (Item, "speling") = 0);
+      Check ("rule-cards-no-rules", Docs.Grammar_Rule_Count (Item) = 0);
+
+      --  Correcting a text makes a rule, offered first at every place of the text, and listed first.
+      Docs.Grammar_Show (Item);
+      Viewer.Tick (Item, Now);
+      Docs.Grammar_Expand (Item, "speling");
+      Snap (Item, "write-grammar-rule-card");
+      Docs.Grammar_Begin_Rule (Item, "speling");
+      Snap (Item, "write-grammar-rule-entry");
+      Docs.Grammar_Correct (Item, "speling", "Speling!");
+      Check ("rule-cards-corrected", Docs.Grammar_Rule_Count (Item) = 1);
+      Now := Now + 1;
+      Await (Item, Now);
+      Check ("rule-cards-made", Docs.Grammar_Made_By_Rule (Item, "speling") = 2);
+      Goldens.Check_Text ("rule-cards-first-fix", "Speling!", Docs.Grammar_First_Suggestion (Item, "speling"));
+      Docs.Grammar_Show (Item);
+      Viewer.Tick (Item, Now);
+      Check ("rule-cards-first", Docs.Grammar_First_Card_Made_By_Rule (Item));
+      Docs.Grammar_Expand (Item, "speling");
+      Snap (Item, "write-grammar-rule-made");
+
+      --  Taking the rule away puts Harper's own diagnostics back.
+      Docs.Grammar_Remove_Rule (Item, "speling");
+      Check ("rule-cards-removed", Docs.Grammar_Rule_Count (Item) = 0);
+      Now := Now + 1;
+      Await (Item, Now);
+      Check ("rule-cards-unmade", Docs.Grammar_Made_By_Rule (Item, "speling") = 0
+             and then Docs.Grammar_Marking (Item, "speling") = 2);
+
+      --  Ignoring a text drops the diagnostics on it, and no others.
+      Docs.Grammar_Ignore (Item, "speling");
+      Check ("rule-cards-ignored", Docs.Grammar_Rule_Count (Item) = 1);
+      Now := Now + 1;
+      Await (Item, Now);
+      Check ("rule-cards-gone", Docs.Grammar_Marking (Item, "speling") = 0);
+      Check ("rule-cards-others-stay", Docs.Grammar_Marking (Item, "the the") > 0);
+
+      --  The rules are the project's own, and are kept.
+      Projects.Open (Store, Projects.Memory);
+      Items.Schema.Prepare (Store);
+      declare
+         Mine  : constant Projects.Id := Projects.Create (Store, "Mine");
+         Yours : constant Projects.Id := Projects.Create (Store, "Yours");
+         Made  : Projects.Rules.Rule_List;
+
+         procedure Put (Owner : Projects.Id; Action : Projects.Rules.Actions; Kind : Projects.Rules.Kind_Code;
+                        Pattern : String; Replacement : String := "")
+         is
+            Key : constant Projects.Rules.Rule_Id :=
+              Projects.Rules.Add (Store, Owner, Action, Kind, Pattern, Replacement);
+         begin
+            Check ("rule-store-key", Key > 0);
+         end Put;
+      begin
+         Put (Mine, Projects.Rules.Correct, 15, "ADA", "Ada");
+         Put (Mine, Projects.Rules.Correct, 15, "ADA", "Ada!");
+         Put (Mine, Projects.Rules.Ignore, 15, "ADA");
+         Put (Mine, Projects.Rules.Ignore, 3, "ADA");
+         Put (Yours, Projects.Rules.Ignore, 15, "ADA");
+         Projects.Rules.Load (Store, Mine, Made);
+         Check ("rule-store-count", Made.Count = 3);
+         Goldens.Check_Text ("rule-store-replaced", "Ada!", Long_Texts.To_String (Made (1).Replacement));
+         Projects.Rules.Remove (Store, Made (2).Key);
+         Projects.Rules.Load (Store, Mine, Made);
+         Check ("rule-store-removed", Made.Count = 2);
+         Projects.Rules.Load (Store, Yours, Made);
+         Check ("rule-store-apart", Made.Count = 1);
+      end;
+   end Rule_Cards;
 end Grammar_Tests;

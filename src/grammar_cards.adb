@@ -109,11 +109,12 @@ package body Grammar_Cards is
       return Top;
    end Action_Top;
 
-   function Height_For (Item : Card; Width : Float) return Float is
+   Footer : constant := 44.0;
+   --  The buttons that make rules of a diagnostic, under what it says.
+
+   function Footer_Top (Item : Card; Width : Float) return Float is
    begin
-      if not Item.Open then
-         return Header;
-      elsif Item.Lint.Suggestion_Count = 0 then
+      if Item.Lint.Suggestion_Count = 0 then
          return Header + 14.0 + Text_Height (Item, Item.Caption (1 .. Item.Caption_Length), Width - 24.0)
            + Text_Height (Item, Harper.Messages.To_String (Item.Lint.Message), Width - 24.0);
       else
@@ -124,7 +125,13 @@ package body Grammar_Cards is
               + Float'Max (36.0, Text_Height (Item, Suggestion_Text (Item, Last), Width - 100.0) + 8.0) + 8.0;
          end;
       end if;
-   end Height_For;
+   end Footer_Top;
+
+   function Height_For (Item : Card; Width : Float) return Float is
+     (if Item.Open then Footer_Top (Item, Width) + Footer else Header);
+
+   function Title (Item : Card) return String is
+     (if Item.Lint.Custom then "Your rule: " & Kind_Name (Item.Lint.Kind) else Kind_Name (Item.Lint.Kind));
 
    overriding procedure Draw
      (Item : in out Card; Target : SDL3.Painters.Painter'Class; Colors : Themes.Theme)
@@ -162,7 +169,7 @@ package body Grammar_Cards is
       if Text_Lines (Item) = null then
          return;
       end if;
-      Lines.Draw (Text_Lines (Item).all, Target, Colors (Themes.Foreground), Kind_Name (Item.Lint.Kind),
+      Lines.Draw (Text_Lines (Item).all, Target, Colors (Themes.Foreground), Title (Item),
                   Left + 28.0 * Pixels, Top + 20.0 * Pixels, Pixels, Lines.Strong);
       Lines.Draw (Text_Lines (Item).all, Target, Colors (Themes.Muted), (if Item.Open then "-" else "+"),
                   Left + (Wide - 24.0) * Pixels, Top + 20.0 * Pixels, Pixels);
@@ -219,7 +226,7 @@ package body Grammar_Cards is
    overriding procedure Describe (Item : Card; Facts : in out Pomarine.Semantics.Description) is
    begin
       Facts.Kind := Pomarine.Semantics.Button;
-      Pomarine.Semantics.Name_As (Facts, Kind_Name (Item.Lint.Kind) & ": "
+      Pomarine.Semantics.Name_As (Facts, Title (Item) & ": "
                                   & Harper.Messages.To_String (Item.Lint.Message));
       Facts.Has_Expanded := True;
       Facts.Expanded := Item.Open;

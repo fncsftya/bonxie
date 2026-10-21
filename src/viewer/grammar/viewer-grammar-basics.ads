@@ -30,6 +30,13 @@ private package Viewer.Grammar.Basics is
    --  Whether the row still describes its document. Not tied to Active: the rows
    --  and the marks outlive a visit to another tab, and are shown again on return.
 
+   function Flagged (Item : Session; Row : Grammar_Row) return String
+     with Pre => Valid (Item, Row);
+   --  The text the row marks, if it lies in one paragraph; otherwise empty.
+
+   procedure Load_Rules (Item : in out Session);
+   --  Read the open project's rules, if those held are not its.
+
    function Advance (Doc : Docs.Document; From : Texts.Position; Bytes : Natural) return Texts.Position;
 
 end Viewer.Grammar.Basics;

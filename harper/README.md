@@ -45,6 +45,13 @@ including explanations and corrections. It reuses a fixed pool of 32 card
 widgets for its visible rows. A document edit invalidates both its retained
 diagnostics and any correction actions before they can change the text.
 
+A project's own rules are not part of this crate: bonxie keeps them in its database
+(`Projects.Rules`) and applies them in Ada to each result (`Grammar_Rules.Apply`), so
+Harper is called as before. A rule ignores the diagnostics of one kind on an exact text, or
+corrects an exact text to the replacement a person typed; a correction is offered first at
+Harper's own diagnostics on that text, and makes a diagnostic of its own, with `Custom` set,
+at each whole word Harper did not mark. Diagnostics made by rules are listed first.
+
 The C ABI is documented in `include/bonxie_harper.h`. It uses caller-owned
 buffers and retains no pointers. Invalid UTF-8, invalid arguments and caught
 Rust panics return distinct statuses with empty output. As with other native

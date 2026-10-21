@@ -25,7 +25,9 @@ pages are drawn from PDFium's objects as shapes and text (no picture file), one 
 view; the tests need PDFium, `ebook/fetch-pdfium.sh`, which `ebook` links;
 `sources-files`: files chosen as the file dialog would, PDFs, EPUBs (a small one is written by the test) and text, kept; the
 dialog itself is not shown),
-the order Vision's words of a page of columns are
+a project's grammar rules (`write-grammar-rules`: ignoring and correcting texts, matched
+by kind and whole word, within the room of a result; `write-grammar-rule-cards`: the cards' buttons
+make, remove and list-first rules, kept per project), the order Vision's words of a page of columns are
 read in (`layout-*`), and working it from the keyboard (`home-keys`: Tab and
 Return on the home screen and round the dialog that asks before deleting, with
 the ring drawn; `items-list-keys`: the list of items by arrows, Space, Delete,

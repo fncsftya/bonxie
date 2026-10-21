@@ -1512,6 +1512,8 @@ begin
    Run ("write-source-documents", Write_Tests.Source_Documents'Access);
    Run ("write-pages", Write_Tests.Pages'Access);
    Run ("write-grammar", Grammar_Tests.Checking'Access);
+   Run ("write-grammar-rules", Grammar_Tests.Rules'Access);
+   Run ("write-grammar-rule-cards", Grammar_Tests.Rule_Cards'Access);
    Run ("write-ordering", Write_Tests.Ordering'Access);
    Run ("write-dragging", Write_Tests.Dragging'Access);
    Run ("write-directories", Write_Tests.Directories'Access);

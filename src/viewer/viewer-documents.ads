@@ -17,6 +17,20 @@ package Viewer.Documents is
      with Pre => Row <= Document_Count (Item);
    --  Background checking and decorations, for the writing view's tests.
 
+   function Grammar_Marking (Item : Session; Marked : String) return Natural;
+   --  How many diagnostics shown mark exactly Text, and how many of those a rule of the project made.
+   function Grammar_Made_By_Rule (Item : Session; Marked : String) return Natural;
+   function Grammar_First_Suggestion (Item : Session; Marked : String) return String;
+   procedure Grammar_Show (Item : in out Session);
+   procedure Grammar_Expand (Item : in out Session; Marked : String);
+   procedure Grammar_Begin_Rule (Item : in out Session; Marked : String);
+   function Grammar_First_Card_Made_By_Rule (Item : Session) return Boolean;
+   function Grammar_Rule_Count (Item : Session) return Natural;
+   procedure Grammar_Ignore (Item : in out Session; Marked : String);
+   procedure Grammar_Correct (Item : in out Session; Marked, To : String);
+   procedure Grammar_Remove_Rule (Item : in out Session; Marked : String);
+   --  What the cards' buttons do, on the diagnostic marking Text.
+
    function Find_Sources_Enabled (Item : Session; Row : Positive) return Boolean
      with Pre => Is_Open (Item) and then Row <= Document_Count (Item);
    --  Whether the Find Sources button of the Rowth page can be clicked.

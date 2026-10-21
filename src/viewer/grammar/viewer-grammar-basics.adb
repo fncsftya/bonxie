@@ -1,12 +1,14 @@
 with Ada.Strings;
 with Ada.Strings.Fixed;
 with Pomarine.Widgets;
+with Projects.Rules;
 with Pomarine.Widgets.Editors;
 
 package body Viewer.Grammar.Basics is
 
    package Editors renames Pomarine.Widgets.Editors;
 
+   use type Projects.Id;
    use type Docs.Version;
    use type Harper.Request_Id;
 
@@ -23,6 +25,23 @@ package body Viewer.Grammar.Basics is
         Docs.Serial (Editors.Document (Item.Docs.Pages (Row.Rank).Text).all)
       and then Item.Grammar_Checks.Documents (Row.Rank).Seen =
         Docs.Current (Editors.Document (Item.Docs.Pages (Row.Rank).Text).all));
+
+   function Flagged (Item : Session; Row : Grammar_Row) return String is
+      Doc : Docs.Document renames Editors.Document (Item.Docs.Pages (Row.Rank).Text).all;
+      From : constant Texts.Position := Advance (Doc, Row.First, Row.Lint.Location.First);
+      To   : constant Texts.Position := Advance (Doc, Row.First, Row.Lint.Location.Last);
+   begin
+      return (if From.Paragraph = To.Paragraph and then From.Index < To.Index
+              then Docs.Slice (Doc, From.Paragraph, From.Index, To.Index) else "");
+   end Flagged;
+
+   procedure Load_Rules (Item : in out Session) is
+   begin
+      if Item.Grammar_Checks.Rules_Owner /= Item.Opened.Current then
+         Projects.Rules.Load (Item.Nav.Store, Item.Opened.Current, Item.Grammar_Checks.Rules);
+         Item.Grammar_Checks.Rules_Owner := Item.Opened.Current;
+      end if;
+   end Load_Rules;
 
    function Advance (Doc : Docs.Document; From : Texts.Position; Bytes : Natural) return Texts.Position is
       At_Point : Texts.Position := From;
