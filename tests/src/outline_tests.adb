@@ -779,7 +779,122 @@ package body Outline_Tests is
       Release (Session, 664.0, 65.0);
       Check ("write-heading-added", "6", Docs.Document_Count (Session)'Image (2 .. 2));
       Snap (Session, "write-heading-added");
+
    end Writing_Sections;
+
+   procedure Section_Folders is
+      Session : Viewer.Session;
+
+      function Y (Row : Positive) return Float is
+        (174.5 + Float (Row - 1) * 38.0);
+
+      procedure Drag (From, Into : Positive) is
+      begin
+         Move_To (Session, 100.0, Y (From));
+         Press (Session, 100.0, Y (From));
+         Move_To (Session, 102.0, Y (From), Held => True);
+         Move_To (Session, 100.0, Y (Into), Held => True);
+         Release (Session, 100.0, Y (Into));
+         Settle (Session);
+      end Drag;
+
+      procedure Context_Folder (Row : Positive; Offset : Float) is
+      begin
+         Viewer.Handle
+           (Session, Events.Event'(Kind => Events.Mouse_Down, Button => 3, Clicks => 1,
+                                   Mouse_X => 100.0, Mouse_Y => Y (Row), others => <>));
+         Viewer.Handle
+           (Session, Events.Event'(Kind => Events.Mouse_Up, Button => 3, Clicks => 1,
+                                   Mouse_X => 100.0, Mouse_Y => Y (Row), others => <>));
+         Settle (Session);
+         if Offset = 43.0 then
+            Snap (Session, (if Row = 1 then "write-overview-folder-menu" else "write-folder-menu"));
+         end if;
+         Check ("folder-context-open", "TRUE", Docs.Context_Open (Session)'Image);
+         Viewer.Handle
+           (Session, Events.Event'(Kind => Events.Key_Down, Key => Events.Key_Escape, others => <>));
+         Check ("folder-context-escape", "FALSE", Docs.Context_Open (Session)'Image);
+         Viewer.Handle
+           (Session, Events.Event'(Kind => Events.Mouse_Down, Button => 3, Clicks => 1,
+                                   Mouse_X => 100.0, Mouse_Y => Y (Row), others => <>));
+         Viewer.Handle
+           (Session, Events.Event'(Kind => Events.Mouse_Up, Button => 3, Clicks => 1,
+                                   Mouse_X => 100.0, Mouse_Y => Y (Row), others => <>));
+         Settle (Session);
+         Press (Session, 140.0, Y (Row) + Offset);
+         Release (Session, 140.0, Y (Row) + Offset);
+         if Offset = 43.0 then
+            Viewer.Handle
+              (Session, Events.Event'(Kind => Events.Key_Down, Key => Events.Key_Return, others => <>));
+         end if;
+         Settle (Session);
+      end Context_Folder;
+
+      procedure Folder (Name : String) is
+      begin
+         Docs.Add_Directory (Session, Name);
+         Viewer.Handle
+           (Session, Events.Event'(Kind => Events.Key_Down, Key => Events.Key_Return, others => <>));
+         Settle (Session);
+      end Folder;
+   begin
+      Start (Session);
+      Outline.Add_Section (Session);
+      Type_In (Session, "Part");
+      Settle (Session);
+      Proj.Set_Mode (Session, Viewer.Canvas);
+      Windows.Add_Item (Session, "Draft");
+      Proj.Set_Mode (Session, Viewer.Write);
+      Folder ("Research");
+      Folder ("Other");
+      --  Overview, loose document, section, and the two ordinary folders.
+      Docs.Move_Document_To (Session, 1, 2);
+      --  Overview, section, Research, Draft, Other.
+      Drag (3, 2);
+      Check ("folder-in-section", " 1", Docs.Directory_Parent (Session, 2)'Image);
+      Check ("folder-section-links", "Draft,|", Owners_Of (Session));
+      Reopen (Session);
+      Check ("folder-parent-kept", " 1", Docs.Directory_Parent (Session, 2)'Image);
+      Check ("folder-document-kept", "Research",
+             Docs.Directory_Title (Session, Docs.Document_Directory (Session, 1)));
+      Docs.Show_Directory (Session, 1);
+      Folder ("Created inside");
+      Check ("folder-created-in-section", " 1", Docs.Directory_Parent (Session, 4)'Image);
+      Docs.Show_Directory (Session, 0);
+      Settle (Session);
+      --  Move the folder and its document out by dropping on Overview.
+      Drag (3, 1);
+      Check ("folder-outside-section", " 0", Docs.Directory_Parent (Session, 2)'Image);
+      Check ("folder-unlinked-documents", "|", Owners_Of (Session));
+      Reopen (Session);
+      Check ("folder-outside-kept", "|", Owners_Of (Session));
+      --  Ordinary folders can enter other folders, but never their descendants.
+      Drag (4, 5);
+      Check ("folder-nested", " 4", Docs.Directory_Parent (Session, 3)'Image);
+      Drag (4, 6);
+      Check ("folder-cycle-rejected", " 0", Docs.Directory_Parent (Session, 4)'Image);
+      Drag (4, 3);
+      Check ("folder-deep-section-link", "Draft,|", Owners_Of (Session));
+      Reopen (Session);
+      Check ("folder-deep-kept", "Draft,|", Owners_Of (Session));
+      Check ("folder-grandchild-kept", " 3", Docs.Directory_Parent (Session, 4)'Image);
+      Snap (Session, "write-nested-folders");
+
+      --  Context creation uses the row clicked, even with another folder shown.
+      Docs.Show_Directory (Session, 3);
+      Context_Folder (1, 43.0);
+      Check ("folder-overview-context", " 0", Docs.Directory_Parent (Session, 5)'Image);
+      Context_Folder (4, 43.0);
+      Check ("folder-folder-context", " 3", Docs.Directory_Parent (Session, 6)'Image);
+      Reopen (Session);
+      Check ("folder-context-kept", " 6", Docs.Directory_Count (Session)'Image);
+      Context_Folder (4, 17.0);
+      Check ("folder-add-document", " 2", Docs.Document_Count (Session)'Image);
+      Check ("folder-document-target", " 3", Docs.Document_Directory (Session, 2)'Image);
+      Context_Folder (1, 17.0);
+      Check ("overview-add-document", " 3", Docs.Document_Count (Session)'Image);
+      Check ("overview-document-target", " 0", Docs.Document_Directory (Session, 3)'Image);
+   end Section_Folders;
 
    procedure Naming is
       Session : Viewer.Session;

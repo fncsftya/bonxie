@@ -11,6 +11,8 @@ package Items.Directories is
       --  Where it was put in the tree, with the documents; 0 if never.
       Title : Projects.Titles.Text :=
         Projects.Titles.Null_Text;
+      Parent : Id := 0;
+      --  The directory containing this ordinary folder, or 0.
       Section : Long_Integer := 0;
       --  The key of the outline's section that this is the folder of, 0
       --  for a folder that was made. A section's folder is made for it
@@ -70,6 +72,11 @@ package Items.Directories is
    procedure Rename_Directory
      (Store : in out Projects.Store; Key : Id; Title : String)
      with Pre => Projects.Is_Open (Store);
+
+   procedure Set_Parent
+     (Store : in out Projects.Store; Key, Parent : Id)
+     with Pre => Projects.Is_Open (Store);
+   --  Parent must be in the same project, outside Key's subtree, or 0; Key an ordinary folder.
 
    procedure Delete_Directory (Store : in out Projects.Store; Key : Id)
      with Pre => Projects.Is_Open (Store);

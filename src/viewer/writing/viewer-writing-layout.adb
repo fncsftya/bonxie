@@ -130,7 +130,7 @@ package body Viewer.Writing.Layout is
             Add_Section (Item.Docs.Shown_Dir);
             for Row in 2 .. Item.Docs.Tree_Count loop
                if Item.Docs.Tree (Row).Kind = Document_Leaf
-                 and then Item.Docs.Tree (Row).Dir = Item.Docs.Shown_Dir
+                 and then Support.Within (Item, Item.Docs.Tree (Row).Dir, Item.Docs.Shown_Dir)
                then
                   Add (Page_Entry, Support.Rank_Of (Item, Item.Docs.Tree (Row).Doc));
                end if;
@@ -146,7 +146,8 @@ package body Viewer.Writing.Layout is
                            Add_Section (Node.Dir);
                         end if;
                      when Document_Leaf =>
-                        if not Support.Is_Section (Item, Node.Dir) then
+                        if Support.Section_Directory (Item, Node.Dir) = 0
+                        then
                            if not Open_Run then
                               Add (Gap_Entry, Runs);
                               Runs := Runs + 1;

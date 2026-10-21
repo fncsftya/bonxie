@@ -22,6 +22,8 @@ package body Repository.Directory is
       Ada_Sqlite3.Execute (DB (Store).all, Schema);
       Add_Column
         (Store, "directories", "position", "INTEGER NOT NULL DEFAULT 0");
+      Add_Column
+        (Store, "directories", "parent_id", "INTEGER REFERENCES directories (id) ON DELETE SET NULL");
    end Prepare;
 
    function Insert
@@ -118,7 +120,7 @@ package body Repository.Directory is
         Ada_Sqlite3.Prepare
           (DB (Store).all,
            "SELECT d.id, COALESCE(s.title, d.title), d.position, COALESCE(d.section_id, 0), "
-           & "COALESCE(s.colour, 0), COALESCE(s.position, 0) "
+           & "COALESCE(s.colour, 0), COALESCE(s.position, 0), COALESCE(d.parent_id, 0) "
            & "FROM directories d LEFT JOIN sections s ON s.id = d.section_id "
            & "WHERE d.project_id = :project "
            & "ORDER BY d.position = 0, d.position, d.id");
@@ -136,6 +138,7 @@ package body Repository.Directory is
             Title => Projects.Titles.To_Text
               (Ada_Sqlite3.Column_Text (Query, 1)),
             Position => Natural'Max (0, Ada_Sqlite3.Column_Int (Query, 2)),
+            Parent => Items.Id (Ada_Sqlite3.Column_Int64 (Query, 6)),
             Section => Ada_Sqlite3.Column_Int64 (Query, 3),
             Colour => Natural'Max (0, Ada_Sqlite3.Column_Int (Query, 4))));
          Rank.Append (Natural'Max (0, Ada_Sqlite3.Column_Int (Query, 5)));
@@ -181,6 +184,23 @@ package body Repository.Directory is
       Ada_Sqlite3.Bind_Int64 (Update, ":id", Long_Integer (Key));
       Ada_Sqlite3.Step (Update);
    end Set_Position;
+
+   procedure Set_Parent
+     (Store : in out Projects.Store; Key, Parent : Items.Id)
+   is
+      Update : Ada_Sqlite3.Statement := Ada_Sqlite3.Prepare
+        (DB (Store).all,
+         "WITH RECURSIVE descendants(id) AS (SELECT :id UNION ALL "
+         & "SELECT d.id FROM directories d JOIN descendants c ON d.parent_id = c.id) "
+         & "UPDATE directories SET parent_id = NULLIF(:parent, 0) WHERE id = :id AND section_id IS NULL "
+         & "AND (:parent = 0 OR EXISTS (SELECT 1 FROM directories p WHERE p.id = :parent "
+         & "AND p.project_id = directories.project_id AND p.id NOT IN (SELECT id FROM descendants)))");
+   begin
+      Ada_Sqlite3.Bind_Int64 (Update, ":parent", Long_Integer (Parent));
+      Ada_Sqlite3.Bind_Int64 (Update, ":id", Long_Integer (Key));
+      Ada_Sqlite3.Step (Update);
+      pragma Assert (Ada_Sqlite3.Changes (DB (Store).all) = 1);
+   end Set_Parent;
 
    procedure Delete (Store : in out Projects.Store; Key : Items.Id) is
       Remove : Ada_Sqlite3.Statement :=

@@ -2,6 +2,8 @@
 --  tests.
 package Viewer.Documents is
 
+   function Context_Open (Item : Session) return Boolean;
+
    function Document_Count (Item : Session) return Natural
      with Pre => Is_Open (Item) and then Screen (Item) = Project;
    --  How many items there are that are not sources: the pages.
@@ -49,6 +51,9 @@ package Viewer.Documents is
    function Directory_Count (Item : Session) return Natural
      with Pre => Is_Open (Item) and then Screen (Item) = Project;
    --  How many directories the documents are in.
+
+   function Directory_Parent (Item : Session; Row : Positive) return Natural
+     with Pre => Row <= Directory_Count (Item);
 
    function Directory_Title (Item : Session; Row : Positive) return String
      with Pre => Is_Open (Item) and then Screen (Item) = Project

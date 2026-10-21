@@ -87,10 +87,16 @@ package body Viewer.Writing.Tree is
       --  While a document is dragged, the nodes it can be dropped on show.
       Hinted  : constant Boolean :=
         Item.Dragging.Drag_Row /= 0 and then Item.Dragging.Drag_Moved
-        and then Item.Docs.Tree (Item.Dragging.Drag_Row).Kind = Document_Leaf;
+        and then (Item.Docs.Tree (Item.Dragging.Drag_Row).Kind = Document_Leaf
+                  or else Node.Kind = Overview_Node
+                  or else (Node.Kind = Directory_Node
+                           and then not Support.Within
+                             (Item, Node.Dir, Item.Docs.Tree (Item.Dragging.Drag_Row).Dir)));
       Chosen  : Boolean;
       Level   : Float := 0.0;
    begin
+      Widgets.Set_Visible
+        (Each.Folder_Mark, Node.Kind = Directory_Node and then not Support.Is_Section (Item, Node.Dir));
       case Node.Kind is
          when Overview_Node =>
             Labels.Set_Text (Each.Caption, "Overview");
@@ -105,13 +111,14 @@ package body Viewer.Writing.Tree is
             Labels.Set_Text
               (Each.Count, Support.Count_Image (Support.Documents_In (Item, Node.Dir)));
             Chosen := Item.Docs.Shown_Dir = Node.Dir;
+            Level := Float (Support.Depth (Item, Node.Dir)) * Style.Tree_Indent;
          when Document_Leaf =>
             Labels.Set_Text (Each.Caption, Labels.Fitted (Support.Title_Of (Item, Node.Doc)));
             Labels.Set_Text
               (Each.Count,
                Support.Count_Image (Windows.Words (Item.Windows (Node.Doc))));
             if Node.Dir /= 0 then
-               Level := Style.Tree_Indent;
+               Level := Float (Support.Depth (Item, Node.Dir) + 1) * Style.Tree_Indent;
             end if;
             Chosen :=
               (if Item.Dragging.Drag_Row /= 0 and then Item.Dragging.Drag_Moved
@@ -157,7 +164,7 @@ package body Viewer.Writing.Tree is
                     (Projects.Sections.Colour_Index
                        (Item.Docs.Dirs (Node.Dir).Colour mod Projects.Sections.Palette_Size))
              elsif Chosen then Pomarine.Themes.Accent else Style.Quiet_Ink));
-         Widgets.Set_Visible (Each.Tag, True);
+         Widgets.Set_Visible (Each.Tag, Support.Is_Section (Item, Node.Dir));
       end if;
       if Level /= Each.Indent then
          --  Shrinks the box, not only its text.

@@ -19,6 +19,54 @@ package body Viewer.Writing.Support is
    function Is_Section (Item : Session; Dir : Natural) return Boolean is
      (Dir /= 0 and then Item.Docs.Dirs (Dir).Section /= 0);
 
+   function Parent_Of (Item : Session; Dir : Natural) return Natural is
+      use type Items.Id;
+   begin
+      if Dir /= 0 and then Item.Docs.Dirs (Dir).Parent /= 0 then
+         for Each in 1 .. Item.Docs.Dirs.Count loop
+            if Item.Docs.Dirs (Each).Key = Item.Docs.Dirs (Dir).Parent then
+               return Each;
+            end if;
+         end loop;
+      end if;
+      return 0;
+   end Parent_Of;
+
+   function Depth (Item : Session; Dir : Natural) return Natural is
+      At_Dir : Natural := Dir;
+      Total : Natural := 0;
+   begin
+      while Parent_Of (Item, At_Dir) /= 0 loop
+         At_Dir := Parent_Of (Item, At_Dir);
+         Total := Total + 1;
+         pragma Assert (Total < Item.Docs.Dirs.Count);
+      end loop;
+      return Total;
+   end Depth;
+
+   function Section_Directory (Item : Session; Dir : Natural) return Natural is
+      At_Dir : Natural := Dir;
+   begin
+      for Step in 1 .. Item.Docs.Dirs.Count loop
+         exit when At_Dir = 0 or else Is_Section (Item, At_Dir);
+         At_Dir := Parent_Of (Item, At_Dir);
+      end loop;
+      return At_Dir;
+   end Section_Directory;
+
+   function Within (Item : Session; Dir, Ancestor : Natural) return Boolean is
+      At_Dir : Natural := Dir;
+   begin
+      for Step in 0 .. Item.Docs.Dirs.Count loop
+         if At_Dir = Ancestor then
+            return True;
+         end if;
+         exit when At_Dir = 0;
+         At_Dir := Parent_Of (Item, At_Dir);
+      end loop;
+      return False;
+   end Within;
+
    function Title_Of (Item : Session; Which : Items.Slot) return String is
      (Projects.Titles.To_String
         (Windows.Details (Item.Windows (Which)).Title));
@@ -45,7 +93,7 @@ package body Viewer.Writing.Support is
 
    function In_View (Item : Session; Which : Items.Slot) return Boolean is
      (Item.Docs.Shown_Dir = 0
-      or else Item.Docs.Doc_Dir (Which) = Item.Docs.Shown_Dir);
+      or else Within (Item, Item.Docs.Doc_Dir (Which), Item.Docs.Shown_Dir));
 
    function Leaf_Row (Item : Session; Which : Items.Slot) return Natural is
    begin
@@ -75,7 +123,7 @@ package body Viewer.Writing.Support is
       Total : Natural := 0;
    begin
       for Rank in 1 .. Item.Reading.Write_Count loop
-         if Item.Docs.Doc_Dir (Item.Reading.Write_Order (Rank)) = Dir then
+         if Within (Item, Item.Docs.Doc_Dir (Item.Reading.Write_Order (Rank)), Dir) then
             Total := Total + 1;
          end if;
       end loop;
@@ -87,8 +135,8 @@ package body Viewer.Writing.Support is
    begin
       if Item.Docs.Tree (Row).Kind = Directory_Node then
          while Last < Item.Docs.Tree_Count
-           and then Item.Docs.Tree (Last + 1).Kind = Document_Leaf
-           and then Item.Docs.Tree (Last + 1).Dir = Item.Docs.Tree (Row).Dir
+           and then Item.Docs.Tree (Last + 1).Kind /= Overview_Node
+           and then Within (Item, Item.Docs.Tree (Last + 1).Dir, Item.Docs.Tree (Row).Dir)
          loop
             Last := Last + 1;
          end loop;

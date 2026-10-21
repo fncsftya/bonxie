@@ -34,6 +34,11 @@ package Repository.Directory is
      (Store : in out Projects.Store; Key : Items.Id; Position : Positive)
      with Pre => Projects.Is_Open (Store);
 
+   procedure Set_Parent
+     (Store : in out Projects.Store; Key, Parent : Items.Id)
+     with Pre => Projects.Is_Open (Store);
+   --  Parent must be in the same project, outside Key's subtree, or 0; Key an ordinary folder.
+
    procedure Delete (Store : in out Projects.Store; Key : Items.Id)
      with Pre => Projects.Is_Open (Store);
    --  The row only: see Repository.Item.Free_Directory.

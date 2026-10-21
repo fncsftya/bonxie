@@ -8,6 +8,7 @@ with Pomarine.Widgets.Menus;
 with Viewer.Canvas_Items;
 with Viewer.Deletion;
 with Viewer.Style;
+with Viewer.Outlines;
 with Pomarine.Widgets.Layouts;
 with Viewer.Writing.Order;
 with Viewer.Writing.Popups;
@@ -26,6 +27,7 @@ package body Viewer.Writing.Context is
 
    use type Widgets.Clipboard_Access;
    use type Items.States;
+   use type Items.Id;
 
    procedure Show_Context
      (Item : in out Session; Kind : Context_Kinds; X, Y : Float);
@@ -121,9 +123,20 @@ package body Viewer.Writing.Context is
       begin
          Begin_Menu;
          Item.Context.Context_Node := Node;
-         Add_Act (Item, Rename_Act, "Rename", Icon_Set.Edit);
+         if Node.Kind /= Document_Leaf then
+            Add_Act (Item, Add_Document_Act, "Add Document", Icon_Set.Document);
+            Add_Act (Item, Add_Folder_Act, "Add Folder", Icon_Set.Folder);
+            if Node.Kind /= Overview_Node then
+               Menus.Add (Item.Context.Context_Menu, Menus.Separator);
+            end if;
+         end if;
+         if Node.Kind /= Overview_Node then
+            Add_Act (Item, Rename_Act, "Rename", Icon_Set.Edit);
+         end if;
          --  A section is made and removed in the outline, not here.
-         if not (Node.Kind = Directory_Node and then Support.Is_Section (Item, Node.Dir)) then
+         if Node.Kind /= Overview_Node
+           and then not (Node.Kind = Directory_Node and then Support.Is_Section (Item, Node.Dir))
+         then
             Add_Act (Item, Delete_Act, "Delete", Icon_Set.Delete,
                      Shade => Menus.Danger);
          end if;
@@ -230,7 +243,7 @@ package body Viewer.Writing.Context is
          return;
       end if;
       if Widgets.Contains (Item.Page_View.Docs_Scroll, PX, PY) then
-         for Row in 2 .. Item.Docs.Tree_Count loop
+         for Row in 1 .. Item.Docs.Tree_Count loop
             if Widgets.Contains (Item.Docs.Doc_Rows (Row).Row, PX, PY) then
                Of_Row (Item.Docs.Tree (Row));
                return;
@@ -305,7 +318,12 @@ package body Viewer.Writing.Context is
          when No_Context =>
             null;
          when Tree_Context =>
-            if Act = Rename_Act then
+            if Act = Add_Document_Act then
+               Tree.Show_Directory (Item, Node.Dir);
+               Canvas_Items.Add (Item, Canvas_Items.Untitled_Document);
+            elsif Act = Add_Folder_Act then
+               Rename.New_Directory (Item, "Untitled folder", Node.Dir);
+            elsif Act = Rename_Act then
                if Node.Kind = Directory_Node then
                   Rename.Begin_Rename_Dir (Item, Node.Dir);
                elsif Support.Is_Source (Item, Node.Doc) then
@@ -386,6 +404,11 @@ package body Viewer.Writing.Context is
       end if;
       Items.Directories.Delete_Directory (Item.Nav.Store,
                               Item.Docs.Dirs (Dir).Key);
+      for Folder of Item.Docs.Dirs loop
+         if Folder.Parent = Item.Docs.Dirs (Dir).Key then
+            Folder.Parent := 0;
+         end if;
+      end loop;
       --  Those in it are in none; the directories after it are one
       --  sooner.
       for Which in 1 .. Item.Windows.Count loop
@@ -416,6 +439,10 @@ package body Viewer.Writing.Context is
          Item.Docs.Shown_Dir := Item.Docs.Shown_Dir - 1;
       end if;
       Order.Keep_Order (Item);
+      Outlines.Reload (Item);
+      Item.Section_Menu.Changes := Item.Section_Menu.Changes + 1;
+      Item.Section_Menu.Seen := Item.Section_Menu.Changes;
+      Tree.Rebuild (Item);
       Tree.Show_Directory (Item, Item.Docs.Shown_Dir);
    end Remove_Directory;
 

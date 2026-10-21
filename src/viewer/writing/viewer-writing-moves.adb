@@ -1,4 +1,5 @@
 with Viewer.Outlines;
+with Items.Directories;
 with Viewer.Writing.Order;
 with Viewer.Writing.Support;
 with Viewer.Writing.Tree;
@@ -8,28 +9,30 @@ package body Viewer.Writing.Moves is
    procedure Relocate
      (Item : in out Session; Row, Index, Dir : Natural);
    --  Put the row, a document or a directory, before the Indexth row, and
-   --  a document in the directory (none, if 0), and keep that.
+   --  a document in the directory, or an ordinary folder in a section
+   --  (none, if 0), and keep that.
 
    procedure Relocate
      (Item : in out Session; Row, Index, Dir : Natural) is
+      Folder : constant Natural :=
+        (if Item.Docs.Tree (Row).Kind = Directory_Node then Item.Docs.Tree (Row).Dir else 0);
    begin
       if Item.Docs.Tree (Row).Kind = Document_Leaf then
-         declare
-            Was : constant Natural := Item.Docs.Doc_Dir (Item.Docs.Tree (Row).Doc);
-         begin
-            Item.Docs.Doc_Dir (Item.Docs.Tree (Row).Doc) := Dir;
-            Item.Docs.Tree (Row).Dir := Dir;
-            Order.Keep_Directory (Item, Item.Docs.Tree (Row).Doc);
-            if Support.Is_Section (Item, Was) or else Support.Is_Section (Item, Dir) then
-               --  Of another section, or of none: the outline's counts, and
-               --  the colours, follow.
-               Outlines.Reload (Item);
-               Item.Section_Menu.Changes := Item.Section_Menu.Changes + 1;
-               Item.Section_Menu.Seen := Item.Section_Menu.Changes;
-            end if;
-         end;
+         Item.Docs.Doc_Dir (Item.Docs.Tree (Row).Doc) := Dir;
+         Item.Docs.Tree (Row).Dir := Dir;
+         Order.Keep_Directory (Item, Item.Docs.Tree (Row).Doc);
       end if;
       Order.Move_Block (Item, Row, Index);
+      if Folder /= 0 then
+         pragma Assert (not Support.Is_Section (Item, Folder));
+         pragma Assert (not Support.Within (Item, Dir, Folder));
+         Item.Docs.Dirs (Folder).Parent := (if Dir = 0 then 0 else Item.Docs.Dirs (Dir).Key);
+         Items.Directories.Set_Parent
+           (Item.Nav.Store, Item.Docs.Dirs (Folder).Key, Item.Docs.Dirs (Folder).Parent);
+      end if;
+      Outlines.Reload (Item);
+      Item.Section_Menu.Changes := Item.Section_Menu.Changes + 1;
+      Item.Section_Menu.Seen := Item.Section_Menu.Changes;
       Order.Sync_Order (Item);
       Order.Keep_Order (Item);
       Tree.Refresh (Item);

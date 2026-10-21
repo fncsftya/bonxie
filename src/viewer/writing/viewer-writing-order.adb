@@ -69,54 +69,45 @@ package body Viewer.Writing.Order is
    --  documents after it.
 
    procedure Arrange (Item : in out Session) is
-      Total    : Natural := 1;
-      Next_Doc : Positive := 1;
-      Next_Dir : Positive := 1;
+      Total : Natural := 1;
+
+      procedure Children (Parent : Natural) is
+         Next_Doc : Positive := 1;
+         Next_Dir : Positive := 1;
+      begin
+         loop
+            while Next_Doc <= Item.Reading.Write_Count
+              and then Item.Docs.Doc_Dir (Item.Reading.Write_Order (Next_Doc)) /= Parent
+            loop
+               Next_Doc := Next_Doc + 1;
+            end loop;
+            while Next_Dir <= Item.Docs.Dirs.Count
+              and then Support.Parent_Of (Item, Next_Dir) /= Parent
+            loop
+               Next_Dir := Next_Dir + 1;
+            end loop;
+            exit when Next_Doc > Item.Reading.Write_Count and then Next_Dir > Item.Docs.Dirs.Count;
+            Total := Total + 1;
+            if Next_Dir <= Item.Docs.Dirs.Count
+              and then (Next_Doc > Item.Reading.Write_Count
+                        or else Key_Of (Item.Docs.Dirs (Next_Dir).Position) <= Key_Of
+                          (Items.Directories.Position_Of
+                            (Item.Nav.Store, Windows.Details
+                              (Item.Windows (Item.Reading.Write_Order (Next_Doc))).Key)))
+            then
+               Item.Docs.Tree (Total) := (Kind => Directory_Node, Dir => Next_Dir, Doc => 0);
+               Children (Next_Dir);
+               Next_Dir := Next_Dir + 1;
+            else
+               Item.Docs.Tree (Total) :=
+                 (Kind => Document_Leaf, Dir => Parent, Doc => Item.Reading.Write_Order (Next_Doc));
+               Next_Doc := Next_Doc + 1;
+            end if;
+         end loop;
+      end Children;
    begin
       Item.Docs.Tree (1) := (Kind => Overview_Node, others => 0);
-      loop
-         while Next_Doc <= Item.Reading.Write_Count
-           and then Item.Docs.Doc_Dir (Item.Reading.Write_Order (Next_Doc))
-              /= 0
-         loop
-            Next_Doc := Next_Doc + 1;
-         end loop;
-         exit when Next_Doc > Item.Reading.Write_Count
-                   and then Next_Dir > Item.Docs.Dirs.Count;
-         if Next_Dir <= Item.Docs.Dirs.Count
-           and then
-             (Next_Doc > Item.Reading.Write_Count
-              or else Key_Of (Item.Docs.Dirs (Next_Dir).Position)
-                      <= Key_Of
-                           (Items.Directories.Position_Of
-                              (Item.Nav.Store,
-                               Windows.Details
-                                 (Item.Windows
-                                    (Item.Reading.Write_Order
-                                       (Next_Doc))).Key)))
-         then
-            Total := Total + 1;
-            Item.Docs.Tree (Total) :=
-              (Kind => Directory_Node, Dir => Next_Dir, Doc => 0);
-            for Rank in 1 .. Item.Reading.Write_Count loop
-               if Item.Docs.Doc_Dir (Item.Reading.Write_Order (Rank))
-                  = Next_Dir
-               then
-                  Total := Total + 1;
-                  Item.Docs.Tree (Total) :=
-                    (Kind => Document_Leaf, Dir => Next_Dir,
-                     Doc  => Item.Reading.Write_Order (Rank));
-               end if;
-            end loop;
-            Next_Dir := Next_Dir + 1;
-         else
-            Total := Total + 1;
-            Item.Docs.Tree (Total) :=
-              (Kind => Document_Leaf, Dir => 0,
-               Doc  => Item.Reading.Write_Order (Next_Doc));
-            Next_Doc := Next_Doc + 1;
-         end if;
-      end loop;
+      Children (0);
       Item.Docs.Tree_Count := Total;
       Sync_Order (Item);
    end Arrange;

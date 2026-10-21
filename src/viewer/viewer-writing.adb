@@ -110,6 +110,11 @@ package body Viewer.Writing is
                          Modes'Pos (Modes'Last))));
    end Restore;
 
+   procedure Dismiss_Context (Item : in out Session) is
+   begin
+      Popups.Close_Context (Item);
+   end Dismiss_Context;
+
    procedure Leave (Item : in out Session) is
    begin
       Grammar.Reset (Item);
@@ -154,7 +159,7 @@ package body Viewer.Writing is
             Order.Keep_Directory (Item, Which);
          end if;
          Order.Keep_Order (Item);
-         if Support.Is_Section (Item, Item.Docs.Doc_Dir (Which)) then
+         if Support.Section_Directory (Item, Item.Docs.Doc_Dir (Which)) /= 0 then
             --  Made in a section's folder, it is the section's, and called
             --  as it if it has no name of its own.
             Section_Links.Joined (Item, Which);

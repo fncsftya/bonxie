@@ -52,11 +52,11 @@ package Viewer_Parts.Rows is
    --  source), the text of a page, or a source's picture.
 
    type Context_Acts is
-     (No_Act, Rename_Act, Delete_Act, Copy_Act, Cut_Act, Paste_Act,
+     (No_Act, Add_Document_Act, Add_Folder_Act, Rename_Act, Delete_Act, Copy_Act, Cut_Act, Paste_Act,
       Select_All_Act);
    --  What a row of it does.
 
-   type Act_Array is array (1 .. 4) of Context_Acts;
+   type Act_Array is array (1 .. 5) of Context_Acts;
 
    type Index_Row is limited record
       Row     : Pomarine.Widgets.Grips.Grip;
@@ -64,6 +64,7 @@ package Viewer_Parts.Rows is
       --  put a document elsewhere in the order.
       Tag     : Pomarine.Widgets.Panels.Panel;
       --  Of a source: a square of its colour.
+      Folder_Mark : Pomarine.Widgets.Labels.Label;
       Caption : Pomarine.Widgets.Labels.Label;
       Count   : Pomarine.Widgets.Labels.Label;
       --  Of a document: how many words it has; of a directory, how many

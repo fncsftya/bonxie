@@ -159,6 +159,13 @@ package body Viewer is
    procedure Handle (Item : in out Session; Event : SDL3.Events.Event) is
       Handled : Boolean := False;
    begin
+      if Item.Context.Context_Kind /= No_Context
+        and then Event.Kind = SDL3.Events.Key_Down
+        and then Event.Key = SDL3.Events.Key_Escape
+      then
+         Writing.Dismiss_Context (Item);
+         return;
+      end if;
       if (Item.Grammar_Checks.Showing or else Item.Grammar_Checks.Inline_Open)
         and then Event.Kind = SDL3.Events.Key_Down
         and then Event.Key = SDL3.Events.Key_Escape

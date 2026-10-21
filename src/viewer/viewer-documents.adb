@@ -44,6 +44,9 @@ package body Viewer.Documents is
       Y := Y / Pixels;
    end Find_Sources_Point;
 
+   function Context_Open (Item : Session) return Boolean is
+     (Item.Context.Context_Kind /= No_Context);
+
    function Document_Count (Item : Session) return Natural is
      (Item.Reading.Write_Count);
 
@@ -66,6 +69,17 @@ package body Viewer.Documents is
 
    function Directory_Count (Item : Session) return Natural is
      (Item.Docs.Dirs.Count);
+
+   function Directory_Parent (Item : Session; Row : Positive) return Natural is
+      use type Items.Id;
+   begin
+      for Each in 1 .. Item.Docs.Dirs.Count loop
+         if Item.Docs.Dirs (Each).Key = Item.Docs.Dirs (Row).Parent then
+            return Each;
+         end if;
+      end loop;
+      return 0;
+   end Directory_Parent;
 
    function Directory_Title (Item : Session; Row : Positive) return String is
      (Projects.Titles.To_String (Item.Docs.Dirs (Row).Title));

@@ -216,12 +216,17 @@ package body Repository.Section is
       Ada_Sqlite3.Step (Update);
    end Link;
 
+   Section_Tree : constant String :=
+     "WITH RECURSIVE membership(id, section_id) AS ("
+     & "SELECT id, section_id FROM directories WHERE section_id IS NOT NULL UNION ALL "
+     & "SELECT d.id, m.section_id FROM directories d JOIN membership m ON d.parent_id = m.id) ";
+
    procedure Unlink (Store : in out Projects.Store; Item : Long_Integer) is
       Update : Ada_Sqlite3.Statement :=
         Ada_Sqlite3.Prepare
           (DB (Store).all,
-           "UPDATE items SET directory_id = 0 WHERE id = :id AND directory_id IN "
-           & "(SELECT id FROM directories WHERE section_id IS NOT NULL)");
+           Section_Tree & "UPDATE items SET directory_id = 0 WHERE id = :id AND directory_id IN "
+           & "(SELECT id FROM membership)");
    begin
       Ada_Sqlite3.Bind_Int64 (Update, ":id", Item);
       Ada_Sqlite3.Step (Update);
@@ -235,9 +240,8 @@ package body Repository.Section is
       Query : Ada_Sqlite3.Statement :=
         Ada_Sqlite3.Prepare
           (DB (Store).all,
-           "SELECT items.id, directories.section_id FROM items JOIN directories "
-           & "ON items.directory_id = directories.id WHERE items.project_id = :project "
-           & "AND directories.section_id IS NOT NULL ORDER BY items.id");
+           Section_Tree & "SELECT items.id, m.section_id FROM items JOIN membership m "
+           & "ON items.directory_id = m.id WHERE items.project_id = :project ORDER BY items.id");
    begin
       Result.Clear;
       Ada_Sqlite3.Bind_Int64 (Query, ":project", Long_Integer (Project));

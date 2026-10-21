@@ -50,6 +50,12 @@ package body Items.Directories is
       Repository.Directory.Rename (Store, Key, Title);
    end Rename_Directory;
 
+   procedure Set_Parent
+     (Store : in out Projects.Store; Key, Parent : Id) is
+   begin
+      Repository.Directory.Set_Parent (Store, Key, Parent);
+   end Set_Parent;
+
    procedure Delete_Directory (Store : in out Projects.Store; Key : Id) is
    begin
       Repository.Item.Free_Directory (Store, Key);

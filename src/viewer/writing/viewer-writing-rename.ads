@@ -19,6 +19,7 @@ private package Viewer.Writing.Rename is
 
    procedure End_Rename_Source (Item : in out Session);
 
+   procedure New_Directory (Item : in out Session; Name : String; Parent : Natural);
    procedure New_Directory (Item : in out Session; Name : String);
    --  Make a directory, put its row last of the directories, and begin to
    --  rename it.

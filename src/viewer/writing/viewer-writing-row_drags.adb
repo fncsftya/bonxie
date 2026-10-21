@@ -24,9 +24,9 @@ package body Viewer.Writing.Row_Drags is
    --  directory (the top and foot of its row, the foot only if it has
    --  no documents), or above or below another document (by which half
    --  of its row, or, of the last in a directory, the lowest quarter puts
-   --  it after the directory). A directory goes only between the
-   --  directories and the documents in none, before or after the one
-   --  under the pointer, or the directory it is in.
+   --  it after the directory). An ordinary folder can enter a section,
+   --  return to Overview, or enter another folder outside its own subtree.
+   --  Section rows themselves stay in outline order.
 
    function Target_At
      (Item : Session; X, Y : Float) return Drop_Target
@@ -51,11 +51,13 @@ package body Viewer.Writing.Row_Drags is
             if Index in Held .. Held + 1 and then Dir = Moving.Dir then
                return (others => <>);
             end if;
-         elsif Index in Held .. Support.Block_End (Item, Held) + 1 then
+         elsif Index in Held .. Support.Block_End (Item, Held) + 1
+           and then Dir = Support.Parent_Of (Item, Moving.Dir)
+         then
             return (others => <>);
          end if;
          return (Kind => Viewer_Parts.Rows.Between, Row => 0, Index => Index,
-                 Dir => (if Moving.Kind = Document_Leaf then Dir else 0));
+                 Dir => Dir);
       end Between;
    begin
       if not Widgets.Contains (Item.Page_View.Docs_Scroll, X * Pixels,
@@ -78,6 +80,24 @@ package body Viewer.Writing.Row_Drags is
            (Point - Top (Row)) / (Bottom (Row) - Top (Row));
       begin
          if Moving.Kind = Directory_Node then
+            if Node.Kind = Overview_Node then
+               return (Kind => Into_Node, Row => Row, others => <>);
+            elsif Node.Kind = Directory_Node then
+               if Support.Within (Item, Node.Dir, Moving.Dir) then
+                  return (others => <>);
+               end if;
+               if Fract in 0.25 .. 0.75 then
+                  return (Kind => Into_Node, Row => Row, others => <>);
+               elsif Fract < 0.25 then
+                  return Between (Row, Support.Parent_Of (Item, Node.Dir));
+               else
+                  return Between
+                    (Support.Block_End (Item, Row) + 1, Support.Parent_Of (Item, Node.Dir));
+               end if;
+            end if;
+            if Node.Kind = Document_Leaf and then Support.Within (Item, Node.Dir, Moving.Dir) then
+               return (others => <>);
+            end if;
             --  Whole units of the top level: the directory with its
             --  documents, or a document in none.
             declare
@@ -95,8 +115,8 @@ package body Viewer.Writing.Row_Drags is
                   Last : constant Positive := Support.Block_End (Item, First);
                begin
                   return (if Point < (Top (First) + Bottom (Last)) / 2.0
-                          then Between (First, 0)
-                          else Between (Last + 1, 0));
+                          then Between (First, Support.Parent_Of (Item, Item.Docs.Tree (First).Dir))
+                          else Between (Last + 1, Support.Parent_Of (Item, Item.Docs.Tree (First).Dir)));
                end;
             end;
          end if;
@@ -105,9 +125,9 @@ package body Viewer.Writing.Row_Drags is
                return (Kind => Into_Node, Row => Row, others => <>);
             when Directory_Node =>
                if Fract < 0.25 then
-                  return Between (Row, 0);
+                  return Between (Row, Support.Parent_Of (Item, Node.Dir));
                elsif Fract >= 0.75 and then Support.Block_End (Item, Row) = Row then
-                  return Between (Row + 1, 0);
+                  return Between (Row + 1, Support.Parent_Of (Item, Node.Dir));
                else
                   return (Kind => Into_Node, Row => Row, others => <>);
                end if;
@@ -121,7 +141,7 @@ package body Viewer.Writing.Row_Drags is
                   if Fract < 0.5 then
                      return Between (Row, Node.Dir);
                   elsif Last and then Fract >= 0.75 then
-                     return Between (Row + 1, 0);
+                     return Between (Row + 1, Support.Parent_Of (Item, Node.Dir));
                   else
                      return Between (Row + 1, Node.Dir);
                   end if;
@@ -152,7 +172,9 @@ package body Viewer.Writing.Row_Drags is
          Thick : constant Float := Style.Drop_Line_Height * Pixels;
          Inset : constant Float :=
            (if Item.Docs.Drop.Dir /= 0
-            then Style.Tree_Indent * Pixels else 0.0);
+            then Style.Tree_Indent * Pixels
+              * Float (Support.Depth (Item, Item.Docs.Drop.Dir) + 1)
+            else 0.0);
          Edge  : Grips.Grip renames Item.Docs.Doc_Rows (1).Row;
       begin
          Layouts.Set_Layout

@@ -18,6 +18,9 @@ private package Viewer.Writing is
    --  Make the lists, pages and windows of the items there are: once the
    --  canvas's windows are made.
 
+   procedure Dismiss_Context (Item : in out Session);
+   --  Dismiss the right click menu without changing the editor focus.
+
    procedure Leave (Item : in out Session);
    --  Let go of the windows, and the pinned source.
 

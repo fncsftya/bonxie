@@ -63,6 +63,11 @@ do not see how the GPU smooths scaled glyphs. CoreText may also rasterize
 slightly differently on another macOS release; if so, regenerate the
 goldens there or pass a tolerance to `Goldens.Check`.
 
+`outline-section-folders` checks folders dragged into and out of sections,
+nested folder drops and cycle rejection, document and folder creation from context
+menus in Overview and folders, Escape dismissal,
+document outline membership at multiple depths, and persistence after reopening.
+
 ## Find Sources
 
 `finding-queries` and `finding-evaluations` check how the model's replies are

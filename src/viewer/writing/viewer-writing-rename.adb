@@ -156,15 +156,25 @@ package body Viewer.Writing.Rename is
    end End_Rename_Source;
 
    procedure New_Directory (Item : in out Session; Name : String) is
+   begin
+      New_Directory (Item, Name, Item.Docs.Shown_Dir);
+   end New_Directory;
+
+   procedure New_Directory (Item : in out Session; Name : String; Parent : Natural) is
       Key : constant Items.Id :=
         Items.Directories.Create_Directory
           (Item.Nav.Store, Item.Opened.Current, Name);
+
    begin
-      Item.Docs.Dirs.Append ((Key => Key, Title => Projects.Titles.To_Text (Name), others => <>));
+      Items.Directories.Set_Parent
+        (Item.Nav.Store, Key, (if Parent = 0 then 0 else Item.Docs.Dirs (Parent).Key));
+      Item.Docs.Dirs.Append
+        ((Key => Key, Title => Projects.Titles.To_Text (Name),
+          Parent => (if Parent = 0 then 0 else Item.Docs.Dirs (Parent).Key), others => <>));
       Build.Reserve_Rows (Item);
       --  Last of all.
       Order.Insert_Row
-        (Item, Item.Docs.Tree_Count + 1,
+        (Item, Order.Last_Of (Item, Parent),
          (Kind => Directory_Node, Dir => Item.Docs.Dirs.Count, Doc => 0));
       Order.Keep_Order (Item);
       Tree.Refresh (Item);

@@ -426,7 +426,8 @@ package body Write_Tests is
       begin
          Right_Click_On (Session, Doc_Row_X, Row_Y);
          Settle (Session);
-         Click_On (Session, Doc_Row_X + 40.0, Row_Y + Dy);
+         Click_On (Session, Doc_Row_X + 40.0,
+                   (if Dy > Delete_Dy then Float'Min (Row_Y, 480.0 - 124.0) else Row_Y) + Dy);
          Settle (Session);
       end Choose;
    begin
@@ -451,7 +452,7 @@ package body Write_Tests is
 
       Click_On (Session, Add_Directory_X, Add_Document_Y);
       Name_Directory (Session, "Part one");
-      Choose (Tree_Row_Y (5), Rename_Dy);
+      Choose (Tree_Row_Y (5), Rename_Dy + 61.0);
       Type_In (Session, "Act one");
       Viewer.Handle
         (Session, Events.Event'(Kind => Events.Key_Down,
@@ -477,7 +478,7 @@ package body Write_Tests is
              Natural'Image (Docs.Directory_Count (Session)));
 
       --  Deleting a directory keeps what was in it, in none.
-      Choose (Tree_Row_Y (4), Delete_Dy);
+      Choose (Tree_Row_Y (4), Delete_Dy + 61.0);
       Check ("write-delete-directory-asked", "TRUE",
              Boolean'Image (Home.Is_Confirming (Session)));
       Click_On (Session, Confirm_Delete_X, Confirm_Y);

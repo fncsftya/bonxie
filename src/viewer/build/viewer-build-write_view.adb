@@ -43,7 +43,14 @@ package body Viewer.Build.Write_View is
       Offset : constant Float := Pomarine.Boxes.Offset (Pixels);
    begin
       Widgets.Add_Before (Content, Each.Row, Before);
-      Widgets.Add (Each.Row, Each.Tag, Each.Caption, Each.Count);
+      Widgets.Add (Each.Row, Each.Tag, Each.Folder_Mark, Each.Caption, Each.Count);
+      Labels.Set_Text (Each.Folder_Mark, " ");
+      Labels.Set_Icon (Each.Folder_Mark, Icon_Set.Folder);
+      Labels.Set_Ink (Each.Folder_Mark, Quiet_Ink);
+      Set_Layout
+        (Each.Folder_Mark, Width => 18.0, Height => 18.0, Shrink => 0.0,
+         Margin => (Right => Index_Pad, others => <>));
+      Widgets.Set_Visible (Each.Folder_Mark, False);
       --  Each row casts a shadow, inside its box: it is that much
       --  taller, and the gap less.
       Grips.Set_Fill (Each.Row, Row_Fill);

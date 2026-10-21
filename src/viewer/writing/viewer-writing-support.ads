@@ -11,6 +11,11 @@ private package Viewer.Writing.Support is
    --  Whether the directory is a section's: made for it, with its name,
    --  not renamed or deleted here, nor moved.
 
+   function Parent_Of (Item : Session; Dir : Natural) return Natural;
+   function Depth (Item : Session; Dir : Natural) return Natural;
+   function Section_Directory (Item : Session; Dir : Natural) return Natural;
+   function Within (Item : Session; Dir, Ancestor : Natural) return Boolean;
+
    function Title_Of (Item : Session; Which : Items.Slot) return String;
    --  The title of the item's window.
 

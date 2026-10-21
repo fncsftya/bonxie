@@ -25,6 +25,7 @@ package Outline_Tests is
    --  The order of the documents in tiers: sections, then within them.
    procedure Section_Rows;
    --  Sections as rows of the list of documents: renamed, not deleted.
+   procedure Section_Folders;
    procedure Writing_Sections;
    --  The writing view: sections as headings, with their documents.
    procedure Linking;
