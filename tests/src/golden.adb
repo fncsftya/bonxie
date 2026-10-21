@@ -1168,6 +1168,23 @@ procedure Golden is
             end;
          end loop;
          Goldens.Check_Text ("adaptive-styles-match-choices", "TRUE", Boolean'Image (Same and then Tints));
+         --  Bold colours tint the greys at least as much as soft ones, and muted ones least; always in range.
+         declare
+            Ordered : Boolean := True;
+         begin
+            for Style in Backgrounds.Styles loop
+               declare
+                  Soft : constant Float := Backgrounds.Tint_Strength (Style, Backgrounds.Pastel);
+               begin
+                  Ordered := Ordered
+                    and then Backgrounds.Tint_Strength (Style, Backgrounds.Vivid) >= Soft
+                    and then Backgrounds.Tint_Strength (Style, Backgrounds.Rich) >= Soft
+                    and then Backgrounds.Tint_Strength (Style, Backgrounds.Muted) < Soft
+                    and then Backgrounds.Tint_Strength (Style) = Soft;
+               end;
+            end loop;
+            Goldens.Check_Text ("adaptive-mood-tint-order", "TRUE", Boolean'Image (Ordered));
+         end;
       end;
       Goldens.Check_Text ("adaptive-text-reads", "TRUE", Boolean'Image (Worst > 0.97));
       Goldens.Check_Text ("adaptive-hue-moves-greys", "TRUE", Boolean'Image (Moved and then Tinted));

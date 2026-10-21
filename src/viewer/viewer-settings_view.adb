@@ -359,6 +359,10 @@ package body Viewer.Settings_View is
    function Style_Of (Mode : Preferences.Pictures) return Backgrounds.Styles is
      (Backgrounds.Styles'Val (Preferences.Background_Modes'Pos (Mode) - 1));
 
+   --  How much of the picture's hue the greys take: the style's, and as bold as the seed's colours.
+   function Tint_Of (Item : Session; Picture : Backgrounds.Styles) return Float is
+     (Backgrounds.Tint_Strength (Picture, Backgrounds.Mood (Item.Host.Background)));
+
    --  The cards of backgrounds: each a picture of a window drawn the way it would be, the chosen one
    --  outlined in the accent, with a shadow.
    procedure Show_Backgrounds (Item : in out Session) is
@@ -384,7 +388,7 @@ package body Viewer.Settings_View is
                   Backgrounds.Set_Look
                     (Card.Sample, Dark,
                      Viewer.Style.Make
-                       (Dark, Backgrounds.Hue (Item.Host.Background, Picture), Backgrounds.Tint_Strength (Picture)));
+                       (Dark, Backgrounds.Hue (Item.Host.Background, Picture), Tint_Of (Item, Picture)));
                end;
             end if;
          end;
@@ -548,7 +552,7 @@ package body Viewer.Settings_View is
             Picture : constant Backgrounds.Styles := Style_Of (Mode);
          begin
             Viewer.Style.Use_Adaptive
-              (Dark, Backgrounds.Hue (Item.Host.Background, Picture), Backgrounds.Tint_Strength (Picture));
+              (Dark, Backgrounds.Hue (Item.Host.Background, Picture), Tint_Of (Item, Picture));
             Item.Root.Window_Panel.Style := Picture;
          end;
          Item.Root.Window_Panel.Painting := Item.Host.Background'Unchecked_Access;

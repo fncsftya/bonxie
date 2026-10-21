@@ -10,6 +10,7 @@ struct Background_Parameters {
     float seed;
     float hue;     // the base hue, chosen by the program so that its colours can follow it
     uint dark;     // 1 for a dark picture, 0 for a light one
+    uint mood;     // 0 pastel, 1 vivid, 2 rich, 3 muted: how bold the colours are, from the seed
 };
 
 // ---------- hashing / noise ----------
@@ -53,11 +54,6 @@ float paperTex(float2 p){
 
 float2x2 rotation(float angle){ float c = cos(angle), s = sin(angle); return float2x2(float2(c, -s), float2(s, c)); }
 
-// Where a picture sits: toward its ground by the amount that keeps ink readable on it.
-float3 veil(float3 col, float3 ground, bool dark, float light_amount, float dark_amount){
-    return mix(col, ground, dark ? dark_amount : light_amount);
-}
-
 // What a style is given: p is centred, a unit tall; px is in pixels from the top left.
 struct Scene {
     float2 p;
@@ -66,12 +62,51 @@ struct Scene {
     float seed;
     float hue;
     bool dark;
+    uint mood;
 };
+
+// A colour in hue, saturation and value, as bold as the mood says: pastels as they are written, vivid
+// ones twice as saturated and brighter, rich ones deeper, muted ones half as saturated.
+float3 hsvm(Scene s, float3 c){
+    float sat = c.y, val = c.z;
+    if (s.mood == 1u)      { sat = c.y * 2.1;  val = mix(c.z, 1.0, 0.35); }
+    else if (s.mood == 2u) { sat = c.y * 1.7;  val = c.z * 0.82; }
+    // The dark ones start low in value, and a bold colour wants more of it, or it is only black.
+    if (s.dark && (s.mood == 1u || s.mood == 2u)) val = c.z * 1.9;
+    else if (s.mood == 3u) { sat = c.y * 0.45; val = c.z * 0.97; }
+    return hsv2rgb(float3(c.x, clamp(sat, 0.0, 1.0), clamp(val, 0.0, 1.0)));
+}
+
+// How much of the old toward-the-ground veil a mood keeps: bold colours would be washed out by it.
+float soft_of(uint mood){ return mood == 1u ? 0.25 : (mood == 2u ? 0.35 : (mood == 3u ? 0.8 : 1.0)); }
+
+// Where a picture sits, so that the ink drawn straight on it can be read. The picture is moved toward
+// its ground (less for the bold moods), and then, in linear light, its brightness is held in a band --
+// a light picture no darker than LIGHT_FLOOR, a dark one no brighter than DARK_CEILING, as relative
+// luminance -- by scaling it, so that its hues and how saturated they are are kept.
+#define LIGHT_FLOOR 0.34
+#define DARK_CEILING 0.125
+
+float luminance_of(float3 lin){ return dot(lin, float3(0.2126, 0.7152, 0.0722)); }
+
+float3 finish(Scene s, float3 col, float3 ground, float light_amount, float dark_amount){
+    col = mix(col, ground, soft_of(s.mood) * (s.dark ? dark_amount : light_amount));
+    float3 lin = pow(clamp(col, 0.0, 1.0), float3(2.2));
+    float y = max(luminance_of(lin), 1e-4);
+    float wanted = s.dark ? DARK_CEILING * y : LIGHT_FLOOR + (1.0 - LIGHT_FLOOR) * y;
+    float3 scaled = lin * (wanted / y);
+    float top = max(scaled.x, max(scaled.y, scaled.z));
+    if (top > 1.0){
+        // Past white: keep the brightness, give up some of the saturation.
+        scaled = mix(float3(wanted), scaled, (1.0 - wanted) / (top - wanted));
+    }
+    return pow(clamp(scaled, 0.0, 1.0), float3(1.0 / 2.2));
+}
 
 // ================= watercolour: soft pigment washes and splatter on textured paper =================
 #define WASHES 6
 
-float3 pastel(float baseHue, float k, float r1, float r2, bool dark){
+float3 pastel(Scene s, float baseHue, float k, float r1, float r2, bool dark){
     float off;
     if      (k < 0.5) off = 0.00;
     else if (k < 1.5) off = 0.07;
@@ -81,7 +116,7 @@ float3 pastel(float baseHue, float k, float r1, float r2, bool dark){
     // Light: soft, high value, multiplied into the paper. Dark: deep and saturated, screened over the ground.
     float sat = dark ? 0.55 + 0.30 * r1 : 0.22 + 0.28 * r1;
     float val = dark ? 0.40 + 0.30 * r2 : 0.84 + 0.13 * r2;
-    return hsv2rgb(float3(fract(baseHue + off), sat, val));
+    return hsvm(s, float3(fract(baseHue + off), sat, val));
 }
 
 float3 scene_watercolour(Scene s){
@@ -106,8 +141,8 @@ float3 scene_watercolour(Scene s){
         float dens = 1.5 + 1.2 * h.z;
         if (i == 0){ r = 0.80; soft = 0.20; dens = 1.1; c = float2(0.0); }
 
-        float3 pig = pastel(baseHue, floor(h.x * 4.99), h.y, h.z, dark);
-        if (i == 0) pig = pastel(baseHue, 0.0, 0.2, 0.9, dark);
+        float3 pig = pastel(s, baseHue, floor(h.x * 4.99), h.y, h.z, dark);
+        if (i == 0) pig = pastel(s, baseHue, 0.0, 0.2, 0.9, dark);
 
         float2 q = p + 0.38 * (float2(fbm(p * 1.4 + seed * 3.1 + fi * 7.0),
                                   fbm(p * 1.4 + float2(5.2, 1.3) + seed * 1.7 + fi * 5.0)) - 0.5);
@@ -153,7 +188,7 @@ float3 scene_watercolour(Scene s){
     float l = dot(col, float3(0.299, 0.587, 0.114));
     col = mix(float3(l), col, 0.95);                       // keep it soft
     col *= 1.0 - 0.14 * dot(p, p);                       // faint vignette
-    return veil(col, paperCol, dark, 0.68, 0.64);
+    return finish(s, col, paperCol, 0.68, 0.64);
 }
 
 // ================= paper: parchment, linen or vellum, by the seed =================
@@ -161,7 +196,7 @@ float3 scene_paper(Scene s){
     float2 p = s.p;
     bool dark = s.dark;
     float kind = floor(hash11(s.seed * 5.3 + 1.0) * 3.0);   // 0 parchment, 1 linen, 2 vellum
-    float3 base = dark ? hsv2rgb(float3(s.hue, 0.32, 0.17)) : hsv2rgb(float3(s.hue, 0.17, 0.95));
+    float3 base = dark ? hsvm(s, float3(s.hue, 0.32, 0.17)) : hsvm(s, float3(s.hue, 0.17, 0.95));
     float3 col = base;
     float tooth = paperTex(p);
     float cloud = fbm(p * 2.6 + s.seed * 7.0);
@@ -196,15 +231,15 @@ float3 scene_paper(Scene s){
         col = mix(col, col * (dark ? 1.6 : 0.78), vein * 0.35);
     }
     col *= 0.95 + 0.07 * tooth;
-    return veil(col, base, dark, 0.45, 0.30);
+    return finish(s, col, base, 0.45, 0.30);
 }
 
 // ================= ink wash: sumi-e hills and mist in greys, with bleeding edges =================
 float3 scene_ink_wash(Scene s){
     float2 p = s.p;
     bool dark = s.dark;
-    float3 ground = dark ? hsv2rgb(float3(s.hue, 0.20, 0.075)) : hsv2rgb(float3(s.hue, 0.05, 0.955));
-    float3 ink = dark ? hsv2rgb(float3(s.hue, 0.10, 0.80)) : hsv2rgb(float3(s.hue, 0.22, 0.16));
+    float3 ground = dark ? hsvm(s, float3(s.hue, 0.20, 0.075)) : hsvm(s, float3(s.hue, 0.05, 0.955));
+    float3 ink = dark ? hsvm(s, float3(s.hue, 0.10, 0.80)) : hsvm(s, float3(s.hue, 0.22, 0.16));
     float paper = paperTex(p);
     float density = 0.0;
 
@@ -235,7 +270,7 @@ float3 scene_ink_wash(Scene s){
 
     float3 col = mix(ground, ink, density);
     col *= 0.96 + 0.06 * paper;
-    return veil(col, ground, dark, 0.66, 0.55);
+    return finish(s, col, ground, 0.66, 0.55);
 }
 
 // ================= mist: slow, domain-warped fields of muted colour =================
@@ -247,14 +282,14 @@ float3 scene_mist(Scene s){
     float f = fbm(p * 0.9 + 2.2 * w);
     float g = fbm(p * 0.7 - 1.6 * w + float2(3.0, 8.0) + s.seed);
     float k = fbm(p * 1.6 + 3.0 * float2(f, g));
-    float3 a = dark ? hsv2rgb(float3(h, 0.40, 0.11)) : hsv2rgb(float3(h, 0.14, 0.96));
-    float3 b = dark ? hsv2rgb(float3(h + 0.07, 0.34, 0.24)) : hsv2rgb(float3(h + 0.07, 0.26, 0.86));
-    float3 c = dark ? hsv2rgb(float3(h - 0.09, 0.30, 0.19)) : hsv2rgb(float3(h - 0.09, 0.20, 0.91));
+    float3 a = dark ? hsvm(s, float3(h, 0.40, 0.11)) : hsvm(s, float3(h, 0.14, 0.96));
+    float3 b = dark ? hsvm(s, float3(h + 0.07, 0.34, 0.24)) : hsvm(s, float3(h + 0.07, 0.26, 0.86));
+    float3 c = dark ? hsvm(s, float3(h - 0.09, 0.30, 0.19)) : hsvm(s, float3(h - 0.09, 0.20, 0.91));
     float3 col = mix(a, b, smoothstep(0.30, 0.72, f));
     col = mix(col, c, smoothstep(0.35, 0.75, g) * 0.65);
     col = mix(col, a, smoothstep(0.5, 0.8, k) * 0.35);
     col *= 0.97 + 0.04 * paperTex(p);
-    return veil(col, a, dark, 0.30, 0.25);
+    return finish(s, col, a, 0.30, 0.25);
 }
 
 // ================= grain: a quiet gradient under film grain =================
@@ -265,8 +300,8 @@ float3 scene_grain(Scene s){
     float angle = hash11(s.seed * 2.7) * 6.2831;
     float t = 0.5 + 0.5 * dot(p, float2(cos(angle), sin(angle))) * 1.2;
     t = clamp(t + 0.25 * (fbm(p * 1.3 + s.seed) - 0.5), 0.0, 1.0);
-    float3 a = dark ? hsv2rgb(float3(h, 0.30, 0.06)) : hsv2rgb(float3(h, 0.08, 0.95));
-    float3 b = dark ? hsv2rgb(float3(h + 0.04, 0.36, 0.20)) : hsv2rgb(float3(h + 0.04, 0.20, 0.80));
+    float3 a = dark ? hsvm(s, float3(h, 0.30, 0.06)) : hsvm(s, float3(h, 0.08, 0.95));
+    float3 b = dark ? hsvm(s, float3(h + 0.04, 0.36, 0.20)) : hsvm(s, float3(h + 0.04, 0.20, 0.80));
     float3 col = mix(a, b, smoothstep(0.0, 1.0, t));
     // Grain at the pixel, finer grain between, and a slower mottle that is nearly not there.
     float2 q = floor(s.px);
@@ -276,7 +311,7 @@ float3 scene_grain(Scene s){
     float grain = 0.55 * fine + 0.30 * coarse + 0.35 * mottle;
     col *= 1.0 + (dark ? 0.55 : 0.16) * grain;
     col *= 1.0 - 0.18 * dot(p, p);
-    return veil(col, a, dark, 0.40, 0.40);
+    return finish(s, col, a, 0.40, 0.40);
 }
 
 // ================= marbling: ebru / suminagashi, bands of colour from warped, swirled stripes =================
@@ -298,16 +333,16 @@ float3 scene_marbling(Scene s){
     float id = floor(v);
     float f = fract(v);
     float pick = hash11(id * 1.37 + s.seed);
-    float3 ground = dark ? hsv2rgb(float3(h, 0.30, 0.07)) : hsv2rgb(float3(h, 0.06, 0.96));
+    float3 ground = dark ? hsvm(s, float3(h, 0.30, 0.07)) : hsvm(s, float3(h, 0.06, 0.96));
     float off = pick < 0.3 ? 0.0 : (pick < 0.55 ? 0.08 : (pick < 0.8 ? 0.50 : 0.58));
-    float3 band = dark ? hsv2rgb(float3(h + off, 0.55, 0.28 + 0.25 * pick))
-                       : hsv2rgb(float3(h + off, 0.32 + 0.25 * pick, 0.88 - 0.1 * pick));
+    float3 band = dark ? hsvm(s, float3(h + off, 0.55, 0.28 + 0.25 * pick))
+                       : hsvm(s, float3(h + off, 0.32 + 0.25 * pick, 0.88 - 0.1 * pick));
     // Between the bands a thin line of ground; and where the next band starts, a darker edge.
     float gap = smoothstep(0.0, 0.07, f) * smoothstep(0.0, 0.07, 1.0 - f);
     float3 col = mix(ground, band, gap);
     col *= 1.0 - 0.10 * smoothstep(0.6, 1.0, f);
     col *= 0.97 + 0.05 * paperTex(p);
-    return veil(col, ground, dark, 0.52, 0.40);
+    return finish(s, col, ground, 0.52, 0.40);
 }
 
 // ================= risograph: flat inks in halftone, a little out of register, on paper =================
@@ -330,7 +365,7 @@ float3 scene_riso(Scene s){
         float fi = float(i);
         // Three inks, the first the hue given, the others across the wheel from it.
         float hue = fract(s.hue + (i == 0 ? 0.0 : (i == 1 ? 0.52 : 0.17)));
-        float3 ink = dark ? hsv2rgb(float3(hue, 0.75, 0.55)) : hsv2rgb(float3(hue, 0.62 + 0.1 * fi, 0.98 - 0.12 * fi));
+        float3 ink = dark ? hsvm(s, float3(hue, 0.75, 0.55)) : hsvm(s, float3(hue, 0.62 + 0.1 * fi, 0.98 - 0.12 * fi));
         // The shape: a broad blob of the ink, smooth, so that the screen gives it its gradient.
         float2 at = p * (1.5 + 0.4 * fi) + float2(s.seed * 3.0 + fi * 9.0, fi * 4.0);
         float shape = smoothstep(0.38, 0.78, fbm(at) + 0.25 * (fbm(at * 2.5) - 0.5));
@@ -341,7 +376,7 @@ float3 scene_riso(Scene s){
         col = dark ? 1.0 - (1.0 - col) * (1.0 - ink * dots * 0.85)
                    : col * mix(float3(1.0), ink, dots);
     }
-    return veil(col, ground, dark, 0.70, 0.54);
+    return finish(s, col, ground, 0.70, 0.54);
 }
 
 // ================= contours: isolines of a noise field, a map of nowhere =================
@@ -364,13 +399,13 @@ float3 scene_contours(Scene s){
     float index = fmod(floor(v + 0.5), 5.0);                  // every fifth a heavier line
     float width = index < 0.5 ? 1.8 : 0.9;
     float line = 1.0 - smoothstep(width - 0.5, width + 0.7, px);
-    float3 ground = dark ? hsv2rgb(float3(h, 0.40, 0.08)) : hsv2rgb(float3(h, 0.10, 0.96));
-    float3 low = dark ? hsv2rgb(float3(h, 0.45, 0.14)) : hsv2rgb(float3(h + 0.05, 0.20, 0.90));
-    float3 ink = dark ? hsv2rgb(float3(h, 0.30, 0.85)) : hsv2rgb(float3(h, 0.55, 0.30));
+    float3 ground = dark ? hsvm(s, float3(h, 0.40, 0.08)) : hsvm(s, float3(h, 0.10, 0.96));
+    float3 low = dark ? hsvm(s, float3(h, 0.45, 0.14)) : hsvm(s, float3(h + 0.05, 0.20, 0.90));
+    float3 ink = dark ? hsvm(s, float3(h, 0.30, 0.85)) : hsvm(s, float3(h, 0.55, 0.30));
     float3 col = mix(ground, low, smoothstep(0.30, 0.62, f));      // the land, a little deeper where it is high
     col = mix(col, ink, line * (index < 0.5 ? 0.95 : 0.65));
     col *= 0.97 + 0.05 * paperTex(p);
-    return veil(col, ground, dark, 0.70, 0.58);
+    return finish(s, col, ground, 0.70, 0.58);
 }
 
 // ================= bauhaus: simple shapes in primary colours, placed by seeded rules =================
@@ -406,7 +441,7 @@ float3 scene_bauhaus(Scene s){
         }
         float m = shape_mask(c + 0.5, kind, aa);
         float tone = hash21(id * 0.7 + s.seed * 9.0);
-        float3 dominant = hsv2rgb(float3(s.hue, 0.78, 0.86));
+        float3 dominant = hsvm(s, float3(s.hue, 0.78, 0.86));
         float3 shade = tone < 0.34 ? dominant
                      : (tone < 0.58 ? float3(0.90, 0.72, 0.12)
                      : (tone < 0.80 ? float3(0.12, 0.30, 0.62) : float3(0.09, 0.09, 0.10)));
@@ -414,7 +449,7 @@ float3 scene_bauhaus(Scene s){
         col = mix(ground, shade, m);
     }
     col *= 0.96 + 0.06 * paperTex(p);
-    return veil(col, ground, dark, 0.70, 0.58);
+    return finish(s, col, ground, 0.70, 0.58);
 }
 
 // ---------- the kernels ----------
@@ -435,6 +470,7 @@ kernel void NAME( \
     s.seed = parameters.seed; \
     s.hue = parameters.hue; \
     s.dark = parameters.dark != 0; \
+    s.mood = parameters.mood; \
     float3 col = SCENE(s); \
     pixels[pixel.y * parameters.resolution.x + pixel.x] = uchar4(float4(clamp(col, 0.0, 1.0), 1.0) * 255.0); \
 }

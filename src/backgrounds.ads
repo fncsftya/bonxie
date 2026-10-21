@@ -13,10 +13,14 @@ package Backgrounds is
    type Styles is (Watercolour, Paper, Ink_Wash, Mist, Grain, Marbling, Risograph, Contours, Bauhaus);
    --  The pictures that can be painted, in the order of the shader's kernels.
 
-   function Tint_Strength (Style : Styles) return Float
+   type Moods is (Pastel, Vivid, Rich, Muted);
+   --  How bold a seed's colours are, whatever the style: soft, saturated and bright, deep and saturated,
+   --  or half saturated. Light or dark, they are held in the band that keeps ink readable on them.
+
+   function Tint_Strength (Style : Styles; Boldness : Moods := Pastel) return Float
      with Post => Tint_Strength'Result in 0.0 .. 1.0;
    --  How much of the picture's hue the application's greys take on: a lot for the colourful, less
-   --  for the ones that are nearly grey.
+   --  for the ones that are nearly grey, more for bold colours and less for muted.
 
    subtype Seed_Numbers is Natural range 0 .. 16#FF_FFFF#;
    --  Which painting: the shader is given this over 65536, so that it is kept and read back exactly,
@@ -30,6 +34,9 @@ package Backgrounds is
    --  Compile the shader, to paint the picture of Seed.
 
    function Seed_Number (Item : Cache) return Seed_Numbers;
+
+   function Mood (Item : Cache) return Moods;
+   --  How bold the pictures of the seed are.
 
    procedure Reseed (Item : in out Cache)
      with Post => Seed_Number (Item) /= Seed_Number (Item)'Old;

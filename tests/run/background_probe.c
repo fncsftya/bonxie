@@ -1,12 +1,14 @@
 // See TESTING.md for the Metal build and run commands.
 #include <assert.h>
 #include <stdio.h>
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
 extern void *bonxie_background_create(const char *);
 extern const void *bonxie_background_render(void *, int, float, int, int, int);
 extern float bonxie_background_hue(int, float);
+extern int bonxie_background_mood(float);
 extern void bonxie_background_release(void *);
 extern float bonxie_background_seed(void);
 
@@ -15,10 +17,24 @@ static const char *const names[styles] = {
     "watercolour", "paper", "inkwash", "mist", "grain", "marbling", "riso", "contours", "bauhaus"
 };
 
+// Relative luminance, as the shader holds it in a band: ink on a picture is read by it.
 static float luma(const unsigned char *pixel)
 {
-    return 0.2126f * pixel[0] + 0.7152f * pixel[1] + 0.0722f * pixel[2];
+    return 0.2126f * powf(pixel[0] / 255.0f, 2.2f) + 0.7152f * powf(pixel[1] / 255.0f, 2.2f)
+         + 0.0722f * powf(pixel[2] / 255.0f, 2.2f);
 }
+
+static float chroma(const unsigned char *pixel)
+{
+    int high = pixel[0] > pixel[1] ? pixel[0] : pixel[1];
+    int low = pixel[0] < pixel[1] ? pixel[0] : pixel[1];
+    if (pixel[2] > high) high = pixel[2];
+    if (pixel[2] < low) low = pixel[2];
+    return (high - low) / 255.0f;
+}
+
+#define LIGHT_FLOOR 0.325f
+#define DARK_CEILING 0.135f
 
 static void save(const char *name, int dark, const unsigned char *pixels)
 {
@@ -65,11 +81,11 @@ int main(int argc, char **argv)
         float hue = bonxie_background_hue(style, seed);
         assert(hue >= 0.0f && hue < 1.0f && hue == bonxie_background_hue(style, seed));
 
-        // Ink is read straight on it: no light pixel under 62% brightness, no dark one over 42%.
+        // Ink is read straight on it: no light pixel dimmer than the floor, no dark one brighter than the ceiling.
         for (int i = 0; i < bytes; i += 4) {
             assert(first[i + 3] == 255);
-            if (luma(first + i) < 0.62f * 255) {
-                fprintf(stderr, "%s: light pixel %d is %.0f%%\n", names[style], i / 4, 100 * luma(first + i) / 255);
+            if (luma(first + i) < LIGHT_FLOOR) {
+                fprintf(stderr, "%s: light pixel %d has luminance %.2f\n", names[style], i / 4, luma(first + i));
                 abort();
             }
         }
@@ -78,8 +94,8 @@ int main(int argc, char **argv)
         double light = 0, dim = 0;
         for (int i = 0; i < bytes; i += 4) {
             assert(pixels[i + 3] == 255);
-            if (luma(pixels + i) > 0.42f * 255) {
-                fprintf(stderr, "%s: dark pixel %d is %.0f%%\n", names[style], i / 4, 100 * luma(pixels + i) / 255);
+            if (luma(pixels + i) > DARK_CEILING) {
+                fprintf(stderr, "%s: dark pixel %d has luminance %.2f\n", names[style], i / 4, luma(pixels + i));
                 abort();
             }
             light += luma(first + i);
@@ -88,6 +104,41 @@ int main(int argc, char **argv)
         assert(dim < light);
         save(names[style], 1, pixels);
     }
+
+    // The same of many seeds, so of every mood, in every style, light and dark; and the moods differ in
+    // how saturated they are (taken in the watercolour, which is coloured the most evenly).
+    double chroma_of[4] = {0, 0, 0, 0};
+    int count_of[4] = {0, 0, 0, 0};
+    for (int k = 0; k < 40; k++) {
+        float other = 0.31f + k * 6.137f;
+        int mood = bonxie_background_mood(other);
+        assert(mood >= 0 && mood < 4 && mood == bonxie_background_mood(other));
+        for (int style = 0; style < styles; style++) {
+            for (int dark = 0; dark < 2; dark++) {
+                const unsigned char *pixels = bonxie_background_render(background, style, other, 160, 100, dark);
+                assert(pixels);
+                double total = 0;
+                for (int i = 0; i < 160 * 100 * 4; i += 4) {
+                    float y = luma(pixels + i);
+                    if (dark ? y > DARK_CEILING : y < LIGHT_FLOOR) {
+                        fprintf(stderr, "%s, seed %.2f (mood %d), %s: luminance %.3f\n", names[style], other, mood,
+                                dark ? "dark" : "light", y);
+                        abort();
+                    }
+                    total += chroma(pixels + i);
+                }
+                if (style == 0 && !dark) {
+                    chroma_of[mood] += total / (160 * 100);
+                    count_of[mood]++;
+                }
+            }
+        }
+    }
+    for (int mood = 0; mood < 4; mood++) assert(count_of[mood] > 0);
+    double pastel = chroma_of[0] / count_of[0], vivid = chroma_of[1] / count_of[1];
+    double rich = chroma_of[2] / count_of[2], muted = chroma_of[3] / count_of[3];
+    fprintf(stderr, "mean chroma: pastel %.3f vivid %.3f rich %.3f muted %.3f\n", pastel, vivid, rich, muted);
+    assert(vivid > 1.4 * pastel && rich > 1.2 * pastel && muted < 0.8 * pastel);
 
     // The sizes and the refusals.
     assert(bonxie_background_render(background, 0, seed, height, width, 0));

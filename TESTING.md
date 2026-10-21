@@ -157,6 +157,14 @@ Metal owns the size-dependent buffer rather than using the Ada stack. One seed, 
 and resizing keeps it. The hue a picture is made in comes from its style and the seed, by one function
 in the native code (`bonxie_background_hue`), so that the program's colours can follow it.
 
+How bold the colours are is the seed's too, whatever the style (`Backgrounds.Moods`, from
+`bonxie_background_mood`): **pastel** (the commonest), **vivid** (about twice as saturated, brighter),
+**rich** (deep and saturated) and **muted** (half as saturated). A picture is held in a band of
+brightness (relative luminance in linear light, by scaling, so the hues and their saturation are kept),
+not pulled toward a pale ground, so bold colours are possible: a light one is never under 0.34 and a
+dark one never over 0.125, which keeps text above 4.5:1 on any of it. The greys of the interface take
+more of the hue for the bold moods and less for the muted (`Tint_Strength`).
+
 Settings > Display > Background is a row of cards, scrolled across, each with a small picture of a window
 drawn the way it would be (`Backgrounds.Sample`): **Fixed** (the theme's own colours on a plain
 background, as before the shaders) and one for each picture, which takes on the picture's hue in the
@@ -177,9 +185,10 @@ where the colour wheel says, that the meaningful colours do not move, and that t
 are the same list; `preferences-kept` checks every choice and the seed are kept, a garbled seed is none,
 and 0 and the largest are kept whole.
 
-Ink is drawn straight on the painting in places (a heading, a count, "New project"), so each style
-veils its picture toward its ground: a light painting is never under 62% bright, a dark one never
-over 42%, and the probe checks every pixel of every style, with several seeds over its runs.
+Ink is drawn straight on the painting in places (a heading, a count, "New project"), so each picture
+is held in that band, and the probe checks every pixel of every style and mood (40 seeds, light and dark,
+as well as the clock's), that a mood is a function of the seed alone, and that vivid pictures are at
+least 1.4 times as saturated as pastel, rich 1.2 times, and muted less than 0.8 times.
 
 The GPU probe checks, for every style, MSL compilation, identical pixels for a repeated seed,
 different pixels for a different seed, a hue that follows the seed, a dark painting that is

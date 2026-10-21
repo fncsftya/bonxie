@@ -15,6 +15,9 @@ package body Backgrounds is
    function Hue_Of (Style : Interfaces.C.int; Seed : Interfaces.C.C_float) return Interfaces.C.C_float
      with Import, Convention => C, External_Name => "bonxie_background_hue";
 
+   function Mood_Of (Seed : Interfaces.C.C_float) return Interfaces.C.int
+     with Import, Convention => C, External_Name => "bonxie_background_mood";
+
    function Create (Source : Interfaces.C.char_array) return System.Address
      with Import, Convention => C, External_Name => "bonxie_background_create";
 
@@ -37,7 +40,19 @@ package body Backgrounds is
    function New_Seed return Seed_Numbers is
      (Seed_Numbers (Integer (Float'Rounding (Float (Time_Seed) * Per_Unit)) mod (Seed_Numbers'Last + 1)));
 
-   function Tint_Strength (Style : Styles) return Float is
+   function Style_Strength (Style : Styles) return Float;
+   --  What the style's own colours would have the greys take, of a pastel.
+
+   function Mood (Item : Cache) return Moods is (Moods'Val (Mood_Of (As_Float (Item.Seed))));
+
+   function Tint_Strength (Style : Styles; Boldness : Moods := Pastel) return Float is
+     (Float'Min (1.0, Style_Strength (Style) * (case Boldness is
+         when Pastel => 1.0,
+         when Vivid  => 1.3,
+         when Rich   => 1.15,
+         when Muted  => 0.6)));
+
+   function Style_Strength (Style : Styles) return Float is
      (case Style is
          when Watercolour => 1.0,
          when Paper       => 0.60,

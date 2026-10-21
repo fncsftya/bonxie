@@ -44,6 +44,17 @@ float bonxie_background_hue(int style, float seed)
     }
 }
 
+// How bold the colours are, from the seed alone, whatever the style: 0 pastel, 1 vivid, 2 rich (deep and
+// saturated), 3 muted. Pastel is the commonest, as it was the only one.
+int bonxie_background_mood(float seed)
+{
+    float p = fract_of(seed * 9.1f * 0.1031f + 0.11f);
+    p *= p + 33.33f;
+    p *= p + p;
+    float u = fract_of(p);
+    return u < 0.40f ? 0 : (u < 0.65f ? 1 : (u < 0.85f ? 2 : 3));
+}
+
 @interface BonxieBackground : NSObject
 @property(nonatomic, strong) id<MTLDevice> device;
 @property(nonatomic, strong) id<MTLCommandQueue> queue;
@@ -110,8 +121,9 @@ const void *bonxie_background_render(void *handle, int style, float seed, int wi
             float seed;
             float hue;
             uint32_t dark;
-            uint32_t padding;
-        } parameters = {(uint32_t)width, (uint32_t)height, seed, bonxie_background_hue(style, seed), dark ? 1u : 0u, 0};
+            uint32_t mood;
+        } parameters = {(uint32_t)width, (uint32_t)height, seed, bonxie_background_hue(style, seed), dark ? 1u : 0u,
+                        (uint32_t)bonxie_background_mood(seed)};
         _Static_assert(sizeof parameters == 24, "MSL parameter layout must match");
         id<MTLCommandBuffer> command = [background.queue commandBuffer];
         id<MTLComputeCommandEncoder> encoder = [command computeCommandEncoder];
