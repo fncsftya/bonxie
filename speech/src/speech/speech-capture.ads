@@ -52,11 +52,19 @@ is
    --  more than the ring holds (a little over two minutes) were waiting
    --  to be read: the newest are the ones lost.
 
+   procedure Set_Room (Which : Session; Amplitude : Float)
+     with Global => (In_Out => Ring),
+          Pre    => Amplitude in 0.0 .. 1.0;
+   --  Say how loud the room is, as an amplitude (see Speech.Gates), which
+   --  the reader finds, from what it hears, as it reads.
+
    function Loudness (Which : Session) return Float
      with Volatile_Function,
           Global => (Input => Ring),
           Post   => Loudness'Result in 0.0 .. 1.0;
-   --  How loud it is now, falling away between sounds.
+   --  How loud it is now, falling away between sounds, above that of the
+   --  room: a quiet room is silence, and speech, as it is to the gate,
+   --  fills the more of it the louder it is.
 
    procedure Stop (Which : Session)
      with Global => (In_Out => Ring);

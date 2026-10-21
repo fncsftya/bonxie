@@ -10,6 +10,7 @@ is
    procedure Reset (Item : in out Stream) is
    begin
       Windows.Clear (Item.Held);
+      Item.Room := Gates.Unknown;
       Item.Settled_To := 0;
       Item.Settled.Length := 0;
       Item.Settled.Truncated := False;
@@ -41,6 +42,8 @@ is
    is
       Heard : Parakeet.Heard;
       Used  : constant Natural := Windows.Count (Item.Held);
+      Voiced : Boolean := True;
+      --  Whether any of what is held is speech.
       Skip  : Natural;
       --  Words at the start that are settled already.
       Done  : Natural;
@@ -62,7 +65,14 @@ is
             Audio (Index) :=
               Windows.Sample (Item.Held, Windows.First (Item.Held) + Windows.Sample_Index (Index - 1));
          end loop;
-         Parakeet.Transcribe (Audio, Heard, Ok, Message, Last);
+         if Item.Tuned.Gate then
+            Gates.Apply (Item.Room, Audio, Voiced);
+         end if;
+         if Voiced then
+            Parakeet.Transcribe (Audio, Heard, Ok, Message, Last);
+         end if;
+         --  (What is all room is not given to the model, which would make
+         --  words of it: nothing was said.)
       end;
       if not Ok then
          return;
@@ -150,6 +160,7 @@ is
             Item.Settled_To := 0;
          end if;
          Windows.Append (Item.Held, Audio (Place .. Audio'Last), Taken);
+         Gates.Observe (Item.Room, Audio (Place .. Place + Taken - 1));
          Place := Place + Taken;
          if Windows.Due (Item.Held, Item.Tuned.Hop) then
             Decode (Item, False, Ok, Message, Last);

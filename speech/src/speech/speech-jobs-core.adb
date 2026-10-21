@@ -318,6 +318,7 @@ is
          Any := Audio_Last >= Audio'First;
          if Any then
             Streams.Feed (Item, Audio (Audio'First .. Audio_Last), Changed, Ok, Why, Why_Last);
+            Capture.Set_Room (Which, Streams.Room_Level (Item));
             if Ok and then Changed then
                Show;
             end if;

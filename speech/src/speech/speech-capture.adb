@@ -56,7 +56,12 @@ is
      with Atomic_Components;
    --  The bits of how loud it is, a float.
 
+   Rooms : array (Session) of Atomic_Bits := [others => 0]
+     with Atomic_Components;
+   --  The bits of how loud the room is, as an amplitude, a float.
+
    function To_Float is new Ada.Unchecked_Conversion (Interfaces.Unsigned_32, Float);
+   function To_Bits is new Ada.Unchecked_Conversion (Float, Interfaces.Unsigned_32);
 
    function To_Sample (Bits : Interfaces.Unsigned_32) return Float is
      (if not Rings.Finite_Bits (Bits) then 0.0
@@ -115,6 +120,7 @@ is
       Tails (Which) := Heads (Which);
       Lost (Which) := 0;
       Levels (Which) := 0;
+      Rooms (Which) := 0;
       declare
          Done : constant Interfaces.C.int :=
            CAP_Begin (Interfaces.C.int (Which), Raw'Address, Raw'Length);
@@ -158,12 +164,26 @@ is
    function Dropped (Which : Session) return Natural is
      (Natural (Rings.Counter'Min (Rings.Counter (Lost (Which)), Rings.Counter (Natural'Last))));
 
+   procedure Set_Room (Which : Session; Amplitude : Float) is
+   begin
+      Rooms (Which) := Atomic_Bits (To_Bits (Amplitude));
+   end Set_Room;
+
+   Full : constant := 0.5;
+   --  How loud, as the microphone's thread says it (twelve times the
+   --  amplitude), is as loud as the meter shows.
+
    function Loudness (Which : Session) return Float is
       Bits : constant Interfaces.Unsigned_32 := Interfaces.Unsigned_32 (Levels (Which));
+      Room : constant Interfaces.Unsigned_32 := Interfaces.Unsigned_32 (Rooms (Which));
+      Now  : constant Float :=
+        (if Rings.Finite_Bits (Bits) then Float'Max (0.0, Float'Min (1.0, To_Float (Bits))) else 0.0);
+      Hush : constant Float :=
+        (if Rings.Finite_Bits (Room)
+         then Float'Max (0.0, Float'Min (0.02, To_Float (Room))) * 12.0
+         else 0.0);
    begin
-      return (if Rings.Finite_Bits (Bits)
-              then Float'Max (0.0, Float'Min (1.0, To_Float (Bits)))
-              else 0.0);
+      return Float'Max (0.0, Float'Min (1.0, (Now - Hush) / (Full - Hush)));
    end Loudness;
 
    procedure Stop (Which : Session) is

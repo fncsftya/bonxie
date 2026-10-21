@@ -8,6 +8,7 @@
 --
 --  Feed and Finish run the model, so they take a while and are not for the
 --  main thread. A stream is for one task at a time.
+with Speech.Gates;
 with Speech.Parakeet;
 with Speech.Windows;
 
@@ -53,6 +54,9 @@ is
       Trigger : Positive range 1 .. Windows.Capacity := Streams.Trigger;
       Context : Natural range 0 .. Windows.Capacity := Streams.Context;
       Slack   : Natural range 0 .. Windows.Capacity := Streams.Slack;
+      Gate    : Boolean := True;
+      --  Whether the sound that is not speech is made silence before the
+      --  model hears it (see Speech.Gates).
    end record;
    --  The constants above, which are what a stream starts with.
 
@@ -96,6 +100,11 @@ is
           Post   => Consistent (Item) and then Last <= Message'Length;
    --  There is no more audio: the text is all settled.
 
+   function Room_Level (Item : Stream) return Float
+     with Global => null,
+          Post   => Room_Level'Result in 0.0 .. 1.0;
+   --  How loud the room is, as an amplitude (see Speech.Gates).
+
    procedure Text (Item : Stream; Into : in out Transcript)
      with Global => null;
    --  What has been heard: the settled words, then those that may yet
@@ -108,9 +117,13 @@ private
       Settled_To : Windows.Sample_Index := 0;
       --  The place in the sound up to which words are settled.
       Tuned      : Tuning;
+      Room       : Gates.Floor;
+      --  What is known of the level of the room.
       Settled    : Transcript;
       Tentative  : Transcript;
    end record;
+
+   function Room_Level (Item : Stream) return Float is (Gates.Level (Item.Room));
 
    function Consistent (Item : Stream) return Boolean is
      (Item.Settled_To <= Windows.Next (Item.Held));
