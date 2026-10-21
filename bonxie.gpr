@@ -16,13 +16,21 @@ with "yoga.gpr";
 with "json.gpr";
 project Bonxie is
 
+   for Languages use ("Ada", "C");
    for Source_Dirs use ("src/**", "config/");
    for Object_Dir use "obj/" & Bonxie_Config.Build_Profile;
    for Create_Missing_Dirs use "True";
    for Exec_Dir use "bin";
    for Main use ("bonxie.adb");
 
+   package Naming is
+      for Body_Suffix ("C") use ".m";
+   end Naming;
+
    package Compiler is
+      for Driver ("C") use "/usr/bin/clang";
+      for Default_Switches ("C") use
+        ("-x", "objective-c", "-fobjc-arc", "-O2", "-Wall", "-Wextra", "-Wno-unused-command-line-argument");
       for Default_Switches ("Ada") use Bonxie_Config.Ada_Compiler_Switches &
         ("-gnatwh",          --  local declarations hiding others
          "-gnatyM120",        --  longest line
@@ -32,9 +40,10 @@ project Bonxie is
    end Compiler;
 
    package Linker is
+      for Linker_Options use ("-framework", "Metal", "-framework", "Foundation");
       --  The session keeps its text areas, fixed freehand paths and undo storage
       --  where it is declared: about 72 MB, plus space for calls and temporaries.
-      for Default_Switches ("Ada") use ("-Wl,-stack_size,0x6000000");
+      for Default_Switches ("Ada") use ("-Wl,-stack_size,0x6000000", "-framework", "Metal", "-framework", "Foundation");
    end Linker;
 
    package Binder is
@@ -42,6 +51,7 @@ project Bonxie is
    end Binder;
 
    package Install is
+      for Artifacts ("share/bonxie/shaders") use ("src/shaders/watercolour.metal");
       for Artifacts (".") use ("share");
    end Install;
 

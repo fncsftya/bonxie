@@ -16,6 +16,7 @@ package body Viewer.Painting is
 
    procedure Paint (Item : in out Session) is
    begin
+      Item.Root.Window_Panel.Dark := Style.Is_Dark;
       Pomarine.Line_Texts.Begin_Frame (Item.Host.Lines);
       if Item.Nav.Shown = Project then
          --  The canvas may be panned or laid out afresh since the items

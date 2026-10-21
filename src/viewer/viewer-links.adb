@@ -151,9 +151,9 @@ package body Viewer.Links is
       Item.Linking.Link_Moving := False;
       Item.Linking.Link_Key := 0;
       Item.Linking.Link_Set.Count := 0;
-      Canvases.Set_Selected (Item.Canvas_View, 0);
-      Canvases.Clear_Ghost (Item.Canvas_View);
-      Canvases.Set_Lines (Item.Canvas_View, []);
+      Canvases.Set_Selected (Canvases.Canvas (Item.Canvas_View), 0);
+      Canvases.Clear_Ghost (Canvases.Canvas (Item.Canvas_View));
+      Canvases.Set_Lines (Canvases.Canvas (Item.Canvas_View), []);
    end Leave;
 
    procedure Listen (Item : in out Session) is

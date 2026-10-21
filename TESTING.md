@@ -142,3 +142,26 @@ by pomarine's `document-rich-text` and `textarea-rich-text` tests.
 
 `outline-colours` checks the enlarged swatch and its hover border, the continuous RGB picker and saturation slider,
 Cancel without changes, OK, exact black, white and arbitrary RGB values, and the chosen colour after reopening the project.
+
+## Watercolour background
+
+Window backgrounds compile `src/shaders/watercolour.metal` into a Metal compute
+pipeline once per window, then cache its pixels in an SDL texture. Each render
+uses the actual drawable pixel dimensions, including Retina density, without an
+internal resolution cap. Metal owns the size-dependent buffer rather than using
+the Ada stack. The opening time is the only seed; resizing keeps it. Offscreen
+golden tests retain the deterministic theme background.
+
+The GPU probe checks MSL compilation, identical pixels for a repeated seed,
+different pixels for a different seed, opaque output, portrait resizing,
+2049 × 1601 rendering beyond the former cap, invalid dimensions, and identical
+pixels after resizing back. Run from the project root on macOS:
+
+```sh
+clang -fobjc-arc -O2 -Wall -Wextra -c src/watercolour_native.m -o /tmp/watercolour_native.o
+clang -O2 tests/run/background_probe.c /tmp/watercolour_native.o \
+  -framework Metal -framework Foundation -o /tmp/background_probe
+/tmp/background_probe src/shaders/watercolour.metal
+```
+
+It also writes `/tmp/bonxie-background.ppm` for visual inspection.

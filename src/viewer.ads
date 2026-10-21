@@ -1,3 +1,4 @@
+private with Backgrounds;
 with Projects;
 with SDL3.Cursors;
 with SDL3.Events;
@@ -10,7 +11,6 @@ private with Texts.Documents;
 private with Pomarine.Models;
 private with Pomarine.Widgets;
 private with Pomarine.Widgets.Buttons;
-private with Pomarine.Widgets.Canvases;
 private with Pomarine.Widgets.Commands;
 private with Pomarine.Widgets.Grips;
 private with Pomarine.Widgets.Labels;
@@ -305,7 +305,7 @@ private
       Confirm : Confirm_Parts;
       Prefs : Settings_Parts;
       Toolbar : Toolbar_Parts;
-      Canvas_View   : Pomarine.Widgets.Canvases.Canvas;
+      Canvas_View   : Backgrounds.Canvas;
       --  In the content area, all of it.
       Page_View : Page_Parts;
       Publish_View : Publish_Parts;

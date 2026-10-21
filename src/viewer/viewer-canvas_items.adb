@@ -383,7 +383,7 @@ package body Viewer.Canvas_Items is
       Kind : Items.Kinds;
       Made : out Natural)
    is
-      View   : Pomarine.Widgets.Canvases.Canvas renames Item.Canvas_View;
+      View   : Pomarine.Widgets.Canvases.Canvas renames Canvases.Canvas (Item.Canvas_View);
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
       Before : constant Natural := Count (Item);
       Step   : constant Float :=
@@ -576,9 +576,9 @@ package body Viewer.Canvas_Items is
            (Item.Dock.Tools, Position => (Left => Middle, others => <>),
             Unit => Pomarine.Widgets.Layouts.Device_Pixels);
       end if;
-      if Canvases.Zoom (Item.Canvas_View) /= Item.Nav.Shown_Zoom
-        or else Canvases.Origin_X (Item.Canvas_View) /= Item.Nav.Shown_X
-        or else Canvases.Origin_Y (Item.Canvas_View) /= Item.Nav.Shown_Y
+      if Canvases.Zoom (Canvases.Canvas (Item.Canvas_View)) /= Item.Nav.Shown_Zoom
+        or else Canvases.Origin_X (Canvases.Canvas (Item.Canvas_View)) /= Item.Nav.Shown_X
+        or else Canvases.Origin_Y (Canvases.Canvas (Item.Canvas_View)) /= Item.Nav.Shown_Y
       then
          Placement.Place_All (Item);
       end if;

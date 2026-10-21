@@ -63,7 +63,9 @@ package body Viewer.Build.Settings_Form is
       Widgets.Add (Prefs.Settings_Form, Prefs.Download_Bar);
 
       Set_Layout (Prefs.Settings_Panel, Flow => Column, Grow => 1.0);
-      Panels.Set_Fill (Prefs.Settings_Panel, Desk);
+      if not Item.Shell.Windowed then
+         Panels.Set_Fill (Prefs.Settings_Panel, Desk);
+      end if;
 
       --  The bar, outside what scrolls, so that it stays: the way back
       --  at the left (clear of the window's own buttons), as in a project, then the title.

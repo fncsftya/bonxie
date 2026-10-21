@@ -375,7 +375,9 @@ package body Viewer.Build.Write_View is
       --  The sidebar: its lists, its edges and the fields over its rows.
       procedure Style_Sidebar is
       begin
-         Panels.Set_Fill (View.Write_View, Desk);
+         if not Item.Shell.Windowed then
+            Panels.Set_Fill (View.Write_View, Desk);
+         end if;
          Set_Layout (View.Write_View, Flow => Row, Grow => 1.0, Height => 0.0);
 
          --  The sidebar: two lists one above the other, with a line at its
@@ -462,7 +464,9 @@ package body Viewer.Build.Write_View is
       procedure Style_Pane is
       begin
          --  The pane: an edge to size it by, and the pinned source.
-         Panels.Set_Fill (View.Pane, Desk);
+         if not Item.Shell.Windowed then
+            Panels.Set_Fill (View.Pane, Desk);
+         end if;
          View.Pane_Wide := Pane_Default;
          Set_Layout (View.Pane, Flow => Row, Shrink => 0.0, Width => Pane_Default);
          Grips.Set_Fill (View.Pane_Edge, Edge_Fill);

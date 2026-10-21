@@ -105,7 +105,9 @@ package body Viewer.Build.Outline_View is
       Widgets.Add (View.Head, View.Heading, View.Add_Button, View.Generate_Button);
       Widgets.Add (View.Scroll, View.Content);
 
-      Panels.Set_Fill (View.View, Desk);
+      if not Item.Shell.Windowed then
+         Panels.Set_Fill (View.View, Desk);
+      end if;
       Set_Layout
         (View.View, Flow => Row, Grow => 1.0, Height => 0.0, Gap => Outline_Gap,
          Padding => (others => Outline_Gap));

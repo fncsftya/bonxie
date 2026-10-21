@@ -68,7 +68,9 @@ package body Viewer.Build.Shell_Views is
       Set_Layout (Front.Home_Panel, Flow => Row, Grow => 1.0);
 
       --  The sidebar: the name, New Project, and Settings at the foot.
-      Panels.Set_Fill (Front.Home_Side, Mid_Panel);
+      if not Item.Shell.Windowed then
+         Panels.Set_Fill (Front.Home_Side, Mid_Panel);
+      end if;
       Set_Layout
         (Front.Home_Side, Flow => Column, Width => Home_Side_Width, Shrink => 0.0,
          Padding => (Top => Side_Pad + Top, others => Side_Pad));
@@ -316,7 +318,9 @@ package body Viewer.Build.Shell_Views is
       Switches.Set_Focusable (View.Document_Headings, True);
       Set_Layout (View.Section_Headings, Height => 32.0);
       Set_Layout (View.Document_Headings, Height => 32.0);
-      Panels.Set_Fill (View.View, Desk);
+      if not Item.Shell.Windowed then
+         Panels.Set_Fill (View.View, Desk);
+      end if;
       Set_Layout (View.View, Flow => Row, Grow => 1.0, Height => 0.0);
       Panels.Set_Fill (View.Sidebar, Side_Fill);
       Set_Layout

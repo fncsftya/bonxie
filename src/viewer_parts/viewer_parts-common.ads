@@ -1,3 +1,4 @@
+with Backgrounds;
 with SDL3.Windows.Renderers;
 with Projects;
 with SDL3.Cursors;
@@ -40,7 +41,7 @@ package Viewer_Parts.Common is
 
    type Root_Parts is limited record
       Widgets      : Pomarine.Widgets.Tree;
-      Window_Panel : Pomarine.Widgets.Panels.Panel;
+      Window_Panel : Backgrounds.Panel;
       --  The root, of both screens, one of which is hidden.
       Header_Panel : Pomarine.Widgets.Panels.Panel;
       Header_Title : Pomarine.Widgets.Labels.Label;
@@ -57,6 +58,7 @@ package Viewer_Parts.Common is
       --  after Win: it is let go of the window first
       Target       : SDL3.Windows.Renderers.Renderer;
       --  after Win: it is destroyed first
+      Background   : aliased Backgrounds.Cache;
       Pictures     : aliased Pomarine.Icons.Library;
       --  after Target, which it draws to
       Lines        : aliased Pomarine.Line_Texts.Drawer;

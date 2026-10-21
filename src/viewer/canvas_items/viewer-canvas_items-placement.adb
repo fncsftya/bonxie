@@ -12,9 +12,9 @@ package body Viewer.Canvas_Items.Placement is
 
    procedure Place_All (Item : in out Session) is
    begin
-      Item.Nav.Shown_Zoom := Canvases.Zoom (Item.Canvas_View);
-      Item.Nav.Shown_X := Canvases.Origin_X (Item.Canvas_View);
-      Item.Nav.Shown_Y := Canvases.Origin_Y (Item.Canvas_View);
+      Item.Nav.Shown_Zoom := Canvases.Zoom (Canvases.Canvas (Item.Canvas_View));
+      Item.Nav.Shown_X := Canvases.Origin_X (Canvases.Canvas (Item.Canvas_View));
+      Item.Nav.Shown_Y := Canvases.Origin_Y (Canvases.Canvas (Item.Canvas_View));
       for Each of Item.Windows loop
          Windows.Place (Each, Item.Nav.Shown_Zoom, Item.Nav.Shown_X,
                         Item.Nav.Shown_Y);
@@ -22,7 +22,7 @@ package body Viewer.Canvas_Items.Placement is
    end Place_All;
 
    procedure Centre_On (Item : in out Session; X, Y : Float) is
-      View   : Pomarine.Widgets.Canvases.Canvas renames Item.Canvas_View;
+      View   : Pomarine.Widgets.Canvases.Canvas renames Canvases.Canvas (Item.Canvas_View);
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
       Zoom   : constant Float := Canvases.Zoom (View);
    begin
@@ -67,7 +67,7 @@ package body Viewer.Canvas_Items.Placement is
    end Centre_On_Visible;
 
    procedure Save_View (Item : in out Session) is
-      View   : Pomarine.Widgets.Canvases.Canvas renames Item.Canvas_View;
+      View   : Pomarine.Widgets.Canvases.Canvas renames Canvases.Canvas (Item.Canvas_View);
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
    begin
       if Item.Opened.Current /= 0 and then Widgets.Width_Of (View) > 0.0 then
@@ -83,7 +83,7 @@ package body Viewer.Canvas_Items.Placement is
    procedure Restore_View
      (Item : in out Session; Found : out Boolean)
    is
-      View   : Pomarine.Widgets.Canvases.Canvas renames Item.Canvas_View;
+      View   : Pomarine.Widgets.Canvases.Canvas renames Canvases.Canvas (Item.Canvas_View);
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
       Zoom, X, Y : Float;
    begin

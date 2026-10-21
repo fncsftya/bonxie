@@ -1,3 +1,4 @@
+with Backgrounds;
 with Scripts;
 with Items.Schema;
 with Ada.Command_Line;
@@ -257,6 +258,12 @@ package body Viewer.Build is
       --  Tab and Shift+Tab move the focus between the controls made
       --  focusable (see Make_Tab_Stops) and the text fields.
       Widgets.Set_Tab_Navigation (Item.Root.Widgets, True);
+      if Item.Shell.Windowed then
+         Item.Canvas_View.Transparent := True;
+         Backgrounds.Set_Shader
+           (Item.Host.Background, Share_Directory ("shaders") & "/watercolour.metal");
+         Item.Root.Window_Panel.Painting := Item.Host.Background'Unchecked_Access;
+      end if;
       Widgets.Set_Root (Item.Root.Widgets, Item.Root.Window_Panel);
       Set_Layout (Item.Root.Window_Panel, Flow => Column);
       if Item.Shell.Windowed then

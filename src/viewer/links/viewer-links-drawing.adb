@@ -124,8 +124,8 @@ package body Viewer.Links.Drawing is
             end if;
          end;
       end loop;
-      Canvases.Set_Selected (Item.Canvas_View, Chosen);
-      Canvases.Set_Lines (Item.Canvas_View, Lines (1 .. Drawn));
+      Canvases.Set_Selected (Canvases.Canvas (Item.Canvas_View), Chosen);
+      Canvases.Set_Lines (Canvases.Canvas (Item.Canvas_View), Lines (1 .. Drawn));
 
       --  The handle over the target end, and the toolbar by the middle.
       declare
@@ -192,11 +192,11 @@ package body Viewer.Links.Drawing is
             Pin : constant access Pins.Pin := Support.Dragger (Item);
          begin
             Canvases.Set_Ghost
-              (Item.Canvas_View, Source.X, Source.Y,
+              (Canvases.Canvas (Item.Canvas_View), Source.X, Source.Y,
                Pins.Pointer_X (Pin.all), Pins.Pointer_Y (Pin.all));
          end;
       else
-         Canvases.Clear_Ghost (Item.Canvas_View);
+         Canvases.Clear_Ghost (Canvases.Canvas (Item.Canvas_View));
       end if;
    end Draw_Lines;
 
