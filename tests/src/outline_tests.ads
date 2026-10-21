@@ -5,6 +5,7 @@ package Outline_Tests is
 
    procedure Starting;
    procedure Sections;
+   procedure Colours;
    procedure Many_Sections;
    --  More sections than a project once had room for: all made, shown and kept.
    procedure Form;

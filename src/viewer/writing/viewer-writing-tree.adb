@@ -161,8 +161,7 @@ package body Viewer.Writing.Tree is
            (Each.Tag,
             (if Support.Is_Section (Item, Node.Dir)
              then Style.Section_Ink
-                    (Projects.Sections.Colour_Index
-                       (Item.Docs.Dirs (Node.Dir).Colour mod Projects.Sections.Palette_Size))
+                    (Projects.Sections.Colour_Value (Item.Docs.Dirs (Node.Dir).Colour))
              elsif Chosen then Pomarine.Themes.Accent else Style.Quiet_Ink));
          Widgets.Set_Visible (Each.Tag, Support.Is_Section (Item, Node.Dir));
       end if;

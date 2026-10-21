@@ -76,8 +76,8 @@ package body Repository.Section is
            ((Key   => Projects.Sections.Section_Id (Ada_Sqlite3.Column_Int64 (Query, 0)),
             Title => Projects.Sections.Title_Texts.To_Text
               (Ada_Sqlite3.Column_Text (Query, 1)),
-            Colour => Projects.Sections.Colour_Index
-              (Integer'Max (0, Ada_Sqlite3.Column_Int (Query, 2)) mod Palette),
+            Colour => Projects.Sections.Colour_Value
+              (Integer'Max (0, Ada_Sqlite3.Column_Int (Query, 2))),
             Notes => Projects.Sections.Note_Texts.To_Text
               (Texts.Documents.Plain_Stored (Ada_Sqlite3.Column_Text (Query, 3))),
             Open  => False));
@@ -96,8 +96,13 @@ package body Repository.Section is
    begin
       Ada_Sqlite3.Bind_Int64 (Query, ":project", Long_Integer (Project));
       while Ada_Sqlite3.Step (Query) = Ada_Sqlite3.ROW loop
-         Used (Projects.Sections.Colour_Index (Ada_Sqlite3.Column_Int (Query, 0) mod Palette)) :=
-           Ada_Sqlite3.Column_Int (Query, 1);
+         declare
+            Value : constant Natural := Natural'Max (0, Ada_Sqlite3.Column_Int (Query, 0));
+         begin
+            if Value < Palette then
+               Used (Value) := Ada_Sqlite3.Column_Int (Query, 1);
+            end if;
+         end;
       end loop;
       for Each in Used'Range loop
          if Used (Each) < Used (Best) then
@@ -127,6 +132,18 @@ package body Repository.Section is
       return Projects.Sections.Section_Id
         (Ada_Sqlite3.Last_Insert_Row_ID (DB (Store).all));
    end Insert;
+
+   procedure Set_Colour
+     (Store : in out Projects.Store; Key : Projects.Sections.Section_Id;
+      Colour : Projects.Sections.Colour_Value)
+   is
+      Query : Ada_Sqlite3.Statement := Ada_Sqlite3.Prepare
+        (DB (Store).all, "UPDATE sections SET colour = :colour WHERE id = :id");
+   begin
+      Ada_Sqlite3.Bind_Int (Query, ":colour", Colour);
+      Ada_Sqlite3.Bind_Int64 (Query, ":id", Long_Integer (Key));
+      Ada_Sqlite3.Step (Query);
+   end Set_Colour;
 
    procedure Rename
      (Store : in out Projects.Store;

@@ -73,7 +73,11 @@ package body Viewer.Build.Outline_View is
       Labels.Set_Ink (Block.Handle, Quiet_Ink);
       Set_Layout (Block.Handle, Width => Outline_Handle, Height => Index_Height, Shrink => 0.0);
       Set_Layout
-        (Block.Swatch, Width => Section_Swatch, Height => Section_Swatch, Shrink => 0.0);
+        (Block.Swatch, Width => Outline_Field_Height - 2.0, Height => Outline_Field_Height - 2.0, Shrink => 0.0);
+      Grips.Set_Wanted_Cursor (Block.Swatch, SDL3.Cursors.Pointer);
+      Grips.Set_Hover_Outline (Block.Swatch, Themes.Foreground);
+      Grips.Set_Focusable (Block.Swatch, True);
+      Widgets.Set_Accessible_Name (Block.Swatch, "Change section colour");
       Text_Fields.Set_Shared (Block.Field, Item.Host.Doc_Resources'Unchecked_Access);
       Text_Fields.Configure
         (Block.Field, Pomarine.Line_Texts.Interface_Font, Edit_Size);
@@ -183,6 +187,26 @@ package body Viewer.Build.Outline_View is
          Padding => (Left | Right => Index_Pad + Outline_Handle + Tool_Gap, others => <>));
       Set_Layout (View.Ghost_Title, Grow => 1.0, Width => 0.0, Height => Index_Height);
       Widgets.Set_Visible (View.Ghost, False);
+      Widgets.Add (Item.Toolbar.Content_Panel, View.Colour_Popout);
+      Panels.Set_Fill (View.Colour_Popout, Themes.Background);
+      Panels.Set_Border (View.Colour_Popout, Themes.Border);
+      Panels.Set_Shadow (View.Colour_Popout, Themes.Shadow);
+      Set_Layout (View.Colour_Popout, Place => Absolute, Flow => Column,
+                  Width => 264.0, Height => 270.0, Padding => (others => 12.0), Gap => 10.0);
+      Widgets.Add (View.Colour_Popout, View.Colour_Picker, View.Colour_Actions);
+      Pomarine.Widgets.Grips.Set_Wanted_Cursor
+        (Pomarine.Widgets.Grips.Grip (View.Colour_Picker), SDL3.Cursors.Pointer);
+      Set_Layout (View.Colour_Picker, Width => 240.0, Height => 208.0, Shrink => 0.0);
+      Set_Layout (View.Colour_Actions, Flow => Row, Height => 28.0, Gap => 8.0);
+      Widgets.Add (View.Colour_Actions, View.Colour_Cancel, View.Colour_OK);
+      Buttons.Set_Label (View.Colour_OK, "OK");
+      Buttons.Set_Kind (View.Colour_OK, Buttons.Primary);
+      Buttons.Set_Label (View.Colour_Cancel, "Cancel");
+      Buttons.Set_Focusable (View.Colour_OK, True);
+      Buttons.Set_Focusable (View.Colour_Cancel, True);
+      Set_Layout (View.Colour_OK, Grow => 1.0, Width => 0.0);
+      Set_Layout (View.Colour_Cancel, Grow => 1.0, Width => 0.0);
+      Widgets.Set_Visible (View.Colour_Popout, False);
       Outlines.Listen (Item);
       Widgets.Set_Visible (View.View, False);
    end Build_Outline;

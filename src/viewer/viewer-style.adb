@@ -44,6 +44,17 @@ package body Viewer.Style is
       return (Byte (R), Byte (G), Byte (B), 255);
    end Pastel;
 
+   function Section_Ink (Colour : Projects.Sections.Colour_Value) return Themes.Slot is
+      subtype Byte is SDL3.Windows.Renderers.Color_Component;
+      RGB : constant Natural := (if Colour >= Projects.Sections.Palette_Size
+                                 then Colour - Projects.Sections.Palette_Size else 0);
+   begin
+      if Colour < Projects.Sections.Palette_Size then
+         return Section_Inks (Colour);
+      end if;
+      return Themes.Fixed ((Byte (RGB / 65536), Byte ((RGB / 256) mod 256), Byte (RGB mod 256), 255));
+   end Section_Ink;
+
    function Make (Dark : Boolean) return Themes.Theme is
       Base : constant Themes.Theme := (if Dark then Themes.Dark else Themes.Light);
       Back : constant Themes.Color := Base (Themes.Background);

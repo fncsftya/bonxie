@@ -1,3 +1,4 @@
+with Section_Colour_Pickers;
 with Growing;
 with Projects;
 with Ada.Strings.Unbounded;
@@ -28,7 +29,7 @@ package Viewer_Parts.Outline is
       Line   : Pomarine.Widgets.Panels.Panel;
       --  The top of the block: the title and its buttons. Notes are under.
       Handle : Pomarine.Widgets.Labels.Label;
-      Swatch : Pomarine.Widgets.Panels.Panel;
+      Swatch : Pomarine.Widgets.Grips.Grip;
       --  The section's colour: a square, filled once an item is its own,
       --  and only outlined before.
       Field  : Pomarine.Widgets.Text_Fields.Text_Field;
@@ -49,6 +50,11 @@ package Viewer_Parts.Outline is
    subtype Section_Blocks is Block_Tables.Table;
 
    type Outline_Parts is limited record
+      Colour_Popout : Pomarine.Widgets.Panels.Panel;
+      Colour_Picker : Section_Colour_Pickers.Picker;
+      Colour_Actions : Pomarine.Widgets.Panels.Panel;
+      Colour_OK, Colour_Cancel : Pomarine.Widgets.Buttons.Button;
+      Colour_Key : Projects.Sections.Section_Id := 0;
       Name_Doc    : aliased Texts.Documents.Document;
       Desc_Doc    : aliased Texts.Documents.Document;
       Name_Seen   : Texts.Documents.Version := 0;

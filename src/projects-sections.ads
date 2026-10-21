@@ -15,6 +15,10 @@ package Projects.Sections is
 
    subtype Colour_Index is Natural range 0 .. Palette_Size - 1;
 
+   subtype Colour_Value is Natural range 0 .. Palette_Size + 16#FFFFFF#;
+   --  Old palette indices remain theme aware; values from Palette_Size onward
+   --  store a person's exact RGB colour, packed as Palette_Size + RRGGBB.
+
    type Section is record
       Key   : Section_Id := 0;
       Title : Title_Texts.Text := Title_Texts.Null_Text;
@@ -22,10 +26,9 @@ package Projects.Sections is
       --  What is to be said in the section, as the writer typed it.
       Open  : Boolean := False;
       --  Whether the notes are shown: not kept, as only the view's.
-      Colour : Colour_Index := 0;
-      --  Given when the section is made: the one of the project's that is
-      --  used least, so that no two are alike until there are more than
-      --  Palette_Size, and kept, whatever the order and the others.
+      Colour : Colour_Value := 0;
+      --  Initially the least-used palette colour; afterward the exact colour
+      --  the writer chose. Kept independently of the order and other sections.
    end record;
 
    type Key_Array is array (Positive range <>) of Section_Id;
@@ -66,6 +69,9 @@ package Projects.Sections is
       Title   : String) return Section_Id
      with Pre => Is_Open (Item);
    --  Put a section after the rest.
+
+   procedure Set_Colour (Item : in out Store; Key : Section_Id; Colour : Colour_Value)
+     with Pre => Is_Open (Item) and then Key /= 0;
 
    procedure Rename
      (Item : in out Store; Key : Section_Id; Title : String)

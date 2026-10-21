@@ -1230,6 +1230,7 @@ begin
    Run ("finding-messages", Finding_Tests.Messages'Access);
    Run ("finding-cancel", Finding_Tests.Cancelling'Access);
    Run ("outline-starting", Outline_Tests.Starting'Access);
+   Run ("outline-colours", Outline_Tests.Colours'Access);
    Run ("outline-sections", Outline_Tests.Sections'Access);
    Run ("outline-many-sections", Outline_Tests.Many_Sections'Access);
    Run ("outline-form", Outline_Tests.Form'Access);

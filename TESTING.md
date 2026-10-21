@@ -139,3 +139,6 @@ See `harper/README.md` for the API, bounds, and build requirements.
 project descriptions, section notes, and saved script files. Plain summaries
 remain plain text. Editor geometry, rendering, formatting, and undo are covered
 by pomarine's `document-rich-text` and `textarea-rich-text` tests.
+
+`outline-colours` checks the enlarged swatch and its hover border, the continuous RGB picker and saturation slider,
+Cancel without changes, OK, exact black, white and arbitrary RGB values, and the chosen colour after reopening the project.

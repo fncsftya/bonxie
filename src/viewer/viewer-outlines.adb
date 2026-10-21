@@ -195,6 +195,8 @@ package body Viewer.Outlines is
       View : Outline_Parts renames Item.Outline_View;
    begin
       Close_Menu (Item);
+      View.Colour_Key := 0;
+      Widgets.Set_Visible (View.Colour_Popout, False);
       Sync (Item);
       View.Drag_Block := 0;
       View.Drag_Moved := False;
@@ -367,6 +369,12 @@ package body Viewer.Outlines is
       View   : Outline_Parts renames Item.Outline_View;
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
    begin
+      if Widgets.Is_Visible (View.Colour_Popout)
+        and then not Widgets.Contains (View.Colour_Popout, X * Pixels, Y * Pixels)
+      then
+         View.Colour_Key := 0;
+         Widgets.Set_Visible (View.Colour_Popout, False);
+      end if;
       if View.Generate_Open
         and then not Widgets.Contains (View.Generate_Menu, X * Pixels, Y * Pixels)
         and then not Widgets.Contains (View.Generate_Button, X * Pixels, Y * Pixels)
@@ -444,6 +452,10 @@ package body Viewer.Outlines is
                Generation.Show_Note (Item, "", Style.Quiet_Ink);
          end case;
       end if;
+      if View.Colour_Key /= 0 and then not Support.In_Outline (Item) then
+         View.Colour_Key := 0;
+         Widgets.Set_Visible (View.Colour_Popout, False);
+      end if;
       if View.Generate_Open then
          if Support.In_Outline (Item) and then Buttons.Is_Enabled (View.Generate_Button) then
             Generation.Place_Menu (Item);
@@ -471,6 +483,9 @@ package body Viewer.Outlines is
          Hooks.On (Part, Kind, Item'Unchecked_Access, Do_This);
       end Hear;
    begin
+      Hear (Item.Outline_View.Colour_OK, Click, Clicks.Colour_Accepted'Access);
+      Hear (Item.Outline_View.Colour_Cancel, Click, Clicks.Colour_Cancelled'Access);
+
       Hear (Item.Outline_View.Add_Button, Click, Clicks.Add_Clicked'Access);
       Hear (Item.Outline_View.Generate_Button, Click, Generation.Generate_Clicked'Access);
       Hear (Item.Outline_View.Generate_Menu, Choose, Generation.Chosen'Access);
@@ -492,6 +507,7 @@ package body Viewer.Outlines is
          Hooks.On (Part, Kind, Item'Unchecked_Access, Do_This);
       end Hear;
    begin
+      Hear (Block.Swatch, Click, Clicks.Colour_Clicked'Access, Index);
       Hear (Block.Row, Drag, Blocks.Block_Dragged'Access, Index);
       Hear (Block.Row, Release, Blocks.Block_Released'Access);
       Hear (Block.Field, Submit, Clicks.Title_Submitted'Access);

@@ -16,6 +16,11 @@ package body Projects.Sections is
       Title   : String) return Section_Id is
      (Repository.Section.Insert (Item, Owner, Title));
 
+   procedure Set_Colour (Item : in out Store; Key : Section_Id; Colour : Colour_Value) is
+   begin
+      Repository.Section.Set_Colour (Item, Key, Colour);
+   end Set_Colour;
+
    procedure Rename
      (Item : in out Store; Key : Section_Id; Title : String) is
    begin

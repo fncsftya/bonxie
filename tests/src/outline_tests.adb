@@ -1,4 +1,6 @@
 with Pomarine.Page_Builds;
+with Pomarine.Themes;
+with Section_Colour_Pickers;
 with Preferences;
 with SDL3.Events;
 with Goldens;
@@ -138,6 +140,68 @@ package body Outline_Tests is
       Reopen (Session);
       Check ("outline-mode-outline", "OUTLINE", Viewer.Modes'Image (Proj.Mode (Session)));
    end Starting;
+
+   procedure Colours is
+      Session : Viewer.Session;
+      Saved : Natural;
+      Before_Slider : Natural;
+
+      procedure Click (X, Y : Float) is
+      begin
+         Move_To (Session, X, Y);
+         Press (Session, X, Y);
+         Release (Session, X, Y);
+         Settle (Session);
+      end Click;
+   begin
+      declare
+         Picker : Section_Colour_Pickers.Picker;
+         Theme : constant Pomarine.Themes.Theme := Pomarine.Themes.Light;
+         type Colour_Array is array (Positive range <>) of Pomarine.Themes.Color;
+         Samples : constant Colour_Array := [(0, 0, 0, 255), (255, 255, 255, 255), (17, 139, 203, 255)];
+         use type Pomarine.Themes.Color;
+      begin
+         for Sample of Samples loop
+            Section_Colour_Pickers.Set_Colour (Picker, Sample);
+            Check ("outline-colour-exact-rgb",
+                   Natural'Image (12 + Natural (Sample.Red) * 65536
+                     + Natural (Sample.Green) * 256 + Natural (Sample.Blue)),
+                   Section_Colour_Pickers.Colour (Picker)'Image);
+            Check ("outline-colour-fixed-roundtrip", "TRUE",
+                   Boolean'Image (Theme (Pomarine.Themes.Fixed (Sample)) = Sample));
+         end loop;
+      end;
+      Start (Session);
+      Outline.Add_Section (Session);
+      Type_In (Session, "Colour choice");
+      Settle (Session);
+      Move_To (Session, 414.0, 122.0);
+      Snap (Session, "outline-colour-hover");
+      Click (414.0, 122.0);
+      Snap (Session, "outline-colour-picker");
+      Click (550.0, 310.0);
+      Click (460.0, 390.0);
+      Check ("outline-colour-cancel", " 0", Outline.Section_Colour (Session, 1)'Image);
+      Click (414.0, 122.0);
+      Click (550.0, 310.0);
+      Click (640.0, 250.0);
+      Snap (Session, "outline-colour-selected");
+      Click (590.0, 390.0);
+      Saved := Outline.Section_Colour (Session, 1);
+      Check ("outline-colour-unrestricted", "TRUE", Boolean'Image (Saved >= 12));
+      Click (414.0, 122.0);
+      Click (590.0, 390.0);
+      Check ("outline-colour-unchanged-ok", Saved'Image, Outline.Section_Colour (Session, 1)'Image);
+      Reopen (Session);
+      Check ("outline-colour-kept", Saved'Image, Outline.Section_Colour (Session, 1)'Image);
+      Before_Slider := Saved;
+      Click (414.0, 122.0);
+      Click (640.0, 180.0);
+      Click (590.0, 390.0);
+      Check ("outline-colour-slider", "TRUE",
+             Boolean'Image (Outline.Section_Colour (Session, 1) /= Before_Slider));
+      Snap (Session, "outline-colour-kept");
+   end Colours;
 
    procedure Sections is
       Session : Viewer.Session;

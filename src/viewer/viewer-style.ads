@@ -269,8 +269,8 @@ private package Viewer.Style is
    --  light on the light theme and softer on the dark (see Make), in
    --  hues that are far apart from one to the next.
 
-   function Section_Ink (Colour : Projects.Sections.Colour_Index) return Pomarine.Themes.Slot is
-     (Section_Inks (Colour));
+   function Section_Ink (Colour : Projects.Sections.Colour_Value) return Pomarine.Themes.Slot;
+   --  Resolve a legacy palette index or an exact colour chosen by the writer.
 
    Toolbar : constant Pomarine.Themes.Slot := Pomarine.Themes.Bar;
    --  The dark bars: across the top, and of the windows' titles.

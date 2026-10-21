@@ -21,6 +21,11 @@ package Repository.Section is
      with Pre => Projects.Is_Open (Store);
    --  After the rest.
 
+   procedure Set_Colour
+     (Store : in out Projects.Store; Key : Projects.Sections.Section_Id;
+      Colour : Projects.Sections.Colour_Value)
+     with Pre => Projects.Is_Open (Store);
+
    procedure Rename
      (Store : in out Projects.Store;
       Key   : Projects.Sections.Section_Id;

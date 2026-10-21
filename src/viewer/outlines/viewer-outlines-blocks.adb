@@ -4,7 +4,6 @@ with Pomarine.Widgets.Buttons;
 with Pomarine.Widgets.Grips;
 with Pomarine.Widgets.Labels;
 with Pomarine.Widgets.Layouts;
-with Pomarine.Widgets.Panels;
 with Texts.Documents;
 with Viewer.Style;
 with Viewer.Outlines.Support;
@@ -15,7 +14,6 @@ package body Viewer.Outlines.Blocks is
    package Buttons renames Pomarine.Widgets.Buttons;
    package Grips renames Pomarine.Widgets.Grips;
    package Labels renames Pomarine.Widgets.Labels;
-   package Panels renames Pomarine.Widgets.Panels;
    package Docs renames Texts.Documents;
 
    Drag_Threshold : constant Float := 4.0;
@@ -61,11 +59,11 @@ package body Viewer.Outlines.Blocks is
                   Ink     : constant Pomarine.Themes.Slot := Style.Section_Ink (Section.Colour);
                begin
                   if Documents_In (Item, Each) > 0 then
-                     Panels.Set_Fill (Block.Swatch, Ink);
+                     Grips.Set_Fill (Block.Swatch, Ink);
                   else
-                     Panels.Set_Fill (Block.Swatch, Pomarine.Themes.Page);
+                     Grips.Set_Fill (Block.Swatch, Pomarine.Themes.Page);
                   end if;
-                  Panels.Set_Border (Block.Swatch, Ink);
+                  Grips.Set_Border (Block.Swatch, Ink);
                end;
             end if;
             Widgets.Set_Visible (Block.Row, Each <= View.Order.Count);
