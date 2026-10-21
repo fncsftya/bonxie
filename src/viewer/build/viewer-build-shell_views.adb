@@ -1,3 +1,4 @@
+with Pomarine.Boxes;
 with Pomarine.Widgets.Switches;
 with Pomarine.Widgets.Editors;
 with Items.Windows;
@@ -127,6 +128,8 @@ package body Viewer.Build.Shell_Views is
          Set_Layout (Card.Peek, Height => Thumb_Height, Flow => Column);
          Set_Layout (Card.Picture, Grow => 1.0, Margin => (Bottom => Hairline, others => <>));
          Panels.Set_Fill (Card.Info, Themes.Tint);
+         --  As round as the card's own foot, or its square corner shows between the outline and the shadow.
+         Panels.Set_Radius (Card.Info, Themes.Large_Radius, Round => Pomarine.Boxes.Bottom_Corners);
          Set_Layout
            (Card.Info, Grow => 1.0, Flow => Row, Align => Center, Gap => Row_Gap,
             Padding => (Left | Right => Card_Pad, others => <>));
@@ -147,7 +150,7 @@ package body Viewer.Build.Shell_Views is
       end loop;
 
       --  The outline of a card, to make a project.
-      Grips.Set_Border (Front.New_Card, Themes.Border, Dashed => True);
+      Grips.Set_Border (Front.New_Card, Style.Dashed_Edge, Dashed => True);
       Grips.Set_Radius (Front.New_Card, Themes.Large_Radius);
       Grips.Set_Wanted_Cursor (Front.New_Card, SDL3.Cursors.Pointer);
       Set_Layout

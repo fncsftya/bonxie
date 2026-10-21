@@ -298,6 +298,11 @@ private package Viewer.Style is
      Pomarine.Themes.Custom (Section_First + Projects.Sections.Colour_Index'Last + 1);
    --  The plain link ink: black in the light theme, white in the dark.
 
+   Dashed_Edge : constant Pomarine.Themes.Slot :=
+     Pomarine.Themes.Custom (Section_First + Projects.Sections.Colour_Index'Last + 2);
+   --  The dashed outline of the card to make a project: the border, but, over a painted background, firm
+   --  enough to be seen on it, where the borders of boxes and rules are left light.
+
    Section_Inks : constant array (Projects.Sections.Colour_Index) of Pomarine.Themes.Slot :=
      [for K in Projects.Sections.Colour_Index => Pomarine.Themes.Custom (Section_First + K)];
    --  The pastel colours that tell the outline's sections apart, drawn

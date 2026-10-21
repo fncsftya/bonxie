@@ -70,6 +70,14 @@ package body Viewer.Style is
       return Themes.Theme is
      (Slotted (Themes.Make (Adaptive_Themes.Palette_For (Dark, Hue, Strength)), Dark, Painted, Hue, Strength));
 
+   procedure Soften (Item : in out Themes.Theme; Tone : Themes.Tone) is
+   begin
+      Item.Tones (Tone, Themes.Edge) :=
+        Themes.Mix (Item.Tones (Tone, Themes.Edge), Item.Tones (Tone, Themes.Fill), 0.55);
+      Item.Tones (Tone, Themes.Off_Edge) :=
+        Themes.Mix (Item.Tones (Tone, Themes.Off_Edge), Item.Tones (Tone, Themes.Off), 0.55);
+   end Soften;
+
    function Slotted
      (Base : Themes.Theme; Dark : Boolean; Tint : Tints; Hue : Adaptive_Themes.Hues;
       Strength : Adaptive_Themes.Strengths) return Themes.Theme
@@ -95,7 +103,15 @@ package body Viewer.Style is
             --  nor even, so these keep close to the text's colour, which reads on all of it.
             Result.Slots (Themes.Muted) := Themes.Mix (Base (Themes.Foreground), Back, 0.08);
             Result.Slots (Themes.Hint)  := Themes.Mix (Base (Themes.Foreground), Back, 0.12);
-            Result.Slots (Themes.Border) := Themes.Mix (Base (Themes.Border), Base (Themes.Foreground), 0.65);
+            --  Borders and rules, over the painting or the boxes on it, are the text's colour thinned, so that they
+            --  are as light over a dark patch as over a pale one.
+            Result.Slots (Themes.Border) := (Base (Themes.Foreground) with delta Alpha => 70);
+            --  The outline of a plain control (a button, a field) is of the same weight: half way to its own face.
+            Soften (Result, Themes.Normal_Tone);
+            Soften (Result, Themes.Quiet_Tone);
+            Themes.Set_Custom
+              (Result, Section_First + Projects.Sections.Colour_Index'Last + 2,
+               Themes.Mix (Base (Themes.Border), Base (Themes.Foreground), 0.65));
             Themes.Set_Custom (Result, 3, Themes.Mix (Base (Themes.Foreground), Back, 0.2));
             Themes.Set_Custom
               (Result, 4, Themes.Mix (Base (Themes.Primary), Base (Themes.Foreground), 0.6));
@@ -103,6 +119,8 @@ package body Viewer.Style is
          Themes.Set_Custom
            (Result, Section_First + Projects.Sections.Colour_Index'Last + 1,
             (if Dark then Themes.White else (0, 0, 0, 255)));
+         Themes.Set_Custom
+           (Result, Section_First + Projects.Sections.Colour_Index'Last + 2, Base (Themes.Border));
          Themes.Set_Custom (Result, Source_First, (if Dark then Source_Blue_Dark else Source_Blue_Light));
          for K in Other_Sources'Range loop
             Themes.Set_Custom (Result, Source_First + K - 1, Other_Sources (K));

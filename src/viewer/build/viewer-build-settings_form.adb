@@ -1,3 +1,4 @@
+with Pomarine.Boxes;
 with Pomarine.Widgets.Switches;
 with Pomarine.Widgets.Selects;
 with Pomarine.Widgets.Checks;
@@ -57,6 +58,8 @@ package body Viewer.Build.Settings_Form is
          Grips.Set_Focusable (Card.Peek, True);
          Set_Layout (Card.Peek, Grow => 1.0, Flow => Column);
          Panels.Set_Fill (Card.Foot, Themes.Tint);
+         --  Its foot is as round as the card's own foot, or its square corner shows between the outline and the shadow.
+         Panels.Set_Radius (Card.Foot, Themes.Large_Radius, Round => Pomarine.Boxes.Bottom_Corners);
          Set_Layout
            (Card.Foot, Height => Card_Foot_Height, Shrink => 0.0, Flow => Row, Align => Center, Gap => Row_Gap,
             Padding => (Left | Right => Card_Pad, others => <>));
