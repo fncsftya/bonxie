@@ -12,7 +12,7 @@ package body Backgrounds is
    function Time_Seed return Interfaces.C.C_float
      with Import, Convention => C, External_Name => "bonxie_background_seed";
 
-   function Hue_Of (Seed : Interfaces.C.C_float) return Interfaces.C.C_float
+   function Hue_Of (Style : Interfaces.C.int; Seed : Interfaces.C.C_float) return Interfaces.C.C_float
      with Import, Convention => C, External_Name => "bonxie_background_hue";
 
    function Create (Source : Interfaces.C.char_array) return System.Address
@@ -20,6 +20,7 @@ package body Backgrounds is
 
    function Render
      (Native : System.Address;
+      Style : Interfaces.C.int;
       Seed : Interfaces.C.C_float;
       Width, Height : Interfaces.C.int;
       Dark : Interfaces.C.int) return System.Address
@@ -36,12 +37,25 @@ package body Backgrounds is
    function New_Seed return Seed_Numbers is
      (Seed_Numbers (Integer (Float'Rounding (Float (Time_Seed) * Per_Unit)) mod (Seed_Numbers'Last + 1)));
 
-   function Available (Item : Cache) return Boolean is
-     (not Item.Failed and then Item.Native /= System.Null_Address);
+   function Tint_Strength (Style : Styles) return Float is
+     (case Style is
+         when Watercolour => 1.0,
+         when Paper       => 0.60,
+         when Ink_Wash    => 0.35,
+         when Mist        => 0.70,
+         when Grain       => 0.50,
+         when Marbling    => 1.0,
+         when Risograph   => 0.90,
+         when Contours    => 0.55,
+         when Bauhaus     => 0.45);
+
+   function Available (Item : Cache; Style : Styles) return Boolean is
+     (not Item.Failed and then Item.Native /= System.Null_Address and then not Item.Broken (Style));
 
    function Seed_Number (Item : Cache) return Seed_Numbers is (Item.Seed);
 
-   function Hue (Item : Cache) return Float is (Float (Hue_Of (As_Float (Item.Seed))));
+   function Hue (Item : Cache; Style : Styles) return Float is
+     (Float (Hue_Of (Interfaces.C.int (Styles'Pos (Style)), As_Float (Item.Seed))));
 
    procedure Reseed (Item : in out Cache) is
       Was : constant Seed_Numbers := Item.Seed;
@@ -61,46 +75,51 @@ package body Backgrounds is
    begin
       Finalize (Item);
       Textures.Release (Item.Main.Image);
-      Textures.Release (Item.Thumb.Image);
+      for Each of Item.Thumbs loop
+         Textures.Release (Each.Image);
+         Each.Wide := 0;
+         Each.High := 0;
+      end loop;
+      Item.Broken := [others => False];
       Item.Native := Create (Interfaces.C.To_C (Files.Read (File_Name)));
       Item.Seed := Seed;
       Item.Main.Wide := 0;
       Item.Main.High := 0;
-      Item.Thumb.Wide := 0;
-      Item.Thumb.High := 0;
       Item.Failed := Item.Native = System.Null_Address;
    exception
       when Problem : others =>
          Item.Failed := True;
          Ada.Text_IO.Put_Line
-           (Ada.Text_IO.Standard_Error, "Watercolour background: " & Ada.Exceptions.Exception_Message (Problem));
+           (Ada.Text_IO.Standard_Error, "Backgrounds: " & Ada.Exceptions.Exception_Message (Problem));
    end Set_Shader;
 
    procedure Ensure
      (Saved  : in out Cache;
       Which  : in out Layer;
+      Style  : Styles;
       Device : SDL3.Painters.Device_Access;
       Wide, High : Positive;
       Dark   : Boolean;
       Ready  : out Boolean) is
    begin
       Ready := False;
-      if Saved.Failed or else Saved.Native = System.Null_Address or else Device = null then
+      if not Available (Saved, Style) or else Device = null then
          return;
       end if;
       if Wide /= Which.Wide or else High /= Which.High or else Dark /= Which.Dark_Drawn
-        or else Saved.Seed /= Which.Seed_Drawn
+        or else Saved.Seed /= Which.Seed_Drawn or else Style /= Which.Style_Drawn
       then
          declare
             --  Metal owns the full-size staging buffer; no image-sized
             --  allocation on the Ada stack and no internal resolution cap.
             Pixels : constant System.Address := Render
-              (Saved.Native, As_Float (Saved.Seed),
+              (Saved.Native, Interfaces.C.int (Styles'Pos (Style)), As_Float (Saved.Seed),
                Interfaces.C.int (Wide), Interfaces.C.int (High), (if Dark then 1 else 0));
          begin
             if Pixels = System.Null_Address then
-               Saved.Failed := True;
-               Ada.Text_IO.Put_Line (Ada.Text_IO.Standard_Error, "Could not render watercolour background");
+               Saved.Broken (Style) := True;
+               Ada.Text_IO.Put_Line
+                 (Ada.Text_IO.Standard_Error, "Could not render the " & Styles'Image (Style) & " background");
                return;
             end if;
             Textures.Create_Blank (Which.Image, Device.all, Wide, High, Smooth => False);
@@ -109,6 +128,7 @@ package body Backgrounds is
             Which.High := High;
             Which.Dark_Drawn := Dark;
             Which.Seed_Drawn := Saved.Seed;
+            Which.Style_Drawn := Style;
          end;
       end if;
       pragma Assert (not Textures.Is_Empty (Which.Image));
@@ -132,7 +152,7 @@ package body Backgrounds is
       if Wide = 0 or else High = 0 then
          return;
       end if;
-      Ensure (Item.Painting.all, Item.Painting.Main, Target.Device, Wide, High, Item.Dark, Ready);
+      Ensure (Item.Painting.all, Item.Painting.Main, Item.Style, Target.Device, Wide, High, Item.Dark, Ready);
       if Ready then
          Target.Draw_Scaled
            (Item.Painting.Main.Image, Left_Of (Item), Top_Of (Item), Width_Of (Item), Height_Of (Item));
@@ -186,11 +206,11 @@ package body Backgrounds is
       end Text;
    begin
       if Item.Painting /= null and then Wide >= 1.0 and then High >= 1.0 then
-         Ensure (Item.Painting.all, Item.Painting.Thumb, Target.Device,
+         Ensure (Item.Painting.all, Item.Painting.Thumbs (Item.Style), Item.Style, Target.Device,
                  Positive (Float'Rounding (Wide)), Positive (Float'Rounding (High)), Item.Dark, Ready);
       end if;
       if Ready then
-         Target.Draw_Scaled (Item.Painting.Thumb.Image, Left, Top, Wide, High);
+         Target.Draw_Scaled (Item.Painting.Thumbs (Item.Style).Image, Left, Top, Wide, High);
       else
          Fill_Rect (Target, Look (Themes.Background), Left, Top, Wide, High);
       end if;

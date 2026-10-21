@@ -1,5 +1,6 @@
 with Adaptive_Themes;
 with Items.Links;
+with Preferences;
 with Projects.Sections;
 with Pomarine.Themes;
 
@@ -169,6 +170,23 @@ private package Viewer.Style is
 
    Settings_Line   : constant Float := 28.0;
    --  A line of the form: a name, a radio.
+   function Background_Name_Of (Mode : Preferences.Background_Modes) return String is
+     (case Mode is
+         when Preferences.Fixed       => "Fixed",
+         when Preferences.Watercolour => "Watercolour",
+         when Preferences.Paper       => "Paper",
+         when Preferences.Ink_Wash    => "Ink wash",
+         when Preferences.Mist        => "Mist",
+         when Preferences.Grain       => "Grain",
+         when Preferences.Marbling    => "Marbling",
+         when Preferences.Risograph   => "Risograph",
+         when Preferences.Contours    => "Contours",
+         when Preferences.Bauhaus     => "Bauhaus");
+   --  What a choice of background is called, on its card.
+
+   Background_Card_Width : constant Float := 250.0;
+   Scroll_Room : constant Float := 14.0;
+   --  Under the cards, for the bar that scrolls them.
    Background_Card_Height : constant Float := 190.0;
    Card_Foot_Height : constant Float := 48.0;
    --  Of a choice of background in the settings, and of its foot with the name; the picture takes the rest.
@@ -239,14 +257,17 @@ private package Viewer.Style is
    function Make (Dark : Boolean) return Pomarine.Themes.Theme;
    --  Light or Dark, with the slots of the application set.
 
-   function Make (Dark : Boolean; Hue : Adaptive_Themes.Hues) return Pomarine.Themes.Theme;
+   function Make
+     (Dark : Boolean; Hue : Adaptive_Themes.Hues; Strength : Adaptive_Themes.Strengths := 1.0)
+      return Pomarine.Themes.Theme;
    --  The same, but with the greys in Hue, to go with a painting made in it.
 
    procedure Use_Dark (Dark : Boolean)
      with Post => Is_Dark = Dark and then not Is_Adaptive;
    --  Draw in the dark theme, or in the light, in the theme's own colours.
 
-   procedure Use_Adaptive (Dark : Boolean; Hue : Adaptive_Themes.Hues)
+   procedure Use_Adaptive
+     (Dark : Boolean; Hue : Adaptive_Themes.Hues; Strength : Adaptive_Themes.Strengths := 1.0)
      with Post => Is_Dark = Dark and then Is_Adaptive;
    --  Draw in the dark theme, or in the light, in colours that go with a painting made in Hue.
 

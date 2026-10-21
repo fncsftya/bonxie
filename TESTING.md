@@ -143,50 +143,55 @@ by pomarine's `document-rich-text` and `textarea-rich-text` tests.
 `outline-colours` checks the enlarged swatch and its hover border, the continuous RGB picker and saturation slider,
 Cancel without changes, OK, exact black, white and arbitrary RGB values, and the chosen colour after reopening the project.
 
-## Watercolour background
+## Procedural backgrounds
 
-Window backgrounds compile `src/shaders/watercolour.metal` into a Metal compute
-pipeline once per window, then cache its pixels in an SDL texture. Each render
-uses the actual drawable pixel dimensions, including Retina density, without an
-internal resolution cap. Metal owns the size-dependent buffer rather than using
-the Ada stack. The opening time is the only seed; resizing keeps it. Offscreen
-golden tests retain the deterministic theme background.
+Window backgrounds compile `src/shaders/backgrounds.metal` into Metal compute pipelines once per
+window, one kernel to each style (`Backgrounds.Styles`): the **watercolour**, **paper** (parchment,
+linen or vellum, by the seed), **ink wash** (sumi-e hills and mist), **mist** (domain-warped fog),
+**grain** (a quiet gradient under film grain), **marbling** (ebru from swirled, warped stripes),
+**risograph** (flat inks in halftone, out of register), **contours** (isolines of a noise field) and
+**bauhaus** (simple shapes placed by seeded rules). Each is painted light and dark, the shader being
+told which, and repainted when the theme changes. The pictures are cached as SDL textures; each render
+uses the actual drawable pixel dimensions, including Retina density, without an internal resolution cap.
+Metal owns the size-dependent buffer rather than using the Ada stack. One seed, kept, paints them all,
+and resizing keeps it. The hue a picture is made in comes from its style and the seed, by one function
+in the native code (`bonxie_background_hue`), so that the program's colours can follow it.
 
-The painting is made for the theme's light or dark (the shader is told which, and
-repainted when it changes), in a hue taken from the seed by one function in the native
-code, so that the program's colours can follow it.
-
-Settings > Display > Background chooses between two cards, each with a small picture of a window
+Settings > Display > Background is a row of cards, scrolled across, each with a small picture of a window
 drawn the way it would be (`Backgrounds.Sample`): **Fixed** (the theme's own colours on a plain
-background, as before the shader) and **Watercolour** (the default: the painting, with the theme's
-neutral greys moved to the painting's hue, `Adaptive_Themes`, light or dark as Theme says). The button on
-the watercolour's card paints another picture, and chooses the watercolour. The picture is the shader's
-seed, an integer kept as `watercolour_seed=` beside the choice (`background=`; `adaptive`, its old
-name, still reads as the watercolour), so it is the same on every run until the button is pressed.
-Only the hue of a grey changes, never its brightness, so contrasts hold for every hue; what means
-something (primary, danger, accent, focus, the model's purple) stays. Offscreen there is no painting,
-so goldens always draw Fixed; `home-settings` draws both cards (the watercolour's colours come from
-seed 0, so they do not change), and `home-settings-reseed` checks the button, which is the clock's and so
-not drawn for a golden; `adaptive-palettes` checks, for 48 hues in both themes, that text keeps at least
-97% of its contrast on every surface and on the bars, that the hue lands where the colour wheel says,
-and that the meaningful colours do not move; `preferences-kept` checks the choices and the seed are
-kept, a garbled seed is none, and 0 and the largest are kept whole.
+background, as before the shaders) and one for each picture, which takes on the picture's hue in the
+theme's neutral greys (`Adaptive_Themes`, more of it for the colourful, less for the nearly grey: see
+`Backgrounds.Tint_Strength`), light or dark as Theme says. The button on a picture's card paints another
+(a new seed, for all of them) and chooses that card. The seed, an integer, is kept as `watercolour_seed=`
+beside the choice (`background=fixed|watercolour|paper|ink_wash|mist|grain|marbling|risograph|contours|bauhaus`;
+`adaptive`, the watercolour's old name, still reads as it), so it is the same on every run until the
+button is pressed. Only the hue of a grey changes, never its brightness, so contrasts hold for every hue
+and strength; what means something (primary, danger, accent, focus, the model's purple) stays.
 
-Ink is drawn straight on the painting in places (a heading, a count, "New project"), so the
-shader veils it toward its ground: a light painting is never under 62% bright, a dark one never
-over 42%, and the probe checks every pixel.
+Offscreen there is no painting, so goldens always draw Fixed. `home-settings` draws the cards (the colours
+of a picture's come from its style and seed 0, so they do not change), chooses every one by name, and
+checks the row scrolls to the chosen; `home-settings-reseed` checks the buttons, which paint from the
+clock and so are not drawn for a golden; `adaptive-palettes` checks, for 48 hues at three strengths in both
+themes, that text keeps at least 97% of its contrast on every surface and on the bars, that the hue lands
+where the colour wheel says, that the meaningful colours do not move, and that the styles and the choices
+are the same list; `preferences-kept` checks every choice and the seed are kept, a garbled seed is none,
+and 0 and the largest are kept whole.
 
-The GPU probe checks MSL compilation, identical pixels for a repeated seed,
+Ink is drawn straight on the painting in places (a heading, a count, "New project"), so each style
+veils its picture toward its ground: a light painting is never under 62% bright, a dark one never
+over 42%, and the probe checks every pixel of every style, with several seeds over its runs.
+
+The GPU probe checks, for every style, MSL compilation, identical pixels for a repeated seed,
 different pixels for a different seed, a hue that follows the seed, a dark painting that is
 opaque and darker than the light, opaque output, portrait resizing,
 2049 × 1601 rendering beyond the former cap, invalid dimensions, and identical
 pixels after resizing back. Run from the project root on macOS:
 
 ```sh
-clang -fobjc-arc -O2 -Wall -Wextra -c src/watercolour_native.m -o /tmp/watercolour_native.o
-clang -O2 tests/run/background_probe.c /tmp/watercolour_native.o \
+clang -fobjc-arc -O2 -Wall -Wextra -c src/backgrounds_native.m -o /tmp/backgrounds_native.o
+clang -O2 tests/run/background_probe.c /tmp/backgrounds_native.o \
   -framework Metal -framework Foundation -o /tmp/background_probe
-/tmp/background_probe src/shaders/watercolour.metal
+/tmp/background_probe src/shaders/backgrounds.metal
 ```
 
-It also writes `/tmp/bonxie-background.ppm` and `/tmp/bonxie-background-dark.ppm` for visual inspection.
+It also writes `/tmp/bonxie-background-<style>-light.ppm` and `-dark.ppm` for visual inspection.

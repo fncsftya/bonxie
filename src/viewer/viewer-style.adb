@@ -58,21 +58,24 @@ package body Viewer.Style is
    type Tints is (Own, Painted);
 
    function Slotted
-     (Base : Themes.Theme; Dark : Boolean; Tint : Tints; Hue : Adaptive_Themes.Hues) return Themes.Theme;
+     (Base : Themes.Theme; Dark : Boolean; Tint : Tints; Hue : Adaptive_Themes.Hues;
+      Strength : Adaptive_Themes.Strengths) return Themes.Theme;
    --  Base, with the slots of the application set from it; its greys, with Painted, in Hue.
 
    function Make (Dark : Boolean) return Themes.Theme is
-     (Slotted ((if Dark then Themes.Dark else Themes.Light), Dark, Own, 0.0));
+     (Slotted ((if Dark then Themes.Dark else Themes.Light), Dark, Own, 0.0, 0.0));
 
-   function Make (Dark : Boolean; Hue : Adaptive_Themes.Hues) return Themes.Theme is
-     (Slotted (Themes.Make (Adaptive_Themes.Palette_For (Dark, Hue)), Dark, Painted, Hue));
+   function Make
+     (Dark : Boolean; Hue : Adaptive_Themes.Hues; Strength : Adaptive_Themes.Strengths := 1.0)
+      return Themes.Theme is
+     (Slotted (Themes.Make (Adaptive_Themes.Palette_For (Dark, Hue, Strength)), Dark, Painted, Hue, Strength));
 
    function Slotted
-     (Base : Themes.Theme; Dark : Boolean; Tint : Tints; Hue : Adaptive_Themes.Hues)
-      return Themes.Theme
+     (Base : Themes.Theme; Dark : Boolean; Tint : Tints; Hue : Adaptive_Themes.Hues;
+      Strength : Adaptive_Themes.Strengths) return Themes.Theme
    is
       function Grey (Value : Themes.Color) return Themes.Color is
-        (if Tint = Painted then Adaptive_Themes.Grey (Value, Dark, Hue) else Value);
+        (if Tint = Painted then Adaptive_Themes.Grey (Value, Dark, Hue, Strength) else Value);
 
       Back : constant Themes.Color := Base (Themes.Background);
    begin
@@ -128,9 +131,10 @@ package body Viewer.Style is
       Adaptive_In_Use := False;
    end Use_Dark;
 
-   procedure Use_Adaptive (Dark : Boolean; Hue : Adaptive_Themes.Hues) is
+   procedure Use_Adaptive
+     (Dark : Boolean; Hue : Adaptive_Themes.Hues; Strength : Adaptive_Themes.Strengths := 1.0) is
    begin
-      Active := Make (Dark, Hue);
+      Active := Make (Dark, Hue, Strength);
       Dark_In_Use := Dark;
       Adaptive_In_Use := True;
    end Use_Adaptive;

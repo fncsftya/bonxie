@@ -271,7 +271,7 @@ package body Viewer.Build is
               (if Saved then Preferences.Load_Seed (Config) else Backgrounds.New_Seed);
          begin
             Backgrounds.Set_Shader
-              (Item.Host.Background, Share_Directory ("shaders") & "/watercolour.metal", Seed);
+              (Item.Host.Background, Share_Directory ("shaders") & "/backgrounds.metal", Seed);
             --  The first picture is kept, so that it is this one next time.
             if Item.Prefs.Persist and then not Saved then
                Preferences.Save_Seed (Config, Seed);

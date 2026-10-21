@@ -9,6 +9,7 @@ with Pomarine.Widgets.Buttons;
 with Pomarine.Widgets.Checks;
 with Pomarine.Widgets.Labels;
 with Pomarine.Widgets.Panels;
+with Pomarine.Widgets.Scrollers;
 with Pomarine.Widgets.Menus;
 with Pomarine.Widgets.Progress_Bars;
 with Pomarine.Widgets.Selects;
@@ -31,6 +32,7 @@ package body Viewer.Settings_View is
    package Switches renames Pomarine.Widgets.Switches;
    package Themes renames Pomarine.Themes;
    package Panels renames Pomarine.Widgets.Panels;
+   package Scrollers renames Pomarine.Widgets.Scrollers;
    package Layouts renames Pomarine.Widgets.Layouts;
 
    use type MLX.Jobs.States;
@@ -354,27 +356,56 @@ package body Viewer.Settings_View is
       end case;
    end Status;
 
-   --  The two cards of backgrounds: each a picture of a window drawn the way it would be, the chosen one
+   function Style_Of (Mode : Preferences.Pictures) return Backgrounds.Styles is
+     (Backgrounds.Styles'Val (Preferences.Background_Modes'Pos (Mode) - 1));
+
+   --  The cards of backgrounds: each a picture of a window drawn the way it would be, the chosen one
    --  outlined in the accent, with a shadow.
    procedure Show_Backgrounds (Item : in out Session) is
       Prefs : Settings_Parts renames Item.Prefs;
       Dark  : constant Boolean := Prefs.Dark_Shown;
-
-      procedure Mark (Card : in out Panels.Panel; Chosen : Boolean) is
-      begin
-         Panels.Set_Border (Card, (if Chosen then Themes.Accent else Themes.Border));
-         Panels.Set_Shadow (Card, (if Chosen then Themes.Accent else Themes.Shadow));
-      end Mark;
    begin
-      Prefs.Fixed_Sample.Painting := null;
-      Backgrounds.Set_Look (Prefs.Fixed_Sample, Dark, Viewer.Style.Make (Dark));
-      Prefs.Water_Sample.Painting := Item.Host.Background'Unchecked_Access;
-      Backgrounds.Set_Look
-        (Prefs.Water_Sample, Dark, Viewer.Style.Make (Dark, Backgrounds.Hue (Item.Host.Background)));
-      Mark (Prefs.Fixed_Card, Prefs.Background_Chosen = Preferences.Fixed);
-      Mark (Prefs.Water_Card, Prefs.Background_Chosen = Preferences.Watercolour);
+      for Mode in Preferences.Background_Modes loop
+         declare
+            Card   : Background_Card renames Prefs.Cards (Mode);
+            Chosen : constant Boolean := Prefs.Background_Chosen = Mode;
+         begin
+            Panels.Set_Border (Card.Whole, (if Chosen then Themes.Accent else Themes.Border));
+            Panels.Set_Shadow (Card.Whole, (if Chosen then Themes.Accent else Themes.Shadow));
+            if Mode = Preferences.Fixed then
+               Card.Sample.Painting := null;
+               Backgrounds.Set_Look (Card.Sample, Dark, Viewer.Style.Make (Dark));
+            else
+               declare
+                  Picture : constant Backgrounds.Styles := Style_Of (Mode);
+               begin
+                  Card.Sample.Painting := Item.Host.Background'Unchecked_Access;
+                  Card.Sample.Style := Picture;
+                  Backgrounds.Set_Look
+                    (Card.Sample, Dark,
+                     Viewer.Style.Make
+                       (Dark, Backgrounds.Hue (Item.Host.Background, Picture), Backgrounds.Tint_Strength (Picture)));
+               end;
+            end if;
+         end;
+      end loop;
       Widgets.Invalidate (Prefs.Background_Row);
    end Show_Backgrounds;
+
+   --  Scroll the row of cards, if need be, to show the chosen one whole.
+   procedure Reveal_Background (Item : in out Session) is
+      Prefs : Settings_Parts renames Item.Prefs;
+      Pitch : constant Float := Viewer.Style.Background_Card_Width + Viewer.Style.Gap;
+      Left  : constant Float := Float (Preferences.Background_Modes'Pos (Prefs.Background_Chosen)) * Pitch;
+      Room  : constant Float := Widgets.Width_Of (Prefs.Background_Scroll) / Widgets.Density (Prefs.Background_Scroll);
+      Moved : constant Float := Scrollers.Offset (Prefs.Background_Scroll);
+   begin
+      if Widgets.Is_Attached (Prefs.Background_Scroll) and then Room > 0.0
+        and then (Left < Moved or else Left + Viewer.Style.Background_Card_Width > Moved + Room)
+      then
+         Scrollers.Scroll_To (Prefs.Background_Scroll, Float'Max (0.0, Left - Viewer.Style.Gap));
+      end if;
+   end Reveal_Background;
 
    procedure Refresh (Item : in out Session) is
       Parakeet : constant Boolean := Item.Prefs.Speech_Choice
@@ -414,6 +445,7 @@ package body Viewer.Settings_View is
       Scan_AI (Item);
       Refresh (Item);
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
+      Reveal_Background (Item);
    end Open;
 
    procedure Close (Item : in out Session) is
@@ -477,6 +509,7 @@ package body Viewer.Settings_View is
       Apply_Theme (Item);
       if Item.Prefs.Showing_Settings then
          Refresh (Item);
+         Reveal_Background (Item);
       end if;
    end Choose_Background;
 
@@ -504,23 +537,32 @@ package body Viewer.Settings_View is
             when Preferences.Light  => False,
             when Preferences.Dark   => True,
             when Preferences.System => SDL3.Events.System_Is_Dark);
+      Mode : constant Preferences.Background_Modes := Item.Prefs.Background_Chosen;
       --  Only a window has a painting to go with; offscreen, it is the theme's own colours.
       Adaptive : constant Boolean :=
-        Item.Prefs.Background_Chosen = Preferences.Watercolour
-        and then Item.Shell.Windowed
-        and then Backgrounds.Available (Item.Host.Background);
+        Mode in Preferences.Pictures and then Item.Shell.Windowed
+        and then Backgrounds.Available (Item.Host.Background, Style_Of (Mode));
    begin
       if Adaptive then
-         Viewer.Style.Use_Adaptive (Dark, Backgrounds.Hue (Item.Host.Background));
+         declare
+            Picture : constant Backgrounds.Styles := Style_Of (Mode);
+         begin
+            Viewer.Style.Use_Adaptive
+              (Dark, Backgrounds.Hue (Item.Host.Background, Picture), Backgrounds.Tint_Strength (Picture));
+            Item.Root.Window_Panel.Style := Picture;
+         end;
          Item.Root.Window_Panel.Painting := Item.Host.Background'Unchecked_Access;
       else
          Viewer.Style.Use_Dark (Dark);
          Item.Root.Window_Panel.Painting := null;
       end if;
       Item.Canvas_View.Transparent := Adaptive;
-      if Dark /= Item.Prefs.Dark_Shown or else Adaptive /= Item.Prefs.Adaptive_Shown then
+      if Dark /= Item.Prefs.Dark_Shown or else Adaptive /= Item.Prefs.Adaptive_Shown
+        or else Mode /= Item.Prefs.Mode_Shown
+      then
          Item.Prefs.Dark_Shown := Dark;
          Item.Prefs.Adaptive_Shown := Adaptive;
+         Item.Prefs.Mode_Shown := Mode;
          Widgets.Invalidate_All (Item.Root.Widgets);
          if Item.Prefs.Showing_Settings then
             Refresh (Item);

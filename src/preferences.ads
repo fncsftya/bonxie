@@ -11,10 +11,14 @@ package Preferences is
    --  The appearance of the windows: light, dark, or the system's, which
    --  follows its light or dark appearance as it changes.
 
-   type Background_Modes is (Fixed, Watercolour);
-   --  What the windows are drawn on: Fixed, the theme's own colours on a plain
-   --  background; or Watercolour, a painted background and colours worked out
-   --  from it (adapted to it), light or dark as the theme is.
+   type Background_Modes is
+     (Fixed, Watercolour, Paper, Ink_Wash, Mist, Grain, Marbling, Risograph, Contours, Bauhaus);
+   --  What the windows are drawn on: Fixed, the theme's own colours on a plain background; or
+   --  one of the procedural pictures (see Backgrounds.Styles), with colours worked out from it
+   --  (adapted to it), light or dark as the theme is.
+
+   subtype Pictures is Background_Modes range Watercolour .. Bauhaus;
+   --  The ones that are painted, and take a seed.
 
    function Config_Directory (Store_Path : String) return String
      with Post => Config_Directory'Result /= "";

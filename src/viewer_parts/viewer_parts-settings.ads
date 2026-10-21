@@ -25,6 +25,22 @@ package Viewer_Parts.Settings is
 
    type AI_Note_Array is array (1 .. AI_Note_Lines) of Pomarine.Widgets.Labels.Label;
 
+   type Background_Card is limited record
+      Whole  : Pomarine.Widgets.Panels.Panel;
+      Peek   : Pomarine.Widgets.Grips.Grip;
+      --  The picture, clicked to choose it.
+      Sample : Backgrounds.Sample;
+      Foot   : Pomarine.Widgets.Panels.Panel;
+      Pick   : Pomarine.Widgets.Grips.Grip;
+      --  The name, which is clicked too, and the button to paint another picture, which a plain
+      --  background has not.
+      Name   : Pomarine.Widgets.Labels.Label;
+      Reseed : Pomarine.Widgets.Buttons.Button;
+   end record;
+   --  A choice of background.
+
+   type Background_Card_Array is array (Preferences.Background_Modes) of Background_Card;
+
    type Settings_Parts is limited record
       Settings_Panel : Pomarine.Widgets.Panels.Panel;
       --  A column, in the home screen's place while Showing_Settings: a
@@ -50,22 +66,11 @@ package Viewer_Parts.Settings is
       Theme_System   : Pomarine.Widgets.Checks.Check;
       Background_Name : Pomarine.Widgets.Labels.Label;
       --  Display's options, Theme and Background: a radio for each theme, and for the background
-      --  a card, a small picture of a window drawn on it, with its name below.
+      --  a row of cards, scrolled across, each a small picture of a window drawn on it, with its name
+      --  below.
+      Background_Scroll : Pomarine.Widgets.Scrollers.Scroller;
       Background_Row : Pomarine.Widgets.Panels.Panel;
-      Fixed_Card     : Pomarine.Widgets.Panels.Panel;
-      Fixed_Peek     : Pomarine.Widgets.Grips.Grip;
-      Fixed_Sample   : Backgrounds.Sample;
-      Fixed_Foot     : Pomarine.Widgets.Panels.Panel;
-      Fixed_Pick     : Pomarine.Widgets.Grips.Grip;
-      Fixed_Name     : Pomarine.Widgets.Labels.Label;
-      Water_Card     : Pomarine.Widgets.Panels.Panel;
-      Water_Peek     : Pomarine.Widgets.Grips.Grip;
-      Water_Sample   : Backgrounds.Sample;
-      Water_Foot     : Pomarine.Widgets.Panels.Panel;
-      Water_Pick     : Pomarine.Widgets.Grips.Grip;
-      Water_Name     : Pomarine.Widgets.Labels.Label;
-      Water_Reseed   : Pomarine.Widgets.Buttons.Button;
-      --  The watercolour's, with the button to paint another.
+      Cards          : Background_Card_Array;
       Download_Row   : Pomarine.Widgets.Panels.Panel;
       Download_Button : Pomarine.Widgets.Buttons.Button;
       Delete_Button  : Pomarine.Widgets.Buttons.Button;
@@ -113,6 +118,7 @@ package Viewer_Parts.Settings is
       --  Whether the windows are drawn in the dark theme, as last applied.
       Background_Chosen : Preferences.Background_Modes := Preferences.Watercolour;
       Adaptive_Shown : Boolean := False;
+      Mode_Shown     : Preferences.Background_Modes := Preferences.Fixed;
       --  Whether the windows are drawn in colours that go with a painted background, as last applied:
       --  what is chosen, if there is a painting to go with.
       Config_Dir     : Ada.Strings.Unbounded.Unbounded_String;

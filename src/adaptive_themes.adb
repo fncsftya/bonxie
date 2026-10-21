@@ -67,11 +67,12 @@ package body Adaptive_Themes is
       return From_HSL (Hue, Saturation, (Low + High) / 2.0, Value.Alpha);
    end Retint;
 
-   function Grey (Value : Themes.Color; Dark : Boolean; Hue : Hues) return Themes.Color is
-     (Retint (Value, Hue, (if Dark then Dark_Saturation else Light_Saturation)));
+   function Grey
+     (Value : Themes.Color; Dark : Boolean; Hue : Hues; Strength : Strengths := 1.0) return Themes.Color is
+     (Retint (Value, Hue, Strength * (if Dark then Dark_Saturation else Light_Saturation)));
 
-   function Palette_For (Dark : Boolean; Hue : Hues) return Themes.Palette is
-      function Tint (Value : Themes.Color) return Themes.Color is (Grey (Value, Dark, Hue));
+   function Palette_For (Dark : Boolean; Hue : Hues; Strength : Strengths := 1.0) return Themes.Palette is
+      function Tint (Value : Themes.Color) return Themes.Color is (Grey (Value, Dark, Hue, Strength));
    begin
       return Result : Themes.Palette := (if Dark then Themes.Dark_Palette else Themes.Light_Palette) do
          Result.Background   := Tint (Result.Background);

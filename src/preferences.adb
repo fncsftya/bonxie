@@ -137,10 +137,20 @@ package body Preferences is
          Ada.Characters.Handling.To_Lower (Theme_Choices'Image (To)));
    end Save_Theme;
 
+   function Named (Text : String) return Background_Modes is
+   begin
+      for Each in Background_Modes loop
+         if Ada.Characters.Handling.To_Lower (Background_Modes'Image (Each)) = Text then
+            return Each;
+         end if;
+      end loop;
+      return Watercolour;
+   end Named;
+
    function Load_Background (Config : String) return Background_Modes is
-     (if Ada.Characters.Handling.To_Lower (Setting (Config, "background")) = "fixed"
-      then Fixed else Watercolour);
-   --  "adaptive", which this was once called, is the watercolour too.
+     (Named (Ada.Characters.Handling.To_Lower (Setting (Config, "background"))));
+
+   --  "adaptive", which the watercolour was once called, is it still.
 
    procedure Save_Background (Config : String; To : Background_Modes) is
    begin

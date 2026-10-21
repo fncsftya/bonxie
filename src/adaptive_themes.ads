@@ -20,11 +20,18 @@ package Adaptive_Themes is
      with Post => Luminance'Result in 0.0 .. 1.0;
    --  How bright it looks, as the relative luminance of sRGB: 0.0 for black, 1.0 for white.
 
-   function Palette_For (Dark : Boolean; Hue : Hues) return Pomarine.Themes.Palette
+   subtype Strengths is Float range 0.0 .. 1.0;
+   --  How much of its hue a grey takes on, of what is made for it: 1.0 is the most.
+
+   type Strengths_Array is array (Positive range <>) of Strengths;
+
+   function Palette_For (Dark : Boolean; Hue : Hues; Strength : Strengths := 1.0) return Pomarine.Themes.Palette
      with Post => Palette_For'Result.Dark = Dark;
    --  The light palette, or the dark, with its greys in Hue.
 
-   function Grey (Value : Pomarine.Themes.Color; Dark : Boolean; Hue : Hues) return Pomarine.Themes.Color;
+   function Grey
+     (Value : Pomarine.Themes.Color; Dark : Boolean; Hue : Hues; Strength : Strengths := 1.0)
+      return Pomarine.Themes.Color;
    --  One of the greys the application makes for itself, in Hue as the palette's are (see Palette_For).
 
    function Retint

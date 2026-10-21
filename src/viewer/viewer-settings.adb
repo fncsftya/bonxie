@@ -37,11 +37,11 @@ package body Viewer.Settings is
    function Watercolour_Seed (Item : Session) return Natural is
      (Backgrounds.Seed_Number (Item.Host.Background));
 
-   procedure Reseed_Watercolour (Item : in out Session) is
+   procedure Reseed_Background (Item : in out Session; Mode : Preferences.Pictures) is
    begin
-      Settings_View.Choose_Background (Item, Preferences.Watercolour);
+      Settings_View.Choose_Background (Item, Mode);
       Settings_View.Reseed (Item);
-   end Reseed_Watercolour;
+   end Reseed_Background;
 
    function Is_Adaptive (Item : Session) return Boolean is (Item.Prefs.Adaptive_Shown);
 

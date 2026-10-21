@@ -209,46 +209,34 @@ package body Viewer.Responses is
       end if;
    end Choose_System;
 
-   procedure Choose_Fixed
+   --  A card of backgrounds is clicked, in its picture or its name: the one the widget is tagged with.
+   procedure Choose_Card
      (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
 
-   procedure Choose_Fixed
+   procedure Choose_Card
      (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
    is
-      pragma Unreferenced (Source, Event);
+      pragma Unreferenced (Source);
    begin
       if Settings_Open (Item) then
-         Settings_View.Choose_Background (Item, Preferences.Fixed);
+         Settings_View.Choose_Background (Item, Preferences.Background_Modes'Val (Event.Index));
       end if;
-   end Choose_Fixed;
+   end Choose_Card;
 
-   procedure Choose_Watercolour
+   --  The button on a card that is painted: another picture, which is the one chosen.
+   procedure Reseed_Card
      (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
 
-   procedure Choose_Watercolour
+   procedure Reseed_Card
      (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
    is
-      pragma Unreferenced (Source, Event);
+      pragma Unreferenced (Source);
    begin
       if Settings_Open (Item) then
-         Settings_View.Choose_Background (Item, Preferences.Watercolour);
-      end if;
-   end Choose_Watercolour;
-
-   procedure Reseed_Watercolour
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
-
-   procedure Reseed_Watercolour
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source, Event);
-   begin
-      if Settings_Open (Item) then
-         --  A new picture is for the card, so it is the one chosen.
-         Settings_View.Choose_Background (Item, Preferences.Watercolour);
+         Settings_View.Choose_Background (Item, Preferences.Background_Modes'Val (Event.Index));
          Settings_View.Reseed (Item);
       end if;
-   end Reseed_Watercolour;
+   end Reseed_Card;
 
    procedure Choose_MacOS
      (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
@@ -536,11 +524,13 @@ package body Viewer.Responses is
       Hear (Prefs.Theme_Light, Change, Choose_Light'Access);
       Hear (Prefs.Theme_Dark, Change, Choose_Dark'Access);
       Hear (Prefs.Theme_System, Change, Choose_System'Access);
-      Hear (Prefs.Fixed_Peek, Click, Choose_Fixed'Access);
-      Hear (Prefs.Fixed_Pick, Click, Choose_Fixed'Access);
-      Hear (Prefs.Water_Peek, Click, Choose_Watercolour'Access);
-      Hear (Prefs.Water_Pick, Click, Choose_Watercolour'Access);
-      Hear (Prefs.Water_Reseed, Click, Reseed_Watercolour'Access);
+      for Mode in Prefs.Cards'Range loop
+         Hear (Prefs.Cards (Mode).Peek, Click, Choose_Card'Access, Preferences.Background_Modes'Pos (Mode));
+         Hear (Prefs.Cards (Mode).Pick, Click, Choose_Card'Access, Preferences.Background_Modes'Pos (Mode));
+         if Mode in Preferences.Pictures then
+            Hear (Prefs.Cards (Mode).Reseed, Click, Reseed_Card'Access, Preferences.Background_Modes'Pos (Mode));
+         end if;
+      end loop;
       Hear (Prefs.AI_Enable, Change, Switch_AI'Access);
       Hear (Prefs.AI_Select, Click, Open_AI_Models'Access);
       Hear (Prefs.AI_Menu, Choose, Choose_AI_Model'Access);

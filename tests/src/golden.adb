@@ -1,4 +1,6 @@
 with Adaptive_Themes;
+with Backgrounds;
+with Ada.Characters.Handling;
 with Ada.Command_Line;
 with Ada.Directories;
 with Ada.Environment_Variables;
@@ -634,15 +636,15 @@ procedure Golden is
    Light_Y          : constant Float := 189.0;
    Dark_Y           : constant Float := 225.0;
    System_Y         : constant Float := 261.0;
-   --  Then Background's: two cards side by side, of a picture over a foot with its name, the
-   --  watercolour's with the button to paint another.
+   --  Then Background's: cards side by side, in a row that is scrolled across, each a picture over a
+   --  foot with its name, and those that are painted with the button to paint another.
    Fixed_Card_X     : constant Float := 150.0;
-   Water_Card_X     : constant Float := 680.0;
+   Water_Card_X     : constant Float := 530.0;
    Card_Y           : constant Float := 400.0;
-   Reseed_X         : constant Float := 820.0;
+   Reseed_X         : constant Float := 622.0;
    Reseed_Y         : constant Float := 492.0;
-   Native_Y         : constant Float := 702.0;
-   Parakeet_Y       : constant Float := 738.0;
+   Native_Y         : constant Float := 716.0;
+   Parakeet_Y       : constant Float := 752.0;
 
    procedure Home_Settings is
       use type Preferences.Speech_Models;
@@ -703,6 +705,21 @@ procedure Golden is
         ("settings-fixed-chosen", "TRUE",
          Boolean'Image (Settings.Background_Choice (Session) = Preferences.Fixed));
 
+      --  The others are in the row, past its end: each is chosen by name, and the row is scrolled to it.
+      for Mode in Preferences.Background_Modes loop
+         Settings.Choose_Background (Session, Mode);
+         Goldens.Check_Text
+           ("settings-chose-" & Ada.Characters.Handling.To_Lower (Preferences.Background_Modes'Image (Mode)),
+            "TRUE", Boolean'Image (Settings.Background_Choice (Session) = Mode));
+      end loop;
+      Settings.Choose_Background (Session, Preferences.Bauhaus);
+      Viewer.Render (Session, Drawn);
+      Goldens.Check ("settings-bauhaus-chosen-offscreen", Drawn);
+      Settings.Choose_Background (Session, Preferences.Ink_Wash);
+      Viewer.Render (Session, Drawn);
+      Goldens.Check ("settings-ink-wash-chosen-offscreen", Drawn);
+      Settings.Choose_Background (Session, Preferences.Fixed);
+
       --  Parakeet's file is to be fetched, if it is not there.
       Click_On (Session, Model_X, Parakeet_Y);
       Goldens.Check_Text
@@ -750,10 +767,18 @@ procedure Golden is
            ("settings-fixed-again", "TRUE",
             Boolean'Image (Settings.Background_Choice (Session) = Preferences.Fixed
                            and then Settings.Watercolour_Seed (Session) /= Before));
-         Settings.Reseed_Watercolour (Session);
-         Goldens.Check_Text
-           ("settings-reseeded-by-call", "TRUE",
-            Boolean'Image (Settings.Background_Choice (Session) = Preferences.Watercolour));
+         for Mode in Preferences.Pictures loop
+            declare
+               Seed : constant Natural := Settings.Watercolour_Seed (Session);
+            begin
+               Settings.Reseed_Background (Session, Mode);
+               Goldens.Check_Text
+                 ("settings-reseeded-" & Ada.Characters.Handling.To_Lower (Preferences.Background_Modes'Image (Mode)),
+                  "TRUE",
+                  Boolean'Image (Settings.Background_Choice (Session) = Mode
+                                 and then Settings.Watercolour_Seed (Session) /= Seed));
+            end;
+         end loop;
       end;
    end Home_Reseed;
 
@@ -764,9 +789,9 @@ procedure Golden is
    --  tell. The Test button runs a model, which is not for a golden (a
    --  model is gigabytes, and says what it likes): see mlx/tests.
    AI_Switch_X : constant Float := 160.0;
-   AI_Switch_Y : constant Float := 586.0;
+   AI_Switch_Y : constant Float := 600.0;
    AI_Field_X  : constant Float := 300.0;
-   AI_Field_Y  : constant Float := 661.0;
+   AI_Field_Y  : constant Float := 675.0;
    AI_Row_Gap  : constant Float := 26.0;
    --  The menu's rows are this far apart, the first this far under the
    --  field's middle (see AI_Row): None Selected, then the models in order
@@ -1024,6 +1049,12 @@ procedure Golden is
       Goldens.Check_Text
         ("preferences-background-none", "WATERCOLOUR",
          Preferences.Background_Modes'Image (Preferences.Load_Background (Config)));
+      for Mode in Preferences.Background_Modes loop
+         Preferences.Save_Background (Config, Mode);
+         Goldens.Check_Text
+           ("preferences-" & Ada.Characters.Handling.To_Lower (Preferences.Background_Modes'Image (Mode)) & "-kept",
+            "TRUE", Boolean'Image (Preferences.Load_Background (Config) = Mode));
+      end loop;
       Preferences.Save_Background (Config, Preferences.Fixed);
       Goldens.Check_Text
         ("preferences-fixed-kept", "TRUE",
@@ -1100,13 +1131,15 @@ procedure Golden is
          declare
             Base : constant Themes.Palette := (if Dark then Themes.Dark_Palette else Themes.Light_Palette);
          begin
-            for Step in 0 .. Steps - 1 loop
-               declare
-                  Hue  : constant Adaptive_Themes.Hues := Float (Step) / Float (Steps);
-                  Made : constant Themes.Palette := Adaptive_Themes.Palette_For (Dark, Hue);
-               begin
-                  Check_Against (Base, Made, Dark);
-               end;
+            for Strength of Adaptive_Themes.Strengths_Array'([0.35, 0.6, 1.0]) loop
+               for Step in 0 .. Steps - 1 loop
+                  declare
+                     Hue  : constant Adaptive_Themes.Hues := Float (Step) / Float (Steps);
+                     Made : constant Themes.Palette := Adaptive_Themes.Palette_For (Dark, Hue, Strength);
+                  begin
+                     Check_Against (Base, Made, Dark);
+                  end;
+               end loop;
             end loop;
             Moved := Moved
               and then Adaptive_Themes.Palette_For (Dark, 0.0).Background
@@ -1119,6 +1152,23 @@ procedure Golden is
             end;
          end;
       end loop;
+      --  The pictures and the choices of background are the same list, but for the plain one, and every
+      --  picture has a hue to tint with and keeps to what it may take of it.
+      declare
+         Same  : Boolean := True;
+         Tints : Boolean := True;
+      begin
+         for Mode in Preferences.Pictures loop
+            declare
+               Style : constant Backgrounds.Styles :=
+                 Backgrounds.Styles'Val (Preferences.Background_Modes'Pos (Mode) - 1);
+            begin
+               Same := Same and then Backgrounds.Styles'Image (Style) = Preferences.Background_Modes'Image (Mode);
+               Tints := Tints and then Backgrounds.Tint_Strength (Style) in 0.2 .. 1.0;
+            end;
+         end loop;
+         Goldens.Check_Text ("adaptive-styles-match-choices", "TRUE", Boolean'Image (Same and then Tints));
+      end;
       Goldens.Check_Text ("adaptive-text-reads", "TRUE", Boolean'Image (Worst > 0.97));
       Goldens.Check_Text ("adaptive-hue-moves-greys", "TRUE", Boolean'Image (Moved and then Tinted));
       Goldens.Check_Text ("adaptive-meanings-stay", "TRUE", Boolean'Image (Stayed));

@@ -51,13 +51,13 @@ package Viewer.Settings is
 
    function Watercolour_Seed (Item : Session) return Natural
      with Pre => Is_Open (Item);
-   --  Which watercolour is painted (or would be): the same on every run, until it is changed.
+   --  Which picture is painted, of whatever style (or would be): the same on every run, until it is changed.
 
-   procedure Reseed_Watercolour (Item : in out Session)
+   procedure Reseed_Background (Item : in out Session; Mode : Preferences.Pictures)
      with Pre  => Is_Open (Item),
           Post => Watercolour_Seed (Item) /= Watercolour_Seed (Item)'Old
-                  and then Preferences."=" (Background_Choice (Item), Preferences.Watercolour);
-   --  Paint another, and choose it, as the button on its card does.
+                  and then Preferences."=" (Background_Choice (Item), Mode);
+   --  Paint another picture, and choose the style of Mode, as the button on its card does.
 
    function Is_Adaptive (Item : Session) return Boolean
      with Pre => Is_Open (Item);

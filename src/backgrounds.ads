@@ -10,6 +10,14 @@ package Backgrounds is
 
    type Cache is new Ada.Finalization.Limited_Controlled with private;
 
+   type Styles is (Watercolour, Paper, Ink_Wash, Mist, Grain, Marbling, Risograph, Contours, Bauhaus);
+   --  The pictures that can be painted, in the order of the shader's kernels.
+
+   function Tint_Strength (Style : Styles) return Float
+     with Post => Tint_Strength'Result in 0.0 .. 1.0;
+   --  How much of the picture's hue the application's greys take on: a lot for the colourful, less
+   --  for the ones that are nearly grey.
+
    subtype Seed_Numbers is Natural range 0 .. 16#FF_FFFF#;
    --  Which painting: the shader is given this over 65536, so that it is kept and read back exactly,
    --  and is the same picture on every run.
@@ -27,10 +35,10 @@ package Backgrounds is
      with Post => Seed_Number (Item) /= Seed_Number (Item)'Old;
    --  Paint another picture, at its next drawing.
 
-   function Available (Item : Cache) return Boolean;
-   --  Whether there is a painting to show: the shader compiled and has not failed since.
+   function Available (Item : Cache; Style : Styles) return Boolean;
+   --  Whether there is a painting of Style to show: the shader compiled and has not failed since.
 
-   function Hue (Item : Cache) return Float
+   function Hue (Item : Cache; Style : Styles) return Float
      with Post => Hue'Result in 0.0 .. 1.0;
    --  The base hue the painting is made in, as a turn of the colour wheel, which the
    --  application's colours follow. It is the same whether the painting is light or dark, and
@@ -38,6 +46,7 @@ package Backgrounds is
 
    type Panel is new Pomarine.Widgets.Panels.Panel with record
       Painting : access Cache;
+      Style : Styles := Watercolour;
       Dark : Boolean := False;
    end record;
 
@@ -52,6 +61,7 @@ package Backgrounds is
 
    type Sample is new Pomarine.Widgets.Widget with record
       Painting : access Cache;
+      Style : Styles := Watercolour;
       --  The picture to show, small; none to show the theme's own background.
       Dark : Boolean := False;
       Look : Pomarine.Themes.Theme := Pomarine.Themes.Light;
@@ -80,17 +90,24 @@ private
       Wide, High : Natural := 0;
       Dark_Drawn : Boolean := False;
       Seed_Drawn : Seed_Numbers := 0;
+      Style_Drawn : Styles := Watercolour;
       --  What the pixels in Image are of: how big, light or dark, and which picture.
    end record;
+
+   type Style_Flags is array (Styles) of Boolean;
+   type Layer_Array is array (Styles) of Layer;
 
    type Cache is new Ada.Finalization.Limited_Controlled with record
       Native : System.Address := System.Null_Address;
       Seed : Seed_Numbers := 0;
       Failed : Boolean := False;
+      --  The shader would not compile.
+      Broken : Style_Flags := [others => False];
+      --  Which of the pictures would not paint.
       Main : Layer;
       --  The window's background.
-      Thumb : Layer;
-      --  The small picture in the settings.
+      Thumbs : Layer_Array;
+      --  The small pictures in the settings.
    end record;
 
    overriding procedure Finalize (Item : in out Cache);
