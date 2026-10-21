@@ -1,4 +1,5 @@
 with Ada.Exceptions;
+with Ada.Numerics.Elementary_Functions;
 with Ada.Text_IO;
 with Files;
 with Interfaces.C;
@@ -184,6 +185,44 @@ package body Backgrounds is
       end if;
    end Set_Look;
 
+   --  An image over a box, its top corners (those in Round) cut by a circle of Radius pixels, a row at a time,
+   --  as the painter has only rectangles to clip with.
+   procedure Draw_Cut
+     (Target : SDL3.Painters.Painter'Class;
+      Image  : Textures.Texture;
+      Left, Top, Wide, High : Float;
+      Radius : Float;
+      Round  : Pomarine.Boxes.Corner_Flags)
+   is
+      Saved : constant SDL3.Painters.Clip := Target.Current_Clip;
+      Rows  : constant Natural := Natural (Radius);
+
+      function Inset (Row : Natural) return Float is
+         Across : constant Float := Radius - Float (Row) - 0.5;
+      begin
+         return Float'Ceiling (Radius - Ada.Numerics.Elementary_Functions.Sqrt (Radius * Radius - Across * Across));
+      end Inset;
+   begin
+      if Rows = 0 or else (not Round.Top_Left and then not Round.Top_Right) then
+         Target.Draw_Scaled (Image, Left, Top, Wide, High);
+         return;
+      end if;
+      for Row in 0 .. Rows - 1 loop
+         declare
+            Cut_Left  : constant Float := (if Round.Top_Left then Inset (Row) else 0.0);
+            Cut_Right : constant Float := (if Round.Top_Right then Inset (Row) else 0.0);
+         begin
+            Target.Narrow_Clip
+              (Integer (Left + Cut_Left), Integer (Top) + Row, Integer (Wide - Cut_Left - Cut_Right), 1);
+            Target.Draw_Scaled (Image, Left, Top, Wide, High);
+            Target.Restore_Clip (Saved);
+         end;
+      end loop;
+      Target.Narrow_Clip (Integer (Left), Integer (Top) + Rows, Integer (Wide), Integer (High) - Rows);
+      Target.Draw_Scaled (Image, Left, Top, Wide, High);
+      Target.Restore_Clip (Saved);
+   end Draw_Cut;
+
    overriding procedure Draw
      (Item   : in out Sample;
       Target : SDL3.Painters.Painter'Class;
@@ -225,9 +264,12 @@ package body Backgrounds is
                  Positive (Float'Rounding (Wide)), Positive (Float'Rounding (High)), Item.Dark, Ready);
       end if;
       if Ready then
-         Target.Draw_Scaled (Item.Painting.Thumbs (Item.Style).Image, Left, Top, Wide, High);
+         Draw_Cut (Target, Item.Painting.Thumbs (Item.Style).Image, Left, Top, Wide, High,
+                   Pomarine.Boxes.Corner (Item.Radius, Density (Item)), Item.Round);
       else
-         Fill_Rect (Target, Look (Themes.Background), Left, Top, Wide, High);
+         Pomarine.Boxes.Fill_Round
+           (Target, Look (Themes.Background), Left, Top, Wide, High,
+            Pomarine.Boxes.Corner (Item.Radius, Density (Item)), Item.Round);
       end if;
       Box (0.05, 0.10, 0.17, 0.80, Look (Themes.Tint), Look (Themes.Border));
       Box (0.075, 0.18, 0.12, 0.12, Look (Themes.Primary), Look (Themes.Primary));

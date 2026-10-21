@@ -1,3 +1,4 @@
+with Pomarine.Boxes;
 with Pomarine.Themes;
 with Ada.Finalization;
 with System;
@@ -72,6 +73,10 @@ package Backgrounds is
       --  The picture to show, small; none to show the theme's own background.
       Dark : Boolean := False;
       Look : Pomarine.Themes.Theme := Pomarine.Themes.Light;
+      Radius : Float := 0.0;
+      Round : Pomarine.Boxes.Corner_Flags := Pomarine.Boxes.Top_Corners;
+      --  How round its top corners are, in points: as those of the box it is in, or its square corner would
+      --  show beyond the box's outline.
       --  The colours of the few boxes drawn over it, as a window's would be.
    end record;
    --  A small picture of a window: the background, and a sidebar, two cards and a button on it.

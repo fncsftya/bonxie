@@ -175,6 +175,7 @@ package body Viewer.Build.Settings_Form is
             Card : Background_Card renames Prefs.Cards (Mode);
          begin
             Set_Layout (Card.Sample, Grow => 1.0);
+            Card.Sample.Radius := Themes.Large_Radius;
             Build_Card (Card, Background_Name_Of (Mode));
             if Mode in Preferences.Pictures then
                Buttons.Set_Label (Card.Reseed, "New picture");

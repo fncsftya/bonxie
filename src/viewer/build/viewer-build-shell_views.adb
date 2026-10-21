@@ -123,7 +123,9 @@ package body Viewer.Build.Shell_Views is
            (Card.Panel, Flow => Column, Width => Card_Width, Height => Card_Height, Shrink => 0.0,
             Outlined => True, Shadowed => True);
          --  A line between the picture and what is below it.
+         Card.Picture.Set_Corners (Themes.Large_Radius, Pomarine.Boxes.Top_Corners);
          Grips.Set_Fill (Card.Peek, Themes.Border);
+         Grips.Set_Radius (Card.Peek, Themes.Large_Radius, Round => Pomarine.Boxes.Top_Corners);
          Grips.Set_Wanted_Cursor (Card.Peek, SDL3.Cursors.Pointer);
          Set_Layout (Card.Peek, Height => Thumb_Height, Flow => Column);
          Set_Layout (Card.Picture, Grow => 1.0, Margin => (Bottom => Hairline, others => <>));

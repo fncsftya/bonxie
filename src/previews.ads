@@ -1,4 +1,5 @@
 with Items;
+with Pomarine.Boxes;
 with SDL3.Painters;
 with Pomarine.Themes;
 with Pomarine.Widgets;
@@ -27,6 +28,12 @@ package Previews is
      with Pre => To'Length <= Max_Shown;
    --  Show these, in place of any before.
 
+   procedure Set_Corners
+     (Item : in out Preview; Radius : Float; Round : Pomarine.Boxes.Corner_Flags)
+     with Pre => Radius >= 0.0;
+   --  Cut the corners in Round of its ground by a circle of Radius points, as the corners of the box
+   --  it is in are: a square one would show beyond the box's rounded outline.
+
    procedure Clear (Item : in out Preview);
    --  Show none: the ground only.
 
@@ -38,6 +45,8 @@ package Previews is
 private
 
    type Preview is new Pomarine.Widgets.Widget with record
+      Radius : Float := 0.0;
+      Round : Pomarine.Boxes.Corner_Flags := Pomarine.Boxes.All_Corners;
       Count : Natural range 0 .. Max_Shown := 0;
       Cards : Card_Array (1 .. Max_Shown);
    end record;

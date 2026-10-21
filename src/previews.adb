@@ -1,4 +1,3 @@
-with Pomarine.Boxes;
 
 package body Previews is
 
@@ -24,6 +23,16 @@ package body Previews is
          Pomarine.Widgets.Invalidate (Item);
       end if;
    end Set_Cards;
+
+   procedure Set_Corners
+     (Item : in out Preview; Radius : Float; Round : Pomarine.Boxes.Corner_Flags) is
+   begin
+      Item.Radius := Radius;
+      Item.Round := Round;
+      if Pomarine.Widgets.Is_Attached (Item) then
+         Pomarine.Widgets.Invalidate (Item);
+      end if;
+   end Set_Corners;
 
    procedure Clear (Item : in out Preview) is
    begin
@@ -51,7 +60,9 @@ package body Previews is
         Pomarine.Themes.Mix (Colors (Pomarine.Themes.Face), Pomarine.Themes.White, 0.55);
       X, Y   : Float;
    begin
-      Fill_Rect (Target, Colors (Pomarine.Themes.Background), Left, Top, Wide, High);
+      Pomarine.Boxes.Fill_Round
+        (Target, Colors (Pomarine.Themes.Background), Left, Top, Wide, High,
+         Pomarine.Boxes.Corner (Item.Radius, Pixels), Item.Round);
       Y := Step / 2.0;
       while Y < High loop
          X := Step / 2.0;
