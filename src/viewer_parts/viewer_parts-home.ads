@@ -1,4 +1,5 @@
 with Projects;
+with Pomarine.Widgets.Checks;
 with Previews;
 with Pomarine.Widgets;
 with Pomarine.Widgets.Buttons;
@@ -86,6 +87,7 @@ package Viewer_Parts.Home is
       --  button to close it, as Cancel does.
       Dialog         : Pomarine.Widgets.Panels.Panel;
       Confirm_Message : Pomarine.Widgets.Labels.Label;
+      Delete_Documents : Pomarine.Widgets.Checks.Check;
       Confirm_Note   : Pomarine.Widgets.Labels.Label;
       Dialog_Rule    : Pomarine.Widgets.Panels.Panel;
       Confirm_Buttons : Pomarine.Widgets.Panels.Panel;

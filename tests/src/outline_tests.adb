@@ -896,6 +896,127 @@ package body Outline_Tests is
       Check ("overview-document-target", " 0", Docs.Document_Directory (Session, 3)'Image);
    end Section_Folders;
 
+   procedure Folder_Operations is
+      Session : Viewer.Session;
+      Check_X, Check_Y, Delete_X, Delete_Y : Float;
+
+      function Y (Row : Positive) return Float is
+        (174.5 + Float (Row - 1) * 38.0);
+
+      procedure Drag (From, Into : Positive; Offset : Float := 0.0) is
+      begin
+         Move_To (Session, 100.0, Y (From));
+         Press (Session, 100.0, Y (From));
+         Move_To (Session, 102.0, Y (From), Held => True);
+         Move_To (Session, 100.0, Y (Into) + Offset, Held => True);
+         Release (Session, 100.0, Y (Into) + Offset);
+         Settle (Session);
+      end Drag;
+
+      procedure Click (X, Y : Float) is
+      begin
+         Move_To (Session, X, Y);
+         Press (Session, X, Y);
+         Release (Session, X, Y);
+         Settle (Session);
+      end Click;
+
+      procedure Folder (Name : String) is
+      begin
+         Docs.Add_Directory (Session, Name);
+         Viewer.Handle
+           (Session, Events.Event'(Kind => Events.Key_Down, Key => Events.Key_Return, others => <>));
+         Settle (Session);
+      end Folder;
+
+      procedure Put (Name : String; Dir : Positive) is
+      begin
+         for Rank in 1 .. Docs.Document_Count (Session) loop
+            if Docs.Document_Title (Session, Rank) = Name then
+               Docs.Move_Document_To (Session, Rank, Dir);
+               exit;
+            end if;
+         end loop;
+         Settle (Session);
+      end Put;
+
+      procedure Ask (Dir : Positive) is
+      begin
+         Docs.Ask_Delete_Directory (Session, Dir);
+         Docs.Deletion_Points (Session, Check_X, Check_Y, Delete_X, Delete_Y);
+         Check ("folder-delete-default", "FALSE", Docs.Delete_Documents_Checked (Session)'Image);
+      end Ask;
+   begin
+      Viewer.Open (Session, "", Width, 640, 2.0);
+      Home.New_Project (Session);
+      Proj.Set_Mode (Session, Viewer.Canvas);
+      Windows.Add_Item (Session, "Alpha");
+      Windows.Add_Item (Session, "Bravo");
+      Windows.Add_Item (Session, "Outside");
+      Proj.Set_Mode (Session, Viewer.Write);
+      Folder ("Outer");
+      Folder ("Child");
+      Folder ("Grandchild");
+      Drag (5, 3, -8.0);
+      Check ("folder-before-sibling-document", " 3", Docs.Directory_Row (Session, 1)'Image);
+      Drag (3, 5, 8.0);
+      Check ("folder-after-sibling-document", " 5", Docs.Directory_Row (Session, 1)'Image);
+      Drag (7, 6);
+      Drag (6, 5);
+      Put ("Alpha", 1);
+      Put ("Bravo", 3);
+      --  The child folder also moves among documents inside Outer.
+      Drag (4, 7, 8.0);
+      Check ("folder-after-nested-sibling", " 5", Docs.Directory_Row (Session, 2)'Image);
+      Check ("folder-sibling-parent-unchanged", " 1", Docs.Directory_Parent (Session, 2)'Image);
+      Drag (5, 4, -8.0);
+      Check ("folder-before-nested-sibling", " 4", Docs.Directory_Row (Session, 2)'Image);
+      --  Overview, Outside, Outer and its subtree: move it before Outside.
+      Drag (3, 2, -8.0);
+      Check ("folder-block-before-document", " 2", Docs.Directory_Row (Session, 1)'Image);
+      Reopen (Session);
+      Check ("folder-sibling-order-kept", " 2", Docs.Directory_Row (Session, 1)'Image);
+      Check ("folder-nested-sibling-order-kept", " 3", Docs.Directory_Row (Session, 2)'Image);
+      Docs.Show_Directory (Session, 3);
+      Ask (1);
+      Snap (Session, "write-delete-folder-default");
+      Click (Check_X, Check_Y);
+      Check ("folder-delete-checkbox", "TRUE", Docs.Delete_Documents_Checked (Session)'Image);
+      Viewer.Handle
+        (Session, Events.Event'(Kind => Events.Key_Down, Key => Events.Key_Escape, others => <>));
+      Check ("folder-delete-cancel-subtree", " 3", Docs.Directory_Count (Session)'Image);
+      Check ("folder-delete-cancel-documents", " 3", Docs.Document_Count (Session)'Image);
+      Ask (1);
+      Click (Delete_X, Delete_Y);
+      Check ("folder-subtree-removed", " 0", Docs.Directory_Count (Session)'Image);
+      Check ("folder-deleted-view-reset", " 0", Docs.Shown_Directory (Session)'Image);
+      Check ("folder-subtree-documents-kept", " 3", Docs.Document_Count (Session)'Image);
+      for Rank in 1 .. Docs.Document_Count (Session) loop
+         Check ("folder-kept-document-at-root", " 0", Docs.Document_Directory (Session, Rank)'Image);
+      end loop;
+      Reopen (Session);
+      Check ("folder-subtree-deletion-kept", " 0", Docs.Directory_Count (Session)'Image);
+      Check ("folder-documents-retained-kept", " 3", Docs.Document_Count (Session)'Image);
+
+      Folder ("Outer");
+      Folder ("Child");
+      Folder ("Grandchild");
+      Drag (7, 6);
+      Drag (6, 5);
+      Put ("Alpha", 1);
+      Put ("Bravo", 3);
+      Ask (1);
+      Click (Check_X, Check_Y);
+      Snap (Session, "write-delete-folder-documents");
+      Click (Delete_X, Delete_Y);
+      Check ("folder-subtree-and-documents-removed", " 0", Docs.Directory_Count (Session)'Image);
+      Check ("folder-outside-document-retained", " 1", Docs.Document_Count (Session)'Image);
+      Check ("folder-outside-document-title", "Outside", Docs.Document_Title (Session, 1));
+      Reopen (Session);
+      Check ("folder-subtree-and-documents-kept", " 0", Docs.Directory_Count (Session)'Image);
+      Check ("folder-document-deletions-kept", " 1", Docs.Document_Count (Session)'Image);
+   end Folder_Operations;
+
    procedure Naming is
       Session : Viewer.Session;
 

@@ -98,27 +98,10 @@ package body Viewer.Writing.Row_Drags is
             if Node.Kind = Document_Leaf and then Support.Within (Item, Node.Dir, Moving.Dir) then
                return (others => <>);
             end if;
-            --  Whole units of the top level: the directory with its
-            --  documents, or a document in none.
-            declare
-               First : constant Natural :=
-                 (case Node.Kind is
-                  when Overview_Node => 0,
-                  when Directory_Node => Row,
-                  when Document_Leaf =>
-                    (if Node.Dir = 0 then Row else Support.Dir_Row (Item, Node.Dir)));
-            begin
-               if First = 0 then
-                  return (others => <>);
-               end if;
-               declare
-                  Last : constant Positive := Support.Block_End (Item, First);
-               begin
-                  return (if Point < (Top (First) + Bottom (Last)) / 2.0
-                          then Between (First, Support.Parent_Of (Item, Item.Docs.Tree (First).Dir))
-                          else Between (Last + 1, Support.Parent_Of (Item, Item.Docs.Tree (First).Dir)));
-               end;
-            end;
+            --  A folder can stand beside a document in the same parent,
+            --  before or after that document rather than its whole folder.
+            return (if Fract < 0.5 then Between (Row, Node.Dir)
+                    else Between (Row + 1, Node.Dir));
          end if;
          case Node.Kind is
             when Overview_Node =>

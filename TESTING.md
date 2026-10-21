@@ -68,6 +68,11 @@ nested folder drops and cycle rejection, document and folder creation from conte
 menus in Overview and folders, Escape dismissal,
 document outline membership at multiple depths, and persistence after reopening.
 
+`outline-folder-operations` checks folder ordering before and after sibling
+documents at multiple levels, deleting whole folder subtrees while retaining
+documents, the optional deletion of documents, cancellation, checkbox defaults,
+and persistence after reopening.
+
 ## Find Sources
 
 `finding-queries` and `finding-evaluations` check how the model's replies are

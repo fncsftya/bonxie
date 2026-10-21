@@ -52,6 +52,12 @@ package Viewer.Documents is
      with Pre => Is_Open (Item) and then Screen (Item) = Project;
    --  How many directories the documents are in.
 
+   procedure Ask_Delete_Directory (Item : in out Session; Dir : Positive)
+     with Pre => Dir <= Directory_Count (Item);
+   procedure Deletion_Points (Item : Session; Check_X, Check_Y, Delete_X, Delete_Y : out Float);
+   function Delete_Documents_Checked (Item : Session) return Boolean;
+   function Directory_Row (Item : Session; Dir : Positive) return Natural;
+
    function Directory_Parent (Item : Session; Row : Positive) return Natural
      with Pre => Row <= Directory_Count (Item);
 

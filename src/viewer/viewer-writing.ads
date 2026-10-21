@@ -142,11 +142,12 @@ private package Viewer.Writing is
       Event  : Pomarine.Widgets.Widget_Event);
    --  A row of the sources' list: its Index is the row.
 
-   procedure Delete_Node (Item : in out Session; Node : Tree_Entry)
+   procedure Delete_Node
+     (Item : in out Session; Node : Tree_Entry; Delete_Documents : Boolean := False)
      with Pre => Screen (Item) = Project
                  and then Node.Kind /= Overview_Node;
-   --  Delete the document, or the directory (whose documents are kept,
-   --  in none), and keep that.
+   --  Delete a document or a folder subtree. Keep its documents at the top
+   --  level unless Delete_Documents is selected.
 
    procedure Make_Directory (Item : in out Session; Name : String);
    --  Make a directory, put its row last of the directories, and begin to

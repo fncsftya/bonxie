@@ -1242,6 +1242,7 @@ begin
    Run ("outline-sidebar", Outline_Tests.Sidebar'Access);
    Run ("outline-tiers", Outline_Tests.Tiers'Access);
    Run ("outline-section-rows", Outline_Tests.Section_Rows'Access);
+   Run ("outline-folder-operations", Outline_Tests.Folder_Operations'Access);
    Run ("outline-section-folders", Outline_Tests.Section_Folders'Access);
    Run ("outline-writing-sections", Outline_Tests.Writing_Sections'Access);
    Run ("outline-menu-fitting", Outline_Tests.Menu_Fitting'Access);

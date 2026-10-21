@@ -12,10 +12,11 @@ private package Viewer.Writing.Context is
    procedure Do_Context (Item : in out Session; Chosen : Positive);
    --  Do what the row clicked of the menu does, and put it away.
 
-   procedure Delete_Tree_Node (Item : in out Session; Node : Tree_Entry)
+   procedure Delete_Tree_Node
+     (Item : in out Session; Node : Tree_Entry; Delete_Documents : Boolean := False)
      with Pre => Screen (Item) = Project
                  and then Node.Kind /= Overview_Node;
-   --  Delete the document, or the directory (whose documents are kept,
-   --  in none), and keep that.
+   --  Delete a document or a folder subtree. Keep its documents at the top
+   --  level unless Delete_Documents is selected.
 
 end Viewer.Writing.Context;

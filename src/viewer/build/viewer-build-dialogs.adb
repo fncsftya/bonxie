@@ -1,4 +1,5 @@
 with Icon_Set;
+with Pomarine.Widgets.Checks;
 with Pomarine.Icons;
 with Pomarine.Line_Texts;
 with Pomarine.Themes;
@@ -63,7 +64,11 @@ package body Viewer.Build.Dialogs is
       Widgets.Add (Ask.Dialog_Border, Ask.Dialog_Bar);
       Widgets.Add (Ask.Dialog_Bar, Ask.Dialog_Title, Ask.Dialog_Close);
       Widgets.Add (Ask.Dialog_Border, Ask.Dialog);
-      Widgets.Add (Ask.Dialog, Ask.Confirm_Message, Ask.Confirm_Note);
+      Widgets.Add (Ask.Dialog, Ask.Confirm_Message, Ask.Confirm_Note, Ask.Delete_Documents);
+      Pomarine.Widgets.Checks.Set_Label (Ask.Delete_Documents, "Delete documents too");
+      Pomarine.Widgets.Checks.Set_Focusable (Ask.Delete_Documents, True);
+      Set_Layout (Ask.Delete_Documents, Height => Dialog_Line);
+      Widgets.Set_Visible (Ask.Delete_Documents, False);
       Widgets.Add (Ask.Dialog_Border, Ask.Dialog_Rule, Ask.Confirm_Buttons);
       Widgets.Add (Ask.Confirm_Buttons, Ask.Confirm_Cancel, Ask.Confirm_Delete);
 

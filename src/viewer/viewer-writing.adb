@@ -656,7 +656,8 @@ package body Viewer.Writing is
    procedure Open_Context
      (Item : in out Session; X, Y : Float; Opened : out Boolean) renames Context.Open_At;
 
-   procedure Delete_Node (Item : in out Session; Node : Tree_Entry) renames Context.Delete_Tree_Node;
+   procedure Delete_Node
+     (Item : in out Session; Node : Tree_Entry; Delete_Documents : Boolean := False) renames Context.Delete_Tree_Node;
 
    procedure Make_Directory (Item : in out Session; Name : String) renames Rename.New_Directory;
 

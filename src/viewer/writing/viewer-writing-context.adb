@@ -27,7 +27,6 @@ package body Viewer.Writing.Context is
 
    use type Widgets.Clipboard_Access;
    use type Items.States;
-   use type Items.Id;
 
    procedure Show_Context
      (Item : in out Session; Kind : Context_Kinds; X, Y : Float);
@@ -394,65 +393,53 @@ package body Viewer.Writing.Context is
       end case;
    end Do_Context;
 
-   procedure Remove_Directory (Item : in out Session; Dir : Positive);
-   --  Take the directory out, its documents being in none, where they are.
-
-   procedure Remove_Directory (Item : in out Session; Dir : Positive) is
+   procedure Remove_Directory
+     (Item : in out Session; Dir : Positive; Delete_Documents : Boolean)
+   is
+      Keys : Items.Id_List;
+      Documents : array (1 .. Item.Windows.Count) of Boolean := [others => False];
    begin
       if Support.Is_Section (Item, Dir) then
          return;
       end if;
-      Items.Directories.Delete_Directory (Item.Nav.Store,
-                              Item.Docs.Dirs (Dir).Key);
-      for Folder of Item.Docs.Dirs loop
-         if Folder.Parent = Item.Docs.Dirs (Dir).Key then
-            Folder.Parent := 0;
+      --  Capture membership before removing anything: removal rebuilds
+      --  rows and can change directory indices and document order.
+      for Each in 1 .. Item.Docs.Dirs.Count loop
+         if Support.Within (Item, Each, Dir) then
+            Keys.Append (Item.Docs.Dirs (Each).Key);
          end if;
       end loop;
-      --  Those in it are in none; the directories after it are one
-      --  sooner.
+      pragma Assert (Keys.Count > 0);
       for Which in 1 .. Item.Windows.Count loop
-         if Item.Docs.Doc_Dir (Which) = Dir then
-            Item.Docs.Doc_Dir (Which) := 0;
-         elsif Item.Docs.Doc_Dir (Which) > Dir then
-            Item.Docs.Doc_Dir (Which) := Item.Docs.Doc_Dir (Which) - 1;
-         end if;
+         Documents (Which) := Support.Is_Note (Item, Which)
+           and then Support.Within (Item, Item.Docs.Doc_Dir (Which), Dir);
       end loop;
-      Order.Delete_Row (Item, Support.Dir_Row (Item, Dir));
-      for Row in 2 .. Item.Docs.Tree_Count loop
-         if Item.Docs.Tree (Row).Dir = Dir
-           and then Item.Docs.Tree (Row).Kind = Document_Leaf
-         then
-            Item.Docs.Tree (Row).Dir := 0;
-         elsif Item.Docs.Tree (Row).Dir > Dir then
-            Item.Docs.Tree (Row).Dir := Item.Docs.Tree (Row).Dir - 1;
-         end if;
-      end loop;
-      for Each in Dir .. Item.Docs.Dirs.Count - 1 loop
-         Item.Docs.Dirs (Each) := Item.Docs.Dirs (Each
-            + 1);
-      end loop;
-      Item.Docs.Dirs.Count := Item.Docs.Dirs.Count - 1;
-      if Item.Docs.Shown_Dir = Dir then
-         Item.Docs.Shown_Dir := 0;
-      elsif Item.Docs.Shown_Dir > Dir then
-         Item.Docs.Shown_Dir := Item.Docs.Shown_Dir - 1;
+      if Delete_Documents then
+         for Which in 1 .. Item.Windows.Count loop
+            if Documents (Which) then
+               Canvas_Items.Remove (Item, Which);
+            end if;
+         end loop;
       end if;
+      for Key of Keys loop
+         Items.Directories.Delete_Directory (Item.Nav.Store, Key);
+      end loop;
+      Tree.Rebuild (Item);
       Order.Keep_Order (Item);
       Outlines.Reload (Item);
       Item.Section_Menu.Changes := Item.Section_Menu.Changes + 1;
       Item.Section_Menu.Seen := Item.Section_Menu.Changes;
-      Tree.Rebuild (Item);
       Tree.Show_Directory (Item, Item.Docs.Shown_Dir);
    end Remove_Directory;
 
-   procedure Delete_Tree_Node (Item : in out Session; Node : Tree_Entry) is
+   procedure Delete_Tree_Node
+     (Item : in out Session; Node : Tree_Entry; Delete_Documents : Boolean := False) is
    begin
       case Node.Kind is
          when Document_Leaf =>
             Canvas_Items.Remove (Item, Node.Doc);
          when Directory_Node =>
-            Remove_Directory (Item, Node.Dir);
+            Remove_Directory (Item, Node.Dir, Delete_Documents);
          when Overview_Node =>
             null;
       end case;

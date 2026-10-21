@@ -1,4 +1,5 @@
 with Pomarine.Widgets;
+with Pomarine.Widgets.Checks;
 with Viewer.Recent;
 with Viewer.Writing;
 
@@ -65,6 +66,8 @@ package body Viewer.Deletion is
                 (Items.Windows.Details (Item.Windows (Node.Doc)).Title));
    begin
       Item.Confirm.Deleting_Node := Node;
+      Pomarine.Widgets.Checks.Set_Checked (Item.Confirm.Delete_Documents, False);
+      Widgets.Set_Visible (Item.Confirm.Delete_Documents, Node.Kind = Directory_Node);
       Labels.Set_Text
         (Item.Confirm.Dialog_Title,
          (if Node.Kind = Directory_Node then "Delete folder"
@@ -75,7 +78,7 @@ package body Viewer.Deletion is
       Labels.Set_Text (Item.Confirm.Confirm_Message, Asked (Name));
       Labels.Set_Text
         (Item.Confirm.Confirm_Note,
-         (if Node.Kind = Directory_Node then "Its documents are kept."
+         (if Node.Kind = Directory_Node then "This also deletes all subfolders."
           else "This cannot be undone."));
       Show_Dialog (Item);
    end Confirm_Node;
@@ -95,6 +98,8 @@ package body Viewer.Deletion is
 
    procedure Close (Item : in out Session) is
    begin
+      Widgets.Set_Visible (Item.Confirm.Delete_Documents, False);
+      Pomarine.Widgets.Checks.Set_Checked (Item.Confirm.Delete_Documents, False);
       Item.Confirm.Deleting_Model := False;
       Item.Confirm.Deleting := 0;
       Item.Confirm.Deleting_Node := (others => <>);
@@ -109,10 +114,12 @@ package body Viewer.Deletion is
    procedure Delete_Confirmed (Item : in out Session) is
       Key  : constant Projects.Id := Item.Confirm.Deleting;
       Node : constant Tree_Entry := Item.Confirm.Deleting_Node;
+      Delete_Documents : constant Boolean :=
+        Pomarine.Widgets.Checks.Is_Checked (Item.Confirm.Delete_Documents);
    begin
       Close (Item);
       if Node.Kind /= Overview_Node then
-         Writing.Delete_Node (Item, Node);
+         Writing.Delete_Node (Item, Node, Delete_Documents);
       else
          Projects.Delete (Item.Nav.Store, Key);
          Recent.Refresh (Item);

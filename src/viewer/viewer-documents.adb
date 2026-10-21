@@ -1,4 +1,6 @@
 with Items.Windows;
+with Viewer.Deletion;
+with Pomarine.Widgets.Checks;
 with Viewer.Writing;
 with Pomarine.Widgets;
 with Pomarine.Widgets.Editors;
@@ -43,6 +45,37 @@ package body Viewer.Documents is
       X := X / Pixels;
       Y := Y / Pixels;
    end Find_Sources_Point;
+
+   procedure Ask_Delete_Directory (Item : in out Session; Dir : Positive) is
+   begin
+      Deletion.Confirm_Node (Item, (Kind => Directory_Node, Dir => Dir, Doc => 0));
+   end Ask_Delete_Directory;
+
+   function Delete_Documents_Checked (Item : Session) return Boolean is
+     (Pomarine.Widgets.Checks.Is_Checked (Item.Confirm.Delete_Documents));
+
+   procedure Deletion_Points (Item : Session; Check_X, Check_Y, Delete_X, Delete_Y : out Float) is
+      package Widgets renames Pomarine.Widgets;
+      Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
+   begin
+      Check_X := (Widgets.Left_Of (Item.Confirm.Delete_Documents) + 10.0 * Pixels) / Pixels;
+      Check_Y := (Widgets.Top_Of (Item.Confirm.Delete_Documents)
+                  + Widgets.Height_Of (Item.Confirm.Delete_Documents) / 2.0) / Pixels;
+      Delete_X := (Widgets.Left_Of (Item.Confirm.Confirm_Delete)
+                   + Widgets.Width_Of (Item.Confirm.Confirm_Delete) / 2.0) / Pixels;
+      Delete_Y := (Widgets.Top_Of (Item.Confirm.Confirm_Delete)
+                   + Widgets.Height_Of (Item.Confirm.Confirm_Delete) / 2.0) / Pixels;
+   end Deletion_Points;
+
+   function Directory_Row (Item : Session; Dir : Positive) return Natural is
+   begin
+      for Row in 1 .. Item.Docs.Tree_Count loop
+         if Item.Docs.Tree (Row).Kind = Directory_Node and then Item.Docs.Tree (Row).Dir = Dir then
+            return Row;
+         end if;
+      end loop;
+      return 0;
+   end Directory_Row;
 
    function Context_Open (Item : Session) return Boolean is
      (Item.Context.Context_Kind /= No_Context);
