@@ -25,9 +25,20 @@ private package Viewer.Settings_View is
    --  Choose the appearance of the windows, and keep the choice. The
    --  windows are drawn in it now (see Apply_Theme).
 
+   procedure Choose_Background
+     (Item : in out Session; To : Preferences.Background_Modes)
+     with Post => Preferences."=" (Item.Prefs.Background_Chosen, To);
+   --  Choose whether the windows have a painted background, with colours that go with it
+   --  (Watercolour), or the theme's own on a plain one (Fixed), and keep the choice. It is
+   --  drawn so now (see Apply_Theme).
+
+   procedure Reseed (Item : in out Session);
+   --  Paint another watercolour, and keep which it is. It is drawn so now if it is the background.
+
    procedure Apply_Theme (Item : in out Session);
-   --  Draw in the theme the choice makes now: the system's, for System,
-   --  which may have changed. Whatever is drawn is drawn again if the
+   --  Draw in the theme the choices make now: the system's, for System,
+   --  which may have changed; with the painted background, if Watercolour is
+   --  chosen and there is one. Whatever is drawn is drawn again if the
    --  theme has changed.
 
    procedure Download (Item : in out Session)

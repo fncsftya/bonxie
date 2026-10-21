@@ -11,6 +11,11 @@ package Preferences is
    --  The appearance of the windows: light, dark, or the system's, which
    --  follows its light or dark appearance as it changes.
 
+   type Background_Modes is (Fixed, Watercolour);
+   --  What the windows are drawn on: Fixed, the theme's own colours on a plain
+   --  background; or Watercolour, a painted background and colours worked out
+   --  from it (adapted to it), light or dark as the theme is.
+
    function Config_Directory (Store_Path : String) return String
      with Post => Config_Directory'Result /= "";
    --  The folder the projects database at Store_Path is in:
@@ -34,6 +39,26 @@ package Preferences is
 
    procedure Save_Theme (Config : String; To : Theme_Choices);
    --  Keep the choice, making Config if need be.
+
+   function Load_Background (Config : String) return Background_Modes;
+   --  The one chosen, Watercolour if none was or it cannot be read.
+
+   procedure Save_Background (Config : String; To : Background_Modes);
+   --  Keep the choice, making Config if need be.
+
+   Seed_Limit : constant := 2 ** 24;
+
+   function Has_Seed (Config : String) return Boolean;
+   --  Whether a watercolour's seed has been kept.
+
+   function Load_Seed (Config : String) return Natural
+     with Pre => Has_Seed (Config), Post => Load_Seed'Result < Seed_Limit;
+   --  The seed of the watercolour the windows were last painted with, so that it is the same
+   --  picture on every run.
+
+   procedure Save_Seed (Config : String; To : Natural)
+     with Pre => To < Seed_Limit;
+   --  Keep it, making Config if need be.
 
    function Load_AI_Enabled (Config : String) return Boolean;
    --  Whether the local language model is switched on: False if none was

@@ -1,3 +1,4 @@
+with Adaptive_Themes;
 with Ada.Command_Line;
 with Ada.Directories;
 with Ada.Environment_Variables;
@@ -7,13 +8,16 @@ with Ada.Strings.Fixed;
 with Ada.Text_IO;
 with SDL3.Cursors;
 with SDL3.Events;
+with SDL3.Windows.Renderers;
 with Downloads;
+with Files;
 with Goldens;
 with Finding_Tests;
 with Item_Tests;
 with Layout_Tests;
 with Outline_Tests;
 with MLX.Jobs;
+with Pomarine.Themes;
 with Preferences;
 with Projects;
 with Speech.Jobs;
@@ -630,12 +634,20 @@ procedure Golden is
    Light_Y          : constant Float := 189.0;
    Dark_Y           : constant Float := 225.0;
    System_Y         : constant Float := 261.0;
-   Native_Y         : constant Float := 456.0;
-   Parakeet_Y       : constant Float := 492.0;
+   --  Then Background's: two cards side by side, of a picture over a foot with its name, the
+   --  watercolour's with the button to paint another.
+   Fixed_Card_X     : constant Float := 150.0;
+   Water_Card_X     : constant Float := 680.0;
+   Card_Y           : constant Float := 400.0;
+   Reseed_X         : constant Float := 820.0;
+   Reseed_Y         : constant Float := 492.0;
+   Native_Y         : constant Float := 702.0;
+   Parakeet_Y       : constant Float := 738.0;
 
    procedure Home_Settings is
       use type Preferences.Speech_Models;
       use type Preferences.Theme_Choices;
+      use type Preferences.Background_Modes;
       Session : Viewer.Session;
       Drawn   : Images.Image;
    begin
@@ -673,6 +685,24 @@ procedure Golden is
          Boolean'Image (Settings.Theme_Choice (Session) = Preferences.System));
       Click_On (Session, Model_X, Light_Y);
 
+      --  The watercolour is for a window, which has a painting to go with it: offscreen, it is chosen
+      --  and kept, and the theme's own colours are drawn all the same. Its card is clicked in its
+      --  picture or in its foot.
+      Goldens.Check_Text
+        ("settings-background-default", "FIXED",
+         Preferences.Background_Modes'Image (Settings.Background_Choice (Session)));
+      Click_On (Session, Water_Card_X, Card_Y);
+      Goldens.Check_Text
+        ("settings-watercolour-chosen", "TRUE",
+         Boolean'Image (Settings.Background_Choice (Session) = Preferences.Watercolour
+                        and then not Settings.Is_Adaptive (Session)));
+      Viewer.Render (Session, Drawn);
+      Goldens.Check ("settings-watercolour-chosen-offscreen", Drawn);
+      Click_On (Session, Fixed_Card_X, Card_Y);
+      Goldens.Check_Text
+        ("settings-fixed-chosen", "TRUE",
+         Boolean'Image (Settings.Background_Choice (Session) = Preferences.Fixed));
+
       --  Parakeet's file is to be fetched, if it is not there.
       Click_On (Session, Model_X, Parakeet_Y);
       Goldens.Check_Text
@@ -699,6 +729,34 @@ procedure Golden is
          Boolean'Image (Settings.Is_Settings_Open (Session)));
    end Home_Settings;
 
+   --  The button on the watercolour's card paints another, and chooses it. Which is the clock's, so
+   --  nothing here is drawn for a golden.
+   procedure Home_Reseed is
+      use type Preferences.Background_Modes;
+      Session : Viewer.Session;
+   begin
+      Viewer.Open (Session, "", Home_Width, Home_Height);
+      Click_On (Session, Actions_X, Settings_Y);
+      declare
+         Before : constant Natural := Settings.Watercolour_Seed (Session);
+      begin
+         Click_On (Session, Reseed_X, Reseed_Y);
+         Goldens.Check_Text
+           ("settings-reseeded", "TRUE",
+            Boolean'Image (Settings.Watercolour_Seed (Session) /= Before
+                           and then Settings.Background_Choice (Session) = Preferences.Watercolour));
+         Click_On (Session, Fixed_Card_X, Card_Y);
+         Goldens.Check_Text
+           ("settings-fixed-again", "TRUE",
+            Boolean'Image (Settings.Background_Choice (Session) = Preferences.Fixed
+                           and then Settings.Watercolour_Seed (Session) /= Before));
+         Settings.Reseed_Watercolour (Session);
+         Goldens.Check_Text
+           ("settings-reseeded-by-call", "TRUE",
+            Boolean'Image (Settings.Background_Choice (Session) = Preferences.Watercolour));
+      end;
+   end Home_Reseed;
+
    --  The AI settings, in a window that is the same: the switch is under
    --  its heading, and with it on the Model field, which opens a menu of
    --  the models in the Hugging Face cache, here a made one in a folder
@@ -706,9 +764,9 @@ procedure Golden is
    --  tell. The Test button runs a model, which is not for a golden (a
    --  model is gigabytes, and says what it likes): see mlx/tests.
    AI_Switch_X : constant Float := 160.0;
-   AI_Switch_Y : constant Float := 340.0;
+   AI_Switch_Y : constant Float := 586.0;
    AI_Field_X  : constant Float := 300.0;
-   AI_Field_Y  : constant Float := 415.0;
+   AI_Field_Y  : constant Float := 661.0;
    AI_Row_Gap  : constant Float := 26.0;
    --  The menu's rows are this far apart, the first this far under the
    --  field's middle (see AI_Row): None Selected, then the models in order
@@ -931,6 +989,7 @@ procedure Golden is
       Config : constant String := "/tmp/bonxie-preferences-test";
       use type Preferences.Speech_Models;
       use type Preferences.Theme_Choices;
+      use type Preferences.Background_Modes;
    begin
       if Ada.Directories.Exists (Config) then
          Ada.Directories.Delete_Tree (Config);
@@ -960,8 +1019,144 @@ procedure Golden is
          Boolean'Image (Preferences.Load_Theme (Config) = Preferences.System
                         and then Preferences.Load_Speech_Model (Config)
                                  = Preferences.MacOS));
+
+      --  The background is its own choice: Adaptive when none was made, and saving it keeps the theme.
+      Goldens.Check_Text
+        ("preferences-background-none", "WATERCOLOUR",
+         Preferences.Background_Modes'Image (Preferences.Load_Background (Config)));
+      Preferences.Save_Background (Config, Preferences.Fixed);
+      Goldens.Check_Text
+        ("preferences-fixed-kept", "TRUE",
+         Boolean'Image (Preferences.Load_Background (Config) = Preferences.Fixed
+                        and then Preferences.Load_Theme (Config) = Preferences.System));
+      Preferences.Save_Background (Config, Preferences.Watercolour);
+      Goldens.Check_Text
+        ("preferences-watercolour-kept", "TRUE",
+         Boolean'Image (Preferences.Load_Background (Config) = Preferences.Watercolour
+                        and then Preferences.Load_Theme (Config) = Preferences.System));
+
+      --  Which watercolour is kept too, whole: it is the same picture on every run. A word that is not a
+      --  number is no seed.
+      Goldens.Check_Text ("preferences-seed-none", "FALSE", Boolean'Image (Preferences.Has_Seed (Config)));
+      Preferences.Save_Seed (Config, 14_591_295);
+      Preferences.Save_Seed (Config, Preferences.Seed_Limit - 1);
+      Goldens.Check_Text
+        ("preferences-seed-kept", "TRUE",
+         Boolean'Image (Preferences.Has_Seed (Config)
+                        and then Preferences.Load_Seed (Config) = Preferences.Seed_Limit - 1
+                        and then Preferences.Load_Background (Config) = Preferences.Watercolour
+                        and then Preferences.Load_Theme (Config) = Preferences.System));
+      Preferences.Save_Seed (Config, 0);
+      Goldens.Check_Text
+        ("preferences-seed-zero", "TRUE",
+         Boolean'Image (Preferences.Has_Seed (Config) and then Preferences.Load_Seed (Config) = 0));
+      Files.Write (Config & "/settings", "watercolour_seed=twelve" & ASCII.LF);
+      Goldens.Check_Text ("preferences-seed-garbled", "FALSE", Boolean'Image (Preferences.Has_Seed (Config)));
+      Files.Write (Config & "/settings", "background=adaptive" & ASCII.LF);
+      Goldens.Check_Text
+        ("preferences-adaptive-is-watercolour", "WATERCOLOUR",
+         Preferences.Background_Modes'Image (Preferences.Load_Background (Config)));
       Ada.Directories.Delete_Tree (Config);
    end Preferences_Kept;
+
+   --  The colours that go with a painting, whatever hue it is made in, read as well as the theme's
+   --  own: text on each surface it is drawn on, and light text on the dark bars, keep 97% of the
+   --  contrast they have in the library's themes (the rest is the rounding of a colour to bytes), and what means
+   --  something in itself does not move.
+   procedure Adaptive_Palettes is
+      package Themes renames Pomarine.Themes;
+      use type Themes.Color;
+      use type SDL3.Windows.Renderers.Color_Component;
+      Steps  : constant := 48;
+      Worst  : Float := Float'Last;
+      Moved  : Boolean := True;
+      Stayed : Boolean := True;
+      Tinted : Boolean := True;
+
+      procedure Check_Against (Base, Made : Themes.Palette; Dark : Boolean) is
+         Bar : constant Themes.Theme := Themes.Make (Made);
+
+         procedure Read (Ink, Surface : Themes.Color; Was : Themes.Color; Was_Surface : Themes.Color) is
+            Kept : constant Float :=
+              Adaptive_Themes.Contrast (Ink, Surface) / Adaptive_Themes.Contrast (Was, Was_Surface);
+         begin
+            Worst := Float'Min (Worst, Kept);
+         end Read;
+      begin
+         Read (Made.Foreground, Made.Background, Base.Foreground, Base.Background);
+         Read (Made.Foreground, Made.Page, Base.Foreground, Base.Page);
+         Read (Made.Foreground, Made.Face, Base.Foreground, Base.Face);
+         Read (Made.Foreground, Made.Face_Hover, Base.Foreground, Base.Face_Hover);
+         Read (Made.Foreground, Made.Face_Pressed, Base.Foreground, Base.Face_Pressed);
+         Read (Made.Foreground, Made.Tint, Base.Foreground, Base.Tint);
+         Read (Themes.Soft_White, Made.Bar, Themes.Soft_White, Base.Bar);
+         Read (Bar (Themes.Bar_Ink), Bar (Themes.Bar), Themes.Soft_White, Base.Bar);
+         Stayed := Stayed and then Made.Primary = Base.Primary and then Made.Danger = Base.Danger
+           and then Made.Accent = Base.Accent and then Made.Focus = Base.Focus
+           and then Made.AI = Base.AI and then Made.Dark = Dark;
+      end Check_Against;
+   begin
+      for Dark in Boolean loop
+         declare
+            Base : constant Themes.Palette := (if Dark then Themes.Dark_Palette else Themes.Light_Palette);
+         begin
+            for Step in 0 .. Steps - 1 loop
+               declare
+                  Hue  : constant Adaptive_Themes.Hues := Float (Step) / Float (Steps);
+                  Made : constant Themes.Palette := Adaptive_Themes.Palette_For (Dark, Hue);
+               begin
+                  Check_Against (Base, Made, Dark);
+               end;
+            end loop;
+            Moved := Moved
+              and then Adaptive_Themes.Palette_For (Dark, 0.0).Background
+                       /= Adaptive_Themes.Palette_For (Dark, 0.5).Background;
+            --  A grey of a hue is not grey: its channels differ.
+            declare
+               Back : constant Themes.Color := Adaptive_Themes.Palette_For (Dark, 0.9).Background;
+            begin
+               Tinted := Tinted and then Back.Red /= Back.Green and then Back.Green /= Back.Blue;
+            end;
+         end;
+      end loop;
+      Goldens.Check_Text ("adaptive-text-reads", "TRUE", Boolean'Image (Worst > 0.97));
+      Goldens.Check_Text ("adaptive-hue-moves-greys", "TRUE", Boolean'Image (Moved and then Tinted));
+      Goldens.Check_Text ("adaptive-meanings-stay", "TRUE", Boolean'Image (Stayed));
+      --  Each hue is where the wheel says: red, yellow, green, cyan, blue and magenta, at mid grey.
+      declare
+         Grey : constant Themes.Color := (16#80#, 16#80#, 16#80#, 255);
+         function At_Hue (Sixth : Natural) return Themes.Color is
+           (Adaptive_Themes.Retint (Grey, Float (Sixth) / 6.0, 0.9));
+         Red     : constant Themes.Color := At_Hue (0);
+         Yellow  : constant Themes.Color := At_Hue (1);
+         Green   : constant Themes.Color := At_Hue (2);
+         Cyan    : constant Themes.Color := At_Hue (3);
+         Blue    : constant Themes.Color := At_Hue (4);
+         Magenta : constant Themes.Color := At_Hue (5);
+      begin
+         Goldens.Check_Text
+           ("adaptive-hue-on-the-wheel", "TRUE",
+            Boolean'Image
+              (Red.Red > Red.Green and then Red.Red > Red.Blue
+               and then Yellow.Blue < Yellow.Red and then Yellow.Blue < Yellow.Green
+               and then abs (Integer (Yellow.Red) - Integer (Yellow.Green)) < 8
+               and then Green.Green > Green.Red and then Green.Green > Green.Blue
+               and then Cyan.Red < Cyan.Green and then Cyan.Red < Cyan.Blue
+               and then abs (Integer (Cyan.Green) - Integer (Cyan.Blue)) < 8
+               and then Blue.Blue > Blue.Red and then Blue.Blue > Blue.Green
+               and then Magenta.Green < Magenta.Red and then Magenta.Green < Magenta.Blue
+               and then abs (Integer (Magenta.Red) - Integer (Magenta.Blue)) < 8));
+      end;
+      Goldens.Check_Text
+        ("adaptive-retint-keeps-brightness", "TRUE",
+         Boolean'Image
+           (abs (Adaptive_Themes.Luminance (Adaptive_Themes.Retint ((16#A9#, 16#B1#, 16#AD#, 255), 0.15, 0.3))
+                 - Adaptive_Themes.Luminance ((16#A9#, 16#B1#, 16#AD#, 255))) < 0.01));
+      Goldens.Check_Text
+        ("adaptive-contrast-extremes", "TRUE",
+         Boolean'Image (abs (Adaptive_Themes.Contrast ((0, 0, 0, 255), (255, 255, 255, 255)) - 21.0) < 0.01
+                        and then Adaptive_Themes.Contrast ((9, 9, 9, 255), (9, 9, 9, 255)) = 1.0));
+   end Adaptive_Palettes;
 
    procedure New_And_Close is
       Session : Viewer.Session;
@@ -1267,9 +1462,11 @@ begin
    Run ("home-empty", Home_Empty'Access);
    Run ("home-recent", Home_Recent'Access);
    Run ("home-settings", Home_Settings'Access);
+   Run ("home-settings-reseed", Home_Reseed'Access);
    Run ("home-settings-ai", Home_Settings_AI'Access);
    Run ("home-dark", Dark_Screens'Access);
    Run ("preferences-kept", Preferences_Kept'Access);
+   Run ("adaptive-palettes", Adaptive_Palettes'Access);
    Run ("downloads-fetching", Fetching'Access);
    Run ("home-new-and-close", New_And_Close'Access);
    Run ("home-open-listed", Open_Listed'Access);

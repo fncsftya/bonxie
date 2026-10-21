@@ -223,6 +223,9 @@ package body Viewer.Build is
          Item.Prefs.Theme_Chosen :=
            Preferences.Load_Theme
              (Ada.Strings.Unbounded.To_String (Item.Prefs.Config_Dir));
+         Item.Prefs.Background_Chosen :=
+           Preferences.Load_Background
+             (Ada.Strings.Unbounded.To_String (Item.Prefs.Config_Dir));
          Item.Prefs.AI_On :=
            Preferences.Load_AI_Enabled
              (Ada.Strings.Unbounded.To_String (Item.Prefs.Config_Dir));
@@ -244,6 +247,7 @@ package body Viewer.Build is
       else
          --  Offscreen, the light theme, whatever the system's is.
          Item.Prefs.Theme_Chosen := Preferences.Light;
+         Item.Prefs.Background_Chosen := Preferences.Fixed;
       end if;
       Widgets.Set_Density (Item.Root.Widgets, Item.Shell.Density);
       Widgets.Set_Line_Texts (Item.Root.Widgets, Item.Host.Lines);
@@ -259,10 +263,23 @@ package body Viewer.Build is
       --  focusable (see Make_Tab_Stops) and the text fields.
       Widgets.Set_Tab_Navigation (Item.Root.Widgets, True);
       if Item.Shell.Windowed then
-         Item.Canvas_View.Transparent := True;
-         Backgrounds.Set_Shader
-           (Item.Host.Background, Share_Directory ("shaders") & "/watercolour.metal");
-         Item.Root.Window_Panel.Painting := Item.Host.Background'Unchecked_Access;
+         --  Whether it is shown, and the colours to go with it, are for Apply_Theme.
+         declare
+            Config : constant String := Ada.Strings.Unbounded.To_String (Item.Prefs.Config_Dir);
+            Saved  : constant Boolean := Item.Prefs.Persist and then Preferences.Has_Seed (Config);
+            Seed   : constant Backgrounds.Seed_Numbers :=
+              (if Saved then Preferences.Load_Seed (Config) else Backgrounds.New_Seed);
+         begin
+            Backgrounds.Set_Shader
+              (Item.Host.Background, Share_Directory ("shaders") & "/watercolour.metal", Seed);
+            --  The first picture is kept, so that it is this one next time.
+            if Item.Prefs.Persist and then not Saved then
+               Preferences.Save_Seed (Config, Seed);
+            end if;
+         exception
+            when others =>
+               null;  --  the picture holds for now; it is not worth a crash
+         end;
       end if;
       Widgets.Set_Root (Item.Root.Widgets, Item.Root.Window_Panel);
       Set_Layout (Item.Root.Window_Panel, Flow => Column);

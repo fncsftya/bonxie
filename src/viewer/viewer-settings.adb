@@ -1,3 +1,4 @@
+with Backgrounds;
 with Ada.Strings.Unbounded;
 with Viewer.Settings_View;
 
@@ -25,6 +26,24 @@ package body Viewer.Settings is
    procedure Choose_Theme
      (Item : in out Session; To : Preferences.Theme_Choices)
      renames Settings_View.Choose_Appearance;
+
+   function Background_Choice (Item : Session) return Preferences.Background_Modes is
+     (Item.Prefs.Background_Chosen);
+
+   procedure Choose_Background
+     (Item : in out Session; To : Preferences.Background_Modes)
+     renames Settings_View.Choose_Background;
+
+   function Watercolour_Seed (Item : Session) return Natural is
+     (Backgrounds.Seed_Number (Item.Host.Background));
+
+   procedure Reseed_Watercolour (Item : in out Session) is
+   begin
+      Settings_View.Choose_Background (Item, Preferences.Watercolour);
+      Settings_View.Reseed (Item);
+   end Reseed_Watercolour;
+
+   function Is_Adaptive (Item : Session) return Boolean is (Item.Prefs.Adaptive_Shown);
 
    procedure Choose_AI_Enabled (Item : in out Session; To : Boolean)
      renames Settings_View.Enable_AI;

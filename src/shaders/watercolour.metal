@@ -5,6 +5,8 @@ using namespace metal;
 struct Background_Parameters {
     uint2 resolution;
     float seed;
+    float hue;     // the base hue, chosen by the program so that its colours can follow it
+    uint dark;     // 1 to paint luminous pigment on a dark ground, 0 on pale paper
 };
 
 // Soft pigment washes and splatter on textured paper.
@@ -50,15 +52,18 @@ float paperTex(float2 p){
 }
 
 // ---------- pastel palette: 5 related hues ----------
-float3 pastel(float baseHue, float k, float r1, float r2){
+float3 pastel(float baseHue, float k, float r1, float r2, bool dark){
     float off;
     if      (k < 0.5) off = 0.00;
     else if (k < 1.5) off = 0.07;
     else if (k < 2.5) off = -0.09;
     else if (k < 3.5) off = 0.50;    // complementary accent
     else              off = 0.33;
-    float sat = 0.22 + 0.28 * r1;                // soft saturation
-    float val = 0.84 + 0.13 * r2;                // high value
+    // Light: soft, high value, multiplied into the paper. Dark: deep and
+    // saturated, screened over the ground, so the brightest stays well below
+    // the text's.
+    float sat = dark ? 0.55 + 0.30 * r1 : 0.22 + 0.28 * r1;
+    float val = dark ? 0.40 + 0.30 * r2 : 0.84 + 0.13 * r2;
     return hsv2rgb(float3(fract(baseHue + off), sat, val));
 }
 
@@ -74,13 +79,14 @@ kernel void watercolour(
     float2 p = (position - 0.5 * resolution) / resolution.y;
     float seed = parameters.seed;
 
+    bool dark = parameters.dark != 0;
     float paper = paperTex(p);
-    float3  paperCol = float3(0.972, 0.955, 0.918);
+    float3  paperCol = dark ? float3(0.075, 0.075, 0.09) : float3(0.972, 0.955, 0.918);
     float3  col = paperCol;
 
-    float baseHue = hash11(seed * 3.7);
+    float baseHue = parameters.hue;
 
-    float3 lastPig = float3(0.8);
+    float3 lastPig = float3(dark ? 0.2 : 0.8);
 
     // ================= 1. WASHES =================
     for (int i = 0; i < WASHES; i++){
@@ -95,8 +101,8 @@ kernel void watercolour(
         float dens = 1.5 + 1.2 * h.z;
         if (i == 0){ r = 0.80; soft = 0.20; dens = 1.1; c = float2(0.0); }
 
-        float3 pig = pastel(baseHue, floor(h.x * 4.99), h.y, h.z);
-        if (i == 0) pig = pastel(baseHue, 0.0, 0.2, 0.9);
+        float3 pig = pastel(baseHue, floor(h.x * 4.99), h.y, h.z, dark);
+        if (i == 0) pig = pastel(baseHue, 0.0, 0.2, 0.9, dark);
 
         float2 q = p + 0.38 * (float2(fbm(p * 1.4 + seed * 3.1 + fi * 7.0),
                                   fbm(p * 1.4 + float2(5.2, 1.3) + seed * 1.7 + fi * 5.0)) - 0.5);
@@ -117,7 +123,9 @@ kernel void watercolour(
         density *= 1.0 + gran * (0.5 - paper) * 2.0;
         density = max(density, 0.0);
 
-        col *= pow(pig, float3(density));
+        // Pigment darkens paper by multiplying; light on a dark ground adds, by screening.
+        col = dark ? 1.0 - (1.0 - col) * pow(1.0 - pig, float3(density * 0.9))
+                   : col * pow(pig, float3(density));
         lastPig = pig;
     }
 
@@ -134,14 +142,19 @@ kernel void watercolour(
         float dm = (1.0 - smoothstep(0.8, 1.0, dd)) * on;
         float rimD = smoothstep(0.45, 0.95, dd) * dm;
         float ds = (dm * 0.5 + rimD * 0.5) * (1.0 + 0.6 * (0.5 - paper));
-        col *= pow(lastPig, float3(max(ds, 0.0) * 2.0));
+        float3 spot = pow(dark ? 1.0 - lastPig : lastPig, float3(max(ds, 0.0) * 2.0));
+        col = dark ? 1.0 - (1.0 - col) * spot : col * spot;
     }
 
     // ================= paper finish =================
-    col *= 0.940 + 0.105 * paper;                       // paper tooth
+    col *= dark ? 0.90 + 0.20 * paper : 0.940 + 0.105 * paper;   // paper tooth
     float l = dot(col, float3(0.299, 0.587, 0.114));
     col = mix(float3(l), col, 0.95);                       // keep it soft
     col *= 1.0 - 0.14 * dot(p, p);                       // faint vignette
+
+    // Text is drawn straight on this, in the theme's ink. Veil it toward the ground so that the
+    // pigment never gets as dark (or, on the dark, as bright) as that ink can be read on.
+    col = mix(col, paperCol, dark ? 0.64 : 0.68);
 
     pixels[pixel.y * parameters.resolution.x + pixel.x] = uchar4(float4(clamp(col, 0.0, 1.0), 1.0) * 255.0);
 }

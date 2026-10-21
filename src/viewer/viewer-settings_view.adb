@@ -1,4 +1,5 @@
 with Ada.Strings.Fixed;
+with Backgrounds;
 with MLX;
 with MLX.Hub;
 with MLX.Jobs;
@@ -7,6 +8,7 @@ with Pomarine.Widgets;
 with Pomarine.Widgets.Buttons;
 with Pomarine.Widgets.Checks;
 with Pomarine.Widgets.Labels;
+with Pomarine.Widgets.Panels;
 with Pomarine.Widgets.Menus;
 with Pomarine.Widgets.Progress_Bars;
 with Pomarine.Widgets.Selects;
@@ -28,12 +30,14 @@ package body Viewer.Settings_View is
    package Selects renames Pomarine.Widgets.Selects;
    package Switches renames Pomarine.Widgets.Switches;
    package Themes renames Pomarine.Themes;
+   package Panels renames Pomarine.Widgets.Panels;
    package Layouts renames Pomarine.Widgets.Layouts;
 
    use type MLX.Jobs.States;
    use type Speech.Models.States;
    use type Preferences.Speech_Models;
    use type Preferences.Theme_Choices;
+   use type Preferences.Background_Modes;
 
    function Config (Item : Session) return String is
      (Ada.Strings.Unbounded.To_String (Item.Prefs.Config_Dir));
@@ -350,6 +354,28 @@ package body Viewer.Settings_View is
       end case;
    end Status;
 
+   --  The two cards of backgrounds: each a picture of a window drawn the way it would be, the chosen one
+   --  outlined in the accent, with a shadow.
+   procedure Show_Backgrounds (Item : in out Session) is
+      Prefs : Settings_Parts renames Item.Prefs;
+      Dark  : constant Boolean := Prefs.Dark_Shown;
+
+      procedure Mark (Card : in out Panels.Panel; Chosen : Boolean) is
+      begin
+         Panels.Set_Border (Card, (if Chosen then Themes.Accent else Themes.Border));
+         Panels.Set_Shadow (Card, (if Chosen then Themes.Accent else Themes.Shadow));
+      end Mark;
+   begin
+      Prefs.Fixed_Sample.Painting := null;
+      Backgrounds.Set_Look (Prefs.Fixed_Sample, Dark, Viewer.Style.Make (Dark));
+      Prefs.Water_Sample.Painting := Item.Host.Background'Unchecked_Access;
+      Backgrounds.Set_Look
+        (Prefs.Water_Sample, Dark, Viewer.Style.Make (Dark, Backgrounds.Hue (Item.Host.Background)));
+      Mark (Prefs.Fixed_Card, Prefs.Background_Chosen = Preferences.Fixed);
+      Mark (Prefs.Water_Card, Prefs.Background_Chosen = Preferences.Watercolour);
+      Widgets.Invalidate (Prefs.Background_Row);
+   end Show_Backgrounds;
+
    procedure Refresh (Item : in out Session) is
       Parakeet : constant Boolean := Item.Prefs.Speech_Choice
          = Preferences.Parakeet;
@@ -365,6 +391,7 @@ package body Viewer.Settings_View is
       Checks.Set_Checked
         (Item.Prefs.Theme_System,
          Item.Prefs.Theme_Chosen = Preferences.System);
+      Show_Backgrounds (Item);
       Widgets.Set_Visible (Item.Prefs.Download_Row, Parakeet);
       Widgets.Set_Visible (Item.Prefs.Download_Bar, Parakeet and then Running);
       Widgets.Set_Visible (Item.Prefs.Download_Button, not Present);
@@ -435,17 +462,69 @@ package body Viewer.Settings_View is
       end if;
    end Choose_Appearance;
 
+   procedure Choose_Background
+     (Item : in out Session; To : Preferences.Background_Modes) is
+   begin
+      Item.Prefs.Background_Chosen := To;
+      if Item.Prefs.Persist then
+         begin
+            Preferences.Save_Background (Config (Item), To);
+         exception
+            when others =>
+               null;  --  the choice holds for now; it is not worth a crash
+         end;
+      end if;
+      Apply_Theme (Item);
+      if Item.Prefs.Showing_Settings then
+         Refresh (Item);
+      end if;
+   end Choose_Background;
+
+   procedure Reseed (Item : in out Session) is
+   begin
+      Backgrounds.Reseed (Item.Host.Background);
+      if Item.Prefs.Persist then
+         begin
+            Preferences.Save_Seed (Config (Item), Backgrounds.Seed_Number (Item.Host.Background));
+         exception
+            when others =>
+               null;  --  the picture holds for now; it is not worth a crash
+         end;
+      end if;
+      Apply_Theme (Item);
+      Widgets.Invalidate_All (Item.Root.Widgets);
+      if Item.Prefs.Showing_Settings then
+         Refresh (Item);
+      end if;
+   end Reseed;
+
    procedure Apply_Theme (Item : in out Session) is
       Dark : constant Boolean :=
         (case Item.Prefs.Theme_Chosen is
             when Preferences.Light  => False,
             when Preferences.Dark   => True,
             when Preferences.System => SDL3.Events.System_Is_Dark);
+      --  Only a window has a painting to go with; offscreen, it is the theme's own colours.
+      Adaptive : constant Boolean :=
+        Item.Prefs.Background_Chosen = Preferences.Watercolour
+        and then Item.Shell.Windowed
+        and then Backgrounds.Available (Item.Host.Background);
    begin
-      Viewer.Style.Use_Dark (Dark);
-      if Dark /= Item.Prefs.Dark_Shown then
+      if Adaptive then
+         Viewer.Style.Use_Adaptive (Dark, Backgrounds.Hue (Item.Host.Background));
+         Item.Root.Window_Panel.Painting := Item.Host.Background'Unchecked_Access;
+      else
+         Viewer.Style.Use_Dark (Dark);
+         Item.Root.Window_Panel.Painting := null;
+      end if;
+      Item.Canvas_View.Transparent := Adaptive;
+      if Dark /= Item.Prefs.Dark_Shown or else Adaptive /= Item.Prefs.Adaptive_Shown then
          Item.Prefs.Dark_Shown := Dark;
+         Item.Prefs.Adaptive_Shown := Adaptive;
          Widgets.Invalidate_All (Item.Root.Widgets);
+         if Item.Prefs.Showing_Settings then
+            Refresh (Item);
+         end if;
       end if;
    end Apply_Theme;
 

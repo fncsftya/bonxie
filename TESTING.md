@@ -152,8 +152,33 @@ internal resolution cap. Metal owns the size-dependent buffer rather than using
 the Ada stack. The opening time is the only seed; resizing keeps it. Offscreen
 golden tests retain the deterministic theme background.
 
+The painting is made for the theme's light or dark (the shader is told which, and
+repainted when it changes), in a hue taken from the seed by one function in the native
+code, so that the program's colours can follow it.
+
+Settings > Display > Background chooses between two cards, each with a small picture of a window
+drawn the way it would be (`Backgrounds.Sample`): **Fixed** (the theme's own colours on a plain
+background, as before the shader) and **Watercolour** (the default: the painting, with the theme's
+neutral greys moved to the painting's hue, `Adaptive_Themes`, light or dark as Theme says). The button on
+the watercolour's card paints another picture, and chooses the watercolour. The picture is the shader's
+seed, an integer kept as `watercolour_seed=` beside the choice (`background=`; `adaptive`, its old
+name, still reads as the watercolour), so it is the same on every run until the button is pressed.
+Only the hue of a grey changes, never its brightness, so contrasts hold for every hue; what means
+something (primary, danger, accent, focus, the model's purple) stays. Offscreen there is no painting,
+so goldens always draw Fixed; `home-settings` draws both cards (the watercolour's colours come from
+seed 0, so they do not change), and `home-settings-reseed` checks the button, which is the clock's and so
+not drawn for a golden; `adaptive-palettes` checks, for 48 hues in both themes, that text keeps at least
+97% of its contrast on every surface and on the bars, that the hue lands where the colour wheel says,
+and that the meaningful colours do not move; `preferences-kept` checks the choices and the seed are
+kept, a garbled seed is none, and 0 and the largest are kept whole.
+
+Ink is drawn straight on the painting in places (a heading, a count, "New project"), so the
+shader veils it toward its ground: a light painting is never under 62% bright, a dark one never
+over 42%, and the probe checks every pixel.
+
 The GPU probe checks MSL compilation, identical pixels for a repeated seed,
-different pixels for a different seed, opaque output, portrait resizing,
+different pixels for a different seed, a hue that follows the seed, a dark painting that is
+opaque and darker than the light, opaque output, portrait resizing,
 2049 × 1601 rendering beyond the former cap, invalid dimensions, and identical
 pixels after resizing back. Run from the project root on macOS:
 
@@ -164,4 +189,4 @@ clang -O2 tests/run/background_probe.c /tmp/watercolour_native.o \
 /tmp/background_probe src/shaders/watercolour.metal
 ```
 
-It also writes `/tmp/bonxie-background.ppm` for visual inspection.
+It also writes `/tmp/bonxie-background.ppm` and `/tmp/bonxie-background-dark.ppm` for visual inspection.

@@ -1,4 +1,5 @@
 with Ada.Strings.Unbounded;
+with Backgrounds;
 with MLX.Hub;
 with MLX.Jobs;
 with Speech.Models;
@@ -6,6 +7,7 @@ with Preferences;
 with Pomarine.Widgets;
 with Pomarine.Widgets.Buttons;
 with Pomarine.Widgets.Checks;
+with Pomarine.Widgets.Grips;
 with Pomarine.Widgets.Labels;
 with Pomarine.Widgets.Menus;
 with Pomarine.Widgets.Panels;
@@ -46,7 +48,24 @@ package Viewer_Parts.Settings is
       Theme_Light    : Pomarine.Widgets.Checks.Check;
       Theme_Dark     : Pomarine.Widgets.Checks.Check;
       Theme_System   : Pomarine.Widgets.Checks.Check;
-      --  Display's one option, Theme: a radio for each.
+      Background_Name : Pomarine.Widgets.Labels.Label;
+      --  Display's options, Theme and Background: a radio for each theme, and for the background
+      --  a card, a small picture of a window drawn on it, with its name below.
+      Background_Row : Pomarine.Widgets.Panels.Panel;
+      Fixed_Card     : Pomarine.Widgets.Panels.Panel;
+      Fixed_Peek     : Pomarine.Widgets.Grips.Grip;
+      Fixed_Sample   : Backgrounds.Sample;
+      Fixed_Foot     : Pomarine.Widgets.Panels.Panel;
+      Fixed_Pick     : Pomarine.Widgets.Grips.Grip;
+      Fixed_Name     : Pomarine.Widgets.Labels.Label;
+      Water_Card     : Pomarine.Widgets.Panels.Panel;
+      Water_Peek     : Pomarine.Widgets.Grips.Grip;
+      Water_Sample   : Backgrounds.Sample;
+      Water_Foot     : Pomarine.Widgets.Panels.Panel;
+      Water_Pick     : Pomarine.Widgets.Grips.Grip;
+      Water_Name     : Pomarine.Widgets.Labels.Label;
+      Water_Reseed   : Pomarine.Widgets.Buttons.Button;
+      --  The watercolour's, with the button to paint another.
       Download_Row   : Pomarine.Widgets.Panels.Panel;
       Download_Button : Pomarine.Widgets.Buttons.Button;
       Delete_Button  : Pomarine.Widgets.Buttons.Button;
@@ -92,6 +111,10 @@ package Viewer_Parts.Settings is
       Theme_Chosen   : Preferences.Theme_Choices := Preferences.System;
       Dark_Shown     : Boolean := False;
       --  Whether the windows are drawn in the dark theme, as last applied.
+      Background_Chosen : Preferences.Background_Modes := Preferences.Watercolour;
+      Adaptive_Shown : Boolean := False;
+      --  Whether the windows are drawn in colours that go with a painted background, as last applied:
+      --  what is chosen, if there is a painting to go with.
       Config_Dir     : Ada.Strings.Unbounded.Unbounded_String;
       --  Where the settings and the files they need are kept.
       Persist        : Boolean := False;

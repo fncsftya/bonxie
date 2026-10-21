@@ -55,17 +55,48 @@ package body Viewer.Style is
       return Themes.Fixed ((Byte (RGB / 65536), Byte ((RGB / 256) mod 256), Byte (RGB mod 256), 255));
    end Section_Ink;
 
+   type Tints is (Own, Painted);
+
+   function Slotted
+     (Base : Themes.Theme; Dark : Boolean; Tint : Tints; Hue : Adaptive_Themes.Hues) return Themes.Theme;
+   --  Base, with the slots of the application set from it; its greys, with Painted, in Hue.
+
    function Make (Dark : Boolean) return Themes.Theme is
-      Base : constant Themes.Theme := (if Dark then Themes.Dark else Themes.Light);
+     (Slotted ((if Dark then Themes.Dark else Themes.Light), Dark, Own, 0.0));
+
+   function Make (Dark : Boolean; Hue : Adaptive_Themes.Hues) return Themes.Theme is
+     (Slotted (Themes.Make (Adaptive_Themes.Palette_For (Dark, Hue)), Dark, Painted, Hue));
+
+   function Slotted
+     (Base : Themes.Theme; Dark : Boolean; Tint : Tints; Hue : Adaptive_Themes.Hues)
+      return Themes.Theme
+   is
+      function Grey (Value : Themes.Color) return Themes.Color is
+        (if Tint = Painted then Adaptive_Themes.Grey (Value, Dark, Hue) else Value);
+
       Back : constant Themes.Color := Base (Themes.Background);
    begin
       return Result : Themes.Theme := Base do
-         Themes.Set_Custom (Result, 0, (if Dark then (16#24#, 16#2B#, 16#28#, 255) else (16#C9#, 16#D1#, 16#CC#, 255)));
-         Themes.Set_Custom (Result, 1, (if Dark then Base (Themes.Bar) else (16#C9#, 16#D1#, 16#CC#, 255)));
-         Themes.Set_Custom (Result, 2, (if Dark then (16#38#, 16#44#, 16#40#, 255) else (16#B7#, 16#BF#, 16#BA#, 255)));
+         Themes.Set_Custom
+           (Result, 0, Grey (if Dark then (16#24#, 16#2B#, 16#28#, 255) else (16#C9#, 16#D1#, 16#CC#, 255)));
+         Themes.Set_Custom
+           (Result, 1, Grey (if Dark then Base (Themes.Bar) else (16#C9#, 16#D1#, 16#CC#, 255)));
+         Themes.Set_Custom
+           (Result, 2, Grey (if Dark then (16#38#, 16#44#, 16#40#, 255) else (16#B7#, 16#BF#, 16#BA#, 255)));
          Themes.Set_Custom (Result, 3, Themes.Mix (Base (Themes.Foreground), Back, 0.55));
          Themes.Set_Custom
            (Result, 4, Themes.Mix (Base (Themes.Primary), Base (Themes.Foreground), 0.25));
+         if Tint = Painted then
+            --  Some of what is drawn is on the painting itself, not on a panel: a count, a hint, the
+            --  dashed edge of the card to add a project. The painting is neither the panel's colour
+            --  nor even, so these keep close to the text's colour, which reads on all of it.
+            Result.Slots (Themes.Muted) := Themes.Mix (Base (Themes.Foreground), Back, 0.08);
+            Result.Slots (Themes.Hint)  := Themes.Mix (Base (Themes.Foreground), Back, 0.12);
+            Result.Slots (Themes.Border) := Themes.Mix (Base (Themes.Border), Base (Themes.Foreground), 0.65);
+            Themes.Set_Custom (Result, 3, Themes.Mix (Base (Themes.Foreground), Back, 0.2));
+            Themes.Set_Custom
+              (Result, 4, Themes.Mix (Base (Themes.Primary), Base (Themes.Foreground), 0.6));
+         end if;
          Themes.Set_Custom
            (Result, Section_First + Projects.Sections.Colour_Index'Last + 1,
             (if Dark then Themes.White else (0, 0, 0, 255)));
@@ -77,13 +108,16 @@ package body Viewer.Style is
             Themes.Set_Custom (Result, Section_First + K, Pastel (K, Dark));
          end loop;
       end return;
-   end Make;
+   end Slotted;
 
    Active : Themes.Theme := Make (Dark => False);
    Dark_In_Use : Boolean := False;
+   Adaptive_In_Use : Boolean := False;
    --  The theme of the window shown.
 
    function Is_Dark return Boolean is (Dark_In_Use);
+
+   function Is_Adaptive return Boolean is (Adaptive_In_Use);
 
    function Colors return Themes.Theme is (Active);
 
@@ -91,6 +125,14 @@ package body Viewer.Style is
    begin
       Active := Make (Dark);
       Dark_In_Use := Dark;
+      Adaptive_In_Use := False;
    end Use_Dark;
+
+   procedure Use_Adaptive (Dark : Boolean; Hue : Adaptive_Themes.Hues) is
+   begin
+      Active := Make (Dark, Hue);
+      Dark_In_Use := Dark;
+      Adaptive_In_Use := True;
+   end Use_Adaptive;
 
 end Viewer.Style;

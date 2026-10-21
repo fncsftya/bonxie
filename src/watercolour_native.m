@@ -13,6 +13,18 @@ float bonxie_background_seed(void)
     return (float)fmod((double)now.tv_sec * 1000000.0 + now.tv_nsec / 1000.0, 16777216.0) / 65536.0;
 }
 
+// The painting's base hue, 0 .. 1, from its seed: the one place it is chosen, so
+// that the shader and the program's colours agree on it.
+float bonxie_background_hue(float seed)
+{
+    float p = fmodf(seed * 3.7f * 0.1031f, 1.0f);
+    if (p < 0.0f) p += 1.0f;
+    p *= p + 33.33f;
+    p *= p + p;
+    p = fmodf(p, 1.0f);
+    return p < 0.0f ? p + 1.0f : p;
+}
+
 @interface BonxieBackground : NSObject
 @property(nonatomic, strong) id<MTLDevice> device;
 @property(nonatomic, strong) id<MTLCommandQueue> queue;
@@ -50,8 +62,8 @@ void *bonxie_background_create(const char *source)
 }
 
 // The returned pixels stay valid until the next render or release. SDL copies
-// them immediately. Size-dependent storage lives on the heap, never Ada's stack.
-const void *bonxie_background_render(void *handle, float seed, int width, int height)
+// them immediately. Dark asks for luminous pigments on a dark ground, not light. Size-dependent storage lives on the heap, never Ada's stack.
+const void *bonxie_background_render(void *handle, float seed, int width, int height, int dark)
 {
     if (!handle || width <= 0 || height <= 0 || !isfinite(seed)) return NULL;
     @autoreleasepool {
@@ -67,9 +79,11 @@ const void *bonxie_background_render(void *handle, float seed, int width, int he
         struct {
             uint32_t width, height;
             float seed;
+            float hue;
+            uint32_t dark;
             uint32_t padding;
-        } parameters = {(uint32_t)width, (uint32_t)height, seed, 0};
-        _Static_assert(sizeof parameters == 16, "MSL parameter layout must match");
+        } parameters = {(uint32_t)width, (uint32_t)height, seed, bonxie_background_hue(seed), dark ? 1u : 0u, 0};
+        _Static_assert(sizeof parameters == 24, "MSL parameter layout must match");
         id<MTLCommandBuffer> command = [background.queue commandBuffer];
         id<MTLComputeCommandEncoder> encoder = [command computeCommandEncoder];
         if (!command || !encoder) return NULL;

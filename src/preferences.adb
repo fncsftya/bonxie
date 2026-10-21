@@ -137,6 +137,34 @@ package body Preferences is
          Ada.Characters.Handling.To_Lower (Theme_Choices'Image (To)));
    end Save_Theme;
 
+   function Load_Background (Config : String) return Background_Modes is
+     (if Ada.Characters.Handling.To_Lower (Setting (Config, "background")) = "fixed"
+      then Fixed else Watercolour);
+   --  "adaptive", which this was once called, is the watercolour too.
+
+   procedure Save_Background (Config : String; To : Background_Modes) is
+   begin
+      Put_Setting
+        (Config, "background",
+         Ada.Characters.Handling.To_Lower (Background_Modes'Image (To)));
+   end Save_Background;
+
+   function Digits_Of (Config : String) return String is
+      Text : constant String := Setting (Config, "watercolour_seed");
+   begin
+      return (if Text'Length in 1 .. 8 and then (for all C of Text => C in '0' .. '9') then Text else "");
+   end Digits_Of;
+
+   function Has_Seed (Config : String) return Boolean is (Digits_Of (Config) /= "");
+
+   function Load_Seed (Config : String) return Natural is
+     (Natural'Value (Digits_Of (Config)) mod Seed_Limit);
+
+   procedure Save_Seed (Config : String; To : Natural) is
+   begin
+      Put_Setting (Config, "watercolour_seed", Ada.Strings.Fixed.Trim (Natural'Image (To), Ada.Strings.Left));
+   end Save_Seed;
+
    function Load_AI_Enabled (Config : String) return Boolean is
      (Ada.Characters.Handling.To_Lower (Setting (Config, "ai")) = "on");
 

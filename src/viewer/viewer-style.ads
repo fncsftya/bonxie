@@ -1,3 +1,4 @@
+with Adaptive_Themes;
 with Items.Links;
 with Projects.Sections;
 with Pomarine.Themes;
@@ -168,6 +169,9 @@ private package Viewer.Style is
 
    Settings_Line   : constant Float := 28.0;
    --  A line of the form: a name, a radio.
+   Background_Card_Height : constant Float := 190.0;
+   Card_Foot_Height : constant Float := 48.0;
+   --  Of a choice of background in the settings, and of its foot with the name; the picture takes the rest.
    Download_Height : constant Float := 34.0;
    Download_Width  : constant Float := 112.0;
    Note_Line       : constant Float := 20.0;
@@ -229,12 +233,22 @@ private package Viewer.Style is
    function Is_Dark return Boolean;
    --  Whether the theme in use is the dark.
 
+   function Is_Adaptive return Boolean;
+   --  Whether the theme in use takes its colours from a painted background.
+
    function Make (Dark : Boolean) return Pomarine.Themes.Theme;
    --  Light or Dark, with the slots of the application set.
 
+   function Make (Dark : Boolean; Hue : Adaptive_Themes.Hues) return Pomarine.Themes.Theme;
+   --  The same, but with the greys in Hue, to go with a painting made in it.
+
    procedure Use_Dark (Dark : Boolean)
-     with Post => Is_Dark = Dark;
-   --  Draw in the dark theme, or in the light.
+     with Post => Is_Dark = Dark and then not Is_Adaptive;
+   --  Draw in the dark theme, or in the light, in the theme's own colours.
+
+   procedure Use_Adaptive (Dark : Boolean; Hue : Adaptive_Themes.Hues)
+     with Post => Is_Dark = Dark and then Is_Adaptive;
+   --  Draw in the dark theme, or in the light, in colours that go with a painting made in Hue.
 
    --  The application's own slots of the theme.
 
