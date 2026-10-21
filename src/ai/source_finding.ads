@@ -120,7 +120,7 @@ package Source_Finding is
    --  The marks as a whole number of percents of the most they can be,
    --  rounded.
 
-   Pass_Percent : constant := 80;
+   Pass_Percent : constant := 70;
    --  A page is a source worth keeping if it scores this much, or more.
 
    function Passes (Of_Evaluation : Evaluation) return Boolean

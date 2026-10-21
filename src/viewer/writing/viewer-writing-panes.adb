@@ -224,7 +224,7 @@ package body Viewer.Writing.Panes is
       end if;
       if Which /= 0 then
          case Action is
-            when Readers.None =>
+            when Readers.None | Readers.Visit =>
                null;
             when Readers.Close =>
                Readers.Set_State (Item.Reading.Readers (Which), Items.Closed);
@@ -235,7 +235,7 @@ package body Viewer.Writing.Panes is
          end case;
       else
          case Action is
-            when Readers.None =>
+            when Readers.None | Readers.Visit =>
                null;
             when Readers.Close =>
                Reader_Windows.Unpin (Item, Reopen => False);

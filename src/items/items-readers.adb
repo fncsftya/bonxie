@@ -39,6 +39,7 @@ package body Items.Readers is
    Tools_Width   : constant Float := 3.0 * Button_Size + 2.0 * Button_Gap;
    Pin_Icon_Size : constant Float := 12.0;
    Text_Size     : constant Float := 15.0;
+   Visit_Width   : constant Float := 84.0;
 
    procedure Listen (Item : in out Reader);
    --  Give the reader's widgets the procedures they call (see Update).
@@ -74,6 +75,7 @@ package body Items.Readers is
       Frames.Add_Status_Item (Item.Chrome, Item.Zoom_Slider);
       Frames.Add_Status_Item (Item.Chrome, Item.Zoom_Label);
       Frames.Add_Status_Item (Item.Chrome, Item.Status);
+      Frames.Add_Status_Item (Item.Chrome, Item.Visit_Button);
 
       Buttons.Set_Label (Item.Pin_Button, "Pin");
       Buttons.Set_Icon (Item.Pin_Button, Icon_Set.Pin);
@@ -106,6 +108,9 @@ package body Items.Readers is
       Size (Item.Zoom_Slider, Slider_Width, Row_Height);
       Size (Item.Zoom_Label, Percent_Width, Label_Height);
       Layouts.Set_Layout (Item.Status, Grow => 1.0, Width => 0.0, Height => Label_Height);
+      Buttons.Set_Label (Item.Visit_Button, "Visit Source");
+      Size (Item.Visit_Button, Visit_Width, Row_Height);
+      Widgets.Set_Visible (Item.Visit_Button, False);
       Listen (Item);
    end Build;
 
@@ -428,6 +433,11 @@ package body Items.Readers is
       Pomarine.Widgets.Set_Visible (Item.Pin_Button, To);
    end Set_Pinnable;
 
+   procedure Set_Visitable (Item : in out Reader; To : Boolean) is
+   begin
+      Pomarine.Widgets.Set_Visible (Item.Visit_Button, To);
+   end Set_Visitable;
+
    procedure Release (Item : in out Reader) is
    begin
       Clear_Recognized (Item);
@@ -593,6 +603,19 @@ package body Items.Readers is
       end if;
    end Pin_Clicked;
 
+   procedure Visit_Clicked
+     (Item : in out Reader; From : in out Source_Widget; Event : Widgets.Widget_Event);
+
+   procedure Visit_Clicked
+     (Item : in out Reader; From : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (From, Event);
+   begin
+      if Is_Open (Item) then
+         Say (Item, Visit);
+      end if;
+   end Visit_Clicked;
+
    procedure Close_Clicked
      (Item : in out Reader; From : in out Source_Widget; Event : Widgets.Widget_Event);
 
@@ -617,6 +640,7 @@ package body Items.Readers is
       Hooks.On (Item.Marker_Button, Click, Item'Unrestricted_Access, Marker_Clicked'Access);
       Hooks.On (Item.Eraser_Button, Click, Item'Unrestricted_Access, Eraser_Clicked'Access);
       Hooks.On (Item.Pin_Button, Click, Item'Unrestricted_Access, Pin_Clicked'Access);
+      Hooks.On (Item.Visit_Button, Click, Item'Unrestricted_Access, Visit_Clicked'Access);
    end Listen;
 
    procedure Update (Item : in out Reader) is

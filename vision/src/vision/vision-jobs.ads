@@ -6,7 +6,7 @@
 --  until Take.
 package Vision.Jobs is
 
-   Lane_Count : constant := 5;
+   Lane_Count : constant := 8;
    --  How many slots, before those of the items, are for the pages found
    --  when finding sources.
 

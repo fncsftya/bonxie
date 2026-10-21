@@ -36,7 +36,7 @@ of a person; the links a search found are kept for fifteen minutes (sixteen quer
 so that the same query asked again is answered from memory and DuckDuckGo is not.
 
 Up to five of what is found are taken at once, and the model scores each as a source of
-the text, on relevance, support and quality; those that score 80% or more are kept.
+the text, on relevance, support and quality; those that score 70% or more are kept.
 
 - **PDFs are preferred.** A PDF is drawn well in a project, so a link to one is fetched
   and its own text is read, and so is the PDF that a page is the front of: arXiv's

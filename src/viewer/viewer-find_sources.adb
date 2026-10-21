@@ -1,5 +1,6 @@
 with Ada.Directories;
 with Ada.Strings.Unbounded;
+with GNAT.OS_Lib;
 with Icon_Set;
 with Items.Readers.Callbacks;
 with Items.Sources;
@@ -27,6 +28,7 @@ package body Viewer.Find_Sources is
    package Reader_Events is new Items.Readers.Callbacks (Session);
 
    use type Source_Finder.States;
+   use type GNAT.OS_Lib.String_Access;
    use type Readers.Actions;
    use type Items.Id;
    use type SDL3.Events.Milliseconds;
@@ -113,12 +115,39 @@ package body Viewer.Find_Sources is
       Item.Finder.Previewing := Index;
    end Show_Preview;
 
+   procedure Visit_Source (Index : Natural) is
+      Opener  : GNAT.OS_Lib.String_Access := GNAT.OS_Lib.Locate_Exec_On_Path ("open");
+      Started : Boolean;
+   begin
+      --  Only a web page is handed on, never a file or another kind of link.
+      if Index in 1 .. Source_Finder.Count and then Opener /= null then
+         declare
+            Page : constant String := Source_Finder.Address (Index);
+            Args : GNAT.OS_Lib.Argument_List := [1 => new String'(Page)];
+         begin
+            if Page'Length > 8
+              and then (Page (Page'First .. Page'First + 7) = "https://"
+                        or else Page (Page'First .. Page'First + 6) = "http://")
+            then
+               GNAT.OS_Lib.Spawn (Opener.all, Args, Started);
+            end if;
+            GNAT.OS_Lib.Free (Args (1));
+         end;
+      end if;
+      GNAT.OS_Lib.Free (Opener);
+   end Visit_Source;
+
    procedure Preview_Asked (Item : in out Session; Which : Natural; Action : Readers.Actions) is
       pragma Unreferenced (Which);
    begin
-      if Action = Readers.Close then
-         Close_Preview (Item);
-      end if;
+      case Action is
+         when Readers.Close =>
+            Close_Preview (Item);
+         when Readers.Visit =>
+            Visit_Source (Item.Finder.Previewing);
+         when Readers.None | Readers.Toggle_Pin =>
+            null;
+      end case;
    end Preview_Asked;
 
    --  The toast and the list
@@ -258,6 +287,7 @@ package body Viewer.Find_Sources is
       Hooks.On (Item.Finder.Review, Choose, Item'Unrestricted_Access, Chosen'Access);
       Readers.Build (Item.Finder.Preview, Item.Toolbar.Content_Panel, Style.Toolbar, Item.Shell.Density);
       Readers.Set_Pinnable (Item.Finder.Preview, False);
+      Readers.Set_Visitable (Item.Finder.Preview, True);
       Reader_Events.On (Item.Finder.Preview, 0, Item'Unrestricted_Access, Preview_Asked'Access);
    end Build;
 

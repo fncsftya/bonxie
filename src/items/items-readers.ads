@@ -31,9 +31,10 @@ package Items.Readers is
 
    type Reader is limited private;
 
-   type Actions is (None, Close, Toggle_Pin);
+   type Actions is (None, Close, Toggle_Pin, Visit);
    --  What a reader's buttons ask for. Toggle_Pin pins a window, and lets
-   --  go of the pinned one.
+   --  go of the pinned one. Visit asks to open the source's page in the
+   --  browser.
 
    Window_Width  : constant Float := 380.0;
    Window_Height : constant Float := 440.0;
@@ -55,6 +56,10 @@ package Items.Readers is
    procedure Set_Pinnable (Item : in out Reader; To : Boolean);
    --  Show the pin button of the title bar, or not: a reader that is not for
    --  the writing view's pane (a preview) has no use for it. Shown to begin with.
+
+   procedure Set_Visitable (Item : in out Reader; To : Boolean);
+   --  Show the "Visit Source" button at the right of the status line, or not.
+   --  Hidden to begin with.
 
    procedure Set_Tag (Item : in out Reader; To : Pomarine.Themes.Slot);
    --  Show the source's colour, in a square before its title.
@@ -237,6 +242,7 @@ private
       Cursor_Button : Pomarine.Widgets.Buttons.Button;
       Marker_Button : Pomarine.Widgets.Buttons.Button;
       Eraser_Button : Pomarine.Widgets.Buttons.Button;
+      Visit_Button  : Pomarine.Widgets.Buttons.Button;
       Zoom_Slider : Pomarine.Widgets.Sliders.Slider;
       Zoom_Label  : Pomarine.Widgets.Labels.Label;
       Status      : Pomarine.Widgets.Labels.Label;

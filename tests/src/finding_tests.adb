@@ -244,9 +244,11 @@ package body Finding_Tests is
       Read ("evaluation-none", "{""relevance"": 0, ""support"": 0, ""quality"": 0, ""reason"": """"}", True, 0);
       Read ("evaluation-mixed", "{""relevance"": 9, ""support"": 8, ""quality"": 7, ""reason"": ""r""}", True, 80);
       Check ("evaluation-80-passes", "TRUE", Boolean'Image (Finding.Passes (Result)));
+      Read ("evaluation-seven", "{""relevance"": 7, ""support"": 7, ""quality"": 7, ""reason"": ""r""}", True, 70);
+      Check ("evaluation-70-passes", "TRUE", Boolean'Image (Finding.Passes (Result)));
       Read ("evaluation-eight", "{""relevance"": 8, ""support"": 8, ""quality"": 8, ""reason"": ""r""}", True, 80);
-      Read ("evaluation-under", "{""relevance"": 8, ""support"": 8, ""quality"": 7, ""reason"": ""r""}", True, 77);
-      Check ("evaluation-77-fails", "FALSE", Boolean'Image (Finding.Passes (Result)));
+      Read ("evaluation-under", "{""relevance"": 7, ""support"": 7, ""quality"": 6, ""reason"": ""r""}", True, 67);
+      Check ("evaluation-67-fails", "FALSE", Boolean'Image (Finding.Passes (Result)));
 
       --  Words about the object, fences, a reason tidied and one left out.
       Read ("evaluation-fenced",

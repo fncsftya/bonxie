@@ -22,10 +22,10 @@ with Webshot;
 --  it). Nothing here waits.
 package Source_Finder is
 
-   Max_Pages : constant := 5;
+   Max_Pages : constant := 8;
    --  Pages taken in, and judged, at the most.
 
-   Max_Candidates : constant := 15;
+   Max_Candidates : constant := 24;
    --  Links kept from the searches, to take pages from.
 
    Max_Directory : constant := 900;
