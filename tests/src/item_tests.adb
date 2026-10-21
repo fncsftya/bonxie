@@ -689,6 +689,29 @@ package body Item_Tests is
       Check
         ("live-undone", "abc" & ASCII.LF & "Hello, world.",
          Windows.Item_Text (Session, 1));
+
+      --  Typing while it shows keeps what was shown; nothing more shows
+      --  until the typing stops, then the rest goes on from the caret, and
+      --  the final text puts in only what is not already there.
+      Click_On (Session, Text_X, Text_Y);
+      for Step in 1 .. 30 loop
+         Press_Key (Session, Events.Key_Right_Arrow);
+      end loop;
+      Windows.Dictate_Live (Session, 1, " and");
+      Windows.Dictate_Live (Session, 1, " and");
+      Type_In (Session, "!");
+      Windows.Dictate_Live (Session, 1, " and more");
+      Check
+        ("live-typed-waits", "abc" & ASCII.LF & "Hello, world. and!",
+         Windows.Item_Text (Session, 1));
+      Windows.Dictate_Live (Session, 1, " and more");
+      Check
+        ("live-typed-continues", "abc" & ASCII.LF & "Hello, world. and! more",
+         Windows.Item_Text (Session, 1));
+      Windows.Dictate_Into (Session, 1, " and more.");
+      Check
+        ("live-typed-final", "abc" & ASCII.LF & "Hello, world. and! more.",
+         Windows.Item_Text (Session, 1));
    end Dictating_Live;
 
    procedure Titling is

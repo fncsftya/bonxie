@@ -25,9 +25,10 @@ private package Items.Windows.Speaking is
    --  Said. These edits are not recorded (they cannot be undone), and
    --  Add_Dictation, or a failure, takes them back before the final text
    --  goes in. If the text is changed by anything else while it is
-   --  shown, it is left as it is, and no more is shown. The first Settled
-   --  bytes of Said are drawn as text; the rest, which may yet change,
-   --  faintly.
+   --  shown, what is shown is kept as text, and nothing more is shown
+   --  while it is being changed; then what is heard after goes in at the
+   --  caret. The first Settled bytes of Said are drawn as text; the rest,
+   --  which may yet change, faintly.
 
    procedure Append_Said (Item : in out Window; Said : String)
      with Pre => Is_Assigned (Item) and then Details (Item).Kind = Note;

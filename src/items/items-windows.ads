@@ -223,9 +223,10 @@ package Items.Windows is
    --  Said. These edits are not recorded (they cannot be undone), and
    --  Add_Dictation, or a failure, takes them back before the final text
    --  goes in. If the text is changed by anything else while it is
-   --  shown, it is left as it is, and no more is shown. The first Settled
-   --  bytes of Said are drawn as text; the rest, which may yet change,
-   --  faintly.
+   --  shown, what is shown is kept as text, and nothing more is shown
+   --  while it is being changed; then what is heard after goes in at the
+   --  caret. The first Settled bytes of Said are drawn as text; the rest,
+   --  which may yet change, faintly.
 
    procedure Set_Title_Text (Item : in out Window; To : String)
      with Pre => Is_Assigned (Item);
@@ -527,15 +528,21 @@ private
       --  it to a section of the outline.
       Dictating    : Dictations := Silent;
       Live_Shown   : Boolean := False;
-      Live_Lost    : Boolean := False;
+      Live_Moved   : Boolean := False;
+      Live_Done    : Natural := 0;
+      Live_Upto    : Natural := 0;
+      Live_Version : Docs.Version := 0;
       Live_Break   : Boolean := False;
       Live_From    : Texts.Position;
       Live_To      : Texts.Position;
       Live_Seen    : Docs.Version := 0;
       --  Of a note: the text of what is being said is in the document
       --  from Live_From to Live_To (after a line feed, if Live_Break),
-      --  as of version Live_Seen. Live_Lost: it was changed by something
-      --  else, so it is left alone.
+      --  as of version Live_Seen. If it is changed by something else, what
+      --  is shown is kept as typed text: Live_Done bytes of what has been
+      --  heard are in the text for good (Live_Upto, with what is shown),
+      --  and Live_Moved says the rest goes in at the caret, which the
+      --  person has moved. Live_Version is the version last looked at.
       Tools        : Pomarine.Widgets.Panels.Panel;
       Cursor_Button : Pomarine.Widgets.Buttons.Button;
       Marker_Button : Pomarine.Widgets.Buttons.Button;

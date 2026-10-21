@@ -398,7 +398,8 @@ package body Items.Windows is
       Docs.Load_Stored (Item.Content_Doc, Saved_Text);
       Item.Dictating := Silent;
       Item.Live_Shown := False;
-      Item.Live_Lost := False;
+      Item.Live_Moved := False;
+      Item.Live_Done := 0;
       Frames.Attach_Title (Item.Chrome, Item.Title_Doc'Unchecked_Access);
       Editors.Attach (Item.Body_Text, Item.Content_Doc'Unchecked_Access);
       Docs.Load (Item.Text_Doc, "");
@@ -471,7 +472,8 @@ package body Items.Windows is
       Item.Was_Used := False;
       Item.Dictating := Silent;
       Item.Live_Shown := False;
-      Item.Live_Lost := False;
+      Item.Live_Moved := False;
+      Item.Live_Done := 0;
    end Release;
 
    procedure Place
