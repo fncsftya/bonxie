@@ -54,6 +54,7 @@ package body Items.Windows.Builder is
       Frames.Add_Status_Item (Item.Chrome, Item.Outline_Button);
       Frames.Add_Status_Item (Item.Chrome, Item.Zoom_Button);
       Frames.Add_Over_Status (Item.Chrome, Item.Progress);
+      Pomarine.Widgets.Progress_Bars.Set_Over (Item.Progress, Pomarine.Themes.Strip, Meter_Slot);
 
       Editors.Configure
         (Item.Body_Text, Pomarine.Line_Texts.Serif, Metrics.Text_Size, Metrics.Measure);

@@ -116,6 +116,12 @@ package body Viewer.Style is
             Themes.Set_Custom
               (Result, 4, Themes.Mix (Base (Themes.Primary), Base (Themes.Foreground), 0.6));
          end if;
+         --  The level meter on a status line: the title bar's colour over a painting, which has the
+         --  painting's tint, and otherwise the text's, thinned to the strip's.
+         Themes.Set_Custom
+           (Result, Items.Windows.Meter_Offset,
+            (if Tint = Painted then Base (Themes.Bar)
+             else Themes.Mix (Base (Themes.Strip), Base (Themes.Foreground), 0.9)));
          Themes.Set_Custom
            (Result, Section_First + Projects.Sections.Colour_Index'Last + 1,
             (if Dark then Themes.White else (0, 0, 0, 255)));

@@ -48,6 +48,12 @@ package Items.Windows is
    --  that a section is read from. Find_Sources is the button of a note's
    --  toolbar that asks for sources to be found for its text.
 
+   Meter_Offset : constant := 27;
+   --  Which of the application's theme slots is the colour of the level
+   --  meter while dictating (the theme, Viewer.Style, sets it).
+
+   Meter_Slot : constant Pomarine.Themes.Slot := Pomarine.Themes.Custom (Meter_Offset);
+
    type Dictations is (Silent, Preparing, Listening, Transcribing, Failed);
    --  Of a note: not dictating (or it was taken), the microphone is being
    --  readied, it is listening, what was heard is being made text, or

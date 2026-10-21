@@ -2,6 +2,8 @@ with Pomarine.Widgets.Switches;
 with Pomarine.Widgets.Menus;
 with Pomarine.Widgets.Editors;
 with Items.Readers;
+with Items.Windows;
+with Pomarine.Widgets.Progress_Bars;
 with SDL3.Cursors;
 with Pomarine.Boxes;
 with Icon_Set;
@@ -133,6 +135,7 @@ package body Viewer.Build.Write_View is
            (Each.Level, Place => Absolute,
             Position => (Left | Bottom => 0.0, Right => Shadow_Room, others => <>),
             Height => Level_Height);
+         Pomarine.Widgets.Progress_Bars.Set_Over (Each.Level, Rail, Items.Windows.Meter_Slot);
          Widgets.Set_Visible (Each.Level, False);
          Buttons.Set_Label (Each.Mic_Button, "Mic");
          Buttons.Set_Icon (Each.Mic_Button, Icon_Set.Microphone);
