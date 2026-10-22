@@ -1450,6 +1450,8 @@ begin
    Run ("items-words", Item_Tests.Counting_Words'Access);
    Run ("items-stored", Item_Tests.Stored'Access);
    Run ("items-added", Item_Tests.Added'Access);
+   Run ("items-search", Item_Tests.Searching'Access);
+   Run ("sources-search", Item_Tests.Search_Sources'Access);
    Run ("items-typing", Item_Tests.Typing'Access);
    Run ("items-dictating", Item_Tests.Dictating'Access);
    Run ("items-dictating-empty", Item_Tests.Dictating_Into_Empty'Access);
@@ -1510,6 +1512,7 @@ begin
    Run ("outline-writing-sections", Outline_Tests.Writing_Sections'Access);
    Run ("outline-menu-fitting", Outline_Tests.Menu_Fitting'Access);
    Run ("write-source-documents", Write_Tests.Source_Documents'Access);
+   Run ("write-search", Write_Tests.Searching'Access);
    Run ("write-pages", Write_Tests.Pages'Access);
    Run ("write-grammar", Grammar_Tests.Checking'Access);
    Run ("write-grammar-rules", Grammar_Tests.Rules'Access);

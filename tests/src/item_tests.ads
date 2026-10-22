@@ -3,6 +3,8 @@
 --  and kept in the database. See Goldens.
 package Item_Tests is
 
+   procedure Searching;
+   procedure Search_Sources;
    procedure Counting_Words;
    procedure Stored;
    procedure Added;

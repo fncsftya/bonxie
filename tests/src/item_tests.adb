@@ -1,3 +1,4 @@
+with Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
 with Pomarine.Words;
 with Items.Marks;
 with Pomarine.Mark_Paths;
@@ -184,8 +185,18 @@ package body Item_Tests is
    end Drag;
 
    procedure Type_In (Session : in out Viewer.Session; Text : String) is
+      First : Positive := Text'First;
+      Last : Natural;
    begin
-      Viewer.Handle (Session, Events.Text_Event (Text));
+      while First <= Text'Last loop
+         Last := Natural'Min (Text'Last, First + Events.Text_Capacity - 1);
+         while Last < Text'Last and then Character'Pos (Text (Last + 1)) in 16#80# .. 16#BF# loop
+            Last := Last - 1;
+         end loop;
+         pragma Assert (Last >= First);
+         Viewer.Handle (Session, Events.Text_Event (Text (First .. Last)));
+         First := Last + 1;
+      end loop;
    end Type_In;
 
    procedure Press_Key
@@ -576,6 +587,98 @@ package body Item_Tests is
       Move_To (Session, 600.0, 60.0);
       Snap (Session, "item-added-two");
    end Added;
+
+   procedure Searching is
+      Session : Viewer.Session;
+      procedure Click_Search (Button : Positive) is
+         X, Y : Float;
+         Drawn : Pictures.Image;
+      begin
+         Viewer.Render (Session, Drawn);
+         Windows.Search_Button_Point (Session, Button, X, Y);
+         Click_On (Session, X, Y);
+         Viewer.Render (Session, Drawn);
+      end Click_Search;
+      procedure Cycle (Backwards : Boolean := False) is
+      begin
+         Viewer.Handle (Session, (Kind => Events.Key_Down, Key => Events.Key_F3,
+                                  Shift => Backwards, others => <>));
+      end Cycle;
+   begin
+      Start_With_One (Session);
+      Type_In (Session, "Bonxie bonxie BONXIE" & ASCII.LF
+        & Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Encode ("Café café Καλημέρα"));
+      Press_Key (Session, Events.Key_F, Command => True);
+      Type_In (Session, "bonxie");
+      Check ("search-count", " 3", Natural'Image (Windows.Search_Count (Session, 1)));
+      Check ("search-first", " 1", Natural'Image (Windows.Search_Current (Session, 1)));
+      Check ("search-inside-item", "TRUE", Boolean'Image (Windows.Search_In_Item (Session, 1)));
+      Snap (Session, "search-note");
+      Cycle;
+      Check ("search-forward", " 2", Natural'Image (Windows.Search_Current (Session, 1)));
+      Cycle (True);
+      Check ("search-back", " 1", Natural'Image (Windows.Search_Current (Session, 1)));
+      Cycle (True);
+      Check ("search-wrap-back", " 3", Natural'Image (Windows.Search_Current (Session, 1)));
+      Cycle;
+      Check ("search-wrap-forward", " 1", Natural'Image (Windows.Search_Current (Session, 1)));
+      Press_Key (Session, Events.Key_Return);
+      Check ("search-enter-does-not-cycle", " 1", Natural'Image (Windows.Search_Current (Session, 1)));
+      Press_Key (Session, Events.Key_A, Command => True);
+      Type_In (Session, Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Encode ("CAFÉ"));
+      Check ("search-unicode", " 2", Natural'Image (Windows.Search_Count (Session, 1)));
+      Snap (Session, "search-unicode");
+      Press_Key (Session, Events.Key_A, Command => True);
+      Type_In (Session, "absent");
+      Check ("search-absent", " 0", Natural'Image (Windows.Search_Count (Session, 1)));
+      Cycle;
+      Cycle (True);
+      Snap (Session, "search-no-matches");
+      Press_Key (Session, Events.Key_Escape);
+      Check ("search-closed", "FALSE", Boolean'Image (Windows.Search_Is_Open (Session)));
+      Check ("search-cleared", " 0", Natural'Image (Windows.Search_Count (Session, 1)));
+      Snap (Session, "search-dismissed");
+      --  With the focus elsewhere, hovering a note is sufficient.
+      Move_To (Session, Text_X, Text_Y);
+      Press_Key (Session, Events.Key_F, Command => True);
+      Type_In (Session, "bonxie");
+      Check ("search-hover", " 3", Natural'Image (Windows.Search_Count (Session, 1)));
+      --  Buttons cycle and close, keeping focus in the field.
+      Click_Search (2);
+      Check ("search-button-next", " 2", Natural'Image (Windows.Search_Current (Session, 1)));
+      Click_Search (1);
+      Check ("search-button-previous", " 1", Natural'Image (Windows.Search_Current (Session, 1)));
+      Click_Search (3);
+      Check ("search-button-close", "FALSE", Boolean'Image (Windows.Search_Is_Open (Session)));
+      Click_On (Session, Text_X, Text_Y);
+      Press_Key (Session, Events.Key_A, Command => True);
+      declare
+         Many : Ada.Strings.Unbounded.Unbounded_String;
+      begin
+         for Index in 1 .. 700 loop
+            Ada.Strings.Unbounded.Append (Many, "find ");
+         end loop;
+         Type_In (Session, Ada.Strings.Unbounded.To_String (Many));
+      end;
+      Press_Key (Session, Events.Key_F, Command => True);
+      Type_In (Session, "find");
+      Check ("search-many-results", " 700", Natural'Image (Windows.Search_Count (Session, 1)));
+      Cycle (True);
+      Check ("search-many-wrap", " 700", Natural'Image (Windows.Search_Current (Session, 1)));
+      Press_Key (Session, Events.Key_A, Command => True);
+      Type_In (Session, [1 .. 700 => 'f']);
+      Check ("search-long-query", " 0", Natural'Image (Windows.Search_Count (Session, 1)));
+      Press_Key (Session, Events.Key_Escape);
+      Windows.Add_Item (Session, "Another note");
+      Type_In (Session, "Other text");
+      Press_Key (Session, Events.Key_F, Command => True);
+      Type_In (Session, "other");
+      Check ("search-switch-window", "TRUE", Boolean'Image (Windows.Search_In_Item (Session, 2)));
+      Check ("search-left-first-window", "FALSE", Boolean'Image (Windows.Search_In_Item (Session, 1)));
+      Viewer.Project_Screen.Set_Mode (Session, Viewer.Write);
+      Viewer.Handle (Session, (Kind => Events.Redraw, others => <>));
+      Check ("search-leaving-canvas", "FALSE", Boolean'Image (Windows.Search_Is_Open (Session)));
+   end Searching;
 
    procedure Typing is
       Session : Viewer.Session;
@@ -1656,6 +1759,17 @@ package body Item_Tests is
         ("words-woke-the-loop", "TRUE", Boolean'Image (Pomarine.Application.Is_Waiting));
       Pomarine.Application.Run_Posted;
 
+      Move_To (Session, 300.0, Picture_Y);
+      Press_Key (Session, Events.Key_F, Command => True);
+      Type_In (Session, "moorland");
+      Check ("search-web-page", " 1", Natural'Image (Windows.Search_Count (Session, 1)));
+      Draw;
+      Press_Key (Session, Events.Key_A, Command => True);
+      Type_In (Session, "nest on");
+      Check ("search-web-phrase", " 1", Natural'Image (Windows.Search_Count (Session, 1)));
+      Press_Key (Session, Events.Key_Escape);
+      Check ("search-web-cleared", " 0", Natural'Image (Windows.Search_Count (Session, 1)));
+
       --  Selected, from the window, and copied.
       Draw;
       Click_On (Session, 300.0, Picture_Y);
@@ -2147,5 +2261,67 @@ package body Item_Tests is
               (Windows.Item_Picture_File (Session, 1))));
       Ada.Directories.Delete_Tree (Folder);
    end Source_Pages;
+
+   procedure Search_Sources is
+      Session : Viewer.Session;
+      Folder : constant String := "/tmp/bonxie-search-sources";
+      File : Ada.Streams.Stream_IO.File_Type;
+      Drawn : Pictures.Image;
+      procedure Write (Name, Content : String) is
+      begin
+         Ada.Streams.Stream_IO.Create (File, Ada.Streams.Stream_IO.Out_File, Folder & "/" & Name);
+         String'Write (Ada.Streams.Stream_IO.Stream (File), Content);
+         Ada.Streams.Stream_IO.Close (File);
+      end Write;
+      procedure Wait is
+      begin
+         for Pass in 1 .. 20 loop
+            delay 0.02;
+            Viewer.Tick (Session, SDL3.Events.Milliseconds (Pass * 100));
+            Viewer.Render (Session, Drawn);
+            Pomarine.Page_Builds.Wait_Until_Idle;
+         end loop;
+      end Wait;
+      procedure Find (Term : String) is
+      begin
+         Move_To (Session, 300.0, 240.0);
+         Press_Key (Session, Events.Key_F, Command => True);
+         Press_Key (Session, Events.Key_A, Command => True);
+         Type_In (Session, Term);
+         Wait;
+      end Find;
+   begin
+      Ada.Directories.Create_Path (Folder);
+      Write ("book.pdf", Two_Pages);
+      Write ("book.epub", Tiny_Epub);
+      Write ("notes.txt", "Bonxie bonxie" & ASCII.LF & "bonxie");
+      Start (Session);
+      Windows.Add_Unchosen_Source (Session);
+      Windows.Pin_Capture_Time (Session, 1_700_000_000);
+      Windows.Pick_File (Session, 1, Folder & "/book.pdf");
+      Wait;
+      Find ("Skuas");
+      Check ("search-pdf-other-page", " 1", Natural'Image (Windows.Search_Count (Session, 1)));
+      Check ("search-pdf-jumped", "Page 2 of 2", Windows.Item_Status (Session, 1));
+      Snap (Session, "search-pdf");
+      Press_Key (Session, Events.Key_Escape);
+      Windows.Pick_File (Session, 1, Folder & "/book.epub");
+      Wait;
+      Find ("sea");
+      Check ("search-epub", "TRUE", Boolean'Image (Windows.Search_Count (Session, 1) > 0));
+      Snap (Session, "search-epub");
+      Press_Key (Session, Events.Key_Escape);
+      Windows.Pick_File (Session, 1, Folder & "/notes.txt");
+      Wait;
+      Find ("bonxie");
+      Check ("search-text-file", " 3", Natural'Image (Windows.Search_Count (Session, 1)));
+      Snap (Session, "search-text-file");
+      Press_Key (Session, Events.Key_Escape);
+      Windows.Pick_File (Session, 1, "golden/source-added.png");
+      Wait;
+      Find ("bonxie");
+      Check ("search-image-excluded", "FALSE", Boolean'Image (Windows.Search_Is_Open (Session)));
+      Ada.Directories.Delete_Tree (Folder);
+   end Search_Sources;
 
 end Item_Tests;

@@ -1,3 +1,5 @@
+with Ada.Strings.Unbounded;
+with Pomarine.Widgets.Labels;
 with Growing;
 with Items;
 with Slot_Tables;
@@ -84,6 +86,31 @@ package Viewer_Parts.Canvas is
       --  0 if none is.
    end record;
    --  The pins, and the links being made, selected and drawn.
+
+   type Search_Document is record
+      Which : Items.Slot := Items.Slot'First;
+      Key : Items.Id := 0;
+      Revision : Texts.Documents.Version := 0;
+      Serial, Matches : Natural := 0;
+   end record;
+   package Search_Document_Lists is new Growing (Search_Document);
+
+   type Search_State is limited record
+      Bar : Pomarine.Widgets.Panels.Panel;
+      Doc : aliased Texts.Documents.Document;
+      Field : Pomarine.Widgets.Text_Fields.Text_Field;
+      Previous, Next, Close : Pomarine.Widgets.Buttons.Button;
+      Count : Pomarine.Widgets.Labels.Label;
+      Showing : Boolean := False;
+      In_Writing : Boolean := False;
+      Documents : Search_Document_Lists.List;
+      Total, Current, Rank : Natural := 0;
+      Reveal_Pending : Boolean := False;
+      Target : Items.Slot := Items.Slot'First;
+      Key : Items.Id := 0;
+      Term : Ada.Strings.Unbounded.Unbounded_String;
+      Seen : Texts.Documents.Version := 0;
+   end record;
 
    type Title_Edit_State is limited record
       Edit_Doc     : aliased Texts.Documents.Document;

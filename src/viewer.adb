@@ -14,6 +14,7 @@ with Pomarine.Application;
 with Pomarine.System_Settings;
 with SDL3.Events.Redraws;
 with SDL3.Windows.Renderers;
+with Viewer.Search;
 with Viewer.Build;
 with Viewer.Canvas_Items;
 with Viewer.Deletion;
@@ -159,6 +160,17 @@ package body Viewer is
    procedure Handle (Item : in out Session; Event : SDL3.Events.Event) is
       Handled : Boolean := False;
    begin
+      Search.Update (Item);
+      if Item.Nav.Shown = Project and then Item.Toolbar.Mode in Canvas | Write
+        and then not Item.Prefs.Showing_Settings and then not Item.Item_List.Showing_List
+        and then not Home_Screen.Is_Confirming (Item)
+      then
+         Search.Handle (Item, Event, Handled);
+         if Handled then
+            Search.Update (Item);
+            return;
+         end if;
+      end if;
       if Item.Context.Context_Kind /= No_Context
         and then Event.Kind = SDL3.Events.Key_Down
         and then Event.Key = SDL3.Events.Key_Escape
@@ -260,6 +272,7 @@ package body Viewer is
             end if;
             if Item.Nav.Shown = Project then
                Canvas_Items.Update (Item, Event.Time);
+               Search.Update (Item);
             end if;
       end case;
    end Handle;

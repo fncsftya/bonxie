@@ -9,6 +9,12 @@ with Pomarine.Widgets.Switches;
 
 package body Viewer.Documents is
 
+   function Search_Count (Item : Session) return Natural is (Item.Searching.Total);
+   function Search_Current (Item : Session) return Natural is (Item.Searching.Current);
+   function Search_Document (Item : Session) return Natural is (Item.Searching.Rank);
+   function Search_Highlights (Item : Session; Row : Positive) return Natural is
+     (Pomarine.Widgets.Editors.Search_Count (Item.Docs.Pages (Row).Text));
+
    function Grammar_Suggestions_Shown (Item : Session) return Boolean is
      (Pomarine.Widgets.Switches.Is_On (Item.Page_View.Grammar_Switch));
 

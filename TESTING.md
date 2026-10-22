@@ -206,3 +206,15 @@ clang -O2 tests/run/background_probe.c /tmp/backgrounds_native.o \
 ```
 
 It also writes `/tmp/bonxie-background-<style>-light.ppm` and `-dark.ppm` for visual inspection.
+
+## Canvas find
+
+`items-search` checks Command-F from the focused or hovered item, live case-insensitive
+Unicode matching, F3/Shift-F3 navigation and wraparound, buttons, no matches, Escape,
+leaving the canvas, 700 matches and a 700-character query. Its goldens show the bottom
+bar inside the searched canvas item and blue underlined search matches. `sources-search` searches across PDF and EPUB
+pages in the background, scrolls to a match on another page, searches text files and
+excludes images. `sources-words` also searches recognized web-page text and phrases.
+`write-search` checks matches across all writing documents, including pages hidden by a folder,
+F3 and Shift+F3 navigation across pages, wrapping, buttons, and clearing every page on Escape.
+Search decorations are transient and separate from saved highlighter marks.

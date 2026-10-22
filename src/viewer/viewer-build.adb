@@ -1,3 +1,4 @@
+with Viewer.Search;
 with Backgrounds;
 with Scripts;
 with Items.Schema;
@@ -300,6 +301,7 @@ package body Viewer.Build is
       Outline_View.Build_Outline (Item);
       Find_Sources.Build (Item);
       Shell_Views.Build_Tray (Item);
+      Search.Build (Item);
       Settings_Form.Build_Settings (Item);
       Dialogs.Build_Modal (Item);
       Dialogs.Build_List (Item);

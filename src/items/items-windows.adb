@@ -22,6 +22,58 @@ package body Items.Windows is
 
    use type Widgets.Clipboard_Access;
 
+   procedure Add_Search_Bar (Item : in out Window; Bar : in out Pomarine.Widgets.Widget'Class) is
+   begin
+      Pomarine.Widgets.Frames.Add_Content (Item.Chrome, Bar);
+   end Add_Search_Bar;
+
+   function Searchable (Item : Window) return Boolean is
+     (Item.Assigned and then Item.Details.State = Open and then
+       (Item.Details.Kind /= Source or else Parts.Is_Text_Source (Item) or else Item.Paged
+        or else (Item.Details.Origin = Remote and then Item.Recognized.Count > 0)));
+
+   procedure Search (Item : in out Window; Term : String) is
+   begin
+      if Item.Details.Kind /= Source then
+         Pomarine.Text_Areas.Search (Editors.Area (Item.Body_Text).all, Term);
+         Widgets.Invalidate (Item.Body_Text);
+      elsif Parts.Is_Text_Source (Item) then
+         Pomarine.Text_Areas.Search (Editors.Area (Item.Text_View).all, Term);
+         Widgets.Invalidate (Item.Text_View);
+      elsif Item.Paged then
+         Views.Search (Item.Pages, Term);
+      else
+         Pictures.Search (Item.Picture, Term);
+      end if;
+   end Search;
+
+   procedure Search_Step (Item : in out Window; Backwards : Boolean := False) is
+   begin
+      if Item.Details.Kind /= Source then
+         Pomarine.Text_Areas.Search_Step (Editors.Area (Item.Body_Text).all, Backwards);
+         Widgets.Invalidate (Item.Body_Text);
+      elsif Parts.Is_Text_Source (Item) then
+         Pomarine.Text_Areas.Search_Step (Editors.Area (Item.Text_View).all, Backwards);
+         Widgets.Invalidate (Item.Text_View);
+      elsif Item.Paged then
+         Views.Search_Step (Item.Pages, Backwards);
+      else
+         Pictures.Search_Step (Item.Picture, Backwards);
+      end if;
+   end Search_Step;
+
+   function Search_Busy (Item : Window) return Boolean is (Item.Paged and then Views.Search_Busy (Item.Pages));
+
+   function Search_Count (Item : Window) return Natural is
+     (if Item.Details.Kind /= Source then Editors.Search_Count (Item.Body_Text)
+      elsif Parts.Is_Text_Source (Item) then Editors.Search_Count (Item.Text_View)
+      elsif Item.Paged then Views.Search_Count (Item.Pages) else Pictures.Search_Count (Item.Picture));
+
+   function Search_Current (Item : Window) return Natural is
+     (if Item.Details.Kind /= Source then Editors.Search_Current (Item.Body_Text)
+      elsif Parts.Is_Text_Source (Item) then Editors.Search_Current (Item.Text_View)
+      elsif Item.Paged then Views.Search_Current (Item.Pages) else Pictures.Search_Current (Item.Picture));
+
    function Count_Words (Of_Text : String) return Natural is
       Total  : Natural := 0;
       Inside : Boolean := False;
@@ -462,6 +514,9 @@ package body Items.Windows is
 
    procedure Release (Item : in out Window) is
    begin
+      if Item.Assigned then
+         Search (Item, "");
+      end if;
       Parts.Clear_Recognized (Item);
       Pomarine.Widgets.Pictures.Set_File (Item.Picture, "");
       Items.Vector_Pages.Close (Item.Pages, Item.Doc_Sizes);

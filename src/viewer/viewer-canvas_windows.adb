@@ -9,6 +9,23 @@ package body Viewer.Canvas_Windows is
      (Canvas_Items.Nth (Item, Row));
    --  The window of the Rowth item.
 
+   function Search_In_Item (Item : Session; Row : Positive) return Boolean is
+     (Item.Searching.Showing and then Items.Windows.Owns
+        (Item.Windows (Window (Item, Row)), Item.Searching.Field'Unrestricted_Access));
+
+   procedure Search_Button_Point (Item : Session; Button : Positive; X, Y : out Float) is
+      package Widgets renames Pomarine.Widgets;
+      Part : constant Widgets.Widget_Access :=
+        (case Button is
+           when 1 => Item.Searching.Previous'Unrestricted_Access,
+           when 2 => Item.Searching.Next'Unrestricted_Access,
+           when others => Item.Searching.Close'Unrestricted_Access);
+      Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
+   begin
+      X := (Widgets.Left_Of (Part.all) + Widgets.Width_Of (Part.all) / 2.0) / Pixels;
+      Y := (Widgets.Top_Of (Part.all) + Widgets.Height_Of (Part.all) / 2.0) / Pixels;
+   end Search_Button_Point;
+
    function Item_Count (Item : Session) return Natural is
      (Canvas_Items.Count (Item));
 
@@ -82,6 +99,12 @@ package body Viewer.Canvas_Windows is
 
    function Is_Editing_Title (Item : Session; Row : Positive) return Boolean is
      (Items.Windows.Is_Editing_Title (Item.Windows (Window (Item, Row))));
+
+   function Search_Is_Open (Item : Session) return Boolean is (Item.Searching.Showing);
+   function Search_Count (Item : Session; Row : Positive) return Natural is
+     (Items.Windows.Search_Count (Item.Windows (Window (Item, Row))));
+   function Search_Current (Item : Session; Row : Positive) return Natural is
+     (Items.Windows.Search_Current (Item.Windows (Window (Item, Row))));
 
    function Item_Words (Item : Session; Row : Positive) return Natural is
      (Items.Windows.Words (Item.Windows (Window (Item, Row))));

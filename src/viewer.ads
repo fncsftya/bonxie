@@ -328,6 +328,7 @@ private
       Dragging : Drag_State;
       Linking : Link_State;
       Title_Edit : Title_Edit_State;
+      Searching : Search_State;
       Opened : Opened_State;
       Shell : Shell_State;
    end record;

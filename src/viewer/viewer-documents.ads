@@ -2,6 +2,12 @@
 --  tests.
 package Viewer.Documents is
 
+   function Search_Count (Item : Session) return Natural;
+   function Search_Current (Item : Session) return Natural;
+   function Search_Document (Item : Session) return Natural;
+   function Search_Highlights (Item : Session; Row : Positive) return Natural
+     with Pre => Row <= Document_Count (Item);
+
    function Context_Open (Item : Session) return Boolean;
 
    function Document_Count (Item : Session) return Natural

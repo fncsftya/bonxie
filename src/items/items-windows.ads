@@ -67,6 +67,15 @@ package Items.Windows is
    --  Milliseconds the text is left alone for before it is written,
    --  although it is still being typed in.
 
+   procedure Add_Search_Bar (Item : in out Window; Bar : in out Pomarine.Widgets.Widget'Class);
+
+   function Searchable (Item : Window) return Boolean;
+   procedure Search (Item : in out Window; Term : String);
+   procedure Search_Step (Item : in out Window; Backwards : Boolean := False);
+   function Search_Busy (Item : Window) return Boolean;
+   function Search_Count (Item : Window) return Natural;
+   function Search_Current (Item : Window) return Natural;
+
    function Count_Words (Of_Text : String) return Natural;
    --  Of runs of anything but spaces, tabs and line breaks.
 

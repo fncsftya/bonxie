@@ -5,6 +5,7 @@ with Pomarine.Widgets;
 with Viewer.Canvas_Items;
 with Viewer.Outlines;
 with Viewer.Style;
+with Viewer.Search;
 with Viewer.Settings_View;
 with Viewer.Writing;
 
@@ -16,6 +17,7 @@ package body Viewer.Painting is
 
    procedure Paint (Item : in out Session) is
    begin
+      Search.Update (Item);
       Item.Root.Window_Panel.Dark := Style.Is_Dark;
       Pomarine.Line_Texts.Begin_Frame (Item.Host.Lines);
       if Item.Nav.Shown = Project then
@@ -25,6 +27,7 @@ package body Viewer.Painting is
          Canvas_Items.Sync (Item);
          if Item.Toolbar.Mode in Write | Publish then
             Writing.Fit (Item);
+            Search.Reveal (Item);
             --  What was typed in a section's notes is kept.
             Outlines.Sync (Item);
          elsif Item.Toolbar.Mode = Outline then

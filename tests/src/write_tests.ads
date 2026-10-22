@@ -3,6 +3,7 @@
 --  pinned; text typed on a page or on the canvas. See Goldens.
 package Write_Tests is
 
+   procedure Searching;
    procedure Pages;
    procedure Ordering;
    procedure Dragging;

@@ -176,6 +176,62 @@ package body Write_Tests is
       Move_To (Session, 600.0, 60.0);
    end Start_With_Three;
 
+   procedure Searching is
+      Session : Viewer.Session;
+      procedure Key (Code : Events.Key_Code; Command : Boolean := False; Shift : Boolean := False) is
+      begin
+         Viewer.Handle (Session, (Kind => Events.Key_Down, Key => Code,
+                                  Command => Command, Shift => Shift, others => <>));
+      end Key;
+      procedure Expect (Name : String; Total, Current, Document : Natural) is
+      begin
+         Check (Name & "-count", Total'Image, Docs.Search_Count (Session)'Image);
+         Check (Name & "-current", Current'Image, Docs.Search_Current (Session)'Image);
+         Check (Name & "-document", Document'Image, Docs.Search_Document (Session)'Image);
+      end Expect;
+   begin
+      Start_With_Three (Session);
+      Proj.Set_Mode (Session, Viewer.Write);
+      Settle (Session);
+      Docs.Add_Directory (Session, "First only");
+      Docs.Move_Document_To (Session, 1, 1);
+      Docs.Show_Directory (Session, 1);
+      Settle (Session);
+      Key (Events.Key_F, Command => True);
+      Type_In (Session, "th");
+      Expect ("write-search-all", 3, 1, 1);
+      Snap (Session, "write-search-first");
+      Check ("write-search-reveals-hidden", " 0", Docs.Shown_Directory (Session)'Image);
+      Key (Events.Key_F3);
+      Expect ("write-search-next", 3, 2, 1);
+      Key (Events.Key_F3);
+      Expect ("write-search-next-document", 3, 3, 2);
+      Snap (Session, "write-search-last");
+      Key (Events.Key_F3);
+      Expect ("write-search-wrap", 3, 1, 1);
+      Key (Events.Key_F3, Shift => True);
+      Expect ("write-search-wrap-back", 3, 3, 2);
+      Key (Events.Key_Return);
+      Expect ("write-search-enter", 3, 3, 2);
+      Click_On (Session, 652.0, 458.0);
+      Expect ("write-search-button-next", 3, 1, 1);
+      Click_On (Session, 608.0, 458.0);
+      Expect ("write-search-button-back", 3, 3, 2);
+      Key (Events.Key_F, Command => True);
+      Type_In (Session, "absent");
+      Expect ("write-search-absent", 0, 0, 0);
+      Key (Events.Key_F3);
+      Snap (Session, "write-search-empty");
+      Key (Events.Key_F, Command => True);
+      Type_In (Session, "th");
+      Key (Events.Key_Escape);
+      Check ("write-search-closed", "FALSE", Windows.Search_Is_Open (Session)'Image);
+      for Rank in 1 .. Docs.Document_Count (Session) loop
+         Check ("write-search-cleared", " 0", Docs.Search_Highlights (Session, Rank)'Image);
+      end loop;
+      Snap (Session, "write-search-dismissed");
+   end Searching;
+
    procedure Pages is
       Session : Viewer.Session;
    begin

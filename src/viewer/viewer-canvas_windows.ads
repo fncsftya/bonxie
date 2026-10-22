@@ -5,6 +5,10 @@ with Projects;
 --  windows show them: for tests.
 package Viewer.Canvas_Windows is
 
+   function Search_In_Item (Item : Session; Row : Positive) return Boolean;
+   procedure Search_Button_Point (Item : Session; Button : Positive; X, Y : out Float)
+     with Pre => Button <= 3;
+
    function Item_Count (Item : Session) return Natural
      with Pre => Is_Open (Item) and then Screen (Item) = Project;
    --  How many the project has, whether shown or not.
@@ -99,6 +103,12 @@ package Viewer.Canvas_Windows is
      with Pre => Is_Open (Item) and then Screen (Item) = Project
                  and then Row <= Item_Count (Item);
    --  Whether the item's title is a field to type in, not text.
+
+   function Search_Is_Open (Item : Session) return Boolean;
+   function Search_Count (Item : Session; Row : Positive) return Natural
+     with Pre => Row <= Item_Count (Item);
+   function Search_Current (Item : Session; Row : Positive) return Natural
+     with Pre => Row <= Item_Count (Item);
 
    function Item_Words (Item : Session; Row : Positive) return Natural
      with Pre => Is_Open (Item) and then Screen (Item) = Project
