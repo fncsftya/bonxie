@@ -14,9 +14,13 @@ package body Word_Tools is
    procedure Use_Tool (Source : in out Pomarine.Widgets.Widget'Class; Tool : Natural) is
       Item : Editors.Editor'Class renames Editors.Editor'Class (Source);
    begin
-      if Tool = Fade and then Editors.Has_Document (Item) then
+      if not Editors.Has_Document (Item) then
+         return;
+      elsif Tool = Fade then
          Pomarine.Text_Areas.Toggle_Format (Editors.Area (Item).all, Texts.Documents.Faded);
          Pomarine.Widgets.Invalidate (Item);
+      elsif Tool = Reword then
+         Editors.Begin_Version (Item);
       end if;
    end Use_Tool;
 

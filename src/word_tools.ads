@@ -16,7 +16,7 @@ package Word_Tools is
    procedure Use_Tool (Source : in out Pomarine.Widgets.Widget'Class; Tool : Natural);
    --  Do what the tool of this number, said by Source's Use_Tool event, is
    --  for. Fade fades the selected text, or, if all of it is faded, brings
-   --  it back (kept as <f> round it in the document's markup); Reword
-   --  does nothing yet.
+   --  it back (kept as <f> round it in the document's markup); Reword starts
+   --  writing another version of it (see Editors.Begin_Version).
 
 end Word_Tools;

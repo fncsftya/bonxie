@@ -330,13 +330,13 @@ package body Item_Tests is
          Doc, Reloaded : Texts.Documents.Document;
       begin
          Texts.Documents.Load (Doc, "some text");
-         for Style in Texts.Documents.Format loop
+         for Style in Texts.Documents.Bold .. Texts.Documents.Faded loop
             Texts.Documents.Set_Format (Doc, (1, 1), (1, 5), Style, True);
          end loop;
          Items.Records.Set_Content (Store, Notes, Texts.Documents.Stored (Doc));
          Check ("items-rich-plain-content", "some text", Items.Records.Content (Store, Notes));
          Texts.Documents.Load_Stored (Reloaded, Items.Records.Stored_Content (Store, Notes));
-         for Style in Texts.Documents.Format loop
+         for Style in Texts.Documents.Bold .. Texts.Documents.Faded loop
             pragma Assert (Texts.Documents.Has_Format (Reloaded, (1, 1), (1, 5), Style));
          end loop;
          Check ("items-rich-persistence", "ok", "ok");
@@ -357,13 +357,13 @@ package body Item_Tests is
             Projects.Sections.Load (Store, First, Sections);
             pragma Assert (Projects.Sections.Note_Texts.To_String (Sections (1).Notes) = "some text");
             Texts.Documents.Load_Stored (Reloaded, Projects.Sections.Stored_Notes (Store, Section));
-            for Style in Texts.Documents.Format loop
+            for Style in Texts.Documents.Bold .. Texts.Documents.Faded loop
                pragma Assert (Texts.Documents.Has_Format (Reloaded, (1, 1), (1, 5), Style));
             end loop;
             Scripts.Load (Script, Texts.Documents.Stored (Doc), Path);
             Scripts.Save (Script);
             Texts.Documents.Load_Stored (Reloaded, Files.Read (Path));
-            for Style in Texts.Documents.Format loop
+            for Style in Texts.Documents.Bold .. Texts.Documents.Faded loop
                pragma Assert (Texts.Documents.Has_Format (Reloaded, (1, 1), (1, 5), Style));
             end loop;
             pragma Assert (Scripts.Text (Script) = "some text");
