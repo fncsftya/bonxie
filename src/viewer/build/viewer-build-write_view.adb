@@ -1,3 +1,4 @@
+with Word_Tools;
 with Pomarine.Widgets.Switches;
 with Pomarine.Widgets.Menus;
 with Pomarine.Widgets.Editors;
@@ -156,6 +157,7 @@ package body Viewer.Build.Write_View is
          Editors.Set_Paper (Each.Text, Paper);
          Editors.Set_Toolbar (Each.Text);
          Editors.Set_Assist (Each.Text, "Find Sources");
+         Word_Tools.Add (Each.Text);
          --  The page's margin is the text area's, so that its toolbar is the page's width.
          Editors.Set_Indent (Each.Text, Page_Margin - Page_Text_Inset - Page_Border);
          Pomarine.Text_Areas.Set_Grows (Editors.Area (Each.Text).all);
