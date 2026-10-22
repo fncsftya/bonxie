@@ -110,6 +110,11 @@ package body Viewer.Writing is
                          Modes'Pos (Modes'Last))));
    end Restore;
 
+   procedure Fit_Sidebar (Item : in out Session) is
+   begin
+      Panes.Fit_Sections (Item);
+   end Fit_Sidebar;
+
    procedure Dismiss_Context (Item : in out Session) is
    begin
       Popups.Close_Context (Item);
@@ -287,6 +292,9 @@ package body Viewer.Writing is
       Hear (Item.Page_View.Pane_Edge, Drag, Panes.Pane_Dragged'Access);
       Hear (Item.Page_View.Sidebar_Edge, Drag, Panes.Sidebar_Dragged'Access);
       Hear (Item.Page_View.Sidebar_Edge, Release, Panes.Sidebar_Released'Access);
+      Hear (Item.Page_View.Edit_Heading.Bar, Click, Panes.Section_Clicked'Access, 1);
+      Hear (Item.Page_View.Docs_Heading.Bar, Click, Panes.Section_Clicked'Access, 2);
+      Hear (Item.Page_View.Sources_Heading.Bar, Click, Panes.Section_Clicked'Access, 3);
       Hear (Item.Page_View.Sources_Edge, Drag, Panes.Sources_Edge_Dragged'Access);
       Reader_Events.On (Item.Reading.Pane_Reader, 0, Item'Unchecked_Access, Panes.Reader_Asked'Access);
    end Listen;

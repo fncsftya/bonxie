@@ -29,6 +29,14 @@ private package Viewer.Writing.Panes is
      (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
    --  The edge was let go: keep how wide the list is.
 
+   procedure Fit_Sections (Item : in out Session);
+   --  Show each section of the sidebar open or folded, and its head to say so.
+
+   procedure Section_Clicked
+     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
+   --  The head of a section (Event.Index: 1 Edit, 2 Documents, 3 Sources) was clicked: fold or
+   --  unfold it, and keep which are open.
+
    procedure Sources_Edge_Dragged
      (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
    --  The edge above the sources list was dragged: size the list.

@@ -1,4 +1,6 @@
 with Preferences;
+with Pomarine.Icons;
+with Pomarine.Widgets.Labels;
 with Ada.Strings.Unbounded;
 with Pomarine.Text_Areas;
 with Pomarine.Widgets.Grips;
@@ -133,6 +135,58 @@ package body Viewer.Writing.Panes is
          end;
       end if;
    end Sidebar_Released;
+
+   procedure Fit_Sections (Item : in out Session) is
+      View : Page_Parts renames Item.Page_View;
+
+      procedure Head (Fold : in out Fold_Head; Unfolded : Boolean) is
+      begin
+         Pomarine.Widgets.Labels.Set_Icon
+           (Fold.Mark, (if Unfolded then Pomarine.Icons.Chevron_Up else Pomarine.Icons.Chevron_Down));
+      end Head;
+   begin
+      Head (View.Edit_Heading, View.Edit_Open);
+      Head (View.Docs_Heading, View.Docs_Open);
+      Head (View.Sources_Heading, View.Sources_Open);
+      Widgets.Set_Visible (View.Grammar_Row, View.Edit_Open);
+      Widgets.Set_Visible (View.Docs_Scroll, View.Docs_Open);
+      Widgets.Set_Visible (View.Docs_Add, View.Docs_Open);
+      Widgets.Set_Visible (View.Docs_Folder, View.Docs_Open);
+      Widgets.Set_Visible (View.Sources_Scroll, View.Sources_Open);
+      --  The divider is between two lists that are both there.
+      Widgets.Set_Visible (View.Sources_Edge, View.Docs_Open and then View.Sources_Open);
+   end Fit_Sections;
+
+   procedure Section_Clicked
+     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source);
+      View : Page_Parts renames Item.Page_View;
+   begin
+      if Support.In_Writing (Item) then
+         case Event.Index is
+            when 1 => View.Edit_Open := not View.Edit_Open;
+            when 2 => View.Docs_Open := not View.Docs_Open;
+            when 3 => View.Sources_Open := not View.Sources_Open;
+            when others => raise Program_Error;
+         end case;
+         Fit_Sections (Item);
+         if Item.Prefs.Persist then
+            begin
+               declare
+                  Config : constant String := Ada.Strings.Unbounded.To_String (Item.Prefs.Config_Dir);
+               begin
+                  Preferences.Save_Section_Open (Config, "edit", View.Edit_Open);
+                  Preferences.Save_Section_Open (Config, "documents", View.Docs_Open);
+                  Preferences.Save_Section_Open (Config, "sources", View.Sources_Open);
+               end;
+            exception
+               when others =>
+                  null;  --  the folding is only not kept
+            end;
+         end if;
+      end if;
+   end Section_Clicked;
 
    procedure Sources_Edge_Dragged
      (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)

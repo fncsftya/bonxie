@@ -291,11 +291,20 @@ package body Viewer.Build.Write_View is
            (Content, Gap => Index_Gap * Pixels - Offset, Unit => Device_Pixels);
       end Build_Index;
 
-      procedure Heading (Label : in out Labels.Label; Name : String) is
+      --  The head of a section, which folds it.
+      procedure Heading (Head : in out Fold_Head; Name : String) is
       begin
-         Labels.Set_Text (Label, Name);
-         Labels.Set_Style (Label, Pomarine.Line_Texts.Caption);
-         Set_Layout (Label, Height => Heading_Height, Shrink => 0.0);
+         Widgets.Add (Head.Bar, Head.Mark, Head.Name);
+         Labels.Set_Text (Head.Mark, " ");
+         Set_Layout (Head.Mark, Width => 18.0, Height => Heading_Height, Shrink => 0.0);
+         Labels.Set_Text (Head.Name, Name);
+         Labels.Set_Style (Head.Name, Pomarine.Line_Texts.Caption);
+         Set_Layout (Head.Name, Grow => 1.0, Width => 0.0, Height => Heading_Height);
+         Grips.Set_Fill (Head.Bar, Side_Fill);
+         Grips.Set_Hover_Fill (Head.Bar, Row_Hover);
+         Grips.Set_Wanted_Cursor (Head.Bar, SDL3.Cursors.Pointer);
+         Widgets.Set_Accessible_Name (Head.Bar, "Fold or unfold " & Name);
+         Set_Layout (Head.Bar, Flow => Row, Align => Center, Height => Heading_Height, Shrink => 0.0);
       end Heading;
 
       --  Put the widgets in each other.
@@ -303,19 +312,20 @@ package body Viewer.Build.Write_View is
       begin
          Widgets.Add (Item.Toolbar.Content_Panel, View.Write_View);
          Widgets.Add (View.Write_View, View.Sidebar);
+         Widgets.Add (View.Sidebar, View.Edit_Heading.Bar);
          Widgets.Add (View.Sidebar, View.Grammar_Row);
          Widgets.Add (View.Grammar_Row, View.Grammar_Switch, View.Grammar_Count);
-         Set_Layout (View.Grammar_Row, Flow => Row, Align => Center, Height => 52.0, Shrink => 0.0, Gap => 6.0);
+         Set_Layout (View.Grammar_Row, Flow => Row, Align => Center, Height => 34.0, Shrink => 0.0, Gap => 4.0);
          Switches.Set_Label (View.Grammar_Switch, "Show Grammar Suggestions");
          Switches.Set_On (View.Grammar_Switch, True);
          Switches.Set_Focusable (View.Grammar_Switch, True);
-         Set_Layout (View.Grammar_Switch, Height => 52.0, Grow => 1.0, Width => 0.0);
+         Set_Layout (View.Grammar_Switch, Height => 34.0, Grow => 1.0, Width => 0.0);
          Buttons.Set_Label (View.Grammar_Count, "0");
          Buttons.Set_Focusable (View.Grammar_Count, True);
          Widgets.Set_Accessible_Name (View.Grammar_Count, "Fixable grammar suggestions: 0");
          Set_Layout (View.Grammar_Count, Width => 36.0, Height => 28.0, Shrink => 0.0);
          Widgets.Add (View.Sidebar, View.Docs_Head);
-         Widgets.Add (View.Docs_Head, View.Docs_Heading, View.Docs_Folder, View.Docs_Add);
+         Widgets.Add (View.Docs_Head, View.Docs_Heading.Bar, View.Docs_Folder, View.Docs_Add);
          Build_Index (View.Docs_Scroll, View.Docs_Content, View.Docs_None, No_Documents);
          Widgets.Add (View.Docs_Content, View.Docs_None);
          Set_Layout (View.Docs_None, Height => Index_Height);
@@ -325,7 +335,7 @@ package body Viewer.Build.Write_View is
          Widgets.Add (View.Docs_Content, Item.Naming.Dir_Field);
          Widgets.Add (View.Sidebar, View.Sources_Edge);
          Widgets.Add (View.Sources_Edge, View.Sources_Grab);
-         Widgets.Add (View.Sidebar, View.Sources_Heading);
+         Widgets.Add (View.Sidebar, View.Sources_Heading.Bar);
          Build_Index (View.Sources_Scroll, View.Sources_Content, View.Sources_None, No_Sources);
          Widgets.Add (View.Sources_Content, View.Sources_None);
          Widgets.Add (View.Sources_Content, Item.Naming.Source_Field);
@@ -404,11 +414,13 @@ package body Viewer.Build.Write_View is
          Set_Layout (View.Sidebar_Rule, Width => Hairline, Shrink => 0.0);
          Set_Layout
            (View.Docs_Head, Flow => Row, Align => Center, Gap => Index_Gap,
-            Padding => (Right => Shadow_Room, others => <>));
+            Padding => (Right => Shadow_Room, others => <>),
+            Margin => (Top => Heading_Top, others => <>));
+         Heading (View.Edit_Heading, "EDIT");
          Heading (View.Docs_Heading, "DOCUMENTS");
-         Set_Layout (View.Docs_Heading, Grow => 1.0);
+         Set_Layout (View.Docs_Heading.Bar, Grow => 1.0, Width => 0.0);
          Heading (View.Sources_Heading, "SOURCES");
-         Set_Layout (View.Sources_Heading, Margin => (Top => Heading_Top, others => <>));
+         Set_Layout (View.Sources_Heading.Bar, Margin => (Top => Heading_Top, others => <>));
          Buttons.Set_Label (View.Docs_Add, "+");
          Buttons.Set_Icon (View.Docs_Add, Icon_Set.Plus);
          Buttons.Set_Icon_Size (View.Docs_Add, Mic_Icon_Size);
@@ -486,6 +498,7 @@ package body Viewer.Build.Write_View is
       Style_Sidebar;
       Style_Pages;
       Style_Pane;
+      Writing.Fit_Sidebar (Item);
    end Build_Write;
 
 end Viewer.Build.Write_View;

@@ -217,6 +217,13 @@ package body Viewer.Build is
                  Float'Max (Sidebar_Least, Float'Min (Sidebar_Most, Float (Kept)));
             end if;
          end;
+         declare
+            Config : constant String := Ada.Strings.Unbounded.To_String (Item.Prefs.Config_Dir);
+         begin
+            Item.Page_View.Edit_Open := Preferences.Load_Section_Open (Config, "edit");
+            Item.Page_View.Docs_Open := Preferences.Load_Section_Open (Config, "documents");
+            Item.Page_View.Sources_Open := Preferences.Load_Section_Open (Config, "sources");
+         end;
          Item.Prefs.Speech_Choice :=
            Preferences.Load_Speech_Model
              (Ada.Strings.Unbounded.To_String (Item.Prefs.Config_Dir));

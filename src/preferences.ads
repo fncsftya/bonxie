@@ -85,6 +85,13 @@ package Preferences is
    procedure Save_Sidebar_Width (Config : String; To : Natural);
    --  Keep the width, making Config if need be.
 
+   function Load_Section_Open (Config : String; Name : String) return Boolean;
+   --  Whether the section of the writing view's sidebar called Name was
+   --  left open: True if it was not said, or it cannot be read.
+
+   procedure Save_Section_Open (Config : String; Name : String; To : Boolean);
+   --  Keep it, making Config if need be.
+
    function Load_Generate_Notes (Config : String) return Boolean;
    --  Whether the outline's Generate button was last used to make the
    --  sections with notes; False if it was not, or it cannot be read.

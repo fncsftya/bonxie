@@ -205,6 +205,14 @@ package body Preferences is
       Put_Setting (Config, "sidebar", Ada.Strings.Fixed.Trim (To'Image, Ada.Strings.Left));
    end Save_Sidebar_Width;
 
+   function Load_Section_Open (Config : String; Name : String) return Boolean is
+     (Setting (Config, "open_" & Name) /= "no");
+
+   procedure Save_Section_Open (Config : String; Name : String; To : Boolean) is
+   begin
+      Put_Setting (Config, "open_" & Name, (if To then "yes" else "no"));
+   end Save_Section_Open;
+
    function Load_Generate_Notes (Config : String) return Boolean is
      (Ada.Characters.Handling.To_Lower (Setting (Config, "generate")) = "notes");
 

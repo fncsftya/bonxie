@@ -18,6 +18,9 @@ private package Viewer.Writing is
    --  Make the lists, pages and windows of the items there are: once the
    --  canvas's windows are made.
 
+   procedure Fit_Sidebar (Item : in out Session);
+   --  Show the sections of the sidebar open or folded, as they are kept.
+
    procedure Dismiss_Context (Item : in out Session);
    --  Dismiss the right click menu without changing the editor focus.
 

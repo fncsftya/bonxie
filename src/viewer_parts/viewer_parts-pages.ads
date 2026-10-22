@@ -81,12 +81,26 @@ package Viewer_Parts.Pages is
       Text    : Pomarine.Widgets.Editors.Editor;
    end record;
 
+   type Fold_Head is limited record
+      Bar  : Pomarine.Widgets.Grips.Grip;
+      Mark : Pomarine.Widgets.Labels.Label;
+      Name : Pomarine.Widgets.Labels.Label;
+   end record;
+   --  The head of a section of the sidebar, which folds it: its chevron and name, in a bar
+   --  that is clicked.
+
    type Page_Parts is limited record
       Write_View    : Pomarine.Widgets.Panels.Panel;
       --  A row, in the content area in the canvas's place when Mode is
       --  Write: the sidebar, the pages, and the pane of the pinned source;
       --  and the windows of the sources, over them.
       Sidebar       : Pomarine.Widgets.Panels.Panel;
+      Edit_Heading  : Fold_Head;
+      --  The head of the Edit section, above the grammar suggestions.
+      Edit_Open     : Boolean := True;
+      Docs_Open     : Boolean := True;
+      Sources_Open  : Boolean := True;
+      --  Whether each section of the sidebar is open; the heads fold them.
       Grammar_Row   : Pomarine.Widgets.Panels.Panel;
       Grammar_Switch : Pomarine.Widgets.Switches.Switch;
       Grammar_Count : Pomarine.Widgets.Buttons.Button;
@@ -97,7 +111,7 @@ package Viewer_Parts.Pages is
       Sidebar_Rule  : Pomarine.Widgets.Panels.Panel;
       --  The line at its right.
       Docs_Head     : Pomarine.Widgets.Panels.Panel;
-      Docs_Heading  : Pomarine.Widgets.Labels.Label;
+      Docs_Heading  : Fold_Head;
       Docs_Add      : Pomarine.Widgets.Buttons.Button;
       Docs_Folder   : Pomarine.Widgets.Buttons.Button;
       --  Beside the name of the list: add a document, and a directory.
@@ -107,7 +121,7 @@ package Viewer_Parts.Pages is
       Sources_Edge  : Pomarine.Widgets.Grips.Grip;
       --  Between the lists, to size the sources list by.
       Sources_Grab  : Pomarine.Widgets.Panels.Panel;
-      Sources_Heading : Pomarine.Widgets.Labels.Label;
+      Sources_Heading : Fold_Head;
       Sources_Scroll  : Pomarine.Widgets.Scrollers.Scroller;
       Sources_Content : Pomarine.Widgets.Panels.Panel;
       Sources_None  : Pomarine.Widgets.Labels.Label;
