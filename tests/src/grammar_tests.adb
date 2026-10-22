@@ -76,13 +76,13 @@ package body Grammar_Tests is
       Snap (Item, "write-grammar-highlights");
 
       --  Turning off clears all documents, including those below the viewport.
-      Click (Item, 28.0, 95.0);
+      Click (Item, 28.0, 115.0);
       Viewer.Tick (Item, Now);
       Check ("grammar-off", not Docs.Grammar_Suggestions_Shown (Item));
       Check ("grammar-cleared", Docs.Grammar_Highlights (Item, 1) = 0
              and then Docs.Grammar_Highlights (Item, 2) = 0);
       Snap (Item, "write-grammar-off");
-      Click (Item, 28.0, 95.0);
+      Click (Item, 28.0, 115.0);
       Await (Item, Now);
       Check ("grammar-back-on", Docs.Grammar_Highlights (Item, 1) > 0);
 
@@ -124,7 +124,7 @@ package body Grammar_Tests is
       Now := Now + 500;
       Await (Item, Now);
       Check ("grammar-span-first", Docs.Grammar_Highlights (Item, 1) > 0 and then Docs.Grammar_Count (Item) = "2");
-      Click (Item, 100.0, 251.0);
+      Click (Item, 100.0, 277.0);
       Viewer.Tick (Item, Now + 1000);
       Viewer.Render (Item, Image);
       Click (Item, 400.0, 460.0);
@@ -147,7 +147,7 @@ package body Grammar_Tests is
       Proj.Set_Mode (Item, Viewer.Write);
       Viewer.Tick (Item, Now);
       Check ("grammar-tab-return", Docs.Grammar_Count (Item) = "1" and then Docs.Grammar_Highlights (Item, 1) > 0);
-      Click (Item, 181.0, 140.0);
+      Click (Item, 181.0, 166.0);
       Viewer.Tick (Item, Now + 1000);
       Check ("grammar-added-count", Docs.Document_Count (Item) = 3);
       Viewer.Handle (Item, Events.Text_Event ("Brand new."));

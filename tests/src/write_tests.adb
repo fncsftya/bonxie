@@ -64,7 +64,7 @@ package body Write_Tests is
    Doc_Row_X : constant Float := 100.0;
 
    function Tree_Row_Y (Row : Positive) return Float is
-     (174.5 + Float (Row - 1) * 38.0);
+     (200.5 + Float (Row - 1) * 38.0);
    --  The rows of the tree of documents, in the sidebar, the Overview's
    --  first.
 
@@ -74,7 +74,7 @@ package body Write_Tests is
 
    Add_Document_X : constant Float := 181.0;
    Add_Directory_X : constant Float := 153.0;
-   Add_Document_Y : constant Float := 140.0;
+   Add_Document_Y : constant Float := 166.0;
    --  The buttons beside the name of the list of documents.
 
    Pane_Edge_X : constant Float := 435.0;
@@ -86,7 +86,7 @@ package body Write_Tests is
    Source_Row_X : constant Float := 100.0;
 
    function Source_Row_Y (Documents : Natural) return Float is
-     (159.0 + 24.5 + 38.0
+     (185.0 + 24.5 + 38.0
       + (if Documents = 0 then 31.0
          else Float (Documents) * 34.0 + Float (Documents - 1) * 4.0)
       + 67.5);
@@ -709,6 +709,74 @@ package body Write_Tests is
                 Windows.Item_Text (Session, 1));
       end;
    end Typing;
+
+   procedure Word_Tools is
+      Session : Viewer.Session;
+
+      procedure Command_Key (Letter : Character) is
+      begin
+         Viewer.Handle
+           (Session, Events.Event'(Kind => Events.Key_Down, Key => Events.Key_Code (Character'Pos (Letter)),
+                                   Command => True, others => <>));
+         Settle (Session);
+      end Command_Key;
+
+      procedure Select_Everything is
+      begin
+         Viewer.Handle
+           (Session, Events.Event'(Kind => Events.Key_Down, Key => Events.Key_A, Command => True,
+                                   others => <>));
+      end Select_Everything;
+   begin
+      Start_With_Three (Session);
+      Proj.Set_Mode (Session, Viewer.Write);
+      Click_On (Session, Text_X, Text_Y);
+
+      --  Nothing is selected: nothing is done.
+      Command_Key ('d');
+      Command_Key ('r');
+      Check ("write-tools-need-selection", "It was a dark and stormy night.", Windows.Item_Text (Session, 1));
+      Check ("write-tools-none-kept", "<version>1</version><p>It was a dark and stormy night.</p>",
+             Windows.Item_Stored_Text (Session, 1));
+
+      --  Faded, and kept so.
+      Select_Everything;
+      Command_Key ('d');
+      Check ("write-fade-kept", "<version>1</version><p><f>It was a dark and stormy night.</f></p>",
+             Windows.Item_Stored_Text (Session, 1));
+      Command_Key ('d');
+      Check ("write-fade-undone", "<version>1</version><p>It was a dark and stormy night.</p>",
+             Windows.Item_Stored_Text (Session, 1));
+
+      --  Reworded: the text goes, what is typed is the other version.
+      Command_Key ('r');
+      Check ("write-reword-gone", "", Windows.Item_Text (Session, 1));
+      Type_In (Session, "Once upon a time.");
+      Viewer.Handle (Session, Events.Event'(Kind => Events.Key_Down, Key => Events.Key_Return, others => <>));
+      Settle (Session);
+      Check ("write-reword-kept",
+             "<version>1</version><p><v sel=""2""><o>It was a dark and stormy night.</o>Once upon a time.</v></p>",
+             Windows.Item_Stored_Text (Session, 1));
+      Check ("write-reword-text", "Once upon a time.", Windows.Item_Text (Session, 1));
+
+      --  Given up with Escape, it is as it was; the versions come back after the project is reopened.
+      Select_Everything;
+      Command_Key ('r');
+      Type_In (Session, "Never.");
+      Viewer.Handle (Session, Events.Event'(Kind => Events.Key_Down, Key => Events.Key_Escape, others => <>));
+      Settle (Session);
+      Check ("write-reword-given-up", "Once upon a time.", Windows.Item_Text (Session, 1));
+      declare
+         Key : constant Projects.Id := Proj.Current_Project (Session);
+      begin
+         Proj.Close_Project (Session);
+         Home.Open_Project (Session, Key);
+         Viewer.Project_Screen.Set_Mode (Session, Viewer.Canvas);
+         Check ("write-reword-persisted",
+                "<version>1</version><p><v sel=""2""><o>It was a dark and stormy night.</o>Once upon a time.</v></p>",
+                Windows.Item_Stored_Text (Session, 1));
+      end;
+   end Word_Tools;
 
    procedure Sources is
       Session : Viewer.Session;

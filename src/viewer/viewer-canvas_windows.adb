@@ -62,6 +62,9 @@ package body Viewer.Canvas_Windows is
    function Item_Text (Item : Session; Row : Positive) return String is
      (Items.Windows.Text (Item.Windows (Window (Item, Row))));
 
+   function Item_Stored_Text (Item : Session; Row : Positive) return String is
+     (Items.Windows.Stored_Text (Item.Windows (Window (Item, Row))));
+
    function Item_Kind (Item : Session; Row : Positive) return Items.Kinds is
      (Items.Windows.Details (Item.Windows (Window (Item, Row))).Kind);
 

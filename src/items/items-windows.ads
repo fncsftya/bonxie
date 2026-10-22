@@ -130,6 +130,10 @@ package Items.Windows is
      with Pre => Is_Assigned (Item);
    --  Of a source, its link, as edited.
 
+   function Stored_Text (Item : Window) return String
+     with Pre => Is_Assigned (Item);
+   --  As Text, as kept: with its styles and versions as markup.
+
    procedure Set_Capture
      (Item   : in out Window;
       To     : Captures;

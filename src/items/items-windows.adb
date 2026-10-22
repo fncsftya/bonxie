@@ -79,6 +79,9 @@ package body Items.Windows is
    function Text (Item : Window) return String is
      (Docs.Whole (Item.Content_Doc));
 
+   function Stored_Text (Item : Window) return String is
+     (Docs.Stored (Item.Content_Doc));
+
    procedure Allow_Find_Sources (Item : in out Window; To : Boolean) is
    begin
       if Editors.Assist_Is_Allowed (Item.Body_Text) /= To then

@@ -683,13 +683,13 @@ package body Outline_Tests is
       Snap (Session, "write-section-rows");
 
       --  Right click: it can be renamed, not deleted.
-      Click_Row (213.0, 3, 1);
+      Click_Row (239.0, 3, 1);
       Snap (Session, "write-section-context");
       Click_Row (400.0, 1, 1);
 
       --  Pressed twice, it is renamed in place, and the name is the
       --  section's wherever it is shown.
-      Click_Row (213.0, 1, 2);
+      Click_Row (239.0, 1, 2);
       Type_In (Session, "Opening");
       Viewer.Handle (Session, Events.Event'(Kind => Events.Key_Down, Key => Events.Key_Return, others => <>));
       Settle (Session);
@@ -850,7 +850,7 @@ package body Outline_Tests is
       Session : Viewer.Session;
 
       function Y (Row : Positive) return Float is
-        (174.5 + Float (Row - 1) * 38.0);
+        (200.5 + Float (Row - 1) * 38.0);
 
       procedure Drag (From, Into : Positive) is
       begin
@@ -965,7 +965,7 @@ package body Outline_Tests is
       Check_X, Check_Y, Delete_X, Delete_Y : Float;
 
       function Y (Row : Positive) return Float is
-        (174.5 + Float (Row - 1) * 38.0);
+        (200.5 + Float (Row - 1) * 38.0);
 
       procedure Drag (From, Into : Positive; Offset : Float := 0.0) is
       begin

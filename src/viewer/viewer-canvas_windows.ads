@@ -67,6 +67,11 @@ package Viewer.Canvas_Windows is
      with Pre => Is_Open (Item) and then Screen (Item) = Project
                  and then Row <= Item_Count (Item);
 
+   function Item_Stored_Text (Item : Session; Row : Positive) return String
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item);
+   --  As Item_Text, with its styles and versions as markup.
+
    function Item_Kind (Item : Session; Row : Positive) return Items.Kinds
      with Pre => Is_Open (Item) and then Screen (Item) = Project
                  and then Row <= Item_Count (Item);

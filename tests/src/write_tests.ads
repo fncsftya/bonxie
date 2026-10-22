@@ -14,6 +14,9 @@ package Write_Tests is
    procedure Adding;
    procedure Linked_Sources;
    procedure Typing;
+   procedure Word_Tools;
+   --  Fade and Reword on a page, by their keys: kept in the markup, and
+   --  through the project being closed and opened.
    procedure Sources;
    procedure Sharing_Marks;
    procedure Source_Documents;
