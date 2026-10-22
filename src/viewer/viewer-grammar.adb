@@ -530,6 +530,31 @@ package body Viewer.Grammar is
       pragma Assert (Last or else From < Next_Position);
    end Chunk;
 
+   --  Chunks join paragraphs with LF, so Harper may flag a span running
+   --  across a paragraph break; such a diagnostic cannot be shown or applied.
+   procedure Drop_Cross_Paragraph (Chunk_Text : String; Result : in out Harper.Check_Result) is
+      Kept : Natural := 0;
+   begin
+      for Index in 1 .. Result.Count loop
+         declare
+            Lint   : constant Harper.Diagnostic := Result.Lints (Index);
+            Across : Boolean := False;
+         begin
+            for At_Byte in Lint.Location.First + 1 .. Natural'Min (Lint.Location.Last, Chunk_Text'Length) loop
+               if Chunk_Text (Chunk_Text'First + At_Byte - 1) = ASCII.LF then
+                  Across := True;
+                  exit;
+               end if;
+            end loop;
+            if not Across then
+               Kept := Kept + 1;
+               Result.Lints (Kept) := Lint;
+            end if;
+         end;
+      end loop;
+      Result.Count := Kept;
+   end Drop_Cross_Paragraph;
+
    procedure Update (Item : in out Session; Now : SDL3.Events.Milliseconds) is
       State : Grammar_State renames Item.Grammar_Checks;
       On    : constant Boolean := Pomarine.Widgets.Switches.Is_On (Item.Page_View.Grammar_Switch);
@@ -605,6 +630,7 @@ package body Viewer.Grammar is
                      Seen.Cursor := Worker.Next_Position;
                      Seen.Finished := Worker.Last or else Result.Status /= Harper.Success;
                      if Result.Status = Harper.Success then
+                        Drop_Cross_Paragraph (Worker.Text (1 .. Worker.Length), Result);
                         Grammar_Rules.Apply (State.Rules, Worker.Text (1 .. Worker.Length), Result);
                         declare
                            Editor : Editors.Editor renames Item.Docs.Pages (Worker.Rank).Text;
