@@ -1,6 +1,7 @@
 name = "vision"
 description = "Text in pictures, recognized with Apple's Vision (macOS only)"
 version = "0.1.0-dev"
+licenses = "GPL-3.0-only"
 
 authors = ["Matt Rawcliffe"]
 website = ""

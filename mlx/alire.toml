@@ -1,6 +1,7 @@
 name = "mlx"
 description = "Local language models on MLX (Apple silicon), by mlx-swift-lm"
 version = "0.1.0-dev"
+licenses = "GPL-3.0-only"
 
 authors = ["Matt Rawcliffe"]
 website = ""

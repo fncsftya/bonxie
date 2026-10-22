@@ -1,6 +1,7 @@
 name = "bench"
 description = "Benchmarks for laying out and drawing long documents"
 version = "0.1.0-dev"
+licenses = "GPL-3.0-only"
 
 authors = ["Matt Rawcliffe"]
 website = ""

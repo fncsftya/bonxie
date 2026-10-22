@@ -1,6 +1,7 @@
 name = "webshot"
 description = "Pictures of web pages, taken with WebKit (macOS only)"
 version = "0.1.0-dev"
+licenses = "GPL-3.0-only"
 
 authors = ["Matt Rawcliffe"]
 website = ""
