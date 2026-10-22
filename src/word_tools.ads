@@ -2,7 +2,8 @@ with Pomarine.Widgets;
 with Pomarine.Widgets.Editors;
 
 --  The tools bonxie adds to the toolbar of a rich text editor, for what is
---  selected in its text: Fade (Cmd+D) and Reword (Cmd+R).
+--  selected in its text: Fade (Cmd+D) and Reword (Cmd+R). Add also gives the
+--  editing buttons their icons.
 package Word_Tools is
 
    Fade   : constant := 1;

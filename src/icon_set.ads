@@ -11,7 +11,8 @@ package Icon_Set is
         (Edit, Delete, Window, Restore, List, Show,
          Hide, Link, Cursor, Eraser, Stroke_Solid, Stroke_Dots,
          Stroke_Dashed, End_Plain, End_Arrow, Microphone, Stop, Pin,
-         Plus, Back, Document, Settings, Highlighter, Folder, Forward, Sparkles, Refresh);
+         Plus, Back, Document, Settings, Highlighter, Folder, Forward, Sparkles, Refresh,
+         Dedent, Indent, List_Bullet, Numbered_List);
    end Names;
 
    package Sets is new Pomarine.Icons.Sets (Names.Name);
@@ -43,6 +44,10 @@ package Icon_Set is
    Forward       : constant Pomarine.Icons.Icon := Sets.Icon_Of (Names.Forward);
    Sparkles      : constant Pomarine.Icons.Icon := Sets.Icon_Of (Names.Sparkles);
    Refresh       : constant Pomarine.Icons.Icon := Sets.Icon_Of (Names.Refresh);
+   Dedent        : constant Pomarine.Icons.Icon := Sets.Icon_Of (Names.Dedent);
+   Indent        : constant Pomarine.Icons.Icon := Sets.Icon_Of (Names.Indent);
+   List_Bullet   : constant Pomarine.Icons.Icon := Sets.Icon_Of (Names.List_Bullet);
+   Numbered_List : constant Pomarine.Icons.Icon := Sets.Icon_Of (Names.Numbered_List);
 
    procedure Install (Library : in out Pomarine.Icons.Library; Directory : String);
    --  Where the files are, and which is which.
