@@ -1,3 +1,4 @@
+with Word_Tools;
 with Items.Readers.Callbacks;
 with Icon_Set;
 with Pomarine.Widgets.Buttons;
@@ -461,6 +462,16 @@ package body Viewer.Writing is
    begin
       Find_Sources.Start (Item, Item.Reading.Write_Order (Event.Index));
    end Find_Clicked;
+
+   procedure Tool_Used
+     (Item   : in out Session;
+      Source : in out Pomarine.Widgets.Widget'Class;
+      Event  : Pomarine.Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Item);
+   begin
+      Word_Tools.Use_Tool (Source, Event.Row);
+   end Tool_Used;
 
    procedure Source_Row_Clicked
      (Item   : in out Session;

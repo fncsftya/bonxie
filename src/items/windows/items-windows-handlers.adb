@@ -1,3 +1,4 @@
+with Word_Tools;
 with Items.Sources;
 with Pomarine.Widgets.Callbacks;
 with Pomarine.Widgets.Frames.Handlers;
@@ -267,6 +268,17 @@ package body Items.Windows.Handlers is
       end if;
    end Find_Clicked;
 
+   procedure Tool_Used
+     (Item : in out Window; From : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
+
+   procedure Tool_Used
+     (Item : in out Window; From : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Item);
+   begin
+      Word_Tools.Use_Tool (From, Event.Row);
+   end Tool_Used;
+
    procedure Outline_Clicked
      (Item : in out Window; From : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
 
@@ -339,6 +351,7 @@ package body Items.Windows.Handlers is
       Hooks.On (Item.File_Button, Click, Item'Unrestricted_Access, Way_Chosen'Access);
       Hooks.On (Item.Body_Text, Click, Item'Unrestricted_Access, Way_Chosen'Access);
       Hooks.On (Item.Body_Text, Assist, Item'Unrestricted_Access, Find_Clicked'Access);
+      Hooks.On (Item.Body_Text, Use_Tool, Item'Unrestricted_Access, Tool_Used'Access);
       Hooks.On (Item.Zoom_Slider, Change, Item'Unrestricted_Access, Zoom_Moved'Access);
       Hooks.On (Item.Cursor_Button, Click, Item'Unrestricted_Access, Pointer_Clicked'Access);
       Hooks.On (Item.Marker_Button, Click, Item'Unrestricted_Access, Marker_Clicked'Access);

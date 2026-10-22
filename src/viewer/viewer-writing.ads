@@ -139,6 +139,12 @@ private package Viewer.Writing is
       Event  : Pomarine.Widgets.Widget_Event);
    --  A page's Find Sources button: its Index is the page's rank.
 
+   procedure Tool_Used
+     (Item   : in out Session;
+      Source : in out Pomarine.Widgets.Widget'Class;
+      Event  : Pomarine.Widgets.Widget_Event);
+   --  A tool of a page's toolbar (Word_Tools): its Row is the tool's number.
+
    procedure Source_Row_Clicked
      (Item   : in out Session;
       Source : in out Pomarine.Widgets.Widget'Class;
