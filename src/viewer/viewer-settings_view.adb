@@ -3,6 +3,7 @@ with Backgrounds;
 with MLX;
 with MLX.Hub;
 with MLX.Jobs;
+with Premium;
 with Pomarine.Themes;
 with Pomarine.Widgets;
 with Pomarine.Widgets.Buttons;
@@ -67,6 +68,10 @@ package body Viewer.Settings_View is
      (Ada.Strings.Unbounded.To_String (Item.Prefs.AI_Problem));
 
    function AI_Menu_Open (Item : Session) return Boolean is (Item.Prefs.AI_Menu_Open);
+
+   function Premium_Chosen (Item : Session) return Boolean is
+     (Item.Prefs.AI_On and then Premium.Available
+      and then Preferences."=" (Item.Prefs.AI_Backend, Preferences.Premium));
 
    function Shown (Name : String) return String;
    --  A model's name as far as a field or a row holds: from its two ends
@@ -236,13 +241,23 @@ package body Viewer.Settings_View is
         and then Ada.Strings.Unbounded.To_String (Item.Prefs.AI_Tested) = Name;
       Done     : constant Boolean := Tested and then MLX.Jobs.State (Item.Prefs.AI_Job) = MLX.Jobs.Done;
       Failed   : constant Boolean := Tested and then MLX.Jobs.State (Item.Prefs.AI_Job) = MLX.Jobs.Failed;
+      Offered  : constant Boolean := On and then Premium.Available;
+      --  The choice between the model here and premium is made only while premium is on offer.
+      Remote   : constant Boolean := Premium_Chosen (Item);
+      Here     : constant Boolean := On and then not Remote;
+      --  The model, its test and its notes are for the model on this computer only.
    begin
       Switches.Set_On (Item.Prefs.AI_Enable, On);
-      Widgets.Set_Visible (Item.Prefs.AI_Model_Name, On);
-      Widgets.Set_Visible (Item.Prefs.AI_Hub_Note, On and then not Any);
-      Widgets.Set_Visible (Item.Prefs.AI_Select, On and then Any);
-      Widgets.Set_Visible (Item.Prefs.AI_Test_Row, On and then Chosen);
-      if not (On and then Any) and then Item.Prefs.AI_Menu_Open then
+      Widgets.Set_Visible (Item.Prefs.AI_Backend_Name, Offered);
+      Widgets.Set_Visible (Item.Prefs.AI_Local, Offered);
+      Widgets.Set_Visible (Item.Prefs.AI_Premium, Offered);
+      Checks.Set_Checked (Item.Prefs.AI_Local, not Remote);
+      Checks.Set_Checked (Item.Prefs.AI_Premium, Remote);
+      Widgets.Set_Visible (Item.Prefs.AI_Model_Name, Here);
+      Widgets.Set_Visible (Item.Prefs.AI_Hub_Note, Here and then not Any);
+      Widgets.Set_Visible (Item.Prefs.AI_Select, Here and then Any);
+      Widgets.Set_Visible (Item.Prefs.AI_Test_Row, Here and then Chosen);
+      if not (Here and then Any) and then Item.Prefs.AI_Menu_Open then
          Close_AI_Menu (Item);
       end if;
       Selects.Set_Value (Item.Prefs.AI_Select, (if Name = "" then Style.None_Selected else Shown (Name)));
@@ -256,11 +271,11 @@ package body Viewer.Settings_View is
           else ""));
       Labels.Set_Ink
         (Item.Prefs.AI_Test_State, (if Failed then Themes.Danger_Ink else Style.Quiet_Ink));
-      if On and then Chosen and then Problem /= "" then
+      if Here and then Chosen and then Problem /= "" then
          Say (Item, Problem, Themes.Danger_Ink);
-      elsif On and then Done then
+      elsif Here and then Done then
          Say (Item, MLX.Jobs.Text (Item.Prefs.AI_Job), Themes.Foreground);
-      elsif On and then Failed then
+      elsif Here and then Failed then
          Say (Item, MLX.Jobs.Text (Item.Prefs.AI_Job), Themes.Danger_Ink);
       else
          Say (Item, "", Themes.Foreground);
@@ -640,6 +655,7 @@ package body Viewer.Settings_View is
       if Item.Prefs.Persist then
          begin
             Preferences.Save_AI_Enabled (Config (Item), Item.Prefs.AI_On);
+            Preferences.Save_AI_Backend (Config (Item), Item.Prefs.AI_Backend);
             Preferences.Save_AI_Model (Config (Item), AI_Model (Item));
          exception
             when others =>
@@ -671,11 +687,23 @@ package body Viewer.Settings_View is
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
    end Enable_AI;
 
+   procedure Choose_AI_Backend (Item : in out Session; To : Preferences.AI_Backends) is
+   begin
+      Item.Prefs.AI_Backend := To;
+      Save_AI (Item);
+      if Premium_Chosen (Item) then
+         Close_AI_Menu (Item);
+         MLX.Unload;  --  the model is not wanted, and it is a few gigabytes of memory
+      end if;
+      Refresh (Item);
+      Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
+   end Choose_AI_Backend;
+
    procedure Toggle_AI_Menu (Item : in out Session) is
    begin
       if Item.Prefs.AI_Menu_Open then
          Close_AI_Menu (Item);
-      elsif Item.Prefs.AI_On and then MLX.Hub.Count (Item.Prefs.AI_Found) > 0 then
+      elsif Item.Prefs.AI_On and then not Premium_Chosen (Item) and then MLX.Hub.Count (Item.Prefs.AI_Found) > 0 then
          --  What is in the cache may have changed since it was looked at.
          Scan_AI (Item);
          Item.Prefs.AI_Menu_Open := True;

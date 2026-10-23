@@ -77,6 +77,14 @@ private package Viewer.Settings_View is
      with Pre => Item.Prefs.Showing_Settings;
    --  Switch the language model on or off, and keep the choice.
 
+   function Premium_Chosen (Item : Session) return Boolean;
+   --  Whether the AI is on and premium, the hosted backend, does its work: it is on offer (see
+   --  Premium.Available) and was chosen. No language model is used, or needed, then.
+
+   procedure Choose_AI_Backend (Item : in out Session; To : Preferences.AI_Backends)
+     with Pre => Item.Prefs.Showing_Settings;
+   --  Choose what does the AI's work, as the radios of Backend do, and keep the choice.
+
    procedure Toggle_AI_Menu (Item : in out Session)
      with Pre => Item.Prefs.Showing_Settings;
    --  Show the menu of the models in the Hugging Face cache under the

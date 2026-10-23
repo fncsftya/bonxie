@@ -8,17 +8,26 @@ package body Source_Finding is
    package JSON_Types is new JSON.Types (Long_Long_Integer, Long_Float);
    package JSON_Parsers is new JSON.Parsers (JSON_Types, Default_Maximum_Depth => 16);
 
-   function Query_Prompt (Text : String) return String is
-     ("The passage:" & LF & LF & Model_Replies.Cut (Text, Max_Text) & LF & LF
+   function Brief (Project_Title, Project_Description, Section_Title, Document_Title : String) return String is
+     (Model_Replies.Cut
+        ("Project: " & Model_Replies.Tidy (Project_Title, 300) & LF
+         & (if Model_Replies.Tidy (Project_Description, 2_000) = "" then ""
+            else "Project description: " & Model_Replies.Tidy (Project_Description, 2_000) & LF)
+         & "Section: " & Model_Replies.Tidy (Section_Title, 300) & LF
+         & "Document: " & Model_Replies.Tidy (Document_Title, 300),
+         Max_Text));
+
+   function Query_Prompt (Needs : String) return String is
+     ("What the sources are for:" & LF & LF & Model_Replies.Cut (Needs, Max_Text) & LF & LF
       & "Write the web search queries, and reply with the JSON object of them and nothing else.");
 
-   function Evaluation_Prompt (Text, Title, Address, Page : String) return String is
-     ("The passage the writer is working on:" & LF & LF & Model_Replies.Cut (Text, Max_Text) & LF & LF
+   function Evaluation_Prompt (Needs, Title, Address, Page : String) return String is
+     ("What the writer needs sources for:" & LF & LF & Model_Replies.Cut (Needs, Max_Text) & LF & LF
       & "The page:" & LF
       & "Title: " & (if Title = "" then "(none)" else Model_Replies.Tidy (Title, 200)) & LF
       & "Address: " & Model_Replies.Tidy (Address, 300) & LF
       & "Text:" & LF & (if Page = "" then "(none)" else Model_Replies.Cut (Page, Max_Text)) & LF & LF
-      & "Mark the page as a source for the passage, and reply with the JSON object and nothing else.");
+      & "Mark the page as a source for the document, and reply with the JSON object and nothing else.");
 
    function Banner_Prompt (Words : String; Refused : String := "") return String is
      ("The words read from the top of the page:" & LF & LF

@@ -10,6 +10,7 @@ with Pomarine.Widgets.Menus;
 with Pomarine.Widgets.Labels;
 with Pomarine.Widgets.Layouts;
 with Pomarine.Widgets.Panels;
+with Viewer.Settings_View;
 with Viewer.Style;
 with Viewer.Outlines.Blocks;
 with Viewer.Outlines.Support;
@@ -31,7 +32,9 @@ package body Viewer.Outlines.Generation is
 
    procedure Show_Generate (Item : in out Session) is
       View : Outline_Parts renames Item.Outline_View;
-      Want : constant Boolean := Item.Prefs.AI_On and then not Generating (Item);
+      --  Premium has no call for it yet (see Premium.Sources for the one it has).
+      Want : constant Boolean :=
+        Item.Prefs.AI_On and then not Settings_View.Premium_Chosen (Item) and then not Generating (Item);
    begin
       if Buttons.Is_Enabled (View.Generate_Button) /= Want then
          Buttons.Set_Enabled (View.Generate_Button, Want);

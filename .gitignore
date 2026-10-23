@@ -6,3 +6,4 @@ notes.txt
 .lsp/
 .vscode/
 .DS_Store
+.env

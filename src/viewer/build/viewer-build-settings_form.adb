@@ -97,8 +97,9 @@ package body Viewer.Build.Settings_Form is
          end;
       end loop;
       Widgets.Add
-        (Prefs.Settings_Form, Prefs.AI_Heading, Prefs.AI_Enable, Prefs.AI_Model_Name, Prefs.AI_Hub_Note,
-         Prefs.AI_Select);
+        (Prefs.Settings_Form, Prefs.AI_Heading, Prefs.AI_Enable, Prefs.AI_Backend_Name, Prefs.AI_Local,
+         Prefs.AI_Premium);
+      Widgets.Add (Prefs.Settings_Form, Prefs.AI_Model_Name, Prefs.AI_Hub_Note, Prefs.AI_Select);
       Widgets.Add (Prefs.Settings_Form, Prefs.AI_Test_Row);
       Widgets.Add (Prefs.AI_Test_Row, Prefs.AI_Test_Button, Prefs.AI_Test_State);
       for Each of Prefs.AI_Notes loop
@@ -194,6 +195,11 @@ package body Viewer.Build.Settings_Form is
       Switches.Set_Label (Prefs.AI_Enable, "Enable");
       Switches.Set_Focusable (Prefs.AI_Enable, True);
       Line (Prefs.AI_Enable, Settings_Line);
+      Labels.Set_Text (Prefs.AI_Backend_Name, "Backend");
+      Labels.Set_Style (Prefs.AI_Backend_Name, Pomarine.Line_Texts.Strong);
+      Line (Prefs.AI_Backend_Name, Settings_Line);
+      Radio (Prefs.AI_Local, "Local model");
+      Radio (Prefs.AI_Premium, "Premium");
       Labels.Set_Text (Prefs.AI_Model_Name, "Model");
       Labels.Set_Style (Prefs.AI_Model_Name, Pomarine.Line_Texts.Strong);
       Line (Prefs.AI_Model_Name, Settings_Line);

@@ -8,6 +8,9 @@ package Finding_Tests is
    --  What the model replies, as it is read: what is wrong with it, and what
    --  is passed over.
 
+   procedure Premium_Replies;
+   --  The backend's request, and its replies as they are read: results, guidance, and what is generic.
+
    procedure Reading_Banners;
    --  What the model says covers a page, and which button closes it.
    procedure Choosing_Links;

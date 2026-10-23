@@ -183,6 +183,14 @@ package body Preferences is
       Put_Setting (Config, "ai", (if To then "on" else "off"));
    end Save_AI_Enabled;
 
+   function Load_AI_Backend (Config : String) return AI_Backends is
+     (if Ada.Characters.Handling.To_Lower (Setting (Config, "ai_backend")) = "premium" then Premium else Local);
+
+   procedure Save_AI_Backend (Config : String; To : AI_Backends) is
+   begin
+      Put_Setting (Config, "ai_backend", (if To = Premium then "premium" else "local"));
+   end Save_AI_Backend;
+
    function Load_AI_Model (Config : String) return String is
      (Setting (Config, "ai_model"));
 

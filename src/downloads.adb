@@ -227,14 +227,27 @@ package body Downloads is
       Delete_If_There (Part);
       Delete_If_There (Head);
 
-      --  How long it is, for the caller to say how far on it is.
+      --  How long it is, for the caller to say how far on it is. It can be stopped, as the
+      --  transfer can: a slow server would otherwise hold a cancel for as long as it liked.
       declare
          Args : GNAT.OS_Lib.Argument_List :=
-           [Argument ("-fsIL"), Argument ("-o"), Argument ("/dev/null"),
+           [Argument ("-fsIL"), Argument ("--max-time"), Argument ("20"), Argument ("-o"), Argument ("/dev/null"),
             Argument ("-D"), Argument (Head), Argument (URL)];
+         Pid  : GNAT.OS_Lib.Process_Id;
+         Stop : Boolean;
       begin
-         GNAT.OS_Lib.Spawn (Curl.all, Args, Ok);
+         Pid := GNAT.OS_Lib.Non_Blocking_Spawn (Curl.all, Args);
          Free_All (Args);
+         if Pid /= GNAT.OS_Lib.Invalid_Pid then
+            Job.Set_Process (Pid, Stop);
+            if Stop then
+               GNAT.OS_Lib.Kill (Pid);
+            end if;
+            Await (Pid, How, Code);
+            Ok := How = Exited_Well;
+         else
+            Ok := False;
+         end if;
       end;
       if Ok and then Ada.Directories.Exists (Head) then
          Job.Set_Total (Content_Length (Files.Read (Head)));
