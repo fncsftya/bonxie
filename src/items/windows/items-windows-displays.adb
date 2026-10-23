@@ -52,6 +52,7 @@ package body Items.Windows.Displays is
       Of_Source : constant Boolean := Item.Details.Kind = Source;
    begin
       Frames.Set_Status_Visible (Item.Chrome, not Narrow);
+      Editors.Set_Toolbar (Item.Body_Text, not Narrow);
       Widgets.Set_Visible
         (Item.Body_Text, not (Narrow and then Of_Source) and then not Parts.Is_Unchosen (Item));
       Frames.Set_Scale (Item.Chrome, Chrome);

@@ -69,8 +69,8 @@ private package Items.Windows.Metrics is
    --  The button to take the picture of a link, at the right of it.
 
    Compact_Below : constant Float := 0.75;
-   --  Under this zoom a window shows only what it says: no status line,
-   --  and a source no link.
+   --  Under this zoom a window shows only what it says: no status line
+   --  or toolbar, and a source no link.
 
    Min_Chrome    : constant Float := 0.6;
    --  How small the bar of a window gets, as a part of its size, when
