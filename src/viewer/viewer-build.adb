@@ -134,7 +134,6 @@ package body Viewer.Build is
       Write_View.Make_Source_Row (Item, Which);
       Write_View.Make_Reader (Item, Which);
       Buttons.Set_Focusable (Item.Docs.Pages (Which).Sources_Button, True);
-      Buttons.Set_Focusable (Item.Docs.Pages (Which).Mic_Button, True);
       Grips.Set_Focusable (Item.Reading.Source_Rows (Which).Row, True);
       Responses.Listen_Slot (Item, Which);
       Writing.Listen_Slot (Item, Which);
