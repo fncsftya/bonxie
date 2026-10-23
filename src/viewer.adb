@@ -374,6 +374,9 @@ package body Viewer is
       if Grammar.Until_Update (Item, SDL3.Events.Ticks) >= 0 then
          Wake_In (Grammar.Until_Update (Item, SDL3.Events.Ticks));
       end if;
+      if Writing.Until_Copy_Ends (Item) >= 0 then
+         Wake_In (Writing.Until_Copy_Ends (Item));
+      end if;
       --  A picture of a page is on its way: look for it now and then.
       if Item.Nav.Shown = Project and then Canvas_Items.Capturing (Item) then
          Wake_In (Capture_Poll);
@@ -433,6 +436,9 @@ package body Viewer is
 
    function Text (Item : Session) return String is
      (Scripts.Text (Item.Host.Script));
+
+   function Clipboard_Text (Item : Session) return String is
+     (Widgets.Clipboard (Item.Publish_View.Copy).Text);
 
    procedure Tick (Item : in out Session; Now : SDL3.Events.Milliseconds) is
    begin

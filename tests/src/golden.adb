@@ -1530,6 +1530,8 @@ begin
    Run ("write-linked-sources", Write_Tests.Linked_Sources'Access);
    Run ("write-typing", Write_Tests.Typing'Access);
    Run ("write-word-tools", Write_Tests.Word_Tools'Access);
+   Run ("write-publishing", Write_Tests.Publishing'Access);
+   Run ("write-markdown", Write_Tests.Markdown'Access);
    Run ("write-sources", Write_Tests.Sources'Access);
    Run ("write-marks", Write_Tests.Sharing_Marks'Access);
    Run ("home-empty", Home_Empty'Access);

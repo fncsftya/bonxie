@@ -2,6 +2,7 @@ with Items.Directories;
 with Growing;
 with Slot_Tables;
 with Items.Readers.Tables;
+with SDL3.Events;
 with Texts.Documents;
 with Pomarine.Widgets;
 with Pomarine.Widgets.Buttons;
@@ -13,6 +14,7 @@ with Pomarine.Widgets.Text_Fields;
 with Pomarine.Widgets.Panels;
 with Pomarine.Widgets.Progress_Bars;
 with Pomarine.Widgets.Scrollers;
+with Pomarine.Widgets.Selects;
 with Pomarine.Widgets.Switches;
 with Viewer_Parts.Common;
 with Viewer_Parts.Rows;
@@ -77,9 +79,26 @@ package Viewer_Parts.Pages is
       Rule    : Pomarine.Widgets.Panels.Panel;
       Section_Headings : Pomarine.Widgets.Switches.Switch;
       Document_Headings : Pomarine.Widgets.Switches.Switch;
+      Format  : Pomarine.Widgets.Selects.Select_Field;
+      Format_Menu : Pomarine.Widgets.Menus.Menu;
+      Format_Open : Boolean := False;
+      Markdown : Boolean := False;
+      --  Whether Markdown is the format chosen: the content area is then split, the Markdown
+      --  (Source_Text) at the left of the page as it is rendered.
+      Divider : Pomarine.Widgets.Panels.Panel;
+      --  Between the options and Export.
       Export  : Pomarine.Widgets.Buttons.Button;
+      Copy    : Pomarine.Widgets.Buttons.Button;
+      Copied_Until : SDL3.Events.Milliseconds := 0;
+      --  When Copy goes back to its label, after it said Copied; 0 if it is not saying so.
       Doc     : aliased Texts.Documents.Document;
       Text    : Pomarine.Widgets.Editors.Editor;
+      Split_Rule : Pomarine.Widgets.Panels.Panel;
+      Source_Scroll  : Pomarine.Widgets.Scrollers.Scroller;
+      Source_Content : Pomarine.Widgets.Panels.Panel;
+      Source_Doc  : aliased Texts.Documents.Document;
+      Source_Text : Pomarine.Widgets.Editors.Editor;
+      Source_Wide, Source_High, Source_Left : Float := 0.0;
    end record;
 
    type Fold_Head is limited record

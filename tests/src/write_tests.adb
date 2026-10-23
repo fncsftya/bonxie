@@ -4,6 +4,8 @@ with Pomarine.Page_Builds;
 with SDL3.Events;
 with SDL3.Pictures.Jobs;
 with Webshot;
+with Texts.Documents;
+with Markdown_Export;
 with Goldens;
 with Item_Tests;
 with Items;
@@ -833,6 +835,56 @@ package body Write_Tests is
                 Windows.Item_Stored_Text (Session, 1));
       end;
    end Word_Tools;
+
+   procedure Publishing is
+      Session : Viewer.Session;
+   begin
+      Start_With_Three (Session);
+      Proj.Set_Mode (Session, Viewer.Publish);
+      Snap (Session, "publish-initial");
+      Click_On (Session, 100.0, 85.0);
+      Snap (Session, "publish-format-menu");
+      Click_On (Session, 100.0, 115.0);
+      Snap (Session, "publish-markdown");
+      Check ("publish-nothing-copied", "", Viewer.Clipboard_Text (Session));
+      Click_On (Session, 100.0, 245.0);
+      Check ("publish-copied",
+             "It was a dark and stormy night." & ASCII.LF & ASCII.LF & "Then things happened." & ASCII.LF & ASCII.LF
+             & "And they all lived." & ASCII.LF,
+             Viewer.Clipboard_Text (Session));
+      Snap (Session, "publish-copied");
+   end Publishing;
+
+   procedure Markdown is
+      Doc : Texts.Documents.Document;
+      LF  : constant Character := ASCII.LF;
+      Dot : constant String := [Character'Val (16#E2#), Character'Val (16#80#), Character'Val (16#A2#), ' '];
+   begin
+      Texts.Documents.Load_Stored
+        (Doc,
+         "<version>1</version><p k=""1"">Title</p>"
+         & "<p>plain <b>bold</b> and <i> ital </i><u>under</u><s>strike</s> <a h=""https://x.org/a b"">link</a>"
+         & " *star* a_b &lt;tag&gt;</p>"
+         & "<p><b><i>both</i></b><b> bold</b></p>"
+         & "<p>" & Dot & "one</p><p i=""1"">" & Dot & "nested</p><p>" & Dot & "two</p><p>1. first</p><p>2. second</p>"
+         & "<p q=""1"">quoted</p><p q=""1"">more</p><p i=""2"">indented</p><p></p>"
+         & "<p k=""2""><b>Head</b></p><p><z n=""20"">big</z><f> faded</f><y n=""Menlo""> face</y></p>"
+         & "<p><v sel=""2""><o>old</o>new</v></p><p># not a heading</p>");
+      Check ("markdown-rich",
+             "# Title" & LF & LF
+             & "plain **bold** and  *ital* <u>under</u>~~strike~~ [link](https://x.org/a%20b)"
+             & " \*star\* a\_b \<tag\>" & LF & LF
+             & "***both* bold**" & LF & LF
+             & "- one" & LF & "    - nested" & LF & "- two" & LF & LF
+             & "1. first" & LF & "2. second" & LF & LF
+             & "> quoted" & LF & ">" & LF & "> more" & LF & LF
+             & "&emsp;&emsp;indented" & LF & LF
+             & "## Head" & LF & LF
+             & "big faded face" & LF & LF
+             & "new" & LF & LF
+             & "\# not a heading" & LF,
+             Markdown_Export.Of_Document (Doc));
+   end Markdown;
 
    procedure Sources is
       Session : Viewer.Session;

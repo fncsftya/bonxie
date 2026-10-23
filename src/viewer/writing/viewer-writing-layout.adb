@@ -315,31 +315,44 @@ package body Viewer.Writing.Layout is
          --  The content area owns scrolling; the paper grows to contain
          --  all its text, and moves together with the surrounding margin.
          for Pass in 1 .. 3 loop
-            Changed := False;
             declare
                View : Publish_Parts renames Item.Publish_View;
-               Room : constant Float := Widgets.Width_Of (View.Scroll) / Pixels;
-               Wide : constant Float := Style.Page_Wide (Room, Style.Page_Width);
-               Left : constant Float := Style.Page_Left (Room, Wide);
-               High : constant Float := Float'Max
-                 (Style.Page_Min_Height,
-                  Float'Ceiling (Pomarine.Text_Areas.Content_Height (Editors.Area (View.Text).all)));
+
+               procedure Fit
+                 (Scroller : Widgets.Widget'Class; Content, Sheet : in out Widgets.Widget'Class;
+                  Area : in out Pomarine.Text_Areas.Text_Area; Left, Wide, High : in out Float)
+               is
+                  Room : constant Float := Widgets.Width_Of (Scroller) / Pixels;
+                  Now_Wide : constant Float := Style.Page_Wide (Room, Style.Page_Width);
+                  Now_Left : constant Float := Style.Page_Left (Room, Now_Wide);
+                  Now_High : constant Float := Float'Max
+                    (Style.Page_Min_Height, Float'Ceiling (Pomarine.Text_Areas.Content_Height (Area)));
+               begin
+                  if Now_Left /= Left then
+                     Layouts.Set_Layout
+                       (Content, Padding => (Left => Now_Left, others => Style.Page_Margin));
+                     Left := Now_Left;
+                     Changed := True;
+                  end if;
+                  if Now_Wide /= Wide then
+                     Layouts.Set_Layout (Sheet, Width => Now_Wide);
+                     Wide := Now_Wide;
+                     Changed := True;
+                  end if;
+                  if Now_High /= High then
+                     Layouts.Set_Layout (Sheet, Height => Now_High);
+                     High := Now_High;
+                     Changed := True;
+                  end if;
+               end Fit;
             begin
-               if Left /= View.Left then
-                  Layouts.Set_Layout
-                    (View.Content, Padding => (Left => Left, others => Style.Page_Margin));
-                  View.Left := Left;
-                  Changed := True;
-               end if;
-               if Wide /= View.Wide then
-                  Layouts.Set_Layout (View.Text, Width => Wide);
-                  View.Wide := Wide;
-                  Changed := True;
-               end if;
-               if High /= View.High then
-                  Layouts.Set_Layout (View.Text, Height => High);
-                  View.High := High;
-                  Changed := True;
+               Changed := False;
+               Fit (View.Scroll, View.Content, View.Text, Editors.Area (View.Text).all,
+                    View.Left, View.Wide, View.High);
+               if View.Markdown then
+                  Fit (View.Source_Scroll, View.Source_Content, View.Source_Text,
+                       Editors.Area (View.Source_Text).all,
+                       View.Source_Left, View.Source_Wide, View.Source_High);
                end if;
             end;
             exit when not Changed;

@@ -141,6 +141,9 @@ package Viewer is
      with Pre => Is_Open (Item);
    --  As if Event had come.
 
+   function Clipboard_Text (Item : Session) return String;
+   --  What is on the clipboard the session uses (its own, offscreen).
+
    procedure Tick (Item : in out Session; Now : SDL3.Events.Milliseconds)
      with Pre => Is_Open (Item);
    --  As if it were time Now, as SDL3.Events.Ticks: the caret blinks.
@@ -271,6 +274,8 @@ private
       --  The window whose source is having a file chosen, in the system's
       --  dialog (see SDL3.Dialogs, which shows one at a time), 0 if none;
       --  its item.
+      Export_Waiting : Boolean := False;
+      --  Whether the system's dialog is asking where to save the publish view's export.
    end record;
    --  Which screen is shown, the database, and what the canvas was last put
    --  by.

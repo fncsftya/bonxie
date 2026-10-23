@@ -201,6 +201,9 @@ private package Viewer.Writing is
    --  Keep the titles, the highlights and the text being typed in step
    --  with the canvas's windows.
 
+   function Until_Copy_Ends (Item : Session) return Integer;
+   --  Milliseconds until the publish view's Copy button stops saying Copied; -1 if it does not.
+
    procedure Fit (Item : in out Session)
      with Pre => Screen (Item) = Project and then Item.Toolbar.Mode in Write | Publish;
    --  Size the pages to their text and the window, once it is laid out,

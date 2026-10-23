@@ -73,6 +73,7 @@ package body Viewer.Writing is
       Item.Toolbar.Mode := To;
       Section_Links.Close (Item);
       Section_Links.Update (Item);
+      Publishing.Close_Format_Menu (Item);
       Popups.Close_Menu (Item);
       Popups.Close_Context (Item);
       Widgets.Set_Visible (Item.Outline_View.View, To = Outline);
@@ -290,6 +291,10 @@ package body Viewer.Writing is
    begin
       Hear (Item.Publish_View.Section_Headings, Change, Publishing.Publish_Options_Changed'Access);
       Hear (Item.Publish_View.Document_Headings, Change, Publishing.Publish_Options_Changed'Access);
+      Hear (Item.Publish_View.Format, Click, Publishing.Format_Clicked'Access);
+      Hear (Item.Publish_View.Format_Menu, Choose, Publishing.Format_Chosen'Access);
+      Hear (Item.Publish_View.Export, Click, Publishing.Export_Clicked'Access);
+      Hear (Item.Publish_View.Copy, Click, Publishing.Copy_Clicked'Access);
       Hear (Item.Naming.Dir_Field, Submit, Panes.Directory_Field_Ended'Access);
       Hear (Item.Naming.Dir_Field, Blur, Panes.Directory_Field_Ended'Access);
       Hear (Item.Naming.Source_Field, Submit, Panes.Source_Field_Ended'Access);
@@ -544,6 +549,7 @@ package body Viewer.Writing is
          end if;
       end Away;
    begin
+      Publishing.Menu_Pressed (Item, X, Y);
       if Item.Page_View.Menu_Page /= 0 then
          declare
             Menu : constant Items.Frame :=
@@ -576,8 +582,11 @@ package body Viewer.Writing is
       Away (Item.Reading.Pane_Reader);
    end Pressed;
 
+   function Until_Copy_Ends (Item : Session) return Integer is (Publishing.Copy_Remaining (Item));
+
    procedure Update (Item : in out Session) is
    begin
+      Publishing.Poll_Export (Item);
       if Support.In_Writing (Item) and then Section_Links.Changes (Item) /= Item.Section_Menu.Seen
         and then Item.Dragging.Drag_Row = 0
       then

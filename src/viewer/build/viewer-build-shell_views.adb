@@ -1,4 +1,6 @@
 with Pomarine.Boxes;
+with Pomarine.Widgets.Menus;
+with Pomarine.Widgets.Selects;
 with Pomarine.Widgets.Switches;
 with Pomarine.Widgets.Editors;
 with Items.Windows;
@@ -24,6 +26,8 @@ package body Viewer.Build.Shell_Views is
    package Scrollers renames Pomarine.Widgets.Scrollers;
    package Editors renames Pomarine.Widgets.Editors;
    package Switches renames Pomarine.Widgets.Switches;
+   package Selects renames Pomarine.Widgets.Selects;
+   package Menus renames Pomarine.Widgets.Menus;
    package Themes renames Pomarine.Themes;
 
    use Style;
@@ -309,14 +313,33 @@ package body Viewer.Build.Shell_Views is
       View : Publish_Parts renames Item.Publish_View;
    begin
       Widgets.Add (Item.Toolbar.Content_Panel, View.View);
-      Widgets.Add (View.View, View.Sidebar, View.Rule, View.Scroll);
+      Widgets.Add (View.View, View.Sidebar, View.Rule, View.Source_Scroll, View.Split_Rule, View.Scroll);
+      Widgets.Add (View.View, View.Format_Menu);
       Widgets.Add (View.Scroll, View.Content);
+      Widgets.Add (View.Source_Scroll, View.Source_Content);
+      Widgets.Add (View.Source_Content, View.Source_Text);
       Set_Layout (View.Scroll, Grow => 1.0, Width => 0.0);
+      Set_Layout (View.Source_Scroll, Grow => 1.0, Width => 0.0);
+      Set_Layout
+        (View.Source_Content, Flow => Column, Shrink => 0.0, Align => Start,
+         Padding => (Left => Page_Inset, others => Page_Margin));
+      Panels.Set_Fill (View.Split_Rule, Themes.Border);
+      Set_Layout (View.Split_Rule, Width => Hairline, Shrink => 0.0);
       Widgets.Add (View.Content, View.Text);
       Set_Layout
         (View.Content, Flow => Column, Shrink => 0.0, Align => Start,
          Padding => (Left => Page_Inset, others => Page_Margin));
-      Widgets.Add (View.Sidebar, View.Section_Headings, View.Document_Headings, View.Export);
+      Widgets.Add
+        (View.Sidebar, View.Format, View.Section_Headings, View.Document_Headings, View.Divider, View.Export);
+      Widgets.Add (View.Sidebar, View.Copy);
+      Selects.Set_Value (View.Format, "Choose a format");
+      Set_Layout (View.Format, Height => 32.0, Margin => (Bottom => 8.0, others => <>));
+      Set_Layout (View.Format_Menu, Place => Absolute, Width => Menu_Width);
+      Widgets.Set_Visible (View.Format_Menu, False);
+      Menus.Add (View.Format_Menu, Menus.Check, "Markdown");
+      Panels.Set_Fill (View.Divider, Themes.Border);
+      Set_Layout
+        (View.Divider, Height => Hairline, Shrink => 0.0, Margin => (Top => 12.0, Bottom => 12.0, others => <>));
       Switches.Set_Label (View.Section_Headings, "Include section headings");
       Switches.Set_Label (View.Document_Headings, "Include document headings");
       Switches.Set_Focusable (View.Section_Headings, True);
@@ -335,7 +358,27 @@ package body Viewer.Build.Shell_Views is
       Set_Layout (View.Rule, Width => Hairline, Shrink => 0.0);
       Buttons.Set_Label (View.Export, "Export");
       Buttons.Set_Focusable (View.Export, True);
+      Buttons.Set_Enabled (View.Export, False);
+      Buttons.Set_Label (View.Copy, "Copy to Clipboard");
+      Buttons.Set_Focusable (View.Copy, True);
+      Buttons.Set_Enabled (View.Copy, False);
+      Set_Layout (View.Copy, Height => Tab_Height, Margin => (Top => 8.0, others => <>));
       Set_Layout (View.Export, Height => Tab_Height);
+      Editors.Set_Shared (View.Source_Text, Item.Host.Doc_Resources'Unchecked_Access);
+      Editors.Configure (View.Source_Text, "Menlo", Source_Text_Size, 2000.0, Spacing => 0.35 * Source_Text_Size);
+      Editors.Set_Paper (View.Source_Text, Paper);
+      Editors.Set_Borderless (View.Source_Text, True);
+      Editors.Set_Indent (View.Source_Text, Page_Margin - Page_Text_Inset - Page_Border);
+      Editors.Attach (View.Source_Text, View.Source_Doc'Unchecked_Access);
+      Pomarine.Text_Areas.Set_Grows (Editors.Area (View.Source_Text).all);
+      Pomarine.Text_Areas.Set_Read_Only (Editors.Area (View.Source_Text).all);
+      Pomarine.Text_Areas.Set_Caret_Visible (Editors.Area (View.Source_Text).all, False);
+      Pomarine.Text_Areas.Set_Keyboard_Navigation (Editors.Area (View.Source_Text).all, False);
+      Set_Layout (View.Source_Text, Shrink => 0.0, Height => Page_Min_Height, Width => Page_Width);
+      View.Source_Wide := Page_Width;
+      View.Source_High := Page_Min_Height;
+      Widgets.Set_Visible (View.Source_Scroll, False);
+      Widgets.Set_Visible (View.Split_Rule, False);
       Editors.Set_Shared (View.Text, Item.Host.Doc_Resources'Unchecked_Access);
       Editors.Configure
         (View.Text, Pomarine.Line_Texts.Serif, Page_Text_Size, 2000.0,

@@ -18,6 +18,10 @@ package Write_Tests is
    procedure Word_Tools;
    --  Fade and Reword on a page, by their keys: kept in the markup, and
    --  through the project being closed and opened.
+   procedure Publishing;
+   --  Choosing Markdown in the publish view splits it.
+   procedure Markdown;
+   --  What the rich text features become in Markdown.
    procedure Sources;
    procedure Sharing_Marks;
    procedure Source_Documents;

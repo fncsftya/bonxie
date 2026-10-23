@@ -160,6 +160,8 @@ private package Viewer.Style is
    --  Of the menu of a row of the tree, at the pointer.
    --  The menu of a page's sources, below its button.
    Page_Text_Size  : constant Float := 17.0;
+   Source_Text_Size : constant Float := 14.0;
+   --  Of the Markdown, in the publish view.
    Page_Text_Inset : constant Float := 12.0;
    Page_Border     : constant Float := 1.0;
    --  The outline of a page, which its text area leaves.

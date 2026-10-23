@@ -22,7 +22,7 @@ Currently only supports Apple Silicon.
 ## TODO
 
 - Better editing workflows
-- Export targets (pdf, ebook, markdown, text)
+- More export targets (pdf, ebook, text)
 - More places to put notes
 - Project-level undo
 - Version control
