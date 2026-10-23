@@ -265,6 +265,8 @@ package Viewer_Parts.Pages is
       --  one below the next.
       Plan    : Plan_Array;
       Plan_Count : Natural := 0;
+      Plan_Wide  : Float := 0.0;
+      --  The width the planned parts were given.
       --  What is shown, in order, and where, as last put.
       Pending : Natural := 0;
       --  The section that the document being made is to be of, 0 if none.

@@ -111,6 +111,12 @@ private package Viewer.Style is
    Tag_Size        : constant Float := 8.0;
    --  The square of a source's colour, in its row.
    Page_Width      : constant Float := 760.0;
+   Write_Width     : constant Float := 1040.0;
+   --  Of a page in write mode, whose toolbar has room for every tool.
+   Write_Text_Width : constant Float := Page_Width - 2.0 * 40.0;
+   --  Of the text on it, as readable as ever: the rest is margin.
+   Page_Inset      : constant Float := 150.0;
+   --  Left of the pages, in write and publish mode.
    Page_Min_Width  : constant Float := 160.0;
    Page_Min_Height : constant Float := 240.0;
    Page_Margin     : constant Float := 40.0;

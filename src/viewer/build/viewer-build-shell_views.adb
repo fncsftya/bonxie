@@ -314,8 +314,8 @@ package body Viewer.Build.Shell_Views is
       Set_Layout (View.Scroll, Grow => 1.0, Width => 0.0);
       Widgets.Add (View.Content, View.Text);
       Set_Layout
-        (View.Content, Flow => Column, Shrink => 0.0, Align => Center,
-         Padding => (others => Page_Margin));
+        (View.Content, Flow => Column, Shrink => 0.0, Align => Start,
+         Padding => (Left => Page_Inset, others => Page_Margin));
       Widgets.Add (View.Sidebar, View.Section_Headings, View.Document_Headings, View.Export);
       Switches.Set_Label (View.Section_Headings, "Include section headings");
       Switches.Set_Label (View.Document_Headings, "Include document headings");

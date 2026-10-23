@@ -104,7 +104,7 @@ package body Viewer.Build.Write_View is
       Widgets.Add (Each.Box, Each.Sheet);
       Widgets.Add (Each.Sheet, Each.Text);
       Widgets.Add (Each.Box, Each.Words);
-         Set_Layout (Each.Box, Flow => Column, Shrink => 0.0, Width => Page_Width);
+         Set_Layout (Each.Box, Flow => Column, Shrink => 0.0, Width => Write_Width);
          Set_Layout
            (Each.Bar, Flow => Row, Align => Center, Height => Page_Head, Gap => Tool_Gap,
             Padding => (Right => Shadow_Room, others => <>));
@@ -159,7 +159,8 @@ package body Viewer.Build.Write_View is
          Editors.Set_Assist (Each.Text, "Find Sources");
          Word_Tools.Add (Each.Text);
          --  The page's margin is the text area's, so that its toolbar is the page's width.
-         Editors.Set_Indent (Each.Text, Page_Margin - Page_Text_Inset - Page_Border);
+         Editors.Set_Indent
+           (Each.Text, (Write_Width - Write_Text_Width) / 2.0 - Page_Text_Inset - Page_Border);
          Pomarine.Text_Areas.Set_Grows (Editors.Area (Each.Text).all);
          Set_Layout (Each.Text, Shrink => 0.0, Height => Page_Min_Height);
          Labels.Set_Trailing (Each.Words, True);
@@ -200,7 +201,7 @@ package body Viewer.Build.Write_View is
 
          Set_Layout
            (Head.Row, Place => Absolute, Flow => Row, Align => Center, Gap => Tool_Gap,
-            Height => Section_Head_Height, Width => Page_Width);
+            Height => Section_Head_Height, Width => Write_Width);
          Set_Layout (Head.Bar, Width => Section_Bar, Height => Section_Head_Height - 12.0, Shrink => 0.0);
          Panels.Set_Fill (Head.Bar, Themes.Border);
          Labels.Set_Style (Head.Title, Pomarine.Line_Texts.Heading);
@@ -223,7 +224,7 @@ package body Viewer.Build.Write_View is
          Panels.Set_Fill (Notes.Box, Side_Fill);
          Panels.Set_Border (Notes.Box, Themes.Border);
          Set_Layout
-           (Notes.Box, Place => Absolute, Flow => Column, Width => Page_Width, Outlined => True,
+           (Notes.Box, Place => Absolute, Flow => Column, Width => Write_Width, Outlined => True,
             Padding => (others => Notes_Pad), Shrink => 0.0);
          Editors.Set_Shared (Notes.Text, Item.Host.Doc_Resources'Unchecked_Access);
          Editors.Configure (Notes.Text, Pomarine.Line_Texts.Interface_Font, Edit_Size, 2000.0);
@@ -237,7 +238,7 @@ package body Viewer.Build.Write_View is
          Panels.Set_Border (Empty.Box, Themes.Border);
          Set_Layout
            (Empty.Box, Place => Absolute, Flow => Column, Align => Center, Spread => Center,
-            Gap => Tool_Gap, Height => Section_Empty_Height, Width => Page_Width, Outlined => True);
+            Gap => Tool_Gap, Height => Section_Empty_Height, Width => Write_Width, Outlined => True);
          Labels.Set_Text (Empty.Note, "No documents in this section yet");
          Labels.Set_Ink (Empty.Note, Quiet_Ink);
          Set_Layout (Empty.Note, Height => Heading_Height);
@@ -258,7 +259,7 @@ package body Viewer.Build.Write_View is
       Widgets.Add (Each.Row, Each.Caption, Each.Rule);
       Set_Layout
         (Each.Row, Place => Absolute, Flow => Row, Align => Center, Gap => Tool_Gap,
-         Height => Gap_Mark_Height, Width => Page_Width);
+         Height => Gap_Mark_Height, Width => Write_Width);
       Labels.Set_Text (Each.Caption, "Not in a section");
       Labels.Set_Style (Each.Caption, Pomarine.Line_Texts.Caption);
       Labels.Set_Ink (Each.Caption, Quiet_Ink);
@@ -473,7 +474,7 @@ package body Viewer.Build.Write_View is
          --  one after them.
          Set_Layout (View.Pages_Scroll, Grow => 1.0, Width => 0.0);
          Set_Layout
-           (View.Pages_Content, Flow => Column, Shrink => 0.0, Align => Center, Gap => Page_Gap,
+           (View.Pages_Content, Flow => Column, Shrink => 0.0, Align => Start, Gap => Page_Gap,
             Padding => (Top => Page_Margin - Page_Gap, others => Page_Margin));
       end Style_Pages;
 

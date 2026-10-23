@@ -202,101 +202,106 @@ package body Viewer.Writing.Layout is
                   Y := Y + High;
                end;
             end loop;
-            if Planned /= Parts.Plan_Count
-              or else (for some Each in 1 .. Planned => Plan (Each) /= Parts.Plan (Each))
-              or else Float'Rounding (Y) /= Widgets.Height_Of (Parts.Tail)
-            then
-               declare
-                  Wide : constant Float :=
-                    Float'Max (Style.Page_Min_Width,
-                               Float'Min (Style.Page_Width,
-                                          Widgets.Width_Of (Item.Page_View.Pages_Content) / Pixels
-                                          - 2.0 * Style.Page_Margin));
-                  --  Where a page is, across: in the middle of the view.
-                  Home_Left : constant Float :=
-                    Float'Rounding ((Widgets.Width_Of (Item.Page_View.Pages_Content) - Wide * Pixels) / 2.0);
-                  Home_Top  : constant Float :=
-                    Widgets.Top_Of (Parts.Tail) - Widgets.Top_Of (Item.Page_View.Pages_Content);
-                  Shown_Heads  : array (1 .. Parts.Heads.Count) of Boolean := [others => False];
-                  Shown_Empty  : array (1 .. Parts.Heads.Count) of Boolean := [others => False];
-                  Shown_Notes  : array (1 .. Parts.Heads.Count) of Boolean := [others => False];
-                  Shown_Gaps   : array (0 .. Parts.Gaps.Count - 1) of Boolean := [others => False];
+            declare
+               Wide : constant Float :=
+                 Float'Max (Style.Page_Min_Width,
+                            Float'Min (Style.Write_Width,
+                                       Widgets.Width_Of (Item.Page_View.Pages_Content) / Pixels
+                                       - Style.Page_Inset - Style.Page_Margin));
+            begin
+               if Planned /= Parts.Plan_Count
+                 or else Wide /= Parts.Plan_Wide
+                 or else (for some Each in 1 .. Planned => Plan (Each) /= Parts.Plan (Each))
+                 or else Float'Rounding (Y) /= Widgets.Height_Of (Parts.Tail)
+               then
+                  declare
+                     --  Where a page is, across: at the left of the view, after its inset.
+                     Home_Left : constant Float := Float'Rounding (Style.Page_Inset * Pixels);
+                     Home_Top  : constant Float :=
+                       Widgets.Top_Of (Parts.Tail) - Widgets.Top_Of (Item.Page_View.Pages_Content);
+                     Shown_Heads  : array (1 .. Parts.Heads.Count) of Boolean := [others => False];
+                     Shown_Empty  : array (1 .. Parts.Heads.Count) of Boolean := [others => False];
+                     Shown_Notes  : array (1 .. Parts.Heads.Count) of Boolean := [others => False];
+                     Shown_Gaps   : array (0 .. Parts.Gaps.Count - 1) of Boolean := [others => False];
 
-                  procedure Put (Part : in out Widgets.Widget'Class; Top : Float) is
-                  begin
-                     Layouts.Set_Layout (Part, Width => Wide);
-                     Layouts.Set_Layout
-                       (Part,
-                        Position => (Left => Home_Left, Top => Home_Top + Top, others => <>),
-                        Unit => Layouts.Device_Pixels);
-                  end Put;
-               begin
-                  Layouts.Set_Layout (Parts.Tail, Width => Wide, Height => Float'Rounding (Y), Unit => Layouts.Points);
-                  Layouts.Set_Layout (Parts.Tail, Height => Float'Rounding (Y), Unit => Layouts.Device_Pixels);
-                  for Each in 1 .. Planned loop
-                     declare
-                        Now : Plan_Entry renames Plan (Each);
+                     procedure Put (Part : in out Widgets.Widget'Class; Top : Float) is
                      begin
-                        case Now.Kind is
-                           when Head_Entry =>
-                              declare
-                                 Head    : Section_Head renames Parts.Heads (Now.Index);
-                                 Section : constant Projects.Sections.Section :=
-                                   Outlines.Section_At (Item, Now.Index);
-                                 Owned   : constant Natural := Outlines.Documents_In (Item, Now.Index);
-                              begin
-                                 Shown_Heads (Now.Index) := True;
-                                 Widgets.Set_Visible (Head.Add, Owned > 0);
-                                 Pomarine.Widgets.Buttons.Set_Selected (Head.Notes, Section.Open);
-                                 Labels.Set_Text
-                                   (Head.Title,
-                                    Labels.Fitted (Projects.Sections.Title_Texts.To_String (Section.Title)));
-                                 Labels.Set_Text
-                                   (Head.Count,
-                                    (if Owned = 0 then ""
-                                     else Support.Count_Image (Owned)
-                                          & (if Owned = 1 then " document" else " documents")));
-                                 Pomarine.Widgets.Panels.Set_Fill (Head.Bar, Style.Section_Ink (Section.Colour));
-                                 Put (Head.Row, Now.Top);
-                              end;
-                           when Notes_Entry =>
-                              declare
-                                 Note : Note_Box renames Parts.Notes (Now.Index);
-                              begin
-                                 Shown_Notes (Now.Index) := True;
+                        Layouts.Set_Layout (Part, Width => Wide);
+                        Layouts.Set_Layout
+                          (Part,
+                           Position => (Left => Home_Left, Top => Home_Top + Top, others => <>),
+                           Unit => Layouts.Device_Pixels);
+                     end Put;
+                  begin
+                     Layouts.Set_Layout
+                       (Parts.Tail, Width => Wide, Height => Float'Rounding (Y), Unit => Layouts.Points);
+                     Layouts.Set_Layout (Parts.Tail, Height => Float'Rounding (Y), Unit => Layouts.Device_Pixels);
+                     for Each in 1 .. Planned loop
+                        declare
+                           Now : Plan_Entry renames Plan (Each);
+                        begin
+                           case Now.Kind is
+                              when Head_Entry =>
+                                 declare
+                                    Head    : Section_Head renames Parts.Heads (Now.Index);
+                                    Section : constant Projects.Sections.Section :=
+                                      Outlines.Section_At (Item, Now.Index);
+                                    Owned   : constant Natural := Outlines.Documents_In (Item, Now.Index);
+                                 begin
+                                    Shown_Heads (Now.Index) := True;
+                                    Widgets.Set_Visible (Head.Add, Owned > 0);
+                                    Pomarine.Widgets.Buttons.Set_Selected (Head.Notes, Section.Open);
+                                    Labels.Set_Text
+                                      (Head.Title,
+                                       Labels.Fitted (Projects.Sections.Title_Texts.To_String (Section.Title)));
+                                    Labels.Set_Text
+                                      (Head.Count,
+                                       (if Owned = 0 then ""
+                                        else Support.Count_Image (Owned)
+                                             & (if Owned = 1 then " document" else " documents")));
+                                    Pomarine.Widgets.Panels.Set_Fill (Head.Bar, Style.Section_Ink (Section.Colour));
+                                    Put (Head.Row, Now.Top);
+                                 end;
+                              when Notes_Entry =>
+                                 declare
+                                    Note : Note_Box renames Parts.Notes (Now.Index);
+                                 begin
+                                    Shown_Notes (Now.Index) := True;
+                                    Pomarine.Widgets.Panels.Set_Border
+                                      (Note.Box, Style.Section_Ink (Outlines.Section_At (Item, Now.Index).Colour));
+                                    Layouts.Set_Layout (Note.Text, Height => Note.High);
+                                    Layouts.Set_Layout (Note.Box, Height => Notes_Box_Height (Now.Index));
+                                    Put (Note.Box, Now.Top);
+                                 end;
+                              when Empty_Entry =>
+                                 Shown_Empty (Now.Index) := True;
                                  Pomarine.Widgets.Panels.Set_Border
-                                   (Note.Box, Style.Section_Ink (Outlines.Section_At (Item, Now.Index).Colour));
-                                 Layouts.Set_Layout (Note.Text, Height => Note.High);
-                                 Layouts.Set_Layout (Note.Box, Height => Notes_Box_Height (Now.Index));
-                                 Put (Note.Box, Now.Top);
-                              end;
-                           when Empty_Entry =>
-                              Shown_Empty (Now.Index) := True;
-                              Pomarine.Widgets.Panels.Set_Border
-                                (Parts.Empties (Now.Index).Box,
-                                 Style.Section_Ink (Outlines.Section_At (Item, Now.Index).Colour));
-                              Put (Parts.Empties (Now.Index).Box, Now.Top);
-                           when Gap_Entry =>
-                              Shown_Gaps (Now.Index) := True;
-                              Put (Parts.Gaps (Now.Index + 1).Row, Now.Top);
-                           when Page_Entry =>
-                              Put (Item.Docs.Pages (Now.Index).Box, Now.Top);
-                        end case;
-                     end;
-                  end loop;
-                  for Each in Shown_Heads'Range loop
-                     Widgets.Set_Visible (Parts.Heads (Each).Row, Shown_Heads (Each));
-                     Widgets.Set_Visible (Parts.Empties (Each).Box, Shown_Empty (Each));
-                     Widgets.Set_Visible (Parts.Notes (Each).Box, Shown_Notes (Each));
-                  end loop;
-                  for Each in Shown_Gaps'Range loop
-                     Widgets.Set_Visible (Parts.Gaps (Each + 1).Row, Shown_Gaps (Each));
-                  end loop;
-                  Parts.Plan := Plan;
-                  Parts.Plan_Count := Planned;
-                  Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
-               end;
-            end if;
+                                   (Parts.Empties (Now.Index).Box,
+                                    Style.Section_Ink (Outlines.Section_At (Item, Now.Index).Colour));
+                                 Put (Parts.Empties (Now.Index).Box, Now.Top);
+                              when Gap_Entry =>
+                                 Shown_Gaps (Now.Index) := True;
+                                 Put (Parts.Gaps (Now.Index + 1).Row, Now.Top);
+                              when Page_Entry =>
+                                 Put (Item.Docs.Pages (Now.Index).Box, Now.Top);
+                           end case;
+                        end;
+                     end loop;
+                     for Each in Shown_Heads'Range loop
+                        Widgets.Set_Visible (Parts.Heads (Each).Row, Shown_Heads (Each));
+                        Widgets.Set_Visible (Parts.Empties (Each).Box, Shown_Empty (Each));
+                        Widgets.Set_Visible (Parts.Notes (Each).Box, Shown_Notes (Each));
+                     end loop;
+                     for Each in Shown_Gaps'Range loop
+                        Widgets.Set_Visible (Parts.Gaps (Each + 1).Row, Shown_Gaps (Each));
+                     end loop;
+                     Parts.Plan := Plan;
+                     Parts.Plan_Count := Planned;
+                     Parts.Plan_Wide := Wide;
+                     Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
+                  end;
+               end if;
+            end;
          end;
       end;
    end Place_Sections;
@@ -313,7 +318,7 @@ package body Viewer.Writing.Layout is
             Changed := False;
             declare
                View : Publish_Parts renames Item.Publish_View;
-               Room : constant Float := Widgets.Width_Of (View.Scroll) / Pixels - 2.0 * Style.Page_Margin;
+               Room : constant Float := Widgets.Width_Of (View.Scroll) / Pixels - Style.Page_Inset - Style.Page_Margin;
                Wide : constant Float := Float'Max (Style.Page_Min_Width, Float'Min (Style.Page_Width, Room));
                High : constant Float := Float'Max
                  (Style.Page_Min_Height,
@@ -342,10 +347,10 @@ package body Viewer.Writing.Layout is
          declare
             Room : constant Float :=
               Widgets.Width_Of (Item.Page_View.Pages_Content) / Pixels
-              - 2.0 * Style.Page_Margin;
+              - Style.Page_Inset - Style.Page_Margin;
             Wide : constant Float :=
               Float'Max (Style.Page_Min_Width,
-                         Float'Min (Style.Page_Width, Room));
+                         Float'Min (Style.Write_Width, Room));
          begin
             for Rank in 1 .. Item.Reading.Write_Count loop
                if Support.In_View (Item, Item.Reading.Write_Order (Rank)) then
@@ -360,6 +365,10 @@ package body Viewer.Writing.Layout is
                   begin
                      if Wide /= Each.Wide then
                         Layouts.Set_Layout (Each.Box, Width => Wide);
+                        Editors.Set_Indent
+                          (Each.Text,
+                           Float'Max (Style.Page_Margin, (Wide - Style.Write_Text_Width) / 2.0)
+                           - Style.Page_Text_Inset - Style.Page_Border);
                         Each.Wide := Wide;
                         Changed := True;
                      end if;
