@@ -1,5 +1,7 @@
-// Text in a picture, by Vision: a request on a PNG file, at the size it is
-// (it is not scaled down), whose words come back with where they are.
+// Text in a picture, by Vision: a request on a PNG file, whose words come back
+// with where they are. Vision scales a picture down to a fixed size, so a long
+// page (a whole web page, say) is read in overlapping tiles about as tall as
+// the picture is wide, each at the size it is.
 // It may be called from any thread, and from several at once.
 
 #import <Foundation/Foundation.h>
@@ -42,34 +44,59 @@ int vn_recognize(const char *path, vn_word *words, int max_words,
             say(message, message_capacity, @"No such picture");
             return 0;
         }
-        // How tall the picture is for its width, to compare down and across.
         CGImageSourceRef source = CGImageSourceCreateWithURL((__bridge CFURLRef)url, NULL);
-        if (source) {
-            NSDictionary *props = CFBridgingRelease(CGImageSourceCopyPropertiesAtIndex(source, 0, NULL));
-            double w = [props[(NSString *)kCGImagePropertyPixelWidth] doubleValue];
-            double h = [props[(NSString *)kCGImagePropertyPixelHeight] doubleValue];
-            if (w > 0 && h > 0) *aspect = h / w;
-            CFRelease(source);
-        }
-        VNRecognizeTextRequest *request = [VNRecognizeTextRequest new];
-        request.recognitionLevel = VNRequestTextRecognitionLevelAccurate;
-        request.usesLanguageCorrection = YES;
-        request.automaticallyDetectsLanguage = YES;
-        request.minimumTextHeight = 0.0;
-        VNImageRequestHandler *handler =
-            [[VNImageRequestHandler alloc] initWithURL:url options:@{}];
-        NSError *error = nil;
-        if (![handler performRequests:@[request] error:&error]) {
-            say(message, message_capacity, error.localizedDescription ?: @"Vision failed");
+        CGImageRef picture = source ? CGImageSourceCreateImageAtIndex(source, 0, NULL) : NULL;
+        if (source) CFRelease(source);
+        if (!picture) {
+            say(message, message_capacity, @"Could not read the picture");
             return 0;
         }
+        double width = (double)CGImageGetWidth(picture);
+        double height = (double)CGImageGetHeight(picture);
+        // How tall the picture is for its width, to compare down and across.
+        if (width > 0 && height > 0) *aspect = height / width;
+        // Tiles overlap so that no line is cut in every one; a line is kept
+        // from the tile in which it is farthest from the cut.
+        double tile = height > 1.5 * width ? width : height;
+        double overlap = tile < height ? 0.15 * tile : 0.0;
+        NSMutableArray *kept = [NSMutableArray array];  // @{text, top, height} as fractions
+        for (double y = 0; y < height; y += tile - overlap) {
+            double h = MIN(tile, height - y);
+            CGImageRef part = CGImageCreateWithImageInRect(picture, CGRectMake(0, y, width, h));
+            VNRecognizeTextRequest *request = [VNRecognizeTextRequest new];
+            request.recognitionLevel = VNRequestTextRecognitionLevelAccurate;
+            request.usesLanguageCorrection = YES;
+            request.automaticallyDetectsLanguage = YES;
+            request.minimumTextHeight = 0.0;
+            VNImageRequestHandler *handler =
+                [[VNImageRequestHandler alloc] initWithCGImage:part options:@{}];
+            NSError *error = nil;
+            BOOL done = [handler performRequests:@[request] error:&error];
+            CGImageRelease(part);
+            if (!done) {
+                CGImageRelease(picture);
+                say(message, message_capacity, error.localizedDescription ?: @"Vision failed");
+                return 0;
+            }
+            double from = y > 0 ? y + overlap / 2 : 0;
+            double to = y + h < height ? y + h - overlap / 2 : height;
+            // As Vision has them: the order is for Vision.Layout to decide,
+            // which can see the columns.
+            for (VNRecognizedTextObservation *seen in request.results) {
+                VNRecognizedText *best = [seen topCandidates:1].firstObject;
+                if (!best) continue;
+                CGRect r = seen.boundingBox;  // normalized, from the bottom left
+                double middle = y + (1.0 - r.origin.y - r.size.height / 2) * h;
+                if (middle < from || middle >= to) continue;
+                [kept addObject:@{@"text": best, @"y": @(y), @"h": @(h)}];
+            }
+            if (y + h >= height) break;
+        }
+        CGImageRelease(picture);
         int count = 0, used = 0, line = 0;
-        // As Vision has them: the order is for Vision.Layout to decide,
-        // which can see the columns.
-        NSArray *ordered = request.results;
-        for (VNRecognizedTextObservation *seen in ordered) {
-            VNRecognizedText *best = [seen topCandidates:1].firstObject;
-            if (!best) continue;
+        for (NSDictionary *seen in kept) {
+            VNRecognizedText *best = seen[@"text"];
+            double y = [seen[@"y"] doubleValue], h = [seen[@"h"] doubleValue];
             line++;
             NSString *string = best.string;
             BOOL stop = NO;
@@ -101,9 +128,10 @@ int vn_recognize(const char *path, vn_word *words, int max_words,
                 words[count].first = used + 1;
                 words[count].last = used + bytes;
                 words[count].left = (float)r.origin.x;
-                words[count].top = (float)(1.0 - r.origin.y - r.size.height);
+                // In the tile, then in the whole picture.
+                words[count].top = (float)((y + (1.0 - r.origin.y - r.size.height) * h) / height);
                 words[count].width = (float)r.size.width;
-                words[count].height = (float)r.size.height;
+                words[count].height = (float)(r.size.height * h / height);
                 used += bytes;
                 count++;
             }
