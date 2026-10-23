@@ -71,6 +71,7 @@ package Viewer_Parts.Pages is
       High    : Float := 0.0;
       Content : Pomarine.Widgets.Panels.Panel;
       Wide    : Float := 760.0;
+      Left    : Float := 0.0;
       View    : Pomarine.Widgets.Panels.Panel;
       Sidebar : Pomarine.Widgets.Panels.Panel;
       Rule    : Pomarine.Widgets.Panels.Panel;
@@ -266,6 +267,7 @@ package Viewer_Parts.Pages is
       Plan    : Plan_Array;
       Plan_Count : Natural := 0;
       Plan_Wide  : Float := 0.0;
+      Plan_Left  : Float := 0.0;
       --  The width the planned parts were given.
       --  What is shown, in order, and where, as last put.
       Pending : Natural := 0;

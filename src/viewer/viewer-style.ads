@@ -116,11 +116,18 @@ private package Viewer.Style is
    Write_Text_Width : constant Float := Page_Width - 2.0 * 40.0;
    --  Of the text on it, as readable as ever: the rest is margin.
    Page_Inset      : constant Float := 150.0;
-   --  Left of the pages, in write and publish mode.
+   --  At most, left of the pages, in write and publish mode.
    Page_Min_Width  : constant Float := 160.0;
    Page_Min_Height : constant Float := 240.0;
    Page_Margin     : constant Float := 40.0;
    --  Round the pages, in the view, and inside each at the sides.
+   function Page_Wide (Room, Most : Float) return Float is
+     (Float'Max (Page_Min_Width, Float'Min (Most, Room - 2.0 * Page_Margin)));
+   --  The width of a page, up to Most, in a view Room wide.
+   function Page_Left (Room, Wide : Float) return Float is
+     (Float'Max (Page_Margin, Float'Min (Page_Inset, (Room - Wide) / 2.0)));
+   --  Where it starts, across: the inset, or, where the view has less to
+   --  spare, as much as is left at its right.
    Page_Gap        : constant Float := 22.0;
    Page_Head       : constant Float := 40.0;
    Section_Head_Height : constant Float := 40.0;

@@ -203,20 +203,19 @@ package body Viewer.Writing.Layout is
                end;
             end loop;
             declare
-               Wide : constant Float :=
-                 Float'Max (Style.Page_Min_Width,
-                            Float'Min (Style.Write_Width,
-                                       Widgets.Width_Of (Item.Page_View.Pages_Content) / Pixels
-                                       - Style.Page_Inset - Style.Page_Margin));
+               Room : constant Float := Widgets.Width_Of (Item.Page_View.Pages_Content) / Pixels;
+               Wide : constant Float := Style.Page_Wide (Room, Style.Write_Width);
+               Left : constant Float := Style.Page_Left (Room, Wide);
             begin
                if Planned /= Parts.Plan_Count
                  or else Wide /= Parts.Plan_Wide
+                 or else Left /= Parts.Plan_Left
                  or else (for some Each in 1 .. Planned => Plan (Each) /= Parts.Plan (Each))
                  or else Float'Rounding (Y) /= Widgets.Height_Of (Parts.Tail)
                then
                   declare
                      --  Where a page is, across: at the left of the view, after its inset.
-                     Home_Left : constant Float := Float'Rounding (Style.Page_Inset * Pixels);
+                     Home_Left : constant Float := Float'Rounding (Left * Pixels);
                      Home_Top  : constant Float :=
                        Widgets.Top_Of (Parts.Tail) - Widgets.Top_Of (Item.Page_View.Pages_Content);
                      Shown_Heads  : array (1 .. Parts.Heads.Count) of Boolean := [others => False];
@@ -298,6 +297,7 @@ package body Viewer.Writing.Layout is
                      Parts.Plan := Plan;
                      Parts.Plan_Count := Planned;
                      Parts.Plan_Wide := Wide;
+                     Parts.Plan_Left := Left;
                      Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
                   end;
                end if;
@@ -318,12 +318,19 @@ package body Viewer.Writing.Layout is
             Changed := False;
             declare
                View : Publish_Parts renames Item.Publish_View;
-               Room : constant Float := Widgets.Width_Of (View.Scroll) / Pixels - Style.Page_Inset - Style.Page_Margin;
-               Wide : constant Float := Float'Max (Style.Page_Min_Width, Float'Min (Style.Page_Width, Room));
+               Room : constant Float := Widgets.Width_Of (View.Scroll) / Pixels;
+               Wide : constant Float := Style.Page_Wide (Room, Style.Page_Width);
+               Left : constant Float := Style.Page_Left (Room, Wide);
                High : constant Float := Float'Max
                  (Style.Page_Min_Height,
                   Float'Ceiling (Pomarine.Text_Areas.Content_Height (Editors.Area (View.Text).all)));
             begin
+               if Left /= View.Left then
+                  Layouts.Set_Layout
+                    (View.Content, Padding => (Left => Left, others => Style.Page_Margin));
+                  View.Left := Left;
+                  Changed := True;
+               end if;
                if Wide /= View.Wide then
                   Layouts.Set_Layout (View.Text, Width => Wide);
                   View.Wide := Wide;
@@ -345,12 +352,8 @@ package body Viewer.Writing.Layout is
       for Pass in 1 .. 3 loop
          Changed := False;
          declare
-            Room : constant Float :=
-              Widgets.Width_Of (Item.Page_View.Pages_Content) / Pixels
-              - Style.Page_Inset - Style.Page_Margin;
             Wide : constant Float :=
-              Float'Max (Style.Page_Min_Width,
-                         Float'Min (Style.Write_Width, Room));
+              Style.Page_Wide (Widgets.Width_Of (Item.Page_View.Pages_Content) / Pixels, Style.Write_Width);
          begin
             for Rank in 1 .. Item.Reading.Write_Count loop
                if Support.In_View (Item, Item.Reading.Write_Order (Rank)) then
