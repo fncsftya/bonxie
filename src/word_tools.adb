@@ -1,3 +1,4 @@
+with GNAT.OS_Lib;
 with Icon_Set;
 with Pomarine.Text_Areas;
 with Texts.Documents;
@@ -14,6 +15,7 @@ package body Word_Tools is
       --  into the text), so the buttons take them by what they show.
       Editors.Set_Edit_Icon (Item, Editors.Outdent, Icon_Set.Indent);
       Editors.Set_Edit_Icon (Item, Editors.Indent, Icon_Set.Dedent);
+      Editors.Set_Edit_Icon (Item, Editors.Link, Icon_Set.Link);
       Pomarine.Widgets.Editors.Add_Tool (Item, "Fade", Key => 'd', Needs_Selection => True);
       Pomarine.Widgets.Editors.Add_Tool (Item, "Reword", Key => 'r', Needs_Selection => True);
    end Add;
@@ -30,5 +32,22 @@ package body Word_Tools is
          Editors.Begin_Version (Item);
       end if;
    end Use_Tool;
+
+   procedure Follow (Source : in out Pomarine.Widgets.Widget'Class) is
+      Address : constant String := Editors.Followed (Editors.Editor'Class (Source));
+      Opener  : GNAT.OS_Lib.String_Access := GNAT.OS_Lib.Locate_Exec_On_Path ("open");
+      Args    : GNAT.OS_Lib.Argument_List (1 .. 2);
+      Pid     : GNAT.OS_Lib.Process_Id;
+      use type GNAT.OS_Lib.String_Access;
+   begin
+      if Opener /= null and then Pomarine.Text_Areas.Is_Address (Address) then
+         Args := [new String'("--"), new String'(Address)];
+         Pid := GNAT.OS_Lib.Non_Blocking_Spawn (Opener.all, Args);
+         pragma Unreferenced (Pid);
+         GNAT.OS_Lib.Free (Args (1));
+         GNAT.OS_Lib.Free (Args (2));
+      end if;
+      GNAT.OS_Lib.Free (Opener);
+   end Follow;
 
 end Word_Tools;

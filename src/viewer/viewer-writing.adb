@@ -1,3 +1,7 @@
+with Items.Windows;
+with Pomarine.Text_Areas;
+with Pomarine.Widgets.Editors;
+with Projects;
 with Word_Tools;
 with Items.Readers.Callbacks;
 with Icon_Set;
@@ -472,6 +476,42 @@ package body Viewer.Writing is
    begin
       Word_Tools.Use_Tool (Source, Event.Row);
    end Tool_Used;
+
+   procedure Link_Followed
+     (Item   : in out Session;
+      Source : in out Pomarine.Widgets.Widget'Class;
+      Event  : Pomarine.Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Item, Event);
+   begin
+      Word_Tools.Follow (Source);
+   end Link_Followed;
+
+   procedure Link_Asked
+     (Item   : in out Session;
+      Source : in out Pomarine.Widgets.Widget'Class;
+      Event  : Pomarine.Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Event);
+      Editor : Pomarine.Widgets.Editors.Editor'Class renames Pomarine.Widgets.Editors.Editor'Class (Source);
+   begin
+      Pomarine.Widgets.Editors.Clear_Link_Choices (Editor);
+      for Row in 1 .. Item.Reading.Source_Total loop
+         declare
+            Window : Items.Windows.Window renames Item.Windows (Item.Reading.Source_Order (Row));
+         begin
+            if Items.Windows.Is_Assigned (Window)
+              and then Items."=" (Items.Windows.Details (Window).Kind, Items.Source)
+              and then Items."=" (Items.Windows.Details (Window).Origin, Items.Remote)
+              and then Pomarine.Text_Areas.Is_Address (Items.Windows.Text (Window))
+            then
+               Pomarine.Widgets.Editors.Add_Link_Choice
+                 (Editor, Projects.Titles.To_String (Items.Windows.Details (Window).Title),
+                  Items.Windows.Text (Window));
+            end if;
+         end;
+      end loop;
+   end Link_Asked;
 
    procedure Source_Row_Clicked
      (Item   : in out Session;

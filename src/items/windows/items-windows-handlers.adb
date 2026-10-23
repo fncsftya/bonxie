@@ -279,6 +279,14 @@ package body Items.Windows.Handlers is
       Word_Tools.Use_Tool (From, Event.Row);
    end Tool_Used;
 
+   procedure Link_Followed
+     (Item : in out Window; From : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Item, Event);
+   begin
+      Word_Tools.Follow (From);
+   end Link_Followed;
+
    procedure Outline_Clicked
      (Item : in out Window; From : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
 
@@ -352,6 +360,7 @@ package body Items.Windows.Handlers is
       Hooks.On (Item.Body_Text, Click, Item'Unrestricted_Access, Way_Chosen'Access);
       Hooks.On (Item.Body_Text, Assist, Item'Unrestricted_Access, Find_Clicked'Access);
       Hooks.On (Item.Body_Text, Use_Tool, Item'Unrestricted_Access, Tool_Used'Access);
+      Hooks.On (Item.Body_Text, Follow, Item'Unrestricted_Access, Link_Followed'Access);
       Hooks.On (Item.Zoom_Slider, Change, Item'Unrestricted_Access, Zoom_Moved'Access);
       Hooks.On (Item.Cursor_Button, Click, Item'Unrestricted_Access, Pointer_Clicked'Access);
       Hooks.On (Item.Marker_Button, Click, Item'Unrestricted_Access, Marker_Clicked'Access);

@@ -20,4 +20,10 @@ package Word_Tools is
    --  it back (kept as <f> round it in the document's markup); Reword starts
    --  writing another version of it (see Editors.Begin_Version).
 
+   procedure Follow (Source : in out Pomarine.Widgets.Widget'Class);
+   --  Open, in the system's way (the default browser, the mail program), the
+   --  link Source, an editor, said its Follow event for. Only the addresses
+   --  a person can make (see Pomarine.Text_Areas.Is_Address) are opened, as
+   --  what is loaded may say any.
+
 end Word_Tools;

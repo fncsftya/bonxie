@@ -597,6 +597,8 @@ package body Viewer.Responses is
       Hear (Item.Docs.Pages (Which).Mic_Button, Click, Writing.Dictate_Clicked'Access);
       Hear (Item.Docs.Pages (Which).Text, Assist, Writing.Find_Clicked'Access);
       Hear (Item.Docs.Pages (Which).Text, Use_Tool, Writing.Tool_Used'Access);
+      Hear (Item.Docs.Pages (Which).Text, Follow, Writing.Link_Followed'Access);
+      Hear (Item.Docs.Pages (Which).Text, Ask_Link, Writing.Link_Asked'Access);
       Hear (Item.Reading.Source_Rows (Which).Row, Click, Writing.Source_Row_Clicked'Access);
    end Listen_Slot;
 
