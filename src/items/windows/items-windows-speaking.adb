@@ -12,6 +12,11 @@ package body Items.Windows.Speaking is
    use type Docs.Version;
    use type Texts.Position;
 
+   function Typing_In (Item : Window) return access Editors.Editor is
+     (if Item.Dictate_In /= null then Item.Dictate_In
+      else Item.Body_Text'Unrestricted_Access);
+   --  Where the caret is that dictation goes in at.
+
    procedure Take_Back_Live (Item : in out Window);
    --  Remove the text shown while listening, or, if the text has been
    --  changed since, keep it as it is.
@@ -29,6 +34,9 @@ package body Items.Windows.Speaking is
          end if;
       end if;
       Pomarine.Text_Areas.Clear_Faint (Editors.Area (Item.Body_Text).all);
+      if Item.Dictate_In /= null then
+         Pomarine.Text_Areas.Clear_Faint (Editors.Area (Item.Dictate_In.all).all);
+      end if;
       Item.Live_Shown := False;
    end Take_Back_Live;
 
@@ -97,7 +105,7 @@ package body Items.Windows.Speaking is
 
    procedure Show_Live (Item : in out Window; Said : String; Settled : Natural := 0) is
       Area   : Pomarine.Text_Areas.Text_Area
-        renames Editors.Area (Item.Body_Text).all;
+        renames Editors.Area (Typing_In (Item).all).all;
       Doc    : Docs.Document renames Item.Content_Doc;
       Whole  : constant String := One_Line_Feeds (Said);
    begin
@@ -118,7 +126,7 @@ package body Items.Windows.Speaking is
             if Spoken = "" then
                return;
             end if;
-            if Item.Live_Moved or else Widgets.Has_Focus (Item.Body_Text) then
+            if Item.Live_Moved or else Widgets.Has_Focus (Typing_In (Item).all) then
                Item.Live_From := Pomarine.Text_Areas.Caret (Area);
                Item.Live_Break := False;
             else
@@ -172,7 +180,7 @@ package body Items.Windows.Speaking is
    end Show_Live;
 
    procedure Append_Said (Item : in out Window; Said : String) is
-      Area   : Pomarine.Text_Areas.Text_Area renames Editors.Area (Item.Body_Text).all;
+      Area   : Pomarine.Text_Areas.Text_Area renames Editors.Area (Typing_In (Item).all).all;
       Doc    : Docs.Document renames Item.Content_Doc;
       Whole  : constant String := One_Line_Feeds (Said);
    begin
@@ -180,7 +188,7 @@ package body Items.Windows.Speaking is
       declare
          --  What was kept as typed text, while being dictated, is not put in again.
          Spoken   : constant String := Unsaid (Item, Whole);
-         At_Caret : constant Boolean := Item.Live_Moved or else Widgets.Has_Focus (Item.Body_Text);
+         At_Caret : constant Boolean := Item.Live_Moved or else Widgets.Has_Focus (Typing_In (Item).all);
       begin
          Item.Live_Done := 0;
          Item.Live_Moved := False;

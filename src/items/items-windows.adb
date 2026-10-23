@@ -162,6 +162,12 @@ package body Items.Windows is
      (Item : in out Window) return Texts.Documents.Document_Access is
      (Item.Content_Doc'Unchecked_Access);
 
+   procedure Set_Dictation_Editor
+     (Item : in out Window; To : access Pomarine.Widgets.Editors.Editor) is
+   begin
+      Item.Dictate_In := To;
+   end Set_Dictation_Editor;
+
    procedure Hold_Typing (Item : in out Window; To : Boolean) is
    begin
       Item.Held := To;

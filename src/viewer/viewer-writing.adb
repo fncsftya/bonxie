@@ -610,6 +610,11 @@ package body Viewer.Writing is
             declare
                Rank : constant Natural := Support.Rank_Of (Item, Which);
             begin
+               Windows.Set_Dictation_Editor
+                 (Item.Windows (Which),
+                  (if Rank > 0 and then Support.In_Writing (Item)
+                   then Item.Docs.Pages (Rank).Text'Unrestricted_Access
+                   else null));
                Windows.Hold_Typing
                  (Item.Windows (Which),
                   Rank > 0

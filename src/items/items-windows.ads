@@ -211,6 +211,13 @@ package Items.Windows is
    function Dictation (Item : Window) return Dictations
      with Pre => Is_Assigned (Item);
 
+   procedure Set_Dictation_Editor
+     (Item : in out Window; To : access Pomarine.Widgets.Editors.Editor)
+     with Pre => Is_Assigned (Item);
+   --  The editor, other than the window's own, that shows the note's text
+   --  now (the page in the writing view), if any: dictation goes in at
+   --  its caret when it has the focus. Null for the window's own.
+
    procedure Set_Dictation
      (Item   : in out Window;
       To     : Dictations;
@@ -529,6 +536,7 @@ private
       --  status line; and the bar in the dock. A source's tag is a
       --  square of its colour before its title.
       Body_Text    : Pomarine.Widgets.Editors.Editor;
+      Dictate_In   : access Pomarine.Widgets.Editors.Editor;
       --  The text of a note. Of a source it is one line, its link, which
       --  a text area costs too much to have another of: a field with an
       --  icon of a link before it, a hint while it is empty, and room at
