@@ -12,13 +12,8 @@
 --  intended behavior. Values passed through Clean are kept usable by the
 --  model: in -1.0 .. 1.0, so no infinity or NaN is returned. GNATprove treats
 --  every Float as a number, so the NaN case is checked by windows_test.
---  All operations have Global => null, so they access no package state.
 --  Postconditions and invariants inspect whole windows and are ignored at
 --  run time; preconditions remain enabled.
-pragma Assertion_Policy
-  (Post => Ignore, Postcondition => Ignore, Type_Invariant => Ignore,
-   Loop_Invariant => Ignore, Assert => Ignore);
-
 package Speech.Windows
   with SPARK_Mode
 is
@@ -192,9 +187,7 @@ is
         (for all Word in Text_Ends'Range =>
            Text_Ends (Word) <= Text_Length
            and then Text_Ends (Word) >= (if Word = 1 then 1 else 2)
-           and then (if Word > 1 then Text_Ends (Word) - 2 >= Text_Ends (Word - 1))
-           and then (for all Before in Text_Ends'First .. Word =>
-                       Text_Ends (Before) <= Text_Ends (Word))))
+           and then (if Word > 1 then Text_Ends (Word) - 2 >= Text_Ends (Word - 1))))
      with Global => null;
    --  Whether Text_Ends, the place each word ends in a text Text_Length
    --  long, in which the words are apart by a space, is as it must be:
@@ -207,8 +200,6 @@ is
           Pre    => Text_Ends'First = 1
                     and then Word <= Text_Ends'Last
                     and then Text_Ends'Last < Positive'Last
-                    and then (for all Index in Text_Ends'Range =>
-                                Text_Ends (Index) <= Text_Capacity)
                     and then Text_Plausible (Text_Ends, Text_Capacity),
           Post   => Text_From'Result <= Text_Ends (Word);
    --  Where the Word'th word starts in a text, for which Text_Ends says

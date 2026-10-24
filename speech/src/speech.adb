@@ -110,6 +110,7 @@ is
       Cut    : Interfaces.C.int;
       Done   : Interfaces.C.int;
    begin
+      Into.Settled := 0;
       Into.Length := 0;
       Into.Truncated := False;
       Done :=

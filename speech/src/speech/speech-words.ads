@@ -11,10 +11,6 @@
 --  on; it does not prove that token grouping matches the intended spoken
 --  words. The postcondition is ignored at run time; preconditions remain
 --  enabled.
-pragma Assertion_Policy
-  (Post => Ignore, Postcondition => Ignore, Type_Invariant => Ignore,
-   Loop_Invariant => Ignore, Assert => Ignore);
-
 with Speech.Windows;
 
 package Speech.Words
@@ -69,8 +65,9 @@ is
    --  text, apart by a space, goes in Text (Text_Length bytes of it), and
    --  where each word ends in it in Word_Text_Ends; where each starts and
    --  stops in the sound, in Word_Starts and Word_Stops (those of the
-   --  first and last of its tokens). The words that fit are made, no
-   --  word cut short by the end of Text, and no more than Word_Text_Ends
-   --  holds.
+   --  first and last of its tokens). The words that fit are made, and no
+   --  more than Word_Text_Ends holds. When Text fills, the tokens from the
+   --  first that does not fit are left out, so a word may lose its last
+   --  pieces (never part of a piece, nor an empty word).
 
 end Speech.Words;

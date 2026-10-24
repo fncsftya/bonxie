@@ -46,7 +46,8 @@ is
    function Consistent (Item : Stream) return Boolean
      with Global => null;
    --  What holds of a stream between calls: the place up to which words
-   --  are settled is not past the sound that is heard.
+   --  are settled is within the window, not before it nor past the sound
+   --  that is heard.
 
    type Tuning is record
       Hop     : Positive range 1 .. Windows.Capacity := Streams.Hop;
@@ -126,6 +127,7 @@ private
    function Room_Level (Item : Stream) return Float is (Gates.Level (Item.Room));
 
    function Consistent (Item : Stream) return Boolean is
-     (Item.Settled_To <= Windows.Next (Item.Held));
+     (Windows.First (Item.Held) <= Item.Settled_To
+      and then Item.Settled_To <= Windows.Next (Item.Held));
 
 end Speech.Streams;

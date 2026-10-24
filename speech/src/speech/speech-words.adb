@@ -1,7 +1,3 @@
-pragma Assertion_Policy
-  (Post => Ignore, Postcondition => Ignore, Type_Invariant => Ignore,
-   Loop_Invariant => Ignore, Assert => Ignore);
-
 package body Speech.Words
   with SPARK_Mode
 is

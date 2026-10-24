@@ -1,0 +1,6 @@
+--  Postconditions, invariants and assertions inspect whole windows and
+--  rings: they are for GNATprove, and are ignored at run time.
+--  Preconditions remain enabled.
+pragma Assertion_Policy
+  (Post => Ignore, Type_Invariant => Ignore,
+   Loop_Invariant => Ignore, Assert => Ignore);

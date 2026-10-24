@@ -10,10 +10,6 @@
 --  imported native implementation is not proved to satisfy them, so its
 --  outputs must be checked or repaired by the Ada caller. Postconditions
 --  are ignored at run time; preconditions remain enabled.
-pragma Assertion_Policy
-  (Post => Ignore, Postcondition => Ignore, Type_Invariant => Ignore,
-   Loop_Invariant => Ignore, Assert => Ignore);
-
 with Speech.Windows;
 
 package Speech.Parakeet
@@ -23,6 +19,9 @@ package Speech.Parakeet
 is
    --  Model is the model, as libBonxieParakeet has it: loaded, or not, and
    --  being fetched, by whoever asks (see Speech.Models).
+   --  Synchronous is a claim, not a proof: every slot's task may call
+   --  Transcribe at once, and the native library is taken to run them one
+   --  at a time. Nothing in the Ada code does that, nor can GNATprove see it.
 
    Max_Words : constant := 2048;
 

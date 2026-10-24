@@ -190,6 +190,7 @@ is
       procedure Put (Which : Lane; Words : String; Cut : Boolean; Settled : Natural := 0) is
          Used : constant Natural := Natural'Min (Words'Length, Text_Capacity);
       begin
+         Texts (Which).Settled := 0;
          Texts (Which).Length := Used;
          Texts (Which).Settled := Natural'Min (Settled, Used);
          Texts (Which).Truncated := Cut or else Used < Words'Length;
@@ -205,7 +206,9 @@ is
       procedure Put_Final (Which : Lane; Words : String; Cut : Boolean) is
          Used : constant Natural := Natural'Min (Words'Length, Text_Capacity);
       begin
+         Finals (Which).Settled := 0;
          Finals (Which).Length := Used;
+         Finals (Which).Settled := Used;
          Finals (Which).Truncated := Cut or else Used < Words'Length;
          Finals (Which).Text (1 .. Used) :=
            Words (Words'First .. Words'First + Used - 1);
@@ -309,7 +312,15 @@ is
       procedure Show is
       begin
          Streams.Text (Item, Said);
-         Live.Put (Which, Trimmed (Image (Said)), Said.Truncated, Said.Settled);
+         declare
+            Words : constant String := Trimmed (Image (Said));
+            Lead  : constant Natural := Words'First - 1;
+            --  What Trimmed took from the front: Settled counts from there.
+         begin
+            Live.Put
+              (Which, Words, Said.Truncated,
+               (if Said.Settled > Lead then Said.Settled - Lead else 0));
+         end;
       end Show;
 
       procedure Feed_What_Came (Any : out Boolean) is
@@ -368,7 +379,7 @@ is
          if not Any then
             Next := Next + Pause;
             pragma Annotate
-              (GNATprove, False_Positive, "range check might fail",
+              (GNATprove, Intentional, "range check might fail",
                "the clock does not run out: it counts in nanoseconds, for centuries");
             delay until Next;
          end if;
@@ -543,6 +554,7 @@ is
             Speech.Peek (Which, Into);
          end if;
       else
+         Into.Settled := 0;
          Into.Length := 0;
          Into.Truncated := False;
       end if;

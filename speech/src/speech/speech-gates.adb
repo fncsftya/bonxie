@@ -18,6 +18,9 @@ is
    procedure Observe (Of_Floor : in out Floor; Audio : Windows.Samples) is
    begin
       for Index in Audio'Range loop
+         pragma Loop_Invariant (Of_Floor.Seen < Frame);
+         pragma Loop_Invariant (Of_Floor.Amplitude in Floor_Least .. Floor_Most);
+         pragma Loop_Invariant (Of_Floor.Sum >= 0.0);
          declare
             Value : constant Float := Windows.Clean (Audio, Index);
          begin
@@ -73,6 +76,8 @@ is
       end loop;
       --  Forward: speech, and what trails after it.
       for Each in 1 .. Frames loop
+         pragma Loop_Invariant (Since < Each);
+         pragma Loop_Invariant (Quiet < Each);
          if Loud (Each) > Open then
             Strong (Each) := True;
             Keep (Each) := True;

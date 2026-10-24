@@ -15,10 +15,6 @@
 --  atomic counts, and tests it.
 --  The postconditions inspect the ring and are ignored at run time; the
 --  preconditions remain enabled.
-pragma Assertion_Policy
-  (Post => Ignore, Postcondition => Ignore, Type_Invariant => Ignore,
-   Loop_Invariant => Ignore, Assert => Ignore);
-
 with Interfaces;
 
 package Speech.Rings

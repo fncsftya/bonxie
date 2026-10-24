@@ -12,8 +12,10 @@ is
       Windows.Clear (Item.Held);
       Item.Room := Gates.Unknown;
       Item.Settled_To := 0;
+      Item.Settled.Settled := 0;
       Item.Settled.Length := 0;
       Item.Settled.Truncated := False;
+      Item.Tentative.Settled := 0;
       Item.Tentative.Length := 0;
       Item.Tentative.Truncated := False;
    end Reset;
@@ -28,7 +30,9 @@ is
           Pre    => Consistent (Item)
                     and then Message'First = 1
                     and then Message'Length < Positive'Last / 2,
-          Post   => Consistent (Item) and then Last <= Message'Length;
+          Post   => Consistent (Item) and then Last <= Message'Length
+                    and then (if Ok and then Is_Final
+                              then Item.Settled_To = Windows.Next (Item.Held));
    --  Run the model over the window; keep as settled the words that are
    --  (all of them if Is_Final, or if the window is full), and slide the
    --  window past them. The rest are the tentative text.
@@ -52,6 +56,7 @@ is
       Message := [others => ' '];
       Last := 0;
       Ok := True;
+      Item.Tentative.Settled := 0;
       Item.Tentative.Length := 0;
       Item.Tentative.Truncated := False;
       if Used = 0 then
@@ -59,6 +64,9 @@ is
          return;
       end if;
       declare
+         pragma Warnings
+           (GNATprove, Off, "initialization of ""Audio"" has no effect",
+            Reason => "Windows.Samples are floats: reading one unset is not allowed, so it is set");
          Audio : Windows.Samples (1 .. Used) := [others => 0.0];
       begin
          for Index in 1 .. Used loop
@@ -183,6 +191,7 @@ is
 
    procedure Text (Item : Stream; Into : in out Transcript) is
    begin
+      Into.Settled := 0;
       Into.Length := 0;
       Into.Truncated := Item.Settled.Truncated or else Item.Tentative.Truncated;
       Windows.Append_Text (Into, Item.Settled.Text (1 .. Item.Settled.Length));

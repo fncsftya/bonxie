@@ -21,6 +21,9 @@ is
    --  Ring is the sound that has come and not been read, and how loud it
    --  is: the microphone's thread writes it, and the reader reads, with
    --  no other lock than that of each count being whole (see the body).
+   --  Synchronous is a claim, not a proof: the body is not SPARK, so that
+   --  the samples are written before the count that publishes them (and
+   --  read after it) is for the tests, and the atomic counts, to bear out.
 
    procedure Begin_Capture
      (Which   : Session;

@@ -15,6 +15,8 @@ package Speech
 is
    --  Recognizer is SpeechAnalyzer's (Swift's) side of listenings: it is
    --  shared by every thread, and changes of itself (as sound comes).
+   --  Synchronous is a claim, not a proof: the Swift side is taken to
+   --  serialize its own calls, and GNATprove does not look inside it.
 
    Max_Sessions : constant := 16;
 
@@ -31,7 +33,8 @@ is
       --  Text (1 .. Settled) will not change; what follows may.
       Text      : String (1 .. Text_Capacity) := [others => ' '];
    end record
-     with Dynamic_Predicate => Transcript.Length <= Text_Capacity;
+     with Dynamic_Predicate =>
+       Transcript.Length <= Text_Capacity and then Transcript.Settled <= Transcript.Length;
 
    function Image (Of_Transcript : Transcript) return String
      is (Of_Transcript.Text (1 .. Of_Transcript.Length))

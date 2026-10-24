@@ -36,7 +36,7 @@ project Speech is
          when "yes" =>
             for Local_Configuration_Pragmas use Project'Project_Dir & "jorvik.adc";
          when "no" =>
-            null;
+            for Local_Configuration_Pragmas use Project'Project_Dir & "speech.adc";
       end case;
       for Default_Switches ("Ada") use Speech_Config.Ada_Compiler_Switches &
         ("-gnatwh",          --  local declarations hiding others
@@ -75,8 +75,8 @@ project Speech is
    end Linker;
 
    --  Run `gnatprove -P speech.gpr -XSPEECH_PROOF=yes` to analyze the SPARK
-   --  units: Speech.Windows, .Words, .Rings, .Parakeet, .Streams and
-   --  .Jobs.Core. GNATprove checks run-time safety and proves their stated
+   --  units: Speech.Windows, .Words, .Rings, .Gates, .Parakeet,
+   --  .Streams and .Jobs.Core. GNATprove checks run-time safety and proves their stated
    --  contracts under their preconditions; it does not prove that contracts
    --  fully specify intended behavior. SPARK-Off bodies and imported native
    --  code are outside the proof. Jorvik lets GNATprove analyze the tasks;
