@@ -1,5 +1,4 @@
 with Backgrounds;
-with Ada.Strings.Unbounded;
 with Viewer.Settings_View;
 
 package body Viewer.Settings is
@@ -44,14 +43,6 @@ package body Viewer.Settings is
    end Reseed_Background;
 
    function Is_Adaptive (Item : Session) return Boolean is (Item.Prefs.Adaptive_Shown);
-
-   procedure Choose_AI_Enabled (Item : in out Session; To : Boolean)
-     renames Settings_View.Enable_AI;
-
-   function AI_Enabled (Item : Session) return Boolean is (Item.Prefs.AI_On);
-
-   function AI_Model (Item : Session) return String is
-     (Ada.Strings.Unbounded.To_String (Item.Prefs.AI_Model));
 
    function Is_Dark (Item : Session) return Boolean is (Item.Prefs.Dark_Shown);
 

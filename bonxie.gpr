@@ -4,14 +4,12 @@ with "pomarine_ui.gpr";
 with "coretext.gpr";
 with "ebook.gpr";
 with "harper.gpr";
-with "mlx.gpr";
 with "sdl3.gpr";
 with "speech.gpr";
 with "texts.gpr";
 with "typeset.gpr";
 with "vision.gpr";
 with "webshot.gpr";
-with "websearch.gpr";
 with "yoga.gpr";
 with "json.gpr";
 project Bonxie is

@@ -80,19 +80,6 @@ package body Viewer.Documents is
    function Grammar_Highlights (Item : Session; Row : Positive) return Natural is
      (Pomarine.Widgets.Editors.Highlight_Count (Item.Docs.Pages (Row).Text));
 
-   function Find_Sources_Enabled (Item : Session; Row : Positive) return Boolean is
-     (Pomarine.Widgets.Editors.Assist_Is_Enabled (Item.Docs.Pages (Row).Text));
-
-   procedure Find_Sources_Point
-     (Item : Session; Row : Positive; Shown : out Boolean; X, Y : out Float)
-   is
-      Pixels : constant Float := Pomarine.Widgets.Density (Item.Root.Widgets);
-   begin
-      Pomarine.Widgets.Editors.Assist_Center (Item.Docs.Pages (Row).Text, Shown, X, Y);
-      X := X / Pixels;
-      Y := Y / Pixels;
-   end Find_Sources_Point;
-
    procedure Ask_Delete_Directory (Item : in out Session; Dir : Positive) is
    begin
       Deletion.Confirm_Node (Item, (Kind => Directory_Node, Dir => Dir, Doc => 0));

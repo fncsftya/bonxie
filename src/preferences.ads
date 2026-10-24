@@ -64,20 +64,6 @@ package Preferences is
      with Pre => To < Seed_Limit;
    --  Keep it, making Config if need be.
 
-   function Load_AI_Enabled (Config : String) return Boolean;
-   --  Whether the local language model is switched on: False if none was
-   --  chosen or it cannot be read.
-
-   procedure Save_AI_Enabled (Config : String; To : Boolean);
-   --  Keep the choice, making Config if need be.
-
-   function Load_AI_Model (Config : String) return String;
-   --  The language model chosen, as "provider/name" of the Hugging Face
-   --  cache; "" if none was or it cannot be read.
-
-   procedure Save_AI_Model (Config : String; To : String);
-   --  Keep the choice ("" for none), making Config if need be.
-
    function Load_Sidebar_Width (Config : String) return Natural;
    --  How wide the writing view's list of documents was left, in points;
    --  0 if it was not, or it cannot be read.
@@ -91,12 +77,5 @@ package Preferences is
 
    procedure Save_Section_Open (Config : String; Name : String; To : Boolean);
    --  Keep it, making Config if need be.
-
-   function Load_Generate_Notes (Config : String) return Boolean;
-   --  Whether the outline's Generate button was last used to make the
-   --  sections with notes; False if it was not, or it cannot be read.
-
-   procedure Save_Generate_Notes (Config : String; To : Boolean);
-   --  Keep the choice, making Config if need be.
 
 end Preferences;

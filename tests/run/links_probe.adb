@@ -1,9 +1,8 @@
 --  What a page says about its own PDF: links_probe <address>. It loads the page, looks
---  at it, and prints the PDF address Webshot finds (meta tags and links) and what the
---  address is made of; for finding out why a page's PDF was not seen.
+--  at it, and prints the PDF address Webshot finds (meta tags and links); for finding
+--  out why a page's PDF was not seen.
 with Ada.Command_Line;
 with Ada.Text_IO;
-with Source_Links;
 with Webshot;
 
 procedure Links_Probe is
@@ -23,5 +22,4 @@ begin
    else
       Put_Line ("state " & Webshot.State (1)'Image);
    end if;
-   Put_Line ("direct: '" & Source_Links.Direct_Document (Ada.Command_Line.Argument (1)) & "'");
 end Links_Probe;

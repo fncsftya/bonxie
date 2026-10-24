@@ -67,15 +67,6 @@ package body Viewer.Canvas_Windows is
      (Projects.Titles.To_String
         (Items.Windows.Details (Item.Windows (Window (Item, Row))).Title));
 
-   function Find_Sources_Enabled (Item : Session; Row : Positive) return Boolean is
-     (Items.Windows.Find_Sources_Is_Enabled (Item.Windows (Window (Item, Row))));
-
-   procedure Find_Sources_Point
-     (Item : Session; Row : Positive; Shown : out Boolean; X, Y : out Float) is
-   begin
-      Items.Windows.Find_Sources_Center (Item.Windows (Window (Item, Row)), Shown, X, Y);
-   end Find_Sources_Point;
-
    function Item_Text (Item : Session; Row : Positive) return String is
      (Items.Windows.Text (Item.Windows (Window (Item, Row))));
 

@@ -1,9 +1,7 @@
 with Section_Colour_Pickers;
 with Growing;
 with Projects;
-with Ada.Strings.Unbounded;
 with Slot_Tables;
-with MLX.Jobs;
 with Projects.Sections;
 with Texts.Documents;
 with Pomarine.Widgets;
@@ -79,25 +77,6 @@ package Viewer_Parts.Outline is
       Head        : Pomarine.Widgets.Panels.Panel;
       Heading     : Pomarine.Widgets.Labels.Label;
       Add_Button  : Pomarine.Widgets.Buttons.Button;
-      Generate_Menu : Pomarine.Widgets.Menus.Menu;
-      --  Under the button's caret, in purple, hidden until it is clicked:
-      --  generate the sections, or with notes.
-      Generate_Open : Boolean := False;
-      With_Notes    : Boolean := False;
-      --  Whether the button makes the sections with notes: the one of its
-      --  actions last chosen, which is kept in the settings.
-      Generate_Button : Pomarine.Widgets.Buttons.Button;
-      --  Asks the language model for the outline, in purple; off while AI
-      --  is, and while it is being asked.
-      Generate_Error  : Pomarine.Widgets.Labels.Label;
-      --  Under the heading, in red, why the outline could not be made.
-      Generate_Job    : MLX.Jobs.Job;
-      Generate_Tries  : Natural := 0;
-      Generate_Project : Projects.Id := 0;
-      Generate_Folder  : Ada.Strings.Unbounded.Unbounded_String;
-      Generate_Prompt  : Ada.Strings.Unbounded.Unbounded_String;
-      Generate_Notes   : Boolean := False;
-      Generate_Left, Generate_Top : Float := -1.0E9;
       --  Where the menu was last put.
       --  The ask: the tries made so far (0 when none is under way), the
       --  project it is for, the model's folder and what it is asked, and

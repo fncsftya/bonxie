@@ -1,9 +1,0 @@
-/obj/
-/lib/
-/alire/
-/config/
-/tests/obj/
-/tests/bin/
-/native/lib/
-/swift/.build/
-.build/

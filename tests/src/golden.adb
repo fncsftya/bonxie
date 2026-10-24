@@ -3,7 +3,6 @@ with Backgrounds;
 with Ada.Characters.Handling;
 with Ada.Command_Line;
 with Ada.Directories;
-with Ada.Environment_Variables;
 with Ada.Exceptions;
 with Ada.Streams.Stream_IO;
 with Ada.Strings.Fixed;
@@ -14,11 +13,9 @@ with SDL3.Windows.Renderers;
 with Downloads;
 with Files;
 with Goldens;
-with Finding_Tests;
 with Item_Tests;
 with Layout_Tests;
 with Outline_Tests;
-with MLX.Jobs;
 with Pomarine.Themes;
 with Preferences;
 with Projects;
@@ -42,8 +39,6 @@ procedure Golden is
    package Proj renames Viewer.Project_Screen;
    package Settings renames Viewer.Settings;
    package Images renames Goldens.Images;
-
-   Text_File : Ada.Text_IO.File_Type;
 
    Filter : constant String :=
      (if Ada.Command_Line.Argument_Count > 0
@@ -643,8 +638,8 @@ procedure Golden is
    Card_Y           : constant Float := 400.0;
    Reseed_X         : constant Float := 622.0;
    Reseed_Y         : constant Float := 492.0;
-   Native_Y         : constant Float := 716.0;
-   Parakeet_Y       : constant Float := 752.0;
+   Native_Y         : constant Float := 636.0;
+   Parakeet_Y       : constant Float := 672.0;
 
    procedure Home_Settings is
       use type Preferences.Speech_Models;
@@ -781,153 +776,6 @@ procedure Golden is
          end loop;
       end;
    end Home_Reseed;
-
-   --  The AI settings, in a window that is the same: the switch is under
-   --  its heading, and with it on the Model field, which opens a menu of
-   --  the models in the Hugging Face cache, here a made one in a folder
-   --  of the test's, which is the home folder as far as the program can
-   --  tell. The Test button runs a model, which is not for a golden (a
-   --  model is gigabytes, and says what it likes): see mlx/tests.
-   AI_Switch_X : constant Float := 160.0;
-   AI_Switch_Y : constant Float := 600.0;
-   AI_Field_X  : constant Float := 300.0;
-   AI_Field_Y  : constant Float := 675.0;
-   AI_Row_Gap  : constant Float := 26.0;
-   --  The menu's rows are this far apart, the first this far under the
-   --  field's middle (see AI_Row): None Selected, then the models in order
-   --  of name.
-
-   function AI_Row (Which : Positive) return Float is
-     (AI_Field_Y + 36.0 + AI_Row_Gap * Float (Which - 1));
-
-   procedure Make_Model (Hub, Name, Format, Kind : String) is
-      Folder : constant String := Hub & "/models--" & Name & "/snapshots/0123abcd";
-      Header : constant String := "{""__metadata__"":{""format"":""" & Format & """}}";
-      File   : Ada.Streams.Stream_IO.File_Type;
-      Size   : Natural := Header'Length;
-      Bytes  : Ada.Streams.Stream_Element_Array (1 .. 8) := [others => 0];
-   begin
-      Ada.Directories.Create_Path (Folder);
-      for Place in Bytes'Range loop
-         Bytes (Place) := Ada.Streams.Stream_Element (Size mod 256);
-         Size := Size / 256;
-      end loop;
-      Ada.Streams.Stream_IO.Create (File, Ada.Streams.Stream_IO.Out_File, Folder & "/model.safetensors");
-      Ada.Streams.Stream_IO.Write (File, Bytes);
-      for Letter of Header loop
-         Ada.Streams.Stream_IO.Write
-           (File, [1 => Ada.Streams.Stream_Element (Character'Pos (Letter))]);
-      end loop;
-      Ada.Streams.Stream_IO.Close (File);
-      Ada.Text_IO.Create (Text_File, Ada.Text_IO.Out_File, Folder & "/config.json");
-      Ada.Text_IO.Put (Text_File, "{""model_type"":""" & Kind & """}");
-      Ada.Text_IO.Close (Text_File);
-   end Make_Model;
-
-   procedure Home_Settings_AI is
-      Fake    : constant String := "/tmp/bonxie-ai-test";
-      Hub     : constant String := Fake & "/.cache/huggingface/hub";
-      Before  : constant String :=
-        (if Ada.Environment_Variables.Exists ("HOME")
-         then Ada.Environment_Variables.Value ("HOME") else "");
-      Hub_Cache : constant String :=
-        (if Ada.Environment_Variables.Exists ("HF_HUB_CACHE")
-         then Ada.Environment_Variables.Value ("HF_HUB_CACHE") else "");
-      Hub_Home  : constant String :=
-        (if Ada.Environment_Variables.Exists ("HF_HOME")
-         then Ada.Environment_Variables.Value ("HF_HOME") else "");
-      Session : Viewer.Session;
-      Drawn   : Images.Image;
-
-      procedure Restore is
-      begin
-         Ada.Environment_Variables.Set ("HOME", Before);
-         if Hub_Cache /= "" then
-            Ada.Environment_Variables.Set ("HF_HUB_CACHE", Hub_Cache);
-         end if;
-         if Hub_Home /= "" then
-            Ada.Environment_Variables.Set ("HF_HOME", Hub_Home);
-         end if;
-      end Restore;
-   begin
-      if Ada.Directories.Exists (Fake) then
-         Ada.Directories.Delete_Tree (Fake);
-      end if;
-      Ada.Directories.Create_Path (Fake);
-      Ada.Environment_Variables.Set ("HOME", Fake);
-      Ada.Environment_Variables.Clear ("HF_HUB_CACHE");
-      Ada.Environment_Variables.Clear ("HF_HOME");
-
-      --  Off to begin with; on, with no Hugging Face cache, it says so.
-      Viewer.Open (Session, "", Home_Width, Home_Height);
-      Click_On (Session, Actions_X, Settings_Y);
-      Goldens.Check_Text
-        ("settings-ai-off", "FALSE", Boolean'Image (Settings.AI_Enabled (Session)));
-      Click_On (Session, AI_Switch_X, AI_Switch_Y);
-      Goldens.Check_Text
-        ("settings-ai-on", "TRUE", Boolean'Image (Settings.AI_Enabled (Session)));
-      Viewer.Render (Session, Drawn);
-      Goldens.Check ("settings-ai-no-hub", Drawn);
-      Click_On (Session, AI_Switch_X, AI_Switch_Y);
-      Goldens.Check_Text
-        ("settings-ai-off-again", "FALSE", Boolean'Image (Settings.AI_Enabled (Session)));
-
-      --  A cache that is there but has no models in it is as none.
-      Ada.Directories.Create_Path (Hub & "/datasets--acme--words");
-      Click_On (Session, AI_Switch_X, AI_Switch_Y);
-      Viewer.Render (Session, Drawn);
-      Goldens.Check ("settings-ai-no-models", Drawn);
-      Click_On (Session, AI_Switch_X, AI_Switch_Y);
-
-      --  With models in it, they are in the menu, and None Selected is
-      --  what the field has until one is chosen.
-      Make_Model (Hub, "acme--plain-mlx", "mlx", "llama");
-      Make_Model (Hub, "acme--torch", "pt", "llama");
-      Make_Model (Hub, "acme--odd-mlx", "mlx", "nonsense");
-      Click_On (Session, AI_Switch_X, AI_Switch_Y);
-      Goldens.Check_Text ("settings-ai-none", "", Settings.AI_Model (Session));
-      Viewer.Render (Session, Drawn);
-      Goldens.Check ("settings-ai-models", Drawn);
-      Click_On (Session, AI_Field_X, AI_Field_Y);
-      Viewer.Render (Session, Drawn);
-      Goldens.Check ("settings-ai-menu", Drawn);
-
-      --  One that is not for MLX is chosen, and warned of.
-      Click_On (Session, AI_Field_X, AI_Row (4));
-      Goldens.Check_Text ("settings-ai-torch", "acme/torch", Settings.AI_Model (Session));
-      Viewer.Render (Session, Drawn);
-      Goldens.Check ("settings-ai-warned", Drawn);
-
-      --  One that is, so that it can be tested.
-      Click_On (Session, AI_Field_X, AI_Field_Y);
-      Click_On (Session, AI_Field_X, AI_Row (3));
-      Goldens.Check_Text ("settings-ai-plain", "acme/plain-mlx", Settings.AI_Model (Session));
-      Viewer.Render (Session, Drawn);
-      Goldens.Check ("settings-ai-chosen", Drawn);
-
-      --  A click outside the menu puts it away, and Escape too.
-      Click_On (Session, AI_Field_X, AI_Field_Y);
-      Click_On (Session, 900.0, 700.0);
-      Goldens.Check_Text
-        ("settings-ai-menu-away", "TRUE", Boolean'Image (Settings.Is_Settings_Open (Session)));
-      Click_On (Session, AI_Field_X, AI_Field_Y);
-      Viewer.Handle (Session, Key (Events.Key_Escape));
-      Goldens.Check_Text
-        ("settings-ai-escape-menu", "TRUE", Boolean'Image (Settings.Is_Settings_Open (Session)));
-
-      --  In the dark theme the field and the menu are dark too.
-      Click_On (Session, Model_X, Dark_Y);
-      Click_On (Session, AI_Field_X, AI_Field_Y);
-      Viewer.Render (Session, Drawn);
-      Goldens.Check ("settings-ai-menu-dark", Drawn);
-
-      Restore;
-      Ada.Directories.Delete_Tree (Fake);
-   exception
-      when others =>
-         Restore;
-         raise;
-   end Home_Settings_AI;
 
    procedure Fetching is
       use type Downloads.States;
@@ -1124,7 +972,7 @@ procedure Golden is
          Read (Bar (Themes.Bar_Ink), Bar (Themes.Bar), Themes.Soft_White, Base.Bar);
          Stayed := Stayed and then Made.Primary = Base.Primary and then Made.Danger = Base.Danger
            and then Made.Accent = Base.Accent and then Made.Focus = Base.Focus
-           and then Made.AI = Base.AI and then Made.Dark = Dark;
+           and then Made.Dark = Dark;
       end Check_Against;
    begin
       for Dark in Boolean loop
@@ -1484,22 +1332,11 @@ begin
    Run ("sources-words", Item_Tests.Source_Words'Access);
    Run ("sources-documents", Item_Tests.Source_Documents'Access);
    Run ("sources-files", Item_Tests.Source_Files'Access);
-   Run ("finding-queries", Finding_Tests.Reading_Queries'Access);
-   Run ("finding-evaluations", Finding_Tests.Reading_Evaluations'Access);
-   Run ("finding-banners", Finding_Tests.Reading_Banners'Access);
-   Run ("finding-links", Finding_Tests.Choosing_Links'Access);
-   Run ("finding-button", Finding_Tests.Button'Access);
-   Run ("finding-review", Finding_Tests.Review'Access);
-   Run ("finding-documents", Finding_Tests.Documents'Access);
-   Run ("finding-messages", Finding_Tests.Messages'Access);
-   Run ("finding-cancel", Finding_Tests.Cancelling'Access);
    Run ("outline-starting", Outline_Tests.Starting'Access);
    Run ("outline-colours", Outline_Tests.Colours'Access);
    Run ("outline-sections", Outline_Tests.Sections'Access);
    Run ("outline-many-sections", Outline_Tests.Many_Sections'Access);
    Run ("outline-form", Outline_Tests.Form'Access);
-   Run ("outline-generate", Outline_Tests.Generating'Access);
-   Run ("outline-replies", Outline_Tests.Replies'Access);
    Run ("outline-notes", Outline_Tests.Notes'Access);
    Run ("outline-write-notes", Outline_Tests.Write_Notes'Access);
    Run ("outline-linking", Outline_Tests.Linking'Access);
@@ -1538,7 +1375,6 @@ begin
    Run ("home-recent", Home_Recent'Access);
    Run ("home-settings", Home_Settings'Access);
    Run ("home-settings-reseed", Home_Reseed'Access);
-   Run ("home-settings-ai", Home_Settings_AI'Access);
    Run ("home-dark", Dark_Screens'Access);
    Run ("preferences-kept", Preferences_Kept'Access);
    Run ("adaptive-palettes", Adaptive_Palettes'Access);
@@ -1560,12 +1396,10 @@ begin
       Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
    end if;
    Speech.Jobs.Shutdown;  --  or the tasks that listen would keep it from ending
-   MLX.Jobs.Shutdown;     --  nor the workers that ask the model (finding sources)
 exception
    --  Said here: left unhandled, it ends with no message, as the tasks that listen hold it up.
    when Failure : others =>
       Ada.Text_IO.Put_Line ("FAIL  unhandled: " & Ada.Exceptions.Exception_Information (Failure));
       Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
       Speech.Jobs.Shutdown;
-      MLX.Jobs.Shutdown;
 end Golden;

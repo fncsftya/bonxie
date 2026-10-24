@@ -37,16 +37,6 @@ package Viewer.Documents is
    procedure Grammar_Remove_Rule (Item : in out Session; Marked : String);
    --  What the cards' buttons do, on the diagnostic marking Text.
 
-   function Find_Sources_Enabled (Item : Session; Row : Positive) return Boolean
-     with Pre => Is_Open (Item) and then Row <= Document_Count (Item);
-   --  Whether the Find Sources button of the Rowth page can be clicked.
-
-   procedure Find_Sources_Point
-     (Item : Session; Row : Positive; Shown : out Boolean; X, Y : out Float)
-     with Pre => Is_Open (Item) and then Row <= Document_Count (Item);
-   --  Whether the Rowth page's Find Sources button is shown, and where its
-   --  middle is, in points of the window.
-
    function Document_Title (Item : Session; Row : Positive) return String
      with Pre => Is_Open (Item) and then Screen (Item) = Project
                  and then Row <= Document_Count (Item);

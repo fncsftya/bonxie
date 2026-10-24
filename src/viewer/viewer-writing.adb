@@ -13,7 +13,6 @@ with Pomarine.Widgets.Pictures;
 with Pomarine.Widgets.Progress_Bars;
 with Speech.Jobs;
 with Viewer.Canvas_Items;
-with Viewer.Find_Sources;
 with Viewer.Outlines;
 with Viewer.Section_Links;
 with Viewer.Grammar;
@@ -461,16 +460,6 @@ package body Viewer.Writing is
    begin
       Canvas_Items.Toggle_Dictation (Item, Item.Reading.Write_Order (Event.Index));
    end Dictate_Clicked;
-
-   procedure Find_Clicked
-     (Item   : in out Session;
-      Source : in out Pomarine.Widgets.Widget'Class;
-      Event  : Pomarine.Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source);
-   begin
-      Find_Sources.Start (Item, Item.Reading.Write_Order (Event.Index));
-   end Find_Clicked;
 
    procedure Tool_Used
      (Item   : in out Session;

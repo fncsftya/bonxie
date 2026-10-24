@@ -1,21 +1,12 @@
-with Ada.Strings.Unbounded;
-with MLX;
-with MLX.Jobs;
-with Outline_Generation;
 with Pomarine.Text_Areas;
-with Pomarine.Themes;
 with Pomarine.Widgets.Buttons;
 with Pomarine.Widgets.Callbacks;
-with Preferences;
 with Pomarine.Widgets.Scrollers;
 with Pomarine.Widgets.Text_Fields;
 with Texts.Documents;
 with Viewer.Navigation;
-with Viewer.Settings_View;
-with Viewer.Style;
 with Viewer.Outlines.Blocks;
 with Viewer.Outlines.Clicks;
-with Viewer.Outlines.Generation;
 with Viewer.Outlines.Support;
 
 package body Viewer.Outlines is
@@ -30,7 +21,6 @@ package body Viewer.Outlines is
    use type Docs.Version;
    use type Projects.Id;
    use type Projects.Sections.Section_Id;
-   use type MLX.Jobs.States;
 
    Untitled_Section : constant String := "Untitled section";
 
@@ -177,9 +167,6 @@ package body Viewer.Outlines is
    procedure Enter (Item : in out Session) is
       View : Outline_Parts renames Item.Outline_View;
    begin
-      if View.Generate_Tries = 0 then
-         Generation.Show_Note (Item, "", Style.Quiet_Ink);
-      end if;
       View.Drag_Block := 0;
       View.Drag_Moved := False;
       View.Drop_Before := 0;
@@ -188,13 +175,11 @@ package body Viewer.Outlines is
       Support.Load_Sections (Item, Item.Opened.Current);
       Blocks.Show_Blocks (Item);
       Blocks.Show_Drop_Line (Item);
-      Generation.Show_Generate (Item);
    end Enter;
 
    procedure Leave (Item : in out Session) is
       View : Outline_Parts renames Item.Outline_View;
    begin
-      Close_Menu (Item);
       View.Colour_Key := 0;
       Widgets.Set_Visible (View.Colour_Popout, False);
       Sync (Item);
@@ -214,7 +199,6 @@ package body Viewer.Outlines is
       Result : Projects.Project;
    begin
       Sync (Item);
-      Generation.Show_Generate (Item);
       --  The project may have been renamed on the toolbar.
       Projects.Find (Item.Nav.Store, Item.Opened.Current, Found, Result);
       if Found
@@ -314,57 +298,6 @@ package body Viewer.Outlines is
    function Notes_Shown (Item : Session; Which : Positive) return Boolean is
      (Item.Outline_View.Order (Which).Open);
 
-   --  Asking the model
-
-   function Generating (Item : Session) return Boolean is (Item.Outline_View.Generate_Tries > 0);
-
-   function Generate_Enabled (Item : Session) return Boolean is
-     (Buttons.Is_Enabled (Item.Outline_View.Generate_Button));
-
-   function Generate_Label (With_Notes : Boolean) return String is
-     (if With_Notes then "Generate + Notes" else "Generate Sections");
-
-   procedure Show_Choice (Item : in out Session) is
-   begin
-      Buttons.Set_Label (Item.Outline_View.Generate_Button, Generate_Label (Item.Outline_View.With_Notes));
-   end Show_Choice;
-
-   function Generate_Menu_Shown (Item : Session) return Boolean is (Item.Outline_View.Generate_Open);
-
-   procedure Generate_Point (Item : in out Session; Caret : Boolean; X, Y : out Float) is
-      Button : Buttons.Button renames Item.Outline_View.Generate_Button;
-      Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
-      Side   : constant Float := Float'Rounding (Widgets.Height_Of (Button));
-      Right  : constant Float := Widgets.Left_Of (Button) + Widgets.Width_Of (Button);
-   begin
-      Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
-      X := (if Caret then Right - Side / 2.0 else Widgets.Left_Of (Button) + Widgets.Width_Of (Button) / 4.0) / Pixels;
-      Y := (Widgets.Top_Of (Button) + Widgets.Height_Of (Button) / 2.0) / Pixels;
-   end Generate_Point;
-
-   procedure Close_Menu (Item : in out Session) is
-      View : Outline_Parts renames Item.Outline_View;
-   begin
-      if View.Generate_Open then
-         View.Generate_Open := False;
-         Widgets.Set_Visible (View.Generate_Menu, False);
-         Buttons.Set_Selected (View.Generate_Button, False);
-      end if;
-   end Close_Menu;
-
-   procedure Choose_Generate (Item : in out Session; Row : Positive) is
-      View : Outline_Parts renames Item.Outline_View;
-   begin
-      Close_Menu (Item);
-      View.With_Notes := Row = 2;
-      Show_Choice (Item);
-      if Item.Prefs.Persist then
-         Preferences.Save_Generate_Notes
-           (Ada.Strings.Unbounded.To_String (Item.Prefs.Config_Dir), View.With_Notes);
-      end if;
-      Generate_Sections (Item, View.With_Notes);
-   end Choose_Generate;
-
    procedure Pressed (Item : in out Session; X, Y : Float) is
       View   : Outline_Parts renames Item.Outline_View;
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
@@ -375,95 +308,15 @@ package body Viewer.Outlines is
          View.Colour_Key := 0;
          Widgets.Set_Visible (View.Colour_Popout, False);
       end if;
-      if View.Generate_Open
-        and then not Widgets.Contains (View.Generate_Menu, X * Pixels, Y * Pixels)
-        and then not Widgets.Contains (View.Generate_Button, X * Pixels, Y * Pixels)
-      then
-         Close_Menu (Item);
-      end if;
    end Pressed;
-
-   function Take_Reply (Item : in out Session; Reply : String) return Boolean is
-      Parsed : Projects.Sections.Section_List;
-      Valid  : Boolean;
-   begin
-      Outline_Generation.Parse (Reply, Parsed, Valid);
-      if Valid then
-         Generation.Apply (Item, Parsed);
-      end if;
-      return Valid;
-   end Take_Reply;
-
-   procedure Generate_Sections (Item : in out Session; With_Notes : Boolean) is
-      View   : Outline_Parts renames Item.Outline_View;
-      Located : Ada.Strings.Unbounded.Unbounded_String;
-      Why     : Ada.Strings.Unbounded.Unbounded_String;
-   begin
-      if not Item.Prefs.AI_On or else Generating (Item) then
-         return;
-      end if;
-      Settings_View.Locate_AI_Model (Item, Located, Why);
-      if Ada.Strings.Unbounded.Length (Why) > 0 then
-         Generation.Show_Note (Item, Ada.Strings.Unbounded.To_String (Why), Pomarine.Themes.Danger_Ink);
-         return;
-      end if;
-      Sync (Item);
-      View.Generate_Project := Item.Opened.Current;
-      View.Generate_Notes := With_Notes;
-      View.Generate_Folder := Located;
-      View.Generate_Prompt :=
-        Ada.Strings.Unbounded.To_Unbounded_String
-          (Outline_Generation.Prompt
-             (Support.Trimmed (Docs.Whole (View.Name_Doc)), Docs.Whole (View.Desc_Doc), View.Order));
-      View.Generate_Tries := 1;
-      Generation.Show_Note (Item, "Generating sections, this can take a while", Style.Quiet_Ink);
-      Generation.Start_Try (Item);
-      Generation.Show_Generate (Item);
-   end Generate_Sections;
 
    procedure Update (Item : in out Session) is
       View : Outline_Parts renames Item.Outline_View;
    begin
-      if Generating (Item) then
-         case MLX.Jobs.State (View.Generate_Job) is
-            when MLX.Jobs.Idle =>
-               View.Generate_Tries := 0;
-            when MLX.Jobs.Running =>
-               if Item.Opened.Current /= View.Generate_Project then
-                  MLX.Jobs.Cancel (View.Generate_Job);
-               end if;
-            when MLX.Jobs.Done =>
-               Generation.Finish_Try (Item);
-            when MLX.Jobs.Failed =>
-               declare
-                  Why : constant String := MLX.Jobs.Text (View.Generate_Job);
-               begin
-                  MLX.Jobs.Reset (View.Generate_Job);
-                  if Item.Opened.Current = View.Generate_Project then
-                     Generation.Give_Up (Item, (if Why = "" then "The AI could not make the outline" else Why));
-                  else
-                     View.Generate_Tries := 0;
-                     Generation.Show_Note (Item, "", Style.Quiet_Ink);
-                  end if;
-               end;
-            when MLX.Jobs.Cancelled =>
-               MLX.Jobs.Reset (View.Generate_Job);
-               View.Generate_Tries := 0;
-               Generation.Show_Note (Item, "", Style.Quiet_Ink);
-         end case;
-      end if;
       if View.Colour_Key /= 0 and then not Support.In_Outline (Item) then
          View.Colour_Key := 0;
          Widgets.Set_Visible (View.Colour_Popout, False);
       end if;
-      if View.Generate_Open then
-         if Support.In_Outline (Item) and then Buttons.Is_Enabled (View.Generate_Button) then
-            Generation.Place_Menu (Item);
-         else
-            Close_Menu (Item);
-         end if;
-      end if;
-      Generation.Show_Generate (Item);
    end Update;
 
    --  What the widgets say
@@ -487,8 +340,6 @@ package body Viewer.Outlines is
       Hear (Item.Outline_View.Colour_Cancel, Click, Clicks.Colour_Cancelled'Access);
 
       Hear (Item.Outline_View.Add_Button, Click, Clicks.Add_Clicked'Access);
-      Hear (Item.Outline_View.Generate_Button, Click, Generation.Generate_Clicked'Access);
-      Hear (Item.Outline_View.Generate_Menu, Choose, Generation.Chosen'Access);
    end Listen;
 
    procedure Listen_Block (Item : in out Session; Index : Positive) is

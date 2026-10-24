@@ -25,7 +25,6 @@ private with Viewer_Parts.Settings;
 private with Viewer_Parts.Outline;
 private with Viewer_Parts.Grammar;
 private with Viewer_Parts.Canvas;
-private with Viewer_Parts.Finder;
 
 --  A window of two screens: the home, with the recent projects and
 --  buttons to start with, and a project, with a toolbar and, above it, the
@@ -168,7 +167,6 @@ private
    use Viewer_Parts.Outline;
    use Viewer_Parts.Grammar;
    use Viewer_Parts.Canvas;
-   use Viewer_Parts.Finder;
 
    --  What the menu bar and the keys can ask for, apart from what edits
    --  text: each is said as a command (see Viewer.Menus), to be done by
@@ -325,7 +323,6 @@ private
       Docs : Document_State;
       Grammar_Checks : Grammar_State;
       Outline_View : Outline_Parts;
-      Finder : Finder_Parts;
       Context : Context_State;
       Section_Menu : Section_Menu_Parts;
       Naming : Renaming_State;

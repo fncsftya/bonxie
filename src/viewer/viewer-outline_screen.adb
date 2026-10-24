@@ -70,9 +70,6 @@ package body Viewer.Outline_Screen is
       Outlines.Toggle_Notes (Item, Row);
    end Toggle_Notes;
 
-   function Generate_Enabled (Item : Session) return Boolean is
-     (Outlines.Generate_Enabled (Item));
-
    procedure Write_Notes_Point (Item : in out Session; Row : Positive; X, Y : out Float) is
       Button : Pomarine.Widgets.Buttons.Button renames Item.Section_View.Heads (Row).Notes;
       Pixels : constant Float := Pomarine.Widgets.Density (Item.Root.Widgets);
@@ -80,25 +77,6 @@ package body Viewer.Outline_Screen is
       X := (Pomarine.Widgets.Left_Of (Button) + Pomarine.Widgets.Width_Of (Button) / 2.0) / Pixels;
       Y := (Pomarine.Widgets.Top_Of (Button) + Pomarine.Widgets.Height_Of (Button) / 2.0) / Pixels;
    end Write_Notes_Point;
-
-   function Generate_Label (Item : Session) return String is
-     (Pomarine.Widgets.Buttons.Label (Item.Outline_View.Generate_Button));
-
-   function Generate_Menu_Shown (Item : Session) return Boolean is
-     (Outlines.Generate_Menu_Shown (Item));
-
-   procedure Generate_Point (Item : in out Session; Caret : Boolean; X, Y : out Float) is
-   begin
-      Outlines.Generate_Point (Item, Caret, X, Y);
-   end Generate_Point;
-
-   procedure Choose_Generate (Item : in out Session; Row : Positive) is
-   begin
-      Outlines.Choose_Generate (Item, Row);
-   end Choose_Generate;
-
-   function Take_Reply (Item : in out Session; Reply : String) return Boolean is
-     (Outlines.Take_Reply (Item, Reply));
 
    procedure Add_Section (Item : in out Session) is
    begin

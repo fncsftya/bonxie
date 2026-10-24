@@ -35,7 +35,7 @@ package Items.Windows is
    type Window is limited private;
 
    type Actions is (None, Minimize, Restore, Close, Capture, Speak, Previous_Page, Next_Page,
-                    Choose_Link, Choose_File, Link_To_Outline, Find_Sources);
+                    Choose_Link, Choose_File, Link_To_Outline);
    --  What a window's buttons ask for, and, of a source, Return in its
    --  link's field: to take the picture of the page. Speak is the button
    --  of a note that starts or stops dictating into it. Previous_Page and
@@ -45,8 +45,7 @@ package Items.Windows is
    --  Choose_File too is what clicking the path of a source that is a file
    --  asks: to choose another. Link_To_Outline is the button of a note
    --  that opens the menu of the outline's sections, to make it the one
-   --  that a section is read from. Find_Sources is the button of a note's
-   --  toolbar that asks for sources to be found for its text.
+   --  that a section is read from.
 
    Meter_Offset : constant := 27;
    --  Which of the application's theme slots is the colour of the level
@@ -193,20 +192,6 @@ package Items.Windows is
    --  document, a file of that ending ("" and 0 for a web page): with more than one, buttons
    --  to turn the page are over the picture, and the status line says
    --  which it is once it is shown (Set_Capture Ready).
-
-   procedure Allow_Find_Sources (Item : in out Window; To : Boolean)
-     with Pre => Is_Assigned (Item);
-   --  Say whether the note's Find Sources button can be used (the AI is on):
-   --  it is on only while the note has some text as well.
-
-   function Find_Sources_Is_Enabled (Item : Window) return Boolean
-     with Pre => Is_Assigned (Item);
-   --  Whether the button can be clicked now.
-
-   procedure Find_Sources_Center (Item : Window; Shown : out Boolean; X, Y : out Float)
-     with Pre => Is_Assigned (Item);
-   --  Whether the button is shown, and where its middle is, in points of the
-   --  window: for tests.
 
    function Dictation (Item : Window) return Dictations
      with Pre => Is_Assigned (Item);

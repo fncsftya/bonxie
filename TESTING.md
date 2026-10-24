@@ -75,39 +75,12 @@ documents at multiple levels, deleting whole folder subtrees while retaining
 documents, the optional deletion of documents, cancellation, checkbox defaults,
 and persistence after reopening.
 
-## Find Sources
+## Web pages
 
-`finding-queries` and `finding-evaluations` check how the model's replies are
-read (`Source_Finding`): what is wrong with a reply, and what is passed over. No
-model is run. `finding-button` checks the Find Sources button of a note on the
-canvas and of a page in the writing view: off while the AI is off or the text is
-blank, and, with no model chosen, a click is answered by the toast. `finding-review`
-fakes what the finder found (`Source_Finder.Offer`, with pictures copied from the
-goldens) and checks the toast and its list, adding one source, all of them, none, and
-leaving the project. `finding-messages` checks what the toast says when nothing passed.
-
-`finding-banners` and `finding-links` check how the model's reply about what covers a page is
-read (the button to press, from a reply with thoughts and braces round it; a page said to be
-covered with no button is not covered) and which addresses are of PDFs, and which pages are the
-front of one (arXiv's abstract and HTML pages and the PDF at an address with no `.pdf`;
-Taylor & Francis's preview pages; the endings and the segments that say PDF, and not what only
-looks like one). `finding-documents` offers a PDF as found and checks it is shown in the preview as
-pages and added as a document (paged, its file moved, linked from the note), the page after it as a
-picture.
-
-`finding-cancel` stops a run half way by the toast's button (held there, with no model:
-`Source_Finder.Hold`), and checks the toast, the state and that work can begin again.
-
-The work itself (the model, DuckDuckGo, WebKit and Vision, together) needs a model and a
-network, so it is not in `bin/golden`: run `tests/bin/finder_run <model folder>` (see
-`tests/finder_run.gpr`), which prints how it goes and what it finds, and
-`tests/bin/finder_run --cancel <writing|searching|reading|judging> <model folder>`,
-which stops it at that stage and checks it stops in good time, keeps nothing, leaves no
-files (pictures, PDFs, looks and screens) and can be begun again; `bin/banner_probe <model folder>
-<address>` tries the step that clears what covers a page, with the model, on one page (it says
-what the model named and whether pressing it worked), and `bin/page_probe <address> [look]` takes a
-page as finding sources does and says how tall it is and how many words are read from it. `websearch/tests` checks the search, its limits and its
-cache alone; `webshot/tests` (`alr exec -- gprbuild -P webshot_test.gpr`, then
+`bin/page_probe <address> [look]` takes the picture of a page and says how tall it is and how many
+words are read from it, `bin/links_probe <address>` prints the PDF address Webshot finds in a page,
+and `bin/fetch_probe <address>` fetches the file an address is of (see `tests/webshot_probes.gpr`).
+`webshot/tests` (`alr exec -- gprbuild -P webshot_test.gpr`, then
 `bin/webshot_test`) checks, on pages it writes to `/tmp`, that a very long page is all in its
 picture, with the first screens of it beside, and that cookie banners are pressed, by the page's own
 way (in the page, a shadow root and a frame; the accepting button first; a second notice; and not a

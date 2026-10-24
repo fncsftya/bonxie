@@ -1,6 +1,5 @@
 with Word_Tools;
 with Pomarine.Widgets.Switches;
-with Pomarine.Widgets.Menus;
 with Pomarine.Widgets.Editors;
 with Items.Readers;
 with Items.Windows;
@@ -156,7 +155,6 @@ package body Viewer.Build.Write_View is
             Spacing => 0.35 * Page_Text_Size);
          Editors.Set_Paper (Each.Text, Paper);
          Editors.Set_Toolbar (Each.Text);
-         Editors.Set_Assist (Each.Text, "Find Sources");
          Word_Tools.Add (Each.Text);
          --  The page's margin is the text area's, so that its toolbar is the page's width.
          Editors.Set_Indent
@@ -373,10 +371,6 @@ package body Viewer.Build.Write_View is
          Widgets.Add (Item.Toolbar.Content_Panel, Item.Context.Context_Menu);
          Set_Layout (Item.Context.Context_Menu, Place => Absolute, Width => Context_Width);
          Widgets.Set_Visible (Item.Context.Context_Menu, False);
-         Widgets.Add (Item.Toolbar.Content_Panel, Item.Outline_View.Generate_Menu);
-         Set_Layout (Item.Outline_View.Generate_Menu, Place => Absolute, Width => Generate_Menu_Width);
-         Pomarine.Widgets.Menus.Set_Accented (Item.Outline_View.Generate_Menu, True);
-         Widgets.Set_Visible (Item.Outline_View.Generate_Menu, False);
          Widgets.Add (Item.Toolbar.Content_Panel, Item.Section_Menu.Menu);
          Set_Layout (Item.Section_Menu.Menu, Place => Absolute, Width => 220.0);
          Widgets.Set_Visible (Item.Section_Menu.Menu, False);

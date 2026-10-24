@@ -175,22 +175,6 @@ package body Preferences is
       Put_Setting (Config, "watercolour_seed", Ada.Strings.Fixed.Trim (Natural'Image (To), Ada.Strings.Left));
    end Save_Seed;
 
-   function Load_AI_Enabled (Config : String) return Boolean is
-     (Ada.Characters.Handling.To_Lower (Setting (Config, "ai")) = "on");
-
-   procedure Save_AI_Enabled (Config : String; To : Boolean) is
-   begin
-      Put_Setting (Config, "ai", (if To then "on" else "off"));
-   end Save_AI_Enabled;
-
-   function Load_AI_Model (Config : String) return String is
-     (Setting (Config, "ai_model"));
-
-   procedure Save_AI_Model (Config : String; To : String) is
-   begin
-      Put_Setting (Config, "ai_model", To);
-   end Save_AI_Model;
-
    function Load_Sidebar_Width (Config : String) return Natural is
       Saved : constant String := Setting (Config, "sidebar");
    begin
@@ -212,13 +196,5 @@ package body Preferences is
    begin
       Put_Setting (Config, "open_" & Name, (if To then "yes" else "no"));
    end Save_Section_Open;
-
-   function Load_Generate_Notes (Config : String) return Boolean is
-     (Ada.Characters.Handling.To_Lower (Setting (Config, "generate")) = "notes");
-
-   procedure Save_Generate_Notes (Config : String; To : Boolean) is
-   begin
-      Put_Setting (Config, "generate", (if To then "notes" else "sections"));
-   end Save_Generate_Notes;
 
 end Preferences;

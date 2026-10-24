@@ -100,10 +100,7 @@ private package Viewer.Style is
    Notes_Width     : constant Float := 66.0;
    Outline_Field_Height : constant Float := 26.0;
    Outline_Button  : constant Float := 26.0;
-   Generate_Width  : constant Float := 178.0;
-   Generate_Menu_Width : constant Float := 210.0;
    Add_Section_Width : constant Float := 116.0;
-   --  Of the button that asks a model for the sections.
    Outline_Handle  : constant Float := 14.0;
 
    Drop_Line_Height : constant Float := 2.0;
@@ -207,9 +204,6 @@ private package Viewer.Style is
    --  Of a choice of background in the settings, and of its foot with the name; the picture takes the rest.
    Download_Height : constant Float := 34.0;
    Download_Width  : constant Float := 112.0;
-   Note_Line       : constant Float := 20.0;
-   --  A line of what is said under the AI model.
-   None_Selected   : constant String := "None Selected";
    Progress_Height : constant Float := 12.0;
 
    --  The home screen, in points

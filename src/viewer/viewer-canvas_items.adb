@@ -13,7 +13,6 @@ with Pomarine.Widgets.Pictures;
 with Speech.Jobs;
 with Speech.Models;
 with Viewer.Build;
-with Viewer.Find_Sources;
 with Viewer.Gestures;
 with Viewer.Links;
 with Viewer.Section_Links;
@@ -524,8 +523,6 @@ package body Viewer.Canvas_Items is
             Toggle_Dictation (Item, Which);
          when Windows.Link_To_Outline =>
             Section_Links.Open (Item, Which);
-         when Windows.Find_Sources =>
-            Find_Sources.Start (Item, Which);
          when Windows.Choose_Link =>
             Choose_Origin (Item, Which, Items.Remote);
          when Windows.Choose_File =>

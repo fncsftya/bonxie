@@ -279,123 +279,8 @@ package body Outline_Tests is
       Check ("outline-form-description", "", Outline.Project_Description (Session));
    end Form;
 
-   procedure Generating is
-      Session : Viewer.Session;
-   begin
-      Viewer.Open (Session, "", Width, Height, 2.0);
-      --  Off, the button is too.
-      Home.New_Project (Session);
-      Check ("outline-generate-ai-off", "FALSE", Boolean'Image (Outline.Generate_Enabled (Session)));
-      Snap (Session, "outline-generate-disabled");
-      Proj.Close_Project (Session);
-
-      Prefs.Open_Settings (Session);
-      Prefs.Choose_AI_Enabled (Session, True);
-      Prefs.Close_Settings (Session);
-      Home.New_Project (Session);
-      Check ("outline-generate-ai-on", "TRUE", Boolean'Image (Outline.Generate_Enabled (Session)));
-      Snap (Session, "outline-generate-enabled");
-
-      --  The button is two: the rest of it generates, its caret opens a
-      --  menu, each with a hover of its own.
-      declare
-         X, Y : Float;
-      begin
-         Check ("outline-generate-label", "Generate Sections", Outline.Generate_Label (Session));
-         Outline.Generate_Point (Session, True, X, Y);
-         Move_To (Session, X, Y);
-         Snap (Session, "outline-generate-caret-hover");
-         Press (Session, X, Y);
-         Release (Session, X, Y);
-         Settle (Session);
-         Check ("outline-generate-menu", "TRUE", Boolean'Image (Outline.Generate_Menu_Shown (Session)));
-         Snap (Session, "outline-generate-menu");
-         Outline.Generate_Point (Session, False, X, Y);
-         Move_To (Session, X, Y);
-         Snap (Session, "outline-generate-main-hover");
-         --  Pressed elsewhere, it is put away.
-         Press (Session, 100.0, 300.0);
-         Release (Session, 100.0, 300.0);
-         Check ("outline-generate-menu-away", "FALSE", Boolean'Image (Outline.Generate_Menu_Shown (Session)));
-
-         --  The choice is the button's label from then on.
-         Outline.Generate_Point (Session, True, X, Y);
-         Press (Session, X, Y);
-         Release (Session, X, Y);
-         Outline.Choose_Generate (Session, 2);
-         Check ("outline-generate-chosen-label", "Generate + Notes", Outline.Generate_Label (Session));
-         Check ("outline-generate-chosen-away", "FALSE", Boolean'Image (Outline.Generate_Menu_Shown (Session)));
-         Snap (Session, "outline-generate-chosen");
-         Outline.Choose_Generate (Session, 1);
-         Check ("outline-generate-chosen-back", "Generate Sections", Outline.Generate_Label (Session));
-      end;
-      Check ("outline-generate-none-kept", "FALSE",
-             Boolean'Image (Preferences.Load_Generate_Notes ("/tmp/bonxie-outline-generate-none")));
-      Preferences.Save_Generate_Notes ("/tmp/bonxie-outline-generate", True);
-      Check ("outline-generate-kept", "TRUE",
-             Boolean'Image (Preferences.Load_Generate_Notes ("/tmp/bonxie-outline-generate")));
-
-      Proj.Close_Project (Session);
-      Prefs.Open_Settings (Session);
-      Prefs.Choose_Theme (Session, Preferences.Dark);
-      Prefs.Close_Settings (Session);
-      Home.New_Project (Session);
-      Snap (Session, "outline-generate-dark");
-   end Generating;
-
-   procedure Replies is
-      Session : Viewer.Session;
-      Taken   : Boolean;
-
-      Cafe : constant String :=
-        "Caf" & Character'Val (16#C3#) & Character'Val (16#A9#) & " " & Character'Val (16#F0#)
-        & Character'Val (16#9F#) & Character'Val (16#98#) & Character'Val (16#80#);
-      --  "Café 😀", in UTF-8.
-
-      procedure Reject (Reply : String) is
-      begin
-         Taken := Outline.Take_Reply (Session, Reply);
-         Check ("outline-reply-invalid", "FALSE", Boolean'Image (Taken));
-         Check ("outline-reply-unchanged", "Middle|", Titles (Session));
-      end Reject;
-   begin
-      Start (Session);
-      Outline.Add_Section (Session);
-      Type_In (Session, "Middle");
-      Settle (Session);
-
-      --  What cannot be read changes nothing.
-      Reject ("I cannot do that.");
-      Reject ("{""sections"": []}");
-      Reject ("{""sections"": [{""title"": ""Start""}, {""title"": ""Mid");
-      Reject ("{""sections"": [{""name"": ""Start""}]}");
-      Reject ("{""sections"": [""Start""]}");
-      Reject ("{""sections"": [{""title"": ""   ""}]}");
-      Reject ("{""sections"": [{""title"": ""A""},]}");
-
-      --  What can: in the order given, with the section there kept, and
-      --  words about the object, thoughts and fences passed over.
-      Taken := Outline.Take_Reply
-        (Session,
-         "Here it is:" & ASCII.LF & "```json" & ASCII.LF
-         & "{""sections"": [{""title"": ""Introduction""}, {""title"": ""middle"", ""x"": [1, {""y"": null}]},"
-         & " {""title"": ""Caf\u00e9 \ud83d\ude00""}, {""title"": ""Introduction""}, {""title"": ""  End  ""}]}"
-         & ASCII.LF & "```");
-      Check ("outline-reply-valid", "TRUE", Boolean'Image (Taken));
-      Check ("outline-reply-order", "Introduction|Middle|" & Cafe & "|End|", Titles (Session));
-      Snap (Session, "outline-generated");
-
-      --  A section the model leaves out goes last, and is not lost.
-      Taken := Outline.Take_Reply (Session, "{""sections"": [{""title"": ""End""}, {""title"": ""Start""}]}");
-      Check ("outline-reply-taken", "TRUE", Boolean'Image (Taken));
-      Check ("outline-reply-omitted", "End|Start|Introduction|Middle|" & Cafe & "|", Titles (Session));
-      Reopen (Session);
-      Check ("outline-reply-kept", "End|Start|Introduction|Middle|" & Cafe & "|", Titles (Session));
-   end Replies;
-
    procedure Notes is
       Session : Viewer.Session;
-      Taken   : Boolean;
    begin
       Start (Session);
       Outline.Add_Section (Session);
@@ -428,23 +313,6 @@ package body Outline_Tests is
       Check ("outline-notes-kept-shown", "TRUE", Boolean'Image (Outline.Notes_Shown (Session, 2)));
       Check ("outline-notes-kept-empty", "FALSE", Boolean'Image (Outline.Notes_Shown (Session, 1)));
 
-      --  A reply with notes gives them to the sections that have none, and
-      --  shows them; what was written is not written over.
-      Taken := Outline.Take_Reply
-        (Session,
-         "{""sections"": [{""title"": ""End"", ""notes"": [""Sum up"", "" "", ""Look ahead""]},"
-         & " {""notes"": [""Early""], ""title"": ""Beginning""}, {""title"": ""Extra"", ""notes"": []}]}");
-      Check ("outline-notes-reply", "TRUE", Boolean'Image (Taken));
-      Check ("outline-notes-reply-order", "End|Beginning|Extra|", Titles (Session));
-      Check ("outline-notes-reply-bullets", "- Sum up" & ASCII.LF & "- Look ahead",
-            Outline.Section_Notes (Session, 1));
-      Check ("outline-notes-reply-shown", "TRUE", Boolean'Image (Outline.Notes_Shown (Session, 1)));
-      Check ("outline-notes-reply-kept", "- Open with a story", Outline.Section_Notes (Session, 2));
-      Check ("outline-notes-reply-empty", "", Outline.Section_Notes (Session, 3));
-      Snap (Session, "outline-notes-generated");
-      Reopen (Session);
-      Check ("outline-notes-reply-saved", "- Sum up" & ASCII.LF & "- Look ahead",
-            Outline.Section_Notes (Session, 1));
    end Notes;
 
    procedure Linking is

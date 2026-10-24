@@ -1,8 +1,6 @@
 with Ada.Strings.Fixed;
+with Ada.Strings.Unbounded;
 with Backgrounds;
-with MLX;
-with MLX.Hub;
-with MLX.Jobs;
 with Pomarine.Themes;
 with Pomarine.Widgets;
 with Pomarine.Widgets.Buttons;
@@ -10,10 +8,7 @@ with Pomarine.Widgets.Checks;
 with Pomarine.Widgets.Labels;
 with Pomarine.Widgets.Panels;
 with Pomarine.Widgets.Scrollers;
-with Pomarine.Widgets.Menus;
 with Pomarine.Widgets.Progress_Bars;
-with Pomarine.Widgets.Selects;
-with Pomarine.Widgets.Switches;
 with SDL3.Events;
 with Speech.Models;
 with Viewer.Deletion;
@@ -26,16 +21,11 @@ package body Viewer.Settings_View is
    package Buttons renames Pomarine.Widgets.Buttons;
    package Checks renames Pomarine.Widgets.Checks;
    package Labels renames Pomarine.Widgets.Labels;
-   package Menus renames Pomarine.Widgets.Menus;
    package Progress_Bars renames Pomarine.Widgets.Progress_Bars;
-   package Selects renames Pomarine.Widgets.Selects;
-   package Switches renames Pomarine.Widgets.Switches;
    package Themes renames Pomarine.Themes;
    package Panels renames Pomarine.Widgets.Panels;
    package Scrollers renames Pomarine.Widgets.Scrollers;
-   package Layouts renames Pomarine.Widgets.Layouts;
 
-   use type MLX.Jobs.States;
    use type Speech.Models.States;
    use type Preferences.Speech_Models;
    use type Preferences.Theme_Choices;
@@ -55,229 +45,7 @@ package body Viewer.Settings_View is
 
    function Downloading (Item : Session) return Boolean is
      (Item.Prefs.Showing_Settings
-    and then (Speech.Models.State = Speech.Models.Running
-              or else MLX.Jobs.State (Item.Prefs.AI_Job) = MLX.Jobs.Running));
-
-   --  AI
-
-   function AI_Model (Item : Session) return String is
-     (Ada.Strings.Unbounded.To_String (Item.Prefs.AI_Model));
-
-   function AI_Problem (Item : Session) return String is
-     (Ada.Strings.Unbounded.To_String (Item.Prefs.AI_Problem));
-
-   function AI_Menu_Open (Item : Session) return Boolean is (Item.Prefs.AI_Menu_Open);
-
-   function Shown (Name : String) return String;
-   --  A model's name as far as a field or a row holds: from its two ends
-   --  if it is too long, with an ellipsis between.
-
-   function Shown (Name : String) return String is
-      Ellipsis : constant String := [Character'Val (16#E2#), Character'Val (16#80#), Character'Val (16#A6#)];
-      Room     : constant := Labels.Text_Capacity;
-      Head     : constant := (Room - Ellipsis'Length) / 2 + 1;
-      Tail     : constant := Room - Ellipsis'Length - Head;
-   begin
-      return (if Name'Length <= Room then Name
-              else Name (Name'First .. Name'First + Head - 1) & Ellipsis
-                   & Name (Name'Last - Tail + 1 .. Name'Last));
-   end Shown;
-
-   procedure Save_AI (Item : in out Session);
-   --  Keep whether it is on, and the model chosen.
-
-   Test_Prompt : constant String := "This is a test, reply, in a single sentence, if it works";
-   Test_Tokens : constant := 512;
-   --  What the Test button asks the model, and the most it may say: the
-   --  reply, not its thoughts, if it is one that can think.
-
-   procedure Judge (Item : in out Session);
-   --  Find out whether the model chosen will run, and keep why not.
-
-   procedure Judge (Item : in out Session) is
-      Name : constant String := AI_Model (Item);
-      Said : Ada.Strings.Unbounded.Unbounded_String;
-   begin
-      if Name /= "" then
-         declare
-            Folder : constant String := MLX.Hub.Snapshot (Name);
-         begin
-            Said :=
-              Ada.Strings.Unbounded.To_Unbounded_String
-                (if Folder = "" then "This model is not in the Hugging Face cache"
-                 elsif Folder'Length > MLX.Max_Path then "The model's folder is too deep to use"
-                 else MLX.Problem (Folder));
-         end;
-      end if;
-      Item.Prefs.AI_Problem := Said;
-   end Judge;
-
-   procedure Say (Item : in out Session; Words : String; Ink : Themes.Slot);
-   --  Show Words in the lines under the model, broken between words, as
-   --  many as fit (the last then ends in an ellipsis); none if Words is "".
-
-   procedure Say (Item : in out Session; Words : String; Ink : Themes.Slot) is
-      Capacity : constant := Labels.Text_Capacity;
-      Ellipsis : constant String := [Character'Val (16#E2#), Character'Val (16#80#), Character'Val (16#A6#)];
-      Start    : Positive := Words'First;
-
-      function Blank (At_Place : Positive) return Boolean is
-        (Words (At_Place) in ' ' | ASCII.LF | ASCII.CR | ASCII.HT);
-   begin
-      for Number in Item.Prefs.AI_Notes'Range loop
-         while Start <= Words'Last and then Blank (Start) loop
-            Start := Start + 1;
-         end loop;
-         if Start > Words'Last then
-            Widgets.Set_Visible (Item.Prefs.AI_Notes (Number), False);
-         else
-            declare
-               Last_Line : constant Boolean := Number = Item.Prefs.AI_Notes'Last;
-               Fits      : constant Boolean := Words'Last - Start + 1 <= Capacity;
-               Room      : constant Positive := (if Last_Line and then not Fits then Capacity - Ellipsis'Length
-                                                 else Capacity);
-               Stop      : Natural := Natural'Min (Words'Last, Start + Room - 1);
-            begin
-               if Stop < Words'Last and then not Blank (Stop + 1) then
-                  --  Break at the last space; or, in a word too long for
-                  --  the line, between characters.
-                  declare
-                     Space : Natural := 0;
-                  begin
-                     for Place in reverse Start + 1 .. Stop loop
-                        if Blank (Place) then
-                           Space := Place;
-                           exit;
-                        end if;
-                     end loop;
-                     if Space /= 0 then
-                        Stop := Space - 1;
-                     else
-                        while Stop > Start and then Character'Pos (Words (Stop + 1)) in 16#80# .. 16#BF# loop
-                           Stop := Stop - 1;
-                        end loop;
-                     end if;
-                  end;
-               end if;
-               declare
-                  Line : constant String :=
-                    [for Place in Start .. Stop => (if Blank (Place) then ' ' else Words (Place))];
-               begin
-                  Labels.Set_Text
-                    (Item.Prefs.AI_Notes (Number),
-                     (if Last_Line and then Stop < Words'Last then Line & Ellipsis else Line));
-               end;
-               Labels.Set_Ink (Item.Prefs.AI_Notes (Number), Ink);
-               Widgets.Set_Visible (Item.Prefs.AI_Notes (Number), True);
-               Start := Stop + 1;
-            end;
-         end if;
-      end loop;
-   end Say;
-
-   procedure Fill_AI_Menu (Item : in out Session);
-   --  Make the rows of the menu: None Selected, and each model found.
-
-   procedure Fill_AI_Menu (Item : in out Session) is
-      Chosen : constant String := AI_Model (Item);
-      Found  : MLX.Hub.Models renames Item.Prefs.AI_Found;
-   begin
-      Menus.Clear (Item.Prefs.AI_Menu);
-      Menus.Add (Item.Prefs.AI_Menu, Menus.Check, Style.None_Selected, Checked => Chosen = "");
-      for Which in 1 .. MLX.Hub.Count (Found) loop
-         Menus.Add
-           (Item.Prefs.AI_Menu, Menus.Check, Shown (MLX.Hub.Model_At (Found, Which)),
-            Checked => MLX.Hub.Model_At (Found, Which) = Chosen);
-      end loop;
-      if MLX.Hub.Left_Out (Found) then
-         Menus.Add (Item.Prefs.AI_Menu, Menus.Note, "More models are not shown");
-      end if;
-   end Fill_AI_Menu;
-
-   procedure Place_AI_Menu (Item : in out Session);
-   --  Put the menu under the Model field, its width, as the form is
-   --  scrolled.
-
-   procedure Place_AI_Menu (Item : in out Session) is
-      Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
-      Left   : constant Float :=
-        (Widgets.Left_Of (Item.Prefs.AI_Select) - Widgets.Left_Of (Item.Prefs.Settings_Panel)) / Pixels;
-      Top    : constant Float :=
-        (Widgets.Top_Of (Item.Prefs.AI_Select) + Widgets.Height_Of (Item.Prefs.AI_Select)
-         - Widgets.Top_Of (Item.Prefs.Settings_Panel)) / Pixels + Style.Menu_Gap;
-   begin
-      if Left /= Item.Prefs.AI_Menu_Left or else Top /= Item.Prefs.AI_Menu_Top then
-         Item.Prefs.AI_Menu_Left := Left;
-         Item.Prefs.AI_Menu_Top := Top;
-         Layouts.Set_Layout
-           (Item.Prefs.AI_Menu,
-            Position => (Left => Float'Rounding (Left * Pixels), Top => Float'Rounding (Top * Pixels),
-                         others => <>),
-            Unit => Layouts.Device_Pixels);
-         Layouts.Set_Layout (Item.Prefs.AI_Menu, Width => Widgets.Width_Of (Item.Prefs.AI_Select) / Pixels);
-         Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
-      end if;
-   end Place_AI_Menu;
-
-   procedure Refresh_AI (Item : in out Session);
-   --  Show the AI settings as they are.
-
-   procedure Refresh_AI (Item : in out Session) is
-      On       : constant Boolean := Item.Prefs.AI_On;
-      Name     : constant String := AI_Model (Item);
-      Any      : constant Boolean := MLX.Hub.Count (Item.Prefs.AI_Found) > 0;
-      Chosen   : constant Boolean := Any and then Name /= "";
-      Problem  : constant String := AI_Problem (Item);
-      Running  : constant Boolean := MLX.Jobs.State (Item.Prefs.AI_Job) = MLX.Jobs.Running;
-      --  What the test says is of this model only, and not of one that
-      --  was chosen since.
-      Tested   : constant Boolean :=
-        Chosen and then Problem = ""
-        and then Ada.Strings.Unbounded.To_String (Item.Prefs.AI_Tested) = Name;
-      Done     : constant Boolean := Tested and then MLX.Jobs.State (Item.Prefs.AI_Job) = MLX.Jobs.Done;
-      Failed   : constant Boolean := Tested and then MLX.Jobs.State (Item.Prefs.AI_Job) = MLX.Jobs.Failed;
-   begin
-      Switches.Set_On (Item.Prefs.AI_Enable, On);
-      Widgets.Set_Visible (Item.Prefs.AI_Model_Name, On);
-      Widgets.Set_Visible (Item.Prefs.AI_Hub_Note, On and then not Any);
-      Widgets.Set_Visible (Item.Prefs.AI_Select, On and then Any);
-      Widgets.Set_Visible (Item.Prefs.AI_Test_Row, On and then Chosen);
-      if not (On and then Any) and then Item.Prefs.AI_Menu_Open then
-         Close_AI_Menu (Item);
-      end if;
-      Selects.Set_Value (Item.Prefs.AI_Select, (if Name = "" then Style.None_Selected else Shown (Name)));
-      Selects.Set_Open (Item.Prefs.AI_Select, Item.Prefs.AI_Menu_Open);
-      Buttons.Set_Enabled (Item.Prefs.AI_Test_Button, Problem = "" and then not Running);
-      Labels.Set_Text
-        (Item.Prefs.AI_Test_State,
-         (if Running then "Running the test, this can take a while"
-          elsif Done then "The test passed"
-          elsif Failed then "The test failed"
-          else ""));
-      Labels.Set_Ink
-        (Item.Prefs.AI_Test_State, (if Failed then Themes.Danger_Ink else Style.Quiet_Ink));
-      if On and then Chosen and then Problem /= "" then
-         Say (Item, Problem, Themes.Danger_Ink);
-      elsif On and then Done then
-         Say (Item, MLX.Jobs.Text (Item.Prefs.AI_Job), Themes.Foreground);
-      elsif On and then Failed then
-         Say (Item, MLX.Jobs.Text (Item.Prefs.AI_Job), Themes.Danger_Ink);
-      else
-         Say (Item, "", Themes.Foreground);
-      end if;
-      Item.Prefs.AI_Test_Seen := MLX.Jobs.State (Item.Prefs.AI_Job);
-   end Refresh_AI;
-
-   procedure Scan_AI (Item : in out Session);
-   --  Look in the Hugging Face cache again, and find out about the model
-   --  chosen.
-
-   procedure Scan_AI (Item : in out Session) is
-   begin
-      MLX.Hub.Scan (Item.Prefs.AI_Found);
-      Judge (Item);
-      Fill_AI_Menu (Item);
-   end Scan_AI;
+    and then Speech.Models.State = Speech.Models.Running);
 
    function Percent return String;
    --  How much of the model has come, as "42%".
@@ -437,7 +205,6 @@ package body Viewer.Settings_View is
          Progress_Bars.Set_Value (Item.Prefs.Download_Bar, Speech.Models.Fraction);
       end if;
       Item.Prefs.Download_Seen := Speech.Models.State;
-      Refresh_AI (Item);
    end Refresh;
 
    procedure Open (Item : in out Session) is
@@ -446,7 +213,6 @@ package body Viewer.Settings_View is
       Widgets.Clear_Focus (Item.Root.Widgets);
       Widgets.Set_Visible (Item.Home_View.Home_Panel, False);
       Widgets.Set_Visible (Item.Prefs.Settings_Panel, True);
-      Scan_AI (Item);
       Refresh (Item);
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
       Reveal_Background (Item);
@@ -455,7 +221,6 @@ package body Viewer.Settings_View is
    procedure Close (Item : in out Session) is
    begin
       Item.Prefs.Showing_Settings := False;
-      Close_AI_Menu (Item);
       Widgets.Clear_Focus (Item.Root.Widgets);
       Widgets.Set_Visible (Item.Prefs.Settings_Panel, False);
       Widgets.Set_Visible (Item.Home_View.Home_Panel, True);
@@ -607,13 +372,9 @@ package body Viewer.Settings_View is
    procedure Update (Item : in out Session) is
       Now : constant Speech.Models.States := Speech.Models.State;
    begin
-      if Item.Prefs.AI_Menu_Open then
-         Place_AI_Menu (Item);
-      end if;
       if Now = Speech.Models.Running then
          Refresh (Item);
-      elsif Now /= Item.Prefs.Download_Seen or else MLX.Jobs.State (Item.Prefs.AI_Job) /= Item.Prefs.AI_Test_Seen
-      then
+      elsif Now /= Item.Prefs.Download_Seen then
          --  It has ended: the button and the bar change.
          Refresh (Item);
          Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
@@ -630,126 +391,8 @@ package body Viewer.Settings_View is
    begin
       if Wide /= Item.Prefs.Form_Wide then
          Item.Prefs.Form_Wide := Wide;
-         Close_AI_Menu (Item);
          Pomarine.Widgets.Layouts.Set_Layout (Item.Prefs.Settings_Form, Width => Wide);
       end if;
    end Fit;
-
-   procedure Save_AI (Item : in out Session) is
-   begin
-      if Item.Prefs.Persist then
-         begin
-            Preferences.Save_AI_Enabled (Config (Item), Item.Prefs.AI_On);
-            Preferences.Save_AI_Model (Config (Item), AI_Model (Item));
-         exception
-            when others =>
-               null;  --  the choice holds for now; it is not worth a crash
-         end;
-      end if;
-   end Save_AI;
-
-   procedure Close_AI_Menu (Item : in out Session) is
-   begin
-      if Item.Prefs.AI_Menu_Open then
-         Item.Prefs.AI_Menu_Open := False;
-         Widgets.Set_Visible (Item.Prefs.AI_Menu, False);
-         Selects.Set_Open (Item.Prefs.AI_Select, False);
-      end if;
-   end Close_AI_Menu;
-
-   procedure Enable_AI (Item : in out Session; To : Boolean) is
-   begin
-      Item.Prefs.AI_On := To;
-      Save_AI (Item);
-      if To then
-         Scan_AI (Item);
-      else
-         Close_AI_Menu (Item);
-         MLX.Unload;  --  it is a few gigabytes of memory
-      end if;
-      Refresh (Item);
-      Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
-   end Enable_AI;
-
-   procedure Toggle_AI_Menu (Item : in out Session) is
-   begin
-      if Item.Prefs.AI_Menu_Open then
-         Close_AI_Menu (Item);
-      elsif Item.Prefs.AI_On and then MLX.Hub.Count (Item.Prefs.AI_Found) > 0 then
-         --  What is in the cache may have changed since it was looked at.
-         Scan_AI (Item);
-         Item.Prefs.AI_Menu_Open := True;
-         Item.Prefs.AI_Menu_Left := -1.0E9;
-         Widgets.Set_Visible (Item.Prefs.AI_Menu, True);
-         Widgets.Raise_To_Front (Item.Prefs.AI_Menu);
-         Place_AI_Menu (Item);
-      end if;
-      Refresh (Item);
-      Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
-   end Toggle_AI_Menu;
-
-   procedure Choose_AI_Model (Item : in out Session; Row : Natural) is
-      Found : MLX.Hub.Models renames Item.Prefs.AI_Found;
-   begin
-      if Row = 1 or else Row in 2 .. MLX.Hub.Count (Found) + 1 then
-         Item.Prefs.AI_Model :=
-           Ada.Strings.Unbounded.To_Unbounded_String
-             (if Row = 1 then "" else MLX.Hub.Model_At (Found, Row - 1));
-         Save_AI (Item);
-         Judge (Item);
-         MLX.Unload;  --  the next test loads the model chosen
-         Close_AI_Menu (Item);
-         Fill_AI_Menu (Item);
-         Refresh (Item);
-         Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
-      end if;
-   end Choose_AI_Model;
-
-   procedure Locate_AI_Model
-     (Item    : Session;
-      Folder  : out Ada.Strings.Unbounded.Unbounded_String;
-      Problem : out Ada.Strings.Unbounded.Unbounded_String)
-   is
-      Name  : constant String := AI_Model (Item);
-      Found : constant String := (if Name = "" then "" else MLX.Hub.Snapshot (Name));
-      Why   : constant String :=
-        (if Name = "" then "Choose an AI model in Settings"
-         elsif Found = "" then "The AI model is not in the cache"
-         elsif Found'Length > MLX.Max_Path then "The model's folder is too deep"
-         else MLX.Problem (Found));
-   begin
-      Folder := Ada.Strings.Unbounded.To_Unbounded_String (if Why = "" then Found else "");
-      Problem := Ada.Strings.Unbounded.To_Unbounded_String (Why);
-   end Locate_AI_Model;
-
-   procedure Test_AI (Item : in out Session) is
-      Name   : constant String := AI_Model (Item);
-      Folder : constant String := (if Name = "" then "" else MLX.Hub.Snapshot (Name));
-   begin
-      Judge (Item);
-      if Item.Prefs.AI_On and then Name /= "" and then AI_Problem (Item) = ""
-        and then MLX.Jobs.State (Item.Prefs.AI_Job) /= MLX.Jobs.Running and then Folder /= ""
-      then
-         Item.Prefs.AI_Tested := Item.Prefs.AI_Model;
-         MLX.Jobs.Start
-           (Item.Prefs.AI_Job, Folder, Test_Prompt,
-            Tuning => (Max_Tokens => Test_Tokens, Thinking => MLX.Off, others => <>));
-      end if;
-      Refresh (Item);
-      Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
-   end Test_AI;
-
-   procedure Pressed (Item : in out Session; X, Y : Float) is
-      Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
-   begin
-      --  The field's own click puts the menu away, if it is pressed.
-      if Item.Prefs.AI_Menu_Open
-        and then not Widgets.Contains (Item.Prefs.AI_Menu, X * Pixels, Y * Pixels)
-        and then not Widgets.Contains (Item.Prefs.AI_Select, X * Pixels, Y * Pixels)
-      then
-         Close_AI_Menu (Item);
-         Refresh (Item);
-      end if;
-   end Pressed;
 
 end Viewer.Settings_View;

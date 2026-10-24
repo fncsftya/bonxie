@@ -101,8 +101,8 @@ package body Viewer.Build.Outline_View is
       Widgets.Add (View.Form, View.Name_Label, View.Name_Field, View.Desc_Label);
       Widgets.Add (View.Form, View.Desc_Sheet);
       Widgets.Add (View.Desc_Sheet, View.Desc_Text);
-      Widgets.Add (View.Sections, View.Head, View.Generate_Error, View.Scroll);
-      Widgets.Add (View.Head, View.Heading, View.Add_Button, View.Generate_Button);
+      Widgets.Add (View.Sections, View.Head, View.Scroll);
+      Widgets.Add (View.Head, View.Heading, View.Add_Button);
       Widgets.Add (View.Scroll, View.Content);
 
       if not Item.Shell.Windowed then
@@ -149,17 +149,6 @@ package body Viewer.Build.Outline_View is
       Buttons.Set_Captioned (View.Add_Button, True);
       Buttons.Set_Focusable (View.Add_Button, True);
       Set_Layout (View.Add_Button, Width => Add_Section_Width, Height => Bar_Button_Height, Shrink => 0.0);
-      Buttons.Set_Label (View.Generate_Button, Outlines.Generate_Label (View.With_Notes));
-      Buttons.Set_Dropdown (View.Generate_Button, True);
-      Buttons.Set_Split (View.Generate_Button, True);
-      Buttons.Set_Icon (View.Generate_Button, Icon_Set.Sparkles);
-      Buttons.Set_Captioned (View.Generate_Button, True);
-      Buttons.Set_Focusable (View.Generate_Button, True);
-      Buttons.Set_Kind (View.Generate_Button, Buttons.AI);
-      Set_Layout (View.Generate_Button, Width => Generate_Width, Height => Bar_Button_Height, Shrink => 0.0);
-      Labels.Set_Ink (View.Generate_Error, Themes.Danger_Ink);
-      Set_Layout (View.Generate_Error, Height => Heading_Height, Shrink => 0.0);
-      Widgets.Set_Visible (View.Generate_Error, False);
       Set_Layout (View.Scroll, Grow => 1.0, Height => 0.0);
       Set_Layout
         (View.Content, Flow => Column, Shrink => 0.0,

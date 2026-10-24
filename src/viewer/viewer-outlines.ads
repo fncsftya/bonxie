@@ -73,55 +73,12 @@ private package Viewer.Outlines is
    procedure Listen (Item : in out Session);
    --  Have the view's buttons and blocks do what they are for.
 
-   function Generating (Item : Session) return Boolean;
-   --  Whether the model is being asked for the sections.
-
-   function Generate_Enabled (Item : Session) return Boolean;
-   --  Whether the Generate Sections button can be pressed.
-
-   function Generate_Label (With_Notes : Boolean) return String;
-   --  What the Generate button says, as it makes the sections with notes
-   --  or without.
-
-   procedure Show_Choice (Item : in out Session);
-   --  Label the Generate button as the choice kept says.
-
-   function Generate_Menu_Shown (Item : Session) return Boolean;
-   --  Whether the menu under the Generate button's caret is shown.
-
-   procedure Generate_Point (Item : in out Session; Caret : Boolean; X, Y : out Float);
-   --  A point of the window, in points, in the Generate button's caret, or
-   --  in the rest of it.
-
-   procedure Choose_Generate (Item : in out Session; Row : Positive)
-     with Pre => Screen (Item) = Project;
-   --  As a row of the menu does: Row 1 makes the sections, 2 makes them
-   --  with notes; the button is then labelled for it, and does the same
-   --  when clicked, as kept in the settings.
-
    procedure Pressed (Item : in out Session; X, Y : Float);
-   --  A press of the mouse button at X, Y points: put the menu away if it
-   --  is not on it or on the Generate button.
-
-   procedure Close_Menu (Item : in out Session);
-
-   procedure Generate_Sections (Item : in out Session; With_Notes : Boolean)
-     with Pre => Screen (Item) = Project;
-   --  As the Generate button does: ask the model for the whole
-   --  outline of the project, from its title, description and sections,
-   --  and, once it replies, put them in order. A reply that cannot be
-   --  read is asked for again, up to Outline_Generation.Max_Tries times in
-   --  all; then an error is shown. Nothing is done if AI is off. With_Notes
-   --  asks for a few bulleted notes to each section too.
+   --  A press of the mouse button at X, Y points: put the colour popout
+   --  away if it is not on it.
 
    procedure Update (Item : in out Session);
-   --  See how the asking is going, and act on it: for the loop, now and
-   --  then, whatever view of the project is shown.
-
-   function Take_Reply (Item : in out Session; Reply : String) return Boolean
-     with Pre => Screen (Item) = Project;
-   --  Use a reply of the model as the outline: False, with nothing changed,
-   --  if it is not valid.
+   --  For the loop, now and then, whatever view of the project is shown.
 
    procedure Add_Section (Item : in out Session)
      with Pre => Screen (Item) = Project;

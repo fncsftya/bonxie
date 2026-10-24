@@ -15,14 +15,12 @@ pomarine_ui = "*"
 coretext = "*"
 ebook = "*"
 harper = "*"
-mlx = "*"
 sdl3 = "*"
 speech = "*"
 texts = "*"
 typeset = "*"
 vision = "*"
 webshot = "*"
-websearch = "*"
 yoga = "*"
 json = "*"
 
@@ -32,14 +30,12 @@ pomarine_ui = { path = "pomarine/ui" }
 coretext = { path = "pomarine/coretext" }
 ebook = { path = "ebook" }
 harper = { path = "harper" }
-mlx = { path = "mlx" }
 sdl3 = { path = "pomarine/sdl3" }
 speech = { path = "speech" }
 texts = { path = "pomarine/texts" }
 typeset = { path = "pomarine/typeset" }
 vision = { path = "vision" }
 webshot = { path = "webshot" }
-websearch = { path = "websearch" }
 yoga = { path = "pomarine/yoga" }
 json = { path = "vendor/json-ada/json" }
 

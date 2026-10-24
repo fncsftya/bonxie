@@ -12,7 +12,6 @@ with Pomarine.Line_Texts;
 with Pomarine.Widgets;
 with Pomarine.Widgets.Layouts;
 with Viewer.Canvas_Items;
-with Viewer.Find_Sources;
 with Viewer.Links;
 with Viewer.Section_Links;
 with Viewer.Writing;
@@ -233,17 +232,6 @@ package body Viewer.Build is
          Item.Prefs.Background_Chosen :=
            Preferences.Load_Background
              (Ada.Strings.Unbounded.To_String (Item.Prefs.Config_Dir));
-         Item.Prefs.AI_On :=
-           Preferences.Load_AI_Enabled
-             (Ada.Strings.Unbounded.To_String (Item.Prefs.Config_Dir));
-         Item.Prefs.AI_Model :=
-           Ada.Strings.Unbounded.To_Unbounded_String
-             (Preferences.Load_AI_Model
-                (Ada.Strings.Unbounded.To_String (Item.Prefs.Config_Dir)));
-         Item.Outline_View.With_Notes :=
-           Preferences.Load_Generate_Notes
-             (Ada.Strings.Unbounded.To_String (Item.Prefs.Config_Dir));
-         Outlines.Show_Choice (Item);
          --  The system may have let go of the compiled model: have it
          --  ready, in the background, before it is wanted.
          if Preferences."=" (Item.Prefs.Speech_Choice, Preferences.Parakeet) then
@@ -298,7 +286,6 @@ package body Viewer.Build is
       Write_View.Build_Write (Item);
       Shell_Views.Build_Publish (Item);
       Outline_View.Build_Outline (Item);
-      Find_Sources.Build (Item);
       Shell_Views.Build_Tray (Item);
       Search.Build (Item);
       Settings_Form.Build_Settings (Item);

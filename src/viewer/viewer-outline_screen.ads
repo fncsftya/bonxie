@@ -66,38 +66,11 @@ package Viewer.Outline_Screen is
      with Pre => Is_Open (Item) and then Row <= Link_Menu_Rows (Item);
    --  As clicking the row does.
 
-   function Generate_Enabled (Item : Session) return Boolean
-     with Pre => Is_Open (Item) and then Screen (Item) = Project;
-   --  Whether the Generate Sections button can be pressed: AI is on, and
-   --  the model is not being asked.
-
    procedure Write_Notes_Point (Item : in out Session; Row : Positive; X, Y : out Float)
      with Pre => Is_Open (Item) and then Screen (Item) = Project
                  and then Row <= Section_Count (Item);
    --  A point of the window, in points, on the Notes button of the Rowth
    --  section's heading in the writing view.
-
-   function Generate_Label (Item : Session) return String
-     with Pre => Is_Open (Item) and then Screen (Item) = Project;
-   --  What the Generate button says.
-
-   function Generate_Menu_Shown (Item : Session) return Boolean
-     with Pre => Is_Open (Item) and then Screen (Item) = Project;
-   --  Whether the menu under its caret is shown.
-
-   procedure Generate_Point (Item : in out Session; Caret : Boolean; X, Y : out Float)
-     with Pre => Is_Open (Item) and then Screen (Item) = Project;
-   --  A point of the window, in points, on the caret of the button, or on
-   --  the rest of it.
-
-   procedure Choose_Generate (Item : in out Session; Row : Positive)
-     with Pre => Is_Open (Item) and then Screen (Item) = Project;
-   --  As a row of the menu does.
-
-   function Take_Reply (Item : in out Session; Reply : String) return Boolean
-     with Pre => Is_Open (Item) and then Screen (Item) = Project;
-   --  As the model's reply to Generate Sections is used; False, and the
-   --  outline as it was, if it is not valid.
 
    procedure Add_Section (Item : in out Session)
      with Pre => Is_Open (Item) and then Screen (Item) = Project;

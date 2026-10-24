@@ -9,11 +9,8 @@ package Outline_Tests is
    procedure Many_Sections;
    --  More sections than a project once had room for: all made, shown and kept.
    procedure Form;
-   procedure Generating;
-   --  Generate Sections: the button, and what is done with replies.
-   procedure Replies;
    procedure Notes;
-   --  A section's notes: shown and hidden, typed, kept, and made by a reply.
+   --  A section's notes: shown and hidden, typed, kept.
    procedure Write_Notes;
    --  A section's notes in the writing view: shown by its button, typed in.
    procedure Naming;

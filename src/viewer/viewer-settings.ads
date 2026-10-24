@@ -64,19 +64,6 @@ package Viewer.Settings is
    --  Whether the windows are drawn over a painted background in colours that go with it now: as
    --  the watercolour is chosen, and there is a painting (not offscreen).
 
-   procedure Choose_AI_Enabled (Item : in out Session; To : Boolean)
-     with Pre  => Is_Open (Item) and then Is_Settings_Open (Item),
-          Post => AI_Enabled (Item) = To;
-   --  Switch the language model on or off, as its switch does.
-
-   function AI_Enabled (Item : Session) return Boolean
-     with Pre => Is_Open (Item);
-   --  Whether the local language model is switched on.
-
-   function AI_Model (Item : Session) return String
-     with Pre => Is_Open (Item);
-   --  The language model chosen, "provider/name"; "" if none.
-
    function Is_Dark (Item : Session) return Boolean
      with Pre => Is_Open (Item);
    --  Whether the windows are drawn in the dark theme now: as the choice

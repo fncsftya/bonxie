@@ -5,7 +5,6 @@ with Pomarine.Widgets.Grips;
 with Pomarine.Widgets.Labels;
 with Pomarine.Widgets.Text_Fields;
 with Viewer.Canvas_Items;
-with Viewer.Find_Sources;
 with Viewer.Gestures;
 with Viewer.Outlines;
 with Viewer.Section_Links;
@@ -125,7 +124,6 @@ package body Viewer.Navigation is
          Finish_Rename (Item);
       end if;
       Section_Links.Close (Item);
-      Find_Sources.Leave (Item);
       Outlines.Leave (Item);
       Writing.Leave (Item);
       Canvas_Items.Leave (Item);
