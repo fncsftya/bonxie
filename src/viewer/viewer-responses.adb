@@ -207,6 +207,19 @@ package body Viewer.Responses is
       end if;
    end Choose_System;
 
+   procedure Toggle_VSync
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
+
+   procedure Toggle_VSync
+     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source, Event);
+   begin
+      if Settings_Open (Item) then
+         Settings_View.Choose_VSync (Item, not Item.Prefs.VSync_Chosen);
+      end if;
+   end Toggle_VSync;
+
    --  A card of backgrounds is clicked, in its picture or its name: the one the widget is tagged with.
    procedure Choose_Card
      (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
@@ -479,6 +492,7 @@ package body Viewer.Responses is
       end loop;
       Hear (Prefs.Model_Native, Change, Choose_MacOS'Access);
       Hear (Prefs.Model_Parakeet, Change, Choose_Parakeet'Access);
+      Hear (Prefs.VSync_Switch, Change, Toggle_VSync'Access);
       Hear (Prefs.Download_Button, Click, Download_Model'Access);
       Hear (Prefs.Delete_Button, Click, Delete_Model'Access);
 

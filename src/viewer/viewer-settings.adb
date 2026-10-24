@@ -42,6 +42,11 @@ package body Viewer.Settings is
       Settings_View.Reseed (Item);
    end Reseed_Background;
 
+   function VSync_Choice (Item : Session) return Boolean is (Item.Prefs.VSync_Chosen);
+
+   procedure Choose_VSync (Item : in out Session; To : Boolean)
+     renames Settings_View.Choose_VSync;
+
    function Is_Adaptive (Item : Session) return Boolean is (Item.Prefs.Adaptive_Shown);
 
    function Is_Dark (Item : Session) return Boolean is (Item.Prefs.Dark_Shown);

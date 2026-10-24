@@ -10,6 +10,7 @@ with Pomarine.Widgets.Labels;
 with Pomarine.Widgets.Panels;
 with Pomarine.Widgets.Progress_Bars;
 with Pomarine.Widgets.Scrollers;
+with Pomarine.Widgets.Switches;
 
 --  The settings.
 package Viewer_Parts.Settings is
@@ -69,7 +70,11 @@ package Viewer_Parts.Settings is
       --  file, shown while it is not there, or else the button to delete
       --  it; what is the matter with it, or how big it is, or, while it
       --  comes, how far.
+      Graphics_Heading : Pomarine.Widgets.Labels.Label;
+      VSync_Switch   : Pomarine.Widgets.Switches.Switch;
+      --  Graphics' one option, VSync.
       Showing_Settings : Boolean := False;
+      VSync_Chosen   : Boolean := False;
       Speech_Choice  : Preferences.Speech_Models := Preferences.MacOS;
       Theme_Chosen   : Preferences.Theme_Choices := Preferences.System;
       Dark_Shown     : Boolean := False;

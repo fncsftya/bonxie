@@ -24,6 +24,11 @@ private package Viewer.Settings_View is
    --  Choose the appearance of the windows, and keep the choice. The
    --  windows are drawn in it now (see Apply_Theme).
 
+   procedure Choose_VSync (Item : in out Session; To : Boolean)
+     with Post => Item.Prefs.VSync_Chosen = To;
+   --  Choose whether presenting waits for the display, and keep the choice. It applies now,
+   --  in a window.
+
    procedure Choose_Background
      (Item : in out Session; To : Preferences.Background_Modes)
      with Post => Preferences."=" (Item.Prefs.Background_Chosen, To);

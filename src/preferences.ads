@@ -50,6 +50,13 @@ package Preferences is
    procedure Save_Background (Config : String; To : Background_Modes);
    --  Keep the choice, making Config if need be.
 
+   function Load_VSync (Config : String) return Boolean;
+   --  Whether presenting waits for the display's refresh: False if it was not
+   --  said, or it cannot be read.
+
+   procedure Save_VSync (Config : String; To : Boolean);
+   --  Keep the choice, making Config if need be.
+
    Seed_Limit : constant := 2 ** 24;
 
    function Has_Seed (Config : String) return Boolean;

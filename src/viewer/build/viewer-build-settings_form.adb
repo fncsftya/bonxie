@@ -2,6 +2,7 @@ with Pomarine.Boxes;
 with Pomarine.Widgets.Checks;
 with Pomarine.Widgets.Grips;
 with Pomarine.Widgets.Scrollers;
+with Pomarine.Widgets.Switches;
 with Preferences;
 with SDL3.Cursors;
 with Icon_Set;
@@ -19,6 +20,7 @@ package body Viewer.Build.Settings_Form is
    package Labels renames Pomarine.Widgets.Labels;
    package Checks renames Pomarine.Widgets.Checks;
    package Grips renames Pomarine.Widgets.Grips;
+   package Switches renames Pomarine.Widgets.Switches;
    package Scrollers renames Pomarine.Widgets.Scrollers;
    package Themes renames Pomarine.Themes;
 
@@ -97,6 +99,7 @@ package body Viewer.Build.Settings_Form is
          Prefs.Model_Parakeet, Prefs.Download_Row);
       Widgets.Add (Prefs.Download_Row, Prefs.Download_Button, Prefs.Delete_Button, Prefs.Download_State);
       Widgets.Add (Prefs.Settings_Form, Prefs.Download_Bar);
+      Widgets.Add (Prefs.Settings_Form, Prefs.Graphics_Heading, Prefs.VSync_Switch);
 
       Set_Layout (Prefs.Settings_Panel, Flow => Column, Grow => 1.0);
       if not Item.Shell.Windowed then
@@ -203,6 +206,15 @@ package body Viewer.Build.Settings_Form is
       Set_Layout (Prefs.Download_State, Grow => 1.0, Width => 0.0, Height => Download_Height);
       Line (Prefs.Download_Bar, Progress_Height);
       Widgets.Set_Visible (Prefs.Download_Bar, False);
+
+      --  Graphics: its one option, VSync.
+      Labels.Set_Text (Prefs.Graphics_Heading, "GRAPHICS");
+      Labels.Set_Style (Prefs.Graphics_Heading, Pomarine.Line_Texts.Caption);
+      Line (Prefs.Graphics_Heading, Heading_Height);
+      Set_Layout (Prefs.Graphics_Heading, Margin => (Top => Heading_Top, others => <>));
+      Switches.Set_Label (Prefs.VSync_Switch, "VSync");
+      Switches.Set_Focusable (Prefs.VSync_Switch, True);
+      Line (Prefs.VSync_Switch, Settings_Line);
       Widgets.Set_Visible (Prefs.Settings_Panel, False);
    end Build_Settings;
 

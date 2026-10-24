@@ -229,6 +229,9 @@ package body Viewer.Build is
          Item.Prefs.Theme_Chosen :=
            Preferences.Load_Theme
              (Ada.Strings.Unbounded.To_String (Item.Prefs.Config_Dir));
+         Item.Prefs.VSync_Chosen :=
+           Preferences.Load_VSync
+             (Ada.Strings.Unbounded.To_String (Item.Prefs.Config_Dir));
          Item.Prefs.Background_Chosen :=
            Preferences.Load_Background
              (Ada.Strings.Unbounded.To_String (Item.Prefs.Config_Dir));

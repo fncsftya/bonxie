@@ -159,6 +159,14 @@ package body Preferences is
          Ada.Characters.Handling.To_Lower (Background_Modes'Image (To)));
    end Save_Background;
 
+   function Load_VSync (Config : String) return Boolean is
+     (Ada.Characters.Handling.To_Lower (Setting (Config, "vsync")) = "true");
+
+   procedure Save_VSync (Config : String; To : Boolean) is
+   begin
+      Put_Setting (Config, "vsync", (if To then "true" else "false"));
+   end Save_VSync;
+
    function Digits_Of (Config : String) return String is
       Text : constant String := Setting (Config, "watercolour_seed");
    begin

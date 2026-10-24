@@ -8,6 +8,7 @@ with Pomarine.Widgets.Checks;
 with Pomarine.Widgets.Labels;
 with Pomarine.Widgets.Panels;
 with Pomarine.Widgets.Scrollers;
+with Pomarine.Widgets.Switches;
 with Pomarine.Widgets.Progress_Bars;
 with Pomarine.Events;
 with Speech.Models;
@@ -24,6 +25,7 @@ package body Viewer.Settings_View is
    package Progress_Bars renames Pomarine.Widgets.Progress_Bars;
    package Themes renames Pomarine.Themes;
    package Panels renames Pomarine.Widgets.Panels;
+   package Switches renames Pomarine.Widgets.Switches;
    package Scrollers renames Pomarine.Widgets.Scrollers;
 
    use type Speech.Models.States;
@@ -195,6 +197,7 @@ package body Viewer.Settings_View is
         (Item.Prefs.Theme_System,
          Item.Prefs.Theme_Chosen = Preferences.System);
       Show_Backgrounds (Item);
+      Switches.Set_On (Item.Prefs.VSync_Switch, Item.Prefs.VSync_Chosen);
       Widgets.Set_Visible (Item.Prefs.Download_Row, Parakeet);
       Widgets.Set_Visible (Item.Prefs.Download_Bar, Parakeet and then Running);
       Widgets.Set_Visible (Item.Prefs.Download_Button, not Present);
@@ -262,6 +265,25 @@ package body Viewer.Settings_View is
          Refresh (Item);
       end if;
    end Choose_Appearance;
+
+   procedure Choose_VSync (Item : in out Session; To : Boolean) is
+   begin
+      Item.Prefs.VSync_Chosen := To;
+      if Item.Prefs.Persist then
+         begin
+            Preferences.Save_VSync (Config (Item), To);
+         exception
+            when others =>
+               null;  --  the choice holds for now; it is not worth a crash
+         end;
+      end if;
+      if Item.Shell.Windowed then
+         SDL3.Windows.Renderers.Set_VSync (Item.Host.Target, To);
+      end if;
+      if Item.Prefs.Showing_Settings then
+         Refresh (Item);
+      end if;
+   end Choose_VSync;
 
    procedure Choose_Background
      (Item : in out Session; To : Preferences.Background_Modes) is

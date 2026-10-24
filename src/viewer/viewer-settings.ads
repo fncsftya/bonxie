@@ -59,6 +59,15 @@ package Viewer.Settings is
                   and then Preferences."=" (Background_Choice (Item), Mode);
    --  Paint another picture, and choose the style of Mode, as the button on its card does.
 
+   function VSync_Choice (Item : Session) return Boolean
+     with Pre => Is_Open (Item);
+   --  Whether presenting waits for the display's refresh.
+
+   procedure Choose_VSync (Item : in out Session; To : Boolean)
+     with Pre  => Is_Open (Item),
+          Post => VSync_Choice (Item) = To;
+   --  Choose it, as its box does.
+
    function Is_Adaptive (Item : Session) return Boolean
      with Pre => Is_Open (Item);
    --  Whether the windows are drawn over a painted background in colours that go with it now: as

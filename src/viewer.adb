@@ -521,6 +521,9 @@ package body Viewer is
                   and then Ada.Environment_Variables.Value
                              ("BONXIE_VSYNC") = "1");
       Restore_Geometry (Item);
+      if Item.Prefs.VSync_Chosen then
+         SDL3.Windows.Renderers.Set_VSync (Item.Host.Target, True);
+      end if;
 
       --  The redraw watch also draws: the OS blocks the event loop
       --  during a live resize, and only repainting from inside the event

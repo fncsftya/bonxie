@@ -914,6 +914,17 @@ procedure Golden is
          Boolean'Image (Preferences.Load_Background (Config) = Preferences.Watercolour
                         and then Preferences.Load_Theme (Config) = Preferences.System));
 
+      --  VSync is off when none was chosen, and is kept beside the others.
+      Goldens.Check_Text ("preferences-vsync-none", "FALSE", Boolean'Image (Preferences.Load_VSync (Config)));
+      Preferences.Save_VSync (Config, True);
+      Goldens.Check_Text
+        ("preferences-vsync-on-kept", "TRUE",
+         Boolean'Image (Preferences.Load_VSync (Config) and then Preferences.Load_Theme (Config) = Preferences.System
+                        and then Preferences.Load_Background (Config) = Preferences.Watercolour));
+      Preferences.Save_VSync (Config, False);
+      Goldens.Check_Text
+        ("preferences-vsync-off-kept", "FALSE", Boolean'Image (Preferences.Load_VSync (Config)));
+
       --  Which watercolour is kept too, whole: it is the same picture on every run. A word that is not a
       --  number is no seed.
       Goldens.Check_Text ("preferences-seed-none", "FALSE", Boolean'Image (Preferences.Has_Seed (Config)));
