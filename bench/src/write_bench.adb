@@ -7,16 +7,16 @@ with SDL3;
 with Pomarine.Events;
 with SDL3.Windows.Renderers.Images;
 with Typeset.Samples;
-with Viewer;
-with Viewer.Canvas_Windows;
-with Viewer.Home_Screen;
-with Viewer.Project_Screen;
+with View;
+with View.Canvas_Windows;
+with View.Home_Screen;
+with View.Project_Screen;
 
 procedure Write_Bench is
    package Events renames Pomarine.Events;
-   package Windows renames Viewer.Canvas_Windows;
-   package Home renames Viewer.Home_Screen;
-   package Proj renames Viewer.Project_Screen;
+   package Windows renames View.Canvas_Windows;
+   package Home renames View.Home_Screen;
+   package Proj renames View.Project_Screen;
    package Images renames SDL3.Windows.Renderers.Images;
 
    use Ada.Real_Time;
@@ -38,7 +38,7 @@ procedure Write_Bench is
      Ada.Command_Line.Argument_Count > 3
      and then Ada.Command_Line.Argument (4) = "gpu";
 
-   Session     : Viewer.Session;
+   Session     : View.Session;
    Drawn       : Images.Image;
 
    procedure Print_Ms (Label : String; D : Duration) is
@@ -53,9 +53,9 @@ procedure Write_Bench is
    procedure Draw is
    begin
       if Use_GPU then
-         Viewer.Paint_Frame (Session);
+         View.Paint_Frame (Session);
       else
-         Viewer.Render (Session, Drawn);
+         View.Render (Session, Drawn);
       end if;
    end Draw;
 
@@ -68,7 +68,7 @@ procedure Write_Bench is
 
       --  1. Switch to Write mode (first time)
       T0 := Clock;
-      Proj.Set_Mode (Session, Viewer.Write);
+      Proj.Set_Mode (Session, View.Write);
       T1 := Clock;
       D_Switch_1 := To_Duration (T1 - T0);
       Print_Ms ("Set_Mode (Write) #1", D_Switch_1);
@@ -89,7 +89,7 @@ procedure Write_Bench is
 
       --  4. Switch back to Canvas mode
       T0 := Clock;
-      Proj.Set_Mode (Session, Viewer.Canvas);
+      Proj.Set_Mode (Session, View.Canvas);
       T1 := Clock;
       D_Switch_Back := To_Duration (T1 - T0);
       Print_Ms ("Set_Mode (Canvas)", D_Switch_Back);
@@ -102,7 +102,7 @@ procedure Write_Bench is
 
       --  5. Switch to Write mode (second time)
       T0 := Clock;
-      Proj.Set_Mode (Session, Viewer.Write);
+      Proj.Set_Mode (Session, View.Write);
       T1 := Clock;
       D_Switch_2 := To_Duration (T1 - T0);
       Print_Ms ("Set_Mode (Write) #2", D_Switch_2);
@@ -115,7 +115,7 @@ procedure Write_Bench is
       Print_Ms ("Paint in Write mode #2", D_Paint_2);
 
       --  Switch back to Canvas mode for next iteration
-      Proj.Set_Mode (Session, Viewer.Canvas);
+      Proj.Set_Mode (Session, View.Canvas);
       Draw;
    end Run_Once;
 
@@ -128,11 +128,11 @@ begin
 
    if Use_GPU then
       SDL3.Initialize;
-      Viewer.Open_Window
+      View.Open_Window
         (Session, "", Hidden => True, Store => Projects.Memory,
          VSync => False);
    else
-      Viewer.Open (Session, "", 720, 480, 2.0);
+      View.Open (Session, "", 720, 480, 2.0);
    end if;
 
    Home.New_Project (Session);
@@ -154,7 +154,7 @@ begin
                   loop
                      Last := Last - 1;
                   end loop;
-                  Viewer.Handle
+                  View.Handle
                     (Session,
                      Events.Text_Event (Text (Next .. Last)));
                   Next := Last + 1;

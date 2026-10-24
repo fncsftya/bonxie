@@ -1,13 +1,13 @@
 with Goldens;
 with Pomarine.Events;
 with Pomarine.Testing;
-with Viewer;
-with Viewer.Home_Screen;
-with Viewer_Driver;
+with View;
+with View.Home_Screen;
+with View_Driver;
 
 package body Home_Tests is
 
-   package Home renames Viewer.Home_Screen;
+   package Home renames View.Home_Screen;
    package Testing renames Pomarine.Testing;
 
    procedure Check (Name : String; Expected, Actual : String) renames Goldens.Check_Text;
@@ -17,15 +17,15 @@ package body Home_Tests is
    Dot : constant String := [Character'Val (16#C2#), Character'Val (16#B7#)];
 
    procedure By_Name is
-      Session : aliased Viewer.Session;
-      Ears    : aliased Viewer_Driver.Driver (Session'Access);
+      Session : aliased View.Session;
+      Ears    : aliased View_Driver.Driver (Session'Access);
       Window  : Testing.Session;
    begin
-      Viewer.Open (Session, "", 1000, 800);
+      View.Open (Session, "", 1000, 800);
       Home.Add_Project (Session, "Episode 1", 3600);
       Home.Add_Project (Session, "Episode 2", 7200);
       Home.Add_Project (Session, "Episode 3", 10800);
-      Testing.Attach (Window, Viewer.Widget_Tree (Session).all, Ears'Access);
+      Testing.Attach (Window, View.Widget_Tree (Session).all, Ears'Access);
 
       --  The latest first, each with what it holds.
       Check ("home-name-listed", "Episode 3 Episode 2 Episode 1",

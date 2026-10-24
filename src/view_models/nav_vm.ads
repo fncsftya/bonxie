@@ -12,7 +12,7 @@ with Settings_VM;
 --
 --  It does not hold the settings' or the dialog's state: it is given those view-models and answers from them (Layer),
 --  so what is open is said once. Showing a screen, a view or the list is the view's, in reaction to the versions here
---  (see Viewer.Navigation).
+--  (see View.Navigation).
 package Nav_VM is
 
    package Parts renames Pomarine.View_Models;

@@ -1,33 +1,33 @@
 with Goldens;
 with Pomarine.Events;
 with Pomarine.Testing;
-with Viewer;
-with Viewer.Project_Screen;
-with Viewer_Driver;
+with View;
+with View.Project_Screen;
+with View_Driver;
 
 package body Nav_Tests is
 
    package Testing renames Pomarine.Testing;
-   package Project renames Viewer.Project_Screen;
+   package Project renames View.Project_Screen;
 
-   use type Viewer.Screens;
+   use type View.Screens;
 
    procedure Check (Name : String; Expected, Actual : String) renames Goldens.Check_Text;
 
    function Image (Value : Boolean) return String is (Value'Image);
 
    procedure By_Name is
-      Session : aliased Viewer.Session;
-      Ears    : aliased Viewer_Driver.Driver (Session'Access);
+      Session : aliased View.Session;
+      Ears    : aliased View_Driver.Driver (Session'Access);
       Window  : Testing.Session;
    begin
-      Viewer.Open (Session, "", 1000, 800);
-      Testing.Attach (Window, Viewer.Widget_Tree (Session).all, Ears'Access);
+      View.Open (Session, "", 1000, 800);
+      Testing.Attach (Window, View.Widget_Tree (Session).all, Ears'Access);
 
       --  A new project opens at the outline, as one that has not been left anywhere does.
       Testing.Click_On (Window, "New project");
       Check ("nav-name-new", "PROJECT OUTLINE TRUE FALSE",
-             Viewer.Screen (Session)'Image & " " & Project.Mode (Session)'Image & " "
+             View.Screen (Session)'Image & " " & Project.Mode (Session)'Image & " "
              & Image (Testing.Shows (Window, "button 'Outline' selected")) & " "
              & Image (Testing.Shows (Window, "button 'Canvas' selected")));
 
@@ -52,10 +52,10 @@ package body Nav_Tests is
 
       --  The way back keeps the view, which the project opens to again.
       Testing.Click_On (Window, "Projects");
-      Check ("nav-name-home", "TRUE FALSE", Image (Viewer.Screen (Session) = Viewer.Home) & " "
+      Check ("nav-name-home", "TRUE FALSE", Image (View.Screen (Session) = View.Home) & " "
             & Image (Testing.Exists (Window, "Canvas")));
       Testing.Click_On (Window, "Open Untitled project");
-      Check ("nav-name-reopened", "PROJECT CANVAS", Viewer.Screen (Session)'Image & " " & Project.Mode (Session)'Image);
+      Check ("nav-name-reopened", "PROJECT CANVAS", View.Screen (Session)'Image & " " & Project.Mode (Session)'Image);
 
       --  The settings take the place of the home screen, as far as the person can tell.
       Testing.Click_On (Window, "Projects");

@@ -7,10 +7,10 @@ with Writing_VM.Trees;
 with Items;
 with Pomarine.Events;
 with Pomarine.Testing;
-with Viewer;
-with Viewer.Canvas_Windows;
-with Viewer.Documents;
-with Viewer_Driver;
+with View;
+with View.Canvas_Windows;
+with View.Documents;
+with View_Driver;
 
 package body Writing_VM_Tests is
    use type Pomarine.View_Models.Version_Number;
@@ -221,18 +221,18 @@ package body Writing_VM_Tests is
       Check ("writing-leave", Writing_VM.Shown (Model, Dirs) = 0);
    end Navigation;
    procedure By_Name is
-      App : aliased Viewer.Session;
-      Ears : aliased Viewer_Driver.Driver (App'Access);
+      App : aliased View.Session;
+      Ears : aliased View_Driver.Driver (App'Access);
       Window : Pomarine.Testing.Session;
       package Testing renames Pomarine.Testing;
-      package Docs renames Viewer.Documents;
+      package Docs renames View.Documents;
    begin
-      Viewer.Open (App, "", 1000, 800);
-      Testing.Attach (Window, Viewer.Widget_Tree (App).all, Ears'Access);
+      View.Open (App, "", 1000, 800);
+      Testing.Attach (Window, View.Widget_Tree (App).all, Ears'Access);
       Testing.Click_On (Window, "New project");
       Testing.Click_On (Window, "Canvas");
-      Viewer.Canvas_Windows.Add_Item (App, "Alpha");
-      Viewer.Canvas_Windows.Add_Item (App, "Beta");
+      View.Canvas_Windows.Add_Item (App, "Alpha");
+      View.Canvas_Windows.Add_Item (App, "Beta");
       Testing.Click_On (Window, "Write");
       Testing.Click_On (Window, "New folder");
       Testing.Type_Text (Window, "Part");

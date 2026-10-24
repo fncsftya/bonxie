@@ -2,10 +2,10 @@ with Ada.Assertions;
 with Pomarine.Events;
 with Pomarine.Semantics;
 with Pomarine.Testing;
-with Viewer;
-with Viewer.Canvas_Windows;
-with Viewer.Project_Screen;
-with Viewer_Driver;
+with View;
+with View.Canvas_Windows;
+with View.Project_Screen;
+with View_Driver;
 with Canvas_VM;
 with Canvas_VM_Fakes;
 with Goldens;
@@ -32,7 +32,7 @@ package body Item_List_VM_Tests is
       Slots : aliased Items.Models.Tables.Table;
       Room : aliased Canvas_VM_Fakes.Room;
       Canvas : aliased Canvas_VM.View_Model;
-      View : aliased Surface;
+      Pane : aliased Surface;
       Model : Item_List_VM.View_Model;
       Seen : Pomarine.View_Models.Version_Number;
       Slot : Items.Slot;
@@ -41,8 +41,8 @@ package body Item_List_VM_Tests is
    begin
       Room.Models := Slots'Unchecked_Access;
       Canvas_VM.Initialize (Canvas, Kept'Unchecked_Access, Room'Unchecked_Access, Slots'Unchecked_Access);
-      View.Canvas := Canvas'Unchecked_Access;
-      Item_List_VM.Initialize (Model, Canvas'Unchecked_Access, Slots'Unchecked_Access, View'Unchecked_Access);
+      Pane.Canvas := Canvas'Unchecked_Access;
+      Item_List_VM.Initialize (Model, Canvas'Unchecked_Access, Slots'Unchecked_Access, Pane'Unchecked_Access);
       Canvas_VM.Enter (Canvas);
       Item_List_VM.Refresh (Model);
       Check ("item-list-vm-empty", "TRUE FALSE FALSE", Image (Item_List_VM.Count (Model) = 0) & " "
@@ -93,14 +93,14 @@ package body Item_List_VM_Tests is
              & Image (Item_List_VM.Can_Execute (Model, Item_List_VM.Remove)));
    end Rows_And_Actions;
    procedure By_Name is
-      Session : aliased Viewer.Session;
-      Ears : aliased Viewer_Driver.Driver (Session'Access);
+      Session : aliased View.Session;
+      Ears : aliased View_Driver.Driver (Session'Access);
       Window : Pomarine.Testing.Session;
       package Testing renames Pomarine.Testing;
-      package Windows renames Viewer.Canvas_Windows;
+      package Windows renames View.Canvas_Windows;
    begin
-      Viewer.Open (Session, "", 1000, 800);
-      Testing.Attach (Window, Viewer.Widget_Tree (Session).all, Ears'Access);
+      View.Open (Session, "", 1000, 800);
+      Testing.Attach (Window, View.Widget_Tree (Session).all, Ears'Access);
       Testing.Click_On (Window, "New project");
       Testing.Click_On (Window, "Canvas");
       Windows.Add_Item (Session, "First");
@@ -118,7 +118,7 @@ package body Item_List_VM_Tests is
              & Windows.Item_Title (Session, 1));
       Testing.Click_On (Window, "Second", Role => Pomarine.Semantics.List_Item);
       Testing.Press (Window, Pomarine.Events.Key_Return);
-      Check ("item-list-name-revealed", "FALSE OPEN", Image (Viewer.Project_Screen.Is_Listing (Session)) & " "
+      Check ("item-list-name-revealed", "FALSE OPEN", Image (View.Project_Screen.Is_Listing (Session)) & " "
              & Windows.Item_State (Session, 1)'Image);
       Testing.Click_On (Window, "Items");
       Testing.Click_On (Window, "Remove");

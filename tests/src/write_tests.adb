@@ -10,23 +10,23 @@ with Goldens;
 with Item_Tests;
 with Items;
 with Projects;
-with Viewer;
-with Viewer.Canvas_Links;
-with Viewer.Canvas_Windows;
-with Viewer.Documents;
-with Viewer.Home_Screen;
-with Viewer.Project_Screen;
-with Viewer.Sources;
+with View;
+with View.Canvas_Links;
+with View.Canvas_Windows;
+with View.Documents;
+with View.Home_Screen;
+with View.Project_Screen;
+with View.Sources;
 
 package body Write_Tests is
 
    package Events renames Pomarine.Events;
-   package Links renames Viewer.Canvas_Links;
-   package Windows renames Viewer.Canvas_Windows;
-   package Docs renames Viewer.Documents;
-   package Home renames Viewer.Home_Screen;
-   package Proj renames Viewer.Project_Screen;
-   package Source_List renames Viewer.Sources;
+   package Links renames View.Canvas_Links;
+   package Windows renames View.Canvas_Windows;
+   package Docs renames View.Documents;
+   package Home renames View.Home_Screen;
+   package Proj renames View.Project_Screen;
+   package Source_List renames View.Sources;
    package Pictures renames Goldens.Images;
 
    procedure Check (Name : String; Expected, Actual : String)
@@ -98,76 +98,76 @@ package body Write_Tests is
 
    --  Events
 
-   procedure Move_To (Session : in out Viewer.Session; X, Y : Float;
+   procedure Move_To (Session : in out View.Session; X, Y : Float;
                       Held : Boolean := False) is
    begin
-      Viewer.Handle
+      View.Handle
         (Session, Events.Event'(Kind => Events.Mouse_Move, Mouse_X => X,
                                 Mouse_Y => Y, Left_Held => Held,
                                 others => <>));
    end Move_To;
 
-   procedure Click_On (Session : in out Viewer.Session; X, Y : Float) is
+   procedure Click_On (Session : in out View.Session; X, Y : Float) is
    begin
       Move_To (Session, X, Y);
-      Viewer.Handle
+      View.Handle
         (Session, Events.Event'(Kind => Events.Mouse_Down, Button => 1,
                                 Clicks => 1, Mouse_X => X, Mouse_Y => Y,
                                 others => <>));
-      Viewer.Handle
+      View.Handle
         (Session, Events.Event'(Kind => Events.Mouse_Up, Button => 1,
                                 Clicks => 1, Mouse_X => X, Mouse_Y => Y,
                                 others => <>));
    end Click_On;
 
-   procedure Type_In (Session : in out Viewer.Session; Text : String) is
+   procedure Type_In (Session : in out View.Session; Text : String) is
    begin
-      Viewer.Handle (Session, Events.Text_Event (Text));
+      View.Handle (Session, Events.Text_Event (Text));
    end Type_In;
 
    procedure Drag
-     (Session : in out Viewer.Session; From_X, From_Y, To_X, To_Y : Float) is
+     (Session : in out View.Session; From_X, From_Y, To_X, To_Y : Float) is
    begin
       Move_To (Session, From_X, From_Y);
-      Viewer.Handle
+      View.Handle
         (Session, Events.Event'(Kind => Events.Mouse_Down, Button => 1,
                                 Clicks => 1, Mouse_X => From_X,
                                 Mouse_Y => From_Y, others => <>));
       Move_To
         (Session, (From_X + To_X) / 2.0, (From_Y + To_Y) / 2.0, Held => True);
       Move_To (Session, To_X, To_Y, Held => True);
-      Viewer.Handle
+      View.Handle
         (Session, Events.Event'(Kind => Events.Mouse_Up, Button => 1,
                                 Clicks => 1, Mouse_X => To_X, Mouse_Y => To_Y,
                                 others => <>));
    end Drag;
 
-   procedure Settle (Session : in out Viewer.Session) is
+   procedure Settle (Session : in out View.Session) is
       Drawn : Pictures.Image;
    begin
       --  Drawn, as it is between a person's clicks, which lays it out.
-      Viewer.Render (Session, Drawn);
+      View.Render (Session, Drawn);
       SDL3.Pictures.Jobs.Wait_Until_Idle;
       Pomarine.Page_Builds.Wait_Until_Idle;
-      Viewer.Handle (Session, (Kind => Events.Redraw, others => <>));
+      View.Handle (Session, (Kind => Events.Redraw, others => <>));
    end Settle;
 
-   procedure Snap (Session : in out Viewer.Session; Name : String) is
+   procedure Snap (Session : in out View.Session; Name : String) is
       Drawn : Pictures.Image;
    begin
-      Viewer.Render (Session, Drawn);
+      View.Render (Session, Drawn);
       SDL3.Pictures.Jobs.Wait_Until_Idle;
       Pomarine.Page_Builds.Wait_Until_Idle;
-      Viewer.Handle (Session, (Kind => Events.Redraw, others => <>));
-      Viewer.Render (Session, Drawn);
+      View.Handle (Session, (Kind => Events.Redraw, others => <>));
+      View.Render (Session, Drawn);
       Goldens.Check (Name, Drawn);
    end Snap;
 
-   procedure Start_With_Three (Session : in out Viewer.Session; High : Positive := Height) is
+   procedure Start_With_Three (Session : in out View.Session; High : Positive := Height) is
    begin
-      Viewer.Open (Session, "", Width, High, 2.0);
+      View.Open (Session, "", Width, High, 2.0);
       Home.New_Project (Session);
-      Viewer.Project_Screen.Set_Mode (Session, Viewer.Canvas);
+      View.Project_Screen.Set_Mode (Session, View.Canvas);
       Windows.Add_Item (Session, "Opening");
       Type_In (Session, "It was a dark and stormy night.");
       Windows.Add_Item (Session, "Middle");
@@ -179,10 +179,10 @@ package body Write_Tests is
    end Start_With_Three;
 
    procedure Searching is
-      Session : Viewer.Session;
+      Session : View.Session;
       procedure Key (Code : Events.Key_Code; Command : Boolean := False; Shift : Boolean := False) is
       begin
-         Viewer.Handle (Session, (Kind => Events.Key_Down, Key => Code,
+         View.Handle (Session, (Kind => Events.Key_Down, Key => Code,
                                   Command => Command, Shift => Shift, others => <>));
       end Key;
       procedure Expect (Name : String; Total, Current, Document : Natural) is
@@ -193,7 +193,7 @@ package body Write_Tests is
       end Expect;
    begin
       Start_With_Three (Session);
-      Proj.Set_Mode (Session, Viewer.Write);
+      Proj.Set_Mode (Session, View.Write);
       Settle (Session);
       Docs.Add_Directory (Session, "First only");
       Docs.Move_Document_To (Session, 1, 1);
@@ -235,12 +235,12 @@ package body Write_Tests is
    end Searching;
 
    procedure Pages is
-      Session : Viewer.Session;
+      Session : View.Session;
    begin
       Start_With_Three (Session);
-      Proj.Set_Mode (Session, Viewer.Write);
+      Proj.Set_Mode (Session, View.Write);
       Check ("write-mode", "WRITE",
-             Viewer.Modes'Image (Proj.Mode (Session)));
+             View.Modes'Image (Proj.Mode (Session)));
       Check ("write-documents", " 3",
              Natural'Image (Docs.Document_Count (Session)));
       Check ("write-sources", " 1",
@@ -248,17 +248,17 @@ package body Write_Tests is
       Check ("write-first", "Opening", Docs.Document_Title (Session, 1));
       Check ("write-last", "Ending", Docs.Document_Title (Session, 3));
       Snap (Session, "write-pages");
-      Proj.Set_Mode (Session, Viewer.Canvas);
+      Proj.Set_Mode (Session, View.Canvas);
       Snap (Session, "write-back-to-canvas");
    end Pages;
 
    procedure Ordering is
-      Session : Viewer.Session;
+      Session : View.Session;
       Key     : Projects.Id;
    begin
       Start_With_Three (Session);
       Key := Proj.Current_Project (Session);
-      Proj.Set_Mode (Session, Viewer.Write);
+      Proj.Set_Mode (Session, View.Write);
       Docs.Move_Document (Session, 3, 1);
       Check ("write-moved-first", "Ending",
              Docs.Document_Title (Session, 1));
@@ -267,8 +267,8 @@ package body Write_Tests is
       Snap (Session, "write-reordered");
       Proj.Close_Project (Session);
       Home.Open_Project (Session, Key);
-      Viewer.Project_Screen.Set_Mode (Session, Viewer.Canvas);
-      Proj.Set_Mode (Session, Viewer.Write);
+      View.Project_Screen.Set_Mode (Session, View.Canvas);
+      Proj.Set_Mode (Session, View.Write);
       Check ("write-order-kept", "Ending",
              Docs.Document_Title (Session, 1));
       Check ("write-order-kept-last", "Middle",
@@ -276,10 +276,10 @@ package body Write_Tests is
    end Ordering;
 
    procedure Dragging is
-      Session : Viewer.Session;
+      Session : View.Session;
    begin
       Start_With_Three (Session);
-      Proj.Set_Mode (Session, Viewer.Write);
+      Proj.Set_Mode (Session, View.Write);
       Settle (Session);
       --  The first row is dragged down past the others, to the lower half
       --  of the last, which puts it after.
@@ -303,22 +303,22 @@ package body Write_Tests is
       Snap (Session, "write-scrolled-to-page");
    end Dragging;
 
-   procedure Name_Directory (Session : in out Viewer.Session; Name : String)
+   procedure Name_Directory (Session : in out View.Session; Name : String)
    is
    begin
       Type_In (Session, Name);
-      Viewer.Handle
+      View.Handle
         (Session, Events.Event'(Kind => Events.Key_Down,
                                 Key => Events.Key_Return, others => <>));
       Settle (Session);
    end Name_Directory;
 
    procedure Many_Directories is
-      Session : Viewer.Session;
+      Session : View.Session;
       Many    : constant := 140;
    begin
       Start_With_Three (Session, High => 640);
-      Proj.Set_Mode (Session, Viewer.Write);
+      Proj.Set_Mode (Session, View.Write);
       Settle (Session);
       for Each in 1 .. Many loop
          Docs.Add_Directory (Session);
@@ -327,7 +327,7 @@ package body Write_Tests is
    end Many_Directories;
 
    procedure Directories is
-      Session : Viewer.Session;
+      Session : View.Session;
       Key     : Projects.Id;
 
       function Where (Row : Positive) return String is
@@ -336,7 +336,7 @@ package body Write_Tests is
       --  Tall enough for all the rows of the tree.
       Start_With_Three (Session, High => 640);
       Key := Proj.Current_Project (Session);
-      Proj.Set_Mode (Session, Viewer.Write);
+      Proj.Set_Mode (Session, View.Write);
       Settle (Session);
 
       --  The button beside the name of the list makes one, last of the
@@ -378,7 +378,7 @@ package body Write_Tests is
       --  Held over the top of the directory's row, a line shows above it;
       --  let go, the document is before it, and in none.
       Move_To (Session, Doc_Row_X, Tree_Row_Y (2));
-      Viewer.Handle
+      View.Handle
         (Session, Events.Event'(Kind => Events.Mouse_Down, Button => 1,
                                 Clicks => 1, Mouse_X => Doc_Row_X,
                                 Mouse_Y => Tree_Row_Y (2), others => <>));
@@ -386,7 +386,7 @@ package body Write_Tests is
       Move_To (Session, Doc_Row_X, Tree_Row_Y (4) - 10.0, Held => True);
       Settle (Session);
       Snap (Session, "write-drop-line");
-      Viewer.Handle
+      View.Handle
         (Session, Events.Event'(Kind => Events.Mouse_Up, Button => 1,
                                 Clicks => 1, Mouse_X => Doc_Row_X,
                                 Mouse_Y => Tree_Row_Y (4) - 10.0,
@@ -435,8 +435,8 @@ package body Write_Tests is
       --  Their order, and what is in them, are kept.
       Proj.Close_Project (Session);
       Home.Open_Project (Session, Key);
-      Viewer.Project_Screen.Set_Mode (Session, Viewer.Canvas);
-      Proj.Set_Mode (Session, Viewer.Write);
+      View.Project_Screen.Set_Mode (Session, View.Canvas);
+      Proj.Set_Mode (Session, View.Write);
       Check ("write-directories-kept", " 2",
              Natural'Image (Docs.Directory_Count (Session)));
       Check ("write-directory-order-kept", "Part two",
@@ -459,21 +459,21 @@ package body Write_Tests is
    Confirm_Y        : constant Float := 301.0;
    --  The buttons of the dialog that confirms a deletion.
 
-   procedure Right_Click_On (Session : in out Viewer.Session; X, Y : Float) is
+   procedure Right_Click_On (Session : in out View.Session; X, Y : Float) is
    begin
       Move_To (Session, X, Y);
-      Viewer.Handle
+      View.Handle
         (Session, Events.Event'(Kind => Events.Mouse_Down, Button => 3,
                                 Clicks => 1, Mouse_X => X, Mouse_Y => Y,
                                 others => <>));
-      Viewer.Handle
+      View.Handle
         (Session, Events.Event'(Kind => Events.Mouse_Up, Button => 3,
                                 Clicks => 1, Mouse_X => X, Mouse_Y => Y,
                                 others => <>));
    end Right_Click_On;
 
    procedure Context_Menus is
-      Session : Viewer.Session;
+      Session : View.Session;
       Key     : Projects.Id;
 
       Rename_Dy : constant Float := 17.0;
@@ -491,7 +491,7 @@ package body Write_Tests is
    begin
       Start_With_Three (Session);
       Key := Proj.Current_Project (Session);
-      Proj.Set_Mode (Session, Viewer.Write);
+      Proj.Set_Mode (Session, View.Write);
       Settle (Session);
       Right_Click_On (Session, Doc_Row_X, Doc_Row_Y (2));
       Settle (Session);
@@ -501,7 +501,7 @@ package body Write_Tests is
       Click_On (Session, Doc_Row_X + 40.0, Doc_Row_Y (2) + Rename_Dy);
       Settle (Session);
       Type_In (Session, "Centre");
-      Viewer.Handle
+      View.Handle
         (Session, Events.Event'(Kind => Events.Key_Down,
                                 Key => Events.Key_Return, others => <>));
       Settle (Session);
@@ -512,7 +512,7 @@ package body Write_Tests is
       Name_Directory (Session, "Part one");
       Choose (Tree_Row_Y (5), Rename_Dy + 61.0);
       Type_In (Session, "Act one");
-      Viewer.Handle
+      View.Handle
         (Session, Events.Event'(Kind => Events.Key_Down,
                                 Key => Events.Key_Return, others => <>));
       Settle (Session);
@@ -527,7 +527,7 @@ package body Write_Tests is
              Boolean'Image (Home.Is_Confirming (Session)));
       Move_To (Session, 600.0, 60.0);
       Snap (Session, "write-delete-confirm");
-      Viewer.Handle
+      View.Handle
         (Session, Events.Event'(Kind => Events.Key_Down,
                                 Key => Events.Key_Escape, others => <>));
       Check ("write-delete-escaped", "FALSE",
@@ -568,8 +568,8 @@ package body Write_Tests is
       --  They are gone for good.
       Proj.Close_Project (Session);
       Home.Open_Project (Session, Key);
-      Viewer.Project_Screen.Set_Mode (Session, Viewer.Canvas);
-      Proj.Set_Mode (Session, Viewer.Write);
+      View.Project_Screen.Set_Mode (Session, View.Canvas);
+      Proj.Set_Mode (Session, View.Write);
       Check ("write-delete-kept-documents", " 2",
              Natural'Image (Docs.Document_Count (Session)));
       Check ("write-delete-kept-directories", " 0",
@@ -577,7 +577,7 @@ package body Write_Tests is
    end Context_Menus;
 
    procedure Context_Menus_Elsewhere is
-      Session : Viewer.Session;
+      Session : View.Session;
 
       procedure Choose (X, Y, Dy : Float) is
       begin
@@ -590,7 +590,7 @@ package body Write_Tests is
       Source_Y : constant Float := Source_Row_Y (3);
    begin
       Start_With_Three (Session);
-      Proj.Set_Mode (Session, Viewer.Write);
+      Proj.Set_Mode (Session, View.Write);
       Settle (Session);
 
       --  In a page's text, with nothing on the clipboard, only Select all
@@ -629,7 +629,7 @@ package body Write_Tests is
       --  deleted there.
       Choose (Source_Row_X, Source_Y, 17.0);
       Type_In (Session, "Renamed");
-      Viewer.Handle
+      View.Handle
         (Session, Events.Event'(Kind => Events.Key_Down,
                                 Key => Events.Key_Return, others => <>));
       Settle (Session);
@@ -649,7 +649,7 @@ package body Write_Tests is
    end Context_Menus_Elsewhere;
 
    procedure Context_Menus_On_Canvas is
-      Session : Viewer.Session;
+      Session : View.Session;
       --  The last window's text, and the link of the source's, which shows
       --  at the left of the windows over it.
       Text_At_X : constant Float := 450.0;
@@ -698,10 +698,10 @@ package body Write_Tests is
    end Context_Menus_On_Canvas;
 
    procedure Adding is
-      Session : Viewer.Session;
+      Session : View.Session;
    begin
       Start_With_Three (Session);
-      Proj.Set_Mode (Session, Viewer.Write);
+      Proj.Set_Mode (Session, View.Write);
       Settle (Session);
       Click_On (Session, Add_Document_X, Add_Document_Y);
       Check ("write-added", " 4",
@@ -716,13 +716,13 @@ package body Write_Tests is
    end Adding;
 
    procedure Linked_Sources is
-      Session : Viewer.Session;
+      Session : View.Session;
    begin
       Start_With_Three (Session);
       --  The first and last documents are linked to the source.
       Links.Link_Items (Session, 1, 3);
       Links.Link_Items (Session, 3, 4);
-      Proj.Set_Mode (Session, Viewer.Write);
+      Proj.Set_Mode (Session, View.Write);
       Settle (Session);
       Click_On (Session, Sources_Button_X, Bar_Y);
       Settle (Session);
@@ -739,20 +739,20 @@ package body Write_Tests is
    end Linked_Sources;
 
    procedure Typing is
-      Session : Viewer.Session;
+      Session : View.Session;
    begin
       Start_With_Three (Session);
-      Proj.Set_Mode (Session, Viewer.Write);
+      Proj.Set_Mode (Session, View.Write);
       Click_On (Session, Text_X, Text_Y);
       Type_In (Session, " More.");
       Snap (Session, "write-typed");
       --  It is in the item's window on the canvas too, which writes it.
       Check ("write-typed-text", "It was a dark and stormy night. More.",
              Windows.Item_Text (Session, 1));
-      Proj.Set_Mode (Session, Viewer.Canvas);
+      Proj.Set_Mode (Session, View.Canvas);
       Check ("write-typed-words", " 8",
              Natural'Image (Windows.Item_Words (Session, 1)));
-      Proj.Set_Mode (Session, Viewer.Write);
+      Proj.Set_Mode (Session, View.Write);
       Check ("write-typed-still", "It was a dark and stormy night. More.",
              Windows.Item_Text (Session, 1));
 
@@ -762,18 +762,18 @@ package body Write_Tests is
       begin
          Proj.Close_Project (Session);
          Home.Open_Project (Session, Key);
-         Viewer.Project_Screen.Set_Mode (Session, Viewer.Canvas);
+         View.Project_Screen.Set_Mode (Session, View.Canvas);
          Check ("write-typed-kept", "It was a dark and stormy night. More.",
                 Windows.Item_Text (Session, 1));
       end;
    end Typing;
 
    procedure Word_Tools is
-      Session : Viewer.Session;
+      Session : View.Session;
 
       procedure Command_Key (Letter : Character) is
       begin
-         Viewer.Handle
+         View.Handle
            (Session, Events.Event'(Kind => Events.Key_Down, Key => Events.Key_Code (Character'Pos (Letter)),
                                    Command => True, others => <>));
          Settle (Session);
@@ -781,13 +781,13 @@ package body Write_Tests is
 
       procedure Select_Everything is
       begin
-         Viewer.Handle
+         View.Handle
            (Session, Events.Event'(Kind => Events.Key_Down, Key => Events.Key_A, Command => True,
                                    others => <>));
       end Select_Everything;
    begin
       Start_With_Three (Session);
-      Proj.Set_Mode (Session, Viewer.Write);
+      Proj.Set_Mode (Session, View.Write);
       Click_On (Session, Text_X, Text_Y);
 
       --  Nothing is selected: nothing is done.
@@ -810,7 +810,7 @@ package body Write_Tests is
       Command_Key ('r');
       Check ("write-reword-gone", "", Windows.Item_Text (Session, 1));
       Type_In (Session, "Once upon a time.");
-      Viewer.Handle (Session, Events.Event'(Kind => Events.Key_Down, Key => Events.Key_Return, others => <>));
+      View.Handle (Session, Events.Event'(Kind => Events.Key_Down, Key => Events.Key_Return, others => <>));
       Settle (Session);
       Check ("write-reword-kept",
              "<version>1</version><p><v sel=""2""><o>It was a dark and stormy night.</o>Once upon a time.</v></p>",
@@ -821,7 +821,7 @@ package body Write_Tests is
       Select_Everything;
       Command_Key ('r');
       Type_In (Session, "Never.");
-      Viewer.Handle (Session, Events.Event'(Kind => Events.Key_Down, Key => Events.Key_Escape, others => <>));
+      View.Handle (Session, Events.Event'(Kind => Events.Key_Down, Key => Events.Key_Escape, others => <>));
       Settle (Session);
       Check ("write-reword-given-up", "Once upon a time.", Windows.Item_Text (Session, 1));
       declare
@@ -829,7 +829,7 @@ package body Write_Tests is
       begin
          Proj.Close_Project (Session);
          Home.Open_Project (Session, Key);
-         Viewer.Project_Screen.Set_Mode (Session, Viewer.Canvas);
+         View.Project_Screen.Set_Mode (Session, View.Canvas);
          Check ("write-reword-persisted",
                 "<version>1</version><p><v sel=""2""><o>It was a dark and stormy night.</o>Once upon a time.</v></p>",
                 Windows.Item_Stored_Text (Session, 1));
@@ -837,21 +837,21 @@ package body Write_Tests is
    end Word_Tools;
 
    procedure Publishing is
-      Session : Viewer.Session;
+      Session : View.Session;
    begin
       Start_With_Three (Session);
-      Proj.Set_Mode (Session, Viewer.Publish);
+      Proj.Set_Mode (Session, View.Publish);
       Snap (Session, "publish-initial");
       Click_On (Session, 100.0, 85.0);
       Snap (Session, "publish-format-menu");
       Click_On (Session, 100.0, 115.0);
       Snap (Session, "publish-markdown");
-      Check ("publish-nothing-copied", "", Viewer.Clipboard_Text (Session));
+      Check ("publish-nothing-copied", "", View.Clipboard_Text (Session));
       Click_On (Session, 100.0, 245.0);
       Check ("publish-copied",
              "It was a dark and stormy night." & ASCII.LF & ASCII.LF & "Then things happened." & ASCII.LF & ASCII.LF
              & "And they all lived." & ASCII.LF,
-             Viewer.Clipboard_Text (Session));
+             View.Clipboard_Text (Session));
       Snap (Session, "publish-copied");
    end Publishing;
 
@@ -887,10 +887,10 @@ package body Write_Tests is
    end Markdown;
 
    procedure Sources is
-      Session : Viewer.Session;
+      Session : View.Session;
    begin
       Start_With_Three (Session);
-      Proj.Set_Mode (Session, Viewer.Write);
+      Proj.Set_Mode (Session, View.Write);
       Snap (Session, "write-sources-listed");
       Check ("write-source-closed", "FALSE",
              Boolean'Image (Source_List.Source_Is_Open (Session, 1)));
@@ -935,7 +935,7 @@ package body Write_Tests is
    end Sources;
 
    procedure Source_Documents is
-      Session : Viewer.Session;
+      Session : View.Session;
       Folder  : constant String := "/tmp/bonxie-write-document";
       Book    : constant String := Folder & "/book.pdf";
       File    : Ada.Text_IO.File_Type;
@@ -947,7 +947,7 @@ package body Write_Tests is
          while Windows.Is_Capturing (Session) and then Waited < 600 loop
             delay 0.05;
             Tick := Pomarine.Events.Milliseconds (Natural (Tick) + 100);
-            Viewer.Tick (Session, Tick);
+            View.Tick (Session, Tick);
             Waited := Waited + 1;
          end loop;
       end Wait;
@@ -959,23 +959,23 @@ package body Write_Tests is
       Ada.Text_IO.Put (File, Item_Tests.Two_Pages);
       Ada.Text_IO.Close (File);
 
-      Viewer.Open (Session, "", Width, Height, 2.0);
+      View.Open (Session, "", Width, Height, 2.0);
       Home.New_Project (Session);
-      Viewer.Project_Screen.Set_Mode (Session, Viewer.Canvas);
+      View.Project_Screen.Set_Mode (Session, View.Canvas);
       Windows.Pin_Capture_Time (Session, 1_700_000_000);
       Windows.Add_Item (Session, "Book", Items.Source);
-      Viewer.Handle
+      View.Handle
         (Session, Events.Event'(Kind => Events.Key_Down,
                                 Key => Events.Key_A, Command => True,
                                 others => <>));
       Type_In (Session, "file://" & Book);
-      Viewer.Handle
+      View.Handle
         (Session, Events.Event'(Kind => Events.Key_Down,
                                 Key => Events.Key_Return, others => <>));
       Wait;
 
       --  The page that was drawn on the canvas is in the writing view.
-      Proj.Set_Mode (Session, Viewer.Write);
+      Proj.Set_Mode (Session, View.Write);
       Click_On (Session, Source_Row_X, Source_Row_Y (0));
       Settle (Session);
       Check ("write-document-open", "TRUE",
@@ -984,12 +984,12 @@ package body Write_Tests is
       Snap (Session, "write-source-document");
 
       --  Turned on the canvas, the next is in the writing view too.
-      Proj.Set_Mode (Session, Viewer.Canvas);
+      Proj.Set_Mode (Session, View.Canvas);
       Settle (Session);
       Click_On (Session, Item_Tests.Next_X, Item_Tests.Pager_Y);
       Wait;
       Check ("write-document-turned", "Page 2 of 2", Windows.Item_Status (Session, 1));
-      Proj.Set_Mode (Session, Viewer.Write);
+      Proj.Set_Mode (Session, View.Write);
       Settle (Session);
       Move_To (Session, 600.0, 60.0);
       Snap (Session, "write-source-document-second");
@@ -1002,7 +1002,7 @@ package body Write_Tests is
    end Source_Documents;
 
    procedure Sharing_Marks is
-      Session : Viewer.Session;
+      Session : View.Session;
       Folder  : constant String := "/tmp/bonxie-write-page";
       Page    : constant String := Folder & "/page.html";
       File    : Ada.Text_IO.File_Type;
@@ -1018,26 +1018,26 @@ package body Write_Tests is
          & "a few lines of text on a page.</p></body></html>");
       Ada.Text_IO.Close (File);
 
-      Viewer.Open (Session, "", Width, Height, 2.0);
+      View.Open (Session, "", Width, Height, 2.0);
       Home.New_Project (Session);
-      Viewer.Project_Screen.Set_Mode (Session, Viewer.Canvas);
+      View.Project_Screen.Set_Mode (Session, View.Canvas);
       Windows.Pin_Capture_Time (Session, 1_700_000_000);
       Windows.Add_Item (Session, "Page", Items.Source);
-      Viewer.Handle
+      View.Handle
         (Session, Events.Event'(Kind => Events.Key_Down,
                                 Key => Events.Key_A, Command => True,
                                 others => <>));
       Type_In (Session, "file://" & Page);
-      Viewer.Handle
+      View.Handle
         (Session, Events.Event'(Kind => Events.Key_Down,
                                 Key => Events.Key_Return, others => <>));
       while Windows.Is_Capturing (Session) and then Waited < 600 loop
          Webshot.Pump (100);
          Tick := Pomarine.Events.Milliseconds (Natural (Tick) + 100);
-         Viewer.Tick (Session, Tick);
+         View.Tick (Session, Tick);
          Waited := Waited + 1;
       end loop;
-      Proj.Set_Mode (Session, Viewer.Write);
+      Proj.Set_Mode (Session, View.Write);
       Click_On (Session, Source_Row_X, Source_Row_Y (0));
       Settle (Session);
       Check ("write-marks-none", " 0",
@@ -1052,7 +1052,7 @@ package body Write_Tests is
              Natural'Image (Windows.Item_Marks (Session, 1)));
 
       --  And erased on the canvas, they are gone from the writing view.
-      Proj.Set_Mode (Session, Viewer.Canvas);
+      Proj.Set_Mode (Session, View.Canvas);
       Check ("write-marks-in-canvas", " 1",
              Natural'Image (Windows.Item_Marks (Session, 1)));
 
@@ -1064,23 +1064,23 @@ package body Write_Tests is
              Natural'Image (Windows.Item_Marks (Session, 1)));
       --  Undo can cross from the canvas stroke back through the reader's
       --  stroke; redo restores both, and every change is shared and saved.
-      Viewer.Handle (Session, (Kind => Events.Key_Down, Key => Events.Key_Z, Command => True, others => <>));
+      View.Handle (Session, (Kind => Events.Key_Down, Key => Events.Key_Z, Command => True, others => <>));
       Check ("write-marks-undo-canvas", " 1", Natural'Image (Windows.Item_Marks (Session, 1)));
-      Viewer.Handle (Session, (Kind => Events.Key_Down, Key => Events.Key_Z, Command => True, others => <>));
+      View.Handle (Session, (Kind => Events.Key_Down, Key => Events.Key_Z, Command => True, others => <>));
       Check ("write-marks-undo-reader", " 0", Natural'Image (Windows.Item_Marks (Session, 1)));
       for Index in 1 .. 2 loop
-         Viewer.Handle
+         View.Handle
            (Session, (Kind => Events.Key_Down, Key => Events.Key_Z, Command => True, Shift => True, others => <>));
       end loop;
       Check ("write-marks-redone", " 2", Natural'Image (Windows.Item_Marks (Session, 1)));
-      Proj.Set_Mode (Session, Viewer.Write);
+      Proj.Set_Mode (Session, View.Write);
       Check ("write-marks-more-shared", " 2",
              Natural'Image (Source_List.Source_Marks (Session, 1)));
 
       --  Undo from the reader also reaches edits made on the canvas.
       Settle (Session);
       Click_On (Session, 340.0, Reader_Y);
-      Viewer.Handle (Session, (Kind => Events.Key_Down, Key => Events.Key_Z, Command => True, others => <>));
+      View.Handle (Session, (Kind => Events.Key_Down, Key => Events.Key_Z, Command => True, others => <>));
       Check ("write-marks-undo-shared", " 1", Natural'Image (Source_List.Source_Marks (Session, 1)));
       Check ("write-marks-undo-in-canvas", " 1", Natural'Image (Windows.Item_Marks (Session, 1)));
 
@@ -1090,8 +1090,8 @@ package body Write_Tests is
       begin
          Proj.Close_Project (Session);
          Home.Open_Project (Session, Key);
-         Viewer.Project_Screen.Set_Mode (Session, Viewer.Canvas);
-         Proj.Set_Mode (Session, Viewer.Write);
+         View.Project_Screen.Set_Mode (Session, View.Canvas);
+         Proj.Set_Mode (Session, View.Write);
          Check ("write-marks-kept", " 1",
                 Natural'Image (Source_List.Source_Marks (Session, 1)));
       end;

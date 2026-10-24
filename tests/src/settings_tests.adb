@@ -2,14 +2,14 @@ with Goldens;
 with Pomarine.Events;
 with Pomarine.Testing;
 with Preferences;
-with Viewer;
-with Viewer_Driver;
-with Viewer.Settings;
+with View;
+with View_Driver;
+with View.Settings;
 
 package body Settings_Tests is
 
    package Events renames Pomarine.Events;
-   package Settings renames Viewer.Settings;
+   package Settings renames View.Settings;
    package Testing renames Pomarine.Testing;
 
    use type Preferences.Background_Modes;
@@ -33,12 +33,12 @@ package body Settings_Tests is
       Preferences.Bauhaus     => new String'("Bauhaus")];
 
    procedure By_Name is
-      Session : aliased Viewer.Session;
-      Ears    : aliased Viewer_Driver.Driver (Session'Access);
+      Session : aliased View.Session;
+      Ears    : aliased View_Driver.Driver (Session'Access);
       Window  : Testing.Session;
    begin
-      Viewer.Open (Session, "", 1000, 800);
-      Testing.Attach (Window, Viewer.Widget_Tree (Session).all, Ears'Access);
+      View.Open (Session, "", 1000, 800);
+      Testing.Attach (Window, View.Widget_Tree (Session).all, Ears'Access);
 
       Testing.Click_On (Window, "Settings");
       Check ("settings-name-open", "TRUE", Image (Settings.Is_Settings_Open (Session)));

@@ -1,14 +1,14 @@
 with Goldens;
 with Pomarine.Events;
 with Pomarine.Testing;
-with Viewer;
-with Viewer.Home_Screen;
-with Viewer.Outline_Screen;
-with Viewer_Driver;
+with View;
+with View.Home_Screen;
+with View.Outline_Screen;
+with View_Driver;
 
 package body Outline_Screen_Tests is
 
-   package Outline renames Viewer.Outline_Screen;
+   package Outline renames View.Outline_Screen;
    package Testing renames Pomarine.Testing;
 
    procedure Check (Name : String; Expected, Actual : String) renames Goldens.Check_Text;
@@ -18,8 +18,8 @@ package body Outline_Screen_Tests is
    function Number (Value : Integer) return String is (Value'Image (2 .. Value'Image'Last));
 
    procedure By_Name is
-      Session : aliased Viewer.Session;
-      Ears    : aliased Viewer_Driver.Driver (Session'Access);
+      Session : aliased View.Session;
+      Ears    : aliased View_Driver.Driver (Session'Access);
       Window  : Testing.Session;
 
       function Titles return String is
@@ -44,9 +44,9 @@ package body Outline_Screen_Tests is
          Testing.Type_Text (Window, Words);
       end Rename_Section;
    begin
-      Viewer.Open (Session, "", 1000, 800);
-      Viewer.Home_Screen.New_Project (Session);
-      Testing.Attach (Window, Viewer.Widget_Tree (Session).all, Ears'Access);
+      View.Open (Session, "", 1000, 800);
+      View.Home_Screen.New_Project (Session);
+      Testing.Attach (Window, View.Widget_Tree (Session).all, Ears'Access);
 
       Check ("outline-name-first", "TRUE 0",
              Image (Testing.Shows (Window, "text 'No sections yet'")) & " " & Number (Outline.Section_Count (Session)));

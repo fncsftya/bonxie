@@ -4,15 +4,15 @@ with Ada.Text_IO;
 with Projects;
 with SDL3;
 with Pomarine.Events;
-with Viewer;
-with Viewer.Home_Screen;
-with Viewer.Project_Screen;
+with View;
+with View.Home_Screen;
+with View.Project_Screen;
 
 --  Measures opening a project that is already kept, as a click on it does:
 --  open_bench database [project [times]].
 procedure Open_Bench is
-   package Home renames Viewer.Home_Screen;
-   package Proj renames Viewer.Project_Screen;
+   package Home renames View.Home_Screen;
+   package Proj renames View.Project_Screen;
    use Ada.Real_Time;
    use Ada.Text_IO;
 
@@ -24,13 +24,13 @@ procedure Open_Bench is
      (if Ada.Command_Line.Argument_Count > 2
       then Positive'Value (Ada.Command_Line.Argument (3)) else 5);
 
-   Session : Viewer.Session;
+   Session : View.Session;
    Start   : Time;
 begin
    SDL3.Initialize;
-   Viewer.Open_Window
+   View.Open_Window
      (Session, "", Hidden => True, Store => Path, VSync => False);
-   Viewer.Paint_Frame (Session);
+   View.Paint_Frame (Session);
    for Run in 1 .. Runs loop
       Start := Clock;
       Home.Open_Project (Session, Key);
@@ -38,7 +38,7 @@ begin
         ("open" & Run'Image & ":"
          & Duration'Image (To_Duration (Clock - Start) * 1000.0) & " ms");
       Start := Clock;
-      Viewer.Paint_Frame (Session);
+      View.Paint_Frame (Session);
       Put_Line
         ("  first frame:"
          & Duration'Image (To_Duration (Clock - Start) * 1000.0) & " ms");
@@ -50,8 +50,8 @@ begin
       begin
          while Clock - Began < Milliseconds (400) loop
             Start := Clock;
-            Viewer.Tick (Session, Pomarine.Events.Ticks);
-            Viewer.Paint_Frame (Session);
+            View.Tick (Session, Pomarine.Events.Ticks);
+            View.Paint_Frame (Session);
             Worst := Duration'Max (Worst, To_Duration (Clock - Start));
             delay 0.005;
          end loop;

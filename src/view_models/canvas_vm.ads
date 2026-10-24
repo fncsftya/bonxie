@@ -11,7 +11,7 @@ with Pomarine.View_Models;
 --
 --  The canvas widget is the person's hand on the camera (it pans and zooms as they drag and pinch); it tells this what
 --  it came to (Set_Camera), and it is asked to go where this wants it (Steering). The windows of the items show their
---  models, in the camera's place (see Viewer.Canvas_Items).
+--  models, in the camera's place (see View.Canvas_Items).
 package Canvas_VM is
 
    package Parts renames Pomarine.View_Models;
@@ -37,7 +37,7 @@ package Canvas_VM is
       Show_Item,
       --  Index: the slot. Open, in the middle of what is shown, over the others.
       Remove_Item,
-      --  Index: the slot. For good. The window has been let go of: see Viewer.Canvas_Items.
+      --  Index: the slot. For good. The window has been let go of: see View.Canvas_Items.
       Delete_Link,
       --  The link selected.
       Cancel_Link);

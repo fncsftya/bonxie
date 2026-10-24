@@ -7,28 +7,28 @@ with Long_Texts;
 with Projects.Rules;
 with Pomarine.Events;
 with Pomarine.Testing;
-with Viewer;
-with Viewer.Canvas_Windows;
-with Viewer.Documents;
-with Viewer.Home_Screen;
-with Viewer.Project_Screen;
-with Viewer.Outline_Screen;
-with Viewer_Driver;
+with View;
+with View.Canvas_Windows;
+with View.Documents;
+with View.Home_Screen;
+with View.Project_Screen;
+with View.Outline_Screen;
+with View_Driver;
 
 package body Grammar_Tests is
    package Events renames Pomarine.Events;
-   package Docs renames Viewer.Documents;
-   package Windows renames Viewer.Canvas_Windows;
-   package Proj renames Viewer.Project_Screen;
+   package Docs renames View.Documents;
+   package Windows renames View.Canvas_Windows;
+   package Proj renames View.Project_Screen;
    use type Ada.Real_Time.Time;
    use type Events.Milliseconds;
 
-   procedure Click (Item : in out Viewer.Session; X, Y : Float) is
+   procedure Click (Item : in out View.Session; X, Y : Float) is
    begin
-      Viewer.Handle (Item, (Kind => Events.Mouse_Move, Mouse_X => X, Mouse_Y => Y, others => <>));
-      Viewer.Handle (Item, (Kind => Events.Mouse_Down, Button => 1, Clicks => 1,
+      View.Handle (Item, (Kind => Events.Mouse_Move, Mouse_X => X, Mouse_Y => Y, others => <>));
+      View.Handle (Item, (Kind => Events.Mouse_Down, Button => 1, Clicks => 1,
                            Mouse_X => X, Mouse_Y => Y, others => <>));
-      Viewer.Handle (Item, (Kind => Events.Mouse_Up, Button => 1, Clicks => 1,
+      View.Handle (Item, (Kind => Events.Mouse_Up, Button => 1, Clicks => 1,
                            Mouse_X => X, Mouse_Y => Y, others => <>));
    end Click;
 
@@ -37,40 +37,40 @@ package body Grammar_Tests is
       Goldens.Check_Text (Name, "TRUE", Boolean'Image (Value));
    end Check;
 
-   procedure Await (Item : in out Viewer.Session; Now : Events.Milliseconds) is
+   procedure Await (Item : in out View.Session; Now : Events.Milliseconds) is
       Deadline : constant Ada.Real_Time.Time := Ada.Real_Time.Clock + Ada.Real_Time.Seconds (60);
    begin
       loop
-         Viewer.Tick (Item, Now);
+         View.Tick (Item, Now);
          exit when not Docs.Grammar_Pending (Item);
          pragma Assert (Ada.Real_Time.Clock < Deadline, "grammar checking timed out");
          delay 0.002;
       end loop;
    end Await;
 
-   procedure Snap (Item : in out Viewer.Session; Name : String) is
+   procedure Snap (Item : in out View.Session; Name : String) is
       Image : Goldens.Images.Image;
    begin
-      Viewer.Render (Item, Image);
+      View.Render (Item, Image);
       Goldens.Check (Name, Image);
    end Snap;
 
    procedure Checking is
-      Item : Viewer.Session;
+      Item : View.Session;
       Now  : Events.Milliseconds := 10_000;
       Image : Goldens.Images.Image;
    begin
-      Viewer.Open (Item, "", 720, 480, 2.0);
-      Viewer.Home_Screen.New_Project (Item);
-      Proj.Set_Mode (Item, Viewer.Canvas);
+      View.Open (Item, "", 720, 480, 2.0);
+      View.Home_Screen.New_Project (Item);
+      Proj.Set_Mode (Item, View.Canvas);
       Windows.Add_Item (Item, "First document");
-      Viewer.Handle (Item, Events.Text_Event
+      View.Handle (Item, Events.Text_Event
         ("This is a speling mistake. This is the the sentence. This is an test."));
       Windows.Add_Item (Item, "Second document");
-      Viewer.Handle (Item, Events.Text_Event ("This is a speling mistake."));
-      Proj.Set_Mode (Item, Viewer.Write);
+      View.Handle (Item, Events.Text_Event ("This is a speling mistake."));
+      Proj.Set_Mode (Item, View.Write);
       Check ("grammar-default-on", Docs.Grammar_Suggestions_Shown (Item));
-      Viewer.Tick (Item, Now);
+      View.Tick (Item, Now);
       Check ("grammar-parallel", Docs.Grammar_Running (Item) >= 2);
       Await (Item, Now);
       Check ("grammar-first-checked", Docs.Grammar_Highlights (Item, 1) > 0);
@@ -79,7 +79,7 @@ package body Grammar_Tests is
 
       --  Turning off clears all documents, including those below the viewport.
       Click (Item, 28.0, 115.0);
-      Viewer.Tick (Item, Now);
+      View.Tick (Item, Now);
       Check ("grammar-off", not Docs.Grammar_Suggestions_Shown (Item));
       Check ("grammar-cleared", Docs.Grammar_Highlights (Item, 1) = 0
              and then Docs.Grammar_Highlights (Item, 2) = 0);
@@ -90,15 +90,15 @@ package body Grammar_Tests is
 
       --  Edits expire marks immediately; checks wait until 500 ms idle.
       Click (Item, 400.0, 140.0);
-      Viewer.Handle (Item, (Kind => Events.Key_Down, Key => Events.Key_A, Command => True, others => <>));
-      Viewer.Handle (Item, Events.Text_Event ("This is a correct sentence."));
+      View.Handle (Item, (Kind => Events.Key_Down, Key => Events.Key_A, Command => True, others => <>));
+      View.Handle (Item, Events.Text_Event ("This is a correct sentence."));
       Goldens.Check_Text ("grammar-edited-text", "This is a correct sentence.", Windows.Item_Text (Item, 1));
       Goldens.Check_Text ("grammar-other-text", "This is a speling mistake.", Windows.Item_Text (Item, 2));
-      Viewer.Tick (Item, Now);
+      View.Tick (Item, Now);
       Check ("grammar-edit-clears", Docs.Grammar_Highlights (Item, 1) = 0);
       Check ("grammar-other-counted", Docs.Grammar_Count (Item) /= "0");
       Now := Now + 499;
-      Viewer.Tick (Item, Now);
+      View.Tick (Item, Now);
       Check ("grammar-idle-waits", Docs.Grammar_Running (Item) = 0 and then Docs.Grammar_Pending (Item));
       Now := Now + 1;
       Await (Item, Now);
@@ -106,35 +106,35 @@ package body Grammar_Tests is
       Check ("grammar-other-still-counted", Docs.Grammar_Count (Item) = "1");
 
       --  A newer edit wins even if the old document is still being checked.
-      Viewer.Handle (Item, (Kind => Events.Key_Down, Key => Events.Key_A, Command => True, others => <>));
-      Viewer.Handle (Item, Events.Text_Event ("This is a speling mistake."));
-      Viewer.Tick (Item, Now);
+      View.Handle (Item, (Kind => Events.Key_Down, Key => Events.Key_A, Command => True, others => <>));
+      View.Handle (Item, Events.Text_Event ("This is a speling mistake."));
+      View.Tick (Item, Now);
       Now := Now + 500;
-      Viewer.Tick (Item, Now);
-      Viewer.Handle (Item, (Kind => Events.Key_Down, Key => Events.Key_A, Command => True, others => <>));
-      Viewer.Handle (Item, Events.Text_Event ("This is a correct sentence."));
-      Viewer.Tick (Item, Now);
+      View.Tick (Item, Now);
+      View.Handle (Item, (Kind => Events.Key_Down, Key => Events.Key_A, Command => True, others => <>));
+      View.Handle (Item, Events.Text_Event ("This is a correct sentence."));
+      View.Tick (Item, Now);
       Now := Now + 500;
       Await (Item, Now);
       Check ("grammar-stale-result", Docs.Grammar_Highlights (Item, 1) = 0);
 
       --  Diagnostics span all documents: editing a clean one keeps the others' marks, count and menu.
       Click (Item, 400.0, 140.0);
-      Viewer.Handle (Item, (Kind => Events.Key_Down, Key => Events.Key_A, Command => True, others => <>));
-      Viewer.Handle (Item, Events.Text_Event ("This is a speling mistake."));
-      Viewer.Tick (Item, Now);
+      View.Handle (Item, (Kind => Events.Key_Down, Key => Events.Key_A, Command => True, others => <>));
+      View.Handle (Item, Events.Text_Event ("This is a speling mistake."));
+      View.Tick (Item, Now);
       Now := Now + 500;
       Await (Item, Now);
       Check ("grammar-span-first", Docs.Grammar_Highlights (Item, 1) > 0 and then Docs.Grammar_Count (Item) = "2");
       Click (Item, 100.0, 277.0);
-      Viewer.Tick (Item, Now + 1000);
-      Viewer.Render (Item, Image);
+      View.Tick (Item, Now + 1000);
+      View.Render (Item, Image);
       Click (Item, 400.0, 460.0);
-      Viewer.Handle (Item, (Kind => Events.Key_Down, Key => Events.Key_A, Command => True, others => <>));
+      View.Handle (Item, (Kind => Events.Key_Down, Key => Events.Key_A, Command => True, others => <>));
       for C of String'("Fine and dandy. It is good.") loop
-         Viewer.Handle (Item, Events.Text_Event ([C]));
+         View.Handle (Item, Events.Text_Event ([C]));
          Now := Now + 60;
-         Viewer.Tick (Item, Now);
+         View.Tick (Item, Now);
          Check ("grammar-span-typing-count", Docs.Grammar_Count (Item) = "1");
       end loop;
       Goldens.Check_Text ("grammar-span-edited", "This is a speling mistake.|Fine and dandy. It is good.",
@@ -144,41 +144,41 @@ package body Grammar_Tests is
       Check ("grammar-span-kept-marks", Docs.Grammar_Highlights (Item, 1) > 0);
       Check ("grammar-span-kept-count", Docs.Grammar_Count (Item) = "1");
 
-      Proj.Set_Mode (Item, Viewer.Canvas);
-      Viewer.Tick (Item, Now);
-      Proj.Set_Mode (Item, Viewer.Write);
-      Viewer.Tick (Item, Now);
+      Proj.Set_Mode (Item, View.Canvas);
+      View.Tick (Item, Now);
+      Proj.Set_Mode (Item, View.Write);
+      View.Tick (Item, Now);
       Check ("grammar-tab-return", Docs.Grammar_Count (Item) = "1" and then Docs.Grammar_Highlights (Item, 1) > 0);
       Click (Item, 181.0, 166.0);
-      Viewer.Tick (Item, Now + 1000);
+      View.Tick (Item, Now + 1000);
       Check ("grammar-added-count", Docs.Document_Count (Item) = 3);
-      Viewer.Handle (Item, Events.Text_Event ("Brand new."));
+      View.Handle (Item, Events.Text_Event ("Brand new."));
       for I in 1 .. 4 loop
          Now := Now + 300;
-         Viewer.Tick (Item, Now);
+         View.Tick (Item, Now);
          Check ("grammar-added-typing-count", Docs.Grammar_Count (Item) = "1");
       end loop;
       Docs.Move_Document (Item, 2, 1);
-      Viewer.Tick (Item, Now);
+      View.Tick (Item, Now);
       Await (Item, Now);
       Check ("grammar-reordered", Docs.Grammar_Highlights (Item, 1) = 0
              and then Docs.Grammar_Highlights (Item, 2) > 0);
 
       --  Notes alone never create document checker jobs.
       Proj.Close_Project (Item);
-      Viewer.Home_Screen.New_Project (Item);
-      Viewer.Outline_Screen.Add_Section (Item);
-      Viewer.Outline_Screen.Toggle_Notes (Item, 1);
-      Viewer.Handle (Item, Events.Text_Event ("speling misteak"));
-      Proj.Set_Mode (Item, Viewer.Write);
-      Viewer.Tick (Item, Now);
+      View.Home_Screen.New_Project (Item);
+      View.Outline_Screen.Add_Section (Item);
+      View.Outline_Screen.Toggle_Notes (Item, 1);
+      View.Handle (Item, Events.Text_Event ("speling misteak"));
+      Proj.Set_Mode (Item, View.Write);
+      View.Tick (Item, Now);
       Check ("grammar-notes-excluded", not Docs.Grammar_Pending (Item) and then Docs.Grammar_Running (Item) = 0);
 
       --  A paragraph larger than one Harper request is checked in chunks.
-      Proj.Set_Mode (Item, Viewer.Canvas);
+      Proj.Set_Mode (Item, View.Canvas);
       Windows.Add_Item (Item, "Long document");
       Windows.Dictate_Into (Item, 1, String'(1 .. 65_540 => ' ') & "This is a speling mistake.");
-      Proj.Set_Mode (Item, Viewer.Write);
+      Proj.Set_Mode (Item, View.Write);
       Await (Item, Now);
       Check ("grammar-long-document", Docs.Grammar_Highlights (Item, 1) > 0);
    end Checking;
@@ -271,16 +271,16 @@ package body Grammar_Tests is
 
    procedure Rule_Cards is
       use type Projects.Rules.Rule_Id;
-      Item : Viewer.Session;
+      Item : View.Session;
       Now  : Events.Milliseconds := 10_000;
       Store : Projects.Store;
    begin
-      Viewer.Open (Item, "", 720, 480, 2.0);
-      Viewer.Home_Screen.New_Project (Item);
-      Proj.Set_Mode (Item, Viewer.Canvas);
+      View.Open (Item, "", 720, 480, 2.0);
+      View.Home_Screen.New_Project (Item);
+      Proj.Set_Mode (Item, View.Canvas);
       Windows.Add_Item (Item, "Notes");
-      Viewer.Handle (Item, Events.Text_Event ("This is a speling mistake. Another speling here, and a the the."));
-      Proj.Set_Mode (Item, Viewer.Write);
+      View.Handle (Item, Events.Text_Event ("This is a speling mistake. Another speling here, and a the the."));
+      Proj.Set_Mode (Item, View.Write);
       Await (Item, Now);
       Check ("rule-cards-marked", Docs.Grammar_Marking (Item, "speling") = 2);
       Check ("rule-cards-none-made", Docs.Grammar_Made_By_Rule (Item, "speling") = 0);
@@ -288,7 +288,7 @@ package body Grammar_Tests is
 
       --  Correcting a text makes a rule, offered first at every place of the text, and listed first.
       Docs.Grammar_Show (Item);
-      Viewer.Tick (Item, Now);
+      View.Tick (Item, Now);
       Docs.Grammar_Expand (Item, "speling");
       Snap (Item, "write-grammar-rule-card");
       Docs.Grammar_Begin_Rule (Item, "speling");
@@ -300,7 +300,7 @@ package body Grammar_Tests is
       Check ("rule-cards-made", Docs.Grammar_Made_By_Rule (Item, "speling") = 2);
       Goldens.Check_Text ("rule-cards-first-fix", "Speling!", Docs.Grammar_First_Suggestion (Item, "speling"));
       Docs.Grammar_Show (Item);
-      Viewer.Tick (Item, Now);
+      View.Tick (Item, Now);
       Check ("rule-cards-first", Docs.Grammar_First_Card_Made_By_Rule (Item));
       Docs.Grammar_Expand (Item, "speling");
       Snap (Item, "write-grammar-rule-made");
@@ -356,23 +356,23 @@ package body Grammar_Tests is
    procedure Entry_By_Name is
       package Testing renames Pomarine.Testing;
 
-      Session : aliased Viewer.Session;
-      Ears    : aliased Viewer_Driver.Driver (Session'Access);
+      Session : aliased View.Session;
+      Ears    : aliased View_Driver.Driver (Session'Access);
       Window  : Testing.Session;
       Now     : Events.Milliseconds := 10_000;
    begin
-      Viewer.Open (Session, "", 720, 480, 2.0);
-      Viewer.Home_Screen.New_Project (Session);
-      Proj.Set_Mode (Session, Viewer.Canvas);
+      View.Open (Session, "", 720, 480, 2.0);
+      View.Home_Screen.New_Project (Session);
+      Proj.Set_Mode (Session, View.Canvas);
       Windows.Add_Item (Session, "Notes");
-      Viewer.Handle (Session, Events.Text_Event ("This is a speling mistake. Another speling here."));
-      Proj.Set_Mode (Session, Viewer.Write);
+      View.Handle (Session, Events.Text_Event ("This is a speling mistake. Another speling here."));
+      Proj.Set_Mode (Session, View.Write);
       Await (Session, Now);
       Docs.Grammar_Show (Session);
-      Viewer.Tick (Session, Now);
+      View.Tick (Session, Now);
       Docs.Grammar_Expand (Session, "speling");
       Ears.Clock := Now;
-      Testing.Attach (Window, Viewer.Widget_Tree (Session).all, Ears'Access);
+      Testing.Attach (Window, View.Widget_Tree (Session).all, Ears'Access);
 
       --  The card's button, Add rule, begins the rule: the form asks what the text is always to be corrected to,
       --  and has an Add rule of its own, after the card's.

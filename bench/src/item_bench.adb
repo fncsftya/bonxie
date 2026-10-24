@@ -7,9 +7,9 @@ with SDL3;
 with Pomarine.Events;
 with SDL3.Windows.Renderers.Images;
 with Typeset.Samples;
-with Viewer;
-with Viewer.Canvas_Windows;
-with Viewer.Home_Screen;
+with View;
+with View.Canvas_Windows;
+with View.Home_Screen;
 
 --  Measures what dragging and sizing an item on the canvas costs, offscreen
 --  in software: item_bench [items [frames [paragraphs [gpu]]]]. Each is the
@@ -19,8 +19,8 @@ with Viewer.Home_Screen;
 --  compare with a frame where nothing has changed.
 procedure Item_Bench is
    package Events renames Pomarine.Events;
-   package Windows renames Viewer.Canvas_Windows;
-   package Home renames Viewer.Home_Screen;
+   package Windows renames View.Canvas_Windows;
+   package Home renames View.Home_Screen;
    package Images renames SDL3.Windows.Renderers.Images;
 
    use Ada.Real_Time;
@@ -38,7 +38,7 @@ procedure Item_Bench is
       then Natural'Value (Ada.Command_Line.Argument (3)) else 0);
    --  Of text, besides a line, in each item.
 
-   Session : Viewer.Session;
+   Session : View.Session;
    Drawn   : Images.Image;
 
    procedure Report (What : String; Handling, Drawing : Duration) is
@@ -71,9 +71,9 @@ procedure Item_Bench is
    begin
       if Windowed then
          --  Not presenting: that waits for the display, even without vsync.
-         Viewer.Paint_Frame (Session);
+         View.Paint_Frame (Session);
       else
-         Viewer.Render (Session, Drawn);
+         View.Render (Session, Drawn);
       end if;
    end Draw;
 
@@ -85,8 +85,8 @@ procedure Item_Bench is
       X : Float := From_X;
       Y : Float := From_Y;
    begin
-      Viewer.Handle (Session, Move (X, Y, False));
-      Viewer.Handle (Session, Button (Events.Mouse_Down, X, Y));
+      View.Handle (Session, Move (X, Y, False));
+      View.Handle (Session, Button (Events.Mouse_Down, X, Y));
       for K in 1 .. Frames loop
          --  Back and forth, to stay on the screen.
          if K mod 40 < 20 then
@@ -97,13 +97,13 @@ procedure Item_Bench is
             Y := Y - Step_Y;
          end if;
          Start := Clock;
-         Viewer.Handle (Session, Move (X, Y, True));
+         View.Handle (Session, Move (X, Y, True));
          Handling := Handling + To_Duration (Clock - Start);
          Start := Clock;
          Draw;
          Drawing := Drawing + To_Duration (Clock - Start);
       end loop;
-      Viewer.Handle (Session, Button (Events.Mouse_Up, X, Y));
+      View.Handle (Session, Button (Events.Mouse_Up, X, Y));
       Report (What, Handling, Drawing);
    end Measure;
 
@@ -123,7 +123,7 @@ procedure Item_Bench is
       Drawing : Duration := 0.0;
    begin
       for K in 1 .. Frames loop
-         Viewer.Handle (Session, (Kind => Events.Redraw, others => <>));
+         View.Handle (Session, (Kind => Events.Redraw, others => <>));
          Start := Clock;
          Draw;
          Drawing := Drawing + To_Duration (Clock - Start);
@@ -138,11 +138,11 @@ begin
      and then Ada.Command_Line.Argument (4) = "gpu";
    if Windowed then
       SDL3.Initialize;
-      Viewer.Open_Window
+      View.Open_Window
         (Session, "", Hidden => True, Store => Projects.Memory,
          VSync => False);
    else
-      Viewer.Open (Session, "", 720, 480, 2.0);
+      View.Open (Session, "", 720, 480, 2.0);
    end if;
    Home.New_Project (Session);
    for I in 1 .. Items loop
@@ -163,21 +163,21 @@ begin
                   loop
                      Last := Last - 1;
                   end loop;
-                  Viewer.Handle
+                  View.Handle
                     (Session, Events.Text_Event (Text (Next .. Last)));
                   Next := Last + 1;
                end;
             end loop;
          end;
       end if;
-      Viewer.Handle
+      View.Handle
         (Session,
          Events.Text_Event
            ("The quick brown fox jumps over the lazy dog, and then some "
             & "more words follow so that the item has a few lines of text "
             & "to wrap when it is made smaller or larger."));
    end loop;
-   Viewer.Handle (Session, Move (650.0, 60.0, False));
+   View.Handle (Session, Move (650.0, 60.0, False));
    Draw;
 
    Idle;

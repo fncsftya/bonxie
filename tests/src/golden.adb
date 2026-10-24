@@ -35,11 +35,11 @@ with Settings_Tests;
 with Settings_VM_Tests;
 with Projects;
 with Speech.Jobs;
-with Viewer;
-with Viewer.Canvas_Camera;
-with Viewer.Home_Screen;
-with Viewer.Project_Screen;
-with Viewer.Settings;
+with View;
+with View.Canvas_Camera;
+with View.Home_Screen;
+with View.Project_Screen;
+with View.Settings;
 with Write_Tests;
 with Grammar_Tests;
 
@@ -49,10 +49,10 @@ with Grammar_Tests;
 procedure Golden is
 
    package Events renames Pomarine.Events;
-   package Camera renames Viewer.Canvas_Camera;
-   package Home renames Viewer.Home_Screen;
-   package Proj renames Viewer.Project_Screen;
-   package Settings renames Viewer.Settings;
+   package Camera renames View.Canvas_Camera;
+   package Home renames View.Home_Screen;
+   package Proj renames View.Project_Screen;
+   package Settings renames View.Settings;
    package Images renames Goldens.Images;
 
    Filter : constant String :=
@@ -113,25 +113,25 @@ procedure Golden is
      (Whole (Value * 100.0));
 
    procedure Press
-     (Item  : in out Viewer.Session;
+     (Item  : in out View.Session;
       Code  : Events.Key_Code;
       Times : Positive := 1;
       Command : Boolean := False) is
    begin
       for K in 1 .. Times loop
-         Viewer.Handle (Item, Key (Code, Command));
+         View.Handle (Item, Key (Code, Command));
       end loop;
    end Press;
 
    procedure Start
-     (Item    : in out Viewer.Session;
+     (Item    : in out View.Session;
       Width   : Positive := Default_Width;
       Height  : Positive := Default_Height;
       Density : Float := 2.0) is
    begin
-      Viewer.Open (Item, "", Width, Height, Density);
+      View.Open (Item, "", Width, Height, Density);
       Home.New_Project (Item);
-      Viewer.Project_Screen.Set_Mode (Item, Viewer.Canvas);
+      View.Project_Screen.Set_Mode (Item, View.Canvas);
    end Start;
    --  A project, at its canvas.
 
@@ -141,25 +141,25 @@ procedure Golden is
       Height  : Positive := Default_Height;
       Density : Float := 2.0)
    is
-      Session : Viewer.Session;
+      Session : View.Session;
       Drawn   : Images.Image;
    begin
       Start (Session, Width, Height, Density);
-      Viewer.Render (Session, Drawn);
+      View.Render (Session, Drawn);
       Goldens.Check (Name, Drawn);
    end Show;
 
    --  The canvas
 
    procedure Canvas_Starts is
-      Session : Viewer.Session;
+      Session : View.Session;
       Drawn : Images.Image;
    begin
       Start (Session);
-      Viewer.Render (Session, Drawn);
+      View.Render (Session, Drawn);
       Goldens.Check ("canvas", Drawn);
       Goldens.Check_Text
-        ("canvas-mode", "CANVAS", Viewer.Modes'Image (Proj.Mode (Session)));
+        ("canvas-mode", "CANVAS", View.Modes'Image (Proj.Mode (Session)));
       --  The origin in the middle, at a zoom of 1.
       Goldens.Check_Text
         ("canvas-origin", " 360 218",
@@ -180,41 +180,41 @@ procedure Golden is
    end Canvas_Narrow;
 
    procedure Canvas_Resized is
-      Session : Viewer.Session;
+      Session : View.Session;
       Drawn   : Images.Image;
    begin
       Start (Session);
-      Viewer.Render (Session, Drawn);
-      Viewer.Resize (Session, 400, 600);
-      Viewer.Render (Session, Drawn);
+      View.Render (Session, Drawn);
+      View.Resize (Session, 400, 600);
+      View.Render (Session, Drawn);
       Goldens.Check ("canvas-resized", Drawn);
    end Canvas_Resized;
 
    procedure Canvas_Panned is
-      Session : Viewer.Session;
+      Session : View.Session;
       Drawn   : Images.Image;
    begin
       --  The wheel, or two fingers on a trackpad, pans by 24 points a
       --  notch: down by Y, and left by X.
       Start (Session);
-      Viewer.Handle (Session, Wheel (-1.0, 2.0, 400.0, 300.0));
+      View.Handle (Session, Wheel (-1.0, 2.0, 400.0, 300.0));
       Goldens.Check_Text
         ("canvas-panned-origin", " 384 266",
          Whole (Camera.Canvas_Origin_X (Session))
          & Whole (Camera.Canvas_Origin_Y (Session)));
       Goldens.Check_Text
         ("canvas-panned-zoom", " 100", Percent (Camera.Canvas_Zoom (Session)));
-      Viewer.Render (Session, Drawn);
+      View.Render (Session, Drawn);
       Goldens.Check ("canvas-panned", Drawn);
 
       --  As far as it goes.
-      Viewer.Handle (Session, Wheel (0.0, -1000.0, 400.0, 300.0));
-      Viewer.Render (Session, Drawn);
+      View.Handle (Session, Wheel (0.0, -1000.0, 400.0, 300.0));
+      View.Render (Session, Drawn);
       Goldens.Check ("canvas-panned-far", Drawn);
    end Canvas_Panned;
 
    procedure Canvas_Zoomed is
-      Session : Viewer.Session;
+      Session : View.Session;
       Drawn   : Images.Image;
 
       function Under_Pointer return String is
@@ -228,25 +228,25 @@ procedure Golden is
 
       --  Command with the wheel zooms about the pointer, which keeps what
       --  is under it.
-      Viewer.Handle
+      View.Handle
         (Session, Wheel (0.0, 3.0, 500.0, 300.0, Command => True));
       Goldens.Check_Text
         ("canvas-zoom-in", " 133", Percent (Camera.Canvas_Zoom (Session)));
       Goldens.Check_Text ("canvas-zoom-kept", " 140 38", Under_Pointer);
-      Viewer.Render (Session, Drawn);
+      View.Render (Session, Drawn);
       Goldens.Check ("canvas-zoomed-in", Drawn);
 
-      Viewer.Handle
+      View.Handle
         (Session, Wheel (0.0, -8.0, 500.0, 300.0, Command => True));
       Goldens.Check_Text
         ("canvas-zoom-out", " 62", Percent (Camera.Canvas_Zoom (Session)));
       Goldens.Check_Text ("canvas-zoom-out-kept", " 140 38", Under_Pointer);
-      Viewer.Render (Session, Drawn);
+      View.Render (Session, Drawn);
       Goldens.Check ("canvas-zoomed-out", Drawn);
    end Canvas_Zoomed;
 
    procedure Canvas_Zoom_Keys is
-      Session : Viewer.Session;
+      Session : View.Session;
    begin
       Start (Session);
       Press (Session, Events.Key_Equals, Times => 2, Command => True);
@@ -274,16 +274,16 @@ procedure Golden is
    end Canvas_Zoom_Keys;
 
    procedure Canvas_Pinched is
-      Session : Viewer.Session;
+      Session : View.Session;
    begin
       Start (Session);
-      Viewer.Handle
+      View.Handle
         (Session,
          (Kind => Events.Pinch, Scale => 1.5, Mouse_X => 360.0,
           Mouse_Y => 208.0, others => <>));
       Goldens.Check_Text
         ("canvas-pinch-in", " 150", Percent (Camera.Canvas_Zoom (Session)));
-      Viewer.Handle
+      View.Handle
         (Session,
          (Kind => Events.Pinch, Scale => 0.5, Mouse_X => 360.0,
           Mouse_Y => 208.0, others => <>));
@@ -292,42 +292,42 @@ procedure Golden is
    end Canvas_Pinched;
 
    procedure Canvas_Dragged is
-      Session : Viewer.Session;
+      Session : View.Session;
       Drawn   : Images.Image;
 
       function Cursor return String is
-        (SDL3.Cursors.Kind'Image (Viewer.Cursor (Session)));
+        (SDL3.Cursors.Kind'Image (View.Cursor (Session)));
    begin
       Start (Session);
-      Viewer.Handle (Session, Pointer_At (300.0, 200.0));
+      View.Handle (Session, Pointer_At (300.0, 200.0));
       Goldens.Check_Text ("canvas-cursor-idle", "DEFAULT", Cursor);
 
       --  The left button does not pan.
-      Viewer.Handle (Session, Click (300.0, 200.0));
-      Viewer.Handle (Session, Pointer_At (340.0, 230.0, Held => True));
-      Viewer.Handle (Session, Release_Button (1, 340.0, 230.0));
+      View.Handle (Session, Click (300.0, 200.0));
+      View.Handle (Session, Pointer_At (340.0, 230.0, Held => True));
+      View.Handle (Session, Release_Button (1, 340.0, 230.0));
       Goldens.Check_Text
         ("canvas-left-drag", " 360 218",
          Whole (Camera.Canvas_Origin_X (Session))
          & Whole (Camera.Canvas_Origin_Y (Session)));
 
       --  The middle button does, with the move cursor while it does.
-      Viewer.Handle (Session, Press_Button (2, 300.0, 200.0));
+      View.Handle (Session, Press_Button (2, 300.0, 200.0));
       Goldens.Check_Text ("canvas-cursor-panning", "MOVE", Cursor);
-      Viewer.Handle (Session, Pointer_At (340.0, 230.0));
-      Viewer.Handle (Session, Pointer_At (350.0, 210.0));
+      View.Handle (Session, Pointer_At (340.0, 230.0));
+      View.Handle (Session, Pointer_At (350.0, 210.0));
       Goldens.Check_Text
         ("canvas-middle-drag", " 410 228",
          Whole (Camera.Canvas_Origin_X (Session))
          & Whole (Camera.Canvas_Origin_Y (Session)));
       Goldens.Check_Text ("canvas-cursor-still-panning", "MOVE", Cursor);
-      Viewer.Render (Session, Drawn);
+      View.Render (Session, Drawn);
       Goldens.Check ("canvas-middle-dragged", Drawn);
-      Viewer.Handle (Session, Release_Button (2, 350.0, 210.0));
+      View.Handle (Session, Release_Button (2, 350.0, 210.0));
       Goldens.Check_Text ("canvas-cursor-let-go", "DEFAULT", Cursor);
 
       --  Let go, it follows the pointer no more.
-      Viewer.Handle (Session, Pointer_At (400.0, 300.0));
+      View.Handle (Session, Pointer_At (400.0, 300.0));
       Goldens.Check_Text
         ("canvas-after-drag", " 410 228",
          Whole (Camera.Canvas_Origin_X (Session))
@@ -337,30 +337,30 @@ procedure Golden is
    --  The tools bar
 
    procedure Tools_Shown is
-      Session : Viewer.Session;
+      Session : View.Session;
       Hovered : Images.Image;
    begin
       Start (Session);
-      Viewer.Handle (Session, Pointer_At (Tools_Item_X, Tools_Item_Y));
-      Viewer.Render (Session, Hovered);
+      View.Handle (Session, Pointer_At (Tools_Item_X, Tools_Item_Y));
+      View.Render (Session, Hovered);
       Goldens.Check ("tools-item-hovered", Hovered);
    end Tools_Shown;
 
    procedure Tools_Item_Click is
-      Session : Viewer.Session;
+      Session : View.Session;
    begin
       --  A click on the item does nothing yet.
       Start (Session);
-      Viewer.Handle (Session, Pointer_At (Tools_Item_X, Tools_Item_Y));
-      Viewer.Handle (Session, Click (Tools_Item_X, Tools_Item_Y));
-      Viewer.Handle
+      View.Handle (Session, Pointer_At (Tools_Item_X, Tools_Item_Y));
+      View.Handle (Session, Click (Tools_Item_X, Tools_Item_Y));
+      View.Handle
         (Session, Release_Button (1, Tools_Item_X, Tools_Item_Y));
       Goldens.Check_Text
         ("tools-item-clicked", "PROJECT",
-         Viewer.Screens'Image (Viewer.Screen (Session)));
+         View.Screens'Image (View.Screen (Session)));
       Goldens.Check_Text
         ("tools-item-cursor", "POINTER",
-         SDL3.Cursors.Kind'Image (Viewer.Cursor (Session)));
+         SDL3.Cursors.Kind'Image (View.Cursor (Session)));
    end Tools_Item_Click;
 
    --  The screens
@@ -387,13 +387,13 @@ procedure Golden is
      ((Kind => Events.Mouse_Up, Button => 1, Clicks => 1,
        Mouse_X => X, Mouse_Y => Y, others => <>));
 
-   procedure Click_On (Item : in out Viewer.Session; X, Y : Float) is
+   procedure Click_On (Item : in out View.Session; X, Y : Float) is
    begin
-      Viewer.Handle (Item, Events.Event'(Kind => Events.Mouse_Move,
+      View.Handle (Item, Events.Event'(Kind => Events.Mouse_Move,
                                          Mouse_X => X, Mouse_Y => Y,
                                          others => <>));
-      Viewer.Handle (Item, Click (X, Y));
-      Viewer.Handle (Item, Button_Click (X, Y));
+      View.Handle (Item, Click (X, Y));
+      View.Handle (Item, Button_Click (X, Y));
    end Click_On;
 
    --  The home screen is tested in a window Home_Width wide and
@@ -429,16 +429,16 @@ procedure Golden is
      (Card_Left (Row) + 280.0);
    --  Of the buttons below the picture, and of the field's in their place.
 
-   procedure Move_Away (Item : in out Viewer.Session) is
+   procedure Move_Away (Item : in out View.Session) is
    begin
-      Viewer.Handle (Item, Events.Event'(Kind => Events.Mouse_Move,
+      View.Handle (Item, Events.Event'(Kind => Events.Mouse_Move,
                                          Mouse_X => 1.0, Mouse_Y => 1.0,
                                          others => <>));
    end Move_Away;
 
-   procedure With_Three (Session : in out Viewer.Session) is
+   procedure With_Three (Session : in out View.Session) is
    begin
-      Viewer.Open (Session, "", Home_Width, Home_Height);
+      View.Open (Session, "", Home_Width, Home_Height);
       for I in 1 .. 3 loop
          Home.Add_Project
            (Session, "Episode" & Natural'Image (I), Hour * Long_Integer (I));
@@ -446,7 +446,7 @@ procedure Golden is
    end With_Three;
 
    procedure Renaming is
-      Session : Viewer.Session;
+      Session : View.Session;
       Drawn   : Images.Image;
    begin
       With_Three (Session);
@@ -454,12 +454,12 @@ procedure Golden is
       Goldens.Check_Text
         ("rename-started", "TRUE",
          Boolean'Image (Home.Is_Renaming (Session)));
-      Viewer.Render (Session, Drawn);
+      View.Render (Session, Drawn);
       Goldens.Check ("rename-field", Drawn);
 
       --  The title is selected, to type over.
-      Viewer.Handle (Session, Events.Text_Event ("Renamed"));
-      Viewer.Render (Session, Drawn);
+      View.Handle (Session, Events.Text_Event ("Renamed"));
+      View.Render (Session, Drawn);
       Goldens.Check ("rename-typed", Drawn);
       Click_On (Session, Ok_X (2), Info_Y (2));
       Goldens.Check_Text
@@ -472,16 +472,16 @@ procedure Golden is
       Goldens.Check_Text ("rename-third", "Episode 1",
                           Home.Row_Title (Session, 3));
       Move_Away (Session);
-      Viewer.Render (Session, Drawn);
+      View.Render (Session, Drawn);
       Goldens.Check ("rename-list", Drawn);
 
       --  Clicking the project's button opens that project.
       Click_On (Session, Open_X (1), Open_Y (1));
       Goldens.Check_Text
         ("rename-opened", "PROJECT",
-         Viewer.Screens'Image (Viewer.Screen (Session)));
+         View.Screens'Image (View.Screen (Session)));
       --  Its title is on the toolbar.
-      Viewer.Render (Session, Drawn);
+      View.Render (Session, Drawn);
       Goldens.Check ("project-title", Drawn);
    end Renaming;
 
@@ -492,7 +492,7 @@ procedure Golden is
    Dialog_Buttons_Y : constant Float := 452.5;
 
    procedure Deleting is
-      Session : Viewer.Session;
+      Session : View.Session;
       Drawn   : Images.Image;
    begin
       With_Three (Session);
@@ -500,14 +500,14 @@ procedure Golden is
       Goldens.Check_Text
         ("delete-asks", "TRUE",
          Boolean'Image (Home.Is_Confirming (Session)));
-      Viewer.Render (Session, Drawn);
+      View.Render (Session, Drawn);
       Goldens.Check ("delete-dialog", Drawn);
 
       --  The screen behind takes no clicks, nor keys.
       Click_On (Session, Open_X (1), Open_Y (1));
       Goldens.Check_Text
         ("delete-modal-screen", "HOME",
-         Viewer.Screens'Image (Viewer.Screen (Session)));
+         View.Screens'Image (View.Screen (Session)));
       Click_On (Session, Delete_X (3), Info_Y (3));
       Goldens.Check_Text
         ("delete-modal-same", "TRUE",
@@ -521,12 +521,12 @@ procedure Golden is
       Goldens.Check_Text ("delete-cancelled-title", "Episode 2",
                           Home.Row_Title (Session, 2));
       Move_Away (Session);
-      Viewer.Render (Session, Drawn);
+      View.Render (Session, Drawn);
       Goldens.Check ("delete-after-cancel", Drawn);
 
       --  So does Escape.
       Click_On (Session, Delete_X (2), Info_Y (2));
-      Viewer.Handle (Session, Key (Events.Key_Escape));
+      View.Handle (Session, Key (Events.Key_Escape));
       Goldens.Check_Text
         ("delete-escaped", "FALSE",
          Boolean'Image (Home.Is_Confirming (Session)));
@@ -545,19 +545,19 @@ procedure Golden is
                           Home.Row_Title (Session, 2));
       Goldens.Check_Text ("delete-third", "", Home.Row_Title (Session, 3));
       Move_Away (Session);
-      Viewer.Render (Session, Drawn);
+      View.Render (Session, Drawn);
       Goldens.Check ("delete-list", Drawn);
    end Deleting;
 
    procedure Rename_Cancelled is
-      Session : Viewer.Session;
+      Session : View.Session;
       Before, After : Images.Image;
    begin
       With_Three (Session);
       Move_Away (Session);
-      Viewer.Render (Session, Before);
+      View.Render (Session, Before);
       Click_On (Session, Rename_X (1), Info_Y (1));
-      Viewer.Handle (Session, Events.Text_Event ("Nope"));
+      View.Handle (Session, Events.Text_Event ("Nope"));
       Click_On (Session, Cancel_X (1), Info_Y (1));
       Goldens.Check_Text
         ("cancel-renaming", "FALSE",
@@ -565,7 +565,7 @@ procedure Golden is
       Goldens.Check_Text ("cancel-title", "Episode 3",
                           Home.Row_Title (Session, 1));
       Move_Away (Session);
-      Viewer.Render (Session, After);
+      View.Render (Session, After);
       Goldens.Check_Same ("cancel-same", Before, After);
 
       --  Another renamed after, and the first is not.
@@ -574,18 +574,18 @@ procedure Golden is
       Goldens.Check_Text
         ("cancel-other", "TRUE",
          Boolean'Image (Home.Is_Renaming (Session)));
-      Viewer.Render (Session, After);
+      View.Render (Session, After);
       Goldens.Check ("rename-other-row", After);
    end Rename_Cancelled;
 
    procedure Rename_Entered is
-      Session : Viewer.Session;
+      Session : View.Session;
    begin
       --  Return accepts, as OK does.
       With_Three (Session);
       Click_On (Session, Rename_X (3), Info_Y (3));
-      Viewer.Handle (Session, Events.Text_Event ("  Pilot  "));
-      Viewer.Handle (Session, Key (Events.Key_Return));
+      View.Handle (Session, Events.Text_Event ("  Pilot  "));
+      View.Handle (Session, Key (Events.Key_Return));
       Goldens.Check_Text ("enter-renaming", "FALSE",
                           Boolean'Image (Home.Is_Renaming (Session)));
       Goldens.Check_Text ("enter-title", "Pilot",
@@ -593,7 +593,7 @@ procedure Golden is
 
       --  Nothing is not a title.
       Click_On (Session, Rename_X (1), Info_Y (1));
-      Viewer.Handle (Session, Key (Events.Key_Backspace));
+      View.Handle (Session, Key (Events.Key_Backspace));
       Click_On (Session, Ok_X (1), Info_Y (1));
       Goldens.Check_Text ("empty-renaming", "TRUE",
                           Boolean'Image (Home.Is_Renaming (Session)));
@@ -608,29 +608,29 @@ procedure Golden is
    end Rename_Entered;
 
    procedure Home_Empty is
-      Session : Viewer.Session;
+      Session : View.Session;
       Drawn   : Images.Image;
    begin
-      Viewer.Open (Session, "", Home_Width, Home_Height);
+      View.Open (Session, "", Home_Width, Home_Height);
       Goldens.Check_Text
         ("home-is-first", "HOME",
-         Viewer.Screens'Image (Viewer.Screen (Session)));
-      Goldens.Check_Text ("home-title", "bonxie", Viewer.Title (Session));
-      Viewer.Render (Session, Drawn);
+         View.Screens'Image (View.Screen (Session)));
+      Goldens.Check_Text ("home-title", "bonxie", View.Title (Session));
+      View.Render (Session, Drawn);
       Goldens.Check ("home-empty", Drawn);
    end Home_Empty;
 
    procedure Home_Recent is
-      Session : Viewer.Session;
+      Session : View.Session;
       Drawn   : Images.Image;
    begin
       --  The five latest, the latest first.
-      Viewer.Open (Session, "", Home_Width, Home_Height);
+      View.Open (Session, "", Home_Width, Home_Height);
       for I in 1 .. 7 loop
          Home.Add_Project
            (Session, "Episode" & Natural'Image (I), Hour * Long_Integer (I));
       end loop;
-      Viewer.Render (Session, Drawn);
+      View.Render (Session, Drawn);
       Goldens.Check ("home-recent", Drawn);
    end Home_Recent;
 
@@ -660,18 +660,18 @@ procedure Golden is
       use type Preferences.Speech_Models;
       use type Preferences.Theme_Choices;
       use type Preferences.Background_Modes;
-      Session : Viewer.Session;
+      Session : View.Session;
       Drawn   : Images.Image;
    begin
-      Viewer.Open (Session, "", Home_Width, Home_Height);
+      View.Open (Session, "", Home_Width, Home_Height);
       Click_On (Session, Actions_X, Settings_Y);
       Goldens.Check_Text
         ("settings-open", "TRUE",
          Boolean'Image (Settings.Is_Settings_Open (Session)));
       Goldens.Check_Text
         ("settings-stays-home", "HOME",
-         Viewer.Screens'Image (Viewer.Screen (Session)));
-      Viewer.Render (Session, Drawn);
+         View.Screens'Image (View.Screen (Session)));
+      View.Render (Session, Drawn);
       Goldens.Check ("settings-macos", Drawn);
 
       --  Dark draws the whole window in the dark theme, and Light goes
@@ -681,7 +681,7 @@ procedure Golden is
         ("settings-dark-chosen", "TRUE",
          Boolean'Image (Settings.Theme_Choice (Session) = Preferences.Dark
                         and then Settings.Is_Dark (Session)));
-      Viewer.Render (Session, Drawn);
+      View.Render (Session, Drawn);
       Goldens.Check ("settings-dark", Drawn);
 
       Click_On (Session, Model_X, Light_Y);
@@ -708,7 +708,7 @@ procedure Golden is
         ("settings-watercolour-chosen", "TRUE",
          Boolean'Image (Settings.Background_Choice (Session) = Preferences.Watercolour
                         and then not Settings.Is_Adaptive (Session)));
-      Viewer.Render (Session, Drawn);
+      View.Render (Session, Drawn);
       Goldens.Check ("settings-watercolour-chosen-offscreen", Drawn);
       Click_On (Session, Fixed_Card_X, Card_Y);
       Goldens.Check_Text
@@ -723,10 +723,10 @@ procedure Golden is
             "TRUE", Boolean'Image (Settings.Background_Choice (Session) = Mode));
       end loop;
       Settings.Choose_Background (Session, Preferences.Bauhaus);
-      Viewer.Render (Session, Drawn);
+      View.Render (Session, Drawn);
       Goldens.Check ("settings-bauhaus-chosen-offscreen", Drawn);
       Settings.Choose_Background (Session, Preferences.Ink_Wash);
-      Viewer.Render (Session, Drawn);
+      View.Render (Session, Drawn);
       Goldens.Check ("settings-ink-wash-chosen-offscreen", Drawn);
       Settings.Choose_Background (Session, Preferences.Fixed);
 
@@ -736,7 +736,7 @@ procedure Golden is
         ("settings-parakeet-chosen", "TRUE",
          Boolean'Image
            (Settings.Speech_Model (Session) = Preferences.Parakeet));
-      Viewer.Render (Session, Drawn);
+      View.Render (Session, Drawn);
       Goldens.Check ("settings-parakeet", Drawn);
 
       Click_On (Session, Model_X, Native_Y);
@@ -745,7 +745,7 @@ procedure Golden is
          Boolean'Image (Settings.Speech_Model (Session) = Preferences.MacOS));
 
       --  Escape and Close both leave.
-      Viewer.Handle (Session, Key (Events.Key_Escape));
+      View.Handle (Session, Key (Events.Key_Escape));
       Goldens.Check_Text
         ("settings-escaped", "FALSE",
          Boolean'Image (Settings.Is_Settings_Open (Session)));
@@ -760,9 +760,9 @@ procedure Golden is
    --  nothing here is drawn for a golden.
    procedure Home_Reseed is
       use type Preferences.Background_Modes;
-      Session : Viewer.Session;
+      Session : View.Session;
    begin
-      Viewer.Open (Session, "", Home_Width, Home_Height);
+      View.Open (Session, "", Home_Width, Home_Height);
       Click_On (Session, Actions_X, Settings_Y);
       declare
          Before : constant Natural := Settings.Watercolour_Seed (Session);
@@ -857,17 +857,17 @@ procedure Golden is
 
    --  The dark theme over the home screen, and a new project's screen.
    procedure Dark_Screens is
-      Session : Viewer.Session;
+      Session : View.Session;
       Drawn   : Images.Image;
    begin
-      Viewer.Open (Session, "Bonxie", Home_Width, Home_Height);
+      View.Open (Session, "Bonxie", Home_Width, Home_Height);
       Home.Add_Project (Session, "Episode 1", Hour);
       Settings.Choose_Theme (Session, Preferences.Dark);
-      Viewer.Render (Session, Drawn);
+      View.Render (Session, Drawn);
       Goldens.Check ("home-dark", Drawn);
 
       Click_On (Session, Actions_X, New_Y);
-      Viewer.Render (Session, Drawn);
+      View.Render (Session, Drawn);
       Goldens.Check ("project-dark", Drawn);
    end Dark_Screens;
 
@@ -1100,28 +1100,28 @@ procedure Golden is
    end Adaptive_Palettes;
 
    procedure New_And_Close is
-      Session : Viewer.Session;
+      Session : View.Session;
       Drawn   : Images.Image;
    begin
-      Viewer.Open (Session, "Bonxie", Home_Width, Home_Height);
+      View.Open (Session, "Bonxie", Home_Width, Home_Height);
       Home.Add_Project (Session, "Episode 1", Hour);
       Click_On (Session, Actions_X, New_Y);
       Goldens.Check_Text
         ("new-project-screen", "PROJECT",
-         Viewer.Screens'Image (Viewer.Screen (Session)));
-      Viewer.Render (Session, Drawn);
+         View.Screens'Image (View.Screen (Session)));
+      View.Render (Session, Drawn);
       Goldens.Check ("project-screen", Drawn);
 
       Click_On (Session, Close_X, Close_Y);
       Goldens.Check_Text
         ("close-project-screen", "HOME",
-         Viewer.Screens'Image (Viewer.Screen (Session)));
-      Viewer.Render (Session, Drawn);
+         View.Screens'Image (View.Screen (Session)));
+      View.Render (Session, Drawn);
       Goldens.Check ("home-after-close", Drawn);
    end New_And_Close;
 
    procedure Keyboard_Only is
-      Session : Viewer.Session;
+      Session : View.Session;
       Drawn   : Images.Image;
    begin
       With_Three (Session);
@@ -1133,7 +1133,7 @@ procedure Golden is
         ("keys-delete-asks", "TRUE", Boolean'Image (Home.Is_Confirming (Session)));
       --  A click gave it no ring, a key does.
       Press (Session, Events.Key_Tab, Times => 3);
-      Viewer.Render (Session, Drawn);
+      View.Render (Session, Drawn);
       Goldens.Check ("keys-dialog-ring", Drawn);
       Press (Session, Events.Key_Return);
       Goldens.Check_Text
@@ -1150,7 +1150,7 @@ procedure Golden is
         ("keys-delete-tab-round", "FALSE Episode 1",
          Boolean'Image (Home.Is_Confirming (Session)) & " " & Home.Row_Title (Session, 3));
       Goldens.Check_Text
-        ("keys-delete-still-home", "HOME", Viewer.Screens'Image (Viewer.Screen (Session)));
+        ("keys-delete-still-home", "HOME", View.Screens'Image (View.Screen (Session)));
 
       --  One Tab on from Cancel is Delete, which Return does.
       Click_On (Session, Delete_X (3), Info_Y (3));
@@ -1164,15 +1164,15 @@ procedure Golden is
       --  Return presses it; and, on the project, Tab and Return its button
       --  back.
       Press (Session, Events.Key_Tab);
-      Viewer.Render (Session, Drawn);
+      View.Render (Session, Drawn);
       Goldens.Check ("keys-home-ring", Drawn);
       Press (Session, Events.Key_Return);
       Goldens.Check_Text
-        ("keys-new-project", "PROJECT", Viewer.Screens'Image (Viewer.Screen (Session)));
+        ("keys-new-project", "PROJECT", View.Screens'Image (View.Screen (Session)));
       Press (Session, Events.Key_Tab);
       Press (Session, Events.Key_Return);
       Goldens.Check_Text
-        ("keys-back-home", "HOME", Viewer.Screens'Image (Viewer.Screen (Session)));
+        ("keys-back-home", "HOME", View.Screens'Image (View.Screen (Session)));
    end Keyboard_Only;
 
    procedure Add
@@ -1189,10 +1189,10 @@ procedure Golden is
    end Add;
 
    procedure Open_Listed is
-      Session : Viewer.Session;
+      Session : View.Session;
    begin
       --  A click on a listed project opens it: the second latest here.
-      Viewer.Open (Session, "", Home_Width, Home_Height);
+      View.Open (Session, "", Home_Width, Home_Height);
       for I in 1 .. 3 loop
          Home.Add_Project
            (Session, "Episode" & Natural'Image (I), Hour * Long_Integer (I));
@@ -1200,7 +1200,7 @@ procedure Golden is
       Click_On (Session, Open_X (2), Open_Y (2));
       Goldens.Check_Text
         ("listed-screen", "PROJECT",
-         Viewer.Screens'Image (Viewer.Screen (Session)));
+         View.Screens'Image (View.Screen (Session)));
       Goldens.Check_Text
         ("listed-project", "2",
          Projects.Id'Image (Proj.Current_Project (Session))
@@ -1209,7 +1209,7 @@ procedure Golden is
       Click_On (Session, Close_X, Close_Y);
       Goldens.Check_Text
         ("listed-closed", "HOME",
-         Viewer.Screens'Image (Viewer.Screen (Session)));
+         View.Screens'Image (View.Screen (Session)));
       --  A new project is a project of its own.
       Click_On (Session, Actions_X, New_Y);
       Goldens.Check_Text

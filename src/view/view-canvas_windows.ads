@@ -1,0 +1,180 @@
+with Items;
+with Projects;
+
+--  The items on the project's canvas, in the order they were made, as their
+--  windows show them: for tests.
+package View.Canvas_Windows is
+
+   function Search_In_Item (Item : Session; Row : Positive) return Boolean;
+   procedure Search_Button_Point (Item : Session; Button : Positive; X, Y : out Float)
+     with Pre => Button <= 3;
+
+   function Item_Count (Item : Session) return Natural
+     with Pre => Is_Open (Item) and then Screen (Item) = Project;
+   --  How many the project has, whether shown or not.
+
+   procedure Add_Item
+     (Item : in out Session;
+      Name : String := "Untitled item";
+      Kind : Items.Kinds := Items.Note)
+     with Pre => Is_Open (Item) and then Screen (Item) = Project;
+   --  Add one called Name in the middle of the canvas, with the focus in
+   --  its text, as the Add Item button does (or, of a Source, as Add
+   --  Source does, then as if its From URL button was pressed, to type its
+   --  link).
+
+   procedure Add_Unchosen_Source
+     (Item : in out Session; Name : String := "Untitled source")
+     with Pre => Is_Open (Item) and then Screen (Item) = Project;
+   --  Add a source as the Add Source button does: with its two buttons
+   --  to say where it comes from.
+
+   function Item_Origin (Item : Session; Row : Positive) return Items.Origins
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item);
+
+   procedure Pick_File (Item : in out Session; Row : Positive; Path : String)
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item)
+                 and then Items."=" (Item_Kind (Item, Row), Items.Source);
+   --  As if the file at Path was chosen in the dialog the source's From
+   --  File button, or its path, shows.
+
+   function Item_Text_Selected (Item : Session; Row : Positive) return String
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item);
+   --  What is selected in the text of a source that is a text file.
+
+   function Item_Shown_Text (Item : Session; Row : Positive) return String
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item);
+   --  The text of a source that is a text file, as its window shows it.
+
+   function Item_Title (Item : Session; Row : Positive) return String
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item);
+
+   function Item_Text (Item : Session; Row : Positive) return String
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item);
+
+   function Item_Stored_Text (Item : Session; Row : Positive) return String
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item);
+   --  As Item_Text, with its styles and versions as markup.
+
+   function Item_Kind (Item : Session; Row : Positive) return Items.Kinds
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item);
+
+   function Item_Status (Item : Session; Row : Positive) return String
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item);
+   --  What the status line of the item says.
+
+   function Item_State (Item : Session; Row : Positive) return Items.States
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item);
+
+   function Item_Frame (Item : Session; Row : Positive) return Items.Frame
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item);
+   --  Where it is on the canvas.
+
+   function Item_Box (Item : Session; Row : Positive) return Items.Frame
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item);
+   --  Where its window is on the screen, in pixels, as of the last layout.
+
+   function Is_Editing_Title (Item : Session; Row : Positive) return Boolean
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item);
+   --  Whether the item's title is a field to type in, not text.
+
+   function Search_Is_Open (Item : Session) return Boolean;
+   function Search_Count (Item : Session; Row : Positive) return Natural
+     with Pre => Row <= Item_Count (Item);
+   function Search_Current (Item : Session; Row : Positive) return Natural
+     with Pre => Row <= Item_Count (Item);
+
+   function Item_Words (Item : Session; Row : Positive) return Natural
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item);
+   --  As the status line of the item says.
+
+   --  Dictating into a note
+
+   procedure Dictate_Live
+     (Item : in out Session; Row : Positive; Said : String)
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item)
+                 and then Items."=" (Item_Kind (Item, Row), Items.Note);
+   --  Show Said in the note's text, as what has been heard so far is
+   --  while dictating (see Items.Windows.Set_Live_Dictation): for tests.
+
+   procedure Dictate_Into
+     (Item : in out Session; Row : Positive; Said : String)
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item)
+                 and then Items."=" (Item_Kind (Item, Row), Items.Note);
+   --  Put Said in the note's text, as what was dictated is when the
+   --  microphone is stopped (see Items.Windows.Add_Dictation): for tests,
+   --  which cannot speak.
+
+   --  The pictures of sources
+
+   procedure Pin_Capture_Time (Item : in out Session; To : Projects.Seconds)
+     with Pre => To > 0;
+   --  Record every picture taken from now on as taken at To, whatever
+   --  the time is: for tests.
+
+   function Is_Capturing (Item : Session) return Boolean
+     with Pre => Is_Open (Item) and then Screen (Item) = Project;
+   --  Whether the picture of a page is being taken, or its words found,
+   --  for some source; or a note is being dictated.
+
+   function Item_Zoom (Item : Session; Row : Positive) return Float
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item)
+                 and then Items."=" (Item_Kind (Item, Row), Items.Source);
+   --  How far the picture of the item is zoomed within its window.
+
+   function Item_Picture_File (Item : Session; Row : Positive) return String
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item);
+   --  Where the picture of the item, if a source, is kept.
+
+   function Item_Is_Paged (Item : Session; Row : Positive) return Boolean
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item);
+   --  Whether the item's document is shown as its pages one under another.
+
+   function Item_Recognized (Item : Session; Row : Positive) return Natural
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item)
+                 and then Items."=" (Item_Kind (Item, Row), Items.Source);
+   --  How many words of text have been found in the picture of the
+   --  source, to be selected over it.
+
+   function Item_Selected_Text (Item : Session; Row : Positive) return String
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item)
+                 and then Items."=" (Item_Kind (Item, Row), Items.Source);
+   --  What is selected in the picture of the source: what copying gives.
+
+   function Item_Marks (Item : Session; Row : Positive) return Natural
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item);
+   --  How many highlights the item's picture has.
+
+   function Item_Highlighting (Item : Session; Row : Positive) return Boolean
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item);
+   --  Whether the highlighter is the tool of the item's window.
+
+   function Item_Erasing (Item : Session; Row : Positive) return Boolean
+     with Pre => Is_Open (Item) and then Screen (Item) = Project
+                 and then Row <= Item_Count (Item);
+   --  Whether the eraser is the tool of the item's window.
+
+end View.Canvas_Windows;

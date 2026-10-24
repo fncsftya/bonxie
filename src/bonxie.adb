@@ -2,7 +2,7 @@ with Ada.Command_Line;
 with Files;
 with SDL3;
 with Speech.Jobs;
-with Viewer;
+with View;
 
 procedure Bonxie is
 begin
@@ -10,11 +10,11 @@ begin
 
    --  The file named on the command line, or an empty document.
    if Ada.Command_Line.Argument_Count > 0 then
-      Viewer.Run
+      View.Run
         (Files.Read (Ada.Command_Line.Argument (1)),
          File_Name => Ada.Command_Line.Argument (1));
    else
-      Viewer.Run ("");
+      View.Run ("");
    end if;
 
    SDL3.Shutdown;

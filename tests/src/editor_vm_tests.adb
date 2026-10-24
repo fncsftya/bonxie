@@ -6,9 +6,9 @@ with Pomarine.View_Models;
 with Pomarine.Events;
 with Pomarine.Semantics;
 with Pomarine.Testing;
-with Viewer;
-with Viewer.Canvas_Windows;
-with Viewer_Driver;
+with View;
+with View.Canvas_Windows;
+with View_Driver;
 with Texts;
 with Texts.Documents;
 
@@ -242,14 +242,14 @@ package body Editor_VM_Tests is
       Check ("editor-vm-source-contract", "TRUE", Image (Rejected));
    end Boundaries;
    procedure By_Name is
-      App : aliased Viewer.Session;
-      Ears : aliased Viewer_Driver.Driver (App'Access);
+      App : aliased View.Session;
+      Ears : aliased View_Driver.Driver (App'Access);
       Window : Pomarine.Testing.Session;
       package Testing renames Pomarine.Testing;
-      package Windows renames Viewer.Canvas_Windows;
+      package Windows renames View.Canvas_Windows;
    begin
-      Viewer.Open (App, "", 1000, 800);
-      Testing.Attach (Window, Viewer.Widget_Tree (App).all, Ears'Access);
+      View.Open (App, "", 1000, 800);
+      Testing.Attach (Window, View.Widget_Tree (App).all, Ears'Access);
       Testing.Click_On (Window, "New project");
       Testing.Click_On (Window, "Canvas");
       Windows.Add_Item (App, "Dictation");

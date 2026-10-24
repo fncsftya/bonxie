@@ -11,7 +11,7 @@ with Speech.Models;
 --
 --  Applying a choice to the world (the window's VSync, the colours the windows
 --  are drawn in, the painted background) is the view's, as a reaction to
---  Version: see Viewer.Settings_View.
+--  Version: see View.Settings_View.
 package Settings_VM is
 
    package Parts renames Pomarine.View_Models;

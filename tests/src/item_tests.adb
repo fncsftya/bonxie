@@ -26,21 +26,21 @@ with Goldens;
 with Pomarine.Page_Builds;
 with Pomarine.Application;
 with Projects;
-with Viewer;
-with Viewer.Canvas_Camera;
-with Viewer.Canvas_Links;
-with Viewer.Canvas_Windows;
-with Viewer.Home_Screen;
-with Viewer.Project_Screen;
+with View;
+with View.Canvas_Camera;
+with View.Canvas_Links;
+with View.Canvas_Windows;
+with View.Home_Screen;
+with View.Project_Screen;
 
 package body Item_Tests is
 
    package Events renames Pomarine.Events;
-   package Camera renames Viewer.Canvas_Camera;
-   package Links renames Viewer.Canvas_Links;
-   package Windows renames Viewer.Canvas_Windows;
-   package Home renames Viewer.Home_Screen;
-   package Proj renames Viewer.Project_Screen;
+   package Camera renames View.Canvas_Camera;
+   package Links renames View.Canvas_Links;
+   package Windows renames View.Canvas_Windows;
+   package Home renames View.Home_Screen;
+   package Proj renames View.Project_Screen;
    package Pictures renames Goldens.Images;
 
    use type Items.States;
@@ -124,49 +124,49 @@ package body Item_Tests is
      (Whole (Frame.Left) & Whole (Frame.Top)
       & Whole (Frame.Width) & Whole (Frame.Height));
 
-   function Item_Place (Session : Viewer.Session; Row : Positive)
+   function Item_Place (Session : View.Session; Row : Positive)
       return String is (Place (Windows.Item_Frame (Session, Row)));
 
    --  Events
 
-   procedure Move_To (Session : in out Viewer.Session; X, Y : Float;
+   procedure Move_To (Session : in out View.Session; X, Y : Float;
                       Held : Boolean := False) is
    begin
-      Viewer.Handle
+      View.Handle
         (Session, Events.Event'(Kind => Events.Mouse_Move, Mouse_X => X,
                                 Mouse_Y => Y, Left_Held => Held,
                                 others => <>));
    end Move_To;
 
-   procedure Press (Session : in out Viewer.Session; X, Y : Float) is
+   procedure Press (Session : in out View.Session; X, Y : Float) is
    begin
       Move_To (Session, X, Y);
-      Viewer.Handle
+      View.Handle
         (Session, Events.Event'(Kind => Events.Mouse_Down, Button => 1,
                                 Clicks => 1, Mouse_X => X, Mouse_Y => Y,
                                 others => <>));
    end Press;
 
-   procedure Release (Session : in out Viewer.Session; X, Y : Float) is
+   procedure Release (Session : in out View.Session; X, Y : Float) is
    begin
-      Viewer.Handle
+      View.Handle
         (Session, Events.Event'(Kind => Events.Mouse_Up, Button => 1,
                                 Clicks => 1, Mouse_X => X, Mouse_Y => Y,
                                 others => <>));
    end Release;
 
-   procedure Click_On (Session : in out Viewer.Session; X, Y : Float) is
+   procedure Click_On (Session : in out View.Session; X, Y : Float) is
    begin
       Press (Session, X, Y);
       Release (Session, X, Y);
    end Click_On;
 
-   procedure Double_Click_On (Session : in out Viewer.Session; X, Y : Float)
+   procedure Double_Click_On (Session : in out View.Session; X, Y : Float)
    is
    begin
       Click_On (Session, X, Y);
       Move_To (Session, X, Y);
-      Viewer.Handle
+      View.Handle
         (Session, Events.Event'(Kind => Events.Mouse_Down, Button => 1,
                                 Clicks => 2, Mouse_X => X, Mouse_Y => Y,
                                 others => <>));
@@ -174,7 +174,7 @@ package body Item_Tests is
    end Double_Click_On;
 
    procedure Drag
-     (Session : in out Viewer.Session; From_X, From_Y, To_X, To_Y : Float) is
+     (Session : in out View.Session; From_X, From_Y, To_X, To_Y : Float) is
    begin
       Press (Session, From_X, From_Y);
       --  In two moves, as a pointer is.
@@ -184,7 +184,7 @@ package body Item_Tests is
       Release (Session, To_X, To_Y);
    end Drag;
 
-   procedure Type_In (Session : in out Viewer.Session; Text : String) is
+   procedure Type_In (Session : in out View.Session; Text : String) is
       First : Positive := Text'First;
       Last : Natural;
    begin
@@ -194,28 +194,28 @@ package body Item_Tests is
             Last := Last - 1;
          end loop;
          pragma Assert (Last >= First);
-         Viewer.Handle (Session, Events.Text_Event (Text (First .. Last)));
+         View.Handle (Session, Events.Text_Event (Text (First .. Last)));
          First := Last + 1;
       end loop;
    end Type_In;
 
    procedure Press_Key
-     (Session : in out Viewer.Session; Code : Events.Key_Code;
+     (Session : in out View.Session; Code : Events.Key_Code;
       Command : Boolean := False) is
    begin
-      Viewer.Handle
+      View.Handle
         (Session, Events.Event'(Kind => Events.Key_Down, Key => Code,
                                 Command => Command, others => <>));
    end Press_Key;
 
-   procedure Start (Session : in out Viewer.Session) is
+   procedure Start (Session : in out View.Session) is
    begin
-      Viewer.Open (Session, "", Width, Height, 2.0);
+      View.Open (Session, "", Width, Height, 2.0);
       Home.New_Project (Session);
-      Viewer.Project_Screen.Set_Mode (Session, Viewer.Canvas);
+      View.Project_Screen.Set_Mode (Session, View.Canvas);
    end Start;
 
-   procedure Start_With_One (Session : in out Viewer.Session) is
+   procedure Start_With_One (Session : in out View.Session) is
    begin
       Start (Session);
       Click_On (Session, Add_X, Tools_Y);
@@ -223,28 +223,28 @@ package body Item_Tests is
       Move_To (Session, 600.0, 60.0);
    end Start_With_One;
 
-   procedure Snap (Session : in out Viewer.Session; Name : String) is
+   procedure Snap (Session : in out View.Session; Name : String) is
       Drawn : Pictures.Image;
    begin
       --  A picture is read in the background: draw once to ask for it,
       --  and again when it is there.
-      Viewer.Render (Session, Drawn);
+      View.Render (Session, Drawn);
       SDL3.Pictures.Jobs.Wait_Until_Idle;
       Pomarine.Page_Builds.Wait_Until_Idle;
-      Viewer.Handle (Session, (Kind => Events.Redraw, others => <>));
-      Viewer.Render (Session, Drawn);
+      View.Handle (Session, (Kind => Events.Redraw, others => <>));
+      View.Render (Session, Drawn);
       Goldens.Check (Name, Drawn);
    end Snap;
 
-   procedure Draw_Pages (Session : in out Viewer.Session) is
+   procedure Draw_Pages (Session : in out View.Session) is
       Drawn : Pictures.Image;
    begin
       --  The pages of a document in view are made as they are drawn, one to
       --  a frame.
       --  A tick between them, as the loop's, for the next to be asked for.
       for Pass in 1 .. 3 loop
-         Viewer.Render (Session, Drawn);
-         Viewer.Tick (Session, Pomarine.Events.Milliseconds (Pass * 100));
+         View.Render (Session, Drawn);
+         View.Tick (Session, Pomarine.Events.Milliseconds (Pass * 100));
       end loop;
    end Draw_Pages;
 
@@ -554,7 +554,7 @@ package body Item_Tests is
    --  On the canvas
 
    procedure Added is
-      Session : Viewer.Session;
+      Session : View.Session;
    begin
       Start (Session);
       Check
@@ -589,19 +589,19 @@ package body Item_Tests is
    end Added;
 
    procedure Searching is
-      Session : Viewer.Session;
+      Session : View.Session;
       procedure Click_Search (Button : Positive) is
          X, Y : Float;
          Drawn : Pictures.Image;
       begin
-         Viewer.Render (Session, Drawn);
+         View.Render (Session, Drawn);
          Windows.Search_Button_Point (Session, Button, X, Y);
          Click_On (Session, X, Y);
-         Viewer.Render (Session, Drawn);
+         View.Render (Session, Drawn);
       end Click_Search;
       procedure Cycle (Backwards : Boolean := False) is
       begin
-         Viewer.Handle (Session, (Kind => Events.Key_Down, Key => Events.Key_F3,
+         View.Handle (Session, (Kind => Events.Key_Down, Key => Events.Key_F3,
                                   Shift => Backwards, others => <>));
       end Cycle;
    begin
@@ -675,13 +675,13 @@ package body Item_Tests is
       Type_In (Session, "other");
       Check ("search-switch-window", "TRUE", Boolean'Image (Windows.Search_In_Item (Session, 2)));
       Check ("search-left-first-window", "FALSE", Boolean'Image (Windows.Search_In_Item (Session, 1)));
-      Viewer.Project_Screen.Set_Mode (Session, Viewer.Write);
-      Viewer.Handle (Session, (Kind => Events.Redraw, others => <>));
+      View.Project_Screen.Set_Mode (Session, View.Write);
+      View.Handle (Session, (Kind => Events.Redraw, others => <>));
       Check ("search-leaving-canvas", "FALSE", Boolean'Image (Windows.Search_Is_Open (Session)));
    end Searching;
 
    procedure Typing is
-      Session : Viewer.Session;
+      Session : View.Session;
    begin
       Start_With_One (Session);
       Type_In (Session, "One two three");
@@ -707,7 +707,7 @@ package body Item_Tests is
    end Typing;
 
    procedure Dictating is
-      Session : Viewer.Session;
+      Session : View.Session;
    begin
       Start_With_One (Session);
 
@@ -737,7 +737,7 @@ package body Item_Tests is
    end Dictating;
 
    procedure Dictating_Into_Empty is
-      Session : Viewer.Session;
+      Session : View.Session;
    begin
       Start_With_One (Session);
       Click_On (Session, 600.0, 60.0);
@@ -746,7 +746,7 @@ package body Item_Tests is
    end Dictating_Into_Empty;
 
    procedure Dictating_Live is
-      Session : Viewer.Session;
+      Session : View.Session;
    begin
       Start_With_One (Session);
 
@@ -818,7 +818,7 @@ package body Item_Tests is
    end Dictating_Live;
 
    procedure Titling is
-      Session : Viewer.Session;
+      Session : View.Session;
    begin
       Start_With_One (Session);
       --  The title is text: clicking it, or typing, does not change it.
@@ -865,20 +865,20 @@ package body Item_Tests is
    end Titling;
 
    procedure Moving is
-      Session : Viewer.Session;
+      Session : View.Session;
    begin
       Start_With_One (Session);
       Move_To (Session, Hold_X, Bar_Y);
       Check
         ("item-bar-cursor", "MOVE",
-         SDL3.Cursors.Kind'Image (Viewer.Cursor (Session)));
+         SDL3.Cursors.Kind'Image (View.Cursor (Session)));
       Press (Session, Hold_X, Bar_Y);
       Move_To (Session, Hold_X + 30.0, Bar_Y + 20.0, Held => True);
       Check
         ("item-moving-place", "-110-80 280 200", Item_Place (Session, 1));
       Check
         ("item-moving-cursor", "MOVE",
-         SDL3.Cursors.Kind'Image (Viewer.Cursor (Session)));
+         SDL3.Cursors.Kind'Image (View.Cursor (Session)));
       Move_To (Session, Hold_X - 60.0, Bar_Y - 10.0, Held => True);
       Release (Session, Hold_X - 60.0, Bar_Y - 10.0);
       Check
@@ -892,13 +892,13 @@ package body Item_Tests is
    end Moving;
 
    procedure Sizing is
-      Session : Viewer.Session;
+      Session : View.Session;
    begin
       Start_With_One (Session);
       Move_To (Session, Corner_X, Corner_Y);
       Check
         ("item-corner-cursor", "RESIZE",
-         SDL3.Cursors.Kind'Image (Viewer.Cursor (Session)));
+         SDL3.Cursors.Kind'Image (View.Cursor (Session)));
       Drag (Session, Corner_X, Corner_Y, Corner_X + 60.0, Corner_Y + 40.0);
       Check
         ("item-sized-place", "-140-100 340 240", Item_Place (Session, 1));
@@ -907,7 +907,7 @@ package body Item_Tests is
    end Sizing;
 
    procedure Smallest is
-      Session : Viewer.Session;
+      Session : View.Session;
    begin
       Start_With_One (Session);
       Drag (Session, Corner_X, Corner_Y, 100.0, 120.0);
@@ -918,7 +918,7 @@ package body Item_Tests is
    end Smallest;
 
    procedure Minimizing is
-      Session : Viewer.Session;
+      Session : View.Session;
    begin
       Start_With_One (Session);
       Type_In (Session, "Kept");
@@ -952,7 +952,7 @@ package body Item_Tests is
    end Minimizing;
 
    procedure Closing is
-      Session : Viewer.Session;
+      Session : View.Session;
    begin
       Start_With_One (Session);
       Click_On (Session, Close_X, Bar_Y);
@@ -967,7 +967,7 @@ package body Item_Tests is
    end Closing;
 
    procedure Listing is
-      Session : Viewer.Session;
+      Session : View.Session;
    begin
       Start_With_One (Session);
       Click_On (Session, Add_X, Tools_Y);
@@ -980,7 +980,7 @@ package body Item_Tests is
    end Listing;
 
    procedure Keyboard_List is
-      Session : Viewer.Session;
+      Session : View.Session;
       Was     : Items.States;
    begin
       Start (Session);
@@ -1021,7 +1021,7 @@ package body Item_Tests is
    end Keyboard_List;
 
    procedure Removing is
-      Session : Viewer.Session;
+      Session : View.Session;
    begin
       Start_With_One (Session);
       Click_On (Session, Close_X, Bar_Y);
@@ -1060,7 +1060,7 @@ package body Item_Tests is
    end Removing;
 
    procedure Revealing is
-      Session : Viewer.Session;
+      Session : View.Session;
    begin
       Start (Session);
       Windows.Add_Item (Session, "First");
@@ -1068,7 +1068,7 @@ package body Item_Tests is
       --  The first, behind the second, is closed, and the canvas panned
       --  well away from both.
       Click_On (Session, Minimize_X, Bar_Y);
-      Viewer.Handle
+      View.Handle
         (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_X => -20.0,
                                 Wheel_Y => -10.0, Mouse_X => 650.0,
                                 Mouse_Y => 60.0, others => <>));
@@ -1087,7 +1087,7 @@ package body Item_Tests is
    end Revealing;
 
    procedure Scrolling_Dock is
-      Session : Viewer.Session;
+      Session : View.Session;
    begin
       Start (Session);
       --  Five bars, 200 wide, are wider than the window: each is
@@ -1104,12 +1104,12 @@ package body Item_Tests is
       end loop;
       Move_To (Session, 360.0, Dock_Y);
       Snap (Session, "dock-long");
-      Viewer.Handle
+      View.Handle
         (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_Y => -40.0,
                                 Mouse_X => 360.0, Mouse_Y => Dock_Y,
                                 others => <>));
       Snap (Session, "dock-long-end");
-      Viewer.Handle
+      View.Handle
         (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_X => 40.0,
                                 Mouse_X => 360.0, Mouse_Y => Dock_Y,
                                 others => <>));
@@ -1117,7 +1117,7 @@ package body Item_Tests is
    end Scrolling_Dock;
 
    procedure Scrolling_List is
-      Session : Viewer.Session;
+      Session : View.Session;
    begin
       Start (Session);
       for I in 1 .. 9 loop
@@ -1126,17 +1126,17 @@ package body Item_Tests is
       Click_On (Session, List_X, List_Y);
       Move_To (Session, 360.0, 240.0);
       Snap (Session, "list-long");
-      Viewer.Handle
+      View.Handle
         (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_Y => -4.0,
                                 Mouse_X => 360.0, Mouse_Y => 240.0,
                                 others => <>));
       Snap (Session, "list-long-scrolled");
-      Viewer.Handle
+      View.Handle
         (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_Y => -40.0,
                                 Mouse_X => 360.0, Mouse_Y => 240.0,
                                 others => <>));
       Snap (Session, "list-long-end");
-      Viewer.Handle
+      View.Handle
         (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_Y => 40.0,
                                 Mouse_X => 360.0, Mouse_Y => 240.0,
                                 others => <>));
@@ -1150,12 +1150,12 @@ package body Item_Tests is
    end Scrolling_List;
 
    procedure Panning_And_Zooming is
-      Session : Viewer.Session;
+      Session : View.Session;
    begin
       Start_With_One (Session);
       Type_In (Session, "Moves with the canvas");
       --  Panned by the wheel, over the bar, which does not take it.
-      Viewer.Handle
+      View.Handle
         (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_X => -2.0,
                                 Wheel_Y => -1.0, Mouse_X => Hold_X,
                                 Mouse_Y => Bar_Y, others => <>));
@@ -1165,13 +1165,13 @@ package body Item_Tests is
         ("item-panned-place", "-140-100 280 200", Item_Place (Session, 1));
 
       --  Zoomed about the pointer: the item is bigger, and so is its text.
-      Viewer.Handle
+      View.Handle
         (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_Y => 3.0,
                                 Command => True, Mouse_X => 300.0,
                                 Mouse_Y => 200.0, others => <>));
       Move_To (Session, 650.0, 60.0);
       Snap (Session, "item-zoomed-in");
-      Viewer.Handle
+      View.Handle
         (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_Y => -8.0,
                                 Command => True, Mouse_X => 300.0,
                                 Mouse_Y => 200.0, others => <>));
@@ -1180,13 +1180,13 @@ package body Item_Tests is
 
       --  Further out, a window is compact: a smaller bar, and no status
       --  line. Zoomed back, it has them again.
-      Viewer.Handle
+      View.Handle
         (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_Y => -6.0,
                                 Command => True, Mouse_X => 300.0,
                                 Mouse_Y => 200.0, others => <>));
       Move_To (Session, 650.0, 60.0);
       Snap (Session, "item-compact");
-      Viewer.Handle
+      View.Handle
         (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_Y => 6.0,
                                 Command => True, Mouse_X => 300.0,
                                 Mouse_Y => 200.0, others => <>));
@@ -1208,7 +1208,7 @@ package body Item_Tests is
       begin
          Proj.Close_Project (Session);
          Home.Open_Project (Session, Key);
-         Viewer.Project_Screen.Set_Mode (Session, Viewer.Canvas);
+         View.Project_Screen.Set_Mode (Session, View.Canvas);
          Check
            ("view-zoom-kept", "TRUE",
             Near (Zoom, Camera.Canvas_Zoom (Session)));
@@ -1222,7 +1222,7 @@ package body Item_Tests is
    end Panning_And_Zooming;
 
    procedure Raising is
-      Session : Viewer.Session;
+      Session : View.Session;
    begin
       Start_With_One (Session);
       Click_On (Session, Add_X, Tools_Y);
@@ -1236,17 +1236,17 @@ package body Item_Tests is
    end Raising;
 
    procedure Repainting is
-      Session : Viewer.Session;
+      Session : View.Session;
       Step    : Natural := 0;
 
       procedure Compare is
          Partial, Fresh : Pictures.Image;
       begin
          Step := Step + 1;
-         Viewer.Render (Session, Partial);
-         Viewer.Handle (Session, Events.Event'(Kind => Events.Redraw,
+         View.Render (Session, Partial);
+         View.Handle (Session, Events.Event'(Kind => Events.Redraw,
                                                others => <>));
-         Viewer.Render (Session, Fresh);
+         View.Render (Session, Fresh);
          Goldens.Check_Same
            ("item-repaint" & Natural'Image (Step), Fresh, Partial);
       end Compare;
@@ -1256,7 +1256,7 @@ package body Item_Tests is
       Type_In (Session, "Some words to count and wrap round the line so");
       Compare;
       for T in 1 .. 6 loop
-         Viewer.Tick (Session, Events.Milliseconds (T * 400));
+         View.Tick (Session, Events.Milliseconds (T * 400));
          Compare;
       end loop;
       Move_To (Session, Title_X, Bar_Y);
@@ -1285,12 +1285,12 @@ package body Item_Tests is
       Move_To (Session, 281.13, 191.93, Held => True);
       Compare;
       Release (Session, 281.13, 191.93);
-      Viewer.Handle
+      View.Handle
         (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_X => -0.37,
                                 Wheel_Y => 0.21, Mouse_X => 650.0,
                                 Mouse_Y => 60.0, others => <>));
       Compare;
-      Viewer.Handle
+      View.Handle
         (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_Y => 0.7,
                                 Command => True, Mouse_X => 301.3,
                                 Mouse_Y => 235.9, others => <>));
@@ -1317,21 +1317,21 @@ package body Item_Tests is
    end Repainting;
 
    procedure Fractional_Density is
-      Session : Viewer.Session;
+      Session : View.Session;
       Drawn   : Pictures.Image;
    begin
-      Viewer.Open (Session, "", Width, Height, 1.5);
+      View.Open (Session, "", Width, Height, 1.5);
       Home.New_Project (Session);
-      Viewer.Project_Screen.Set_Mode (Session, Viewer.Canvas);
+      View.Project_Screen.Set_Mode (Session, View.Canvas);
       Click_On (Session, Add_X, Tools_Y);
       Type_In (Session, "Six words are in this text");
       Move_To (Session, 650.0, 60.0);
-      Viewer.Render (Session, Drawn);
+      View.Render (Session, Drawn);
       Goldens.Check ("item-density-1-5", Drawn);
    end Fractional_Density;
 
    procedure Long_Title is
-      Session : Viewer.Session;
+      Session : View.Session;
       Key     : Projects.Id;
       Name    : constant String (1 .. 300) := [others => 'w'];
    begin
@@ -1341,7 +1341,7 @@ package body Item_Tests is
       Check ("item-long-title", Natural'Image (Name'Length), Natural'Image (Windows.Item_Title (Session, 1)'Length));
       Proj.Close_Project (Session);
       Home.Open_Project (Session, Key);
-      Viewer.Project_Screen.Set_Mode (Session, Viewer.Canvas);
+      View.Project_Screen.Set_Mode (Session, View.Canvas);
       Check ("item-long-title-kept", Natural'Image (Name'Length),
              Natural'Image (Windows.Item_Title (Session, 1)'Length));
    end Long_Title;
@@ -1389,7 +1389,7 @@ package body Item_Tests is
    --  More items than a project ever had room for.
 
    procedure Full is
-      Session : Viewer.Session;
+      Session : View.Session;
    begin
       Start (Session);
       for I in 1 .. Many loop
@@ -1401,7 +1401,7 @@ package body Item_Tests is
    end Full;
 
    procedure Kept is
-      Session : Viewer.Session;
+      Session : View.Session;
       Key     : Projects.Id;
    begin
       Start_With_One (Session);
@@ -1422,7 +1422,7 @@ package body Item_Tests is
 
       Proj.Close_Project (Session);
       Home.Open_Project (Session, Key);
-      Viewer.Project_Screen.Set_Mode (Session, Viewer.Canvas);
+      View.Project_Screen.Set_Mode (Session, View.Canvas);
       Check
         ("item-kept-count", " 2",
          Natural'Image (Windows.Item_Count (Session)));
@@ -1447,7 +1447,7 @@ package body Item_Tests is
    --  Links
 
    procedure Linking is
-      Session : Viewer.Session;
+      Session : View.Session;
       Key     : Projects.Id;
 
       Source_Pin_X : constant Float := 350.0;
@@ -1478,7 +1478,7 @@ package body Item_Tests is
       Move_To (Session, Source_Pin_X, Source_Pin_Y);
       Check ("links-pin-hovered", " 4", Count (Links.Pin_Count (Session)));
       Check ("links-pin-cursor", "POINTER",
-             SDL3.Cursors.Kind'Image (Viewer.Cursor (Session)));
+             SDL3.Cursors.Kind'Image (View.Cursor (Session)));
 
       --  Let go on nothing, there is no link.
       Press (Session, Source_Pin_X, Source_Pin_Y);
@@ -1510,7 +1510,7 @@ package body Item_Tests is
       --  Kept.
       Proj.Close_Project (Session);
       Home.Open_Project (Session, Key);
-      Viewer.Project_Screen.Set_Mode (Session, Viewer.Canvas);
+      View.Project_Screen.Set_Mode (Session, View.Canvas);
       Check ("links-kept", " 1", Count (Links.Link_Count (Session)));
       Move_To (Session, 650.0, 60.0);
       Snap (Session, "links-kept");
@@ -1522,7 +1522,7 @@ package body Item_Tests is
    end Linking;
 
    procedure Editing_Links is
-      Session : Viewer.Session;
+      Session : View.Session;
       Key     : Projects.Id;
 
       Source_Pin_X : constant Float := 350.0;
@@ -1585,7 +1585,7 @@ package body Item_Tests is
       Snap (Session, "link-styled");
       Proj.Close_Project (Session);
       Home.Open_Project (Session, Key);
-      Viewer.Project_Screen.Set_Mode (Session, Viewer.Canvas);
+      View.Project_Screen.Set_Mode (Session, View.Canvas);
       Check ("link-edit-style-kept", "DASHED ARROW  2 LEFT",
              Links.Link_Description (Session, 1));
       Move_To (Session, 650.0, 60.0);
@@ -1642,7 +1642,7 @@ package body Item_Tests is
    --  every release.
 
    procedure Capture_From
-     (Session : in out Viewer.Session; Link : String)
+     (Session : in out View.Session; Link : String)
    is
       Tick  : Pomarine.Events.Milliseconds := 1_000;
       Waited : Natural := 0;
@@ -1653,13 +1653,13 @@ package body Item_Tests is
       while Windows.Is_Capturing (Session) and then Waited < 600 loop
          Webshot.Pump (100);
          Tick := Pomarine.Events.Milliseconds (Natural (Tick) + 100);
-         Viewer.Tick (Session, Tick);
+         View.Tick (Session, Tick);
          Waited := Waited + 1;
       end loop;
    end Capture_From;
 
    procedure Source_Windows is
-      Session : Viewer.Session;
+      Session : View.Session;
    begin
       Start (Session);
       Click_On (Session, Source_X, Tools_Y);
@@ -1704,7 +1704,7 @@ package body Item_Tests is
    --  Plain large text, which Vision reads the same on any release.
 
    procedure Source_Words is
-      Session : Viewer.Session;
+      Session : View.Session;
       Folder  : constant String := "/tmp/bonxie-source-words";
       Page    : constant String := Folder & "/page.html";
       File    : Ada.Text_IO.File_Type;
@@ -1719,7 +1719,7 @@ package body Item_Tests is
       begin
          --  What is drawn is not compared: it has the page's text, which
          --  WebKit draws a little differently from release to release.
-         Viewer.Render (Session, Drawn);
+         View.Render (Session, Drawn);
       end Draw;
    begin
       if not Ada.Directories.Exists (Folder) then
@@ -1785,7 +1785,7 @@ package body Item_Tests is
       --  database and does not look again.
       Proj.Close_Project (Session);
       Home.Open_Project (Session, Key);
-      Viewer.Project_Screen.Set_Mode (Session, Viewer.Canvas);
+      View.Project_Screen.Set_Mode (Session, View.Canvas);
       Check
         ("words-not-looked-for", "FALSE",
          Boolean'Image (Windows.Is_Capturing (Session)));
@@ -1808,7 +1808,7 @@ package body Item_Tests is
    end Source_Words;
 
    procedure Source_Documents is
-      Session : Viewer.Session;
+      Session : View.Session;
       Folder  : constant String := "/tmp/bonxie-source-document";
       Book    : constant String := Folder & "/book.pdf";
       File    : Ada.Text_IO.File_Type;
@@ -1821,11 +1821,11 @@ package body Item_Tests is
          while Windows.Is_Capturing (Session) and then Waited < 600 loop
             delay 0.05;
             Tick := Pomarine.Events.Milliseconds (Natural (Tick) + 100);
-            Viewer.Tick (Session, Tick);
+            View.Tick (Session, Tick);
             Waited := Waited + 1;
          end loop;
          --  Once more, for what is done at once (the words of a page).
-         Viewer.Tick (Session, Pomarine.Events.Milliseconds (Natural (Tick) + 100));
+         View.Tick (Session, Pomarine.Events.Milliseconds (Natural (Tick) + 100));
          Pomarine.Application.Run_Posted;
       end Wait;
    begin
@@ -1887,7 +1887,7 @@ package body Item_Tests is
       Wait;
       Proj.Close_Project (Session);
       Home.Open_Project (Session, Key);
-      Viewer.Project_Screen.Set_Mode (Session, Viewer.Canvas);
+      View.Project_Screen.Set_Mode (Session, View.Canvas);
       Check ("document-kept", "Page 2 of 2", Windows.Item_Status (Session, 1));
       Draw_Pages (Session);
       Check
@@ -1958,7 +1958,7 @@ package body Item_Tests is
    end Tiny_Epub;
 
    procedure Source_Files is
-      Session : Viewer.Session;
+      Session : View.Session;
       Folder  : constant String := "/tmp/bonxie-source-files";
       Book    : constant String := Folder & "/book.pdf";
       Epub    : constant String := Folder & "/seabirds.epub";
@@ -1991,11 +1991,11 @@ package body Item_Tests is
          while Windows.Is_Capturing (Session) and then Waited < 600 loop
             delay 0.05;
             Tick := Pomarine.Events.Milliseconds (Natural (Tick) + 100);
-            Viewer.Tick (Session, Tick);
+            View.Tick (Session, Tick);
             Waited := Waited + 1;
          end loop;
          --  Once more, for what is done at once (the words of a page).
-         Viewer.Tick (Session, Pomarine.Events.Milliseconds (Natural (Tick) + 100));
+         View.Tick (Session, Pomarine.Events.Milliseconds (Natural (Tick) + 100));
          Pomarine.Application.Run_Posted;
       end Wait;
    begin
@@ -2079,7 +2079,7 @@ package body Item_Tests is
       begin
          Proj.Close_Project (Session);
          Home.Open_Project (Session, Key);
-         Viewer.Project_Screen.Set_Mode (Session, Viewer.Canvas);
+         View.Project_Screen.Set_Mode (Session, View.Canvas);
       end;
       Check
         ("file-text-kept", "Bonxies nest on moorland" & ASCII.LF & "and winter at sea." & ASCII.LF,
@@ -2106,7 +2106,7 @@ package body Item_Tests is
    end Source_Files;
 
    procedure Source_Pages is
-      Session : Viewer.Session;
+      Session : View.Session;
       Folder  : constant String :=
         "/tmp/bonxie-source-page";
       Page    : constant String := Folder & "/page.html";
@@ -2223,7 +2223,7 @@ package body Item_Tests is
       Click_On (Session, Menu_X, Status_Y);
 
       --  Scrolled with the wheel, over the picture.
-      Viewer.Handle
+      View.Handle
         (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_Y => -4.0,
                                 Mouse_X => 360.0, Mouse_Y => 262.0,
                                 others => <>));
@@ -2235,7 +2235,7 @@ package body Item_Tests is
       --  Kept with the project, picture and all.
       Proj.Close_Project (Session);
       Home.Open_Project (Session, Key);
-      Viewer.Project_Screen.Set_Mode (Session, Viewer.Canvas);
+      View.Project_Screen.Set_Mode (Session, View.Canvas);
       Check
         ("source-kept-status", "Captured ",
          Windows.Item_Status (Session, 1) (1 .. 9));
@@ -2263,7 +2263,7 @@ package body Item_Tests is
    end Source_Pages;
 
    procedure Search_Sources is
-      Session : Viewer.Session;
+      Session : View.Session;
       Folder : constant String := "/tmp/bonxie-search-sources";
       File : Ada.Streams.Stream_IO.File_Type;
       Drawn : Pictures.Image;
@@ -2277,8 +2277,8 @@ package body Item_Tests is
       begin
          for Pass in 1 .. 20 loop
             delay 0.02;
-            Viewer.Tick (Session, Pomarine.Events.Milliseconds (Pass * 100));
-            Viewer.Render (Session, Drawn);
+            View.Tick (Session, Pomarine.Events.Milliseconds (Pass * 100));
+            View.Render (Session, Drawn);
             Pomarine.Page_Builds.Wait_Until_Idle;
          end loop;
       end Wait;

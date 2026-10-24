@@ -5,24 +5,24 @@ with Preferences;
 with Pomarine.Events;
 with Goldens;
 with Projects;
-with Viewer;
-with Viewer.Home_Screen;
+with View;
+with View.Home_Screen;
 with Items;
-with Viewer.Canvas_Windows;
-with Viewer.Documents;
-with Viewer.Outline_Screen;
-with Viewer.Project_Screen;
-with Viewer.Settings;
+with View.Canvas_Windows;
+with View.Documents;
+with View.Outline_Screen;
+with View.Project_Screen;
+with View.Settings;
 
 package body Outline_Tests is
 
    package Events renames Pomarine.Events;
-   package Home renames Viewer.Home_Screen;
-   package Proj renames Viewer.Project_Screen;
-   package Prefs renames Viewer.Settings;
-   package Windows renames Viewer.Canvas_Windows;
-   package Docs renames Viewer.Documents;
-   package Outline renames Viewer.Outline_Screen;
+   package Home renames View.Home_Screen;
+   package Proj renames View.Project_Screen;
+   package Prefs renames View.Settings;
+   package Windows renames View.Canvas_Windows;
+   package Docs renames View.Documents;
+   package Outline renames View.Outline_Screen;
    package Pictures renames Goldens.Images;
 
    procedure Check (Name : String; Expected, Actual : String)
@@ -32,58 +32,58 @@ package body Outline_Tests is
    Height : constant := 480;
    --  Of the window, in points; the toolbar is 44 high at the top.
 
-   procedure Start (Session : in out Viewer.Session) is
+   procedure Start (Session : in out View.Session) is
    begin
-      Viewer.Open (Session, "", Width, Height, 2.0);
+      View.Open (Session, "", Width, Height, 2.0);
       Home.New_Project (Session);
    end Start;
 
-   procedure Type_In (Session : in out Viewer.Session; Text : String) is
+   procedure Type_In (Session : in out View.Session; Text : String) is
    begin
-      Viewer.Handle (Session, Events.Text_Event (Text));
+      View.Handle (Session, Events.Text_Event (Text));
    end Type_In;
 
    procedure Move_To
-     (Session : in out Viewer.Session; X, Y : Float; Held : Boolean := False) is
+     (Session : in out View.Session; X, Y : Float; Held : Boolean := False) is
    begin
-      Viewer.Handle
+      View.Handle
         (Session, Events.Event'(Kind => Events.Mouse_Move, Mouse_X => X,
                                 Mouse_Y => Y, Left_Held => Held, others => <>));
    end Move_To;
 
-   procedure Press (Session : in out Viewer.Session; X, Y : Float) is
+   procedure Press (Session : in out View.Session; X, Y : Float) is
    begin
-      Viewer.Handle
+      View.Handle
         (Session, Events.Event'(Kind => Events.Mouse_Down, Button => 1, Clicks => 1,
                                 Mouse_X => X, Mouse_Y => Y, others => <>));
    end Press;
 
-   procedure Release (Session : in out Viewer.Session; X, Y : Float) is
+   procedure Release (Session : in out View.Session; X, Y : Float) is
    begin
-      Viewer.Handle
+      View.Handle
         (Session, Events.Event'(Kind => Events.Mouse_Up, Button => 1, Clicks => 1,
                                 Mouse_X => X, Mouse_Y => Y, others => <>));
    end Release;
 
-   procedure Settle (Session : in out Viewer.Session) is
+   procedure Settle (Session : in out View.Session) is
       Drawn : Pictures.Image;
    begin
       --  Drawn, as it is between a person's clicks: what was typed is kept.
-      Viewer.Tick (Session, 0);
-      Viewer.Render (Session, Drawn);
+      View.Tick (Session, 0);
+      View.Render (Session, Drawn);
       Pomarine.Page_Builds.Wait_Until_Idle;
-      Viewer.Handle (Session, (Kind => Events.Redraw, others => <>));
+      View.Handle (Session, (Kind => Events.Redraw, others => <>));
    end Settle;
 
-   procedure Snap (Session : in out Viewer.Session; Name : String) is
+   procedure Snap (Session : in out View.Session; Name : String) is
       Drawn : Pictures.Image;
    begin
       Settle (Session);
-      Viewer.Render (Session, Drawn);
+      View.Render (Session, Drawn);
       Goldens.Check (Name, Drawn);
    end Snap;
 
-   function Titles (Session : Viewer.Session) return String is
+   function Titles (Session : View.Session) return String is
       Result : String (1 .. 4096);
       Last   : Natural := 0;
    begin
@@ -98,7 +98,7 @@ package body Outline_Tests is
       return Result (1 .. Last);
    end Titles;
 
-   function Owners_Of (Session : Viewer.Session) return String is
+   function Owners_Of (Session : View.Session) return String is
       Result : String (1 .. 512);
       Last   : Natural := 0;
    begin
@@ -113,7 +113,7 @@ package body Outline_Tests is
       return Result (1 .. Last);
    end Owners_Of;
 
-   procedure Reopen (Session : in out Viewer.Session) is
+   procedure Reopen (Session : in out View.Session) is
       Key : constant Projects.Id := Proj.Current_Project (Session);
    begin
       Proj.Close_Project (Session);
@@ -121,28 +121,28 @@ package body Outline_Tests is
    end Reopen;
 
    procedure Starting is
-      Session : Viewer.Session;
+      Session : View.Session;
    begin
       Start (Session);
       --  A project opens to its outline, the first of the tabs.
-      Check ("outline-mode", "OUTLINE", Viewer.Modes'Image (Proj.Mode (Session)));
+      Check ("outline-mode", "OUTLINE", View.Modes'Image (Proj.Mode (Session)));
       Check ("outline-none", "", Titles (Session));
       Snap (Session, "outline-empty");
 
       --  The tab last chosen is the one it opens to.
-      Proj.Set_Mode (Session, Viewer.Write);
+      Proj.Set_Mode (Session, View.Write);
       Reopen (Session);
-      Check ("outline-mode-write", "WRITE", Viewer.Modes'Image (Proj.Mode (Session)));
-      Proj.Set_Mode (Session, Viewer.Canvas);
+      Check ("outline-mode-write", "WRITE", View.Modes'Image (Proj.Mode (Session)));
+      Proj.Set_Mode (Session, View.Canvas);
       Reopen (Session);
-      Check ("outline-mode-canvas", "CANVAS", Viewer.Modes'Image (Proj.Mode (Session)));
-      Proj.Set_Mode (Session, Viewer.Outline);
+      Check ("outline-mode-canvas", "CANVAS", View.Modes'Image (Proj.Mode (Session)));
+      Proj.Set_Mode (Session, View.Outline);
       Reopen (Session);
-      Check ("outline-mode-outline", "OUTLINE", Viewer.Modes'Image (Proj.Mode (Session)));
+      Check ("outline-mode-outline", "OUTLINE", View.Modes'Image (Proj.Mode (Session)));
    end Starting;
 
    procedure Colours is
-      Session : Viewer.Session;
+      Session : View.Session;
       Saved : Natural;
       Before_Slider : Natural;
 
@@ -204,7 +204,7 @@ package body Outline_Tests is
    end Colours;
 
    procedure Sections is
-      Session : Viewer.Session;
+      Session : View.Session;
    begin
       Start (Session);
       Outline.Add_Section (Session);
@@ -250,7 +250,7 @@ package body Outline_Tests is
    end Sections;
 
    procedure Many_Sections is
-      Session : Viewer.Session;
+      Session : View.Session;
       Many    : constant := 90;
       Long    : constant String (1 .. 300) := [others => 'w'];
    begin
@@ -272,7 +272,7 @@ package body Outline_Tests is
    end Many_Sections;
 
    procedure Form is
-      Session : Viewer.Session;
+      Session : View.Session;
    begin
       Start (Session);
       Check ("outline-form-title", "Untitled project", Outline.Project_Title (Session));
@@ -280,7 +280,7 @@ package body Outline_Tests is
    end Form;
 
    procedure Notes is
-      Session : Viewer.Session;
+      Session : View.Session;
    begin
       Start (Session);
       Outline.Add_Section (Session);
@@ -316,7 +316,7 @@ package body Outline_Tests is
    end Notes;
 
    procedure Linking is
-      Session : Viewer.Session;
+      Session : View.Session;
 
       function Rows return String is
          Result : String (1 .. 64);
@@ -350,7 +350,7 @@ package body Outline_Tests is
              & Outline.Section_Colour (Session, 3)'Image);
       Snap (Session, "outline-unlinked");
 
-      Proj.Set_Mode (Session, Viewer.Canvas);
+      Proj.Set_Mode (Session, View.Canvas);
       Windows.Add_Item (Session, "Closing");
       Windows.Add_Item (Session, "Opening");
 
@@ -382,15 +382,15 @@ package body Outline_Tests is
       Outline.Open_Link_Menu (Session, 2);
 
       --  Kept, and shown in the writing view.
-      Proj.Set_Mode (Session, Viewer.Write);
+      Proj.Set_Mode (Session, View.Write);
       Snap (Session, "link-write");
       Reopen (Session);
-      Proj.Set_Mode (Session, Viewer.Outline);
+      Proj.Set_Mode (Session, View.Outline);
       Check ("link-kept", "Opening,|Closing,||", Owners);
       Snap (Session, "outline-linked");
 
       --  Ticked again, it is let go.
-      Proj.Set_Mode (Session, Viewer.Canvas);
+      Proj.Set_Mode (Session, View.Canvas);
       Outline.Open_Link_Menu (Session, 2);
       Outline.Choose_Link_Row (Session, 2);
       Check ("link-let-go", "|Closing,||", Owners);
@@ -407,19 +407,19 @@ package body Outline_Tests is
          Prefs.Close_Settings (Session);
          Home.Open_Project (Session, Key);
       end;
-      Proj.Set_Mode (Session, Viewer.Outline);
+      Proj.Set_Mode (Session, View.Outline);
       Snap (Session, "outline-linked-dark");
-      Proj.Set_Mode (Session, Viewer.Canvas);
+      Proj.Set_Mode (Session, View.Canvas);
       Outline.Open_Link_Menu (Session, 2);
       Snap (Session, "link-menu-dark");
    end Linking;
 
    procedure Sidebar is
-      Session : Viewer.Session;
+      Session : View.Session;
       Folder  : constant String := "/tmp/bonxie-sidebar-test";
    begin
       Start (Session);
-      Proj.Set_Mode (Session, Viewer.Write);
+      Proj.Set_Mode (Session, View.Write);
       Check ("sidebar-begins", "206", Natural (Docs.Sidebar_Width (Session))'Image (2 .. 4));
       --  Its edge is dragged, and the pages have what is left.
       Move_To (Session, 209.0, 400.0);
@@ -444,7 +444,7 @@ package body Outline_Tests is
    end Sidebar;
 
    procedure Tiers is
-      Session : Viewer.Session;
+      Session : View.Session;
 
       procedure Section (Name : String) is
       begin
@@ -485,7 +485,7 @@ package body Outline_Tests is
       Section ("Beginning");
       Section ("Middle");
       Section ("End");
-      Proj.Set_Mode (Session, Viewer.Canvas);
+      Proj.Set_Mode (Session, View.Canvas);
       Windows.Add_Item (Session, "Alpha");
       Windows.Add_Item (Session, "Loose");
       Windows.Add_Item (Session, "Bravo");
@@ -496,7 +496,7 @@ package body Outline_Tests is
       Outline.Choose_Link_Row (Session, 2);
       Outline.Open_Link_Menu (Session, 4);
       Outline.Choose_Link_Row (Session, 4);
-      Proj.Set_Mode (Session, Viewer.Write);
+      Proj.Set_Mode (Session, View.Write);
       Snap (Session, "tiers-tree");
 
       --  The order is of the first tier (the sections and what is of none)
@@ -519,12 +519,12 @@ package body Outline_Tests is
       Check ("tiers-moved-owners", "Alpha,Bravo,Charlie,|||", Owners_Of (Session));
 
       Reopen (Session);
-      Proj.Set_Mode (Session, Viewer.Write);
+      Proj.Set_Mode (Session, View.Write);
       Check ("tiers-kept", "Loose|Charlie|Bravo|Alpha|", Order);
    end Tiers;
 
    procedure Section_Rows is
-      Session : Viewer.Session;
+      Session : View.Session;
 
       procedure Section (Name : String) is
       begin
@@ -536,10 +536,10 @@ package body Outline_Tests is
       procedure Click_Row (Y : Float; Button : Natural; Clicks : Natural) is
       begin
          Move_To (Session, 100.0, Y);
-         Viewer.Handle
+         View.Handle
            (Session, Events.Event'(Kind => Events.Mouse_Down, Button => Button, Clicks => Clicks,
                                    Mouse_X => 100.0, Mouse_Y => Y, others => <>));
-         Viewer.Handle
+         View.Handle
            (Session, Events.Event'(Kind => Events.Mouse_Up, Button => Button, Clicks => Clicks,
                                    Mouse_X => 100.0, Mouse_Y => Y, others => <>));
       end Click_Row;
@@ -547,7 +547,7 @@ package body Outline_Tests is
       Start (Session);
       Section ("Beginning");
       Section ("End");
-      Proj.Set_Mode (Session, Viewer.Write);
+      Proj.Set_Mode (Session, View.Write);
       Snap (Session, "write-section-rows");
 
       --  Right click: it can be renamed, not deleted.
@@ -559,7 +559,7 @@ package body Outline_Tests is
       --  section's wherever it is shown.
       Click_Row (239.0, 1, 2);
       Type_In (Session, "Opening");
-      Viewer.Handle (Session, Events.Event'(Kind => Events.Key_Down, Key => Events.Key_Return, others => <>));
+      View.Handle (Session, Events.Event'(Kind => Events.Key_Down, Key => Events.Key_Return, others => <>));
       Settle (Session);
       Check ("section-renamed", "Opening|End|", Titles (Session));
       Snap (Session, "write-section-renamed");
@@ -568,7 +568,7 @@ package body Outline_Tests is
    end Section_Rows;
 
    procedure Write_Notes is
-      Session : Viewer.Session;
+      Session : View.Session;
       X, Y    : Float;
 
       procedure Click_Notes (Row : Positive) is
@@ -587,11 +587,11 @@ package body Outline_Tests is
       Outline.Add_Section (Session);
       Type_In (Session, "End");
       Settle (Session);
-      Proj.Set_Mode (Session, Viewer.Canvas);
+      Proj.Set_Mode (Session, View.Canvas);
       Windows.Add_Item (Session, "First words");
       Outline.Open_Link_Menu (Session, 1);
       Outline.Choose_Link_Row (Session, 2);
-      Proj.Set_Mode (Session, Viewer.Write);
+      Proj.Set_Mode (Session, View.Write);
       Settle (Session);
       Snap (Session, "write-notes-closed");
 
@@ -609,7 +609,7 @@ package body Outline_Tests is
       Snap (Session, "write-notes-one-hidden");
 
       --  A section with no documents shows them above its button.
-      Viewer.Handle
+      View.Handle
         (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_Y => -400.0, Mouse_X => 500.0,
                                 Mouse_Y => 300.0, others => <>));
       Settle (Session);
@@ -623,14 +623,14 @@ package body Outline_Tests is
       Check ("write-notes-kept", "- Open with a story", Outline.Section_Notes (Session, 1));
       Check ("write-notes-kept-second", "Wrap up", Outline.Section_Notes (Session, 2));
       --  Not being typed in, the notes have no outline of their own.
-      Viewer.Handle
+      View.Handle
         (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_Y => 600.0, Mouse_X => 500.0,
                                 Mouse_Y => 300.0, others => <>));
       Snap (Session, "write-notes-reopened");
    end Write_Notes;
 
    procedure Writing_Sections is
-      Session : Viewer.Session;
+      Session : View.Session;
 
       procedure Section (Name : String) is
       begin
@@ -649,7 +649,7 @@ package body Outline_Tests is
       Section ("Beginning");
       Section ("Middle");
       Section ("End");
-      Proj.Set_Mode (Session, Viewer.Canvas);
+      Proj.Set_Mode (Session, View.Canvas);
       Windows.Add_Item (Session, "Notes one");
       Windows.Add_Item (Session, "Loose");
       Windows.Add_Item (Session, "Notes two");
@@ -659,7 +659,7 @@ package body Outline_Tests is
       Link (1, 1);
       Link (3, 1);
       Link (4, 3);
-      Proj.Set_Mode (Session, Viewer.Write);
+      Proj.Set_Mode (Session, View.Write);
       Snap (Session, "write-sections");
       --  What is on a page, in the sections, is used: the text takes the
       --  pointer and what is typed, and so do the buttons of its bar.
@@ -675,12 +675,12 @@ package body Outline_Tests is
       Press (Session, 600.0, 400.0);
       Release (Session, 600.0, 400.0);
       for Step in 1 .. 4 loop
-         Viewer.Handle
+         View.Handle
            (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_Y => -17.0, Mouse_X => 500.0,
                                    Mouse_Y => 300.0, others => <>));
          Snap (Session, "write-sections-down-" & Character'Val (Character'Pos ('0') + Step));
       end loop;
-      Viewer.Handle
+      View.Handle
         (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_Y => 200.0, Mouse_X => 500.0,
                                 Mouse_Y => 300.0, others => <>));
 
@@ -699,10 +699,10 @@ package body Outline_Tests is
 
       --  The button by the count of a section's documents writes another,
       --  last among them; a section with none has no such button.
-      Viewer.Handle
+      View.Handle
         (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_Y => 400.0, Mouse_X => 500.0,
                                 Mouse_Y => 300.0, others => <>));
-      Viewer.Handle
+      View.Handle
         (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_Y => -17.0, Mouse_X => 500.0,
                                 Mouse_Y => 300.0, others => <>));
       Settle (Session);
@@ -715,7 +715,7 @@ package body Outline_Tests is
    end Writing_Sections;
 
    procedure Section_Folders is
-      Session : Viewer.Session;
+      Session : View.Session;
 
       function Y (Row : Positive) return Float is
         (200.5 + Float (Row - 1) * 38.0);
@@ -732,10 +732,10 @@ package body Outline_Tests is
 
       procedure Context_Folder (Row : Positive; Offset : Float) is
       begin
-         Viewer.Handle
+         View.Handle
            (Session, Events.Event'(Kind => Events.Mouse_Down, Button => 3, Clicks => 1,
                                    Mouse_X => 100.0, Mouse_Y => Y (Row), others => <>));
-         Viewer.Handle
+         View.Handle
            (Session, Events.Event'(Kind => Events.Mouse_Up, Button => 3, Clicks => 1,
                                    Mouse_X => 100.0, Mouse_Y => Y (Row), others => <>));
          Settle (Session);
@@ -743,20 +743,20 @@ package body Outline_Tests is
             Snap (Session, (if Row = 1 then "write-overview-folder-menu" else "write-folder-menu"));
          end if;
          Check ("folder-context-open", "TRUE", Docs.Context_Open (Session)'Image);
-         Viewer.Handle
+         View.Handle
            (Session, Events.Event'(Kind => Events.Key_Down, Key => Events.Key_Escape, others => <>));
          Check ("folder-context-escape", "FALSE", Docs.Context_Open (Session)'Image);
-         Viewer.Handle
+         View.Handle
            (Session, Events.Event'(Kind => Events.Mouse_Down, Button => 3, Clicks => 1,
                                    Mouse_X => 100.0, Mouse_Y => Y (Row), others => <>));
-         Viewer.Handle
+         View.Handle
            (Session, Events.Event'(Kind => Events.Mouse_Up, Button => 3, Clicks => 1,
                                    Mouse_X => 100.0, Mouse_Y => Y (Row), others => <>));
          Settle (Session);
          Press (Session, 140.0, Y (Row) + Offset);
          Release (Session, 140.0, Y (Row) + Offset);
          if Offset = 43.0 then
-            Viewer.Handle
+            View.Handle
               (Session, Events.Event'(Kind => Events.Key_Down, Key => Events.Key_Return, others => <>));
          end if;
          Settle (Session);
@@ -765,7 +765,7 @@ package body Outline_Tests is
       procedure Folder (Name : String) is
       begin
          Docs.Add_Directory (Session, Name);
-         Viewer.Handle
+         View.Handle
            (Session, Events.Event'(Kind => Events.Key_Down, Key => Events.Key_Return, others => <>));
          Settle (Session);
       end Folder;
@@ -774,9 +774,9 @@ package body Outline_Tests is
       Outline.Add_Section (Session);
       Type_In (Session, "Part");
       Settle (Session);
-      Proj.Set_Mode (Session, Viewer.Canvas);
+      Proj.Set_Mode (Session, View.Canvas);
       Windows.Add_Item (Session, "Draft");
-      Proj.Set_Mode (Session, Viewer.Write);
+      Proj.Set_Mode (Session, View.Write);
       Folder ("Research");
       Folder ("Other");
       --  Overview, loose document, section, and the two ordinary folders.
@@ -829,7 +829,7 @@ package body Outline_Tests is
    end Section_Folders;
 
    procedure Folder_Operations is
-      Session : Viewer.Session;
+      Session : View.Session;
       Check_X, Check_Y, Delete_X, Delete_Y : Float;
 
       function Y (Row : Positive) return Float is
@@ -856,7 +856,7 @@ package body Outline_Tests is
       procedure Folder (Name : String) is
       begin
          Docs.Add_Directory (Session, Name);
-         Viewer.Handle
+         View.Handle
            (Session, Events.Event'(Kind => Events.Key_Down, Key => Events.Key_Return, others => <>));
          Settle (Session);
       end Folder;
@@ -879,13 +879,13 @@ package body Outline_Tests is
          Check ("folder-delete-default", "FALSE", Docs.Delete_Documents_Checked (Session)'Image);
       end Ask;
    begin
-      Viewer.Open (Session, "", Width, 640, 2.0);
+      View.Open (Session, "", Width, 640, 2.0);
       Home.New_Project (Session);
-      Proj.Set_Mode (Session, Viewer.Canvas);
+      Proj.Set_Mode (Session, View.Canvas);
       Windows.Add_Item (Session, "Alpha");
       Windows.Add_Item (Session, "Bravo");
       Windows.Add_Item (Session, "Outside");
-      Proj.Set_Mode (Session, Viewer.Write);
+      Proj.Set_Mode (Session, View.Write);
       Folder ("Outer");
       Folder ("Child");
       Folder ("Grandchild");
@@ -914,7 +914,7 @@ package body Outline_Tests is
       Snap (Session, "write-delete-folder-default");
       Click (Check_X, Check_Y);
       Check ("folder-delete-checkbox", "TRUE", Docs.Delete_Documents_Checked (Session)'Image);
-      Viewer.Handle
+      View.Handle
         (Session, Events.Event'(Kind => Events.Key_Down, Key => Events.Key_Escape, others => <>));
       Check ("folder-delete-cancel-subtree", " 3", Docs.Directory_Count (Session)'Image);
       Check ("folder-delete-cancel-documents", " 3", Docs.Document_Count (Session)'Image);
@@ -950,7 +950,7 @@ package body Outline_Tests is
    end Folder_Operations;
 
    procedure Naming is
-      Session : Viewer.Session;
+      Session : View.Session;
 
       procedure Section (Name : String) is
       begin
@@ -963,7 +963,7 @@ package body Outline_Tests is
       Section ("Alpha");
       Section ("Beta");
       Section ("Gamma");
-      Proj.Set_Mode (Session, Viewer.Canvas);
+      Proj.Set_Mode (Session, View.Canvas);
       Windows.Add_Item (Session);
       Windows.Add_Item (Session, "Beta");
       Windows.Add_Item (Session, "Custom");
@@ -971,22 +971,22 @@ package body Outline_Tests is
       --  Untitled, it takes the name of the section.
       Outline.Open_Link_Menu (Session, 1);
       Outline.Choose_Link_Row (Session, 2);
-      Viewer.Tick (Session, 0);
+      View.Tick (Session, 0);
       Check ("naming-untitled", "Alpha", Windows.Item_Title (Session, 1));
       --  Called as a section is, so too.
       Outline.Open_Link_Menu (Session, 2);
       Outline.Choose_Link_Row (Session, 4);
-      Viewer.Tick (Session, 0);
+      View.Tick (Session, 0);
       Check ("naming-matching", "Gamma", Windows.Item_Title (Session, 2));
       --  Called anything else, it is left.
       Outline.Open_Link_Menu (Session, 3);
       Outline.Choose_Link_Row (Session, 3);
-      Viewer.Tick (Session, 0);
+      View.Tick (Session, 0);
       Check ("naming-own", "Custom", Windows.Item_Title (Session, 3));
    end Naming;
 
    procedure Menu_Fitting is
-      Session : Viewer.Session;
+      Session : View.Session;
 
       procedure Section (Name : String) is
       begin
@@ -1000,14 +1000,14 @@ package body Outline_Tests is
       for Number in 2 .. 12 loop
          Section ("Section" & Number'Image);
       end loop;
-      Proj.Set_Mode (Session, Viewer.Canvas);
+      Proj.Set_Mode (Session, View.Canvas);
       Windows.Add_Item (Session, "Note");
 
       --  Near the foot of the window it opens up, as tall as there is room,
       --  with a bar at the right, and does not cover its button.
       Outline.Open_Link_Menu (Session, 1);
       Snap (Session, "link-menu-long-up");
-      Viewer.Handle
+      View.Handle
         (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_Y => -3.0, Mouse_X => 400.0,
                                 Mouse_Y => 100.0, others => <>));
       Snap (Session, "link-menu-scrolled");

@@ -6,9 +6,9 @@ with Pomarine.Events;
 with Pomarine.Testing;
 with Pomarine.View_Models;
 with Search_VM;
-with Viewer;
-with Viewer.Canvas_Windows;
-with Viewer_Driver;
+with View;
+with View.Canvas_Windows;
+with View_Driver;
 
 package body Search_VM_Tests is
    use type Items.Id;
@@ -123,16 +123,16 @@ package body Search_VM_Tests is
    end Lifecycle;
 
    procedure By_Name is
-      App : aliased Viewer.Session;
-      Ears : aliased Viewer_Driver.Driver (App'Access);
+      App : aliased View.Session;
+      Ears : aliased View_Driver.Driver (App'Access);
       Window : Pomarine.Testing.Session;
       package Testing renames Pomarine.Testing;
    begin
-      Viewer.Open (App, "", 1000, 800);
-      Testing.Attach (Window, Viewer.Widget_Tree (App).all, Ears'Access);
+      View.Open (App, "", 1000, 800);
+      Testing.Attach (Window, View.Widget_Tree (App).all, Ears'Access);
       Testing.Click_On (Window, "New project");
       Testing.Click_On (Window, "Canvas");
-      Viewer.Canvas_Windows.Add_Item (App, "Searchable");
+      View.Canvas_Windows.Add_Item (App, "Searchable");
       Testing.Type_Text (Window, "bonxie bonxie");
       Testing.Press (Window, Pomarine.Events.Key_F, Command => True);
       Testing.Type_Text (Window, "bonxie");
@@ -149,6 +149,6 @@ package body Search_VM_Tests is
              & Image (Testing.Is_Disabled (Window, "Next")) & " "
              & Image (Testing.Is_Disabled (Window, "Previous")));
       Testing.Click_On (Window, "Close", Nth => 2);
-      Check ("search-name-close", "FALSE", Image (Viewer.Canvas_Windows.Search_Is_Open (App)));
+      Check ("search-name-close", "FALSE", Image (View.Canvas_Windows.Search_Is_Open (App)));
    end By_Name;
 end Search_VM_Tests;

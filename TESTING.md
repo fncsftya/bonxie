@@ -84,7 +84,7 @@ A screen's rules are tested without drawing it. In three tiers, the cheapest fir
   when (`Can_Execute`), what is kept for each choice and that a save that fails keeps the choice and does not
   raise, the file that is kept (read back with `Preferences`), what is said of the download in each of
   its states, and how sizes are said. No window, display or event; it runs in a moment.
-- **The view, offscreen, through `Pomarine.Testing`** (`settings-by-name`): a `Viewer.Session` driven by
+- **The view, offscreen, through `Pomarine.Testing`** (`settings-by-name`): a `View.Session` driven by
   what the widgets are called ("Dark", "Parakeet", "VSync", "Projects"), not where they are, and read as
   an assistive technology is told of them (`radio button 'Dark' ON`, `button 'Download'`), with the
   view-model's state asked as well. This is where it is checked that the right widget is tied to the right
@@ -96,7 +96,7 @@ The same three tiers for the other screens: `home-vm-*`, `confirm-vm-*`, `outlin
 view-models alone (each with fakes for what it is given and, for the database, the real store in memory:
 `*-stored`); `home-by-name`, `outline-by-name`, `settings-by-name`, `nav-by-name`, `item-list-by-name` and
 `write-grammar-entry-by-name` drive the
-session through `Pomarine.Testing` (`Tests/src/viewer_driver.ads` lets it take a `Viewer.Session`'s events and
+session through `Pomarine.Testing` (`tests/src/view_driver.ads` lets it take a `View.Session`'s events and
 time) and found, among others, that the form that makes a grammar rule closed the list when pressed.
 
 `item-model-*` checks widget-free item details, documents, marks, capture and dictation states, versions and
@@ -161,7 +161,7 @@ Cancel without changes, OK, exact black, white and arbitrary RGB values, and the
 
 ## Procedural backgrounds
 
-Window backgrounds compile `src/shaders/backgrounds.metal` into Metal compute pipelines once per
+Window backgrounds compile `src/appearance/shaders/backgrounds.metal` into Metal compute pipelines once per
 window, one kernel to each style (`Backgrounds.Styles`): the **watercolour**, **paper** (parchment,
 linen or vellum, by the seed), **ink wash** (sumi-e hills and mist), **mist** (domain-warped fog),
 **grain** (a quiet gradient under film grain), **marbling** (ebru from swirled, warped stripes),
@@ -213,10 +213,10 @@ opaque and darker than the light, opaque output, portrait resizing,
 pixels after resizing back. Run from the project root on macOS:
 
 ```sh
-clang -fobjc-arc -O2 -Wall -Wextra -c src/backgrounds_native.m -o /tmp/backgrounds_native.o
+clang -fobjc-arc -O2 -Wall -Wextra -c src/appearance/backgrounds_native.m -o /tmp/backgrounds_native.o
 clang -O2 tests/run/background_probe.c /tmp/backgrounds_native.o \
   -framework Metal -framework Foundation -o /tmp/background_probe
-/tmp/background_probe src/shaders/backgrounds.metal
+/tmp/background_probe src/appearance/shaders/backgrounds.metal
 ```
 
 It also writes `/tmp/bonxie-background-<style>-light.ppm` and `-dark.ppm` for visual inspection.
@@ -238,7 +238,7 @@ command contracts, no-op versions, asynchronous results and busy state, scope ch
 stale target identity. The Finder owns match navigation and wrapping; the view-model owns search lifecycle,
 scope, target, query, result summary and command availability. `search-by-name` checks the field, result count,
 Previous/Next, disabled controls with no matches, and Close through `Pomarine.Testing`.
-The production Finder in `Viewer.Search` adapts the text-area and picture/page engines and clears their
+The production Finder in `View.Search` adapts the text-area and picture/page engines and clears their
 transient decorations when the search closes.
 
 `writing-vm-navigation` checks directory ancestry, section lookup, subtree visibility, selection by stable key,

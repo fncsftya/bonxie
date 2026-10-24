@@ -49,7 +49,7 @@ project Bonxie is
    end Binder;
 
    package Install is
-      for Artifacts ("share/bonxie/shaders") use ("src/shaders/backgrounds.metal");
+      for Artifacts ("share/bonxie/shaders") use ("src/appearance/shaders/backgrounds.metal");
       for Artifacts (".") use ("share");
    end Install;
 
