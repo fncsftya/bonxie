@@ -5,6 +5,9 @@ with Items.Schema;
 with Ada.Command_Line;
 with Ada.Directories;
 with Preferences;
+with Grammar_VM.Stored;
+with Home_VM.Stored;
+with Outline_VM.Stored;
 with Settings_VM.Disk;
 with Speech.Models;
 with Icon_Set;
@@ -201,6 +204,15 @@ package body Viewer.Build is
    begin
       Projects.Open (Item.Nav.Store, Store_Path);
       Items.Schema.Prepare (Item.Nav.Store);
+      Home_VM.Stored.Open (Item.Home_Model.Library, Item.Nav.Store'Unchecked_Access);
+      Home_VM.Initialize (Item.Home_Model.Model, Item.Home_Model.Library'Unchecked_Access);
+      Grammar_VM.Stored.Open (Item.Grammar_Model.Library, Item.Nav.Store'Unchecked_Access);
+      Grammar_VM.Initialize (Item.Grammar_Model.Model, Item.Grammar_Model.Library'Unchecked_Access);
+      Outline_VM.Stored.Open (Item.Outline_Model.Library, Item.Nav.Store'Unchecked_Access);
+      Outline_VM.Initialize (Item.Outline_Model.Model, Item.Outline_Model.Library'Unchecked_Access);
+      Outline_Binding.Observe (Item.Outline_Model.Judge, Item.Outline_Model.Model'Unchecked_Access);
+      Home_Binding.Observe (Item.Home_Model.Judge, Item.Home_Model.Model'Unchecked_Access);
+      Confirm_Binding.Observe (Item.Dialog_Model.Judge, Item.Dialog_Model.Model'Unchecked_Access);
       Scripts.Load (Item.Host.Script, Source, File_Name);
       declare
          Config  : constant String := Preferences.Config_Directory (Store_Path);

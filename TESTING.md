@@ -92,6 +92,12 @@ A screen's rules are tested without drawing it. In three tiers, the cheapest fir
   shows.
 - **Goldens, for drawing only** (`home-settings*`): what the form looks like.
 
+The same three tiers for the other screens: `home-vm-*`, `confirm-vm-*`, `outline-vm-*` and `grammar-vm-*` are the
+view-models alone (each with fakes for what it is given and, for the database, the real store in memory:
+`*-stored`); `home-by-name`, `outline-by-name`, `settings-by-name` and `write-grammar-entry-by-name` drive the
+session through `Pomarine.Testing` (`Tests/src/viewer_driver.ads` lets it take a `Viewer.Session`'s events and
+time) and found, among others, that the form that makes a grammar rule closed the list when pressed.
+
 `view-models-no-widgets` reads the files of `src/view_models/` and fails if one names `Pomarine.Widgets` or
 `SDL3`. The parts of a view-model (`Pomarine.View_Models`) and its bindings are tested in `pomarine`.
 

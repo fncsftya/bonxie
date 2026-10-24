@@ -5,6 +5,7 @@ with Pomarine.Widgets.Grips;
 with Pomarine.Widgets.Labels;
 with Pomarine.Widgets.Layouts;
 with Texts.Documents;
+with Outline_VM;
 with Viewer.Style;
 with Viewer.Outlines.Support;
 
@@ -16,6 +17,9 @@ package body Viewer.Outlines.Blocks is
    package Labels renames Pomarine.Widgets.Labels;
    package Docs renames Texts.Documents;
 
+   function Total (Item : Session) return Natural is (Outline_VM.Count (Item.Outline_Model.Model));
+   --  How many sections there are.
+
    Drag_Threshold : constant Float := 4.0;
    --  How far, in points, a press on a block has to go to be a drag.
 
@@ -25,7 +29,7 @@ package body Viewer.Outlines.Blocks is
    procedure Style_Blocks (Item : in out Session) is
       View : Outline_Parts renames Item.Outline_View;
    begin
-      for Each in 1 .. View.Order.Count loop
+      for Each in 1 .. Total (Item) loop
          if View.Drag_Block = Each and then View.Drag_Moved then
             Grips.Set_Border (View.Blocks (Each).Row, Pomarine.Themes.Focus);
          else
@@ -41,21 +45,18 @@ package body Viewer.Outlines.Blocks is
          declare
             Block : Section_Block renames View.Blocks (Each);
          begin
-            if Each <= View.Order.Count then
-               Docs.Load
-                 (Block.Doc,
-                  Projects.Sections.Title_Texts.To_String (View.Order (Each).Title));
+            if Each <= Total (Item) then
+               Docs.Load (Block.Doc, Outline_VM.Title (Item.Outline_Model.Model, Each));
                Block.Seen := Docs.Current (Block.Doc);
-               Docs.Load_Stored
-                 (Block.Notes_Doc,
-                  Projects.Sections.Stored_Notes (Item.Nav.Store, View.Order (Each).Key));
+               Docs.Load_Stored (Block.Notes_Doc, Outline_VM.Stored_Notes (Item.Outline_Model.Model, Each));
                Block.Notes_Seen := Docs.Current (Block.Notes_Doc);
-               Buttons.Set_Selected (Block.Notes, View.Order (Each).Open);
-               Widgets.Set_Visible (Block.Notes_Sheet, View.Order (Each).Open);
+               Buttons.Set_Selected (Block.Notes, Outline_VM.Is_Open (Item.Outline_Model.Model, Each));
+               Widgets.Set_Visible (Block.Notes_Sheet, Outline_VM.Is_Open (Item.Outline_Model.Model, Each));
             end if;
-            if Each <= View.Order.Count then
+            if Each <= Total (Item) then
                declare
-                  Section : constant Projects.Sections.Section := View.Order (Each);
+                  Section : constant Projects.Sections.Section :=
+                    Outline_VM.Section_At (Item.Outline_Model.Model, Each);
                   Ink     : constant Pomarine.Themes.Slot := Style.Section_Ink (Section.Colour);
                begin
                   if Documents_In (Item, Each) > 0 then
@@ -66,13 +67,12 @@ package body Viewer.Outlines.Blocks is
                   Grips.Set_Border (Block.Swatch, Ink);
                end;
             end if;
-            Widgets.Set_Visible (Block.Row, Each <= View.Order.Count);
-            Buttons.Set_Enabled (Block.Up, Each > 1);
-            Buttons.Set_Enabled (Block.Down, Each < View.Order.Count);
+            Widgets.Set_Visible (Block.Row, Each <= Total (Item));
          end;
       end loop;
-      Widgets.Set_Visible (View.None, View.Order.Count = 0);
-      Buttons.Set_Enabled (View.Add_Button, True);
+      Widgets.Set_Visible (View.None, Total (Item) = 0);
+      --  Each block's buttons are on as the view-model says its section can be moved so, or removed.
+      Widgets.Revalidate (Item.Root.Widgets);
       Style_Blocks (Item);
    end Show_Blocks;
 
@@ -80,9 +80,9 @@ package body Viewer.Outlines.Blocks is
       View   : Outline_Parts renames Item.Outline_View;
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
       Point  : constant Float := Y * Pixels;
-      Before : Positive := View.Order.Count + 1;
+      Before : Positive := Total (Item) + 1;
    begin
-      for Each in 1 .. View.Order.Count loop
+      for Each in 1 .. Total (Item) loop
          declare
             Row : Grips.Grip renames View.Blocks (Each).Row;
          begin
@@ -100,7 +100,7 @@ package body Viewer.Outlines.Blocks is
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
       Offset : constant Float := Pomarine.Boxes.Offset (Pixels);
    begin
-      if View.Drop_Before = 0 or else View.Order.Count = 0 then
+      if View.Drop_Before = 0 or else Total (Item) = 0 then
          Widgets.Set_Visible (View.Drop_Line, False);
          return;
       end if;
@@ -108,9 +108,9 @@ package body Viewer.Outlines.Blocks is
          First : Grips.Grip renames View.Blocks (1).Row;
          Gap   : constant Float := Style.Index_Gap * Pixels - Offset;
          Mid   : constant Float :=
-           (if View.Drop_Before > View.Order.Count
-            then Widgets.Top_Of (View.Blocks (View.Order.Count).Row)
-                 + Widgets.Height_Of (View.Blocks (View.Order.Count).Row) + Gap / 2.0
+           (if View.Drop_Before > Total (Item)
+            then Widgets.Top_Of (View.Blocks (Total (Item)).Row)
+                 + Widgets.Height_Of (View.Blocks (Total (Item)).Row) + Gap / 2.0
             else Widgets.Top_Of (View.Blocks (View.Drop_Before).Row) - Gap / 2.0);
          Thick : constant Float := Style.Drop_Line_Height * Pixels;
       begin
@@ -136,7 +136,7 @@ package body Viewer.Outlines.Blocks is
       Offset : constant Float := Pomarine.Boxes.Offset (Pixels);
    begin
       if View.Drag_Block = 0 or else not View.Drag_Moved
-        or else View.Drag_Block > View.Order.Count
+        or else View.Drag_Block > Total (Item)
       then
          Widgets.Set_Visible (View.Ghost, False);
          return;
@@ -175,14 +175,6 @@ package body Viewer.Outlines.Blocks is
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
    end Show_Ghost;
 
-   procedure Keep_Order (Item : in out Session) is
-      View : Outline_Parts renames Item.Outline_View;
-      Keys : constant Projects.Sections.Key_Array (1 .. View.Order.Count) :=
-        [for Each in 1 .. View.Order.Count => View.Order (Each).Key];
-   begin
-      Projects.Sections.Set_Order (Item.Nav.Store, Item.Opened.Current, Keys);
-   end Keep_Order;
-
    procedure Block_Dragged
      (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
    is
@@ -190,7 +182,7 @@ package body Viewer.Outlines.Blocks is
       View : Outline_Parts renames Item.Outline_View;
       Row  : constant Natural := Event.Index;
    begin
-      if not Support.In_Outline (Item) or else Row not in 1 .. View.Order.Count then
+      if not Support.In_Outline (Item) or else Row not in 1 .. Total (Item) then
          return;
       end if;
       if View.Drag_Block = 0 then

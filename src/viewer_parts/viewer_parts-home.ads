@@ -1,4 +1,9 @@
+with Confirm_VM;
+with Home_VM;
+with Home_VM.Stored;
 with Projects;
+with Pomarine.Widgets.Bindings;
+with Pomarine.Widgets.Bindings.For_Commands;
 with Pomarine.Widgets.Checks;
 with Previews;
 with Pomarine.Widgets;
@@ -7,10 +12,19 @@ with Pomarine.Widgets.Grips;
 with Pomarine.Widgets.Labels;
 with Pomarine.Widgets.Panels;
 with Pomarine.Widgets.Scrollers;
-with Viewer_Parts.Rows;
+with Pomarine.View_Models;
 
 --  The home screen, and the dialog to confirm deleting.
 package Viewer_Parts.Home is
+
+   Home_Tag_Base    : constant := 200;
+   Confirm_Tag_Base : constant := 300;
+   --  The tags of the home screen's commands and the dialog's: after the settings' (see
+   --  Viewer_Parts.Settings), and the window's own are below those.
+
+   package Home_Binding is new Pomarine.Widgets.Bindings.For_Commands (Home_VM.Commands, Home_Tag_Base);
+
+   package Confirm_Binding is new Pomarine.Widgets.Bindings.For_Commands (Confirm_VM.Commands, Confirm_Tag_Base);
 
    type Project_Card is limited record
       Panel   : Pomarine.Widgets.Panels.Panel;
@@ -33,8 +47,6 @@ package Viewer_Parts.Home is
 
    type Card_Array is array (1 .. Projects.Recent_Count) of Project_Card;
 
-   type Key_Array is array (Card_Array'Range) of Projects.Id;
-
    type Home_Parts is limited record
       Home_Panel     : Pomarine.Widgets.Panels.Panel;
       --  A row: the sidebar of actions, and the recent projects.
@@ -54,9 +66,6 @@ package Viewer_Parts.Home is
       --  The cards, in rows that wrap, scrolled.
       Cards          : Card_Array;
       --  A card to each of the projects listed.
-      Row_Keys       : Key_Array := [others => 0];
-      Listed         : Projects.Recent_List;
-      --  The projects the cards are of.
       No_Rows        : Pomarine.Widgets.Labels.Label;
       --  Shown when there are none.
       New_Card       : Pomarine.Widgets.Grips.Grip;
@@ -69,11 +78,24 @@ package Viewer_Parts.Home is
       Cancel_Button  : Pomarine.Widgets.Buttons.Button;
       --  Put in the card of the project being renamed, in place of its
       --  name and buttons, which are hidden.
-      Editing        : Natural := 0;
-      --  Which card, 0 if none.
    end record;
-   --  The home screen: the sidebar, the recent projects as cards, and the
+   --  The widgets of the home screen: the sidebar, the recent projects as cards, and the
    --  field to rename one.
+
+   type Home_Choices is limited record
+      Library : aliased Home_VM.Stored.Projects_Kept;
+      Model   : aliased Home_VM.View_Model;
+      --  What the home screen means: the projects listed, the one being renamed.
+      Judge   : aliased Home_Binding.Judge;
+      Seen    : Pomarine.View_Models.Watch;
+      Listed  : Pomarine.View_Models.Watch;
+      --  The model's version, and its list's, as the widgets last showed them.
+      Link    : Pomarine.Widgets.Bindings.Text_Link;
+      --  The field's text and the draft.
+      Editing : Natural := 0;
+      --  The card the field is in, 0 if none, as shown.
+   end record;
+   --  The view-model of the home screen, and what the widgets show of it.
 
    type Confirm_Parts is limited record
       Overlay        : Pomarine.Widgets.Panels.Panel;
@@ -95,14 +117,17 @@ package Viewer_Parts.Home is
       --  tinted foot with the buttons.
       Confirm_Cancel : Pomarine.Widgets.Buttons.Button;
       Confirm_Delete : Pomarine.Widgets.Buttons.Button;
-      Deleting       : Projects.Id := 0;
-      --  The project the dialog is about, 0 if it is not shown.
-      Deleting_Model : Boolean := False;
-      --  Or the dialog is about the speech model's files (see Settings_View).
-      Deleting_Node  : Rows.Tree_Entry;
-      --  Or, in the writing view, the document or directory it is about:
-      --  the Overview's if it is about none.
    end record;
-   --  The dialog, over both screens, to confirm deleting.
+   --  The widgets of the dialog, over both screens, to confirm deleting.
+
+   type Confirm_Choices is limited record
+      Model : aliased Confirm_VM.View_Model;
+      --  What it is about and what it says: a project, a folder, a document, a source or the
+      --  speech model's files.
+      Judge : aliased Confirm_Binding.Judge;
+      Seen  : Pomarine.View_Models.Watch;
+      --  The model's version as the widgets last showed it.
+   end record;
+   --  The view-model of the dialog, and what the widgets show of it.
 
 end Viewer_Parts.Home;

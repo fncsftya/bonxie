@@ -1,3 +1,4 @@
+with Confirm_VM;
 with Settings_VM;
 with Speech.Models;
 with Scripts;
@@ -20,6 +21,7 @@ with Viewer.Canvas_Items;
 with Viewer.Deletion;
 with Viewer.Home_Screen;
 with Viewer.Menus;
+with Viewer.Recent;
 with Viewer.Outlines;
 with Viewer.Section_Links;
 with Viewer.Listing;
@@ -31,6 +33,8 @@ with Viewer.Writing;
 with Viewer.Grammar;
 
 package body Viewer is
+
+   use type Confirm_VM.Subjects;
 
    package Widgets renames Pomarine.Widgets;
    package Labels renames Pomarine.Widgets.Labels;
@@ -45,8 +49,8 @@ package body Viewer is
    package Redraws is new SDL3.Events.Redraws (Session, Painting.Draw);
 
    overriding function Validate
-     (Self : Command_Judge; Tag : Integer) return Pomarine.Widgets.Command_State is
-     (Menus.Validate (Self.Owner.all, Tag));
+     (Self : Command_Judge; Tag : Integer; Index : Natural) return Pomarine.Widgets.Command_State is
+     (Menus.Validate (Self.Owner.all, Tag, Index));
 
    overriding procedure Handle_Event
      (Self   : in out Responder;
@@ -207,7 +211,7 @@ package body Viewer is
                if Event.Kind = Pomarine.Events.Key_Down
                  and then Event.Key = Pomarine.Events.Key_Escape
                then
-                  if Item.Confirm.Deleting_Model then
+                  if Confirm_VM.Subject (Item.Dialog_Model.Model) = Confirm_VM.Model then
                      Deletion.Close (Item);
                   else
                      Settings_View.Close (Item);
@@ -431,6 +435,8 @@ package body Viewer is
    procedure Tick (Item : in out Session; Now : Pomarine.Events.Milliseconds) is
    begin
       Widgets.Update (Item.Root.Widgets, Now);
+      Recent.Sync (Item);
+      Deletion.Sync (Item);
       if Item.Nav.Shown = Project then
          Canvas_Items.Update (Item, Now);
          Outlines.Update (Item);

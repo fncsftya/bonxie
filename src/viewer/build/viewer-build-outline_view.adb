@@ -80,6 +80,7 @@ package body Viewer.Build.Outline_View is
       Grips.Set_Hover_Outline (Block.Swatch, Themes.Foreground);
       Grips.Set_Focusable (Block.Swatch, True);
       Widgets.Set_Accessible_Name (Block.Swatch, "Change section colour");
+      Widgets.Set_Accessible_Name (Block.Field, "Section title");
       Text_Fields.Set_Shared (Block.Field, Item.Host.Doc_Resources'Unchecked_Access);
       Text_Fields.Configure
         (Block.Field, Pomarine.Line_Texts.Interface_Font, Edit_Size);
@@ -130,6 +131,7 @@ package body Viewer.Build.Outline_View is
       Text_Fields.Configure
         (View.Name_Field, Pomarine.Line_Texts.Interface_Font, Edit_Size);
       Text_Fields.Attach (View.Name_Field, View.Name_Doc'Unchecked_Access);
+      Widgets.Set_Accessible_Name (View.Name_Field, "Project title");
       Labels.Set_Text (View.Desc_Label, "Description");
       Labels.Set_Style (View.Desc_Label, Pomarine.Line_Texts.Caption);
       --  The editor draws the outline.

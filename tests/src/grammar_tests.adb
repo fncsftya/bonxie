@@ -6,12 +6,14 @@ with Items.Schema;
 with Long_Texts;
 with Projects.Rules;
 with Pomarine.Events;
+with Pomarine.Testing;
 with Viewer;
 with Viewer.Canvas_Windows;
 with Viewer.Documents;
 with Viewer.Home_Screen;
 with Viewer.Project_Screen;
 with Viewer.Outline_Screen;
+with Viewer_Driver;
 
 package body Grammar_Tests is
    package Events renames Pomarine.Events;
@@ -351,4 +353,56 @@ package body Grammar_Tests is
          Check ("rule-store-apart", Made.Count = 1);
       end;
    end Rule_Cards;
+   procedure Entry_By_Name is
+      package Testing renames Pomarine.Testing;
+
+      Session : aliased Viewer.Session;
+      Ears    : aliased Viewer_Driver.Driver (Session'Access);
+      Window  : Testing.Session;
+      Now     : Events.Milliseconds := 10_000;
+   begin
+      Viewer.Open (Session, "", 720, 480, 2.0);
+      Viewer.Home_Screen.New_Project (Session);
+      Proj.Set_Mode (Session, Viewer.Canvas);
+      Windows.Add_Item (Session, "Notes");
+      Viewer.Handle (Session, Events.Text_Event ("This is a speling mistake. Another speling here."));
+      Proj.Set_Mode (Session, Viewer.Write);
+      Await (Session, Now);
+      Docs.Grammar_Show (Session);
+      Viewer.Tick (Session, Now);
+      Docs.Grammar_Expand (Session, "speling");
+      Ears.Clock := Now;
+      Testing.Attach (Window, Viewer.Widget_Tree (Session).all, Ears'Access);
+
+      --  The card's button, Add rule, begins the rule: the form asks what the text is always to be corrected to,
+      --  and has an Add rule of its own, after the card's.
+      Check ("grammar-name-no-form", not Testing.Shows (Window, "Always correct"));
+      Testing.Click_On (Window, "Add rule");
+      Check ("grammar-name-form", Testing.Shows (Window, "Always correct ""speling"" to:")
+            and then Testing.Exists (Window, "Add rule", Nth => 2) and then Testing.Exists (Window, "Cancel"));
+
+      --  What changes nothing is no rule, and the form stays.
+      Testing.Press (Window, Events.Key_A, Command => True);
+      Testing.Type_Text (Window, "speling");
+      Testing.Click_On (Window, "Add rule", Nth => 2);
+      Check ("grammar-name-same",
+             Docs.Grammar_Rule_Count (Session) = 0 and then Testing.Shows (Window, "Always correct"));
+
+      --  Cancelled, nothing is made and the form goes.
+      Testing.Click_On (Window, "Cancel");
+      Check ("grammar-name-cancelled",
+             Docs.Grammar_Rule_Count (Session) = 0 and then not Testing.Exists (Window, "Add rule", Nth => 2));
+
+      --  Accepted, there is a rule, the form goes, and the text is corrected first at both places.
+      Testing.Click_On (Window, "Add rule");
+      Testing.Press (Window, Events.Key_A, Command => True);
+      Testing.Type_Text (Window, "spelling");
+      Testing.Click_On (Window, "Add rule", Nth => 2);
+      Check ("grammar-name-made",
+             Docs.Grammar_Rule_Count (Session) = 1 and then not Testing.Exists (Window, "Add rule", Nth => 2));
+      Now := Now + 1;
+      Await (Session, Now);
+      Goldens.Check_Text ("grammar-name-first-fix", "spelling", Docs.Grammar_First_Suggestion (Session, "speling"));
+   end Entry_By_Name;
+
 end Grammar_Tests;

@@ -17,9 +17,6 @@ private package Viewer.Outlines.Blocks is
    procedure Show_Ghost (Item : in out Session);
    --  Put the ghost of the block dragged under the pointer, or hide it.
 
-   procedure Keep_Order (Item : in out Session);
-   --  Write the order of the sections to the database.
-
    procedure Block_Dragged
      (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
 

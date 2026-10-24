@@ -10,8 +10,7 @@ private package Viewer.Outlines.Support is
    function Trimmed (Content : String) return String;
    --  Without the spaces at either end.
 
-   procedure Load_Sections (Item : in out Session; Owner : Projects.Id);
-   --  Read the sections and their links again. A section shows its notes
-   --  if it did, or if it has some now.
+   procedure Reserve (Item : in out Session);
+   --  Have a block for each section of the view-model.
 
 end Viewer.Outlines.Support;

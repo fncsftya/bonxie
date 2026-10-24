@@ -269,7 +269,6 @@ package body Viewer.Settings_View is
 
    procedure Delete_Files (Item : in out Session) is
    begin
-      Deletion.Close (Item);
       if Settings_VM.Can_Execute (Item.Choices.Model, Settings_VM.Delete_Model) then
          Settings_VM.Execute (Item.Choices.Model, Settings_VM.Delete_Model);
       end if;

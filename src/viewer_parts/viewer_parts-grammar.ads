@@ -1,10 +1,10 @@
+with Grammar_VM;
+with Grammar_VM.Stored;
 with Pomarine.Events;
 with Harper;
 with Grammar_Cards;
 with Growing;
 with Items;
-with Long_Texts;
-with Projects.Rules;
 with Slot_Tables;
 with Texts.Documents;
 with Pomarine.Widgets;
@@ -99,20 +99,12 @@ package Viewer_Parts.Grammar is
       Actions : Grammar_Actions;
       Add_Rule, Ignore_Text : Pomarine.Widgets.Buttons.Button;
       --  Over the footer of the expanded card.
-      Rules : Projects.Rules.Rule_List;
-      Rules_Owner : Projects.Id := 0;
-      --  The project the rules are of; 0 until they are loaded.
       Entry_Panel : Pomarine.Widgets.Panels.Panel;
       Entry_Prompt : Pomarine.Widgets.Labels.Label;
       Entry_Field : Pomarine.Widgets.Text_Fields.Text_Field;
       Entry_Doc : aliased Texts.Documents.Document;
       Entry_Row : Pomarine.Widgets.Panels.Panel;
       Entry_Ok, Entry_Cancel : Pomarine.Widgets.Buttons.Button;
-      Entry_Open : Boolean := False;
-      Entry_Pattern : Long_Texts.Text;
-      Entry_Kind : Projects.Rules.Kind_Code := 0;
-      --  The text a rule is being made for, and the kind of its diagnostic, kept apart from the row
-      --  so that the rule can be made after the text has changed.
       Inline_Menu : Pomarine.Widgets.Menus.Menu;
       Inline_Choices : Grammar_Choices;
       Inline_Count : Natural range 0 .. 64 := 0;
@@ -128,5 +120,12 @@ package Viewer_Parts.Grammar is
       Width : Float := 360.0;
       Left, Top, Height : Float := -1.0;
    end record;
+
+   type Rule_Choices is limited record
+      Library : aliased Grammar_VM.Stored.Rules_Kept;
+      Model   : aliased Grammar_VM.View_Model;
+      --  The project's rules, and the rule being made: the text it is for, and what it is to be corrected to.
+   end record;
+   --  The view-model of the grammar rules.
 
 end Viewer_Parts.Grammar;

@@ -1,14 +1,13 @@
 with Ada.Strings;
 with Ada.Strings.Fixed;
 with Pomarine.Widgets;
-with Projects.Rules;
+with Grammar_VM;
 with Pomarine.Widgets.Editors;
 
 package body Viewer.Grammar.Basics is
 
    package Editors renames Pomarine.Widgets.Editors;
 
-   use type Projects.Id;
    use type Docs.Version;
    use type Harper.Request_Id;
 
@@ -37,10 +36,7 @@ package body Viewer.Grammar.Basics is
 
    procedure Load_Rules (Item : in out Session) is
    begin
-      if Item.Grammar_Checks.Rules_Owner /= Item.Opened.Current then
-         Projects.Rules.Load (Item.Nav.Store, Item.Opened.Current, Item.Grammar_Checks.Rules);
-         Item.Grammar_Checks.Rules_Owner := Item.Opened.Current;
-      end if;
+      Grammar_VM.Open (Item.Grammar_Model.Model, Item.Opened.Current);
    end Load_Rules;
 
    function Advance (Doc : Docs.Document; From : Texts.Position; Bytes : Natural) return Texts.Position is

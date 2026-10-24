@@ -1,7 +1,6 @@
 with Grammar_Rules;
+with Grammar_VM;
 with Harper;
-with Long_Texts;
-with Projects.Rules;
 with Pomarine.Widgets.Text_Fields;
 with Grammar_Cards;
 with Pomarine.Widgets.Buttons;
@@ -23,7 +22,6 @@ package body Viewer.Grammar.Cards is
    package Layouts renames Pomarine.Widgets.Layouts;
    package Text_Fields renames Pomarine.Widgets.Text_Fields;
 
-   use type Projects.Rules.Actions;
    Entry_Width : constant := 288.0;
 
    use type Harper.Request_Id;
@@ -241,7 +239,6 @@ package body Viewer.Grammar.Cards is
 
    procedure Rules_Changed (Item : in out Session) is
    begin
-      Item.Grammar_Checks.Rules_Owner := 0;
       Basics.Load_Rules (Item);
       Recheck (Item);
       Update (Item, Pomarine.Events.Ticks);
@@ -253,13 +250,10 @@ package body Viewer.Grammar.Cards is
       if Index in 1 .. State.Rows.Count and then Basics.Valid (Item, State.Rows (Index)) then
          declare
             Marked : constant String := Basics.Flagged (Item, State.Rows (Index));
-            Key    : Projects.Rules.Rule_Id;
-            pragma Unreferenced (Key);
          begin
             if Marked'Length > 0 then
-               Key := Projects.Rules.Add
-                 (Item.Nav.Store, Item.Opened.Current, Projects.Rules.Ignore,
-                  Grammar_Rules.Kind_Code (State.Rows (Index).Lint.Kind), Marked);
+               Grammar_VM.Ignore
+                 (Item.Grammar_Model.Model, Grammar_Rules.Kind_Code (State.Rows (Index).Lint.Kind), Marked);
                Widgets.Focus (Item.Page_View.Grammar_Count);
                Rules_Changed (Item);
             end if;
@@ -274,16 +268,14 @@ package body Viewer.Grammar.Cards is
         and then State.Rows (Index).Lint.Custom
       then
          declare
-            Marked : constant String := Basics.Flagged (Item, State.Rows (Index));
+            Marked  : constant String := Basics.Flagged (Item, State.Rows (Index));
+            Removed : Boolean;
          begin
-            for Rule of State.Rules loop
-               if Rule.Action = Projects.Rules.Correct and then Long_Texts.To_String (Rule.Pattern) = Marked then
-                  Projects.Rules.Remove (Item.Nav.Store, Rule.Key);
-                  Widgets.Focus (Item.Page_View.Grammar_Count);
-                  Rules_Changed (Item);
-                  return;
-               end if;
-            end loop;
+            Grammar_VM.Remove_Correction (Item.Grammar_Model.Model, Marked, Removed);
+            if Removed then
+               Widgets.Focus (Item.Page_View.Grammar_Count);
+               Rules_Changed (Item);
+            end if;
          end;
       end if;
    end Remove_Row_Rule;
@@ -309,13 +301,13 @@ package body Viewer.Grammar.Cards is
             return;
          end if;
          Close_Inline (Item);
-         State.Entry_Pattern := Long_Texts.To_Text (Marked);
-         State.Entry_Kind := Grammar_Rules.Kind_Code (Mark.Lint.Kind);
          --  Begin with the first fix Harper has, which is often what is wanted.
-         Docs.Load (State.Entry_Doc, (if Mark.Lint.Suggestion_Count > 0
-                                      then Harper.Replacements.To_String (Mark.Lint.Suggestions (1).Text) else Marked));
-         Labels.Set_Text (State.Entry_Prompt, "Always correct """ & Marked & """ to:");
-         State.Entry_Open := True;
+         Grammar_VM.Begin_Entry
+           (Item.Grammar_Model.Model, Marked, Grammar_Rules.Kind_Code (Mark.Lint.Kind),
+            (if Mark.Lint.Suggestion_Count > 0
+             then Harper.Replacements.To_String (Mark.Lint.Suggestions (1).Text) else Marked));
+         Docs.Load (State.Entry_Doc, Grammar_VM.Correction (Item.Grammar_Model.Model));
+         Labels.Set_Text (State.Entry_Prompt, Grammar_VM.Prompt (Item.Grammar_Model.Model));
          Set_Layout (State.Entry_Panel, Width => Wide, Position =>
            (Left => Float'Max (8.0, Float'Min (State.Pointer_X - Parent_Left - Wide / 2.0, Parent_Wide - Wide - 8.0)),
             Top => Float'Max (8.0, Float'Min (State.Pointer_Y - Parent_Top + 12.0, Parent_High - 132.0)),
@@ -357,23 +349,17 @@ package body Viewer.Grammar.Cards is
       pragma Unreferenced (Source, Event);
       State : Grammar_State renames Item.Grammar_Checks;
    begin
-      if not State.Entry_Open then
+      if not Grammar_VM.Is_Entering (Item.Grammar_Model.Model) then
          return;
       end if;
-      declare
-         Typed : constant String := Docs.Whole (State.Entry_Doc);
-         Pattern : constant String := Long_Texts.To_String (State.Entry_Pattern);
-         Key : Projects.Rules.Rule_Id;
-         pragma Unreferenced (Key);
-      begin
-         --  A correction that changes nothing, or is longer than a suggestion can be, is not a rule.
-         if Typed /= Pattern and then Typed'Length <= Harper.Max_Replacement then
-            Key := Projects.Rules.Add
-              (Item.Nav.Store, Item.Opened.Current, Projects.Rules.Correct, State.Entry_Kind, Pattern, Typed);
-            Close_Entry (Item);
-            Rules_Changed (Item);
-         end if;
-      end;
+      --  What was typed is the correction. One that changes nothing, or is longer than a suggestion can
+      --  be, is not a rule.
+      Grammar_VM.Set_Correction (Item.Grammar_Model.Model, Docs.Whole (State.Entry_Doc));
+      if Grammar_VM.Can_Execute (Item.Grammar_Model.Model, Grammar_VM.Accept_Entry) then
+         Grammar_VM.Execute (Item.Grammar_Model.Model, Grammar_VM.Accept_Entry);
+         Close_Entry (Item);
+         Rules_Changed (Item);
+      end if;
    end Entry_Accepted;
 
    procedure Entry_Cancelled

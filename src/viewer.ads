@@ -210,7 +210,7 @@ private
    --  Viewer.Menus) and the settings' (Viewer_Parts.Settings.Binding).
 
    overriding function Validate
-     (Self : Command_Judge; Tag : Integer) return Pomarine.Widgets.Command_State;
+     (Self : Command_Judge; Tag : Integer; Index : Natural) return Pomarine.Widgets.Command_State;
 
    type Item_Rows is limited new Pomarine.Models.List_Model with record
       Owner   : Session_Access;
@@ -265,7 +265,7 @@ private
 
    type Nav_State is limited record
       Shown        : Screens := Home;
-      Store        : Projects.Store;
+      Store        : aliased Projects.Store;
 
       Pinned_Time : Projects.Seconds := 0;
       --  The time pictures are taken at, if not 0: see Pin_Capture_Time.
@@ -320,6 +320,8 @@ private
       Root : Root_Parts;
       Home_View : Home_Parts;
       Confirm : Confirm_Parts;
+      Home_Model : Home_Choices;
+      Dialog_Model : Confirm_Choices;
       Prefs : Settings_Parts;
       Choices : Settings_Choices;
       Judge : aliased Command_Judge;
@@ -338,7 +340,9 @@ private
       --  draw to.
       Docs : Document_State;
       Grammar_Checks : Grammar_State;
+      Grammar_Model : Rule_Choices;
       Outline_View : Outline_Parts;
+      Outline_Model : Outline_Choices;
       Context : Context_State;
       Section_Menu : Section_Menu_Parts;
       Naming : Renaming_State;

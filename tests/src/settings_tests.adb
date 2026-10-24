@@ -3,6 +3,7 @@ with Pomarine.Events;
 with Pomarine.Testing;
 with Preferences;
 with Viewer;
+with Viewer_Driver;
 with Viewer.Settings;
 
 package body Settings_Tests is
@@ -14,31 +15,6 @@ package body Settings_Tests is
    use type Preferences.Background_Modes;
    use type Preferences.Speech_Models;
    use type Preferences.Theme_Choices;
-
-   use type Pomarine.Events.Milliseconds;
-
-   --  The session, taken events as it does and drawn when time passes.
-
-   type Driver (App : not null access Viewer.Session) is limited new Testing.Application with record
-      Clock : Events.Milliseconds := 0;
-      Image : Goldens.Images.Image;
-   end record;
-
-   overriding procedure Take (Self : in out Driver; Event : Events.Event);
-
-   overriding procedure Settle (Self : in out Driver; Milliseconds : Natural);
-
-   overriding procedure Take (Self : in out Driver; Event : Events.Event) is
-   begin
-      Viewer.Handle (Self.App.all, Event);
-   end Take;
-
-   overriding procedure Settle (Self : in out Driver; Milliseconds : Natural) is
-   begin
-      Self.Clock := Self.Clock + Events.Milliseconds (Milliseconds);
-      Viewer.Tick (Self.App.all, Self.Clock);
-      Viewer.Render (Self.App.all, Self.Image);
-   end Settle;
 
    function Image (Value : Boolean) return String is (Value'Image);
 
@@ -58,7 +34,7 @@ package body Settings_Tests is
 
    procedure By_Name is
       Session : aliased Viewer.Session;
-      Ears    : aliased Driver (Session'Access);
+      Ears    : aliased Viewer_Driver.Driver (Session'Access);
       Window  : Testing.Session;
    begin
       Viewer.Open (Session, "", 1000, 800);

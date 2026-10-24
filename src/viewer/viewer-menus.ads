@@ -11,7 +11,7 @@ private package Viewer.Menus is
    --  what each is for follow what is shown. Not for a session opened
    --  without a window.
 
-   function Validate (Item : Session; Tag : Integer) return Pomarine.Widgets.Command_State;
+   function Validate (Item : Session; Tag : Integer; Index : Natural) return Pomarine.Widgets.Command_State;
    --  What the command called Tag is for: the window's own, as the menu bar
    --  shows them (without one, as the buttons are set), and the settings'.
 

@@ -1,3 +1,6 @@
+with Outline_VM;
+with Outline_VM.Stored;
+with Pomarine.Widgets.Bindings.For_Commands;
 with Section_Colour_Pickers;
 with Growing;
 with Projects;
@@ -16,6 +19,12 @@ with Pomarine.Widgets.Scrollers;
 
 --  The outline view: the form of the project's title and description, and the blocks of its sections.
 package Viewer_Parts.Outline is
+
+   Outline_Tag_Base : constant := 400;
+   --  The tag of the outline's first command (see Viewer_Parts.Home for the ones before).
+
+   package Outline_Binding is
+     new Pomarine.Widgets.Bindings.For_Commands (Outline_VM.Commands, Outline_Tag_Base);
 
    type Section_Block is limited record
       Doc    : aliased Texts.Documents.Document;
@@ -60,10 +69,7 @@ package Viewer_Parts.Outline is
       --  The project's title and description, and the versions of them
       --  that are kept.
       Blocks      : Section_Blocks;
-      Order       : Projects.Sections.Section_List;
-      --  The sections, as kept: Blocks (1 .. Order.Count) show them.
-      Links       : Projects.Sections.Link_List;
-      --  The items of the project that are of a section, as kept.
+      --  The sections, as kept, are the view-model's: Blocks (1 .. Count) show them.
       View        : Pomarine.Widgets.Panels.Panel;
       --  A row, in the content area when Mode is Outline: the form, and the
       --  sections.
@@ -99,6 +105,15 @@ package Viewer_Parts.Outline is
    end record;
    --  The outline view: the form of the project's title and description,
    --  and the blocks of its sections.
+
+   type Outline_Choices is limited record
+      Library : aliased Outline_VM.Stored.Sections_Kept;
+      Model   : aliased Outline_VM.View_Model;
+      Judge   : aliased Outline_Binding.Judge;
+      --  What the outline means: the project's title and description, the sections in order, which
+      --  have their notes open.
+   end record;
+   --  The view-model of the outline.
 
    package Row_Lists is new Growing (Natural);
    subtype Section_Rows is Row_Lists.List;

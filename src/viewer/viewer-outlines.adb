@@ -22,116 +22,58 @@ package body Viewer.Outlines is
    use type Projects.Id;
    use type Projects.Sections.Section_Id;
 
-   Untitled_Section : constant String := "Untitled section";
-
    function Section_Count (Item : Session) return Natural is
-     (Item.Outline_View.Order.Count);
+     (Outline_VM.Count (Item.Outline_Model.Model));
 
    function Section_Title (Item : Session; Which : Positive) return String is
-     (Projects.Sections.Title_Texts.To_String
-        (Item.Outline_View.Order (Which).Title));
+     (Outline_VM.Title (Item.Outline_Model.Model, Which));
 
    function Section_At (Item : Session; Which : Positive) return Projects.Sections.Section is
-     (Item.Outline_View.Order (Which));
+     (Outline_VM.Section_At (Item.Outline_Model.Model, Which));
 
    function Index_Of_Key (Item : Session; Key : Projects.Sections.Section_Id) return Natural is
-      View : Outline_Parts renames Item.Outline_View;
-   begin
-      for Place in 1 .. View.Order.Count loop
-         if View.Order (Place).Key = Key then
-            return Place;
-         end if;
-      end loop;
-      return 0;
-   end Index_Of_Key;
+     (Outline_VM.Index_Of_Key (Item.Outline_Model.Model, Key));
 
    function Section_Of_Item (Item : Session; Key : Long_Integer) return Natural is
-      View : Outline_Parts renames Item.Outline_View;
-   begin
-      for Each in 1 .. View.Links.Count loop
-         if View.Links (Each).Item = Key then
-            for Place in 1 .. View.Order.Count loop
-               if View.Order (Place).Key = View.Links (Each).Section then
-                  return Place;
-               end if;
-            end loop;
-         end if;
-      end loop;
-      return 0;
-   end Section_Of_Item;
+     (Outline_VM.Section_Of_Item (Item.Outline_Model.Model, Key));
 
    function Documents_In (Item : Session; Which : Positive) return Natural is
-      View  : Outline_Parts renames Item.Outline_View;
-      Total : Natural := 0;
-   begin
-      for Each in 1 .. View.Links.Count loop
-         if View.Links (Each).Section = View.Order (Which).Key then
-            Total := Total + 1;
-         end if;
-      end loop;
-      return Total;
-   end Documents_In;
+     (Outline_VM.Documents_In (Item.Outline_Model.Model, Which));
 
    procedure Sync (Item : in out Session) is
-      View : Outline_Parts renames Item.Outline_View;
+      View  : Outline_Parts renames Item.Outline_View;
+      Model : Outline_VM.View_Model renames Item.Outline_Model.Model;
    begin
-      if Item.Opened.Current = 0 then
+      if Item.Opened.Current = 0 or else not Outline_VM.Is_Entered (Model) then
          return;
       end if;
       if Docs.Current (View.Name_Doc) /= View.Name_Seen then
          View.Name_Seen := Docs.Current (View.Name_Doc);
          declare
-            Name : constant String :=
-              Support.Trimmed (Docs.Whole (View.Name_Doc));
+            Kept : Boolean;
          begin
             --  A project is not left without a name.
-            if Name /= "" then
-               Projects.Rename
-                 (Item.Nav.Store, Item.Opened.Current,
-                  Name);
+            Outline_VM.Set_Project_Title (Model, Docs.Whole (View.Name_Doc), Kept);
+            if Kept then
                Navigation.Show_Title_Of_Project (Item);
             end if;
          end;
       end if;
       if Docs.Current (View.Desc_Doc) /= View.Desc_Seen then
          View.Desc_Seen := Docs.Current (View.Desc_Doc);
-         Projects.Set_Description
-           (Item.Nav.Store, Item.Opened.Current,
-            Docs.Stored (View.Desc_Doc));
+         Outline_VM.Set_Project_Description (Model, Docs.Stored (View.Desc_Doc));
       end if;
-      for Each in 1 .. View.Order.Count loop
+      for Each in 1 .. Outline_VM.Count (Model) loop
          declare
             Block : Section_Block renames View.Blocks (Each);
          begin
             if Docs.Current (Block.Doc) /= Block.Seen then
                Block.Seen := Docs.Current (Block.Doc);
-               declare
-                  Name  : constant String :=
-                    Docs.Whole (Block.Doc);
-               begin
-                  declare
-                     Section : Projects.Sections.Section renames View.Order (Each);
-                  begin
-                     Section.Title := Projects.Sections.Title_Texts.To_Text (Name);
-                  end;
-                  Projects.Sections.Rename
-                    (Item.Nav.Store, View.Order (Each).Key, Name);
-               end;
+               Outline_VM.Set_Title (Model, Each, Docs.Whole (Block.Doc));
             end if;
             if Docs.Current (Block.Notes_Doc) /= Block.Notes_Seen then
                Block.Notes_Seen := Docs.Current (Block.Notes_Doc);
-               declare
-                  Notes : constant String :=
-                    Docs.Whole (Block.Notes_Doc);
-               begin
-                  declare
-                     Section : Projects.Sections.Section renames View.Order (Each);
-                  begin
-                     Section.Notes := Projects.Sections.Note_Texts.To_Text (Notes);
-                  end;
-                  Projects.Sections.Set_Stored_Notes
-                    (Item.Nav.Store, View.Order (Each).Key, Docs.Stored (Block.Notes_Doc));
-               end;
+               Outline_VM.Set_Notes (Model, Each, Docs.Whole (Block.Notes_Doc), Docs.Stored (Block.Notes_Doc));
             end if;
          end;
       end loop;
@@ -141,17 +83,13 @@ package body Viewer.Outlines is
    --  Show the project's title and description.
 
    procedure Load_Form (Item : in out Session) is
-      View   : Outline_Parts renames Item.Outline_View;
-      Found  : Boolean;
-      Result : Projects.Project;
+      View  : Outline_Parts renames Item.Outline_View;
+      Model : Outline_VM.View_Model renames Item.Outline_Model.Model;
    begin
-      Projects.Find (Item.Nav.Store, Item.Opened.Current, Found, Result);
-      if Found then
-         Docs.Load (View.Name_Doc, Projects.Titles.To_String (Result.Title));
-         View.Name_Seen := Docs.Current (View.Name_Doc);
-         Docs.Load_Stored (View.Desc_Doc, Projects.Stored_Description (Item.Nav.Store, Result.Key));
-         View.Desc_Seen := Docs.Current (View.Desc_Doc);
-      end if;
+      Docs.Load (View.Name_Doc, Outline_VM.Project_Title (Model));
+      View.Name_Seen := Docs.Current (View.Name_Doc);
+      Docs.Load_Stored (View.Desc_Doc, Outline_VM.Project_Description (Model));
+      View.Desc_Seen := Docs.Current (View.Desc_Doc);
    end Load_Form;
 
    procedure Reload (Item : in out Session) is
@@ -159,7 +97,8 @@ package body Viewer.Outlines is
       if Item.Toolbar.Mode = Outline then
          Sync (Item);
       end if;
-      Support.Load_Sections (Item, Item.Opened.Current);
+      Outline_VM.Reload (Item.Outline_Model.Model);
+      Support.Reserve (Item);
       Blocks.Show_Blocks (Item);
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
    end Reload;
@@ -170,9 +109,9 @@ package body Viewer.Outlines is
       View.Drag_Block := 0;
       View.Drag_Moved := False;
       View.Drop_Before := 0;
+      Outline_VM.Enter (Item.Outline_Model.Model, Item.Opened.Current);
       Load_Form (Item);
-      View.Order.Count := 0;
-      Support.Load_Sections (Item, Item.Opened.Current);
+      Support.Reserve (Item);
       Blocks.Show_Blocks (Item);
       Blocks.Show_Drop_Line (Item);
    end Enter;
@@ -186,26 +125,21 @@ package body Viewer.Outlines is
       View.Drag_Block := 0;
       View.Drag_Moved := False;
       View.Drop_Before := 0;
-      View.Order.Count := 0;
-      View.Links.Count := 0;
+      Outline_VM.Leave (Item.Outline_Model.Model);
       Blocks.Show_Blocks (Item);
       Blocks.Show_Drop_Line (Item);
       Blocks.Show_Ghost (Item);
    end Leave;
 
    procedure Shown (Item : in out Session) is
-      View   : Outline_Parts renames Item.Outline_View;
-      Found  : Boolean;
-      Result : Projects.Project;
+      View  : Outline_Parts renames Item.Outline_View;
+      Model : Outline_VM.View_Model renames Item.Outline_Model.Model;
    begin
       Sync (Item);
       --  The project may have been renamed on the toolbar.
-      Projects.Find (Item.Nav.Store, Item.Opened.Current, Found, Result);
-      if Found
-        and then Projects.Titles.To_String (Result.Title)
-                 /= Support.Trimmed (Docs.Whole (View.Name_Doc))
-      then
-         Docs.Load (View.Name_Doc, Projects.Titles.To_String (Result.Title));
+      Outline_VM.Reload_Project (Model);
+      if Outline_VM.Project_Title (Model) /= Outline_VM.Trimmed (Docs.Whole (View.Name_Doc)) then
+         Docs.Load (View.Name_Doc, Outline_VM.Project_Title (Model));
          View.Name_Seen := Docs.Current (View.Name_Doc);
       end if;
    end Shown;
@@ -213,21 +147,16 @@ package body Viewer.Outlines is
    --  What is done to the sections
 
    procedure Add_Section (Item : in out Session) is
-      View : Outline_Parts renames Item.Outline_View;
+      View  : Outline_Parts renames Item.Outline_View;
+      Model : Outline_VM.View_Model renames Item.Outline_Model.Model;
    begin
       Sync (Item);
-      declare
-         Key : constant Projects.Sections.Section_Id :=
-           Projects.Sections.Add (Item.Nav.Store, Item.Opened.Current, Untitled_Section);
-      begin
-         pragma Unreferenced (Key);
-         --  As kept, with the colour it was given.
-         Support.Load_Sections (Item, Item.Opened.Current);
-      end;
+      Outline_VM.Execute (Model, Outline_VM.Add_Section);
+      Support.Reserve (Item);
       Blocks.Show_Blocks (Item);
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
       declare
-         Block  : Section_Block renames View.Blocks (View.Order.Count);
+         Block  : Section_Block renames View.Blocks (Outline_VM.Count (Model));
          Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
       begin
          Scrollers.Scroll_To
@@ -241,62 +170,69 @@ package body Viewer.Outlines is
    end Add_Section;
 
    procedure Move_Section (Item : in out Session; From, To : Positive) is
-      View  : Outline_Parts renames Item.Outline_View;
    begin
       if From = To then
          return;
       end if;
       Sync (Item);
-      declare
-         Moved : constant Projects.Sections.Section := View.Order (From);
-      begin
-         if From < To then
-            for Each in From .. To - 1 loop
-               View.Order (Each) := View.Order (Each + 1);
-            end loop;
-         else
-            for Each in reverse To + 1 .. From loop
-               View.Order (Each) := View.Order (Each - 1);
-            end loop;
-         end if;
-         View.Order (To) := Moved;
-      end;
-      Blocks.Keep_Order (Item);
+      Outline_VM.Move (Item.Outline_Model.Model, From, To);
       Blocks.Show_Blocks (Item);
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
    end Move_Section;
 
    procedure Remove_Section (Item : in out Session; Which : Positive) is
-      View : Outline_Parts renames Item.Outline_View;
    begin
       Sync (Item);
-      Projects.Sections.Delete (Item.Nav.Store, View.Order (Which).Key);
-      Projects.Sections.Load_Links (Item.Nav.Store, Item.Opened.Current, View.Links);
-      View.Order.Delete (Which);
+      Outline_VM.Execute (Item.Outline_Model.Model, Outline_VM.Remove_Section, Which);
       Blocks.Show_Blocks (Item);
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
    end Remove_Section;
 
    procedure Toggle_Notes (Item : in out Session; Which : Positive; Focus : Boolean := True) is
-      View  : Outline_Parts renames Item.Outline_View;
-      Block : Section_Block renames View.Blocks (Which);
-      Now_Open : constant Boolean := not View.Order (Which).Open;
+      View     : Outline_Parts renames Item.Outline_View;
+      Block    : Section_Block renames View.Blocks (Which);
    begin
-      View.Order (Which).Open := Now_Open;
-      Buttons.Set_Selected (Block.Notes, Now_Open);
-      Widgets.Set_Visible (Block.Notes_Sheet, Now_Open);
-      Widgets.Request_Layout (Block.Row);
-      Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
-      if Now_Open and then Focus then
-         Widgets.Focus (Block.Notes_Text);
-      end if;
+      Outline_VM.Execute (Item.Outline_Model.Model, Outline_VM.Toggle_Notes, Which);
+      declare
+         Now_Open : constant Boolean := Outline_VM.Is_Open (Item.Outline_Model.Model, Which);
+      begin
+         Buttons.Set_Selected (Block.Notes, Now_Open);
+         Widgets.Set_Visible (Block.Notes_Sheet, Now_Open);
+         Widgets.Request_Layout (Block.Row);
+         Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
+         if Now_Open and then Focus then
+            Widgets.Focus (Block.Notes_Text);
+         end if;
+      end;
    end Toggle_Notes;
 
    function Section_Notes (Item : Session; Which : Positive) return String is
-     (Projects.Sections.Note_Texts.To_String (Item.Outline_View.Order (Which).Notes));
+     (Outline_VM.Notes (Item.Outline_Model.Model, Which));
 
    function Notes_Shown (Item : Session; Which : Positive) return Boolean is
-     (Item.Outline_View.Order (Which).Open);
+     (Outline_VM.Is_Open (Item.Outline_Model.Model, Which));
+
+   procedure Do_Command (Item : in out Session; What : Outline_VM.Command; Index : Natural) is
+      use all type Outline_VM.Command;
+   begin
+      if not Support.In_Outline (Item)
+        or else not Outline_VM.Can_Execute (Item.Outline_Model.Model, What, Index)
+      then
+         return;
+      end if;
+      case What is
+         when Add_Section =>
+            Add_Section (Item);
+         when Move_Up =>
+            Move_Section (Item, Index, Index - 1);
+         when Move_Down =>
+            Move_Section (Item, Index, Index + 1);
+         when Remove_Section =>
+            Remove_Section (Item, Index);
+         when Toggle_Notes =>
+            Toggle_Notes (Item, Index);
+      end case;
+   end Do_Command;
 
    procedure Pressed (Item : in out Session; X, Y : Float) is
       View   : Outline_Parts renames Item.Outline_View;
@@ -339,7 +275,7 @@ package body Viewer.Outlines is
       Hear (Item.Outline_View.Colour_OK, Click, Clicks.Colour_Accepted'Access);
       Hear (Item.Outline_View.Colour_Cancel, Click, Clicks.Colour_Cancelled'Access);
 
-      Hear (Item.Outline_View.Add_Button, Click, Clicks.Add_Clicked'Access);
+      Outline_Binding.Bind (Item.Outline_View.Add_Button, Outline_VM.Add_Section);
    end Listen;
 
    procedure Listen_Block (Item : in out Session; Index : Positive) is
@@ -362,10 +298,10 @@ package body Viewer.Outlines is
       Hear (Block.Row, Drag, Blocks.Block_Dragged'Access, Index);
       Hear (Block.Row, Release, Blocks.Block_Released'Access);
       Hear (Block.Field, Submit, Clicks.Title_Submitted'Access);
-      Hear (Block.Notes, Click, Clicks.Notes_Clicked'Access, Index);
-      Hear (Block.Up, Click, Clicks.Up_Clicked'Access, Index);
-      Hear (Block.Down, Click, Clicks.Down_Clicked'Access, Index);
-      Hear (Block.Remove, Click, Clicks.Remove_Clicked'Access, Index);
+      Outline_Binding.Bind (Block.Notes, Outline_VM.Toggle_Notes, Index);
+      Outline_Binding.Bind (Block.Up, Outline_VM.Move_Up, Index);
+      Outline_Binding.Bind (Block.Down, Outline_VM.Move_Down, Index);
+      Outline_Binding.Bind (Block.Remove, Outline_VM.Remove_Section, Index);
    end Listen_Block;
 
 end Viewer.Outlines;

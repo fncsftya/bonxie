@@ -1,4 +1,5 @@
 with Grammar_Rules;
+with Grammar_VM;
 with Harper;
 with Pomarine.Widgets.Buttons;
 with Pomarine.Widgets.Callbacks;
@@ -87,8 +88,8 @@ package body Viewer.Grammar is
    procedure Close_Entry (Item : in out Session) is
       State : Grammar_State renames Item.Grammar_Checks;
    begin
-      if State.Entry_Open then
-         State.Entry_Open := False;
+      if Grammar_VM.Is_Entering (Item.Grammar_Model.Model) then
+         Grammar_VM.Execute (Item.Grammar_Model.Model, Grammar_VM.Cancel_Entry);
          if Widgets.Has_Focus (State.Entry_Field) or else Widgets.Has_Focus (State.Entry_Ok)
            or else Widgets.Has_Focus (State.Entry_Cancel)
          then
@@ -132,7 +133,10 @@ package body Viewer.Grammar is
       if Item.Grammar_Checks.Showing
         and then not Widgets.Contains (Item.Grammar_Checks.Popout, X * Pixels, Y * Pixels)
         and then not Widgets.Contains (Item.Page_View.Grammar_Count, X * Pixels, Y * Pixels)
+        and then not (Grammar_VM.Is_Entering (Item.Grammar_Model.Model)
+                      and then Widgets.Contains (Item.Grammar_Checks.Entry_Panel, X * Pixels, Y * Pixels))
       then
+         --  The form that makes a rule is over the content, and part of the list.
          Close (Item);
       end if;
    end Pressed;
@@ -298,7 +302,7 @@ package body Viewer.Grammar is
    procedure Reset (Item : in out Session) is
    begin
       Close (Item);
-      Item.Grammar_Checks.Rules_Owner := 0;
+      Grammar_VM.Forget (Item.Grammar_Model.Model);
       for Card of Item.Grammar_Checks.Cards loop
          Widgets.Set_Visible (Card, False);
       end loop;
@@ -618,7 +622,9 @@ package body Viewer.Grammar is
                      Seen.Finished := Worker.Last or else Result.Status /= Harper.Success;
                      if Result.Status = Harper.Success then
                         Drop_Cross_Paragraph (Worker.Text (1 .. Worker.Length), Result);
-                        Grammar_Rules.Apply (State.Rules, Worker.Text (1 .. Worker.Length), Result);
+                        Grammar_Rules.Apply
+                          (Grammar_VM.Current (Item.Grammar_Model.Model).all, Worker.Text (1 .. Worker.Length),
+                           Result);
                         declare
                            Editor : Editors.Editor renames Item.Docs.Pages (Worker.Rank).Text;
                            Area : Areas.Text_Area renames Editors.Area (Editor).all;
@@ -768,7 +774,7 @@ package body Viewer.Grammar is
               else "");
    end First_Suggestion;
 
-   function Rule_Count (Item : Session) return Natural is (Item.Grammar_Checks.Rules.Count);
+   function Rule_Count (Item : Session) return Natural is (Grammar_VM.Count (Item.Grammar_Model.Model));
 
    procedure Show (Item : in out Session) is
    begin
@@ -820,7 +826,7 @@ package body Viewer.Grammar is
       if Index /= 0 then
          State.Expanded := Index;
          Cards.Rule_Clicked (Item, State.Add_Rule, (Kind => Widgets.Click, others => <>));
-         if State.Entry_Open then
+         if Grammar_VM.Is_Entering (Item.Grammar_Model.Model) then
             Docs.Load (State.Entry_Doc, To);
             Cards.Entry_Accepted (Item, State.Entry_Ok, (Kind => Widgets.Click, others => <>));
          end if;

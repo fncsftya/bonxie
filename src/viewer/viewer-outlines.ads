@@ -1,3 +1,4 @@
+with Outline_VM;
 with Projects.Sections;
 
 --  The outline view: a form of the project's title and description at the
@@ -72,6 +73,10 @@ private package Viewer.Outlines is
 
    procedure Listen (Item : in out Session);
    --  Have the view's buttons and blocks do what they are for.
+
+   procedure Do_Command (Item : in out Session; What : Outline_VM.Command; Index : Natural);
+   --  A button of the outline was pressed: do the command, for the row Index, if the view-model says it can
+   --  be done and the outline is in use; and show it.
 
    procedure Pressed (Item : in out Session; X, Y : Float);
    --  A press of the mouse button at X, Y points: put the colour popout

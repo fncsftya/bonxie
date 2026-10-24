@@ -1,3 +1,4 @@
+with Outline_VM;
 with Viewer.Outlines.Support;
 with Viewer.Style;
 with Pomarine.Themes;
@@ -14,14 +15,14 @@ package body Viewer.Outlines.Clicks is
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
       use Pomarine.Widgets.Layouts;
    begin
-      if not Support.In_Outline (Item) or else Event.Index not in 1 .. View.Order.Count then
+      if not Support.In_Outline (Item) or else Event.Index not in 1 .. Section_Count (Item) then
          return;
       end if;
       Sync (Item);
-      View.Colour_Key := View.Order (Event.Index).Key;
+      View.Colour_Key := Section_At (Item, Event.Index).Key;
       Section_Colour_Pickers.Set_Colour
         (View.Colour_Picker,
-         Pomarine.Themes.Resolve (Style.Colors, Style.Section_Ink (View.Order (Event.Index).Colour)));
+         Pomarine.Themes.Resolve (Style.Colors, Style.Section_Ink (Section_At (Item, Event.Index).Colour)));
       Set_Layout
         (View.Colour_Popout,
          Position =>
@@ -54,64 +55,12 @@ package body Viewer.Outlines.Clicks is
       if Support.In_Outline (Item) and then Row /= 0
         and then Section_Colour_Pickers.Changed (View.Colour_Picker)
       then
-         Projects.Sections.Set_Colour
-           (Item.Nav.Store, View.Colour_Key, Section_Colour_Pickers.Colour (View.Colour_Picker));
-         View.Order (Row).Colour := Section_Colour_Pickers.Colour (View.Colour_Picker);
+         Outline_VM.Set_Colour (Item.Outline_Model.Model, Row, Section_Colour_Pickers.Colour (View.Colour_Picker));
          Item.Section_Menu.Changes := @ + 1;
          Blocks.Show_Blocks (Item);
       end if;
       Colour_Cancelled (Item, Source, Event);
    end Colour_Accepted;
-
-   procedure Add_Clicked
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source, Event);
-   begin
-      if Support.In_Outline (Item) then
-         Add_Section (Item);
-      end if;
-   end Add_Clicked;
-
-   procedure Up_Clicked
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source);
-   begin
-      if Support.In_Outline (Item) and then Event.Index in 2 .. Item.Outline_View.Order.Count then
-         Move_Section (Item, Event.Index, Event.Index - 1);
-      end if;
-   end Up_Clicked;
-
-   procedure Down_Clicked
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source);
-   begin
-      if Support.In_Outline (Item) and then Event.Index in 1 .. Item.Outline_View.Order.Count - 1 then
-         Move_Section (Item, Event.Index, Event.Index + 1);
-      end if;
-   end Down_Clicked;
-
-   procedure Remove_Clicked
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source);
-   begin
-      if Support.In_Outline (Item) and then Event.Index in 1 .. Item.Outline_View.Order.Count then
-         Remove_Section (Item, Event.Index);
-      end if;
-   end Remove_Clicked;
-
-   procedure Notes_Clicked
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source);
-   begin
-      if Support.In_Outline (Item) and then Event.Index in 1 .. Item.Outline_View.Order.Count then
-         Toggle_Notes (Item, Event.Index);
-      end if;
-   end Notes_Clicked;
 
    procedure Title_Submitted
      (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)

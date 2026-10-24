@@ -99,7 +99,7 @@ package Settings_VM is
 
    overriding function Version (Self : View_Model) return Parts.Version_Number;
 
-   overriding function Can_Execute (Self : View_Model; What : Command) return Boolean;
+   overriding function Can_Execute (Self : View_Model; What : Command; Index : Natural := 0) return Boolean;
    --  Open: the settings are not shown. Close: they are. Download_Model: the
    --  files are not there and not on their way. Delete_Model: they are there and
    --  not being replaced. The choices, Toggle_VSync and Reseed: always.

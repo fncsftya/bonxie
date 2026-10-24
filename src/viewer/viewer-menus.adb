@@ -13,10 +13,16 @@ package body Viewer.Menus is
 
    function Tag_Of (What : Command) return Integer is (Command'Pos (What));
 
-   function Validate (Item : Session; Tag : Integer) return Widgets.Command_State is
+   function Validate (Item : Session; Tag : Integer; Index : Natural) return Widgets.Command_State is
    begin
       if Binding.Is_Mine (Tag) then
-         return Binding.Validate (Item.Choices.Judge, Tag);
+         return Binding.Validate (Item.Choices.Judge, Tag, Index);
+      elsif Home_Binding.Is_Mine (Tag) then
+         return Home_Binding.Validate (Item.Home_Model.Judge, Tag, Index);
+      elsif Outline_Binding.Is_Mine (Tag) then
+         return Outline_Binding.Validate (Item.Outline_Model.Judge, Tag, Index);
+      elsif Confirm_Binding.Is_Mine (Tag) then
+         return Confirm_Binding.Validate (Item.Dialog_Model.Judge, Tag, Index);
       end if;
       --  Without a menu bar, the window's buttons are as they are set.
       if not Menu_Bar.Is_Installed (Item.Host.Menus) or else not Is_Open (Item)

@@ -157,13 +157,18 @@ package body Settings_VM is
       Look (Self, Files => True);
    end Initialize;
 
-   overriding function Can_Execute (Self : View_Model; What : Command) return Boolean is
-     (case What is
-         when Open           => not Is_Showing (Self),
-         when Close          => Is_Showing (Self),
-         when Download_Model => not Self.Download.Present and then not Running (Self),
-         when Delete_Model   => Self.Download.Present and then not Running (Self),
-         when Choose_Theme | Choose_Background | Choose_Speech_Model | Toggle_VSync | Reseed => True);
+   overriding function Can_Execute (Self : View_Model; What : Command; Index : Natural := 0) return Boolean is
+      pragma Unreferenced (Index);
+      --  What is chosen is no matter of whether it can be.
+   begin
+      return
+        (case What is
+            when Open           => not Is_Showing (Self),
+            when Close          => Is_Showing (Self),
+            when Download_Model => not Self.Download.Present and then not Running (Self),
+            when Delete_Model   => Self.Download.Present and then not Running (Self),
+            when Choose_Theme | Choose_Background | Choose_Speech_Model | Toggle_VSync | Reseed => True);
+   end Can_Execute;
 
    --  Keep a choice, if there is anywhere to. A save that fails is not a reason to take the choice back,
    --  nor to stop: it holds for now.

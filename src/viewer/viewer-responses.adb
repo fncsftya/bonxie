@@ -1,4 +1,6 @@
 with Settings_VM;
+with Confirm_VM;
+with Home_VM;
 with Preferences;
 with Pomarine.Widgets.Callbacks;
 with Pomarine.Widgets.Editors.Callbacks;
@@ -6,17 +8,20 @@ with Viewer.Canvas_Items;
 with Viewer.Deletion;
 with Viewer.Listing;
 with Viewer.Navigation;
+with Viewer.Outlines;
 with Viewer.Recent;
 with Viewer.Settings_View;
 with Viewer.Writing;
 
 package body Viewer.Responses is
 
+   use type Confirm_VM.Subjects;
+
    package Widgets renames Pomarine.Widgets;
+
+   use type Widgets.Event_Kind;
    package Hooks is new Pomarine.Widgets.Callbacks (Session);
    package Editor_Hooks is new Pomarine.Widgets.Editors.Callbacks (Session);
-
-   use type Projects.Id;
 
    subtype Source_Widget is Widgets.Widget'Class;
 
@@ -57,20 +62,9 @@ package body Viewer.Responses is
       pragma Unreferenced (Source);
    begin
       if Item.Nav.Shown = Home then
-         Navigation.Enter (Item, Item.Home_View.Row_Keys (Event.Index));
+         Navigation.Enter (Item, Home_VM.Key_Of (Item.Home_Model.Model, Event.Index));
       end if;
    end Open_Project;
-
-   procedure Rename_Project
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
-
-   procedure Rename_Project
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source);
-   begin
-      Recent.Begin_Rename (Item, Event.Index);
-   end Rename_Project;
 
    procedure Delete_Project
      (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
@@ -83,80 +77,15 @@ package body Viewer.Responses is
       Deletion.Confirm (Item, Event.Index);
    end Delete_Project;
 
-   procedure Accept_Rename
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
-
-   procedure Accept_Rename
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source, Event);
-   begin
-      if Item.Home_View.Editing /= 0 then
-         Recent.Accept_Rename (Item);
-      end if;
-   end Accept_Rename;
-
-   procedure Cancel_Rename
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
-
-   procedure Cancel_Rename
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source, Event);
-   begin
-      if Item.Home_View.Editing /= 0 then
-         Recent.Cancel_Edit (Item);
-      end if;
-   end Cancel_Rename;
-
    --  The dialog over the screens that asks before deleting a project, a
    --  document or directory, or the speech model's files
-
-   procedure Confirm_Deletion
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
-
-   procedure Confirm_Deletion
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source, Event);
-   begin
-      if Item.Nav.Shown = Home and then Settings_VM.Is_Showing (Item.Choices.Model) then
-         if Item.Confirm.Deleting_Model then
-            Settings_View.Delete_Files (Item);
-         end if;
-      elsif (Item.Nav.Shown = Home and then Item.Confirm.Deleting /= 0)
-        or else (Item.Nav.Shown = Project
-                 and then Item.Confirm.Deleting_Node.Kind /= Overview_Node)
-      then
-         Deletion.Delete_Confirmed (Item);
-      end if;
-   end Confirm_Deletion;
-
-   procedure Cancel_Deletion
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
-
-   procedure Cancel_Deletion
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source, Event);
-   begin
-      if Item.Nav.Shown = Home and then Settings_VM.Is_Showing (Item.Choices.Model) then
-         if Item.Confirm.Deleting_Model then
-            Deletion.Close (Item);
-         end if;
-      elsif (Item.Nav.Shown = Home and then Item.Confirm.Deleting /= 0)
-        or else (Item.Nav.Shown = Project
-                 and then Item.Confirm.Deleting_Node.Kind /= Overview_Node)
-      then
-         Deletion.Close (Item);
-      end if;
-   end Cancel_Deletion;
 
    --  The settings: while the dialog about the model's files is up, it is
    --  all that takes clicks.
 
    function Settings_Open (Item : Session) return Boolean is
-     (Settings_VM.Is_Showing (Item.Choices.Model) and then not Item.Confirm.Deleting_Model);
+     (Settings_VM.Is_Showing (Item.Choices.Model)
+      and then Confirm_VM.Subject (Item.Dialog_Model.Model) /= Confirm_VM.Model);
 
    procedure Close_Settings
      (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
@@ -419,6 +348,25 @@ package body Viewer.Responses is
      (Item  : in out Session;
       Event : Widgets.Widget_Event) is
    begin
+      --  The home screen's: what was typed in the field for a title is the model's before a command
+      --  reads it, and the dialog's answer is done.
+      Recent.Sync (Item);
+      if Home_Binding.Perform (Item.Home_Model.Model, Event) then
+         Recent.Sync (Item);
+         return;
+      end if;
+      if Outline_Binding.Is_Bound (Event) then
+         if Event.Kind = Widgets.Click then
+            Outlines.Do_Command (Item, Outline_Binding.What (Event), Event.Index);
+         end if;
+         return;
+      end if;
+      if Confirm_Binding.Is_Bound (Event) then
+         if Event.Kind = Widgets.Click then
+            Deletion.Answer (Item, Confirm_Binding.What (Event));
+         end if;
+         return;
+      end if;
       if not Commands.Is_Bound (Event) then
          return;
       end if;
@@ -458,6 +406,15 @@ package body Viewer.Responses is
    begin
       --  The home screen (the buttons that are also in the menu bar are given
       --  their command too, to be as it says: see Viewer.Menus)
+      for Card in Start.Cards'Range loop
+         Home_Binding.Bind (Start.Cards (Card).Rename, Home_VM.Begin_Rename, Card);
+      end loop;
+      Home_Binding.Bind (Start.Ok_Button, Home_VM.Accept_Rename);
+      Home_Binding.Bind (Start.Cancel_Button, Home_VM.Cancel_Rename);
+      Home_Binding.Trigger (Item.Title_Edit.Edit_Field, Home_VM.Accept_Rename);
+      Confirm_Binding.Bind (Item.Confirm.Confirm_Delete, Confirm_VM.Confirm);
+      Confirm_Binding.Bind (Item.Confirm.Confirm_Cancel, Confirm_VM.Cancel);
+      Confirm_Binding.Bind (Item.Confirm.Dialog_Close, Confirm_VM.Cancel);
       Commands.Bind (Start.New_Button, Start_Project);
       Commands.Bind (Start.New_Card, Start_Project);
       Commands.Bind (Start.New_Card_Plus, Start_Project);
@@ -466,20 +423,11 @@ package body Viewer.Responses is
       Hear (Start.New_Card, Click, Start_Project'Access);
       Hear (Start.New_Card_Plus, Click, Start_Project'Access);
       Hear (Start.Settings_Button, Click, Open_Settings'Access);
-      Hear (Start.Ok_Button, Click, Accept_Rename'Access);
-      Hear (Start.Cancel_Button, Click, Cancel_Rename'Access);
-      Hear (Item.Title_Edit.Edit_Field, Submit, Accept_Rename'Access);
       for Card in Start.Cards'Range loop
          Hear (Start.Cards (Card).Peek, Click, Open_Project'Access, Card);
          Hear (Start.Cards (Card).Name, Click, Open_Project'Access, Card);
-         Hear (Start.Cards (Card).Rename, Click, Rename_Project'Access, Card);
          Hear (Start.Cards (Card).Delete, Click, Delete_Project'Access, Card);
       end loop;
-
-      --  The dialog that asks before deleting
-      Hear (Item.Confirm.Confirm_Delete, Click, Confirm_Deletion'Access);
-      Hear (Item.Confirm.Confirm_Cancel, Click, Cancel_Deletion'Access);
-      Hear (Item.Confirm.Dialog_Close, Click, Cancel_Deletion'Access);
 
       --  The settings
       Hear (Prefs.Settings_Close, Click, Close_Settings'Access);

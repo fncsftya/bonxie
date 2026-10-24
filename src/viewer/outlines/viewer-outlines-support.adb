@@ -1,9 +1,8 @@
+with Outline_VM;
 with Viewer.Build;
 with Viewer.Gestures;
 
 package body Viewer.Outlines.Support is
-
-   use type Projects.Sections.Section_Id;
 
    function In_Outline (Item : Session) return Boolean is
      (Gestures.Active (Item) and then Item.Toolbar.Mode = Outline);
@@ -35,25 +34,9 @@ package body Viewer.Outlines.Support is
       return Content (First .. Last);
    end Trimmed;
 
-   procedure Load_Sections (Item : in out Session; Owner : Projects.Id) is
-      View : Outline_Parts renames Item.Outline_View;
-      Was  : constant Projects.Sections.Section_List := View.Order;
+   procedure Reserve (Item : in out Session) is
    begin
-      Projects.Sections.Load (Item.Nav.Store, Owner, View.Order);
-      Projects.Sections.Load_Links (Item.Nav.Store, Owner, View.Links);
-      Build.Reserve_Sections (Item, View.Order.Count);
-      for Each in 1 .. View.Order.Count loop
-         declare
-            Section : Projects.Sections.Section renames View.Order (Each);
-         begin
-            Section.Open := Projects.Sections.Note_Texts.Length (Section.Notes) > 0;
-            for Before in 1 .. Was.Count loop
-               if Was (Before).Key = Section.Key then
-                  Section.Open := Was (Before).Open or else Section.Open;
-               end if;
-            end loop;
-         end;
-      end loop;
-   end Load_Sections;
+      Build.Reserve_Sections (Item, Outline_VM.Count (Item.Outline_Model.Model));
+   end Reserve;
 
 end Viewer.Outlines.Support;
