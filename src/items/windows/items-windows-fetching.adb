@@ -63,7 +63,7 @@ package body Items.Windows.Fetching is
                      Item.Details.Page_Count, Message, Last);
                   Item.Paged := Last < Message'First;
                   if not Item.Paged then
-                     Labels.Set_Text (Item.Status, Labels.Fitted ("Failed: " & Message (1 .. Last)));
+                     Labels.Set_Text (Item.Status, "Failed: " & Message (1 .. Last));
                      return;
                   end if;
                   Pomarine.Widgets.Pictures.Set_File (Item.Picture, "");
@@ -82,7 +82,7 @@ package body Items.Windows.Fetching is
             Displays.Show_Fetch (Item);
          when Failed =>
             Labels.Set_Text
-              (Item.Status, Labels.Fitted ("Failed: " & Detail));
+              (Item.Status, "Failed: " & Detail);
       end case;
    end Apply_Capture;
 

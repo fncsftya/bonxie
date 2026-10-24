@@ -87,12 +87,6 @@ package body Viewer.Settings_View is
       end if;
    end Size_Text;
 
-   function Fits (Words : String) return String is
-     (Words (Words'First ..
-             Words'First - 1
-             + Natural'Min (Words'Length, Labels.Text_Capacity)));
-   --  As much of Words as a label holds.
-
    function Progress_Text return String;
    --  "123.4 MB of 483.0 MB (25%)", or just the percentage while the
    --  total is not known.
@@ -112,15 +106,15 @@ package body Viewer.Settings_View is
    function Status (Item : Session) return String is
    begin
       if Model_Present (Item) and then Speech.Models.State /= Speech.Models.Running then
-         return Fits ("Model available, " & Size_Text (On_Disk (Item)) & " on disk");
+         return "Model available, " & Size_Text (On_Disk (Item)) & " on disk";
       end if;
       case Speech.Models.State is
          when Speech.Models.Running =>
             return (if Speech.Models.Preparing
-                    then Fits ("Preparing the model, once only")
-                    else Fits ("Downloading " & Progress_Text));
+                    then "Preparing the model, once only"
+                    else "Downloading " & Progress_Text);
          when Speech.Models.Failed =>
-            return Fits ("Download failed: " & Speech.Models.Message);
+            return "Download failed: " & Speech.Models.Message;
          when Speech.Models.Idle | Speech.Models.Done =>
             return "Model not downloaded";
       end case;

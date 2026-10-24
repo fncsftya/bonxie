@@ -95,12 +95,7 @@ package body Viewer.Recent is
                  Projects.Titles.To_String
                    (Item.Home_View.Listed.Items (I).Title);
             begin
-               --  Cut to fit the label.
-               Labels.Set_Text
-                 (Item.Home_View.Cards (I).Title,
-                  Name (Name'First ..
-                        Name'First - 1
-                        + Natural'Min (Name'Length, Labels.Text_Capacity)));
+               Labels.Set_Text (Item.Home_View.Cards (I).Title, Name);
                --  The picture of its canvas has no words of its own.
                Widgets.Set_Accessible_Name (Item.Home_View.Cards (I).Peek, "Open " & Name);
             end;

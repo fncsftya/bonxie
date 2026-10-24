@@ -140,7 +140,7 @@ package body Viewer.Grammar.Cards is
       Buttons.Set_Kind (Item.Page_View.Grammar_Count, (if Fixable = 0 then Buttons.Normal else Buttons.Warning));
       Widgets.Set_Accessible_Name
         (Item.Page_View.Grammar_Count, "Fixable grammar suggestions: " & Basics.Image (Fixable));
-      Labels.Set_Text (State.Heading, Labels.Fitted ("Grammar Suggestions (" & Basics.Image (Total) & ")"));
+      Labels.Set_Text (State.Heading, "Grammar Suggestions (" & Basics.Image (Total) & ")");
       Widgets.Set_Visible (State.Empty, Total = 0);
       Set_Layout (State.Content, Height => Float'Max (40.0, Row_Top));
       Set_Layout (State.Popout, Width => Wide, Height => High,
@@ -314,7 +314,7 @@ package body Viewer.Grammar.Cards is
          --  Begin with the first fix Harper has, which is often what is wanted.
          Docs.Load (State.Entry_Doc, (if Mark.Lint.Suggestion_Count > 0
                                       then Harper.Replacements.To_String (Mark.Lint.Suggestions (1).Text) else Marked));
-         Labels.Set_Text (State.Entry_Prompt, Labels.Fitted ("Always correct """ & Marked & """ to:"));
+         Labels.Set_Text (State.Entry_Prompt, "Always correct """ & Marked & """ to:");
          State.Entry_Open := True;
          Set_Layout (State.Entry_Panel, Width => Wide, Position =>
            (Left => Float'Max (8.0, Float'Min (State.Pointer_X - Parent_Left - Wide / 2.0, Parent_Wide - Wide - 8.0)),

@@ -1,7 +1,6 @@
 with Items.Links;
 with Icon_Set;
 with Pomarine.Widgets.Buttons;
-with Pomarine.Widgets.Labels;
 with Pomarine.Widgets.Menus;
 with Viewer.Canvas_Items;
 with Viewer.Writing.Support;
@@ -10,7 +9,6 @@ package body Viewer.Writing.Popups is
 
    package Widgets renames Pomarine.Widgets;
    package Buttons renames Pomarine.Widgets.Buttons;
-   package Labels renames Pomarine.Widgets.Labels;
    package Menus renames Pomarine.Widgets.Menus;
    package Windows renames Items.Windows;
 
@@ -35,26 +33,17 @@ package body Viewer.Writing.Popups is
 
    function Heading_For (Name : String) return String;
    --  The menu's heading: of the document's title, in capitals (of the
-   --  letters of ASCII: the bytes of others are left as they are), as
-   --  much of it as fits, cut where a character begins.
+   --  letters of ASCII: the bytes of others are left as they are).
 
    function Heading_For (Name : String) return String is
-      Room : constant Natural :=
-        Natural'Min (Name'Length, Menus.Text_Capacity - Heading_Words'Length);
-      Last : Natural := Name'First - 1 + Room;
       Shown : String := Name;
    begin
-      while Last >= Name'First and then Last < Name'Last
-        and then Character'Pos (Name (Last + 1)) in 16#80# .. 16#BF#
-      loop
-         Last := Last - 1;
-      end loop;
       for C of Shown loop
          if C in 'a' .. 'z' then
             C := Character'Val (Character'Pos (C) - 32);
          end if;
       end loop;
-      return Heading_Words & Shown (Shown'First .. Last);
+      return Heading_Words & Shown;
    end Heading_For;
 
    function Add_Row (Item : Session) return Positive is
@@ -86,8 +75,8 @@ package body Viewer.Writing.Popups is
                Item.Page_View.Menu_Count := Item.Page_View.Menu_Count + 1;
                Item.Page_View.Menu_Slots (Item.Page_View.Menu_Count) := Which;
                Menus.Add
-                 (Item.Page_View.Menu, Menus.Check, Labels.Fitted (Support.Title_Of (Item,
-                    Which)),
+                 (Item.Page_View.Menu, Menus.Check, Support.Title_Of (Item,
+                    Which),
                   Checked => Item.Reading.Pinned_Slot = Which);
                Menus.Set_Swatch
                  (Item.Page_View.Menu, Menus.Row_Count (Item.Page_View.Menu),

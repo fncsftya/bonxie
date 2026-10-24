@@ -303,11 +303,7 @@ package body Viewer is
    begin
       if Now /= To_String (Item.Shell.Shown_Title) then
          SDL3.Windows.Set_Title (Item.Host.Win, Now);
-         Labels.Set_Text
-           (Item.Root.Header_Title,
-            Now (Now'First ..
-                 Now'First - 1
-                 + Natural'Min (Now'Length, Labels.Text_Capacity)));
+         Labels.Set_Text (Item.Root.Header_Title, Now);
          Item.Shell.Shown_Title := To_Unbounded_String (Now);
       end if;
    end Show_Title;

@@ -216,11 +216,7 @@ package body Viewer.Outlines.Blocks is
          declare
             Words : constant String := Section_Title (Item, Row);
          begin
-            Labels.Set_Text
-              (View.Ghost_Title,
-               Words (Words'First ..
-                      Words'First - 1
-                      + Natural'Min (Words'Length, Labels.Text_Capacity)));
+            Labels.Set_Text (View.Ghost_Title, Words);
          end;
       end if;
       if View.Drag_Moved then

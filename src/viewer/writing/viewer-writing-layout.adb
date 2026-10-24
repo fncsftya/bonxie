@@ -167,9 +167,8 @@ package body Viewer.Writing.Layout is
             if Plan (Each).Kind = Head_Entry then
                Labels.Set_Text
                  (Parts.Heads (Plan (Each).Index).Title,
-                  Labels.Fitted
-                    (Projects.Sections.Title_Texts.To_String
-                       (Outlines.Section_At (Item, Plan (Each).Index).Title)));
+                  Projects.Sections.Title_Texts.To_String
+                       (Outlines.Section_At (Item, Plan (Each).Index).Title));
             end if;
          end loop;
 
@@ -252,7 +251,7 @@ package body Viewer.Writing.Layout is
                                     Pomarine.Widgets.Buttons.Set_Selected (Head.Notes, Section.Open);
                                     Labels.Set_Text
                                       (Head.Title,
-                                       Labels.Fitted (Projects.Sections.Title_Texts.To_String (Section.Title)));
+                                       Projects.Sections.Title_Texts.To_String (Section.Title));
                                     Labels.Set_Text
                                       (Head.Count,
                                        (if Owned = 0 then ""

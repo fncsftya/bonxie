@@ -274,7 +274,6 @@ package body Viewer.Grammar is
       Hooks.On (State.Entry_Field, Widgets.Submit, Item'Unchecked_Access, Cards.Entry_Accepted'Access);
       Hooks.On (State.Entry_Cancel, Widgets.Click, Item'Unchecked_Access, Cards.Entry_Cancelled'Access);
       Widgets.Set_Visible (State.Entry_Panel, False);
-      pragma Assert (Menus.Text_Capacity >= Harper.Max_Replacement);
    end Build;
 
    procedure Recheck (Item : in out Session) is

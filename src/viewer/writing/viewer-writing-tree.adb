@@ -106,14 +106,14 @@ package body Viewer.Writing.Tree is
          when Directory_Node =>
             Labels.Set_Text
               (Each.Caption,
-               Labels.Fitted (Projects.Titles.To_String
-                         (Item.Docs.Dirs (Node.Dir).Title)));
+               Projects.Titles.To_String
+                         (Item.Docs.Dirs (Node.Dir).Title));
             Labels.Set_Text
               (Each.Count, Support.Count_Image (Support.Documents_In (Item, Node.Dir)));
             Chosen := Item.Docs.Shown_Dir = Node.Dir;
             Level := Float (Support.Depth (Item, Node.Dir)) * Style.Tree_Indent;
          when Document_Leaf =>
-            Labels.Set_Text (Each.Caption, Labels.Fitted (Support.Title_Of (Item, Node.Doc)));
+            Labels.Set_Text (Each.Caption, Support.Title_Of (Item, Node.Doc));
             Labels.Set_Text
               (Each.Count,
                Support.Count_Image (Windows.Words (Item.Windows (Node.Doc))));
@@ -194,7 +194,7 @@ package body Viewer.Writing.Tree is
                      Each.Caret_Seen := 0;
                   end if;
                   Labels.Set_Text
-                    (Each.Heading, Labels.Fitted (Support.Title_Of (Item, Which)));
+                    (Each.Heading, Support.Title_Of (Item, Which));
                   declare
                      Section : constant Natural := Section_Links.Section_Of (Item, Which);
                   begin
@@ -251,7 +251,7 @@ package body Viewer.Writing.Tree is
                      := Item.Reading.Source_Order (Row);
                begin
                   Labels.Set_Text
-                    (Each.Caption, Labels.Fitted (Support.Title_Of (Item, Which)));
+                    (Each.Caption, Support.Title_Of (Item, Which));
                   Pomarine.Widgets.Panels.Set_Fill
                     (Each.Tag, Canvas_Items.Source_Ink (Item, Which));
                   Choose_Row

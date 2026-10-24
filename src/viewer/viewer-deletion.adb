@@ -17,22 +17,13 @@ package body Viewer.Deletion is
    --  In UTF-8.
 
    function Asked (Name : String) return String;
-   --  Delete "Name"?, in curved quotes, with as much of the name as fits a
-   --  label, cut where a character begins.
+   --  Delete "Name"?, in curved quotes.
 
    function Asked (Name : String) return String is
       Before : constant String := "Delete " & Open_Quote;
       After  : constant String := Close_Quote & "?";
-      Room   : constant Natural :=
-        Labels.Text_Capacity - Before'Length - After'Length;
-      Last   : Natural := Name'First - 1 + Natural'Min (Name'Length, Room);
    begin
-      while Last >= Name'First and then Last < Name'Last
-        and then Character'Pos (Name (Last + 1)) in 16#80# .. 16#BF#
-      loop
-         Last := Last - 1;
-      end loop;
-      return Before & Name (Name'First .. Last) & After;
+      return Before & Name & After;
    end Asked;
 
    procedure Show_Dialog (Item : in out Session);
@@ -90,8 +81,7 @@ package body Viewer.Deletion is
       Labels.Set_Text (Item.Confirm.Confirm_Message, "Delete the Parakeet model?");
       Labels.Set_Text
         (Item.Confirm.Confirm_Note,
-         Size (Size'First .. Size'First - 1
-               + Natural'Min (Size'Length, Labels.Text_Capacity)));
+         Size);
       Widgets.Set_Visible (Item.Confirm.Overlay, True);
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
    end Confirm_Model;

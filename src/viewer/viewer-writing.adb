@@ -656,7 +656,7 @@ package body Viewer.Writing is
                      Tree.Linked_Sources (Item, Which));
                   Labels.Set_Text
                     (Item.Docs.Pages (Rank).Heading,
-                     Labels.Fitted (Support.Title_Of (Item, Which)));
+                     Support.Title_Of (Item, Which));
                   declare
                      Row : constant Natural := Support.Leaf_Row (Item, Which);
                   begin
@@ -666,7 +666,7 @@ package body Viewer.Writing is
                            Support.Count_Image (Windows.Words (Item.Windows (Which))));
                         Labels.Set_Text
                           (Item.Docs.Doc_Rows (Row).Caption,
-                           Labels.Fitted (Support.Title_Of (Item, Which)));
+                           Support.Title_Of (Item, Which));
                         if Item.Dragging.Drag_Row = 0 then
                            Tree.Choose_Row
                              (Item.Docs.Doc_Rows (Row),
@@ -693,7 +693,7 @@ package body Viewer.Writing is
                if Row > 0 then
                   Labels.Set_Text
                     (Item.Reading.Source_Rows (Row).Caption,
-                     Labels.Fitted (Support.Title_Of (Item, Which)));
+                     Support.Title_Of (Item, Which));
                end if;
             end;
          end if;

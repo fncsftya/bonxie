@@ -3,7 +3,6 @@ with Projects;
 with Pomarine.Boxes;
 with Pomarine.Widgets.Buttons;
 with Pomarine.Widgets.Callbacks;
-with Pomarine.Widgets.Labels;
 with Pomarine.Widgets.Layouts;
 with Pomarine.Widgets.Menus;
 with Projects.Sections;
@@ -16,7 +15,6 @@ package body Viewer.Section_Links is
    package Widgets renames Pomarine.Widgets;
    package Layouts renames Pomarine.Widgets.Layouts;
    package Menus renames Pomarine.Widgets.Menus;
-   package Labels renames Pomarine.Widgets.Labels;
    package Hooks is new Pomarine.Widgets.Callbacks (Session);
 
    use type Items.Kinds;
@@ -135,7 +133,7 @@ package body Viewer.Section_Links is
          begin
             Menus.Add
               (Parts.Menu, Menus.Check,
-               Labels.Fitted (Projects.Sections.Title_Texts.To_String (Section.Title)),
+               Projects.Sections.Title_Texts.To_String (Section.Title),
                Checked => Each = Own);
             Row := Menus.Row_Count (Parts.Menu);
             Menus.Set_Swatch (Parts.Menu, Row, Style.Section_Ink (Section.Colour));

@@ -88,7 +88,7 @@ package body Items.Windows.Speaking is
             Labels.Set_Text (Item.Status, "Transcribing...");
          when Failed =>
             Labels.Set_Text
-              (Item.Status, Labels.Fitted ("Could not dictate: " & Detail));
+              (Item.Status, "Could not dictate: " & Detail);
       end case;
    end Change;
 
