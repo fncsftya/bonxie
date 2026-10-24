@@ -1,7 +1,7 @@
 private with Backgrounds;
 with Projects;
 with SDL3.Cursors;
-with SDL3.Events;
+with Pomarine.Events;
 with SDL3.Windows.Renderers.Images;
 private with Items;
 private with Items.Windows;
@@ -136,16 +136,16 @@ package Viewer is
    --  Write the text to the file, if there is one, a line to each
    --  paragraph, as Command-S does.
 
-   procedure Handle (Item : in out Session; Event : SDL3.Events.Event)
+   procedure Handle (Item : in out Session; Event : Pomarine.Events.Event)
      with Pre => Is_Open (Item);
    --  As if Event had come.
 
    function Clipboard_Text (Item : Session) return String;
    --  What is on the clipboard the session uses (its own, offscreen).
 
-   procedure Tick (Item : in out Session; Now : SDL3.Events.Milliseconds)
+   procedure Tick (Item : in out Session; Now : Pomarine.Events.Milliseconds)
      with Pre => Is_Open (Item);
-   --  As if it were time Now, as SDL3.Events.Ticks: the caret blinks.
+   --  As if it were time Now, as Pomarine.Events.Ticks: the caret blinks.
 
    procedure Resize (Item : in out Session; Width, Height : Positive)
      with Pre => Is_Open (Item);

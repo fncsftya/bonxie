@@ -2,7 +2,7 @@ with Projects.Sections;
 with Pomarine.Widgets.Grips;
 with Pomarine.Themes;
 with SDL3.Painters;
-with SDL3.Events;
+with Pomarine.Events;
 
 --  Hue and brightness in a square, with saturation in the slider at its right.
 --  Changes stay here until the owning popout's OK button keeps them.
@@ -13,7 +13,7 @@ package Section_Colour_Pickers is
    procedure Set_Colour (Item : in out Picker; To : Pomarine.Themes.Color)
      with Pre => Natural (To.Alpha) = 255, Post => not Changed (Item);
    overriding procedure Handle
-     (Item : in out Picker; Event : SDL3.Events.Event; Handled : out Boolean);
+     (Item : in out Picker; Event : Pomarine.Events.Event; Handled : out Boolean);
    overriding procedure Draw
      (Item : in out Picker; Target : SDL3.Painters.Painter'Class; Colors : Pomarine.Themes.Theme);
 private

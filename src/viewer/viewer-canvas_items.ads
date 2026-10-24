@@ -94,7 +94,7 @@ private package Viewer.Canvas_Items is
    --  Put the windows where the canvas has them, if it has been panned
    --  or zoomed.
 
-   procedure Update (Item : in out Session; Now : SDL3.Events.Milliseconds)
+   procedure Update (Item : in out Session; Now : Pomarine.Events.Milliseconds)
      with Pre => Screen (Item) = Project;
    --  Sync, and write what has changed (see Items.Windows.Flush) as of
    --  Now.

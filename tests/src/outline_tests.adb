@@ -2,7 +2,7 @@ with Pomarine.Page_Builds;
 with Pomarine.Themes;
 with Section_Colour_Pickers;
 with Preferences;
-with SDL3.Events;
+with Pomarine.Events;
 with Goldens;
 with Projects;
 with Viewer;
@@ -16,7 +16,7 @@ with Viewer.Settings;
 
 package body Outline_Tests is
 
-   package Events renames SDL3.Events;
+   package Events renames Pomarine.Events;
    package Home renames Viewer.Home_Screen;
    package Proj renames Viewer.Project_Screen;
    package Prefs renames Viewer.Settings;

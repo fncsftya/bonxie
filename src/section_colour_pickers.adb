@@ -5,7 +5,7 @@ with SDL3.Windows.Renderers;
 package body Section_Colour_Pickers is
    use Pomarine.Widgets;
    use all type SDL3.Painters.Painter;
-   use type SDL3.Events.Event_Kind;
+   use type Pomarine.Events.Event_Kind;
    use type Pomarine.Themes.Color;
 
    function Clamp (Value : Float) return Unit is
@@ -67,7 +67,7 @@ package body Section_Colour_Pickers is
    end Set_Colour;
 
    overriding procedure Handle
-     (Item : in out Picker; Event : SDL3.Events.Event; Handled : out Boolean)
+     (Item : in out Picker; Event : Pomarine.Events.Event; Handled : out Boolean)
    is
       Pixels : constant Float := Density (Item);
       Wide : constant Float := Width_Of (Item) - 32.0 * Pixels;
@@ -78,14 +78,14 @@ package body Section_Colour_Pickers is
       if Wide <= 2.0 or else High <= 2.0 then
          return;
       end if;
-      if Event.Kind = SDL3.Events.Mouse_Down and then Event.Button = 1 then
+      if Event.Kind = Pomarine.Events.Mouse_Down and then Event.Button = 1 then
          X := Event.Mouse_X * Pixels - Left_Of (Item);
          Item.Held := (if X <= Wide then Plane
                        elsif X >= Wide + 12.0 * Pixels then Saturation else None);
       end if;
       if Item.Held /= None
-        and then (Event.Kind = SDL3.Events.Mouse_Down or else Event.Kind = SDL3.Events.Mouse_Move
-                  or else Event.Kind = SDL3.Events.Mouse_Up)
+        and then (Event.Kind = Pomarine.Events.Mouse_Down or else Event.Kind = Pomarine.Events.Mouse_Move
+                  or else Event.Kind = Pomarine.Events.Mouse_Up)
       then
          X := Event.Mouse_X * Pixels - Left_Of (Item);
          Y := Event.Mouse_Y * Pixels - Top_Of (Item);
@@ -98,7 +98,7 @@ package body Section_Colour_Pickers is
          Item.Selected := RGB (Item.Hue, Item.Brightness, Item.Purity);
          Invalidate (Item);
       end if;
-      if Event.Kind = SDL3.Events.Mouse_Up then
+      if Event.Kind = Pomarine.Events.Mouse_Up then
          Item.Held := None;
       end if;
    end Handle;

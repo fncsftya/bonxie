@@ -9,7 +9,7 @@ with Pomarine.Widgets.Labels;
 with Pomarine.Widgets.Panels;
 with Pomarine.Widgets.Scrollers;
 with Pomarine.Widgets.Progress_Bars;
-with SDL3.Events;
+with Pomarine.Events;
 with Speech.Models;
 with Viewer.Deletion;
 with Viewer.Style;
@@ -305,7 +305,7 @@ package body Viewer.Settings_View is
         (case Item.Prefs.Theme_Chosen is
             when Preferences.Light  => False,
             when Preferences.Dark   => True,
-            when Preferences.System => SDL3.Events.System_Is_Dark);
+            when Preferences.System => Pomarine.Events.System_Is_Dark);
       Mode : constant Preferences.Background_Modes := Item.Prefs.Background_Chosen;
       --  Only a window has a painting to go with; offscreen, it is the theme's own colours.
       Adaptive : constant Boolean :=

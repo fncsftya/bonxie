@@ -36,8 +36,8 @@ package body Viewer is
 
    use Ada.Strings.Unbounded;
    use type Preferences.Theme_Choices;
-   use type SDL3.Events.Event_Kind;
-   use type SDL3.Events.Key_Code;
+   use type Pomarine.Events.Event_Kind;
+   use type Pomarine.Events.Key_Code;
    use type SDL3.Cursors.Kind;
    use SDL3.Windows.Renderers;
 
@@ -106,14 +106,14 @@ package body Viewer is
 
    procedure Track_Window
      (Item  : in out Session;
-      Event : SDL3.Events.Event;
+      Event : Pomarine.Events.Event;
       Taken : Boolean)
    is
       Width, Height : Integer;
       Found         : Boolean;
    begin
       case Event.Kind is
-         when SDL3.Events.Mouse_Down =>
+         when Pomarine.Events.Mouse_Down =>
             --  A press on a button is for the button, not for a drag.
             if Event.Button = 1 and then not Taken
               and then In_Title_Strip (Item, Event.Mouse_Y)
@@ -132,7 +132,7 @@ package body Viewer is
                   end if;
                end if;
             end if;
-         when SDL3.Events.Mouse_Move =>
+         when Pomarine.Events.Mouse_Move =>
             if Item.Shell.Moving then
                declare
                   X, Y : Float;
@@ -146,7 +146,7 @@ package body Viewer is
                      + Integer (Float'Rounding (Y - Item.Shell.Grab_Y)));
                end;
             end if;
-         when SDL3.Events.Mouse_Up =>
+         when Pomarine.Events.Mouse_Up =>
             if Event.Button = 1 then
                Item.Shell.Moving := False;
             end if;
@@ -155,7 +155,7 @@ package body Viewer is
       end case;
    end Track_Window;
 
-   procedure Handle (Item : in out Session; Event : SDL3.Events.Event) is
+   procedure Handle (Item : in out Session; Event : Pomarine.Events.Event) is
       Handled : Boolean := False;
    begin
       Search.Update (Item);
@@ -170,28 +170,28 @@ package body Viewer is
          end if;
       end if;
       if Item.Context.Context_Kind /= No_Context
-        and then Event.Kind = SDL3.Events.Key_Down
-        and then Event.Key = SDL3.Events.Key_Escape
+        and then Event.Kind = Pomarine.Events.Key_Down
+        and then Event.Key = Pomarine.Events.Key_Escape
       then
          Writing.Dismiss_Context (Item);
          return;
       end if;
       if (Item.Grammar_Checks.Showing or else Item.Grammar_Checks.Inline_Open)
-        and then Event.Kind = SDL3.Events.Key_Down
-        and then Event.Key = SDL3.Events.Key_Escape
+        and then Event.Kind = Pomarine.Events.Key_Down
+        and then Event.Key = Pomarine.Events.Key_Escape
       then
          Grammar.Close (Item);
          return;
       end if;
       case Event.Kind is
-         when SDL3.Events.Quit =>
+         when Pomarine.Events.Quit =>
             if Item.Nav.Shown = Project then
                Canvas_Items.Save_All (Item);
             end if;
             Item.Shell.Done := True;
-         when SDL3.Events.Redraw =>
+         when Pomarine.Events.Redraw =>
             Widgets.Invalidate_All (Item.Root.Widgets);
-         when SDL3.Events.Theme_Changed =>
+         when Pomarine.Events.Theme_Changed =>
             --  Only the system's appearance can change by itself.
             if Item.Prefs.Theme_Chosen = Preferences.System then
                Settings_View.Apply_Theme (Item);
@@ -199,8 +199,8 @@ package body Viewer is
          when others =>
             if Item.Prefs.Showing_Settings then
                --  Escape leaves the settings, as their Close button does.
-               if Event.Kind = SDL3.Events.Key_Down
-                 and then Event.Key = SDL3.Events.Key_Escape
+               if Event.Kind = Pomarine.Events.Key_Down
+                 and then Event.Key = Pomarine.Events.Key_Escape
                then
                   if Item.Confirm.Deleting_Model then
                      Deletion.Close (Item);
@@ -211,24 +211,24 @@ package body Viewer is
                end if;
             elsif Item.Item_List.Showing_List then
                --  The list is all that takes events.
-               if Event.Kind = SDL3.Events.Key_Down
-                 and then Event.Key = SDL3.Events.Key_Escape
+               if Event.Kind = Pomarine.Events.Key_Down
+                 and then Event.Key = Pomarine.Events.Key_Escape
                then
                   Listing.Close (Item);
                   return;
                end if;
             elsif Home_Screen.Is_Confirming (Item) then
                --  The dialog is all that takes events.
-               if Event.Kind = SDL3.Events.Key_Down
-                 and then Event.Key = SDL3.Events.Key_Escape
+               if Event.Kind = Pomarine.Events.Key_Down
+                 and then Event.Key = Pomarine.Events.Key_Escape
                then
                   Deletion.Close (Item);
                   return;
                end if;
             --  The text is saved only from a project.
             elsif Item.Nav.Shown = Project
-              and then Event.Kind = SDL3.Events.Key_Down
-              and then Event.Command and then Event.Key = SDL3.Events.Key_S
+              and then Event.Kind = Pomarine.Events.Key_Down
+              and then Event.Command and then Event.Key = Pomarine.Events.Key_S
             then
                Save (Item);
                Handled := True;
@@ -236,7 +236,7 @@ package body Viewer is
             if not Handled then
                Grammar.Before_Event (Item, Event);
                if Item.Nav.Shown = Project
-                 and then Event.Kind = SDL3.Events.Mouse_Down
+                 and then Event.Kind = Pomarine.Events.Mouse_Down
                then
                   Canvas_Items.Pressed (Item, Event.Mouse_X, Event.Mouse_Y);
                   Writing.Pressed (Item, Event.Mouse_X, Event.Mouse_Y);
@@ -348,7 +348,7 @@ package body Viewer is
    --  Milliseconds between looks for a picture being taken.
 
    procedure Wait_And_Handle (Item : in out Session) is
-      Event   : SDL3.Events.Event;
+      Event   : Pomarine.Events.Event;
       Timeout : Integer := -1;  --  none
 
       procedure Wake_In (Milliseconds : Integer) is
@@ -359,12 +359,12 @@ package body Viewer is
       end Wake_In;
    begin
       --  Nothing to do until something happens, except to blink a caret.
-      Tick (Item, SDL3.Events.Ticks);
+      Tick (Item, Pomarine.Events.Ticks);
       if Widgets.Until_Update (Item.Root.Widgets) >= 0 then
          Wake_In (Widgets.Until_Update (Item.Root.Widgets));
       end if;
-      if Grammar.Until_Update (Item, SDL3.Events.Ticks) >= 0 then
-         Wake_In (Grammar.Until_Update (Item, SDL3.Events.Ticks));
+      if Grammar.Until_Update (Item, Pomarine.Events.Ticks) >= 0 then
+         Wake_In (Grammar.Until_Update (Item, Pomarine.Events.Ticks));
       end if;
       if Writing.Until_Copy_Ends (Item) >= 0 then
          Wake_In (Writing.Until_Copy_Ends (Item));
@@ -383,16 +383,16 @@ package body Viewer is
          Wake_In (0);
       end if;
 
-      if SDL3.Events.Wait (Event, Timeout_MS => Timeout) then
+      if Pomarine.Events.Wait (Event, Timeout_MS => Timeout) then
          Handle (Item, Event);
-         while SDL3.Events.Poll (Event) loop
+         while Pomarine.Events.Poll (Event) loop
             Handle (Item, Event);
          end loop;
       end if;
       --  Work other tasks have posted (Pomarine.Application.Post).
       Pomarine.Application.Run_Posted;
 
-      Tick (Item, SDL3.Events.Ticks);
+      Tick (Item, Pomarine.Events.Ticks);
    end Wait_And_Handle;
 
    --  Without a window
@@ -424,7 +424,7 @@ package body Viewer is
    function Clipboard_Text (Item : Session) return String is
      (Widgets.Clipboard (Item.Publish_View.Copy).Text);
 
-   procedure Tick (Item : in out Session; Now : SDL3.Events.Milliseconds) is
+   procedure Tick (Item : in out Session; Now : Pomarine.Events.Milliseconds) is
    begin
       Widgets.Update (Item.Root.Widgets, Now);
       if Item.Nav.Shown = Project then

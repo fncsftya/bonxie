@@ -3,7 +3,7 @@ with Ada.Real_Time;
 with Ada.Text_IO;
 with Projects;
 with SDL3;
-with SDL3.Events;
+with Pomarine.Events;
 with Viewer;
 with Viewer.Home_Screen;
 with Viewer.Project_Screen;
@@ -50,7 +50,7 @@ begin
       begin
          while Clock - Began < Milliseconds (400) loop
             Start := Clock;
-            Viewer.Tick (Session, SDL3.Events.Ticks);
+            Viewer.Tick (Session, Pomarine.Events.Ticks);
             Viewer.Paint_Frame (Session);
             Worst := Duration'Max (Worst, To_Duration (Clock - Start));
             delay 0.005;

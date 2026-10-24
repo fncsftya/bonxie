@@ -34,11 +34,11 @@ package body Viewer.Grammar is
 
    use type Widgets.Widget_Access;
    use type Widgets.Node_Id;
-   use type SDL3.Events.Event_Kind;
+   use type Pomarine.Events.Event_Kind;
    use type Docs.Version;
    use type Harper.Request_Id;
    use type Harper.Check_Status;
-   use type SDL3.Events.Milliseconds;
+   use type Pomarine.Events.Milliseconds;
    use type Texts.Position;
 
    Entry_Width : constant := 288.0;
@@ -137,24 +137,24 @@ package body Viewer.Grammar is
       end if;
    end Pressed;
 
-   procedure Before_Event (Item : in out Session; Event : SDL3.Events.Event) is
+   procedure Before_Event (Item : in out Session; Event : Pomarine.Events.Event) is
       State : Grammar_State renames Item.Grammar_Checks;
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
    begin
-      if Event.Kind in SDL3.Events.Mouse_Down | SDL3.Events.Mouse_Up | SDL3.Events.Mouse_Move |
-        SDL3.Events.Mouse_Wheel | SDL3.Events.Pinch
+      if Event.Kind in Pomarine.Events.Mouse_Down | Pomarine.Events.Mouse_Up | Pomarine.Events.Mouse_Move |
+        Pomarine.Events.Mouse_Wheel | Pomarine.Events.Pinch
       then
          State.Pointer_Known := True;
          State.Pointer_X := Event.Mouse_X;
          State.Pointer_Y := Event.Mouse_Y;
-         if Event.Kind = SDL3.Events.Mouse_Move then
+         if Event.Kind = Pomarine.Events.Mouse_Move then
             State.Pointer_Held := Event.Left_Held;
-         elsif Event.Kind in SDL3.Events.Mouse_Down | SDL3.Events.Mouse_Up and then Event.Button = 1 then
-            State.Pointer_Held := Event.Kind = SDL3.Events.Mouse_Down;
+         elsif Event.Kind in Pomarine.Events.Mouse_Down | Pomarine.Events.Mouse_Up and then Event.Button = 1 then
+            State.Pointer_Held := Event.Kind = Pomarine.Events.Mouse_Down;
          end if;
       end if;
       case Event.Kind is
-         when SDL3.Events.Mouse_Down =>
+         when Pomarine.Events.Mouse_Down =>
             Pressed (Item, Event.Mouse_X, Event.Mouse_Y);
             if State.Inline_Open and then not Widgets.Contains
               (State.Inline_Menu, Event.Mouse_X * Pixels, Event.Mouse_Y * Pixels)
@@ -181,13 +181,14 @@ package body Viewer.Grammar is
                   end if;
                end;
             end if;
-         when SDL3.Events.Mouse_Move =>
+         when Pomarine.Events.Mouse_Move =>
             if abs (Event.Mouse_X - State.Press_X) > 4.0 or else abs (Event.Mouse_Y - State.Press_Y) > 4.0 then
                State.Press_Rank := 0;
             end if;
-         when SDL3.Events.Key_Down | SDL3.Events.Text_Input | SDL3.Events.Text_Editing | SDL3.Events.Pinch =>
+         when Pomarine.Events.Key_Down | Pomarine.Events.Text_Input | Pomarine.Events.Text_Editing
+            | Pomarine.Events.Pinch =>
             Close_Inline (Item);
-         when SDL3.Events.Mouse_Wheel =>
+         when Pomarine.Events.Mouse_Wheel =>
             State.Press_Rank := 0;
             if State.Inline_Open and then not Widgets.Contains
               (State.Inline_Menu, Event.Mouse_X * Pixels, Event.Mouse_Y * Pixels)
@@ -355,12 +356,12 @@ package body Viewer.Grammar is
       end loop;
    end Update_Cursor;
 
-   procedure Released (Item : in out Session; Event : SDL3.Events.Event) is
+   procedure Released (Item : in out Session; Event : Pomarine.Events.Event) is
       State : Grammar_State renames Item.Grammar_Checks;
       Rank : constant Natural := State.Press_Rank;
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
    begin
-      if Event.Kind /= SDL3.Events.Mouse_Up then
+      if Event.Kind /= Pomarine.Events.Mouse_Up then
          return;
       end if;
       State.Press_Rank := 0;
@@ -555,7 +556,7 @@ package body Viewer.Grammar is
       Result.Count := Kept;
    end Drop_Cross_Paragraph;
 
-   procedure Update (Item : in out Session; Now : SDL3.Events.Milliseconds) is
+   procedure Update (Item : in out Session; Now : Pomarine.Events.Milliseconds) is
       State : Grammar_State renames Item.Grammar_Checks;
       On    : constant Boolean := Pomarine.Widgets.Switches.Is_On (Item.Page_View.Grammar_Switch);
    begin
@@ -704,7 +705,7 @@ package body Viewer.Grammar is
       end loop;
    end Update;
 
-   function Until_Update (Item : Session; Now : SDL3.Events.Milliseconds) return Integer is
+   function Until_Update (Item : Session; Now : Pomarine.Events.Milliseconds) return Integer is
       Wait : Integer := -1;
       Available : Boolean := False;
    begin
@@ -722,7 +723,7 @@ package body Viewer.Grammar is
             begin
                if not Seen.Busy and then not Seen.Finished then
                   declare
-                     Due : constant Integer := Integer (SDL3.Events.Milliseconds'Max (1, Seen.Due - Now));
+                     Due : constant Integer := Integer (Pomarine.Events.Milliseconds'Max (1, Seen.Due - Now));
                   begin
                      Wait := (if Wait < 0 then Due else Integer'Min (Wait, Due));
                   end;

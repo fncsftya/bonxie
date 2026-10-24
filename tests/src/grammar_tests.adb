@@ -5,7 +5,7 @@ with Harper;
 with Items.Schema;
 with Long_Texts;
 with Projects.Rules;
-with SDL3.Events;
+with Pomarine.Events;
 with Viewer;
 with Viewer.Canvas_Windows;
 with Viewer.Documents;
@@ -14,7 +14,7 @@ with Viewer.Project_Screen;
 with Viewer.Outline_Screen;
 
 package body Grammar_Tests is
-   package Events renames SDL3.Events;
+   package Events renames Pomarine.Events;
    package Docs renames Viewer.Documents;
    package Windows renames Viewer.Canvas_Windows;
    package Proj renames Viewer.Project_Screen;

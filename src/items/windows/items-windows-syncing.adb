@@ -12,7 +12,7 @@ package body Items.Windows.Syncing is
    package Sliders renames Pomarine.Widgets.Sliders;
 
    use type Docs.Version;
-   use type SDL3.Events.Milliseconds;
+   use type Pomarine.Events.Milliseconds;
 
    procedure Sync (Item : in out Window) is
       Used : Boolean;
@@ -65,7 +65,7 @@ package body Items.Windows.Syncing is
    procedure Keep
      (Item  : in out Window;
       Store : in out Projects.Store;
-      Now   : SDL3.Events.Milliseconds;
+      Now   : Pomarine.Events.Milliseconds;
       Force : Boolean;
       Wrote : out Boolean)
    is

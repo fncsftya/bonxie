@@ -1,4 +1,4 @@
-with SDL3.Events;
+with Pomarine.Events;
 
 --  The menu bar across the top of the screen: the commands of the window
 --  that a Mac application has there, with the keys they are chosen by,
@@ -10,7 +10,7 @@ private package Viewer.Menus is
    --  what each is for follow what is shown. Not for a session opened
    --  without a window.
 
-   procedure Key_Taken (Item : in out Session; Event : SDL3.Events.Event);
+   procedure Key_Taken (Item : in out Session; Event : Pomarine.Events.Event);
    --  A key was handled by a widget. If a menu item has that key (the
    --  Edit menu's: Command-V and the rest) the system has said the item
    --  was chosen too, so that it is not done twice.

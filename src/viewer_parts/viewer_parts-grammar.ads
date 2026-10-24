@@ -1,4 +1,4 @@
-with SDL3.Events;
+with Pomarine.Events;
 with Harper;
 with Grammar_Cards;
 with Growing;
@@ -26,7 +26,7 @@ package Viewer_Parts.Grammar is
       Serial   : Natural := 0;
       Seen     : Texts.Documents.Version := 0;
       Token    : Harper.Request_Id := 0;
-      Due      : SDL3.Events.Milliseconds := 0;
+      Due      : Pomarine.Events.Milliseconds := 0;
       Cursor   : Texts.Position := (1, 1);
       Retained : Natural range 0 .. 512 := 0;
       Finished : Boolean := False;

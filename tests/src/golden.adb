@@ -8,7 +8,7 @@ with Ada.Streams.Stream_IO;
 with Ada.Strings.Fixed;
 with Ada.Text_IO;
 with SDL3.Cursors;
-with SDL3.Events;
+with Pomarine.Events;
 with SDL3.Windows.Renderers;
 with Downloads;
 with Files;
@@ -33,7 +33,7 @@ with Grammar_Tests;
 --  name]. See Goldens.
 procedure Golden is
 
-   package Events renames SDL3.Events;
+   package Events renames Pomarine.Events;
    package Camera renames Viewer.Canvas_Camera;
    package Home renames Viewer.Home_Screen;
    package Proj renames Viewer.Project_Screen;

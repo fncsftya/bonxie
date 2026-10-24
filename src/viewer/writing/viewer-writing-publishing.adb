@@ -5,7 +5,7 @@ with Ada.Strings.Unbounded;
 with Markdown_Export;
 with Projects.Sections;
 with SDL3.Dialogs;
-with SDL3.Events;
+with Pomarine.Events;
 with SDL3.Windows;
 with Texts.Documents;
 with Pomarine.Widgets.Buttons;
@@ -28,7 +28,7 @@ package body Viewer.Writing.Publishing is
    package Selects renames Pomarine.Widgets.Selects;
 
    use type SDL3.Dialogs.States;
-   use type SDL3.Events.Milliseconds;
+   use type Pomarine.Events.Milliseconds;
    use type Widgets.Clipboard_Access;
 
    Stored_Header : constant String := "<version>1</version>";
@@ -203,7 +203,7 @@ package body Viewer.Writing.Publishing is
          end if;
    end Save;
 
-   Copied_For : constant SDL3.Events.Milliseconds := 2_500;
+   Copied_For : constant Pomarine.Events.Milliseconds := 2_500;
 
    procedure Copy_Clicked
      (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
@@ -216,7 +216,7 @@ package body Viewer.Writing.Publishing is
       if View.Markdown and then Board /= null then
          Board.Set_Text (Words);
          if Board.Text = Words then
-            View.Copied_Until := SDL3.Events.Ticks + Copied_For;
+            View.Copied_Until := Pomarine.Events.Ticks + Copied_For;
             Buttons.Set_Label (View.Copy, "Copied");
          end if;
       end if;
@@ -225,11 +225,11 @@ package body Viewer.Writing.Publishing is
    function Copy_Remaining (Item : Session) return Integer is
      (if Item.Publish_View.Copied_Until = 0 then -1
       else Integer (Long_Long_Integer'Max (0, Long_Long_Integer (Item.Publish_View.Copied_Until)
-                                              - Long_Long_Integer (SDL3.Events.Ticks))));
+                                              - Long_Long_Integer (Pomarine.Events.Ticks))));
 
    procedure Poll_Export (Item : in out Session) is
    begin
-      if Item.Publish_View.Copied_Until /= 0 and then SDL3.Events.Ticks >= Item.Publish_View.Copied_Until then
+      if Item.Publish_View.Copied_Until /= 0 and then Pomarine.Events.Ticks >= Item.Publish_View.Copied_Until then
          Item.Publish_View.Copied_Until := 0;
          Buttons.Set_Label (Item.Publish_View.Copy, "Copy to Clipboard");
       end if;

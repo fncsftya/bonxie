@@ -11,7 +11,7 @@ private package Items.Windows.Syncing is
    procedure Keep
      (Item  : in out Window;
       Store : in out Projects.Store;
-      Now   : SDL3.Events.Milliseconds;
+      Now   : Pomarine.Events.Milliseconds;
       Force : Boolean;
       Wrote : out Boolean)
      with Pre => Is_Assigned (Item) and then Projects.Is_Open (Store);
@@ -19,6 +19,6 @@ private package Items.Windows.Syncing is
    --  it is let go; the title and text, once they are no longer being
    --  typed in, or have not changed for Idle_Delay, or whenever Force.
    --  Wrote says whether anything was written. Now is as
-   --  SDL3.Events.Ticks.
+   --  Pomarine.Events.Ticks.
 
 end Items.Windows.Syncing;

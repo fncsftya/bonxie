@@ -4,7 +4,7 @@ with Ada.Real_Time;
 with Ada.Text_IO;
 with Projects;
 with SDL3;
-with SDL3.Events;
+with Pomarine.Events;
 with SDL3.Windows.Renderers.Images;
 with Typeset.Samples;
 with Viewer;
@@ -13,7 +13,7 @@ with Viewer.Home_Screen;
 with Viewer.Project_Screen;
 
 procedure Write_Bench is
-   package Events renames SDL3.Events;
+   package Events renames Pomarine.Events;
    package Windows renames Viewer.Canvas_Windows;
    package Home renames Viewer.Home_Screen;
    package Proj renames Viewer.Project_Screen;

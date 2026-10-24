@@ -1,7 +1,7 @@
 with System;
 with Items.Marks;
 with Projects;
-with SDL3.Events;
+with Pomarine.Events;
 with Texts.Documents;
 with Pomarine.Themes;
 with Pomarine.Widgets.Buttons;
@@ -447,7 +447,7 @@ package Items.Windows is
    procedure Flush
      (Item  : in out Window;
       Store : in out Projects.Store;
-      Now   : SDL3.Events.Milliseconds;
+      Now   : Pomarine.Events.Milliseconds;
       Force : Boolean;
       Wrote : out Boolean)
      with Pre => Is_Assigned (Item) and then Projects.Is_Open (Store);
@@ -455,7 +455,7 @@ package Items.Windows is
    --  it is let go; the title and text, once they are no longer being
    --  typed in, or have not changed for Idle_Delay, or whenever Force.
    --  Wrote says whether anything was written. Now is as
-   --  SDL3.Events.Ticks.
+   --  Pomarine.Events.Ticks.
 
 private
 
@@ -484,7 +484,7 @@ private
       --  The states of the documents when they were written.
       Title_Seen    : Natural := 0;
       Content_Seen  : Natural := 0;
-      Changed_At    : SDL3.Events.Milliseconds := 0;
+      Changed_At    : Pomarine.Events.Milliseconds := 0;
       --  The last time either was seen to differ from what it was.
       Title_Version : Docs.Version := 0;
       Content_Version : Docs.Version := 0;
@@ -494,7 +494,7 @@ private
       Zoom_Dirty    : Boolean := False;
       --  Zoomed, and not written.
       Scroll_Seen, Across_Seen : Float := 0.0;
-      Scroll_At     : SDL3.Events.Milliseconds := 0;
+      Scroll_At     : Pomarine.Events.Milliseconds := 0;
       --  How far the content was scrolled when last looked at, and when
       --  that changed: it is written once it has stayed (Idle_Delay).
       Scroll_Pending : Boolean := False;

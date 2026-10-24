@@ -2,7 +2,7 @@ with Items.Directories;
 with Growing;
 with Slot_Tables;
 with Items.Readers.Tables;
-with SDL3.Events;
+with Pomarine.Events;
 with Texts.Documents;
 with Pomarine.Widgets;
 with Pomarine.Widgets.Buttons;
@@ -89,7 +89,7 @@ package Viewer_Parts.Pages is
       --  Between the options and Export.
       Export  : Pomarine.Widgets.Buttons.Button;
       Copy    : Pomarine.Widgets.Buttons.Button;
-      Copied_Until : SDL3.Events.Milliseconds := 0;
+      Copied_Until : Pomarine.Events.Milliseconds := 0;
       --  When Copy goes back to its label, after it said Copied; 0 if it is not saying so.
       Doc     : aliased Texts.Documents.Document;
       Text    : Pomarine.Widgets.Editors.Editor;

@@ -225,7 +225,7 @@ package body Viewer.Grammar.Cards is
                   Widgets.Focus (Item.Page_View.Grammar_Count);
                end if;
                State.Expanded := 0;
-               Update (Item, SDL3.Events.Ticks);
+               Update (Item, Pomarine.Events.Ticks);
             end;
          end if;
       end;
@@ -244,7 +244,7 @@ package body Viewer.Grammar.Cards is
       Item.Grammar_Checks.Rules_Owner := 0;
       Basics.Load_Rules (Item);
       Recheck (Item);
-      Update (Item, SDL3.Events.Ticks);
+      Update (Item, Pomarine.Events.Ticks);
    end Rules_Changed;
 
    procedure Ignore_Row (Item : in out Session; Index : Natural) is

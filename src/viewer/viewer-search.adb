@@ -20,8 +20,8 @@ package body Viewer.Search is
    package Areas renames Pomarine.Text_Areas;
    package Editors renames Pomarine.Widgets.Editors;
    use Ada.Strings.Unbounded;
-   use type SDL3.Events.Event_Kind;
-   use type SDL3.Events.Key_Code;
+   use type Pomarine.Events.Event_Kind;
+   use type Pomarine.Events.Key_Code;
    use type Docs.Version;
    use type Items.Id;
    use type Widgets.Widget_Access;
@@ -276,23 +276,23 @@ package body Viewer.Search is
       end if;
    end Update;
 
-   procedure Handle (Item : in out Session; Event : SDL3.Events.Event; Handled : out Boolean) is
+   procedure Handle (Item : in out Session; Event : Pomarine.Events.Event; Handled : out Boolean) is
       S : Search_State renames Item.Searching;
       Focused : constant Widgets.Widget_Access := Widgets.Focus_Of (Item.Root.Widgets);
       Target : Items.Slot := Items.Slot'First;
       Found : Boolean := False;
    begin
       Handled := False;
-      if Event.Kind /= SDL3.Events.Key_Down then
+      if Event.Kind /= Pomarine.Events.Key_Down then
          return;
       end if;
-      if S.Showing and then Event.Key = SDL3.Events.Key_Escape then
+      if S.Showing and then Event.Key = Pomarine.Events.Key_Escape then
          Close (Item);
          Handled := True;
-      elsif S.Showing and then Event.Key = SDL3.Events.Key_F3 then
+      elsif S.Showing and then Event.Key = Pomarine.Events.Key_F3 then
          Step (Item, Event.Shift);
          Handled := True;
-      elsif Event.Command and then Event.Key = SDL3.Events.Key_F then
+      elsif Event.Command and then Event.Key = Pomarine.Events.Key_F then
          if Item.Toolbar.Mode = Write then
             if not S.Showing then
                Build_Bar (Item);

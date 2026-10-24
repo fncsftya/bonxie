@@ -189,18 +189,18 @@ package body Grammar_Cards is
       end if;
    end Draw;
 
-   overriding procedure Handle (Item : in out Card; Event : SDL3.Events.Event; Handled : out Boolean) is
+   overriding procedure Handle (Item : in out Card; Event : Pomarine.Events.Event; Handled : out Boolean) is
       Over : constant Boolean := Contains (Item, Event.Mouse_X * Density (Item), Event.Mouse_Y * Density (Item))
         and then Event.Mouse_Y * Density (Item) < Top_Of (Item) + Header * Density (Item);
    begin
       Handled := False;
       case Event.Kind is
-         when SDL3.Events.Mouse_Down =>
+         when Pomarine.Events.Mouse_Down =>
             if Event.Button = 1 and then Over then
                Item.Down := True;
                Handled := True;
             end if;
-         when SDL3.Events.Mouse_Up =>
+         when Pomarine.Events.Mouse_Up =>
             if Event.Button = 1 and then Item.Down then
                Item.Down := False;
                if Over then
@@ -208,8 +208,8 @@ package body Grammar_Cards is
                end if;
                Handled := True;
             end if;
-         when SDL3.Events.Key_Down =>
-            if Has_Focus (Item) and then Event.Key in SDL3.Events.Key_Return | SDL3.Events.Key_Space then
+         when Pomarine.Events.Key_Down =>
+            if Has_Focus (Item) and then Event.Key in Pomarine.Events.Key_Return | Pomarine.Events.Key_Space then
                Notify (Item, Click);
                Handled := True;
             end if;

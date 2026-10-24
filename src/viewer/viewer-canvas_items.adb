@@ -598,7 +598,7 @@ package body Viewer.Canvas_Items is
       return Style.Source_Ink (Rank);
    end Source_Ink;
 
-   procedure Update (Item : in out Session; Now : SDL3.Events.Milliseconds) is
+   procedure Update (Item : in out Session; Now : Pomarine.Events.Milliseconds) is
       Wrote, Any : Boolean := False;
    begin
       Sync (Item);

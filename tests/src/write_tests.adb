@@ -1,7 +1,7 @@
 with Ada.Directories;
 with Ada.Text_IO;
 with Pomarine.Page_Builds;
-with SDL3.Events;
+with Pomarine.Events;
 with SDL3.Pictures.Jobs;
 with Webshot;
 with Texts.Documents;
@@ -20,7 +20,7 @@ with Viewer.Sources;
 
 package body Write_Tests is
 
-   package Events renames SDL3.Events;
+   package Events renames Pomarine.Events;
    package Links renames Viewer.Canvas_Links;
    package Windows renames Viewer.Canvas_Windows;
    package Docs renames Viewer.Documents;
@@ -939,14 +939,14 @@ package body Write_Tests is
       Folder  : constant String := "/tmp/bonxie-write-document";
       Book    : constant String := Folder & "/book.pdf";
       File    : Ada.Text_IO.File_Type;
-      Tick    : SDL3.Events.Milliseconds := 1_000;
+      Tick    : Pomarine.Events.Milliseconds := 1_000;
 
       procedure Wait is
          Waited : Natural := 0;
       begin
          while Windows.Is_Capturing (Session) and then Waited < 600 loop
             delay 0.05;
-            Tick := SDL3.Events.Milliseconds (Natural (Tick) + 100);
+            Tick := Pomarine.Events.Milliseconds (Natural (Tick) + 100);
             Viewer.Tick (Session, Tick);
             Waited := Waited + 1;
          end loop;
@@ -1006,7 +1006,7 @@ package body Write_Tests is
       Folder  : constant String := "/tmp/bonxie-write-page";
       Page    : constant String := Folder & "/page.html";
       File    : Ada.Text_IO.File_Type;
-      Tick    : SDL3.Events.Milliseconds := 1_000;
+      Tick    : Pomarine.Events.Milliseconds := 1_000;
       Waited  : Natural := 0;
    begin
       if not Ada.Directories.Exists (Folder) then
@@ -1033,7 +1033,7 @@ package body Write_Tests is
                                 Key => Events.Key_Return, others => <>));
       while Windows.Is_Capturing (Session) and then Waited < 600 loop
          Webshot.Pump (100);
-         Tick := SDL3.Events.Milliseconds (Natural (Tick) + 100);
+         Tick := Pomarine.Events.Milliseconds (Natural (Tick) + 100);
          Viewer.Tick (Session, Tick);
          Waited := Waited + 1;
       end loop;

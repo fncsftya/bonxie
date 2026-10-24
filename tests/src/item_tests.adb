@@ -17,7 +17,7 @@ with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO;
 with SDL3.Cursors;
-with SDL3.Events;
+with Pomarine.Events;
 with SDL3.Pictures.Jobs;
 with Vision;
 with Webshot;
@@ -35,7 +35,7 @@ with Viewer.Project_Screen;
 
 package body Item_Tests is
 
-   package Events renames SDL3.Events;
+   package Events renames Pomarine.Events;
    package Camera renames Viewer.Canvas_Camera;
    package Links renames Viewer.Canvas_Links;
    package Windows renames Viewer.Canvas_Windows;
@@ -244,7 +244,7 @@ package body Item_Tests is
       --  A tick between them, as the loop's, for the next to be asked for.
       for Pass in 1 .. 3 loop
          Viewer.Render (Session, Drawn);
-         Viewer.Tick (Session, SDL3.Events.Milliseconds (Pass * 100));
+         Viewer.Tick (Session, Pomarine.Events.Milliseconds (Pass * 100));
       end loop;
    end Draw_Pages;
 
@@ -1644,7 +1644,7 @@ package body Item_Tests is
    procedure Capture_From
      (Session : in out Viewer.Session; Link : String)
    is
-      Tick  : SDL3.Events.Milliseconds := 1_000;
+      Tick  : Pomarine.Events.Milliseconds := 1_000;
       Waited : Natural := 0;
    begin
       Press_Key (Session, Events.Key_A, Command => True);
@@ -1652,7 +1652,7 @@ package body Item_Tests is
       Press_Key (Session, Events.Key_Return);
       while Windows.Is_Capturing (Session) and then Waited < 600 loop
          Webshot.Pump (100);
-         Tick := SDL3.Events.Milliseconds (Natural (Tick) + 100);
+         Tick := Pomarine.Events.Milliseconds (Natural (Tick) + 100);
          Viewer.Tick (Session, Tick);
          Waited := Waited + 1;
       end loop;
@@ -1815,17 +1815,17 @@ package body Item_Tests is
       Key     : Projects.Id;
 
       procedure Wait is
-         Tick   : SDL3.Events.Milliseconds := 1_000;
+         Tick   : Pomarine.Events.Milliseconds := 1_000;
          Waited : Natural := 0;
       begin
          while Windows.Is_Capturing (Session) and then Waited < 600 loop
             delay 0.05;
-            Tick := SDL3.Events.Milliseconds (Natural (Tick) + 100);
+            Tick := Pomarine.Events.Milliseconds (Natural (Tick) + 100);
             Viewer.Tick (Session, Tick);
             Waited := Waited + 1;
          end loop;
          --  Once more, for what is done at once (the words of a page).
-         Viewer.Tick (Session, SDL3.Events.Milliseconds (Natural (Tick) + 100));
+         Viewer.Tick (Session, Pomarine.Events.Milliseconds (Natural (Tick) + 100));
          Pomarine.Application.Run_Posted;
       end Wait;
    begin
@@ -1985,17 +1985,17 @@ package body Item_Tests is
       end Write;
 
       procedure Wait is
-         Tick   : SDL3.Events.Milliseconds := 1_000;
+         Tick   : Pomarine.Events.Milliseconds := 1_000;
          Waited : Natural := 0;
       begin
          while Windows.Is_Capturing (Session) and then Waited < 600 loop
             delay 0.05;
-            Tick := SDL3.Events.Milliseconds (Natural (Tick) + 100);
+            Tick := Pomarine.Events.Milliseconds (Natural (Tick) + 100);
             Viewer.Tick (Session, Tick);
             Waited := Waited + 1;
          end loop;
          --  Once more, for what is done at once (the words of a page).
-         Viewer.Tick (Session, SDL3.Events.Milliseconds (Natural (Tick) + 100));
+         Viewer.Tick (Session, Pomarine.Events.Milliseconds (Natural (Tick) + 100));
          Pomarine.Application.Run_Posted;
       end Wait;
    begin
@@ -2277,7 +2277,7 @@ package body Item_Tests is
       begin
          for Pass in 1 .. 20 loop
             delay 0.02;
-            Viewer.Tick (Session, SDL3.Events.Milliseconds (Pass * 100));
+            Viewer.Tick (Session, Pomarine.Events.Milliseconds (Pass * 100));
             Viewer.Render (Session, Drawn);
             Pomarine.Page_Builds.Wait_Until_Idle;
          end loop;
