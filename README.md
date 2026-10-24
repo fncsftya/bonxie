@@ -5,7 +5,8 @@ on an infinite canvas, and write with reference material beside your draft.
 
 Currently only supports Apple Silicon.
 
-![Writing in action](docs/ada-writing-source-light.png)
+![](docs/write-with-research.png)
+*Full workflow, writing with research*
 
 ## At a glance
 
@@ -31,9 +32,6 @@ Currently only supports Apple Silicon.
 Patches welcome!
 
 # Screenshots
-
-![](docs/write-with-research.png)
-*Full workflow, writing with research*
 
 ![](docs/outline.png)
 *Create an outline for your project*
