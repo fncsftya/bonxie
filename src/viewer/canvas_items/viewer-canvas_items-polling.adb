@@ -1,3 +1,4 @@
+with Items.Models;
 with Items.Sources;
 with Speech.Jobs;
 with Viewer.Writing;
@@ -11,25 +12,27 @@ package body Viewer.Canvas_Items.Polling is
 
    package Windows renames Items.Windows;
 
+   package Models renames Items.Models;
+
    use type Items.Kinds;
    use type Webshot.States;
    use type Items.Extensions.Text;
    use type Vision.Jobs.States;
    use type Speech.Jobs.States;
-   use type Windows.Dictations;
+   use type Models.Dictations;
 
    procedure Poll_Dictation (Item : in out Session) is
       Heard : Speech.Transcript;
    begin
       for Which in 1 .. Item.Windows.Count loop
-         if Windows.Is_Assigned (Item.Windows (Which))
-           and then Windows.Details (Item.Windows (Which)).Kind = Items.Note
+         if Models.Is_Assigned (Item.Models (Which))
+           and then Models.Details (Item.Models (Which)).Kind = Items.Note
          then
             declare
                Each : Windows.Window renames Item.Windows (Which);
-               procedure Show (To : Windows.Dictations) is
+               procedure Show (To : Models.Dictations) is
                begin
-                  if Windows.Dictation (Each) /= To then
+                  if Models.Dictation (Item.Models (Which)) /= To then
                      Windows.Set_Dictation (Each, To);
                   end if;
                end Show;
@@ -38,22 +41,22 @@ package body Viewer.Canvas_Items.Polling is
                   when Speech.Jobs.Idle =>
                      null;
                   when Speech.Jobs.Starting =>
-                     Show (Windows.Preparing);
+                     Show (Models.Preparing);
                   when Speech.Jobs.Listening =>
-                     Show (Windows.Listening);
-                     Windows.Set_Level (Each, Speech.Jobs.Loudness (Which));
+                     Show (Models.Listening);
+                     Models.Set_Level (Item.Models (Which), Speech.Jobs.Loudness (Which));
                      Speech.Jobs.Heard_So_Far (Which, Heard);
                      Windows.Set_Live_Dictation
                        (Each, Speech.Image (Heard), Heard.Settled);
                   when Speech.Jobs.Finishing =>
-                     Show (Windows.Transcribing);
+                     Show (Models.Transcribing);
                   when Speech.Jobs.Done =>
                      Speech.Jobs.Take (Which, Heard);
-                     Windows.Set_Dictation (Each, Windows.Silent);
+                     Windows.Set_Dictation (Each, Models.Silent);
                      Windows.Add_Dictation (Each, Speech.Image (Heard));
                   when Speech.Jobs.Failed =>
                      Windows.Set_Dictation
-                       (Each, Windows.Failed, Speech.Jobs.Message (Which));
+                       (Each, Models.Failed, Speech.Jobs.Message (Which));
                      Speech.Jobs.Reset (Which);
                end case;
             end;
@@ -66,16 +69,15 @@ package body Viewer.Canvas_Items.Polling is
       Opening.Poll_Pick (Item);
       Opening.Poll_Download (Item);
       for Which in 1 .. Item.Windows.Count loop
-         if Basics.Is_Source (Item, Which) and then Windows.Is_Paged (Item.Windows (Which)) then
+         if Basics.Is_Source (Item, Which) and then Models.Is_Paged (Item.Models (Which)) then
             --  Which page is being read, of a document one page under
             --  another, as the window is scrolled.
             declare
                Now     : constant Natural := Windows.Document_Page (Item.Windows (Which));
-               Details : constant Items.Info := Windows.Details (Item.Windows (Which));
+               Details : constant Items.Info := Models.Details (Item.Models (Which));
             begin
                if Now > 0 and then Now /= Details.Page then
-                  Windows.Set_Pages
-                    (Item.Windows (Which), Items.Extensions.To_String (Details.Document),
+                  Models.Set_Pages (Item.Models (Which), Items.Extensions.To_String (Details.Document),
                      Now, Details.Page_Count);
                   Items.Sources.Set_Page (Item.Nav.Store, Details.Key, Now);
                   Writing.Page_Turned (Item, Which);
@@ -87,35 +89,32 @@ package body Viewer.Canvas_Items.Polling is
                when Webshot.Done =>
                   declare
                      Key  : constant Items.Id :=
-                       Windows.Details (Item.Windows (Which)).Key;
+                       Models.Details (Item.Models (Which)).Key;
                      Time : constant Projects.Seconds := Basics.Epoch_Now (Item);
                   begin
                      Recognition.Name_From_Page (Item, Which, Webshot.Page_Title (Which));
-                     if Windows.Details (Item.Windows (Which)).Document
+                     if Models.Details (Item.Models (Which)).Document
                         /= Items.Extensions.Null_Text
                      then
                         Items.Sources.Set_Document (Item.Nav.Store, Key, "", 0);
-                        Windows.Set_Pages (Item.Windows (Which), "", 0, 0);
+                        Models.Set_Pages (Item.Models (Which), "", 0, 0);
                      end if;
                      Items.Sources.Set_Captured (Item.Nav.Store, Key, Time);
-                     Windows.Set_Capture
-                       (Item.Windows (Which), Windows.Ready,
+                     Models.Set_Capture (Item.Models (Which), Models.Ready,
                         Items.Sources.Image_File
-                          (Item.Nav.Store, Item.Opened.Current, Key),
+                          (Item.Nav.Store, Open_Key (Item), Key),
                         At_Time => Time);
                      Writing.Picture_Taken (Item, Which);
-                     Projects.Touch (Item.Nav.Store, Item.Opened.Current);
+                     Projects.Touch (Item.Nav.Store, Open_Key (Item));
                   end;
                   Webshot.Reset (Which);
                   Recognition.Start_Recognition (Item, Which);
                when Webshot.Failed =>
-                  Windows.Set_Capture
-                    (Item.Windows (Which), Windows.Failed,
+                  Models.Set_Capture (Item.Models (Which), Models.Failed,
                      Detail => Webshot.Message (Which));
                   Webshot.Reset (Which);
                when Webshot.Working =>
-                  Windows.Set_Progress
-                    (Item.Windows (Which), Webshot.Progress (Which));
+                  Models.Set_Progress (Item.Models (Which), Webshot.Progress (Which));
                when Webshot.Idle | Webshot.Looked =>
                   null;  --  a picture of the top is only asked for by what finds sources
             end case;

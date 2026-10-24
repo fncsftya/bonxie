@@ -21,34 +21,17 @@ PREFER features from the Ada 2022 standard, e.g.
 PREFER to refactor existing code if it can be improved.
 KEEP lines to at most 120 columns (`-gnatyM120` in each project).
 
-## Writing a view-model
-
-A screen that is a form or a list (the settings, the home screen and its deleting dialog, the outline and the grammar
-rules: `Settings_VM`, `Home_VM`, `Confirm_VM`, `Outline_VM`, `Grammar_VM`) has a view-model in `src/view_models/`: what the screen means, and nothing of how it looks. The canvas, the
-writing editor and gestures (drag, pan, resize) stay with the code that handles events: do not force them in.
-
-DO give the view-model the parts of `Pomarine.View_Models` (`pomarine/vm`): a `Version` that goes up whenever
-  anything it shows changes, `Property`/`Text_Property` for what is chosen or typed, and a command
-  enumeration with `Can_Execute (What, Index)` and `Execute (What, Index)` (`Command_Models`). `Index` carries
-  which of many: a row, a choice; the tree's validator asks with the widget's own Index, so a row's button is
-  on while another's is off.
-DO keep persistence in the view-model, through a `Store` interface (a file one for the program, a
-  failing one for a test), and what it asks of the world (a speech model, a task's download) through a
-  source interface it is given, polled from the view's update. Applying a result to the world (the window's
-  VSync, the theme the windows are drawn in) is the view's, in reaction to a changed `Version`.
-DO NOT `with` `Pomarine.Widgets` or `SDL3` in `src/view_models/`: the test `view-models-no-widgets` fails if
-  a file there names either.
-DO give what the person types, and what only the program knows, to the view-model through its setters
-  and sources, and let the view show it (`Home_VM.Set_Draft`, `Outline_VM.Set_Title`); a rule that needs
-  the database goes through a `Library` interface the view-model is given (`Stored` children for the program,
-  fakes in `tests/src` for the tests).
-DO bind the widgets with `Pomarine.Widgets.Bindings` (`For_Commands`: `Bind`, `Trigger`, `Perform`,
-  `Changed`, `Judge`; `Sync_Root`; `Text_Link`). A widget that only says a command (a field's Return)
-  is `Trigger`ed, not `Bind`ed, or it is turned off with the command. A window with more than one set of
-  commands gives each its own `Tag_Base` and one validator that asks each (see `Viewer.Menus.Validate`).
-DO test in three tiers (TESTING.md): the view-model alone, with fakes for the store and the source; the view
-  offscreen, through `Pomarine.Testing` by what the widgets are called; goldens for drawing only.
-
 ## Testing
 
 See TESTING.md
+
+## Writing a view-model
+
+Keep screen state, command rules and persistence in `src/view_models/`, without `Pomarine.Widgets` or `SDL3`.
+Expose modular versions, bump only for changes, and give commands `Can_Execute` contracts. Inject interfaces for
+storage, background engines and effects that need the view. Keep widget geometry, focus, painting and event
+translation in the view; feed gesture outcomes into the model rather than copying its state into widgets.
+Canvas and editor behavior follows the same boundary; continuous widget gestures remain in the view.
+Use growing storage for user content. Preserve item identity across slot reuse when a row can outlive its item.
+Test rules and contracts without widgets, bindings through `Pomarine.Testing` by semantic name, and drawing
+through goldens. See TESTING.md for commands and the existing tiers.

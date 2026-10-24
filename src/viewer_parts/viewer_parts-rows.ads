@@ -1,4 +1,4 @@
-with Growing;
+with Writing_VM.Trees;
 with Texts.Documents;
 with Slot_Tables;
 with Pomarine.Widgets;
@@ -15,20 +15,12 @@ package Viewer_Parts.Rows is
    --  A row of the tree of documents: the Overview, every directory, and
    --  every document.
 
-   type Tree_Kinds is (Overview_Node, Directory_Node, Document_Leaf);
-
-   type Tree_Entry is record
-      Kind : Tree_Kinds := Overview_Node;
-      Dir  : Natural := 0;
-      --  Of a directory, which it is (of Dirs); of a document, the
-      --  directory it is in, 0 if none.
-      Doc  : Natural := 0;
-      --  Of a document, its window.
-   end record;
-   --  What a row of the tree is of.
-
-   package Tree_Entry_Lists is new Growing (Tree_Entry);
-   subtype Tree_Entry_Array is Tree_Entry_Lists.List;
+   subtype Tree_Kinds is Writing_VM.Trees.Tree_Kinds;
+   Overview_Node : constant Tree_Kinds := Writing_VM.Trees.Overview_Node;
+   Directory_Node : constant Tree_Kinds := Writing_VM.Trees.Directory_Node;
+   Document_Leaf : constant Tree_Kinds := Writing_VM.Trees.Document_Leaf;
+   subtype Tree_Entry is Writing_VM.Trees.Tree_Entry;
+   subtype Tree_Entry_Array is Writing_VM.Trees.Tree_Entry_Array;
 
    type Drop_Kinds is (No_Drop, Into_Node, Between);
    --  Where a row dragged would go: nowhere, into the Overview or a

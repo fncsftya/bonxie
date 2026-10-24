@@ -28,15 +28,13 @@ private package Viewer.Writing is
    procedure Leave (Item : in out Session);
    --  Let go of the windows, and the pinned source.
 
-   procedure Show (Item : in out Session; To : Modes)
+   procedure Show_View (Item : in out Session)
      with Pre => Screen (Item) = Project;
-   --  Show the view, in place of the one shown, and keep it as the
-   --  project's.
+   --  Show the view that Nav_VM says is the project's, in place of the one shown.
 
-   procedure Restore (Item : in out Session)
+   procedure Show_View (Item : in out Session; To : Modes)
      with Pre => Screen (Item) = Project;
-   --  Show the view the project was last left at, Outline if none: once
-   --  the project is entered.
+   --  Show the view To.
 
    procedure Added (Item : in out Session; Which : Items.Slot)
      with Pre => Items.Windows.Is_Assigned (Item.Windows (Which));
@@ -60,13 +58,13 @@ private package Viewer.Writing is
    --  The words in the source's picture have been found.
 
    procedure Move (Item : in out Session; From, To : Positive)
-     with Pre => From <= Item.Reading.Write_Count
-      and then To <= Item.Reading.Write_Count;
+     with Pre => From <= Trees.Page_Count (Item.Docs.Ordering)
+      and then To <= Trees.Page_Count (Item.Docs.Ordering);
    --  Put the From-th page at the To-th, and keep the order.
 
    procedure Move_To_Directory
      (Item : in out Session; Rank : Positive; Directory : Natural)
-     with Pre => Rank <= Item.Reading.Write_Count
+     with Pre => Rank <= Trees.Page_Count (Item.Docs.Ordering)
                  and then Directory <= Item.Docs.Dirs.Count;
    --  Put the Rankth page last in the directory (none, if 0), and keep it.
 
@@ -198,7 +196,7 @@ private package Viewer.Writing is
    --  Milliseconds until the publish view's Copy button stops saying Copied; -1 if it does not.
 
    procedure Fit (Item : in out Session)
-     with Pre => Screen (Item) = Project and then Item.Toolbar.Mode in Write | Publish;
+     with Pre => Screen (Item) = Project and then View_Mode (Item) in Write | Publish;
    --  Size the pages to their text and the window, once it is laid out,
    --  and bring the caret into view.
 

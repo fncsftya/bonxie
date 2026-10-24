@@ -1,5 +1,5 @@
+with Items.Models;
 with Ada.Strings.Unbounded;
-with Ada.Strings.Fixed;
 with Pomarine.Line_Texts;
 with Pomarine.Icons;
 with Icon_Set;
@@ -27,6 +27,7 @@ package body Viewer.Search is
    use type Pomarine.Events.Key_Code;
    use type Docs.Version;
    use type Items.Id;
+   use type Search_VM.Scopes;
    use type Widgets.Widget_Access;
 
    procedure Step (Item : in out Session; Backwards : Boolean := False);
@@ -38,7 +39,7 @@ package body Viewer.Search is
    is
       pragma Unreferenced (Source, Event);
    begin
-      if Item.Searching.Showing then
+      if Search_VM.Is_Showing (Item.Searching.Model) then
          Step (Item, True);
       end if;
    end Previous_Clicked;
@@ -51,7 +52,7 @@ package body Viewer.Search is
    is
       pragma Unreferenced (Source, Event);
    begin
-      if Item.Searching.Showing then
+      if Search_VM.Is_Showing (Item.Searching.Model) then
          Step (Item);
       end if;
    end Next_Clicked;
@@ -79,7 +80,7 @@ package body Viewer.Search is
          Widgets.Remove (S.Bar);
       end if;
       if In_Window then
-         Items.Windows.Add_Search_Bar (Item.Windows (S.Target), S.Bar);
+         Items.Windows.Add_Search_Bar (Item.Windows (Search_VM.Location (S.Model).Target), S.Bar);
          Layouts.Set_Layout (S.Bar, Bar_Style);
       else
          Layouts.Add (Item.Toolbar.Project_Panel, S.Bar, Bar_Style);
@@ -112,6 +113,8 @@ package body Viewer.Search is
 
    procedure Build (Item : in out Session) is
    begin
+      Item.Finding.Owner := Item'Unchecked_Access;
+      Search_VM.Initialize (Item.Searching.Model, Item.Finding'Unchecked_Access);
       Build_Bar (Item);
    end Build;
 
@@ -138,10 +141,18 @@ package body Viewer.Search is
    end Choose_Document;
 
    procedure Step (Item : in out Session; Backwards : Boolean := False) is
+      What : constant Search_VM.Command := (if Backwards then Search_VM.Previous else Search_VM.Next);
+   begin
+      if Search_VM.Can_Execute (Item.Searching.Model, What) then
+         Search_VM.Execute (Item.Searching.Model, What);
+      end if;
+   end Step;
+
+   procedure Step_Engine (Item : in out Session; Where : Search_VM.Context; Backwards : Boolean) is
       S : Search_State renames Item.Searching;
    begin
-      if not S.In_Writing then
-         Items.Windows.Search_Step (Item.Windows (S.Target), Backwards);
+      if Where.Scope = Search_VM.Canvas_Item then
+         Items.Windows.Search_Step (Item.Windows (Where.Target), Backwards);
       else
          if S.Total = 0 then
             S.Current := 0;
@@ -152,23 +163,22 @@ package body Viewer.Search is
          end if;
          Choose_Document (Item);
       end if;
-   end Step;
+   end Step_Engine;
 
-   procedure Update_Documents (Item : in out Session) is
+   procedure Update_Documents (Item : in out Session; Term : String) is
       S : Search_State renames Item.Searching;
-      Term : constant String := Docs.Whole (S.Doc);
       New_Term : constant Boolean := Term /= To_String (S.Term);
-      Changed : Boolean := New_Term or else S.Documents.Count /= Item.Reading.Write_Count;
+      Changed : Boolean := New_Term or else S.Documents.Count /= Trees.Page_Count (Item.Docs.Ordering);
    begin
-      Search_Document_Lists.Resize (S.Documents, Item.Reading.Write_Count, (others => <>));
+      Search_Document_Lists.Resize (S.Documents, Trees.Page_Count (Item.Docs.Ordering), (others => <>));
       S.Total := 0;
-      for Rank in 1 .. Item.Reading.Write_Count loop
+      for Rank in 1 .. Trees.Page_Count (Item.Docs.Ordering) loop
          declare
-            Which : constant Items.Slot := Item.Reading.Write_Order (Rank);
-            Doc : constant Docs.Document_Access := Items.Windows.Content_Document (Item.Windows (Which));
+            Which : constant Items.Slot := Trees.Page_At (Item.Docs.Ordering, Rank);
+            Doc : constant Docs.Document_Access := Items.Models.Content_Document (Item.Models (Which));
             Area : Areas.Text_Area renames Editors.Area (Item.Docs.Pages (Rank).Text).all;
             State : Search_Document renames S.Documents (Rank);
-            Key : constant Items.Id := Items.Windows.Details (Item.Windows (Which)).Key;
+            Key : constant Items.Id := Items.Models.Details (Item.Models (Which)).Key;
          begin
             pragma Assert (Item.Docs.Pages (Rank).Bound = Which);
             if New_Term or else State.Which /= Which or else State.Key /= Key
@@ -186,7 +196,7 @@ package body Viewer.Search is
       S.Term := To_Unbounded_String (Term);
       if Changed then
          S.Current := 0;
-         Step (Item);
+         Step_Engine (Item, Search_VM.Location (S.Model), False);
       end if;
    end Update_Documents;
 
@@ -195,10 +205,12 @@ package body Viewer.Search is
       X, Y, Wide, High : Float;
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
    begin
-      if not S.Showing or else not S.In_Writing or else not S.Reveal_Pending then
+      if not Search_VM.Is_Showing (S.Model) or else Search_VM.Location (S.Model).Scope /= Search_VM.Writing
+        or else not S.Reveal_Pending
+      then
          return;
       end if;
-      pragma Assert (S.Rank in 1 .. Item.Reading.Write_Count);
+      pragma Assert (S.Rank in 1 .. Trees.Page_Count (Item.Docs.Ordering));
       if not Widgets.Is_Visible (Item.Docs.Pages (S.Rank).Box) then
          Writing.Select_Directory (Item, 0);
       end if;
@@ -220,13 +232,10 @@ package body Viewer.Search is
       S.Reveal_Pending := False;
    end Reveal;
 
-   procedure Close (Item : in out Session) is
+   procedure Clear_Engine (Item : in out Session; Where : Search_VM.Context) is
       S : Search_State renames Item.Searching;
    begin
-      if not S.Showing then
-         return;
-      end if;
-      if S.In_Writing then
+      if Where.Scope = Search_VM.Writing then
          for Each of Item.Docs.Pages loop
             if Each.Bound /= 0 then
                Areas.Search (Editors.Area (Each.Text).all, "");
@@ -238,56 +247,72 @@ package body Viewer.Search is
          S.Current := 0;
          S.Rank := 0;
          S.Reveal_Pending := False;
-      elsif Items.Windows.Is_Assigned (Item.Windows (S.Target))
-        and then Items.Windows.Details (Item.Windows (S.Target)).Key = S.Key
+      elsif Where.Target <= Item.Windows.Count
+        and then Items.Windows.Is_Assigned (Item.Windows (Where.Target))
+        and then Items.Models.Details (Item.Models (Where.Target)).Key = Where.Key
       then
-         Items.Windows.Search (Item.Windows (S.Target), "");
+         Items.Windows.Search (Item.Windows (Where.Target), "");
       end if;
-      S.Showing := False;
-      Widgets.Set_Visible (S.Bar, False);
+      S.Term := Null_Unbounded_String;
+      S.Seen := 0;
+   end Clear_Engine;
+
+   function Valid (Item : Session; Where : Search_VM.Context) return Boolean is
+     (Screen (Item) = Project
+      and then (if Where.Scope = Search_VM.Writing then View_Mode (Item) = Write
+                else View_Mode (Item) = Canvas and then Where.Target <= Item.Windows.Count
+                  and then Items.Windows.Searchable (Item.Windows (Where.Target))
+                  and then Items.Models.Details (Item.Models (Where.Target)).Key = Where.Key));
+
+   procedure Refresh_Engine
+     (Item : in out Session; Where : Search_VM.Context; Term : String; Found : out Search_VM.Result)
+   is
+      S : Search_State renames Item.Searching;
+   begin
+      if Where.Scope = Search_VM.Writing then
+         Update_Documents (Item, Term);
+         Found := (S.Current, S.Total, False);
+      else
+         declare
+            W : Items.Windows.Window renames Item.Windows (Where.Target);
+            Revision : constant Docs.Version :=
+              Docs.Current (Items.Models.Content_Document (Item.Models (Where.Target)).all);
+         begin
+            if Term /= To_String (S.Term) or else Revision /= S.Seen then
+               S.Term := To_Unbounded_String (Term);
+               S.Seen := Revision;
+               Items.Windows.Search (W, Term);
+               Items.Windows.Search_Step (W);
+            end if;
+            Found := (Items.Windows.Search_Current (W), Items.Windows.Search_Count (W), Items.Windows.Search_Busy (W));
+         end;
+      end if;
+   end Refresh_Engine;
+
+   procedure Sync (Item : in out Session) is
+      S : Search_State renames Item.Searching;
+   begin
+      if Pomarine.View_Models.Changed (S.Shown, Search_VM.Version (S.Model)) then
+         Widgets.Set_Visible (S.Bar, Search_VM.Is_Showing (S.Model));
+         Pomarine.Widgets.Labels.Set_Text (S.Count, Search_VM.Summary (S.Model));
+         Buttons.Set_Enabled (S.Previous, Search_VM.Can_Execute (S.Model, Search_VM.Previous));
+         Buttons.Set_Enabled (S.Next, Search_VM.Can_Execute (S.Model, Search_VM.Next));
+      end if;
+   end Sync;
+
+   procedure Close (Item : in out Session) is
+   begin
+      if Search_VM.Can_Execute (Item.Searching.Model, Search_VM.Close) then
+         Search_VM.Execute (Item.Searching.Model, Search_VM.Close);
+      end if;
+      Sync (Item);
    end Close;
 
    procedure Update (Item : in out Session) is
-      S : Search_State renames Item.Searching;
-      function Image (N : Natural) return String is
-        (Ada.Strings.Fixed.Trim (N'Image, Ada.Strings.Both));
    begin
-      if not S.Showing then
-         return;
-      end if;
-      if Item.Nav.Shown /= Project
-        or else (if S.In_Writing then Item.Toolbar.Mode /= Write
-                 else Item.Toolbar.Mode /= Canvas
-                   or else not Items.Windows.Searchable (Item.Windows (S.Target))
-                   or else Items.Windows.Details (Item.Windows (S.Target)).Key /= S.Key)
-      then
-         Close (Item);
-         return;
-      end if;
-      if S.In_Writing then
-         Update_Documents (Item);
-         Pomarine.Widgets.Labels.Set_Text (S.Count, Image (S.Current) & " / " & Image (S.Total));
-         Buttons.Set_Enabled (S.Previous, S.Total > 0);
-         Buttons.Set_Enabled (S.Next, S.Total > 0);
-         return;
-      end if;
-      declare
-         W : Items.Windows.Window renames Item.Windows (S.Target);
-         Term : constant String := Docs.Whole (S.Doc);
-         Revision : constant Docs.Version := Docs.Current (Items.Windows.Content_Document (W).all);
-      begin
-         if Term /= To_String (S.Term) or else Revision /= S.Seen then
-            S.Term := To_Unbounded_String (Term);
-            S.Seen := Revision;
-            Items.Windows.Search (W, Term);
-            Items.Windows.Search_Step (W);
-         end if;
-         Pomarine.Widgets.Labels.Set_Text
-           (S.Count, Image (Items.Windows.Search_Current (W)) & " / " & Image (Items.Windows.Search_Count (W))
-            & (if Items.Windows.Search_Busy (W) then " ..." else ""));
-         Buttons.Set_Enabled (S.Previous, Items.Windows.Search_Count (W) > 0);
-         Buttons.Set_Enabled (S.Next, Items.Windows.Search_Count (W) > 0);
-      end;
+      Search_VM.Set_Term (Item.Searching.Model, Docs.Whole (Item.Searching.Doc));
+      Search_VM.Poll (Item.Searching.Model);
+      Sync (Item);
    end Update;
 
    procedure Handle (Item : in out Session; Event : Pomarine.Events.Event; Handled : out Boolean) is
@@ -300,26 +325,25 @@ package body Viewer.Search is
       if Event.Kind /= Pomarine.Events.Key_Down then
          return;
       end if;
-      if S.Showing and then Event.Key = Pomarine.Events.Key_Escape then
+      if Search_VM.Is_Showing (S.Model) and then Event.Key = Pomarine.Events.Key_Escape then
          Close (Item);
          Handled := True;
-      elsif S.Showing and then Event.Key = Pomarine.Events.Key_F3 then
+      elsif Search_VM.Is_Showing (S.Model) and then Event.Key = Pomarine.Events.Key_F3 then
          Step (Item, Event.Shift);
          Handled := True;
       elsif Event.Command and then Event.Key = Pomarine.Events.Key_F then
-         if Item.Toolbar.Mode = Write then
-            if not S.Showing then
+         if View_Mode (Item) = Write then
+            if not Search_VM.Is_Showing (S.Model) then
                Build_Bar (Item);
-               S.In_Writing := True;
-               S.Showing := True;
-               S.Term := Null_Unbounded_String;
+               Search_VM.Set_Term (S.Model, Docs.Whole (S.Doc));
+               Search_VM.Open (S.Model, (Scope => Search_VM.Writing, others => <>));
                Fields.Set_Placeholder (S.Field, "Find in all documents");
                Widgets.Set_Accessible_Name (S.Field, "Find in all documents");
                Widgets.Set_Visible (S.Bar, True);
             end if;
             Widgets.Focus (S.Field);
             Areas.Select_All (Fields.Area (S.Field).all);
-            Update_Documents (Item);
+            Update (Item);
             Handled := True;
             return;
          end if;
@@ -342,20 +366,15 @@ package body Viewer.Search is
          end loop;
          if Found then
             Close (Item);
-            S.In_Writing := False;
             Fields.Set_Placeholder (S.Field, "Find in item");
             Widgets.Set_Accessible_Name (S.Field, "Find in item");
-            S.Target := Target;
+            Search_VM.Set_Term (S.Model, Docs.Whole (S.Doc));
+            Search_VM.Open
+              (S.Model, (Search_VM.Canvas_Item, Target, Items.Models.Details (Item.Models (Target)).Key));
             Build_Bar (Item, In_Window => True);
-            S.Key := Items.Windows.Details (Item.Windows (Target)).Key;
-            S.Showing := True;
-            S.Seen := Docs.Current (Items.Windows.Content_Document (Item.Windows (Target)).all);
-            S.Term := To_Unbounded_String (Docs.Whole (S.Doc));
-            Items.Windows.Search (Item.Windows (Target), To_String (S.Term));
-            Items.Windows.Search_Step (Item.Windows (Target));
             Widgets.Set_Visible (S.Bar, True);
          end if;
-         if S.Showing then
+         if Search_VM.Is_Showing (S.Model) then
             Widgets.Focus (S.Field);
             Pomarine.Text_Areas.Select_All (Fields.Area (S.Field).all);
             Handled := True;

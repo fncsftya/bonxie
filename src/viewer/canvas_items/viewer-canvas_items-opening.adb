@@ -1,3 +1,4 @@
+with Items.Models;
 with Items.Sources;
 with Ada.Directories;
 with Ada.Strings.Fixed;
@@ -13,7 +14,7 @@ with Viewer.Canvas_Items.Recognition;
 
 package body Viewer.Canvas_Items.Opening is
 
-   package Windows renames Items.Windows;
+   package Models renames Items.Models;
 
    use type Items.Id;
    use type Webshot.States;
@@ -77,9 +78,9 @@ package body Viewer.Canvas_Items.Opening is
    procedure Open_Document
      (Item : in out Session; Which : Items.Slot; Ending : String; Local : Boolean)
    is
-      Key     : constant Items.Id := Windows.Details (Item.Windows (Which)).Key;
+      Key     : constant Items.Id := Models.Details (Item.Models (Which)).Key;
       File    : constant String :=
-        Items.Sources.Document_File (Item.Nav.Store, Item.Opened.Current, Key, Ending);
+        Items.Sources.Document_File (Item.Nav.Store, Open_Key (Item), Key, Ending);
       Found   : Ebook.Information;
       Message : String (1 .. Ebook.Max_Message);
       Last    : Natural;
@@ -87,16 +88,15 @@ package body Viewer.Canvas_Items.Opening is
       Ebook.Open (File, Found, Message, Last);
       if Found.Pages = 0 then
          Ada.Directories.Delete_File (File);
-         Windows.Set_Capture
-           (Item.Windows (Which), Windows.Failed, Detail => Message (1 .. Last));
+         Models.Set_Capture (Item.Models (Which), Models.Failed, Detail => Message (1 .. Last));
          return;
       end if;
       Items.Sources.Set_Document (Item.Nav.Store, Key, Ending, Found.Pages);
-      Windows.Set_Pages (Item.Windows (Which), Ending, 1, Found.Pages);
+      Models.Set_Pages (Item.Models (Which), Ending, 1, Found.Pages);
       Recognition.Show_Page
         (Item, Which, 1,
          (if Found.Last > 0 and then not Local then Found.Title (1 .. Found.Last)
-          else Name_Of (Windows.Text (Item.Windows (Which)))));
+          else Name_Of (Models.Text (Item.Models (Which)))));
    end Open_Document;
 
    procedure Open_Text
@@ -106,12 +106,12 @@ package body Viewer.Canvas_Items.Opening is
    procedure Open_Text
      (Item : in out Session; Which : Items.Slot; Ending : String)
    is
-      Key  : constant Items.Id := Windows.Details (Item.Windows (Which)).Key;
+      Key  : constant Items.Id := Models.Details (Item.Models (Which)).Key;
       File : constant String :=
-        Items.Sources.Document_File (Item.Nav.Store, Item.Opened.Current, Key, Ending);
+        Items.Sources.Document_File (Item.Nav.Store, Open_Key (Item), Key, Ending);
       Time : constant Projects.Seconds := Basics.Epoch_Now (Item);
       Picture : constant String :=
-        Items.Sources.Image_File (Item.Nav.Store, Item.Opened.Current, Key);
+        Items.Sources.Image_File (Item.Nav.Store, Open_Key (Item), Key);
    begin
       Vision.Jobs.Reset (Which);
       Items.Sources.Set_Document (Item.Nav.Store, Key, Ending, 0);
@@ -119,11 +119,11 @@ package body Viewer.Canvas_Items.Opening is
       if Ada.Directories.Exists (Picture) then
          Ada.Directories.Delete_File (Picture);
       end if;
-      Windows.Set_Pages (Item.Windows (Which), Ending, 0, 0);
-      Recognition.Name_From_Page (Item, Which, Name_Of (Windows.Text (Item.Windows (Which))));
-      Windows.Show_Text (Item.Windows (Which), File, Time);
+      Models.Set_Pages (Item.Models (Which), Ending, 0, 0);
+      Recognition.Name_From_Page (Item, Which, Name_Of (Models.Text (Item.Models (Which))));
+      Models.Show_Text (Item.Models (Which), File, Time);
       Writing.Picture_Taken (Item, Which);
-      Projects.Touch (Item.Nav.Store, Item.Opened.Current);
+      Projects.Touch (Item.Nav.Store, Open_Key (Item));
    end Open_Text;
 
    procedure Finish_File
@@ -156,33 +156,31 @@ package body Viewer.Canvas_Items.Opening is
    is
       Ending : constant String := Ebook.Extension_Of (Link);
       Key    : constant Items.Id :=
-        Windows.Details (Item.Windows (Which)).Key;
+        Models.Details (Item.Models (Which)).Key;
    begin
       if Item.Nav.Fetch_Slot /= 0 or else Downloads.State = Downloads.Running
       then
-         Windows.Set_Capture
-           (Item.Windows (Which), Windows.Failed,
+         Models.Set_Capture (Item.Models (Which), Models.Failed,
             Detail => "another file is being fetched");
          return;
       end if;
       if Link'Length > Downloads.Max_Path then
-         Windows.Set_Capture
-           (Item.Windows (Which), Windows.Failed, Detail => "the link is too long");
+         Models.Set_Capture (Item.Models (Which), Models.Failed, Detail => "the link is too long");
          return;
       end if;
-      Items.Sources.Make_Image_Folder (Item.Nav.Store, Item.Opened.Current);
+      Items.Sources.Make_Image_Folder (Item.Nav.Store, Open_Key (Item));
       Vision.Jobs.Reset (Which);
       Webshot.Reset (Which);
       Downloads.Reset;
       Downloads.Start
         (Link,
          Items.Sources.Document_File
-           (Item.Nav.Store, Item.Opened.Current, Key, Ending));
+           (Item.Nav.Store, Open_Key (Item), Key, Ending));
       Item.Nav.Fetch_Slot := Which;
       Item.Nav.Fetch_Key := Key;
       Item.Nav.Fetch_Document :=
         Items.Extensions.To_Text (Ending);
-      Windows.Set_Capture (Item.Windows (Which), Windows.Busy);
+      Models.Set_Capture (Item.Models (Which), Models.Busy);
    end Start_Download;
 
    procedure Start_Local (Item : in out Session; Which : Items.Slot; Path : String);
@@ -190,87 +188,81 @@ package body Viewer.Canvas_Items.Opening is
 
    procedure Start_Local (Item : in out Session; Which : Items.Slot; Path : String) is
       Ending : constant String := Ebook.File_Extension (Path);
-      Key    : constant Items.Id := Windows.Details (Item.Windows (Which)).Key;
+      Key    : constant Items.Id := Models.Details (Item.Models (Which)).Key;
    begin
       if Is_Image (Ending) then
          if not Ada.Directories.Exists (Path)
            or else Ada.Directories."="
              (Ada.Directories.Kind (Path), Ada.Directories.Directory)
          then
-            Windows.Set_Capture
-              (Item.Windows (Which), Windows.Failed, Detail => "the file is not there");
+            Models.Set_Capture (Item.Models (Which), Models.Failed, Detail => "the file is not there");
             return;
          end if;
-         Items.Sources.Make_Image_Folder (Item.Nav.Store, Item.Opened.Current);
+         Items.Sources.Make_Image_Folder (Item.Nav.Store, Open_Key (Item));
          Items.Sources.Convert_Image
-           (Path, Items.Sources.Image_File (Item.Nav.Store, Item.Opened.Current, Key));
+           (Path, Items.Sources.Image_File (Item.Nav.Store, Open_Key (Item), Key));
          Items.Sources.Set_Document (Item.Nav.Store, Key, "", 0);
          declare
             Time : constant Projects.Seconds := Basics.Epoch_Now (Item);
          begin
             Items.Sources.Set_Captured (Item.Nav.Store, Key, Time);
-            Windows.Set_Pages (Item.Windows (Which), "", 0, 0);
-            Windows.Set_Capture
-              (Item.Windows (Which), Windows.Ready,
-               Items.Sources.Image_File (Item.Nav.Store, Item.Opened.Current, Key),
+            Models.Set_Pages (Item.Models (Which), "", 0, 0);
+            Models.Set_Capture (Item.Models (Which), Models.Ready,
+               Items.Sources.Image_File (Item.Nav.Store, Open_Key (Item), Key),
                At_Time => Time);
             Writing.Picture_Taken (Item, Which);
-            Projects.Touch (Item.Nav.Store, Item.Opened.Current);
+            Projects.Touch (Item.Nav.Store, Open_Key (Item));
          end;
       elsif not Ebook.Is_Supported ("." & Ending) then
-         Windows.Set_Capture
-           (Item.Windows (Which), Windows.Failed,
+         Models.Set_Capture (Item.Models (Which), Models.Failed,
             Detail => "not an image, PDF, e-book or text file");
       elsif not Ada.Directories.Exists (Path)
         or else Ada.Directories."=" (Ada.Directories.Kind (Path), Ada.Directories.Directory)
       then
-         Windows.Set_Capture
-           (Item.Windows (Which), Windows.Failed, Detail => "the file is not there");
+         Models.Set_Capture (Item.Models (Which), Models.Failed, Detail => "the file is not there");
       else
-         Items.Sources.Make_Image_Folder (Item.Nav.Store, Item.Opened.Current);
+         Items.Sources.Make_Image_Folder (Item.Nav.Store, Open_Key (Item));
          Vision.Jobs.Reset (Which);
          Webshot.Reset (Which);
          Items.Sources.Copy_File
-           (Path, Items.Sources.Document_File (Item.Nav.Store, Item.Opened.Current, Key, Ending));
+           (Path, Items.Sources.Document_File (Item.Nav.Store, Open_Key (Item), Key, Ending));
          Finish_File (Item, Which, Ending, Local => True);
       end if;
    exception
       when Ada.Directories.Use_Error | Ada.Directories.Name_Error =>
-         Windows.Set_Capture
-           (Item.Windows (Which), Windows.Failed, Detail => "the file could not be read");
+         Models.Set_Capture (Item.Models (Which), Models.Failed, Detail => "the file could not be read");
    end Start_Local;
 
    procedure Start_Capture (Item : in out Session; Which : Items.Slot) is
-      Origin : constant Items.Origins := Windows.Details (Item.Windows (Which)).Origin;
+      Origin : constant Items.Origins := Models.Details (Item.Models (Which)).Origin;
       Link : constant String :=
-        Link_Of (Windows.Text (Item.Windows (Which)));
+        Link_Of (Models.Text (Item.Models (Which)));
    begin
       if Webshot.State (Which) = Webshot.Working or else Origin = Items.Unchosen then
          return;
       end if;
       if Origin = Items.Local then
          Start_Local
-           (Item, Which, Ada.Strings.Fixed.Trim (Windows.Text (Item.Windows (Which)), Ada.Strings.Both));
+           (Item, Which, Ada.Strings.Fixed.Trim (Models.Text (Item.Models (Which)), Ada.Strings.Both));
          return;
       end if;
       if Link = "" then
-         Windows.Set_Capture
-           (Item.Windows (Which), Windows.Failed, Detail => "no link");
+         Models.Set_Capture (Item.Models (Which), Models.Failed, Detail => "no link");
          return;
       end if;
       if Ebook.Is_Supported (Link) then
          Start_Download (Item, Which, Link);
          return;
       end if;
-      Items.Sources.Make_Image_Folder (Item.Nav.Store, Item.Opened.Current);
+      Items.Sources.Make_Image_Folder (Item.Nav.Store, Open_Key (Item));
       Vision.Jobs.Reset (Which);
       Webshot.Reset (Which);
       Webshot.Start
         (Which, Link,
          Items.Sources.Image_File
-           (Item.Nav.Store, Item.Opened.Current,
-            Windows.Details (Item.Windows (Which)).Key));
-      Windows.Set_Capture (Item.Windows (Which), Windows.Busy);
+           (Item.Nav.Store, Open_Key (Item),
+            Models.Details (Item.Models (Which)).Key));
+      Models.Set_Capture (Item.Models (Which), Models.Busy);
    end Start_Capture;
 
    procedure Pick_File (Item : in out Session; Which : Items.Slot) is
@@ -282,7 +274,7 @@ package body Viewer.Canvas_Items.Opening is
       end if;
       SDL3.Dialogs.Reset;
       Item.Nav.Pick_Slot := Which;
-      Item.Nav.Pick_Key := Windows.Details (Item.Windows (Which)).Key;
+      Item.Nav.Pick_Key := Models.Details (Item.Models (Which)).Key;
       SDL3.Dialogs.Open_File
         (Item.Host.Win, "Images, PDFs, e-books and text",
          Ebook.Extensions & ";png;jpg;jpeg;gif;tif;tiff;bmp;heic;heif;webp;jp2;exr");
@@ -297,14 +289,14 @@ package body Viewer.Canvas_Items.Opening is
       declare
          Ours : constant Boolean :=
            Basics.Is_Source (Item, Which)
-           and then Windows.Details (Item.Windows (Which)).Key = Item.Nav.Fetch_Key;
+           and then Models.Details (Item.Models (Which)).Key = Item.Nav.Fetch_Key;
       begin
          case Downloads.State is
             when Downloads.Idle =>
                Item.Nav.Fetch_Slot := 0;
             when Downloads.Running =>
                if Ours then
-                  Windows.Set_Progress (Item.Windows (Which), Downloads.Fraction);
+                  Models.Set_Progress (Item.Models (Which), Downloads.Fraction);
                end if;
             when Downloads.Done =>
                if Ours then
@@ -314,8 +306,7 @@ package body Viewer.Canvas_Items.Opening is
                Item.Nav.Fetch_Slot := 0;
             when Downloads.Failed =>
                if Ours then
-                  Windows.Set_Capture
-                    (Item.Windows (Which), Windows.Failed, Detail => Downloads.Message);
+                  Models.Set_Capture (Item.Models (Which), Models.Failed, Detail => Downloads.Message);
                end if;
                Downloads.Reset;
                Item.Nav.Fetch_Slot := 0;
@@ -342,7 +333,7 @@ package body Viewer.Canvas_Items.Opening is
                SDL3.Dialogs.Reset;
                Item.Nav.Pick_Slot := 0;
                if Basics.Is_Source (Item, Which)
-                 and then Windows.Details (Item.Windows (Which)).Key = Item.Nav.Pick_Key
+                 and then Models.Details (Item.Models (Which)).Key = Item.Nav.Pick_Key
                then
                   File_Picked (Item, Which, Path);
                end if;

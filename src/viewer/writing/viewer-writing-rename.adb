@@ -1,3 +1,5 @@
+with Writing_VM;
+with Items.Models;
 with Items.Directories;
 with Projects.Sections;
 with Viewer.Build;
@@ -18,7 +20,7 @@ package body Viewer.Writing.Rename is
    package Layouts renames Pomarine.Widgets.Layouts;
    package Grips renames Pomarine.Widgets.Grips;
    package Text_Fields renames Pomarine.Widgets.Text_Fields;
-   package Windows renames Items.Windows;
+   package Models renames Items.Models;
    package Docs renames Texts.Documents;
 
    procedure Put_Field
@@ -82,7 +84,7 @@ package body Viewer.Writing.Rename is
          return;
       end if;
       Text_Fields.Attach
-        (Item.Naming.Dir_Field, Windows.Title_Document (Item.Windows (Which)));
+        (Item.Naming.Dir_Field, Models.Title_Document (Item.Models (Which)));
       Item.Naming.Renaming_Doc := Which;
       Put_Field
         (Item, Item.Naming.Dir_Field, Item.Page_View.Docs_Content,
@@ -98,7 +100,7 @@ package body Viewer.Writing.Rename is
       end if;
       Text_Fields.Attach
         (Item.Naming.Source_Field,
-         Windows.Title_Document (Item.Windows (Which)));
+         Models.Title_Document (Item.Models (Which)));
       Item.Naming.Renaming_Source := Which;
       Put_Field
         (Item, Item.Naming.Source_Field, Item.Page_View.Sources_Content,
@@ -142,7 +144,7 @@ package body Viewer.Writing.Rename is
                Item.Docs.Dirs (Dir) :=
                  (Item.Docs.Dirs (Dir) with delta Title => Projects.Titles.To_Text (Name));
             end if;
-            Projects.Touch (Item.Nav.Store, Item.Opened.Current);
+            Projects.Touch (Item.Nav.Store, Open_Key (Item));
          end;
       end if;
       Tree.Refresh (Item);
@@ -157,13 +159,13 @@ package body Viewer.Writing.Rename is
 
    procedure New_Directory (Item : in out Session; Name : String) is
    begin
-      New_Directory (Item, Name, Item.Docs.Shown_Dir);
+      New_Directory (Item, Name, Writing_VM.Shown (Item.Docs.Navigation, Item.Docs.Dirs));
    end New_Directory;
 
    procedure New_Directory (Item : in out Session; Name : String; Parent : Natural) is
       Key : constant Items.Id :=
         Items.Directories.Create_Directory
-          (Item.Nav.Store, Item.Opened.Current, Name);
+          (Item.Nav.Store, Open_Key (Item), Name);
 
    begin
       Items.Directories.Set_Parent

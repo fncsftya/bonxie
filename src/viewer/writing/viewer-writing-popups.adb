@@ -1,3 +1,4 @@
+with Items.Models;
 with Items.Links;
 with Icon_Set;
 with Pomarine.Widgets.Buttons;
@@ -10,7 +11,7 @@ package body Viewer.Writing.Popups is
    package Widgets renames Pomarine.Widgets;
    package Buttons renames Pomarine.Widgets.Buttons;
    package Menus renames Pomarine.Widgets.Menus;
-   package Windows renames Items.Windows;
+   package Models renames Items.Models;
 
    Heading_Words : constant String := "LINKED TO ";
 
@@ -50,9 +51,9 @@ package body Viewer.Writing.Popups is
      (Rows_Before + Natural'Max (1, Item.Page_View.Menu_Count) + 2);
 
    procedure Open_Menu (Item : in out Session; Rank : Positive) is
-      Which_Doc : constant Items.Slot := Item.Reading.Write_Order (Rank);
+      Which_Doc : constant Items.Slot := Trees.Page_At (Item.Docs.Ordering, Rank);
       Key : constant Items.Id :=
-        Windows.Details (Item.Windows (Which_Doc)).Key;
+        Models.Details (Item.Models (Which_Doc)).Key;
    begin
       if Item.Page_View.Menu_Page = Rank then
          Close_Menu (Item);
@@ -70,7 +71,7 @@ package body Viewer.Writing.Popups is
          begin
             if Items.Links.Is_Linked
                  (Item.Nav.Store, Key,
-                  Windows.Details (Item.Windows (Which)).Key)
+                  Models.Details (Item.Models (Which)).Key)
             then
                Item.Page_View.Menu_Count := Item.Page_View.Menu_Count + 1;
                Item.Page_View.Menu_Slots (Item.Page_View.Menu_Count) := Which;

@@ -1,10 +1,9 @@
 with Backgrounds;
 with SDL3.Windows.Renderers;
-with Projects;
 with SDL3.Cursors;
 with Ada.Strings.Unbounded;
+with Canvas_VM;
 with Growing;
-with Items;
 with SDL3.Windows;
 with Scripts;
 with Typeset.Views;
@@ -20,12 +19,9 @@ with Pomarine.Widgets.Panels;
 --  What the other parts of a viewer's session share, and the small parts of it.
 package Viewer_Parts.Common is
 
-   package Slot_Lists is new Growing (Items.Slot);
+   package Slot_Lists renames Canvas_VM.Slot_Lists;
    subtype Slot_Array is Slot_Lists.List;
    --  Slots (of windows), in some order; sized to the slots there are.
-
-   package Dir_Lists is new Growing (Natural);
-   subtype Dir_Array is Dir_Lists.List;
 
    type Sync_State is record
       Own, Peer : Natural := 0;
@@ -68,14 +64,6 @@ package Viewer_Parts.Common is
    end record;
    --  The text, the window and what draws to it: declared in the order they
    --  are destroyed in, the last first.
-
-   type Opened_State is limited record
-      Current      : Projects.Id := 0;
-      --  The project shown, at the project screen.
-      Project_Name : Ada.Strings.Unbounded.Unbounded_String;
-      --  Its name, for the window's title.
-   end record;
-   --  The project shown.
 
    type Shell_State is limited record
       Density      : Float := 1.0;

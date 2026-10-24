@@ -1,3 +1,4 @@
+with Writing_VM;
 with Items.Directories;
 with Items.Readers;
 with Icon_Set;
@@ -224,7 +225,7 @@ package body Viewer.Writing.Context is
       end Of_Window;
    begin
       Opened := False;
-      if Item.Toolbar.Mode = Canvas then
+      if View_Mode (Item) = Canvas then
          --  The window under the pointer, if it is of one.
          declare
             Under : constant Widgets.Widget_Access :=
@@ -242,9 +243,9 @@ package body Viewer.Writing.Context is
          return;
       end if;
       if Widgets.Contains (Item.Page_View.Docs_Scroll, PX, PY) then
-         for Row in 1 .. Item.Docs.Tree_Count loop
+         for Row in 1 .. Trees.Count (Item.Docs.Ordering) loop
             if Widgets.Contains (Item.Docs.Doc_Rows (Row).Row, PX, PY) then
-               Of_Row (Item.Docs.Tree (Row));
+               Of_Row (Trees.Element (Item.Docs.Ordering, Row));
                return;
             end if;
          end loop;
@@ -292,8 +293,8 @@ package body Viewer.Writing.Context is
          end if;
          return;
       end if;
-      for Rank in 1 .. Item.Reading.Write_Count loop
-         if Support.In_View (Item, Item.Reading.Write_Order (Rank))
+      for Rank in 1 .. Trees.Page_Count (Item.Docs.Ordering) loop
+         if Support.In_View (Item, Trees.Page_At (Item.Docs.Ordering, Rank))
            and then Widgets.Contains (Item.Docs.Pages (Rank).Text, PX, PY)
          then
             Of_Text (Rank);
@@ -344,7 +345,7 @@ package body Viewer.Writing.Context is
                      when Cut_Act    => Windows.Cut,
                      when Paste_Act  => Windows.Paste,
                      when others     => Windows.Select_All));
-            elsif Page in 1 .. Item.Reading.Write_Count
+            elsif Page in 1 .. Trees.Page_Count (Item.Docs.Ordering)
              and then Board /= null
             then
                declare
@@ -412,7 +413,7 @@ package body Viewer.Writing.Context is
       pragma Assert (Keys.Count > 0);
       for Which in 1 .. Item.Windows.Count loop
          Documents (Which) := Support.Is_Note (Item, Which)
-           and then Support.Within (Item, Item.Docs.Doc_Dir (Which), Dir);
+           and then Support.Within (Item, Trees.Directory_Of (Item.Docs.Ordering, Which), Dir);
       end loop;
       if Delete_Documents then
          for Which in 1 .. Item.Windows.Count loop
@@ -429,7 +430,7 @@ package body Viewer.Writing.Context is
       Outlines.Reload (Item);
       Item.Section_Menu.Changes := Item.Section_Menu.Changes + 1;
       Item.Section_Menu.Seen := Item.Section_Menu.Changes;
-      Tree.Show_Directory (Item, Item.Docs.Shown_Dir);
+      Tree.Show_Directory (Item, Writing_VM.Shown (Item.Docs.Navigation, Item.Docs.Dirs));
    end Remove_Directory;
 
    procedure Delete_Tree_Node

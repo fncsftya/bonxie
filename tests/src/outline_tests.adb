@@ -693,7 +693,7 @@ package body Outline_Tests is
       --  The button of a section with none writes one, of it.
       Docs.Add_For_Section (Session, 2);
       Check ("write-section-added", "5", Docs.Document_Count (Session)'Image (2 .. 2));
-      Check ("write-section-owners", "Notes one,Notes two,|Untitled document,|Last words,|",
+      Check ("write-section-owners", "Notes one,Notes two,|Middle,|Last words,|",
              Owners_Of (Session));
       Snap (Session, "write-sections-added");
 

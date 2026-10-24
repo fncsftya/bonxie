@@ -1,3 +1,4 @@
+with Items.Models;
 with Items.Marks;
 with Items.Sources;
 with Items.Words;
@@ -10,12 +11,13 @@ package body Viewer.Writing.Reader_Windows is
    package Widgets renames Pomarine.Widgets;
    package Layouts renames Pomarine.Widgets.Layouts;
    package Windows renames Items.Windows;
+   package Models renames Items.Models;
 
    use type Items.States;
 
    function Picture_Of (Item : Session; Which : Items.Slot) return String is
      (Items.Sources.Shown_File
-        (Item.Nav.Store, Item.Opened.Current, Windows.Details (Item.Windows (Which))));
+        (Item.Nav.Store, Open_Key (Item), Models.Details (Item.Models (Which))));
 
    procedure Show_Kept
      (Item : in out Session; Which : Items.Slot;
@@ -28,7 +30,7 @@ package body Viewer.Writing.Reader_Windows is
       Shown : in out Readers.Reader; Sync : out Sync_State)
    is
       Key   : constant Items.Id :=
-        Windows.Details (Item.Windows (Which)).Key;
+        Models.Details (Item.Models (Which)).Key;
       Kept  : Items.Marks.Mark_List;
    begin
       if Items.Words.Has_Words (Item.Nav.Store, Key) then
@@ -46,7 +48,7 @@ package body Viewer.Writing.Reader_Windows is
    end Show_Kept;
 
    procedure Make_Reader (Item : in out Session; Which : Items.Slot) is
-      Details : constant Items.Info := Windows.Details (Item.Windows (Which));
+      Details : constant Items.Info := Models.Details (Item.Models (Which));
    begin
       Readers.Assign
         (Item.Reading.Readers (Which), Details,
@@ -118,7 +120,7 @@ package body Viewer.Writing.Reader_Windows is
    end Unpin;
 
    procedure Pin (Item : in out Session; Which : Items.Slot) is
-      Details : constant Items.Info := Windows.Details (Item.Windows (Which));
+      Details : constant Items.Info := Models.Details (Item.Models (Which));
    begin
       Unpin (Item, Reopen => False);
       Readers.Set_State (Item.Reading.Readers (Which), Items.Closed);
@@ -173,12 +175,12 @@ package body Viewer.Writing.Reader_Windows is
          if not Readers.Is_Marking (Shown) then
             Readers.Get_Marks (Shown, Kept);
             Items.Marks.Save_Marks
-              (Item.Nav.Store, Windows.Details (Item.Windows (Which)).Key,
+              (Item.Nav.Store, Models.Details (Item.Models (Which)).Key,
                Kept);
-            Windows.Set_Marks (Item.Windows (Which), Kept);
+            Models.Set_Marks (Item.Models (Which), Kept);
             Sync := (Own  => Own,
                      Peer => Windows.Marks_Version (Item.Windows (Which)));
-            Projects.Touch (Item.Nav.Store, Item.Opened.Current);
+            Projects.Touch (Item.Nav.Store, Open_Key (Item));
          end if;
       elsif Peer /= Sync.Peer then
          Windows.Get_Marks (Item.Windows (Which), Kept);

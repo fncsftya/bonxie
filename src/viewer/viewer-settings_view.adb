@@ -9,7 +9,9 @@ with Pomarine.Widgets.Switches;
 with Pomarine.Widgets.Progress_Bars;
 with Pomarine.Events;
 with Speech.Models;
+with Nav_VM;
 with Viewer.Deletion;
+with Viewer.Navigation;
 with Viewer.Style;
 with Pomarine.Widgets.Layouts;
 
@@ -132,24 +134,32 @@ package body Viewer.Settings_View is
 
    function Showing (Item : Session) return Boolean is (Settings_VM.Is_Showing (Item.Choices.Model));
 
-   procedure Open (Item : in out Session) is
+   procedure Show_Form (Item : in out Session) is
    begin
-      Settings_VM.Execute (Item.Choices.Model, Settings_VM.Open);
       Widgets.Clear_Focus (Item.Root.Widgets);
       Widgets.Set_Visible (Item.Home_View.Home_Panel, False);
       Widgets.Set_Visible (Item.Prefs.Settings_Panel, True);
       Refresh (Item);
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
       Reveal_Background (Item);
-   end Open;
+   end Show_Form;
 
-   procedure Close (Item : in out Session) is
+   procedure Hide_Form (Item : in out Session) is
    begin
-      Settings_VM.Execute (Item.Choices.Model, Settings_VM.Close);
       Widgets.Clear_Focus (Item.Root.Widgets);
       Widgets.Set_Visible (Item.Prefs.Settings_Panel, False);
       Widgets.Set_Visible (Item.Home_View.Home_Panel, True);
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
+   end Hide_Form;
+
+   procedure Open (Item : in out Session) is
+   begin
+      Navigation.Do_Command (Item, Nav_VM.Open_Settings);
+   end Open;
+
+   procedure Close (Item : in out Session) is
+   begin
+      Navigation.Do_Command (Item, Nav_VM.Close_Settings);
    end Close;
 
    procedure Choose

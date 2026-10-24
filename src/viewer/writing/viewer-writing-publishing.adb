@@ -1,3 +1,4 @@
+with Items.Models;
 with Ada.IO_Exceptions;
 with Ada.Streams.Stream_IO;
 with Ada.Strings.Fixed;
@@ -20,7 +21,7 @@ with Viewer.Writing.Support;
 
 package body Viewer.Writing.Publishing is
 
-   package Windows renames Items.Windows;
+   package Models renames Items.Models;
    package Docs renames Texts.Documents;
    package Buttons renames Pomarine.Widgets.Buttons;
    package Layouts renames Pomarine.Widgets.Layouts;
@@ -65,9 +66,9 @@ package body Viewer.Writing.Publishing is
          end if;
       end Append;
    begin
-      for Rank in 1 .. Item.Reading.Write_Count loop
+      for Rank in 1 .. Trees.Page_Count (Item.Docs.Ordering) loop
          declare
-            Which : constant Items.Slot := Item.Reading.Write_Order (Rank);
+            Which : constant Items.Slot := Trees.Page_At (Item.Docs.Ordering, Rank);
             Section : constant Natural := Section_Links.Section_Of (Item, Which);
          begin
             if Pomarine.Widgets.Switches.Is_On (View.Section_Headings)
@@ -79,7 +80,7 @@ package body Viewer.Writing.Publishing is
             if Pomarine.Widgets.Switches.Is_On (View.Document_Headings) then
                Heading (Support.Title_Of (Item, Which), 3);
             end if;
-            Append (Windows.Content_Document (Item.Windows (Which)).all);
+            Append (Models.Content_Document (Item.Models (Which)).all);
          end;
       end loop;
       if Ada.Strings.Unbounded.Length (Body_Markup) = 0 then

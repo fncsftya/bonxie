@@ -1,3 +1,4 @@
+with Items.Models;
 with Items;
 with Projects;
 with Pomarine.Boxes;
@@ -29,7 +30,7 @@ package body Viewer.Section_Links is
    --  is held to when there is little room.
 
    function Section_Of (Item : Session; Which : Items.Slot) return Natural is
-     (Outlines.Section_Of_Item (Item, Long_Integer (Items.Windows.Details (Item.Windows (Which)).Key)));
+     (Outlines.Section_Of_Item (Item, Long_Integer (Items.Models.Details (Item.Models (Which)).Key)));
 
    function Ink_Of (Item : Session; Section : Positive) return Pomarine.Themes.Slot is
      (Style.Section_Ink (Outlines.Section_At (Item, Section).Colour));
@@ -177,7 +178,7 @@ package body Viewer.Section_Links is
    procedure Name_After
      (Item : in out Session; Which : Items.Slot; Section : Projects.Sections.Section)
    is
-      Own   : constant String := Projects.Titles.To_String (Items.Windows.Details (Item.Windows (Which)).Title);
+      Own   : constant String := Projects.Titles.To_String (Items.Models.Details (Item.Models (Which)).Title);
       Name  : constant String := Projects.Sections.Title_Texts.To_String (Section.Title);
       Named : Boolean := Own = Canvas_Items.Untitled or else Own = Canvas_Items.Untitled_Document;
    begin
@@ -186,7 +187,7 @@ package body Viewer.Section_Links is
            or else Projects.Sections.Title_Texts.To_String (Outlines.Section_At (Item, Each).Title) = Own;
       end loop;
       if Named and then Name /= "" and then Name /= Own then
-         Items.Windows.Set_Title_Text (Item.Windows (Which), Name);
+         Items.Models.Set_Title_Text (Item.Models (Which), Name);
       end if;
    end Name_After;
 
@@ -194,7 +195,7 @@ package body Viewer.Section_Links is
       Picked : constant Projects.Sections.Section := Outlines.Section_At (Item, Section);
    begin
       Projects.Sections.Link
-        (Item.Nav.Store, Picked.Key, Long_Integer (Items.Windows.Details (Item.Windows (Which)).Key));
+        (Item.Nav.Store, Picked.Key, Long_Integer (Items.Models.Details (Item.Models (Which)).Key));
       Name_After (Item, Which, Picked);
       Item.Section_Menu.Changes := Item.Section_Menu.Changes + 1;
       Outlines.Reload (Item);
@@ -230,7 +231,7 @@ package body Viewer.Section_Links is
          elsif (Section = Own and then Own /= 0) or else Row = Parts.Remove then
             --  Ticked again, or the row to take it away: let go.
             Projects.Sections.Unlink
-              (Item.Nav.Store, Long_Integer (Items.Windows.Details (Item.Windows (Which)).Key));
+              (Item.Nav.Store, Long_Integer (Items.Models.Details (Item.Models (Which)).Key));
             Item.Section_Menu.Changes := Item.Section_Menu.Changes + 1;
             Outlines.Reload (Item);
             Update (Item);
@@ -260,8 +261,8 @@ package body Viewer.Section_Links is
       pragma Unreferenced (Source);
       Rank : constant Natural := Event.Index;
    begin
-      if Rank in 1 .. Item.Reading.Write_Count then
-         Open (Item, Item.Reading.Write_Order (Rank), Page => Rank);
+      if Rank in 1 .. Trees.Page_Count (Item.Docs.Ordering) then
+         Open (Item, Trees.Page_At (Item.Docs.Ordering, Rank), Page => Rank);
       end if;
    end Page_Clicked;
 
@@ -283,7 +284,7 @@ package body Viewer.Section_Links is
    begin
       for Which in 1 .. Item.Windows.Count loop
          if Items.Windows.Is_Assigned (Item.Windows (Which))
-           and then Items.Windows.Details (Item.Windows (Which)).Kind = Items.Note
+           and then Items.Models.Details (Item.Models (Which)).Kind = Items.Note
          then
             declare
                Section : constant Natural := Section_Of (Item, Which);
@@ -296,7 +297,7 @@ package body Viewer.Section_Links is
             end;
          end if;
       end loop;
-      for Rank in 1 .. Item.Reading.Write_Count loop
+      for Rank in 1 .. Trees.Page_Count (Item.Docs.Ordering) loop
          Pomarine.Widgets.Buttons.Set_Selected
            (Item.Docs.Pages (Rank).Outline_Button, Parts.Which /= 0 and then Parts.Page = Rank);
       end loop;

@@ -1,4 +1,4 @@
-with Items.Windows;
+with Writing_VM;
 with Viewer.Deletion;
 with Viewer.Grammar;
 with Pomarine.Widgets.Checks;
@@ -9,8 +9,8 @@ with Pomarine.Widgets.Switches;
 
 package body Viewer.Documents is
 
-   function Search_Count (Item : Session) return Natural is (Item.Searching.Total);
-   function Search_Current (Item : Session) return Natural is (Item.Searching.Current);
+   function Search_Count (Item : Session) return Natural is (Search_VM.Found (Item.Searching.Model).Total);
+   function Search_Current (Item : Session) return Natural is (Search_VM.Found (Item.Searching.Model).Current);
    function Search_Document (Item : Session) return Natural is (Item.Searching.Rank);
    function Search_Highlights (Item : Session; Row : Positive) return Natural is
      (Pomarine.Widgets.Editors.Search_Count (Item.Docs.Pages (Row).Text));
@@ -19,8 +19,8 @@ package body Viewer.Documents is
      (Pomarine.Widgets.Switches.Is_On (Item.Page_View.Grammar_Switch));
 
    function Grammar_Pending (Item : Session) return Boolean is
-     (Item.Nav.Shown = Project and then Item.Toolbar.Mode = Write and then Item.Grammar_Checks.Enabled
-      and then (for some Rank in 1 .. Item.Reading.Write_Count =>
+     (Screen (Item) = Project and then View_Mode (Item) = Write and then Item.Grammar_Checks.Enabled
+      and then (for some Rank in 1 .. Trees.Page_Count (Item.Docs.Ordering) =>
                    not Item.Grammar_Checks.Documents (Rank).Finished));
 
    function Grammar_Running (Item : Session) return Natural is
@@ -103,8 +103,10 @@ package body Viewer.Documents is
 
    function Directory_Row (Item : Session; Dir : Positive) return Natural is
    begin
-      for Row in 1 .. Item.Docs.Tree_Count loop
-         if Item.Docs.Tree (Row).Kind = Directory_Node and then Item.Docs.Tree (Row).Dir = Dir then
+      for Row in 1 .. Trees.Count (Item.Docs.Ordering) loop
+         if Trees.Element (Item.Docs.Ordering, Row).Kind = Directory_Node
+           and then Trees.Element (Item.Docs.Ordering, Row).Dir = Dir
+         then
             return Row;
          end if;
       end loop;
@@ -115,12 +117,11 @@ package body Viewer.Documents is
      (Item.Context.Context_Kind /= No_Context);
 
    function Document_Count (Item : Session) return Natural is
-     (Item.Reading.Write_Count);
+     (Trees.Page_Count (Item.Docs.Ordering));
 
    function Document_Title (Item : Session; Row : Positive) return String is
      (Projects.Titles.To_String
-        (Items.Windows.Details
-           (Item.Windows (Item.Reading.Write_Order (Row))).Title));
+        (Items.Models.Details (Item.Models (Trees.Page_At (Item.Docs.Ordering, Row))).Title));
 
    procedure Move_Document (Item : in out Session; From, To : Positive) is
    begin
@@ -159,7 +160,7 @@ package body Viewer.Documents is
 
    function Document_Directory
      (Item : Session; Row : Positive) return Natural is
-     (Item.Docs.Doc_Dir (Item.Reading.Write_Order (Row)));
+     (Trees.Directory_Of (Item.Docs.Ordering, Trees.Page_At (Item.Docs.Ordering, Row)));
 
    procedure Move_Document_To
      (Item : in out Session; Row : Positive; Directory : Natural) is
@@ -168,7 +169,7 @@ package body Viewer.Documents is
    end Move_Document_To;
 
    function Shown_Directory (Item : Session) return Natural is
-     (Item.Docs.Shown_Dir);
+     (Writing_VM.Shown (Item.Docs.Navigation, Item.Docs.Dirs));
 
    procedure Show_Directory (Item : in out Session; Directory : Natural) is
    begin

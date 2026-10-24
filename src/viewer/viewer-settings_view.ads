@@ -7,7 +7,7 @@ with Settings_VM;
 private package Viewer.Settings_View is
 
    procedure Open (Item : in out Session)
-     with Pre  => Item.Nav.Shown = Home
+     with Pre  => Screen (Item) = Home
       and then not Settings_VM.Is_Showing (Item.Choices.Model),
           Post => Settings_VM.Is_Showing (Item.Choices.Model);
    --  Show the form.
@@ -16,6 +16,12 @@ private package Viewer.Settings_View is
      with Pre  => Settings_VM.Is_Showing (Item.Choices.Model),
           Post => not Settings_VM.Is_Showing (Item.Choices.Model);
    --  Show the home screen again.
+
+   procedure Show_Form (Item : in out Session);
+   --  The form in the home screen's place: the reaction to Nav_VM putting the settings up (see Viewer.Navigation).
+
+   procedure Hide_Form (Item : in out Session);
+   --  The home screen in its place.
 
    procedure Choose
      (Item : in out Session; To : Preferences.Speech_Models)

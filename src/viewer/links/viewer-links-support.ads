@@ -1,3 +1,4 @@
+with Canvas_VM;
 with Items.Links;
 with Pomarine.Boxes;
 with Pomarine.Widgets;
@@ -31,7 +32,7 @@ private package Viewer.Links.Support is
    --  A place on the canvas, in pixels from its top left.
 
    function Dragger (Item : Session) return access Pins.Pin
-     with Pre => Item.Linking.Link_From /= 0;
+     with Pre => Canvas_VM.Link_From (Item.Canvas_Model.Model) /= 0;
    --  The pin that is held while a line is dragged.
 
 end Viewer.Links.Support;

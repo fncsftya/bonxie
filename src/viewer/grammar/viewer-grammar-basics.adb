@@ -12,13 +12,13 @@ package body Viewer.Grammar.Basics is
    use type Harper.Request_Id;
 
    function Active (Item : Session) return Boolean is
-     (Item.Nav.Shown = Project and then Item.Toolbar.Mode = Write and then Item.Grammar_Checks.Enabled);
+     (Screen (Item) = Project and then View_Mode (Item) = Write and then Item.Grammar_Checks.Enabled);
 
    function Image (Total : Natural) return String is
      (Ada.Strings.Fixed.Trim (Total'Image, Ada.Strings.Both));
 
    function Valid (Item : Session; Row : Grammar_Row) return Boolean is
-     (Row.Token /= 0 and then Row.Rank <= Item.Reading.Write_Count
+     (Row.Token /= 0 and then Row.Rank <= Trees.Page_Count (Item.Docs.Ordering)
       and then Row.Token = Item.Grammar_Checks.Documents (Row.Rank).Token
       and then Item.Grammar_Checks.Documents (Row.Rank).Serial =
         Docs.Serial (Editors.Document (Item.Docs.Pages (Row.Rank).Text).all)
@@ -36,7 +36,7 @@ package body Viewer.Grammar.Basics is
 
    procedure Load_Rules (Item : in out Session) is
    begin
-      Grammar_VM.Open (Item.Grammar_Model.Model, Item.Opened.Current);
+      Grammar_VM.Open (Item.Grammar_Model.Model, Open_Key (Item));
    end Load_Rules;
 
    function Advance (Doc : Docs.Document; From : Texts.Position; Bytes : Natural) return Texts.Position is

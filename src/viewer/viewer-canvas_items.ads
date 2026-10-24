@@ -1,6 +1,8 @@
 --  The items on the project's canvas: their windows, which are loaded
 --  from the database when the project is entered, kept in step with the
 --  canvas as it is panned and zoomed, and written back as they change.
+with Items.Models;
+with Canvas_VM;
 with Pomarine.Themes;
 with Viewer_Parts.Common;
 
@@ -16,9 +18,9 @@ private package Viewer.Canvas_Items is
    procedure Leave (Item : in out Session);
    --  Write what has not been, and clear the windows.
 
-   Untitled : constant String := "Untitled item";
+   Untitled : constant String := Canvas_VM.Untitled;
 
-   Untitled_Source : constant String := "Untitled source";
+   Untitled_Source : constant String := Canvas_VM.Untitled_Source;
 
    Untitled_Document : constant String := "Untitled document";
 
@@ -125,7 +127,7 @@ private package Viewer.Canvas_Items is
      (Item : Session; Which : Items.Slot) return Pomarine.Themes.Slot
      with Pre => Items.Windows.Is_Assigned (Item.Windows (Which))
                  and then Items."="
-                            (Items.Windows.Details (Item.Windows (Which)).Kind,
+                            (Items.Models.Details (Item.Models (Which)).Kind,
                              Items.Source);
    --  The colour of the source, which its window, its row in the writing
    --  view and its links are shown in: by its place among the project's

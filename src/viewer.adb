@@ -1,4 +1,3 @@
-with Confirm_VM;
 with Settings_VM;
 with Speech.Models;
 with Scripts;
@@ -19,8 +18,8 @@ with Viewer.Search;
 with Viewer.Build;
 with Viewer.Canvas_Items;
 with Viewer.Deletion;
-with Viewer.Home_Screen;
 with Viewer.Menus;
+with Viewer.Navigation;
 with Viewer.Recent;
 with Viewer.Outlines;
 with Viewer.Section_Links;
@@ -34,12 +33,11 @@ with Viewer.Grammar;
 
 package body Viewer is
 
-   use type Confirm_VM.Subjects;
-
    package Widgets renames Pomarine.Widgets;
    package Labels renames Pomarine.Widgets.Labels;
 
    use Ada.Strings.Unbounded;
+   use type Pomarine.View_Models.Version_Number;
    use type Preferences.Theme_Choices;
    use type Pomarine.Events.Event_Kind;
    use type Pomarine.Events.Key_Code;
@@ -62,14 +60,58 @@ package body Viewer is
       Responses.Perform (Self.Owner.all, Event);
    end Handle_Event;
 
+   function View_Mode (Item : Session) return Modes is (Modes (Nav_VM.Mode (Item.Nav_Model.Model)));
+
+   function Open_Key (Item : Session) return Projects.Id is (Nav_VM.Project_Key (Item.Nav_Model.Model));
+
+   function Items_Listed (Item : Session) return Boolean is (Nav_VM.Is_Listing (Item.Nav_Model.Model));
+
+   function Takes_Gestures (Item : Session) return Boolean is (Nav_VM.Takes_Gestures (Item.Nav_Model.Model));
+
+   overriding procedure Make_Room (Self : in out Room_Maker; Slots : Positive) is
+   begin
+      Build.Reserve_Items (Self.Owner.all, Slots);
+   end Make_Room;
+
+   overriding procedure Apply (Self : in out List_Surface; What : Canvas_VM.Command; Slot : Items.Slot) is
+   begin
+      case What is
+         when Canvas_VM.Show_Item => Canvas_Items.Reveal (Self.Owner.all, Slot);
+         when Canvas_VM.Open_Item => Canvas_Items.Set_State (Self.Owner.all, Slot, Items.Open);
+         when Canvas_VM.Close_Item => Canvas_Items.Set_State (Self.Owner.all, Slot, Items.Closed);
+         when Canvas_VM.Remove_Item => Canvas_Items.Remove (Self.Owner.all, Slot);
+         when others => raise Program_Error;
+      end case;
+   end Apply;
+
+   overriding function Valid (Self : Search_Finder; Where : Search_VM.Context) return Boolean is
+     (Search.Valid (Self.Owner.all, Where));
+
+   overriding procedure Refresh
+     (Self : in out Search_Finder; Where : Search_VM.Context; Term : String; Found : out Search_VM.Result) is
+   begin
+      Search.Refresh_Engine (Self.Owner.all, Where, Term, Found);
+   end Refresh;
+
+   overriding procedure Advance (Self : in out Search_Finder; Where : Search_VM.Context; Backwards : Boolean) is
+   begin
+      Search.Step_Engine (Self.Owner.all, Where, Backwards);
+   end Advance;
+
+   overriding procedure Clear (Self : in out Search_Finder; Where : Search_VM.Context) is
+   begin
+      Search.Clear_Engine (Self.Owner.all, Where);
+   end Clear;
+
    --  What the list of items shows
 
-   overriding function Count (Self : Item_Rows) return Natural is (Self.Found);
+   overriding function Count (Self : Item_Rows) return Natural is (Item_List_VM.Count (Self.Owner.Item_List.Model));
 
-   overriding function Version (Self : Item_Rows) return Natural is (Self.Changed);
+   overriding function Version (Self : Item_Rows) return Natural is
+     (Natural (Item_List_VM.Version (Self.Owner.Item_List.Model) mod 2 ** 31));
 
    overriding function Row_Id (Self : Item_Rows; Row : Positive) return Positive is
-     (Positive (Self.Owner.Item_List.Row_Slots (Row)));
+     (Positive (Item_List_VM.Slot_Of (Self.Owner.Item_List.Model, Row)));
    --  An item is its slot: the row of it goes as it is hidden or others go.
 
    overriding procedure Describe_Row
@@ -87,7 +129,7 @@ package body Viewer is
       else Widgets.Wanted_Cursor (Item.Root.Widgets));
 
    function Title_Strip_Height (Item : Session) return Float is
-     (if Item.Nav.Shown = Project or else Settings_VM.Is_Showing (Item.Choices.Model)
+     (if Screen (Item) = Project or else Settings_VM.Is_Showing (Item.Choices.Model)
       then Style.Toolbar_Size
       else Style.Header_Size);
    --  How tall the bar across the top is, on this screen.
@@ -168,10 +210,7 @@ package body Viewer is
       Handled : Boolean := False;
    begin
       Search.Update (Item);
-      if Item.Nav.Shown = Project and then Item.Toolbar.Mode in Canvas | Write
-        and then not Settings_VM.Is_Showing (Item.Choices.Model) and then not Item.Item_List.Showing_List
-        and then not Home_Screen.Is_Confirming (Item)
-      then
+      if Nav_VM.Takes_Search (Item.Nav_Model.Model) then
          Search.Handle (Item, Event, Handled);
          if Handled then
             Search.Update (Item);
@@ -194,7 +233,7 @@ package body Viewer is
       end if;
       case Event.Kind is
          when Pomarine.Events.Quit =>
-            if Item.Nav.Shown = Project then
+            if Screen (Item) = Project then
                Canvas_Items.Save_All (Item);
             end if;
             Item.Shell.Done := True;
@@ -206,36 +245,17 @@ package body Viewer is
                Settings_View.Apply_Theme (Item);
             end if;
          when others =>
-            if Settings_VM.Is_Showing (Item.Choices.Model) then
-               --  Escape leaves the settings, as their Close button does.
+            if Nav_VM.Is_Over (Item.Nav_Model.Model) then
+               --  What is over the screen is all that takes events; Escape puts it away.
                if Event.Kind = Pomarine.Events.Key_Down
                  and then Event.Key = Pomarine.Events.Key_Escape
                then
-                  if Confirm_VM.Subject (Item.Dialog_Model.Model) = Confirm_VM.Model then
-                     Deletion.Close (Item);
-                  else
-                     Settings_View.Close (Item);
-                  end if;
-                  return;
-               end if;
-            elsif Item.Item_List.Showing_List then
-               --  The list is all that takes events.
-               if Event.Kind = Pomarine.Events.Key_Down
-                 and then Event.Key = Pomarine.Events.Key_Escape
-               then
-                  Listing.Close (Item);
-                  return;
-               end if;
-            elsif Home_Screen.Is_Confirming (Item) then
-               --  The dialog is all that takes events.
-               if Event.Kind = Pomarine.Events.Key_Down
-                 and then Event.Key = Pomarine.Events.Key_Escape
-               then
-                  Deletion.Close (Item);
+                  Navigation.Do_Command (Item, Nav_VM.Dismiss);
+                  Deletion.Sync (Item);
                   return;
                end if;
             --  The text is saved only from a project.
-            elsif Item.Nav.Shown = Project
+            elsif Screen (Item) = Project
               and then Event.Kind = Pomarine.Events.Key_Down
               and then Event.Command and then Event.Key = Pomarine.Events.Key_S
             then
@@ -244,16 +264,14 @@ package body Viewer is
             end if;
             if not Handled then
                Grammar.Before_Event (Item, Event);
-               if Item.Nav.Shown = Project
+               if Screen (Item) = Project
                  and then Event.Kind = Pomarine.Events.Mouse_Down
                then
                   Canvas_Items.Pressed (Item, Event.Mouse_X, Event.Mouse_Y);
                   Writing.Pressed (Item, Event.Mouse_X, Event.Mouse_Y);
                   Section_Links.Pressed (Item, Event.Mouse_X, Event.Mouse_Y);
                   Outlines.Pressed (Item, Event.Mouse_X, Event.Mouse_Y);
-                  if Event.Button = 3 and then not Item.Item_List.Showing_List
-                    and then not Home_Screen.Is_Confirming (Item)
-                  then
+                  if Event.Button = 3 and then not Nav_VM.Is_Over (Item.Nav_Model.Model) then
                      Writing.Open_Context
                        (Item, Event.Mouse_X, Event.Mouse_Y, Handled);
                   end if;
@@ -271,23 +289,23 @@ package body Viewer is
                Grammar.Update_Cursor (Item);
                Show_Cursor (Item);
             end if;
-            if Item.Nav.Shown = Project then
+            if Screen (Item) = Project then
                Canvas_Items.Update (Item, Event.Time);
                Search.Update (Item);
             end if;
       end case;
    end Handle;
 
-   function Screen (Item : Session) return Screens is (Item.Nav.Shown);
+   function Screen (Item : Session) return Screens is (Screens (Nav_VM.Screen (Item.Nav_Model.Model)));
 
    --  The file
 
    function Title (Item : Session) return String is
-     (case Item.Nav.Shown is
+     (case Screen (Item) is
          when Home    => "bonxie",
          when Project =>
-           (if Length (Item.Opened.Project_Name) > 0
-            then To_String (Item.Opened.Project_Name)
+           (if Nav_VM.Name (Item.Nav_Model.Model) /= ""
+            then Nav_VM.Name (Item.Nav_Model.Model)
             else Scripts.Title (Item.Host.Script)));
 
    procedure Save (Item : in out Session) is
@@ -375,7 +393,7 @@ package body Viewer is
          Wake_In (Writing.Until_Copy_Ends (Item));
       end if;
       --  A picture of a page is on its way: look for it now and then.
-      if Item.Nav.Shown = Project and then Canvas_Items.Capturing (Item) then
+      if Screen (Item) = Project and then Canvas_Items.Capturing (Item) then
          Wake_In (Capture_Poll);
       end if;
       --  So is the file for the speech model: look at how far on it is.
@@ -437,11 +455,16 @@ package body Viewer is
       Widgets.Update (Item.Root.Widgets, Now);
       Recent.Sync (Item);
       Deletion.Sync (Item);
-      if Item.Nav.Shown = Project then
+      if Screen (Item) = Project then
          Canvas_Items.Update (Item, Now);
+         if Items_Listed (Item) then
+            Listing.Refresh (Item);
+         end if;
          Outlines.Update (Item);
          Section_Links.Update (Item);
       end if;
+      --  After the views have taken what was typed in them: the name of the project, for one.
+      Navigation.Sync (Item);
       Grammar.Update (Item, Now);
       if Settings_VM.Is_Showing (Item.Choices.Model) then
          Settings_View.Update (Item);

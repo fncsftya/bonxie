@@ -92,6 +92,9 @@ package Outline_VM is
    function Project_Title (Self : View_Model) return String;
    --  As kept.
 
+   function Title_Version (Self : View_Model) return Parts.Version_Number;
+   --  Different whenever the project's title is, as it is read, set, or let go of.
+
    function Project_Description (Self : View_Model) return String;
    --  As kept, marked up.
 
@@ -189,6 +192,8 @@ private
       Order   : aliased Sections.Section_List;
       Links   : aliased Sections.Link_List;
       Changes : Parts.Change_Counter;
+      Names   : Parts.Change_Counter;
+      --  Of the project's title.
    end record;
 
 end Outline_VM;

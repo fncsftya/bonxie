@@ -1,19 +1,13 @@
 with Settings_VM;
 with Ada.Directories;
 with Items.Links;
-with Items.Marks;
-with Items.Records;
 with Items.Sources;
 with Items.Windows.Callbacks;
 with Downloads;
 with Preferences;
 with Pomarine.Widgets;
-with Pomarine.Widgets.Canvases;
-with Pomarine.Widgets.Pictures;
 with Speech.Jobs;
 with Speech.Models;
-with Viewer.Build;
-with Viewer.Gestures;
 with Viewer.Links;
 with Viewer.Section_Links;
 with Viewer.Style;
@@ -21,6 +15,8 @@ with Viewer.Writing;
 with Vision.Jobs;
 with Webshot;
 with Pomarine.Widgets.Layouts;
+with Canvas_VM.Stored;
+with Pomarine.View_Models;
 with Viewer.Canvas_Items.Basics;
 with Viewer.Canvas_Items.Opening;
 with Viewer.Canvas_Items.Placement;
@@ -30,26 +26,19 @@ with Viewer.Canvas_Items.Recognition;
 package body Viewer.Canvas_Items is
 
    package Widgets renames Pomarine.Widgets;
-   package Canvases renames Pomarine.Widgets.Canvases;
    package Windows renames Items.Windows;
+   package Models renames Items.Models;
    package Window_Events is new Items.Windows.Callbacks (Session);
 
    use type Items.States;
    use type Preferences.Speech_Models;
-   use type Pomarine.Widgets.Pictures.Tools;
-   use type Items.Id;
+   use type Models.Tools;
    use type Items.Kinds;
    use type Webshot.States;
    use type Items.Origins;
    use type Vision.Jobs.States;
    use type Speech.Jobs.States;
-   use type Windows.Dictations;
-
-   Cascade_Step  : constant Float := 24.0;
-
-   Cascade_Count : constant := 6;
-   --  Each new item is put this far down and right of the last, for so
-   --  many, so that they are not all on top of each other.
+   use type Models.Dictations;
 
    function Busy (Item : Session) return Boolean is
      (Capturing (Item)
@@ -94,22 +83,22 @@ package body Viewer.Canvas_Items is
                      Speech.Jobs.Start
                        (Which, Speech.Jobs.Model, Model_Directory);
                      Windows.Set_Dictation
-                       (Item.Windows (Which), Windows.Preparing);
+                       (Item.Windows (Which), Models.Preparing);
                   else
                      Windows.Set_Dictation
-                       (Item.Windows (Which), Windows.Failed,
+                       (Item.Windows (Which), Models.Failed,
                         "The Parakeet model is not downloaded (Settings)");
                   end if;
                else
                   Speech.Jobs.Start (Which);
                   Windows.Set_Dictation
-                    (Item.Windows (Which), Windows.Preparing);
+                    (Item.Windows (Which), Models.Preparing);
                end if;
             end;
          when Speech.Jobs.Starting | Speech.Jobs.Listening =>
             Speech.Jobs.Stop (Which);
             Windows.Set_Dictation
-              (Item.Windows (Which), Windows.Transcribing);
+              (Item.Windows (Which), Models.Transcribing);
          when Speech.Jobs.Finishing =>
             null;
       end case;
@@ -118,60 +107,29 @@ package body Viewer.Canvas_Items is
    procedure Choose_Origin
      (Item : in out Session; Which : Items.Slot; To : Items.Origins) is
    begin
-      Items.Sources.Set_Origin
-        (Item.Nav.Store, Windows.Details (Item.Windows (Which)).Key, To);
-      Windows.Set_Origin (Item.Windows (Which), To);
+      Canvas_VM.Choose_Origin (Item.Canvas_Model.Model, Which, To);
+      Windows.Show (Item.Windows (Which));
       if To = Items.Remote then
          Windows.Focus_Text (Item.Windows (Which));
       end if;
-      Projects.Touch (Item.Nav.Store, Item.Opened.Current);
    end Choose_Origin;
 
    procedure File_Picked (Item : in out Session; Which : Items.Slot; Path : String) is
    begin
-      if Windows.Details (Item.Windows (Which)).Origin /= Items.Local then
+      if Models.Details (Item.Models (Which)).Origin /= Items.Local then
          Choose_Origin (Item, Which, Items.Local);
       end if;
-      Windows.Set_Link (Item.Windows (Which), Path);
+      Models.Set_Link (Item.Models (Which), Path);
       Opening.Start_Capture (Item, Which);
    end File_Picked;
 
    function Capture_Time (Item : Session) return Projects.Seconds is (Basics.Epoch_Now (Item));
 
-   function Count (Item : Session) return Natural is
-      Found : Natural := 0;
-   begin
-      for Each of Item.Windows loop
-         if Windows.Is_Assigned (Each) then
-            Found := Found + 1;
-         end if;
-      end loop;
-      return Found;
-   end Count;
+   function Count (Item : Session) return Natural is (Canvas_VM.Count (Item.Canvas_Model.Model));
 
    procedure Order (Item : Session; Slots : in out Slot_List) is
    begin
-      Slots.Clear;
-      for Which in 1 .. Item.Windows.Count loop
-         if Windows.Is_Assigned (Item.Windows (Which)) then
-            --  Inserted among those before it by when they were made,
-            --  which the ids give.
-            declare
-               Key : constant Items.Id :=
-                 Windows.Details (Item.Windows (Which)).Key;
-               At_Index : Natural := Slots.Count;
-            begin
-               Slots.Append (Which);
-               while At_Index >= 1
-                 and then Windows.Details (Item.Windows (Slots (At_Index))).Key > Key
-               loop
-                  Slots (At_Index + 1) := Slots (At_Index);
-                  At_Index := At_Index - 1;
-               end loop;
-               Slots (At_Index + 1) := Which;
-            end;
-         end if;
-      end loop;
+      Canvas_VM.Order (Item.Canvas_Model.Model, Slots);
    end Order;
 
    function Nth (Item : Session; Row : Positive) return Items.Slot is
@@ -184,10 +142,10 @@ package body Viewer.Canvas_Items is
    procedure Show_Dock (Item : in out Session) is
       Any : Boolean := False;
    begin
-      for Each of Item.Windows loop
-         if Windows.Is_Assigned (Each)
-           and then Windows.Details (Each).State = Items.Minimized
-           and then Item.Toolbar.Mode = Canvas
+      for Each of Item.Models loop
+         if Models.Is_Assigned (Each)
+           and then Models.Details (Each).State = Items.Minimized
+           and then View_Mode (Item) = Canvas
          then
             Any := True;
          end if;
@@ -199,40 +157,34 @@ package body Viewer.Canvas_Items is
    end Show_Dock;
 
    procedure Enter (Item : in out Session) is
-      Found    : Items.Info_List;
-      Restored : Boolean;
+      Model : Canvas_VM.View_Model renames Item.Canvas_Model.Model;
+      Found : Boolean;
    begin
-      Items.Records.Load (Item.Nav.Store, Item.Opened.Current, Found);
-      Build.Reserve_Items (Item, Found.Count);
-      for I in 1 .. Found.Count loop
-         Windows.Assign
-           (Item.Windows (I), Found (I),
-            Items.Records.Stored_Content (Item.Nav.Store, Found (I).Key),
-            Items.Sources.Shown_File
-              (Item.Nav.Store, Item.Opened.Current, Found (I)));
-         Recognition.Recognize_Kept (Item, I);
-         if Found (I).Kind = Items.Source then
-            declare
-               Kept : Items.Marks.Mark_List;
-            begin
-               Items.Marks.Load_Marks
-                 (Item.Nav.Store, Found (I).Key, Kept);
-               Windows.Set_Marks (Item.Windows (I), Kept);
-            end;
+      Canvas_VM.Stored.Set_Project (Item.Canvas_Model.Library, Open_Key (Item));
+      Canvas_VM.Enter (Model);
+      Placement.Report_Camera (Item);
+      for I in 1 .. Item.Models.Count loop
+         if Models.Is_Assigned (Item.Models (I)) then
+            Windows.Assigned (Item.Windows (I));
+            Recognition.Recognize_Kept (Item, I);
+            Windows.Show (Item.Windows (I));
          end if;
       end loop;
       --  The pictures of those shown first, then the others.
       for Shown in reverse Boolean loop
-         for I in 1 .. Found.Count loop
-            if (Found (I).State = Items.Open) = Shown then
+         for I in 1 .. Item.Models.Count loop
+            if Models.Is_Assigned (Item.Models (I))
+              and then (Models.Details (Item.Models (I)).State = Items.Open) = Shown
+            then
                Windows.Warm (Item.Windows (I));
             end if;
          end loop;
       end loop;
-      Placement.Restore_View (Item, Restored);
-      if not Restored then
-         Placement.Centre_On_Visible (Item);
+      Canvas_VM.Restore_View (Model, Found);
+      if not Found then
+         Canvas_VM.Centre_On_Items (Model);
       end if;
+      Placement.Follow (Item);
       Placement.Place_All (Item);
       Show_Dock (Item);
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
@@ -244,19 +196,15 @@ package body Viewer.Canvas_Items is
    end Enter;
 
    procedure Save_All (Item : in out Session) is
-      Wrote, Any : Boolean := False;
    begin
-      for Each of Item.Windows loop
-         if Windows.Is_Assigned (Each) then
-            Windows.Flush
-              (Each, Item.Nav.Store, 0, Force => True, Wrote => Wrote);
-            Any := Any or else Wrote;
+      for Which in 1 .. Item.Models.Count loop
+         if Models.Is_Assigned (Item.Models (Which)) then
+            Windows.Report (Item.Windows (Which));
          end if;
       end loop;
-      if Any then
-         Basics.Touch (Item);
-      end if;
-      Placement.Save_View (Item);
+      Canvas_VM.Flush_All (Item.Canvas_Model.Model, 0, Force => True);
+      Placement.Report_Camera (Item);
+      Canvas_VM.Save_View (Item.Canvas_Model.Model);
    end Save_All;
 
    procedure Leave (Item : in out Session) is
@@ -274,6 +222,7 @@ package body Viewer.Canvas_Items is
             end if;
          end if;
       end loop;
+      Canvas_VM.Leave (Item.Canvas_Model.Model);
       Widgets.Set_Visible (Item.Dock.Dock_Panel, False);
    end Leave;
 
@@ -295,19 +244,8 @@ package body Viewer.Canvas_Items is
    end Add;
 
    procedure Link_Items (Item : in out Session; From, To : Items.Slot) is
-      Added : Boolean;
    begin
-      Items.Links.Add_Link
-        (Item.Nav.Store,
-         (From      => Windows.Details (Item.Windows (From)).Key,
-          To        => Windows.Details (Item.Windows (To)).Key,
-          From_Side => Items.Links.Right,
-          To_Side   => Items.Links.Left,
-          others    => <>),
-         Added);
-      if Added then
-         Links.Reload (Item);
-      end if;
+      Canvas_VM.Join (Item.Canvas_Model.Model, From, To, Items.Links.Right, Items.Links.Left);
    end Link_Items;
    --  Draw a line from the right of one item's window to the left of the other's.
 
@@ -338,15 +276,15 @@ package body Viewer.Canvas_Items is
       end if;
       Added := True;
       declare
-         Key  : constant Items.Id := Windows.Details (Item.Windows (Made)).Key;
+         Key  : constant Items.Id := Models.Details (Item.Models (Made)).Key;
          Time : constant Projects.Seconds := Basics.Epoch_Now (Item);
          Kept : constant String :=
-           (if Document then Items.Sources.Document_File (Item.Nav.Store, Item.Opened.Current, Key, "pdf")
-            else Items.Sources.Image_File (Item.Nav.Store, Item.Opened.Current, Key));
+           (if Document then Items.Sources.Document_File (Item.Nav.Store, Open_Key (Item), Key, "pdf")
+            else Items.Sources.Image_File (Item.Nav.Store, Open_Key (Item), Key));
       begin
          Choose_Origin (Item, Made, Items.Remote);
-         Windows.Set_Link (Item.Windows (Made), Address);
-         Items.Sources.Make_Image_Folder (Item.Nav.Store, Item.Opened.Current);
+         Models.Set_Link (Item.Models (Made), Address);
+         Items.Sources.Make_Image_Folder (Item.Nav.Store, Open_Key (Item));
          if Ada.Directories.Exists (Kept) then
             Ada.Directories.Delete_File (Kept);  --  of an item that was, with this key
          end if;
@@ -362,18 +300,18 @@ package body Viewer.Canvas_Items is
             Opening.Open_Fetched (Item, Made, "pdf");
          else
             Items.Sources.Set_Captured (Item.Nav.Store, Key, Time);
-            Windows.Set_Capture (Item.Windows (Made), Windows.Ready, Kept, At_Time => Time);
+            Models.Set_Capture (Item.Models (Made), Models.Ready, Kept, At_Time => Time);
             Writing.Picture_Taken (Item, Made);
             Recognition.Start_Recognition (Item, Made);
          end if;
          if Linked_To /= 0 then
             Link_Items (Item, Linked_To, Made);
          end if;
-         Projects.Touch (Item.Nav.Store, Item.Opened.Current);
+         Projects.Touch (Item.Nav.Store, Open_Key (Item));
       end;
    exception
       when Ada.Directories.Use_Error | Ada.Directories.Name_Error =>
-         Windows.Set_Capture (Item.Windows (Made), Windows.Failed, Detail => "the picture could not be kept");
+         Models.Set_Capture (Item.Models (Made), Models.Failed, Detail => "the picture could not be kept");
    end Add_Found_Source;
 
    procedure Make
@@ -382,96 +320,45 @@ package body Viewer.Canvas_Items is
       Kind : Items.Kinds;
       Made : out Natural)
    is
-      View   : Pomarine.Widgets.Canvases.Canvas renames Canvases.Canvas (Item.Canvas_View);
-      Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
-      Before : constant Natural := Count (Item);
-      Step   : constant Float :=
-        Float (Before mod Cascade_Count) * Cascade_Step;
-      Middle_X : constant Float :=
-        Canvases.To_Canvas_X (View, Widgets.Width_Of (View) / Pixels / 2.0);
-      Middle_Y : constant Float :=
-        Canvases.To_Canvas_Y (View, Widgets.Height_Of (View) / Pixels / 2.0);
-      Wide   : constant Float :=
-        (if Kind = Items.Source then Items.Source_Width
-         else Items.Default_Width);
-      Where  : constant Items.Frame :=
-        (Left   => Middle_X - Wide / 2.0 + Step,
-         Top    => Middle_Y - Items.Default_Height / 2.0 + Step,
-         Width  => Wide,
-         Height => Items.Default_Height);
-      Free   : Natural := 0;
+      Free : Items.Slot;
    begin
-      for Which in 1 .. Item.Windows.Count loop
-         if Free = 0 and then not Windows.Is_Assigned (Item.Windows (Which))
-         then
-            Free := Which;
-         end if;
-      end loop;
-      if Free = 0 then
-         --  Every window there is has an item: a window more is made.
-         Build.Reserve_Items (Item, Item.Windows.Count + 1);
-         Free := Item.Windows.Count;
-      end if;
+      --  Where the canvas is looked at from is where it is made.
+      Placement.Report_Camera (Item);
+      Canvas_VM.Add (Item.Canvas_Model.Model, Name, Kind, Free);
       Made := Free;
-      declare
-         Key : constant Items.Id :=
-           Items.Records.Create
-             (Item.Nav.Store, Item.Opened.Current, Name, Where, Kind => Kind);
-      begin
-         Windows.Assign
-           (Item.Windows (Free),
-            (Key   => Key,
-             Title => Projects.Titles.To_Text (Name),
-             Where => Where,
-             State => Items.Open,
-             Kind  => Kind,
-             Captured_At => 0,
-             Zoom  => 1.0,
-             Scroll => 0.0,
-             Scroll_Across => 0.0,
-             Recognized_At => 0,
-             Origin => (if Kind = Items.Source then Items.Unchosen else Items.Remote),
-             Page => 0, Page_Count => 0,
-             Document => Items.Extensions.Null_Text),
-            "");
-         Windows.Place
-           (Item.Windows (Free),
-            Canvases.Zoom (View), Canvases.Origin_X (View),
-            Canvases.Origin_Y (View));
-         Basics.Touch (Item);
-         Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
-         if Item.Toolbar.Mode = Canvas then
-            Windows.Focus_Text (Item.Windows (Free));
-         end if;
-         Writing.Added (Item, Free);
-      end;
+      Windows.Assigned (Item.Windows (Free));
+      Windows.Place (Item.Windows (Free));
+      Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
+      if View_Mode (Item) = Canvas then
+         Windows.Focus_Text (Item.Windows (Free));
+      end if;
+      Writing.Added (Item, Free);
    end Make;
 
    procedure Set_State
      (Item : in out Session; Which : Items.Slot; To : Items.States) is
+      What : constant Canvas_VM.Command :=
+        (case To is
+            when Items.Open      => Canvas_VM.Open_Item,
+            when Items.Minimized => Canvas_VM.Minimize_Item,
+            when Items.Closed    => Canvas_VM.Close_Item);
    begin
-      Windows.Set_State (Item.Windows (Which), To);
+      if Canvas_VM.Can_Execute (Item.Canvas_Model.Model, What, Which) then
+         Canvas_VM.Execute (Item.Canvas_Model.Model, What, Which);
+      end if;
+      Windows.Show (Item.Windows (Which));
       Windows.Warm (Item.Windows (Which));
-      Items.Records.Set_State
-        (Item.Nav.Store, Windows.Details (Item.Windows (Which)).Key, To);
-      Windows.Place
-        (Item.Windows (Which),
-         Item.Nav.Shown_Zoom, Item.Nav.Shown_X, Item.Nav.Shown_Y);
-      Basics.Touch (Item);
+      Windows.Place (Item.Windows (Which));
       Show_Dock (Item);
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
    end Set_State;
 
    procedure Reveal (Item : in out Session; Which : Items.Slot) is
-      Where  : constant Items.Frame :=
-        Windows.Details (Item.Windows (Which)).Where;
    begin
-      if Windows.Details (Item.Windows (Which)).State /= Items.Open then
-         Set_State (Item, Which, Items.Open);
-      end if;
-      Placement.Centre_On (Item, Where.Left + Where.Width / 2.0,
-                 Where.Top + Where.Height / 2.0);
-      Windows.Bring_To_Front (Item.Windows (Which));
+      Canvas_VM.Execute (Item.Canvas_Model.Model, Canvas_VM.Show_Item, Which);
+      Windows.Show (Item.Windows (Which));
+      Windows.Warm (Item.Windows (Which));
+      Show_Dock (Item);
       Sync (Item);
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
    end Reveal;
@@ -485,11 +372,8 @@ package body Viewer.Canvas_Items is
       Webshot.Reset (Which);
       Vision.Jobs.Reset (Which);
       Speech.Jobs.Reset (Which);
-      Items.Records.Delete
-        (Item.Nav.Store, Windows.Details (Item.Windows (Which)).Key);
       Windows.Release (Item.Windows (Which));
-      Links.Reload (Item);
-      Basics.Touch (Item);
+      Canvas_VM.Execute (Item.Canvas_Model.Model, Canvas_VM.Remove_Item, Which);
       Show_Dock (Item);
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
    end Remove;
@@ -505,7 +389,7 @@ package body Viewer.Canvas_Items is
       Which  : Items.Slot;
       Action : Windows.Actions) is
    begin
-      if not Gestures.Active (Item) then
+      if not Takes_Gestures (Item) then
          return;
       end if;
       case Action is
@@ -527,6 +411,16 @@ package body Viewer.Canvas_Items is
             Choose_Origin (Item, Which, Items.Remote);
          when Windows.Choose_File =>
             Opening.Pick_File (Item, Which);
+         when Windows.Moved =>
+            Canvas_VM.Move_Item
+              (Item.Canvas_Model.Model, Which, Windows.Gesture (Item.Windows (Which)).Across,
+               Windows.Gesture (Item.Windows (Which)).Down);
+            Windows.Show (Item.Windows (Which));
+         when Windows.Sized =>
+            Canvas_VM.Resize_Item
+              (Item.Canvas_Model.Model, Which, Windows.Gesture (Item.Windows (Which)).Across,
+               Windows.Gesture (Item.Windows (Which)).Down, Windows.Gesture (Item.Windows (Which)).Still);
+            Windows.Show (Item.Windows (Which));
          when Windows.Previous_Page =>
             Recognition.Turn_Page (Item, Which, -1);
          when Windows.Next_Page =>
@@ -542,17 +436,18 @@ package body Viewer.Canvas_Items is
    procedure Pressed (Item : in out Session; X, Y : Float) is
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
    begin
-      for Each of Item.Windows loop
-         if Windows.Is_Assigned (Each)
-           and then Windows.Tool (Each) /= Pomarine.Widgets.Pictures.Pointer
+      for Which in 1 .. Item.Models.Count loop
+         if Models.Is_Assigned (Item.Models (Which))
+           and then Models.Tool (Item.Models (Which)) /= Models.Pointer
          then
             declare
-               Box : constant Items.Frame := Windows.Box (Each);
+               Box : constant Items.Frame := Windows.Box (Item.Windows (Which));
             begin
                if X * Pixels not in Box.Left .. Box.Left + Box.Width
                  or else Y * Pixels not in Box.Top .. Box.Top + Box.Height
                then
-                  Windows.Select_Tool (Each, Pomarine.Widgets.Pictures.Pointer);
+                  Canvas_VM.Put_Tool_Away (Item.Canvas_Model.Model, Which);
+                  Windows.Show (Item.Windows (Which));
                end if;
             end;
          end if;
@@ -573,45 +468,33 @@ package body Viewer.Canvas_Items is
            (Item.Dock.Tools, Position => (Left => Middle, others => <>),
             Unit => Pomarine.Widgets.Layouts.Device_Pixels);
       end if;
-      if Canvases.Zoom (Canvases.Canvas (Item.Canvas_View)) /= Item.Nav.Shown_Zoom
-        or else Canvases.Origin_X (Canvases.Canvas (Item.Canvas_View)) /= Item.Nav.Shown_X
-        or else Canvases.Origin_Y (Canvases.Canvas (Item.Canvas_View)) /= Item.Nav.Shown_Y
+      Placement.Follow (Item);
+      if Pomarine.View_Models.Changed
+           (Item.Canvas_Model.Seen_Raised, Canvas_VM.Raised_Version (Item.Canvas_Model.Model))
+        and then Canvas_VM.Raised (Item.Canvas_Model.Model) /= 0
       then
-         Placement.Place_All (Item);
+         Windows.Bring_To_Front (Item.Windows (Canvas_VM.Raised (Item.Canvas_Model.Model)));
       end if;
    end Sync;
 
    function Source_Ink
-     (Item : Session; Which : Items.Slot) return Pomarine.Themes.Slot
-   is
-      Key  : constant Items.Id := Windows.Details (Item.Windows (Which)).Key;
-      Rank : Natural := 0;
-   begin
-      for Each of Item.Windows loop
-         if Windows.Is_Assigned (Each)
-           and then Windows.Details (Each).Kind = Items.Source
-           and then Windows.Details (Each).Key <= Key
-         then
-            Rank := Rank + 1;
-         end if;
-      end loop;
-      return Style.Source_Ink (Rank);
-   end Source_Ink;
+     (Item : Session; Which : Items.Slot) return Pomarine.Themes.Slot is
+     (Style.Source_Ink (Canvas_VM.Source_Rank (Item.Canvas_Model.Model, Which)));
 
    procedure Update (Item : in out Session; Now : Pomarine.Events.Milliseconds) is
-      Wrote, Any : Boolean := False;
    begin
       Sync (Item);
-      if Gestures.Active (Item) then
-         for Each of Item.Windows loop
-            if Windows.Is_Assigned (Each) then
+      for Each of Item.Windows loop
+         if Windows.Is_Assigned (Each) then
+            if Takes_Gestures (Item) then
                Windows.Update (Each);
             end if;
-         end loop;
-      end if;
+            Windows.Show (Each);
+         end if;
+      end loop;
       for Which in 1 .. Item.Windows.Count loop
          if Windows.Is_Assigned (Item.Windows (Which))
-           and then Windows.Details (Item.Windows (Which)).Kind = Items.Source
+           and then Models.Details (Item.Models (Which)).Kind = Items.Source
          then
             Windows.Set_Tag (Item.Windows (Which), Source_Ink (Item, Which));
          end if;
@@ -619,16 +502,12 @@ package body Viewer.Canvas_Items is
       Polling.Poll_Captures (Item);
       Polling.Poll_Dictation (Item);
       Writing.Update (Item);
-      for Each of Item.Windows loop
-         if Windows.Is_Assigned (Each) then
-            Windows.Flush
-              (Each, Item.Nav.Store, Now, Force => False, Wrote => Wrote);
-            Any := Any or else Wrote;
+      for Which in 1 .. Item.Models.Count loop
+         if Models.Is_Assigned (Item.Models (Which)) then
+            Windows.Report (Item.Windows (Which));
          end if;
       end loop;
-      if Any then
-         Basics.Touch (Item);
-      end if;
+      Canvas_VM.Flush_All (Item.Canvas_Model.Model, Now, Force => False);
       Links.Update (Item);
    end Update;
 

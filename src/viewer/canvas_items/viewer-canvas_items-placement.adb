@@ -1,5 +1,7 @@
+with Canvas_VM;
 with Pomarine.Widgets;
 with Pomarine.Widgets.Canvases;
+with Pomarine.View_Models;
 
 package body Viewer.Canvas_Items.Placement is
 
@@ -7,19 +9,26 @@ package body Viewer.Canvas_Items.Placement is
    package Canvases renames Pomarine.Widgets.Canvases;
    package Windows renames Items.Windows;
 
-   use type Items.States;
-   use type Projects.Id;
+   procedure Report_Camera (Item : in out Session) is
+      View   : Pomarine.Widgets.Canvases.Canvas renames Canvases.Canvas (Item.Canvas_View);
+      Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
+   begin
+      Canvas_VM.Set_Viewport
+        (Item.Canvas_Model.Model, Widgets.Width_Of (View) / Pixels, Widgets.Height_Of (View) / Pixels);
+      Canvas_VM.Set_Camera
+        (Item.Canvas_Model.Model,
+         (Zoom => Canvases.Zoom (View), Origin_X => Canvases.Origin_X (View), Origin_Y => Canvases.Origin_Y (View)));
+   end Report_Camera;
 
    procedure Place_All (Item : in out Session) is
    begin
-      Item.Nav.Shown_Zoom := Canvases.Zoom (Canvases.Canvas (Item.Canvas_View));
-      Item.Nav.Shown_X := Canvases.Origin_X (Canvases.Canvas (Item.Canvas_View));
-      Item.Nav.Shown_Y := Canvases.Origin_Y (Canvases.Canvas (Item.Canvas_View));
       for Each of Item.Windows loop
-         Windows.Place (Each, Item.Nav.Shown_Zoom, Item.Nav.Shown_X,
-                        Item.Nav.Shown_Y);
+         Windows.Place (Each);
       end loop;
    end Place_All;
+
+   --  Pan so that the canvas point X, Y is in the middle of the view.
+   procedure Centre_On (Item : in out Session; X, Y : Float);
 
    procedure Centre_On (Item : in out Session; X, Y : Float) is
       View   : Pomarine.Widgets.Canvases.Canvas renames Canvases.Canvas (Item.Canvas_View);
@@ -34,70 +43,30 @@ package body Viewer.Canvas_Items.Placement is
            - (Canvases.Origin_Y (View) + Y * Zoom));
    end Centre_On;
 
-   procedure Centre_On_Visible (Item : in out Session) is
-      Any : Boolean := False;
-      Left, Top, Right, Bottom : Float := 0.0;
-   begin
-      for Each of Item.Windows loop
-         if Windows.Is_Assigned (Each)
-           and then Windows.Details (Each).State = Items.Open
-         then
-            declare
-               Where : constant Items.Frame := Windows.Details (Each).Where;
-            begin
-               if Any then
-                  Left   := Float'Min (Left, Where.Left);
-                  Top    := Float'Min (Top, Where.Top);
-                  Right  := Float'Max (Right, Where.Left + Where.Width);
-                  Bottom := Float'Max (Bottom, Where.Top + Where.Height);
-               else
-                  Any    := True;
-                  Left   := Where.Left;
-                  Top    := Where.Top;
-                  Right  := Where.Left + Where.Width;
-                  Bottom := Where.Top + Where.Height;
-               end if;
-            end;
-         end if;
-      end loop;
-      if Any then
-         pragma Assert (Right >= Left and then Bottom >= Top);
-         Centre_On (Item, (Left + Right) / 2.0, (Top + Bottom) / 2.0);
-      end if;
-   end Centre_On_Visible;
-
-   procedure Save_View (Item : in out Session) is
+   procedure Follow (Item : in out Session) is
       View   : Pomarine.Widgets.Canvases.Canvas renames Canvases.Canvas (Item.Canvas_View);
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
+      Model  : Canvas_VM.View_Model renames Item.Canvas_Model.Model;
    begin
-      if Item.Opened.Current /= 0 and then Widgets.Width_Of (View) > 0.0 then
-         Projects.Set_View
-           (Item.Nav.Store, Item.Opened.Current, Canvases.Zoom (View),
-            Canvases.To_Canvas_X
-              (View, Widgets.Width_Of (View) / Pixels / 2.0),
-            Canvases.To_Canvas_Y
-              (View, Widgets.Height_Of (View) / Pixels / 2.0));
+      Report_Camera (Item);
+      if Pomarine.View_Models.Changed (Item.Canvas_Model.Seen_Steering, Canvas_VM.Steering_Version (Model)) then
+         declare
+            Asked : constant Canvas_VM.Steer := Canvas_VM.Steering (Model);
+         begin
+            if Asked.Zoom /= 0.0 then
+               Canvases.Zoom_By
+                 (View,
+                  Float'Min (Canvases.Max_Zoom, Float'Max (Canvases.Min_Zoom, Asked.Zoom)) / Canvases.Zoom (View),
+                  Widgets.Width_Of (View) / Pixels / 2.0,
+                  Widgets.Height_Of (View) / Pixels / 2.0);
+            end if;
+            Centre_On (Item, Asked.Centre_X, Asked.Centre_Y);
+            Report_Camera (Item);
+         end;
       end if;
-   end Save_View;
-
-   procedure Restore_View
-     (Item : in out Session; Found : out Boolean)
-   is
-      View   : Pomarine.Widgets.Canvases.Canvas renames Canvases.Canvas (Item.Canvas_View);
-      Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
-      Zoom, X, Y : Float;
-   begin
-      Projects.Get_View (Item.Nav.Store, Item.Opened.Current, Found, Zoom, X,
-                         Y);
-      if Found then
-         Canvases.Zoom_By
-           (View,
-            Float'Min (Canvases.Max_Zoom, Float'Max (Canvases.Min_Zoom, Zoom))
-              / Canvases.Zoom (View),
-            Widgets.Width_Of (View) / Pixels / 2.0,
-            Widgets.Height_Of (View) / Pixels / 2.0);
-         Centre_On (Item, X, Y);
+      if Pomarine.View_Models.Changed (Item.Canvas_Model.Seen_Camera, Canvas_VM.Camera_Version (Model)) then
+         Place_All (Item);
       end if;
-   end Restore_View;
+   end Follow;
 
 end Viewer.Canvas_Items.Placement;

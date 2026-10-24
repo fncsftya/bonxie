@@ -7,6 +7,11 @@ with Ada.Directories;
 with Preferences;
 with Grammar_VM.Stored;
 with Home_VM.Stored;
+with Canvas_VM;
+with Canvas_VM.Stored;
+with Nav_VM;
+with Nav_VM.Stored;
+with Pomarine.View_Models;
 with Outline_VM.Stored;
 with Settings_VM.Disk;
 with Speech.Models;
@@ -114,6 +119,7 @@ package body Viewer.Build is
    procedure Make_Slot (Item : in out Session; Which : Items.Slot) is
       Slots : constant Natural := Which;
    begin
+      Item.Models.Grow (Slots);
       Item.Windows.Grow (Slots);
       Item.Docs.Pages.Grow (Slots);
       Item.Reading.Readers.Grow (Slots);
@@ -121,13 +127,10 @@ package body Viewer.Build is
       Item.Linking.Pins.Grow (Slots);
       Item.Linking.Pin_Left.Resize (Slots, [others => -1.0E9]);
       Item.Linking.Pin_Top.Resize (Slots, [others => -1.0E9]);
-      Item.Docs.Doc_Dir.Resize (Slots, 0);
       Item.Reading.Reader_Sync.Resize (Slots, (others => <>));
       Item.Reading.Reader_Placed.Resize (Slots, False);
-      Item.Reading.Write_Order.Resize (Slots, 1);
       Item.Reading.Source_Order.Resize (Slots, 1);
       Item.Page_View.Menu_Slots.Resize (Slots, 1);
-      Item.Item_List.Row_Slots.Resize (Slots, 1);
       Item.Grammar_Checks.Documents.Resize (Slots, (others => <>));
       Shell_Views.Make_Window (Item, Which);
       Canvas_Items.Listen (Item, Which);
@@ -188,7 +191,6 @@ package body Viewer.Build is
          return;
       end if;
       Item.Docs.Doc_Rows.Grow (Rows);
-      Item.Docs.Tree.Resize (Rows, (others => <>));
       for Each in First .. Rows loop
          Write_View.Make_Tree_Row (Item, Each);
          Writing.Listen_Row (Item, Each);
@@ -251,8 +253,33 @@ package body Viewer.Build is
                Kept_Theme => Preferences.Light, Kept_Background => Preferences.Fixed);
          end if;
       end;
+      Nav_VM.Stored.Open (Item.Nav_Model.Library, Item.Nav.Store'Unchecked_Access);
+      Nav_VM.Initialize
+        (Item.Nav_Model.Model, Item.Nav_Model.Library'Unchecked_Access, Item.Home_Model.Model'Unchecked_Access,
+         Item.Outline_Model.Model'Unchecked_Access, Item.Choices.Model'Unchecked_Access,
+         Item.Dialog_Model.Model'Unchecked_Access);
+      --  It is shown as it is built: at the home screen.
+      declare
+         Nav : Nav_Choices renames Item.Nav_Model;
+      begin
+         Pomarine.View_Models.See (Nav.Seen, Nav_VM.Version (Nav.Model));
+         Pomarine.View_Models.See (Nav.Screens, Nav_VM.Screen_Version (Nav.Model));
+         Pomarine.View_Models.See (Nav.Views, Nav_VM.Mode_Version (Nav.Model));
+         Pomarine.View_Models.See (Nav.Naming, Nav_VM.Renaming_Version (Nav.Model));
+         Pomarine.View_Models.See (Nav.Names, Nav_VM.Name_Version (Nav.Model));
+      end;
+      Canvas_VM.Stored.Open (Item.Canvas_Model.Library, Item.Nav.Store'Unchecked_Access);
+      Item.Room.Owner := Item'Unchecked_Access;
+      Canvas_VM.Initialize
+        (Item.Canvas_Model.Model, Item.Canvas_Model.Library'Unchecked_Access, Item.Room'Unchecked_Access,
+         Item.Models'Unrestricted_Access);
+      Item.Item_List.View.Owner := Item'Unchecked_Access;
+      Item_List_VM.Initialize
+        (Item.Item_List.Model, Item.Canvas_Model.Model'Unchecked_Access,
+         Item.Models'Unrestricted_Access, Item.Item_List.View'Unchecked_Access);
       Item.Judge.Owner := Item'Unchecked_Access;
       Binding.Observe (Item.Choices.Judge, Item.Choices.Model'Unchecked_Access);
+      Nav_Binding.Observe (Item.Nav_Model.Judge, Item.Nav_Model.Model'Unchecked_Access);
       Widgets.Set_Validator (Item.Root.Widgets, Item.Judge'Unchecked_Access);
       Widgets.Set_Density (Item.Root.Widgets, Item.Shell.Density);
       Widgets.Set_Line_Texts (Item.Root.Widgets, Item.Host.Lines);

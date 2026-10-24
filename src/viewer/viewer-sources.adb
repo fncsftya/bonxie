@@ -1,6 +1,5 @@
 with Items.Marks;
 with Items.Readers;
-with Items.Windows;
 
 package body Viewer.Sources is
 
@@ -9,8 +8,7 @@ package body Viewer.Sources is
 
    function Source_Title (Item : Session; Row : Positive) return String is
      (Projects.Titles.To_String
-        (Items.Windows.Details
-           (Item.Windows (Item.Reading.Source_Order (Row))).Title));
+        (Items.Models.Details (Item.Models (Item.Reading.Source_Order (Row))).Title));
 
    function Source_Is_Open (Item : Session; Row : Positive) return Boolean is
      (Item.Reading.Pinned_Slot = Item.Reading.Source_Order (Row)

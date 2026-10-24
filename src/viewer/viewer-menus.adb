@@ -1,3 +1,4 @@
+with Nav_VM;
 with Pomarine.Native_Menus;
 
 package body Viewer.Menus is
@@ -11,8 +12,6 @@ package body Viewer.Menus is
      [Character'Val (16#E2#), Character'Val (16#80#), Character'Val (16#A6#)];
    --  In UTF-8.
 
-   function Tag_Of (What : Command) return Integer is (Command'Pos (What));
-
    function Validate (Item : Session; Tag : Integer; Index : Natural) return Widgets.Command_State is
    begin
       if Binding.Is_Mine (Tag) then
@@ -23,40 +22,26 @@ package body Viewer.Menus is
          return Outline_Binding.Validate (Item.Outline_Model.Judge, Tag, Index);
       elsif Confirm_Binding.Is_Mine (Tag) then
          return Confirm_Binding.Validate (Item.Dialog_Model.Judge, Tag, Index);
+      elsif Nav_Binding.Is_Mine (Tag) then
+         declare
+            State : constant Widgets.Command_State := Nav_Binding.Validate (Item.Nav_Model.Judge, Tag, Index);
+            What  : constant Nav_VM.Command := Nav_VM.Command'Val (Tag - Nav_Tag_Base);
+         begin
+            --  The menu ticks the view that is shown.
+            if State = Widgets.Enabled and then Menu_Bar.Is_Installed (Item.Host.Menus)
+              and then (case What is
+                           when Nav_VM.Show_Outline => View_Mode (Item) = Outline,
+                           when Nav_VM.Show_Canvas  => View_Mode (Item) = Canvas,
+                           when Nav_VM.Show_Writing => View_Mode (Item) = Write,
+                           when Nav_VM.Show_Publish => View_Mode (Item) = Publish,
+                           when others              => False)
+            then
+               return Widgets.Ticked;
+            end if;
+            return State;
+         end;
       end if;
-      --  Without a menu bar, the window's buttons are as they are set.
-      if not Menu_Bar.Is_Installed (Item.Host.Menus) or else not Is_Open (Item)
-        or else Tag not in 0 .. Command'Pos (Command'Last)
-      then
-         return Widgets.Enabled;
-      end if;
-      declare
-         What       : constant Command := Command'Val (Tag);
-         In_Project : constant Boolean := Screen (Item) = Project;
-      begin
-         case What is
-            when Start_Project | Open_Settings =>
-               return (if In_Project then Widgets.Disabled else Widgets.Enabled);
-            when Leave_Project | Open_List =>
-               return (if In_Project then Widgets.Enabled else Widgets.Disabled);
-            when Show_Outline =>
-               return (if not In_Project then Widgets.Disabled
-                       elsif Item.Toolbar.Mode = Outline then Widgets.Ticked
-                       else Widgets.Enabled);
-            when Show_Canvas =>
-               return (if not In_Project then Widgets.Disabled
-                       elsif Item.Toolbar.Mode = Canvas then Widgets.Ticked
-                       else Widgets.Enabled);
-            when Show_Writing =>
-               return (if not In_Project then Widgets.Disabled
-                       elsif Item.Toolbar.Mode = Write then Widgets.Ticked
-                       else Widgets.Enabled);
-            when Show_Publish =>
-               return (if not In_Project then Widgets.Disabled
-                       elsif Item.Toolbar.Mode = Publish then Widgets.Ticked
-                       else Widgets.Enabled);
-         end case;
-      end;
+      return Widgets.Enabled;
    end Validate;
 
    procedure Build (Item : in out Session) is
@@ -69,10 +54,10 @@ package body Viewer.Menus is
       end if;
 
       Menu_Bar.Add_Menu (Bar, "File", File);
-      Menu_Bar.Add_Item (Bar, File, "New Project", Tag_Of (Start_Project), Key => "n");
-      Menu_Bar.Add_Item (Bar, File, "Settings" & Ellipsis, Tag_Of (Open_Settings), Key => ",");
+      Menu_Bar.Add_Item (Bar, File, "New Project", Tag_Of (Nav_VM.Start_Project), Key => "n");
+      Menu_Bar.Add_Item (Bar, File, "Settings" & Ellipsis, Tag_Of (Nav_VM.Open_Settings), Key => ",");
       Menu_Bar.Add_Separator (Bar, File);
-      Menu_Bar.Add_Item (Bar, File, "Close Project", Tag_Of (Leave_Project), Key => "w");
+      Menu_Bar.Add_Item (Bar, File, "Close Project", Tag_Of (Nav_VM.Leave_Project), Key => "w");
 
       Menu_Bar.Add_Menu (Bar, "Edit", Edit);
       Menu_Bar.Add_Item (Bar, Edit, "Undo", Widgets.Edit_Undo, Key => "z");
@@ -84,12 +69,12 @@ package body Viewer.Menus is
       Menu_Bar.Add_Item (Bar, Edit, "Select All", Widgets.Edit_Select_All, Key => "a");
 
       Menu_Bar.Add_Menu (Bar, "View", View);
-      Menu_Bar.Add_Item (Bar, View, "Outline", Tag_Of (Show_Outline), Key => "1");
-      Menu_Bar.Add_Item (Bar, View, "Canvas", Tag_Of (Show_Canvas), Key => "2");
-      Menu_Bar.Add_Item (Bar, View, "Writing", Tag_Of (Show_Writing), Key => "3");
-      Menu_Bar.Add_Item (Bar, View, "Publish", Tag_Of (Show_Publish), Key => "4");
+      Menu_Bar.Add_Item (Bar, View, "Outline", Tag_Of (Nav_VM.Show_Outline), Key => "1");
+      Menu_Bar.Add_Item (Bar, View, "Canvas", Tag_Of (Nav_VM.Show_Canvas), Key => "2");
+      Menu_Bar.Add_Item (Bar, View, "Writing", Tag_Of (Nav_VM.Show_Writing), Key => "3");
+      Menu_Bar.Add_Item (Bar, View, "Publish", Tag_Of (Nav_VM.Show_Publish), Key => "4");
       Menu_Bar.Add_Separator (Bar, View);
-      Menu_Bar.Add_Item (Bar, View, "Items", Tag_Of (Open_List));
+      Menu_Bar.Add_Item (Bar, View, "Items", Tag_Of (Nav_VM.Open_List));
    end Build;
 
    procedure Key_Taken (Item : in out Session; Event : Pomarine.Events.Event) is

@@ -22,6 +22,8 @@ package body Outline_VM is
 
    function Project_Title (Self : View_Model) return String is (Projects.Titles.To_String (Self.Title));
 
+   function Title_Version (Self : View_Model) return Parts.Version_Number is (Parts.Value (Self.Names));
+
    function Project_Description (Self : View_Model) return String is (Projects.Titles.To_String (Self.Words));
 
    function Trimmed (Text : String) return String is
@@ -110,6 +112,7 @@ package body Outline_VM is
    begin
       Project_Words (Self.Kept.all, Self.Owner, Found, Self.Title, Self.Words);
       Parts.Bump (Self.Changes);
+      Parts.Bump (Self.Names);
    end Reload_Project;
 
    procedure Enter (Self : in out View_Model; Owner : Projects.Id) is
@@ -125,7 +128,9 @@ package body Outline_VM is
       Self.Owner := 0;
       Self.Order.Count := 0;
       Self.Links.Count := 0;
+      Self.Title := Projects.Titles.Null_Text;
       Parts.Bump (Self.Changes);
+      Parts.Bump (Self.Names);
    end Leave;
 
    procedure Reload (Self : in out View_Model) is
@@ -142,6 +147,7 @@ package body Outline_VM is
          Rename_Project (Self.Kept.all, Self.Owner, Name);
          Self.Title := Projects.Titles.To_Text (Name);
          Parts.Bump (Self.Changes);
+         Parts.Bump (Self.Names);
       end if;
    end Set_Project_Title;
 

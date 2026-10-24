@@ -1,6 +1,6 @@
 with Ada.Strings.Unbounded;
 with Texts.Documents;
-with Items.Windows;
+with Items.Models;
 with Projects;
 with Viewer.Outlines;
 with Viewer.Section_Links;
@@ -25,12 +25,12 @@ package body Viewer.Outline_Screen is
    function Section_Item (Item : Session; Row : Positive) return String is
       Result : Ada.Strings.Unbounded.Unbounded_String;
    begin
-      for Each of Item.Windows loop
-         if Items.Windows.Is_Assigned (Each)
-           and then Outlines.Section_Of_Item (Item, Long_Integer (Items.Windows.Details (Each).Key)) = Row
+      for Each of Item.Models loop
+         if Items.Models.Is_Assigned (Each)
+           and then Outlines.Section_Of_Item (Item, Long_Integer (Items.Models.Details (Each).Key)) = Row
          then
             declare
-               Name : constant String := Projects.Titles.To_String (Items.Windows.Details (Each).Title);
+               Name : constant String := Projects.Titles.To_String (Items.Models.Details (Each).Title);
             begin
                Ada.Strings.Unbounded.Append (Result, Name & ",");
             end;

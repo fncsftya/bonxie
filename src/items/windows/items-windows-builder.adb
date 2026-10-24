@@ -178,6 +178,10 @@ package body Items.Windows.Builder is
       Widgets.Set_Visible (Item.Picture, False);
       Widgets.Set_Visible (Item.Pages, False);
       Widgets.Set_Visible (Item.Progress, False);
+      --  What they edit is the model's, and is there as long as it is.
+      Frames.Attach_Title (Item.Chrome, Items.Models.Title_Document (Item.Model.all));
+      Editors.Attach (Item.Body_Text, Items.Models.Content_Document (Item.Model.all));
+      Editors.Attach (Item.Text_View, Items.Models.Text_Document (Item.Model.all));
       Handlers.Listen (Item);
    end Make_Parts;
 

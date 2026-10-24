@@ -3,23 +3,16 @@ private package Items.Windows.Speaking is
 
    procedure Change
      (Item   : in out Window;
-      To     : Dictations;
+      To     : Items.Models.Dictations;
       Detail : String := "")
-     with Pre  => Is_Assigned (Item) and then Details (Item).Kind = Note,
-          Post => Dictation (Item) = To;
+     with Pre => Is_Assigned (Item) and then Items.Models.Details (Item.Model.all).Kind = Note;
    --  Say how dictating stands: the button is a stop button while it is
    --  Preparing or Listening, and the status line says what is going on
    --  (a Failed one says why, in Detail, until the text is next
    --  changed).
 
-   procedure Show_Level (Item : in out Window; To : Float)
-     with Pre => Is_Assigned (Item) and then Details (Item).Kind = Note
-                 and then To in 0.0 .. 1.0;
-   --  Say how loud what is heard is, while Listening: shown as a bar
-   --  along the foot of the status line, filled to that far.
-
    procedure Show_Live (Item : in out Window; Said : String; Settled : Natural := 0)
-     with Pre => Is_Assigned (Item) and then Details (Item).Kind = Note;
+     with Pre => Is_Assigned (Item) and then Items.Models.Details (Item.Model.all).Kind = Note;
    --  Show what has been heard so far, while Listening, in the note's
    --  text, where Add_Dictation will put it: each call replaces the last
    --  Said. These edits are not recorded (they cannot be undone), and
@@ -31,7 +24,7 @@ private package Items.Windows.Speaking is
    --  which may yet change, faintly.
 
    procedure Append_Said (Item : in out Window; Said : String)
-     with Pre => Is_Assigned (Item) and then Details (Item).Kind = Note;
+     with Pre => Is_Assigned (Item) and then Items.Models.Details (Item.Model.all).Kind = Note;
    --  Put Said in the note's text, as one edit, to be undone together.
    --  If the text is focused, it goes in at the caret (what is selected
    --  is kept); if it has none yet, it is the text; otherwise it is a

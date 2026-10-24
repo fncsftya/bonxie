@@ -4,6 +4,7 @@ with SDL3.Windows.Renderers;
 with Pomarine.Line_Texts;
 with Pomarine.Widgets;
 with Viewer.Canvas_Items;
+with Viewer.Navigation;
 with Viewer.Outlines;
 with Viewer.Style;
 with Viewer.Search;
@@ -21,19 +22,21 @@ package body Viewer.Painting is
       Search.Update (Item);
       Item.Root.Window_Panel.Dark := Style.Is_Dark;
       Pomarine.Line_Texts.Begin_Frame (Item.Host.Lines);
-      if Item.Nav.Shown = Project then
+      if Screen (Item) = Project then
          --  The canvas may be panned or laid out afresh since the items
          --  were put on it.
          Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
          Canvas_Items.Sync (Item);
-         if Item.Toolbar.Mode in Write | Publish then
+         if View_Mode (Item) in Write | Publish then
             Writing.Fit (Item);
             Search.Reveal (Item);
             --  What was typed in a section's notes is kept.
             Outlines.Sync (Item);
-         elsif Item.Toolbar.Mode = Outline then
+         elsif View_Mode (Item) = Outline then
             Outlines.Sync (Item);
          end if;
+         --  The toolbar shows the project's name as the outline has it now.
+         Navigation.Sync (Item);
       elsif Settings_VM.Is_Showing (Item.Choices.Model) then
          Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
          Settings_View.Fit (Item);

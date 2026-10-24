@@ -33,8 +33,8 @@ package body Viewer.Writing.Row_Drags is
    is
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
       Point  : constant Float := Y * Pixels;
-      Moving : constant Tree_Entry := Item.Docs.Tree (Item.Dragging.Drag_Row);
-      Row    : Natural := Item.Docs.Tree_Count;
+      Moving : constant Tree_Entry := Trees.Element (Item.Docs.Ordering, Item.Dragging.Drag_Row);
+      Row    : Natural := Trees.Count (Item.Docs.Ordering);
 
       function Top (Of_Row : Positive) return Float is
         (Widgets.Top_Of (Item.Docs.Doc_Rows (Of_Row).Row));
@@ -65,7 +65,7 @@ package body Viewer.Writing.Row_Drags is
       then
          return (others => <>);
       end if;
-      for Each in 1 .. Item.Docs.Tree_Count loop
+      for Each in 1 .. Trees.Count (Item.Docs.Ordering) loop
          if Point < Bottom (Each) then
             Row := Each;
             exit;
@@ -75,7 +75,7 @@ package body Viewer.Writing.Row_Drags is
          return (others => <>);
       end if;
       declare
-         Node  : constant Tree_Entry := Item.Docs.Tree (Row);
+         Node  : constant Tree_Entry := Trees.Element (Item.Docs.Ordering, Row);
          Fract : constant Float :=
            (Point - Top (Row)) / (Bottom (Row) - Top (Row));
       begin
@@ -184,7 +184,7 @@ package body Viewer.Writing.Row_Drags is
       Offset : constant Float := Pomarine.Boxes.Offset (Pixels);
       Row    : constant Natural := Item.Dragging.Drag_Row;
    begin
-      if Row = 0 or else not Item.Dragging.Drag_Moved or else Row > Item.Docs.Tree_Count then
+      if Row = 0 or else not Item.Dragging.Drag_Moved or else Row > Trees.Count (Item.Docs.Ordering) then
          Widgets.Set_Visible (Item.Docs.Ghost, False);
          return;
       end if;
@@ -228,10 +228,10 @@ package body Viewer.Writing.Row_Drags is
    procedure Start_Drag (Item : in out Session; Row : Positive) is
    begin
       if Item.Dragging.Drag_Row = 0
-        and then Row <= Item.Docs.Tree_Count
-        and then Item.Docs.Tree (Row).Kind /= Overview_Node
-        and then not (Item.Docs.Tree (Row).Kind = Directory_Node
-                      and then Support.Is_Section (Item, Item.Docs.Tree (Row).Dir))
+        and then Row <= Trees.Count (Item.Docs.Ordering)
+        and then Trees.Element (Item.Docs.Ordering, Row).Kind /= Overview_Node
+        and then not (Trees.Element (Item.Docs.Ordering, Row).Kind = Directory_Node
+                      and then Support.Is_Section (Item, Trees.Element (Item.Docs.Ordering, Row).Dir))
       then
          Item.Dragging.Drag_Row := Row;
          Item.Dragging.Drag_Total := 0.0;
@@ -253,7 +253,7 @@ package body Viewer.Writing.Row_Drags is
       pragma Unreferenced (Source);
       Row : constant Positive := Event.Index;
    begin
-      if not Support.In_Writing (Item) or else Row > Item.Docs.Tree_Count then
+      if not Support.In_Writing (Item) or else Row > Trees.Count (Item.Docs.Ordering) then
          return;
       end if;
       Start_Drag (Item, Row);
@@ -289,7 +289,7 @@ package body Viewer.Writing.Row_Drags is
       Row : constant Positive := Event.Index;
    begin
       Item.Dragging.Dropped_Moved := False;
-      if not Support.In_Writing (Item) or else Row > Item.Docs.Tree_Count then
+      if not Support.In_Writing (Item) or else Row > Trees.Count (Item.Docs.Ordering) then
          return;
       end if;
       Start_Drag (Item, Row);

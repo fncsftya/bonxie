@@ -1,3 +1,4 @@
+with Items.Models;
 with Pomarine.Widgets.Canvases;
 
 package body Viewer.Links.Support is
@@ -5,8 +6,8 @@ package body Viewer.Links.Support is
    package Widgets renames Pomarine.Widgets;
    package Canvases renames Pomarine.Widgets.Canvases;
    package Windows renames Items.Windows;
+   package Models renames Items.Models;
 
-   use type Items.Id;
    use type Items.States;
 
    function Diameter (Item : Session) return Float is
@@ -14,29 +15,16 @@ package body Viewer.Links.Support is
 
    function Is_Open (Item : Session; Which : Items.Slot) return Boolean is
      (Windows.Is_Assigned (Item.Windows (Which))
-      and then Windows.Details (Item.Windows (Which)).State = Items.Open);
+      and then Models.Details (Item.Models (Which)).State = Items.Open);
 
    function Slot_Of (Item : Session; Key : Items.Id) return Natural is
+      Which : constant Natural := Canvas_VM.Slot_Of (Item.Canvas_Model.Model, Key);
    begin
-      for Which in 1 .. Item.Windows.Count loop
-         if Is_Open (Item, Which)
-           and then Windows.Details (Item.Windows (Which)).Key = Key
-         then
-            return Which;
-         end if;
-      end loop;
-      return 0;
+      return (if Which /= 0 and then Is_Open (Item, Which) then Which else 0);
    end Slot_Of;
 
    function Index_Of (Item : Session; Key : Items.Id) return Natural is
-   begin
-      for Number in 1 .. Item.Linking.Link_Set.Count loop
-         if Item.Linking.Link_Set (Number).Key = Key then
-            return Number;
-         end if;
-      end loop;
-      return 0;
-   end Index_Of;
+     (Canvas_VM.Link_Number (Item.Canvas_Model.Model, Key));
 
    function Middle
      (Where : Items.Frame; Side : Item_Links.Sides) return Point is
@@ -46,17 +34,21 @@ package body Viewer.Links.Support is
 
    function Pixels_Of (Item : Session; Spot : Point) return Point is
      ((X => Float'Rounding
-              (Canvases.To_Screen (Spot.X, Item.Nav.Shown_Zoom,
-                                   Item.Nav.Shown_X)
+              (Canvases.To_Screen (Spot.X, Canvas_VM.Camera (Item.Canvas_Model.Model).Zoom,
+                                   Canvas_VM.Camera (Item.Canvas_Model.Model).Origin_X)
                * Widgets.Density (Item.Root.Widgets)),
        Y => Float'Rounding
-              (Canvases.To_Screen (Spot.Y, Item.Nav.Shown_Zoom,
-                                   Item.Nav.Shown_Y)
+              (Canvases.To_Screen (Spot.Y, Canvas_VM.Camera (Item.Canvas_Model.Model).Zoom,
+                                   Canvas_VM.Camera (Item.Canvas_Model.Model).Origin_Y)
                * Widgets.Density (Item.Root.Widgets))));
 
    function Dragger (Item : Session) return access Pins.Pin is
-     (if Item.Linking.Link_Moving
-      then Item.Linking.Link_Handle'Unrestricted_Access
-      else Item.Linking.Pins (Item.Linking.Link_From) (Item.Linking.Link_From_Side)'Unrestricted_Access);
+      Model : Canvas_VM.View_Model renames Item.Canvas_Model.Model;
+   begin
+      if Canvas_VM.Is_Moving_Link (Model) then
+         return Item.Linking.Link_Handle'Unrestricted_Access;
+      end if;
+      return Item.Linking.Pins (Canvas_VM.Link_From (Model)) (Canvas_VM.Link_From_Side (Model))'Unrestricted_Access;
+   end Dragger;
 
 end Viewer.Links.Support;

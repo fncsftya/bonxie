@@ -329,6 +329,7 @@ package body Viewer.Build.Write_View is
            (View.Docs_Head, View.Docs_Add,
             Buttons.Looks ("+", Icon => Pomarine.Icons.Shown (Icon_Set.Plus), Icon_Points => Mic_Icon_Size),
             (Width => Add_Size, Height => Add_Size, others => <>));
+         Widgets.Set_Accessible_Name (View.Docs_Add, "Add document");
          Build_Index (View.Docs_Scroll, View.Docs_Content, View.Docs_None, No_Documents);
 
          --  Over the rows of the tree, out of their layout: the line where a

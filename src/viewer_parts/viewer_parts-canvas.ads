@@ -1,9 +1,13 @@
 with Ada.Strings.Unbounded;
+with Search_VM;
 with Pomarine.Widgets.Labels;
 with Growing;
 with Items;
 with Slot_Tables;
+with Canvas_VM;
+with Canvas_VM.Stored;
 with Items.Links;
+with Pomarine.View_Models;
 with Texts.Documents;
 with Pomarine.Widgets;
 with Pomarine.Widgets.Buttons;
@@ -71,21 +75,11 @@ package Viewer_Parts.Canvas is
       Color_Buttons  : Color_Button_Array;
       Delete_Link    : Pomarine.Widgets.Buttons.Button;
       --  Beside the selected link: how it is drawn, and to delete it.
-      Link_Key     : Items.Id := 0;
-      --  The link selected, 0 if none.
-      Link_Moving  : Boolean := False;
-      --  Whether the target end of the selected link is being dragged,
-      --  rather than a new link from a pin.
       Handle_Left, Handle_Top, Bar_Left, Bar_Top : Float := -1.0E9;
       --  Where they were last put, in pixels.
-      Link_Set     : Items.Links.Link_List;
-      --  The links between the project's items.
-      Link_From    : Natural := 0;
-      Link_From_Side : Items.Links.Sides := Items.Links.Top;
-      --  The window and side of the pin a line is being dragged from;
-      --  0 if none is.
    end record;
-   --  The pins, and the links being made, selected and drawn.
+   --  The pins, and the links being made, selected and drawn: what they are is the canvas's view-model's
+   --  (Canvas_VM).
 
    type Search_Document is record
       Which : Items.Slot := Items.Slot'First;
@@ -101,16 +95,28 @@ package Viewer_Parts.Canvas is
       Field : Pomarine.Widgets.Text_Fields.Text_Field;
       Previous, Next, Close : Pomarine.Widgets.Buttons.Button;
       Count : Pomarine.Widgets.Labels.Label;
-      Showing : Boolean := False;
-      In_Writing : Boolean := False;
+      Model : Search_VM.View_Model;
+      Shown : Pomarine.View_Models.Watch;
+      --  Finder cache and navigation state of the writing/text engines. Search lifecycle and query are in Model.
       Documents : Search_Document_Lists.List;
       Total, Current, Rank : Natural := 0;
       Reveal_Pending : Boolean := False;
-      Target : Items.Slot := Items.Slot'First;
-      Key : Items.Id := 0;
       Term : Ada.Strings.Unbounded.Unbounded_String;
       Seen : Texts.Documents.Version := 0;
    end record;
+
+   type Canvas_Choices is limited record
+      Library : aliased Canvas_VM.Stored.Project_Kept;
+      Model   : aliased Canvas_VM.View_Model;
+      --  What is on the canvas, where it is looked at from, what is done to it.
+      Seen_Items    : Pomarine.View_Models.Watch;
+      Seen_Camera   : Pomarine.View_Models.Watch;
+      Seen_Steering : Pomarine.View_Models.Watch;
+      Seen_Raised   : Pomarine.View_Models.Watch;
+      Seen_Links    : Pomarine.View_Models.Watch;
+      --  What the windows and the lines last showed of it.
+   end record;
+   --  The view-model of the canvas, and what the widgets show of it.
 
    type Title_Edit_State is limited record
       Edit_Doc     : aliased Texts.Documents.Document;

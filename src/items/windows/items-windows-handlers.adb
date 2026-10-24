@@ -5,13 +5,14 @@ with Pomarine.Widgets.Editors.Callbacks;
 with Pomarine.Widgets.Frames.Handlers;
 with Items.Windows.Displays;
 with Items.Windows.Metrics;
-with Items.Windows.Parts;
 
 package body Items.Windows.Handlers is
 
    package Widgets renames Pomarine.Widgets;
    package Frames renames Pomarine.Widgets.Frames;
    package Sliders renames Pomarine.Widgets.Sliders;
+
+   function Details (Item : Window) return Items.Info is (Items.Models.Details (Item.Model.all));
 
    package Hooks is new Pomarine.Widgets.Callbacks (Window);
    package Editor_Hooks is new Pomarine.Widgets.Editors.Callbacks (Window);
@@ -41,49 +42,36 @@ package body Items.Windows.Handlers is
 
    procedure End_Edit (Item : in out Window) is
    begin
+      Items.Models.Refresh (Item.Model.all);
       Displays.Show_Title (Item);
       Frames.End_Title_Edit (Item.Chrome);
    end End_Edit;
 
-   procedure Moved
+   procedure Dragged
      (Item : in out Window; From : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
-   --  The title bar was dragged: move it, in canvas units.
+   --  The title bar was dragged: move it, as the application says.
 
-   procedure Moved
+   procedure Dragged
      (Item : in out Window; From : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
    is
       pragma Unreferenced (From);
    begin
-      Item.Details.Where.Left := Item.Details.Where.Left + Event.Across / Item.Zoom;
-      Item.Details.Where.Top := Item.Details.Where.Top + Event.Down / Item.Zoom;
-      Item.Frame_Dirty := True;
-      Place (Item, Item.Zoom, Item.Origin_X, Item.Origin_Y);
-   end Moved;
+      Item.Dragged := (Across => Event.Across, Down => Event.Down, Still => True);
+      Say (Item, Moved);
+   end Dragged;
 
-   procedure Sized
+   procedure Corner_Dragged
      (Item : in out Window; From : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
-   --  The corner was dragged: size it, in canvas units, but not under the
-   --  least.
+   --  The corner was dragged: size it, as the application says (not under the least).
 
-   procedure Sized
+   procedure Corner_Dragged
      (Item : in out Window; From : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
    is
       pragma Unreferenced (From);
    begin
-      if not Item.Resizing then
-         Item.Raw_Width := Item.Details.Where.Width;
-         Item.Raw_Height := Item.Details.Where.Height;
-      end if;
-      Item.Raw_Width := Item.Raw_Width + Event.Across / Item.Zoom;
-      Item.Raw_Height := Item.Raw_Height + Event.Down / Item.Zoom;
-      Item.Details.Where := Sized
-        ((Item.Details.Where with delta
-            Width  => Item.Raw_Width,
-            Height => Item.Raw_Height));
-      Item.Frame_Dirty := True;
-      Place (Item, Item.Zoom, Item.Origin_X, Item.Origin_Y);
-      Item.Resizing := Frames.Is_Sizing (Item.Chrome);
-   end Sized;
+      Item.Dragged := (Across => Event.Across, Down => Event.Down, Still => Frames.Is_Sizing (Item.Chrome));
+      Say (Item, Sized);
+   end Corner_Dragged;
 
    procedure Title_Pressed_Twice
      (Item : in out Window; From : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
@@ -93,7 +81,7 @@ package body Items.Windows.Handlers is
    is
       pragma Unreferenced (From, Event);
    begin
-      if Item.Details.State = Open and then not Frames.Is_Editing_Title (Item.Chrome) then
+      if Details (Item).State = Open and then not Frames.Is_Editing_Title (Item.Chrome) then
          Begin_Edit (Item);
       end if;
    end Title_Pressed_Twice;
@@ -121,7 +109,7 @@ package body Items.Windows.Handlers is
    is
       pragma Unreferenced (From, Event);
    begin
-      if Parts.Is_Open_Source (Item) then
+      if Items.Models.Is_Open_Source (Item.Model.all) then
          Say (Item, Capture);
       end if;
    end Fetch_Asked;
@@ -135,7 +123,7 @@ package body Items.Windows.Handlers is
    is
       pragma Unreferenced (From);
    begin
-      if Parts.Is_Open_Source (Item) and then Item.Details.Page_Count > 1 then
+      if Items.Models.Is_Open_Source (Item.Model.all) and then Details (Item).Page_Count > 1 then
          Say (Item, (if Event.Index = 1 then Previous_Page else Next_Page));
       end if;
    end Page_Turned;
@@ -150,12 +138,12 @@ package body Items.Windows.Handlers is
    is
       pragma Unreferenced (From);
    begin
-      if Parts.Is_Open_Source (Item) then
+      if Items.Models.Is_Open_Source (Item.Model.all) then
          case Event.Index is
             when 1 =>
                Say (Item, Choose_Link);
             when others =>
-               if Item.Details.Origin /= Remote then
+               if Details (Item).Origin /= Remote then
                   Say (Item, Choose_File);
                end if;
          end case;
@@ -170,8 +158,10 @@ package body Items.Windows.Handlers is
    is
       pragma Unreferenced (From, Event);
    begin
-      if Parts.Is_Open_Source (Item) then
-         Set_Zoom (Item, Items.Sources.From_Slider (Sliders.Value (Item.Zoom_Slider)));
+      if Items.Models.Is_Open_Source (Item.Model.all) then
+         Items.Models.Set_Zoom
+           (Item.Model.all, Items.Sources.From_Slider (Sliders.Value (Item.Zoom_Slider)));
+         Show (Item);
       end if;
    end Zoom_Moved;
 
@@ -183,8 +173,9 @@ package body Items.Windows.Handlers is
    is
       pragma Unreferenced (From, Event);
    begin
-      if Parts.Is_Open_Source (Item) then
-         Select_Tool (Item, Pomarine.Widgets.Pictures.Pointer);
+      if Items.Models.Is_Open_Source (Item.Model.all) then
+         Items.Models.Select_Tool (Item.Model.all, Items.Models.Pointer);
+         Show (Item);
       end if;
    end Pointer_Clicked;
 
@@ -196,8 +187,9 @@ package body Items.Windows.Handlers is
    is
       pragma Unreferenced (From, Event);
    begin
-      if Parts.Is_Open_Source (Item) then
-         Select_Tool (Item, Pomarine.Widgets.Pictures.Highlighter);
+      if Items.Models.Is_Open_Source (Item.Model.all) then
+         Items.Models.Select_Tool (Item.Model.all, Items.Models.Highlighter);
+         Show (Item);
       end if;
    end Marker_Clicked;
 
@@ -209,8 +201,9 @@ package body Items.Windows.Handlers is
    is
       pragma Unreferenced (From, Event);
    begin
-      if Parts.Is_Open_Source (Item) then
-         Select_Tool (Item, Pomarine.Widgets.Pictures.Eraser);
+      if Items.Models.Is_Open_Source (Item.Model.all) then
+         Items.Models.Select_Tool (Item.Model.all, Items.Models.Eraser);
+         Show (Item);
       end if;
    end Eraser_Clicked;
 
@@ -223,7 +216,7 @@ package body Items.Windows.Handlers is
    is
       pragma Unreferenced (From, Event);
    begin
-      if Parts.Is_Open_Source (Item) then
+      if Items.Models.Is_Open_Source (Item.Model.all) then
          Widgets.Set_Visible (Item.Zoom_Menu, not Widgets.Is_Visible (Item.Zoom_Menu));
          Widgets.Raise_To_Front (Item.Zoom_Menu);
       end if;
@@ -238,8 +231,9 @@ package body Items.Windows.Handlers is
    is
       pragma Unreferenced (From);
    begin
-      if Parts.Is_Open_Source (Item) then
-         Set_Zoom (Item, Metrics.Preset_Zooms (Event.Index));
+      if Items.Models.Is_Open_Source (Item.Model.all) then
+         Items.Models.Set_Zoom (Item.Model.all, Metrics.Preset_Zooms (Event.Index));
+         Show (Item);
          Widgets.Set_Visible (Item.Zoom_Menu, False);
       end if;
    end Preset_Clicked;
@@ -252,7 +246,7 @@ package body Items.Windows.Handlers is
    is
       pragma Unreferenced (From, Event);
    begin
-      if Item.Details.Kind = Note and then Item.Details.State = Open then
+      if Details (Item).Kind = Note and then Details (Item).State = Open then
          Say (Item, Speak);
       end if;
    end Speak_Clicked;
@@ -282,7 +276,7 @@ package body Items.Windows.Handlers is
    is
       pragma Unreferenced (From, Event);
    begin
-      if Item.Details.Kind = Note and then Item.Details.State = Open then
+      if Details (Item).Kind = Note and then Details (Item).State = Open then
          Say (Item, Link_To_Outline);
       end if;
    end Outline_Clicked;
@@ -295,7 +289,7 @@ package body Items.Windows.Handlers is
    is
       pragma Unreferenced (From, Event);
    begin
-      if Item.Details.State = Open then
+      if Details (Item).State = Open then
          Say (Item, Minimize);
       end if;
    end Minimize_Clicked;
@@ -308,7 +302,7 @@ package body Items.Windows.Handlers is
    is
       pragma Unreferenced (From, Event);
    begin
-      if Item.Details.State = Minimized then
+      if Details (Item).State = Minimized then
          Say (Item, Restore);
       end if;
    end Restore_Clicked;
@@ -321,7 +315,7 @@ package body Items.Windows.Handlers is
    is
       pragma Unreferenced (From, Event);
    begin
-      if Item.Details.State in Open | Minimized then
+      if Details (Item).State in Open | Minimized then
          Say (Item, Close);
       end if;
    end Close_Clicked;
@@ -329,8 +323,8 @@ package body Items.Windows.Handlers is
    procedure Listen (Item : in out Window) is
       use all type Widgets.Event_Kind;
    begin
-      Frame_Hooks.On (Item.Chrome, Move, Item'Unrestricted_Access, Moved'Access);
-      Frame_Hooks.On (Item.Chrome, Resize, Item'Unrestricted_Access, Sized'Access);
+      Frame_Hooks.On (Item.Chrome, Move, Item'Unrestricted_Access, Dragged'Access);
+      Frame_Hooks.On (Item.Chrome, Resize, Item'Unrestricted_Access, Corner_Dragged'Access);
       Frame_Hooks.On (Item.Chrome, Double_Click, Item'Unrestricted_Access, Title_Pressed_Twice'Access);
       Frame_Hooks.On (Item.Chrome, Submit, Item'Unrestricted_Access, Title_Ended'Access);
       Frame_Hooks.On (Item.Chrome, Blur, Item'Unrestricted_Access, Title_Ended'Access);

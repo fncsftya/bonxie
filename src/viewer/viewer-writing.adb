@@ -1,3 +1,5 @@
+with Writing_VM;
+with Items.Models;
 with Items.Windows;
 with Pomarine.Text_Areas;
 with Projects;
@@ -15,6 +17,7 @@ with Viewer.Canvas_Items;
 with Viewer.Outlines;
 with Viewer.Section_Links;
 with Viewer.Grammar;
+with Viewer.Navigation;
 with Viewer.Writing.Context;
 with Viewer.Writing.Layout;
 with Viewer.Writing.Moves;
@@ -38,12 +41,13 @@ package body Viewer.Writing is
    package Progress_Bars renames Pomarine.Widgets.Progress_Bars;
    package Readers renames Items.Readers;
    package Windows renames Items.Windows;
+   package Models renames Items.Models;
    package Hooks is new Pomarine.Widgets.Callbacks (Session);
    package Reader_Events is new Items.Readers.Callbacks (Session);
 
    use type Projects.Id;
    use type Pictures.Tools;
-   use type Windows.Dictations;
+   use type Models.Dictations;
 
    Untitled_Directory : constant String := "Untitled folder";
 
@@ -63,12 +67,8 @@ package body Viewer.Writing is
       Tree.Refresh (Item);
    end Enter;
 
-   procedure Apply (Item : in out Session; To : Modes);
-   --  Show the view, without keeping that it is the project's.
-
-   procedure Apply (Item : in out Session; To : Modes) is
+   procedure Show_View (Item : in out Session; To : Modes) is
    begin
-      Item.Toolbar.Mode := To;
       Section_Links.Close (Item);
       Section_Links.Update (Item);
       Publishing.Close_Format_Menu (Item);
@@ -90,29 +90,19 @@ package body Viewer.Writing is
          if To = Publish then
             Publishing.Refresh_Publish (Item);
          end if;
-      elsif To = Outline and then Item.Opened.Current /= 0 then
+      elsif To = Outline and then Open_Key (Item) /= 0 then
          Outlines.Shown (Item);
       end if;
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
       if To = Canvas then
          Canvas_Items.Sync (Item);
       end if;
-   end Apply;
+   end Show_View;
 
-   procedure Show (Item : in out Session; To : Modes) is
+   procedure Show_View (Item : in out Session) is
    begin
-      Apply (Item, To);
-      Projects.Set_Tab (Item.Nav.Store, Item.Opened.Current, Modes'Pos (To));
-   end Show;
-
-   procedure Restore (Item : in out Session) is
-   begin
-      Apply
-        (Item,
-         Modes'Val
-           (Natural'Min (Projects.Tab (Item.Nav.Store, Item.Opened.Current),
-                         Modes'Pos (Modes'Last))));
-   end Restore;
+      Show_View (Item, View_Mode (Item));
+   end Show_View;
 
    procedure Fit_Sidebar (Item : in out Session) is
    begin
@@ -133,49 +123,43 @@ package body Viewer.Writing is
             Readers.Release (Item.Reading.Readers (Which));
          end if;
       end loop;
-      Item.Reading.Write_Count := 0;
       Item.Reading.Source_Total := 0;
       Item.Docs.Dirs.Count := 0;
-      Item.Docs.Tree_Count := 0;
-      Item.Docs.Shown_Dir := 0;
+      Trees.Reset (Item.Docs.Ordering);
+      Writing_VM.Reset (Item.Docs.Navigation);
       Item.Dragging.Drag_Row := 0;
       Item.Docs.Drop := (others => <>);
       Item.Naming.Renaming_Dir := 0;
       Widgets.Set_Visible (Item.Naming.Dir_Field, False);
       Widgets.Set_Visible (Item.Docs.Drop_Line, False);
       Tree.Refresh (Item);
-      Apply (Item, Canvas);
+      Show_View (Item, Canvas);
    end Leave;
 
    procedure Added (Item : in out Session; Which : Items.Slot) is
+      Directory : Natural := 0;
    begin
       if Support.Is_Note (Item, Which) then
          --  One written while a directory is shown is last in it; else
          --  last of all.
-         Item.Docs.Doc_Dir (Which) :=
+         Directory :=
            (if Item.Section_View.Pending in 1 .. Outlines.Section_Count (Item)
             then Support.Dir_Of_Section (Item, Item.Section_View.Pending)
-            elsif Item.Toolbar.Mode = Write then Item.Docs.Shown_Dir else 0);
+            elsif View_Mode (Item) = Write then Writing_VM.Shown (Item.Docs.Navigation, Item.Docs.Dirs) else 0);
          Order.Insert_Row
-           (Item,
-            (if Item.Docs.Doc_Dir (Which) = 0 then Item.Docs.Tree_Count + 1
-             else Support.Block_End (Item, Support.Dir_Row (Item, Item.Docs.Doc_Dir (Which)))
-                + 1),
-            (Kind => Document_Leaf, Dir => Item.Docs.Doc_Dir (Which),
-             Doc  => Which));
-         Order.Sync_Order (Item);
-         if Item.Docs.Doc_Dir (Which) /= 0 then
+           (Item, Order.Last_Of (Item, Directory), (Kind => Document_Leaf, Dir => Directory, Doc => Which));
+         if Trees.Directory_Of (Item.Docs.Ordering, Which) /= 0 then
             Order.Keep_Directory (Item, Which);
          end if;
          Order.Keep_Order (Item);
-         if Support.Section_Directory (Item, Item.Docs.Doc_Dir (Which)) /= 0 then
+         if Support.Section_Directory (Item, Trees.Directory_Of (Item.Docs.Ordering, Which)) /= 0 then
             --  Made in a section's folder, it is the section's, and called
             --  as it if it has no name of its own.
             Section_Links.Joined (Item, Which);
             Item.Section_Menu.Seen := Item.Section_Menu.Changes;
          end if;
          Tree.Refresh (Item);
-         if Item.Toolbar.Mode = Write then
+         if View_Mode (Item) = Write then
             Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
             Layout.Fit_Pages (Item);
             Tree.Go_To (Item, Support.Rank_Of (Item, Which));
@@ -197,9 +181,7 @@ package body Viewer.Writing is
          begin
             if Row > 0 then
                Order.Delete_Row (Item, Row);
-               Order.Sync_Order (Item);
             end if;
-            Item.Docs.Doc_Dir (Which) := 0;
          end;
       else
          declare
@@ -224,7 +206,7 @@ package body Viewer.Writing is
    end Removed;
 
    procedure Picture_Taken (Item : in out Session; Which : Items.Slot) is
-      Details : constant Items.Info := Windows.Details (Item.Windows (Which));
+      Details : constant Items.Info := Models.Details (Item.Models (Which));
 
       procedure Show (Shown : in out Readers.Reader; Sync : out Sync_State) is
       begin
@@ -245,7 +227,7 @@ package body Viewer.Writing is
    end Picture_Taken;
 
    procedure Page_Turned (Item : in out Session; Which : Items.Slot) is
-      Details : constant Items.Info := Windows.Details (Item.Windows (Which));
+      Details : constant Items.Info := Models.Details (Item.Models (Which));
    begin
       if Readers.Is_Assigned (Item.Reading.Readers (Which)) then
          Readers.Set_Document
@@ -404,10 +386,10 @@ package body Viewer.Writing is
             --  On the canvas, where its address can be typed.
             declare
                Document : constant Items.Slot :=
-                 Item.Reading.Write_Order (Item.Page_View.Menu_Page);
+                 Trees.Page_At (Item.Docs.Ordering, Item.Page_View.Menu_Page);
             begin
                Popups.Close_Menu (Item);
-               Show (Item, Canvas);
+               Navigation.Show (Item, Canvas);
                Canvas_Items.Add_Linked_Source (Item, Document);
             end;
          elsif Row - Popups.Rows_Before in 1 .. Item.Page_View.Menu_Count then
@@ -457,7 +439,7 @@ package body Viewer.Writing is
    is
       pragma Unreferenced (Source);
    begin
-      Canvas_Items.Toggle_Dictation (Item, Item.Reading.Write_Order (Event.Index));
+      Canvas_Items.Toggle_Dictation (Item, Trees.Page_At (Item.Docs.Ordering, Event.Index));
    end Dictate_Clicked;
 
    procedure Tool_Used
@@ -488,16 +470,16 @@ package body Viewer.Writing is
       Pomarine.Widgets.Editors.Clear_Link_Choices (Editor);
       for Row in 1 .. Item.Reading.Source_Total loop
          declare
-            Window : Items.Windows.Window renames Item.Windows (Item.Reading.Source_Order (Row));
+            Kept : Items.Models.Item renames Item.Models (Item.Reading.Source_Order (Row));
          begin
-            if Items.Windows.Is_Assigned (Window)
-              and then Items."=" (Items.Windows.Details (Window).Kind, Items.Source)
-              and then Items."=" (Items.Windows.Details (Window).Origin, Items.Remote)
-              and then Pomarine.Text_Areas.Is_Address (Items.Windows.Text (Window))
+            if Items.Models.Is_Assigned (Kept)
+              and then Items."=" (Items.Models.Details (Kept).Kind, Items.Source)
+              and then Items."=" (Items.Models.Details (Kept).Origin, Items.Remote)
+              and then Pomarine.Text_Areas.Is_Address (Items.Models.Text (Kept))
             then
                Pomarine.Widgets.Editors.Add_Link_Choice
-                 (Editor, Projects.Titles.To_String (Items.Windows.Details (Window).Title),
-                  Items.Windows.Text (Window));
+                 (Editor, Projects.Titles.To_String (Items.Models.Details (Kept).Title),
+                  Items.Models.Text (Kept));
             end if;
          end;
       end loop;
@@ -600,15 +582,15 @@ package body Viewer.Writing is
                   (if Rank > 0 and then Support.In_Writing (Item)
                    then Item.Docs.Pages (Rank).Text'Unrestricted_Access
                    else null));
-               Windows.Hold_Typing
-                 (Item.Windows (Which),
+               Models.Hold_Typing
+                 (Item.Models (Which),
                   Rank > 0
                   and then Widgets.Has_Focus (Item.Docs.Pages (Rank).Text));
                if Rank > 0 then
                   declare
                      Busy : constant Boolean :=
-                       Windows.Dictation (Item.Windows (Which))
-                       in Windows.Preparing | Windows.Listening;
+                       Models.Dictation (Item.Models (Which))
+                       in Models.Preparing | Models.Listening;
                      Mic  : Buttons.Button renames
                        Item.Docs.Pages (Rank).Mic_Button;
                   begin
@@ -623,7 +605,7 @@ package body Viewer.Writing is
                   end;
                   declare
                      Hearing : constant Boolean :=
-                       Windows.Dictation (Item.Windows (Which)) = Windows.Listening;
+                       Models.Dictation (Item.Models (Which)) = Models.Listening;
                      Level   : Progress_Bars.Progress_Bar renames
                        Item.Docs.Pages (Rank).Level;
                      Loud    : constant Float :=
@@ -640,7 +622,7 @@ package body Viewer.Writing is
                   end;
                   declare
                      Words : constant Natural :=
-                       Windows.Words (Item.Windows (Which));
+                       Models.Words (Item.Models (Which));
                   begin
                      Labels.Set_Text
                        (Item.Docs.Pages (Rank).Words,
@@ -659,7 +641,7 @@ package body Viewer.Writing is
                      if Row > 0 then
                         Labels.Set_Text
                           (Item.Docs.Doc_Rows (Row).Count,
-                           Support.Count_Image (Windows.Words (Item.Windows (Which))));
+                           Support.Count_Image (Models.Words (Item.Models (Which))));
                         Labels.Set_Text
                           (Item.Docs.Doc_Rows (Row).Caption,
                            Support.Title_Of (Item, Which));

@@ -174,7 +174,7 @@ package body Viewer.Grammar is
                     Widgets.Hit (Item.Root.Widgets, Event.Mouse_X * Pixels, Event.Mouse_Y * Pixels);
                begin
                   if Hit /= null then
-                     for Rank in 1 .. Item.Reading.Write_Count loop
+                     for Rank in 1 .. Trees.Page_Count (Item.Docs.Ordering) loop
                         if Widgets.Id_Of (Hit.all) = Widgets.Id_Of (Item.Docs.Pages (Rank).Text) then
                            State.Press_Rank := Rank;
                            State.Press_X := Event.Mouse_X;
@@ -322,7 +322,7 @@ package body Viewer.Grammar is
       if Hit = null then
          return;
       end if;
-      for Rank in 1 .. Item.Reading.Write_Count loop
+      for Rank in 1 .. Trees.Page_Count (Item.Docs.Ordering) loop
          if Widgets.Id_Of (Hit.all) = Widgets.Id_Of (Item.Docs.Pages (Rank).Text) then
             declare
                Area : Areas.Text_Area renames Editors.Area (Item.Docs.Pages (Rank).Text).all;
@@ -356,7 +356,7 @@ package body Viewer.Grammar is
       end if;
       State.Press_Rank := 0;
       if not Basics.Active (Item) or else Event.Button /= 1 or else Rank = 0
-        or else Rank > Item.Reading.Write_Count
+        or else Rank > Trees.Page_Count (Item.Docs.Ordering)
         or else abs (Event.Mouse_X - State.Press_X) > 4.0 or else abs (Event.Mouse_Y - State.Press_Y) > 4.0
       then
          return;
@@ -559,7 +559,7 @@ package body Viewer.Grammar is
       --  page reordering must invalidate the previous generation first.
       if Basics.Active (Item) then
          Basics.Load_Rules (Item);
-         for Rank in 1 .. Item.Reading.Write_Count loop
+         for Rank in 1 .. Trees.Page_Count (Item.Docs.Ordering) loop
             declare
                Area : Areas.Text_Area renames Editors.Area (Item.Docs.Pages (Rank).Text).all;
                Doc  : Docs.Document renames Areas.Document (Area).all;
@@ -600,7 +600,7 @@ package body Viewer.Grammar is
             end;
          end loop;
       end if;
-      if Item.Nav.Shown /= Project or else Item.Toolbar.Mode /= Write then
+      if Screen (Item) /= Project or else View_Mode (Item) /= Write then
          Close (Item);
       end if;
 
@@ -614,7 +614,7 @@ package body Viewer.Grammar is
                Harper.Poll (Worker.Checker, Result, Ready);
                if Ready then
                   Worker.Busy := False;
-                  if Basics.Active (Item) and then Worker.Rank <= Item.Reading.Write_Count
+                  if Basics.Active (Item) and then Worker.Rank <= Trees.Page_Count (Item.Docs.Ordering)
                     and then Worker.Token = Seen.Token
                   then
                      Seen.Busy := False;
@@ -666,7 +666,7 @@ package body Viewer.Grammar is
       end if;
       for Worker of State.Workers loop
          if not Worker.Busy then
-            for Rank in 1 .. Item.Reading.Write_Count loop
+            for Rank in 1 .. Trees.Page_Count (Item.Docs.Ordering) loop
                declare
                   Seen : Grammar_Document renames State.Documents (Rank);
                begin
@@ -709,7 +709,7 @@ package body Viewer.Grammar is
          end if;
       end loop;
       if Basics.Active (Item) and then Available then
-         for Rank in 1 .. Item.Reading.Write_Count loop
+         for Rank in 1 .. Trees.Page_Count (Item.Docs.Ordering) loop
             declare
                Seen : Grammar_Document renames Item.Grammar_Checks.Documents (Rank);
             begin

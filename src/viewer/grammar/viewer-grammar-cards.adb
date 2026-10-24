@@ -161,7 +161,7 @@ package body Viewer.Grammar.Cards is
    begin
       if State.Showing then
          Close (Item);
-      elsif Item.Nav.Shown = Project and then Item.Toolbar.Mode = Write then
+      elsif Screen (Item) = Project and then View_Mode (Item) = Write then
          Close_Inline (Item);
          Pomarine.Widgets.Scrollers.Scroll_To (State.Scroll, 0.0);
          State.Showing := True;

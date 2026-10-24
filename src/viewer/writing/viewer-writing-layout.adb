@@ -1,3 +1,4 @@
+with Writing_VM;
 with Projects.Sections;
 with Texts.Documents;
 with Pomarine.Text_Areas;
@@ -43,7 +44,9 @@ package body Viewer.Writing.Layout is
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
       Total  : constant Natural := Outlines.Section_Count (Item);
       Group  : constant Boolean :=
-        Total > 0 and then (Item.Docs.Shown_Dir = 0 or else Support.Is_Section (Item, Item.Docs.Shown_Dir));
+        Total > 0 and then (Writing_VM.Shown (Item.Docs.Navigation, Item.Docs.Dirs) = 0
+                           or else Support.Is_Section
+                             (Item, Writing_VM.Shown (Item.Docs.Navigation, Item.Docs.Dirs)));
 
       function Notes_Box_Height (Place : Positive) return Float is
         (Parts.Notes (Place).High + 2.0 * Style.Notes_Pad + 2.0);
@@ -125,20 +128,22 @@ package body Viewer.Writing.Layout is
             Open_Run := False;
          end Add_Section;
       begin
-         if Item.Docs.Shown_Dir /= 0 then
+         if Writing_VM.Shown (Item.Docs.Navigation, Item.Docs.Dirs) /= 0 then
             --  A section's own: its documents, or the button to write one.
-            Add_Section (Item.Docs.Shown_Dir);
-            for Row in 2 .. Item.Docs.Tree_Count loop
-               if Item.Docs.Tree (Row).Kind = Document_Leaf
-                 and then Support.Within (Item, Item.Docs.Tree (Row).Dir, Item.Docs.Shown_Dir)
+            Add_Section (Writing_VM.Shown (Item.Docs.Navigation, Item.Docs.Dirs));
+            for Row in 2 .. Trees.Count (Item.Docs.Ordering) loop
+               if Trees.Element (Item.Docs.Ordering, Row).Kind = Document_Leaf
+                 and then Support.Within
+                   (Item, Trees.Element (Item.Docs.Ordering, Row).Dir,
+                    Writing_VM.Shown (Item.Docs.Navigation, Item.Docs.Dirs))
                then
-                  Add (Page_Entry, Support.Rank_Of (Item, Item.Docs.Tree (Row).Doc));
+                  Add (Page_Entry, Support.Rank_Of (Item, Trees.Element (Item.Docs.Ordering, Row).Doc));
                end if;
             end loop;
          else
-            for Row in 2 .. Item.Docs.Tree_Count loop
+            for Row in 2 .. Trees.Count (Item.Docs.Ordering) loop
                declare
-                  Node : Tree_Entry renames Item.Docs.Tree (Row);
+                  Node : constant Tree_Entry := Trees.Element (Item.Docs.Ordering, Row);
                begin
                   case Node.Kind is
                      when Directory_Node =>
@@ -310,7 +315,7 @@ package body Viewer.Writing.Layout is
       Changed : Boolean;
       Moved   : Boolean := False;
    begin
-      if Item.Toolbar.Mode = Publish then
+      if View_Mode (Item) = Publish then
          --  The content area owns scrolling; the paper grows to contain
          --  all its text, and moves together with the surrounding margin.
          for Pass in 1 .. 3 loop
@@ -367,8 +372,8 @@ package body Viewer.Writing.Layout is
             Wide : constant Float :=
               Style.Page_Wide (Widgets.Width_Of (Item.Page_View.Pages_Content) / Pixels, Style.Write_Width);
          begin
-            for Rank in 1 .. Item.Reading.Write_Count loop
-               if Support.In_View (Item, Item.Reading.Write_Order (Rank)) then
+            for Rank in 1 .. Trees.Page_Count (Item.Docs.Ordering) loop
+               if Support.In_View (Item, Trees.Page_At (Item.Docs.Ordering, Rank)) then
                   declare
                      Each : Doc_Page renames Item.Docs.Pages (Rank);
                      High : constant Float :=
@@ -439,7 +444,7 @@ package body Viewer.Writing.Layout is
       end if;
 
       --  The caret, where it has gone, is kept in view.
-      for Rank in 1 .. Item.Reading.Write_Count loop
+      for Rank in 1 .. Trees.Page_Count (Item.Docs.Ordering) loop
          declare
             Each : Doc_Page renames Item.Docs.Pages (Rank);
             Area : Pomarine.Text_Areas.Text_Area renames

@@ -1,219 +1,74 @@
+with Editor_VM;
 with Pomarine.Text_Areas;
-with Icon_Set;
-with Items.Windows.Metrics;
+with Items.Windows.Displays;
 
 package body Items.Windows.Speaking is
-
    package Widgets renames Pomarine.Widgets;
-   package Buttons renames Pomarine.Widgets.Buttons;
-   package Labels renames Pomarine.Widgets.Labels;
    package Editors renames Pomarine.Widgets.Editors;
-
-   use type Docs.Version;
-   use type Texts.Position;
+   package Areas renames Pomarine.Text_Areas;
 
    function Typing_In (Item : Window) return access Editors.Editor is
-     (if Item.Dictate_In /= null then Item.Dictate_In
-      else Item.Body_Text'Unrestricted_Access);
-   --  Where the caret is that dictation goes in at.
+     (if Item.Dictate_In /= null then Item.Dictate_In else Item.Body_Text'Unrestricted_Access);
 
-   procedure Take_Back_Live (Item : in out Window);
-   --  Remove the text shown while listening, or, if the text has been
-   --  changed since, keep it as it is.
+   type Window_Editor is limited new Editor_VM.Editor with record
+      Owner : access Window;
+   end record;
+   overriding function Focused (Self : Window_Editor) return Boolean;
+   overriding function Caret (Self : Window_Editor) return Texts.Position;
+   overriding function Mark (Self : Window_Editor) return Texts.Position;
+   overriding procedure Select_Range (Self : in out Window_Editor; From, To : Texts.Position);
+   overriding procedure Insert (Self : in out Window_Editor; Text : String);
+   overriding procedure Set_Faint (Self : in out Window_Editor; From, To : Texts.Position);
+   overriding procedure Clear_Faint (Self : in out Window_Editor);
 
-   procedure Take_Back_Live (Item : in out Window) is
-      Doc : Docs.Document renames Item.Content_Doc;
+   overriding function Focused (Self : Window_Editor) return Boolean is
+     (Widgets.Has_Focus (Typing_In (Self.Owner.all).all));
+   overriding function Caret (Self : Window_Editor) return Texts.Position is
+     (Areas.Caret (Editors.Area (Typing_In (Self.Owner.all).all).all));
+   overriding function Mark (Self : Window_Editor) return Texts.Position is
+     (Areas.Mark (Editors.Area (Typing_In (Self.Owner.all).all).all));
+   overriding procedure Select_Range (Self : in out Window_Editor; From, To : Texts.Position) is
    begin
-      if Item.Live_Shown then
-         if Docs.Current (Doc) = Item.Live_Seen then
-            Docs.Replace
-              (Doc, Item.Live_From, Item.Live_To, "", Recorded => False);
-         else
-            Item.Live_Done := Item.Live_Upto;
-            Item.Live_Moved := True;
-         end if;
-      end if;
-      Pomarine.Text_Areas.Clear_Faint (Editors.Area (Item.Body_Text).all);
+      Areas.Select_Range (Editors.Area (Typing_In (Self.Owner.all).all).all, From, To);
+   end Select_Range;
+   overriding procedure Insert (Self : in out Window_Editor; Text : String) is
+   begin
+      Areas.Insert (Editors.Area (Typing_In (Self.Owner.all).all).all, Text);
+   end Insert;
+   overriding procedure Set_Faint (Self : in out Window_Editor; From, To : Texts.Position) is
+   begin
+      Areas.Set_Faint (Editors.Area (Typing_In (Self.Owner.all).all).all, From, To);
+   end Set_Faint;
+   overriding procedure Clear_Faint (Self : in out Window_Editor) is
+      Item : Window renames Self.Owner.all;
+   begin
+      Areas.Clear_Faint (Editors.Area (Item.Body_Text).all);
       if Item.Dictate_In /= null then
-         Pomarine.Text_Areas.Clear_Faint (Editors.Area (Item.Dictate_In.all).all);
+         Areas.Clear_Faint (Editors.Area (Item.Dictate_In.all).all);
       end if;
-      Item.Live_Shown := False;
-   end Take_Back_Live;
-
-   function Unsaid (Item : Window; Spoken : String) return String is
-     (if Item.Live_Done >= Spoken'Length then ""
-      else Spoken (Spoken'First + Item.Live_Done .. Spoken'Last));
-   --  What of Spoken is not yet in the text for good.
-
-   function One_Line_Feeds (Said : String) return String;
-   --  Said as it goes in a note: paragraphs are made by line feeds alone.
-
-   function One_Line_Feeds (Said : String) return String is
-   begin
-      return Spoken : String := Said do
-         for C of Spoken loop
-            if C = ASCII.CR then
-               C := ' ';
-            end if;
-         end loop;
-      end return;
-   end One_Line_Feeds;
+   end Clear_Faint;
 
    procedure Change
-     (Item   : in out Window;
-      To     : Dictations;
-      Detail : String := "") is
+     (Item : in out Window; To : Items.Models.Dictations; Detail : String := "")
+   is
+      View : Window_Editor;
    begin
-      if To = Failed then
-         Take_Back_Live (Item);
-      end if;
-      Item.Dictating := To;
-      Widgets.Set_Visible (Item.Progress, To = Listening);
-      Pomarine.Widgets.Progress_Bars.Set_Value (Item.Progress, 0.0);
-      Buttons.Set_Icon
-        (Item.Speak_Button,
-         (if To in Preparing | Listening
-          then Icon_Set.Stop else Icon_Set.Microphone));
-      Buttons.Set_Label
-        (Item.Speak_Button,
-         (if To in Preparing | Listening then "Stop" else "Dictate"));
-      case To is
-         when Silent =>
-            Labels.Set_Text (Item.Status, "");
-         when Preparing =>
-            Labels.Set_Text (Item.Status, "Getting ready...");
-         when Listening =>
-            Labels.Set_Text (Item.Status, "Listening...");
-         when Transcribing =>
-            Labels.Set_Text (Item.Status, "Transcribing...");
-         when Failed =>
-            Labels.Set_Text
-              (Item.Status, "Could not dictate: " & Detail);
-      end case;
+      View.Owner := Item'Unrestricted_Access;
+      Items.Models.Change_Dictation (Item.Model.all, View, To, Detail);
+      Displays.Show_Status (Item);
    end Change;
 
-   procedure Show_Level (Item : in out Window; To : Float) is
-      Stepped : constant Float :=
-        Float'Rounding (To * Metrics.Level_Steps) / Metrics.Level_Steps;
-   begin
-      if Item.Dictating = Listening
-        and then Pomarine.Widgets.Progress_Bars.Value (Item.Progress) /= Stepped
-      then
-         Pomarine.Widgets.Progress_Bars.Set_Value (Item.Progress, Stepped);
-      end if;
-   end Show_Level;
-
    procedure Show_Live (Item : in out Window; Said : String; Settled : Natural := 0) is
-      Area   : Pomarine.Text_Areas.Text_Area
-        renames Editors.Area (Typing_In (Item).all).all;
-      Doc    : Docs.Document renames Item.Content_Doc;
-      Whole  : constant String := One_Line_Feeds (Said);
+      View : Window_Editor;
    begin
-      if Item.Live_Shown and then Docs.Current (Doc) /= Item.Live_Seen then
-         Take_Back_Live (Item);  --  keeps what was shown
-      end if;
-      if Docs.Current (Doc) /= Item.Live_Version then
-         --  Being typed in: nothing is shown until it stops.
-         Item.Live_Version := Docs.Current (Doc);
-         return;
-      end if;
-      declare
-         Spoken : constant String := Unsaid (Item, Whole);
-         Fresh  : constant Natural :=
-           (if Settled > Item.Live_Done then Settled - Item.Live_Done else 0);
-      begin
-         if not Item.Live_Shown then
-            if Spoken = "" then
-               return;
-            end if;
-            if Item.Live_Moved or else Widgets.Has_Focus (Typing_In (Item).all) then
-               Item.Live_From := Pomarine.Text_Areas.Caret (Area);
-               Item.Live_Break := False;
-            else
-               Item.Live_From := Docs.Text_End (Doc);
-               Item.Live_Break := Docs.Byte_Length (Doc, Docs.Count (Doc)) /= 0;
-            end if;
-            Item.Live_To := Item.Live_From;
-            Item.Live_Shown := True;
-         end if;
-         declare
-            Shown : constant String :=
-              (if Item.Live_Break then [ASCII.LF] else "") & Spoken;
-         begin
-            Item.Live_Upto := Item.Live_Done + Spoken'Length;
-            if Docs.Between (Doc, Item.Live_From, Item.Live_To) /= Shown then
-               Docs.Replace
-                 (Doc, Item.Live_From, Item.Live_To, Shown, Recorded => False);
-               if Pomarine.Text_Areas.Caret (Area) = Item.Live_From
-                 and then Pomarine.Text_Areas.Mark (Area) = Item.Live_From
-               then
-                  --  Typing goes on after what is shown, not before it.
-                  Item.Live_To := Texts.End_After (Item.Live_From, Shown);
-                  Pomarine.Text_Areas.Select_Range (Area, Item.Live_To, Item.Live_To);
-               else
-                  Item.Live_To := Texts.End_After (Item.Live_From, Shown);
-               end if;
-               Item.Live_Seen := Docs.Current (Doc);
-               Item.Live_Version := Item.Live_Seen;
-            end if;
-            declare
-               --  What is not settled starts at a character's beginning.
-               Edge : Natural := Natural'Min (Fresh, Spoken'Length);
-            begin
-               while Edge < Spoken'Length
-                 and then Character'Pos (Spoken (Spoken'First + Edge)) in 16#80# .. 16#BF#
-               loop
-                  Edge := Edge + 1;
-               end loop;
-               if Edge < Spoken'Length then
-                  Pomarine.Text_Areas.Set_Faint
-                    (Area,
-                     Texts.End_After
-                       (Item.Live_From, Shown (Shown'First .. Shown'Last - (Spoken'Length - Edge))),
-                     Item.Live_To);
-               else
-                  Pomarine.Text_Areas.Clear_Faint (Area);
-               end if;
-            end;
-         end;
-      end;
+      View.Owner := Item'Unrestricted_Access;
+      Editor_VM.Show_Live (Items.Models.Editor (Item.Model.all).all, View, Said, Settled);
    end Show_Live;
 
    procedure Append_Said (Item : in out Window; Said : String) is
-      Area   : Pomarine.Text_Areas.Text_Area renames Editors.Area (Typing_In (Item).all).all;
-      Doc    : Docs.Document renames Item.Content_Doc;
-      Whole  : constant String := One_Line_Feeds (Said);
+      View : Window_Editor;
    begin
-      Take_Back_Live (Item);
-      declare
-         --  What was kept as typed text, while being dictated, is not put in again.
-         Spoken   : constant String := Unsaid (Item, Whole);
-         At_Caret : constant Boolean := Item.Live_Moved or else Widgets.Has_Focus (Typing_In (Item).all);
-      begin
-         Item.Live_Done := 0;
-         Item.Live_Moved := False;
-         if Spoken = "" then
-            return;
-         end if;
-         if At_Caret then
-            --  At the caret, not over what is selected.
-            Pomarine.Text_Areas.Select_Range
-              (Area, Pomarine.Text_Areas.Caret (Area), Pomarine.Text_Areas.Caret (Area));
-            Pomarine.Text_Areas.Insert (Area, Spoken);
-         else
-            declare
-               After : constant Texts.Position := Docs.Text_End (Doc);
-               --  An empty last paragraph is filled, not left as a gap.
-               Blank : constant Boolean :=
-                 Docs.Byte_Length (Doc, Docs.Count (Doc)) = 0;
-            begin
-               Docs.Begin_Step (Doc);
-               Docs.Replace
-                 (Doc, After, After, (if Blank then "" else [ASCII.LF]) & Spoken);
-               Docs.End_Step (Doc);
-            end;
-         end if;
-      end;
+      View.Owner := Item'Unrestricted_Access;
+      Editor_VM.Append_Said (Items.Models.Editor (Item.Model.all).all, View, Said);
    end Append_Said;
-
 end Items.Windows.Speaking;

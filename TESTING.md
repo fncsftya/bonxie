@@ -92,14 +92,29 @@ A screen's rules are tested without drawing it. In three tiers, the cheapest fir
   shows.
 - **Goldens, for drawing only** (`home-settings*`): what the form looks like.
 
-The same three tiers for the other screens: `home-vm-*`, `confirm-vm-*`, `outline-vm-*` and `grammar-vm-*` are the
+The same three tiers for the other screens: `home-vm-*`, `confirm-vm-*`, `outline-vm-*`, `grammar-vm-*`, `nav-vm-*`, `canvas-vm-*` and `item-list-vm-*` are the
 view-models alone (each with fakes for what it is given and, for the database, the real store in memory:
-`*-stored`); `home-by-name`, `outline-by-name`, `settings-by-name` and `write-grammar-entry-by-name` drive the
+`*-stored`); `home-by-name`, `outline-by-name`, `settings-by-name`, `nav-by-name`, `item-list-by-name` and
+`write-grammar-entry-by-name` drive the
 session through `Pomarine.Testing` (`Tests/src/viewer_driver.ads` lets it take a `Viewer.Session`'s events and
 time) and found, among others, that the form that makes a grammar rule closed the list when pressed.
 
+`item-model-*` checks widget-free item details, documents, marks, capture and dictation states, versions and
+flush rules. `canvas-vm-*` checks camera and steering, item lifecycle, source origin, links and persistence;
+`nav-vm-*` checks navigation, renaming and modal layers. `item-list-vm-*` checks rows, complete long titles,
+show/hide/reveal/remove, stable versions, invalid row contracts and stale identities after slot reuse.
+`item-list-by-name` checks the list's bindings, while the existing `items-list*` goldens check its drawing.
+
 `view-models-no-widgets` reads the files of `src/view_models/` and fails if one names `Pomarine.Widgets` or
 `SDL3`. The parts of a view-model (`Pomarine.View_Models`) and its bindings are tested in `pomarine`.
+
+`editor-vm-*` tests dictation through `Editor_VM` and a fake editor, without widgets: insertion at the caret
+without replacing a selection, paragraph placement, provisional text and faint ranges, typing interruptions,
+retained speech, final-text undo/redo, failure cleanup, UTF-8 settled offsets, 70,000-byte transcripts, contracts
+and item reuse. `editor-by-name` drives the real canvas and writing editors through `Pomarine.Testing`, feeding
+transcripts through the test API because it cannot speak. It checks caret insertion, live/final dictation,
+undo and shared document content across views. Writing editors are named "Text of <document title>".
+The existing `items-dictating*` tests continue to cover dictation through the viewer.
 
 ## Web pages
 
@@ -217,3 +232,22 @@ excludes images. `sources-words` also searches recognized web-page text and phra
 `write-search` checks matches across all writing documents, including pages hidden by a folder,
 F3 and Shift+F3 navigation across pages, wrapping, buttons, and clearing every page on Escape.
 Search decorations are transient and separate from saved highlighter marks.
+
+`search-vm-lifecycle` tests `Search_VM` without widgets, through a fake Finder: query retention and long queries,
+command contracts, no-op versions, asynchronous results and busy state, scope changes, invalid contexts and
+stale target identity. The Finder owns match navigation and wrapping; the view-model owns search lifecycle,
+scope, target, query, result summary and command availability. `search-by-name` checks the field, result count,
+Previous/Next, disabled controls with no matches, and Close through `Pomarine.Testing`.
+The production Finder in `Viewer.Search` adapts the text-area and picture/page engines and clears their
+transient decorations when the search closes.
+
+`writing-vm-navigation` checks directory ancestry, section lookup, subtree visibility, selection by stable key,
+reordering, deletion/replacement, no-op versions, reset and selection contracts without widgets.
+
+`writing-vm-ordering` checks tree/page ordering, subtree moves in both directions, section/cycle and insertion
+boundary contracts, document membership, persisted positions and parents, no-op versions/writes, insertion,
+delete/reset, unplaced ties and growth to 2,048 documents using a fake persistence interface. The model maintains
+page and membership indexes internally; tests check those indexes after moves and removal.
+`writing-by-name` creates and selects a folder, checks filtering, adds a document in it, switches tabs and returns
+to Overview through semantic controls. Tree rows expose Overview, Directory <title> and Document <title> names;
+the sidebar's document button is named Add document.

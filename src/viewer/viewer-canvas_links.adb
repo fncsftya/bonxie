@@ -1,6 +1,6 @@
+with Canvas_VM;
 with Items;
 with Items.Links;
-with Items.Windows;
 with Viewer.Canvas_Items;
 with Viewer.Links;
 
@@ -9,29 +9,22 @@ package body Viewer.Canvas_Links is
    use type Items.Id;
 
    function Link_Count (Item : Session) return Natural is
-     (Item.Linking.Link_Set.Count);
+     (Canvas_VM.Link_Count (Item.Canvas_Model.Model));
 
    procedure Link_Items (Item : in out Session; From, To : Positive) is
-      Added : Boolean;
    begin
-      Items.Links.Add_Link
-        (Item.Nav.Store,
-         (From => Items.Windows.Details
-                    (Item.Windows (Canvas_Items.Nth (Item, From))).Key,
-          To   => Items.Windows.Details
-                    (Item.Windows (Canvas_Items.Nth (Item, To))).Key,
-          others => <>),
-         Added);
-      Links.Reload (Item);
+      Canvas_VM.Join
+        (Item.Canvas_Model.Model, Canvas_Items.Nth (Item, From), Canvas_Items.Nth (Item, To),
+         Items.Links.Top, Items.Links.Top);
    end Link_Items;
 
    function Link_Selected (Item : Session) return Boolean is
-     (Item.Linking.Link_Key /= 0);
+     (Canvas_VM.Selected_Link (Item.Canvas_Model.Model) /= 0);
 
    function Link_Description
      (Item : Session; Number : Positive) return String
    is
-      Each : Items.Links.Link renames Item.Linking.Link_Set (Number);
+      Each : constant Items.Links.Link := Canvas_VM.Link_At (Item.Canvas_Model.Model, Number);
    begin
       return Items.Links.Strokes'Image (Each.Stroke) & ' '
         & Items.Links.Endings'Image (Each.Ending) & ' '

@@ -1,6 +1,7 @@
 with Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
 with Pomarine.Words;
 with Items.Marks;
+with Items.Models;
 with Pomarine.Mark_Paths;
 with Pomarine.Marks;
 with Items.Records;
@@ -22,7 +23,6 @@ with SDL3.Pictures.Jobs;
 with Vision;
 with Webshot;
 with Goldens;
-with Items.Windows;
 with Pomarine.Page_Builds;
 with Pomarine.Application;
 with Projects;
@@ -255,7 +255,7 @@ package body Item_Tests is
 
    procedure Counting_Words is
       function Words (Text : String) return String is
-        (Image_Of (Items.Windows.Count_Words (Text)));
+        (Image_Of (Items.Models.Count_Words (Text)));
    begin
       Check ("words-none", " 0", Words (""));
       Check ("words-spaces", " 0", Words ("  " & ASCII.LF));

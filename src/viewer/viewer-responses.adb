@@ -1,6 +1,7 @@
 with Settings_VM;
 with Confirm_VM;
 with Home_VM;
+with Nav_VM;
 with Preferences;
 with Pomarine.Widgets.Callbacks;
 with Pomarine.Widgets.Editors.Callbacks;
@@ -15,7 +16,7 @@ with Viewer.Writing;
 
 package body Viewer.Responses is
 
-   use type Confirm_VM.Subjects;
+   use type Nav_VM.Layers;
 
    package Widgets renames Pomarine.Widgets;
 
@@ -26,45 +27,6 @@ package body Viewer.Responses is
    subtype Source_Widget is Widgets.Widget'Class;
 
    --  The home screen
-
-   procedure Start_Project
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
-
-   procedure Start_Project
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source, Event);
-   begin
-      if Item.Nav.Shown = Home then
-         Navigation.Enter_New (Item);
-      end if;
-   end Start_Project;
-
-   procedure Open_Settings
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
-
-   procedure Open_Settings
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source, Event);
-   begin
-      if Item.Nav.Shown = Home and then not Settings_VM.Is_Showing (Item.Choices.Model) then
-         Settings_View.Open (Item);
-      end if;
-   end Open_Settings;
-
-   procedure Open_Project
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
-
-   procedure Open_Project
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source);
-   begin
-      if Item.Nav.Shown = Home then
-         Navigation.Enter (Item, Home_VM.Key_Of (Item.Home_Model.Model, Event.Index));
-      end if;
-   end Open_Project;
 
    procedure Delete_Project
      (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
@@ -84,21 +46,7 @@ package body Viewer.Responses is
    --  all that takes clicks.
 
    function Settings_Open (Item : Session) return Boolean is
-     (Settings_VM.Is_Showing (Item.Choices.Model)
-      and then Confirm_VM.Subject (Item.Dialog_Model.Model) /= Confirm_VM.Model);
-
-   procedure Close_Settings
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
-
-   procedure Close_Settings
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source, Event);
-   begin
-      if Settings_Open (Item) then
-         Settings_View.Close (Item);
-      end if;
-   end Close_Settings;
+     (Nav_VM.Layer (Item.Nav_Model.Model) = Nav_VM.Settings_Form);
 
    procedure Choose_Light
      (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
@@ -235,63 +183,6 @@ package body Viewer.Responses is
 
    --  A project
 
-   procedure Leave_Project
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
-
-   procedure Leave_Project
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source, Event);
-   begin
-      if Item.Nav.Shown = Project then
-         Navigation.Leave (Item);
-      end if;
-   end Leave_Project;
-
-   procedure Show_Outline
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
-
-   procedure Show_Outline
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source, Event);
-   begin
-      Writing.Show (Item, Outline);
-   end Show_Outline;
-
-   procedure Show_Canvas
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
-
-   procedure Show_Canvas
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source, Event);
-   begin
-      Writing.Show (Item, Canvas);
-   end Show_Canvas;
-
-   procedure Show_Writing
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
-
-   procedure Show_Writing
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source, Event);
-   begin
-      Writing.Show (Item, Write);
-   end Show_Writing;
-
-   procedure Show_Publish
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
-
-   procedure Show_Publish
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source, Event);
-   begin
-      Writing.Show (Item, Publish);
-   end Show_Publish;
-
    procedure Add_Document
      (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
 
@@ -300,7 +191,7 @@ package body Viewer.Responses is
    is
       pragma Unreferenced (Source, Event);
    begin
-      if Item.Toolbar.Mode = Write then
+      if View_Mode (Item) = Write then
          Canvas_Items.Add (Item, Canvas_Items.Untitled_Document);
       else
          Canvas_Items.Add (Item);
@@ -317,30 +208,6 @@ package body Viewer.Responses is
    begin
       Canvas_Items.Add (Item, Canvas_Items.Untitled_Source, Items.Source);
    end Add_Source;
-
-   procedure Open_List
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
-
-   procedure Open_List
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source, Event);
-   begin
-      Listing.Open (Item);
-   end Open_List;
-
-   procedure Close_List
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
-
-   procedure Close_List
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source, Event);
-   begin
-      if Item.Item_List.Showing_List then
-         Listing.Close (Item);
-      end if;
-   end Close_List;
 
    --  What the menu bar and the keys ask
 
@@ -367,19 +234,12 @@ package body Viewer.Responses is
          end if;
          return;
       end if;
-      if not Commands.Is_Bound (Event) then
+      if Nav_Binding.Is_Bound (Event) then
+         if Event.Kind in Widgets.Click | Widgets.Submit then
+            Navigation.Do_Command (Item, Nav_Binding.What (Event), Event.Index);
+         end if;
          return;
       end if;
-      case Commands.What (Event) is
-         when Start_Project => Start_Project (Item, Item.Root.Window_Panel, Event);
-         when Open_Settings => Open_Settings (Item, Item.Root.Window_Panel, Event);
-         when Leave_Project => Leave_Project (Item, Item.Root.Window_Panel, Event);
-         when Show_Outline  => Show_Outline (Item, Item.Root.Window_Panel, Event);
-         when Show_Canvas   => Show_Canvas (Item, Item.Root.Window_Panel, Event);
-         when Show_Writing  => Show_Writing (Item, Item.Root.Window_Panel, Event);
-         when Show_Publish  => Show_Publish (Item, Item.Root.Window_Panel, Event);
-         when Open_List     => Open_List (Item, Item.Root.Window_Panel, Event);
-      end case;
    end Perform;
 
    --  Giving them to the widgets
@@ -415,22 +275,18 @@ package body Viewer.Responses is
       Confirm_Binding.Bind (Item.Confirm.Confirm_Delete, Confirm_VM.Confirm);
       Confirm_Binding.Bind (Item.Confirm.Confirm_Cancel, Confirm_VM.Cancel);
       Confirm_Binding.Bind (Item.Confirm.Dialog_Close, Confirm_VM.Cancel);
-      Commands.Bind (Start.New_Button, Start_Project);
-      Commands.Bind (Start.New_Card, Start_Project);
-      Commands.Bind (Start.New_Card_Plus, Start_Project);
-      Commands.Bind (Start.Settings_Button, Open_Settings);
-      Hear (Start.New_Button, Click, Start_Project'Access);
-      Hear (Start.New_Card, Click, Start_Project'Access);
-      Hear (Start.New_Card_Plus, Click, Start_Project'Access);
-      Hear (Start.Settings_Button, Click, Open_Settings'Access);
+      Nav_Binding.Trigger (Start.New_Button, Nav_VM.Start_Project);
+      Nav_Binding.Trigger (Start.New_Card, Nav_VM.Start_Project);
+      Nav_Binding.Trigger (Start.New_Card_Plus, Nav_VM.Start_Project);
+      Nav_Binding.Trigger (Start.Settings_Button, Nav_VM.Open_Settings);
       for Card in Start.Cards'Range loop
-         Hear (Start.Cards (Card).Peek, Click, Open_Project'Access, Card);
-         Hear (Start.Cards (Card).Name, Click, Open_Project'Access, Card);
+         Nav_Binding.Trigger (Start.Cards (Card).Peek, Nav_VM.Open_Project, Card);
+         Nav_Binding.Trigger (Start.Cards (Card).Name, Nav_VM.Open_Project, Card);
          Hear (Start.Cards (Card).Delete, Click, Delete_Project'Access, Card);
       end loop;
 
       --  The settings
-      Hear (Prefs.Settings_Close, Click, Close_Settings'Access);
+      Nav_Binding.Bind (Prefs.Settings_Close, Nav_VM.Close_Settings);
       Hear (Prefs.Theme_Light, Change, Choose_Light'Access);
       Hear (Prefs.Theme_Dark, Change, Choose_Dark'Access);
       Hear (Prefs.Theme_System, Change, Choose_System'Access);
@@ -448,21 +304,15 @@ package body Viewer.Responses is
       Hear (Prefs.Delete_Button, Click, Delete_Model'Access);
 
       --  A project: the bar, the tray, and the list of items
-      Commands.Bind (Bar.Close_Button, Leave_Project);
-      Commands.Bind (Bar.Outline_Tab, Show_Outline);
-      Commands.Bind (Bar.Canvas_Tab, Show_Canvas);
-      Commands.Bind (Bar.Write_Tab, Show_Writing);
-      Commands.Bind (Bar.Publish_Tab, Show_Publish);
-      Commands.Bind (Item.Dock.Tool_List, Open_List);
-      Hear (Bar.Close_Button, Click, Leave_Project'Access);
-      Hear (Bar.Outline_Tab, Click, Show_Outline'Access);
-      Hear (Bar.Canvas_Tab, Click, Show_Canvas'Access);
-      Hear (Bar.Write_Tab, Click, Show_Writing'Access);
-      Hear (Bar.Publish_Tab, Click, Show_Publish'Access);
+      Nav_Binding.Bind (Bar.Close_Button, Nav_VM.Leave_Project);
+      Nav_Binding.Bind (Bar.Outline_Tab, Nav_VM.Show_Outline);
+      Nav_Binding.Bind (Bar.Canvas_Tab, Nav_VM.Show_Canvas);
+      Nav_Binding.Bind (Bar.Write_Tab, Nav_VM.Show_Writing);
+      Nav_Binding.Bind (Bar.Publish_Tab, Nav_VM.Show_Publish);
+      Nav_Binding.Bind (Item.Dock.Tool_List, Nav_VM.Open_List);
+      Nav_Binding.Bind (Item.Item_List.List_Close, Nav_VM.Close_List);
       Hear (Item.Dock.Tool_Item, Click, Add_Document'Access);
       Hear (Item.Dock.Tool_Source, Click, Add_Source'Access);
-      Hear (Item.Dock.Tool_List, Click, Open_List'Access);
-      Hear (Item.Item_List.List_Close, Click, Close_List'Access);
       Hear (Item.Item_List.List_View, Click, Listing.Clicked'Access);
       Hear (Item.Item_List.List_View, Submit, Listing.Clicked'Access);
       Hear (Item.Item_List.List_View, Act, Listing.Acted'Access);

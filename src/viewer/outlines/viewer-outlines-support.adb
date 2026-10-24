@@ -1,11 +1,10 @@
 with Outline_VM;
 with Viewer.Build;
-with Viewer.Gestures;
 
 package body Viewer.Outlines.Support is
 
    function In_Outline (Item : Session) return Boolean is
-     (Gestures.Active (Item) and then Item.Toolbar.Mode = Outline);
+     (Takes_Gestures (Item) and then View_Mode (Item) = Outline);
 
    function Cut (Content : String; Most : Positive) return String is
       Last : Natural := Content'First - 1 + Natural'Min (Content'Length, Most);

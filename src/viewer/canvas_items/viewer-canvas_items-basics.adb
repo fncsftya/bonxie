@@ -1,9 +1,12 @@
+with Items.Models;
 with Ada.Calendar;
 with Ada.Calendar.Formatting;
 
 package body Viewer.Canvas_Items.Basics is
 
    package Windows renames Items.Windows;
+
+   package Models renames Items.Models;
 
    use type Items.Kinds;
 
@@ -17,11 +20,11 @@ package body Viewer.Canvas_Items.Basics is
 
    function Is_Source (Item : Session; Which : Items.Slot) return Boolean is
      (Windows.Is_Assigned (Item.Windows (Which))
-      and then Windows.Details (Item.Windows (Which)).Kind = Items.Source);
+      and then Models.Details (Item.Models (Which)).Kind = Items.Source);
 
    procedure Touch (Item : in out Session) is
    begin
-      Projects.Touch (Item.Nav.Store, Item.Opened.Current);
+      Projects.Touch (Item.Nav.Store, Open_Key (Item));
    end Touch;
 
 end Viewer.Canvas_Items.Basics;

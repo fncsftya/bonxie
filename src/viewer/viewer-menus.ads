@@ -12,8 +12,7 @@ private package Viewer.Menus is
    --  without a window.
 
    function Validate (Item : Session; Tag : Integer; Index : Natural) return Pomarine.Widgets.Command_State;
-   --  What the command called Tag is for: the window's own, as the menu bar
-   --  shows them (without one, as the buttons are set), and the settings'.
+   --  What the command called Tag is for: whatever view-model it is of says, and the menu bar ticks the view shown.
 
    procedure Key_Taken (Item : in out Session; Event : Pomarine.Events.Event);
    --  A key was handled by a widget. If a menu item has that key (the

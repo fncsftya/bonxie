@@ -1,3 +1,4 @@
+with Writing_VM.Trees;
 with Items.Directories;
 with Growing;
 with Slot_Tables;
@@ -179,18 +180,10 @@ package Viewer_Parts.Pages is
       --  The pages of the writing view: after Windows, whose documents
       --  they show.
       Doc_Rows     : Rows.Tree_Row_Array;
-      Tree         : Rows.Tree_Entry_Array;
-      Tree_Count   : Natural := 0;
-      --  The rows of the documents' tree, from the top: the Overview,
-      --  then each directory directly followed by its documents, and
-      --  the documents in none among them. What each is of.
+      Ordering     : Writing_VM.Trees.Tree_Model;
       Dirs         : Items.Directories.Directory_List;
-      Doc_Dir      : Common.Dir_Array;
-      --  The directories, and which of them each document's window is in,
-      --  0 if none. Tree is the order of it all.
-      Shown_Dir    : Natural := 0;
-      --  The directory whose documents are the pages, 0 for the Overview:
-      --  all of them.
+      --  Loaded directories; document membership and row order belong to Ordering.
+      Navigation   : Writing_VM.View_Model;
       Drop         : Rows.Drop_Target;
       --  Where the document being dragged would go.
       Drop_Line    : Pomarine.Widgets.Panels.Panel;
@@ -307,9 +300,6 @@ package Viewer_Parts.Pages is
       Pane_Sync    : Common.Sync_State;
       Reader_Placed : Common.Placed_Array;
       --  Whether a reader has been given a place yet.
-      Write_Order  : Common.Slot_Array;
-      Write_Count  : Natural := 0;
-      --  The windows of the documents, in the order they are written in.
       Source_Order : Common.Slot_Array;
       Source_Total : Natural := 0;
       --  The windows of the sources, the earliest made first.

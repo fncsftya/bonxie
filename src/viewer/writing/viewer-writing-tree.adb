@@ -1,3 +1,7 @@
+with Writing_VM;
+with Canvas_VM;
+with Items.Links;
+with Items.Models;
 with Projects.Sections;
 with Items.Readers;
 with Pomarine.Themes;
@@ -27,7 +31,7 @@ package body Viewer.Writing.Tree is
    package Labels renames Pomarine.Widgets.Labels;
    package Scrollers renames Pomarine.Widgets.Scrollers;
    package Readers renames Items.Readers;
-   package Windows renames Items.Windows;
+   package Models renames Items.Models;
 
    use type Items.Id;
    use type Items.States;
@@ -53,22 +57,25 @@ package body Viewer.Writing.Tree is
    function Linked_Sources
      (Item : Session; Which : Items.Slot) return Natural
    is
-      Key   : constant Items.Id := Windows.Details (Item.Windows (Which)).Key;
+      Key   : constant Items.Id := Models.Details (Item.Models (Which)).Key;
       Total : Natural := 0;
    begin
       for Row in 1 .. Item.Reading.Source_Total loop
          declare
             Other : constant Items.Id :=
-              Windows.Details
-                (Item.Windows (Item.Reading.Source_Order (Row))).Key;
+              Models.Details (Item.Models (Item.Reading.Source_Order (Row))).Key;
          begin
-            for Each of Item.Linking.Link_Set loop
-               if (Each.From = Key and then Each.To = Other)
-                 or else (Each.From = Other and then Each.To = Key)
-               then
-                  Total := Total + 1;
-                  exit;
-               end if;
+            for Number in 1 .. Canvas_VM.Link_Count (Item.Canvas_Model.Model) loop
+               declare
+                  Each : constant Items.Links.Link := Canvas_VM.Link_At (Item.Canvas_Model.Model, Number);
+               begin
+                  if (Each.From = Key and then Each.To = Other)
+                    or else (Each.From = Other and then Each.To = Key)
+                  then
+                     Total := Total + 1;
+                     exit;
+                  end if;
+               end;
             end loop;
          end;
       end loop;
@@ -81,17 +88,17 @@ package body Viewer.Writing.Tree is
 
    procedure Show_Tree_Row (Item : in out Session; Row : Tree_Row) is
       Each    : Index_Row renames Item.Docs.Doc_Rows (Row);
-      Node    : Tree_Entry renames Item.Docs.Tree (Row);
+      Node    : constant Tree_Entry := Trees.Element (Item.Docs.Ordering, Row);
       Dropped : constant Boolean :=
         Item.Docs.Drop.Kind = Into_Node and then Item.Docs.Drop.Row = Row;
       --  While a document is dragged, the nodes it can be dropped on show.
       Hinted  : constant Boolean :=
         Item.Dragging.Drag_Row /= 0 and then Item.Dragging.Drag_Moved
-        and then (Item.Docs.Tree (Item.Dragging.Drag_Row).Kind = Document_Leaf
+        and then (Trees.Element (Item.Docs.Ordering, Item.Dragging.Drag_Row).Kind = Document_Leaf
                   or else Node.Kind = Overview_Node
                   or else (Node.Kind = Directory_Node
                            and then not Support.Within
-                             (Item, Node.Dir, Item.Docs.Tree (Item.Dragging.Drag_Row).Dir)));
+                             (Item, Node.Dir, Trees.Element (Item.Docs.Ordering, Item.Dragging.Drag_Row).Dir)));
       Chosen  : Boolean;
       Level   : Float := 0.0;
    begin
@@ -101,8 +108,8 @@ package body Viewer.Writing.Tree is
          when Overview_Node =>
             Labels.Set_Text (Each.Caption, "Overview");
             Labels.Set_Text (Each.Count,
-                             Support.Count_Image (Item.Reading.Write_Count));
-            Chosen := Item.Docs.Shown_Dir = 0;
+                             Support.Count_Image (Trees.Page_Count (Item.Docs.Ordering)));
+            Chosen := Writing_VM.Shown (Item.Docs.Navigation, Item.Docs.Dirs) = 0;
          when Directory_Node =>
             Labels.Set_Text
               (Each.Caption,
@@ -110,13 +117,13 @@ package body Viewer.Writing.Tree is
                          (Item.Docs.Dirs (Node.Dir).Title));
             Labels.Set_Text
               (Each.Count, Support.Count_Image (Support.Documents_In (Item, Node.Dir)));
-            Chosen := Item.Docs.Shown_Dir = Node.Dir;
+            Chosen := Writing_VM.Shown (Item.Docs.Navigation, Item.Docs.Dirs) = Node.Dir;
             Level := Float (Support.Depth (Item, Node.Dir)) * Style.Tree_Indent;
          when Document_Leaf =>
             Labels.Set_Text (Each.Caption, Support.Title_Of (Item, Node.Doc));
             Labels.Set_Text
               (Each.Count,
-               Support.Count_Image (Windows.Words (Item.Windows (Node.Doc))));
+               Support.Count_Image (Models.Words (Item.Models (Node.Doc))));
             if Node.Dir /= 0 then
                Level := Float (Support.Depth (Item, Node.Dir) + 1) * Style.Tree_Indent;
             end if;
@@ -126,6 +133,12 @@ package body Viewer.Writing.Tree is
                else Widgets.Has_Focus
                       (Item.Docs.Pages (Support.Rank_Of (Item, Node.Doc)).Text));
       end case;
+      Widgets.Set_Accessible_Name
+        (Each.Row,
+         (case Node.Kind is
+             when Overview_Node => "Overview",
+             when Directory_Node => "Directory " & Projects.Titles.To_String (Item.Docs.Dirs (Node.Dir).Title),
+             when Document_Leaf => "Document " & Support.Title_Of (Item, Node.Doc)));
       if Node.Kind = Overview_Node then
          --  Neither a section, a directory nor a document: a band of its
          --  own, with a rule in the accent colour, lit when it is shown.
@@ -178,10 +191,10 @@ package body Viewer.Writing.Tree is
          declare
             Each : Doc_Page renames Item.Docs.Pages (Rank);
          begin
-            if Rank <= Item.Reading.Write_Count then
+            if Rank <= Trees.Page_Count (Item.Docs.Ordering) then
                declare
                   Which : constant Items.Slot
-                     := Item.Reading.Write_Order (Rank);
+                     := Trees.Page_At (Item.Docs.Ordering, Rank);
                begin
                   if Each.Bound /= Which then
                      Each.Renaming := False;
@@ -189,12 +202,13 @@ package body Viewer.Writing.Tree is
                      Widgets.Set_Visible (Each.Heading_Area, True);
                      Editors.Attach
                        (Each.Text,
-                        Windows.Content_Document (Item.Windows (Which)));
+                        Models.Content_Document (Item.Models (Which)));
                      Each.Bound := Which;
                      Each.Caret_Seen := 0;
                   end if;
                   Labels.Set_Text
                     (Each.Heading, Support.Title_Of (Item, Which));
+                  Widgets.Set_Accessible_Name (Each.Text, "Text of " & Support.Title_Of (Item, Which));
                   declare
                      Section : constant Natural := Section_Links.Section_Of (Item, Which);
                   begin
@@ -225,20 +239,20 @@ package body Viewer.Writing.Tree is
             end if;
             Widgets.Set_Visible
               (Each.Box,
-               Rank <= Item.Reading.Write_Count
-               and then Support.In_View (Item, Item.Reading.Write_Order (Rank)));
+               Rank <= Trees.Page_Count (Item.Docs.Ordering)
+               and then Support.In_View (Item, Trees.Page_At (Item.Docs.Ordering, Rank)));
          end;
       end loop;
       Widgets.Set_Visible (Item.Page_View.Docs_None,
-                           Item.Reading.Write_Count = 0);
+                           Trees.Page_Count (Item.Docs.Ordering) = 0);
       Buttons.Set_Enabled (Item.Page_View.Docs_Folder, True);
 
       for Row in 1 .. Item.Docs.Doc_Rows.Count loop
-         if Row <= Item.Docs.Tree_Count then
+         if Row <= Trees.Count (Item.Docs.Ordering) then
             Show_Tree_Row (Item, Row);
          end if;
          Widgets.Set_Visible (Item.Docs.Doc_Rows (Row).Row,
-                              Row <= Item.Docs.Tree_Count);
+                              Row <= Trees.Count (Item.Docs.Ordering));
       end loop;
 
       for Row in 1 .. Item.Windows.Count loop
@@ -282,10 +296,10 @@ package body Viewer.Writing.Tree is
    procedure Show_Directory (Item : in out Session; Directory : Natural) is
    begin
       Popups.Close_Menu (Item);
-      Item.Docs.Shown_Dir := Directory;
+      Writing_VM.Show (Item.Docs.Navigation, Item.Docs.Dirs, Directory);
       Refresh (Item);
       Scrollers.Scroll_To (Item.Page_View.Pages_Scroll, 0.0);
-      if Item.Toolbar.Mode = Write then
+      if View_Mode (Item) = Write then
          Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
          Layout.Fit_Pages (Item);
       end if;
@@ -294,22 +308,15 @@ package body Viewer.Writing.Tree is
    procedure Show_Page (Item : in out Session; Which : Items.Slot) is
    begin
       if not Support.In_View (Item, Which) then
-         Show_Directory (Item, Item.Docs.Doc_Dir (Which));
+         Show_Directory (Item, Trees.Directory_Of (Item.Docs.Ordering, Which));
       end if;
       Go_To (Item, Support.Rank_Of (Item, Which));
    end Show_Page;
 
    procedure Rebuild (Item : in out Session) is
-      Shown : constant Items.Id :=
-        (if Item.Docs.Shown_Dir = 0 then 0
-         else Item.Docs.Dirs (Item.Docs.Shown_Dir).Key);
    begin
       Order.Build_Order (Item);
-      for Dir in 1 .. Item.Docs.Dirs.Count loop
-         if Shown /= 0 and then Item.Docs.Dirs (Dir).Key = Shown then
-            Item.Docs.Shown_Dir := Dir;
-         end if;
-      end loop;
+      Writing_VM.Reconcile (Item.Docs.Navigation, Item.Docs.Dirs);
       Item.Section_Menu.Seen := Item.Section_Menu.Changes;
       Refresh (Item);
    end Rebuild;

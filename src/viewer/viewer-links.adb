@@ -1,3 +1,4 @@
+with Canvas_VM;
 with Items.Links;
 with Icon_Set;
 with Pomarine.Widgets;
@@ -11,7 +12,6 @@ with Viewer.Style;
 with Pomarine.Widgets.Layouts;
 with Viewer.Links.Drawing;
 with Viewer.Links.Events;
-with Viewer.Links.Support;
 with Pomarine.Icons;
 
 package body Viewer.Links is
@@ -97,19 +97,13 @@ package body Viewer.Links is
 
    procedure Reload (Item : in out Session) is
    begin
-      Item_Links.Load_Links (Item.Nav.Store, Item.Opened.Current,
-                        Item.Linking.Link_Set);
-      if Support.Index_Of (Item, Item.Linking.Link_Key) = 0 then
-         Item.Linking.Link_Key := 0;
-      end if;
+      Canvas_VM.Reload_Links (Item.Canvas_Model.Model);
    end Reload;
 
    procedure Enter (Item : in out Session) is
    begin
-      Item.Linking.Link_From := 0;
-      Item.Linking.Link_Moving := False;
-      Item.Linking.Link_Key := 0;
-      Reload (Item);
+      --  What the view-model has of them, from when it entered the project.
+      Canvas_VM.Select_Link (Item.Canvas_Model.Model, 0);
    end Enter;
 
    procedure Leave (Item : in out Session) is
@@ -124,10 +118,6 @@ package body Viewer.Links is
       Widgets.Set_Visible (Item.Linking.Link_Handle, False);
       Widgets.Set_Visible (Item.Linking.Link_Bar, False);
       Events.Set_Accepting (Item, 0);
-      Item.Linking.Link_From := 0;
-      Item.Linking.Link_Moving := False;
-      Item.Linking.Link_Key := 0;
-      Item.Linking.Link_Set.Count := 0;
       Canvases.Set_Selected (Canvases.Canvas (Item.Canvas_View), 0);
       Canvases.Clear_Ghost (Canvases.Canvas (Item.Canvas_View));
       Canvases.Set_Lines (Canvases.Canvas (Item.Canvas_View), []);

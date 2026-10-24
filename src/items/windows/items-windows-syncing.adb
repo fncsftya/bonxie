@@ -1,5 +1,3 @@
-with Items.Records;
-with Items.Sources;
 with Pomarine.Text_Areas;
 with Items.Windows.Displays;
 with Items.Windows.Parts;
@@ -11,39 +9,26 @@ package body Items.Windows.Syncing is
    package Editors renames Pomarine.Widgets.Editors;
    package Sliders renames Pomarine.Widgets.Sliders;
 
-   use type Docs.Version;
-   use type Pomarine.Events.Milliseconds;
-
-   procedure Sync (Item : in out Window) is
+   procedure Use_Window (Item : in out Window) is
+      M    : Items.Models.Item renames Item.Model.all;
       Used : Boolean;
    begin
-      if Item.Scroll_Pending
-        and then Item.Details.State = Open
+      if Items.Models.Scroll_Pending (M)
+        and then Items.Models.Details (M).State = Open
         and then Widgets.Width_Of (Item.Body_Text) > 0.0
       then
          Pomarine.Text_Areas.Scroll_To
-           (Editors.Area (Item.Body_Text).all, Item.Details.Scroll);
+           (Editors.Area (Item.Body_Text).all, Items.Models.Details (M).Scroll);
          Widgets.Invalidate (Item.Body_Text);
-         Item.Scroll_Pending := False;
-         Item.Scroll_Seen := Parts.Scroll_Of (Item);
+         Items.Models.Scrolled (M, Parts.Scroll_Of (Item));
       end if;
-
-      --  What is moved and sized is the handlers' (see Listen); here only
-      --  the size the corner asks for, which is the size it has, while it
-      --  is not being dragged.
-      if not Item.Resizing then
-         Item.Raw_Width := Item.Details.Where.Width;
-         Item.Raw_Height := Item.Details.Where.Height;
-      end if;
-      Item.Resizing := Frames.Is_Sizing (Item.Chrome);
 
       --  Raised when it starts to be used.
-      Used := Is_Dragging (Item)
+      Used := Frames.Is_Dragging (Item.Chrome)
         or else Sliders.Is_Dragging (Item.Zoom_Slider)
         or else Frames.Is_Editing_Title (Item.Chrome)
         or else Widgets.Has_Focus (Item.Body_Text);
-      if Used and then not Item.Was_Used and then Item.Details.State = Open
-      then
+      if Used and then not Item.Was_Used and then Items.Models.Details (M).State = Open then
          Frames.Raise_To_Front (Item.Chrome);
       end if;
       Item.Was_Used := Used;
@@ -52,109 +37,40 @@ package body Items.Windows.Syncing is
         (Item.Chrome,
          Frames.Is_Editing_Title (Item.Chrome)
          or else Widgets.Has_Focus (Item.Body_Text));
+      Displays.Show_Status (Item);
+   end Use_Window;
 
-      --  What was typed.
-      if Docs.Current (Item.Title_Doc) /= Item.Title_Version then
-         Displays.Show_Title (Item);
-      end if;
-      if Docs.Current (Item.Content_Doc) /= Item.Content_Version then
-         Displays.Show_Words (Item);
-      end if;
-   end Sync;
-
-   procedure Keep
-     (Item  : in out Window;
-      Store : in out Projects.Store;
-      Now   : Pomarine.Events.Milliseconds;
-      Force : Boolean;
-      Wrote : out Boolean)
-   is
-      Title_Now   : constant Natural := Docs.State (Item.Title_Doc);
-      Content_Now : constant Natural := Docs.State (Item.Content_Doc);
-      Typing      : constant Boolean :=
-        Frames.Title_Has_Focus (Item.Chrome)
-        or else Widgets.Has_Focus (Item.Body_Text)
-        or else Item.Held;
+   procedure Tell_Model (Item : in out Window) is
+      M       : Items.Models.Item renames Item.Model.all;
+      Details : constant Items.Info := Items.Models.Details (M);
+      Source  : constant Boolean := Details.Kind = Items.Source;
+      Marking : constant Boolean := Source and then Is_Marking (Item);
+      Opened  : constant Boolean := Details.State = Items.Open;
+      Scroll  : constant Float := (if Opened then Parts.Scroll_Of (Item) else Details.Scroll);
+      Across  : constant Float := (if Opened then Parts.Across_Of (Item) else Details.Scroll_Across);
    begin
-      Wrote := False;
-      if Title_Now /= Item.Title_Seen or else Content_Now /= Item.Content_Seen
-      then
-         Item.Title_Seen := Title_Now;
-         Item.Content_Seen := Content_Now;
-         Item.Changed_At := Now;
-      end if;
-
-      if Item.Frame_Dirty and then not Is_Dragging (Item) then
-         Items.Records.Set_Frame
-           (Store, Item.Details.Key, Item.Details.Where);
-         Item.Frame_Dirty := False;
-         Wrote := True;
-      end if;
-
-      if Item.Zoom_Dirty
-        and then not Sliders.Is_Dragging (Item.Zoom_Slider)
-      then
-         Items.Sources.Set_Zoom (Store, Item.Details.Key, Item.Details.Zoom);
-         Item.Zoom_Dirty := False;
-         Wrote := True;
-      end if;
-
-      if not Item.Scroll_Pending and then Item.Details.State = Open then
-         declare
-            Scrolled : constant Float := Parts.Scroll_Of (Item);
-            Across   : constant Float := Parts.Across_Of (Item);
-         begin
-            if Scrolled /= Item.Scroll_Seen or else Across /= Item.Across_Seen
-            then
-               Item.Scroll_Seen := Scrolled;
-               Item.Across_Seen := Across;
-               Item.Scroll_At := Now;
-            end if;
-            if (Scrolled /= Item.Details.Scroll
-                or else Across /= Item.Details.Scroll_Across)
-              and then (Force or else Now >= Item.Scroll_At + Idle_Delay)
-            then
-               Items.Records.Set_Scroll
-                 (Store, Item.Details.Key, Scrolled, Across);
-               Item.Details.Scroll := Scrolled;
-               Item.Details.Scroll_Across := Across;
-               Wrote := True;
-            end if;
-         end;
-      end if;
-
-      if Item.Details.Kind = Source
-        and then Parts.Shown_Marks_Version (Item) /= Item.Marks_Saved
-        and then not Is_Marking (Item)
+      Items.Models.Report
+        (M,
+         (Dragging => Frames.Is_Dragging (Item.Chrome),
+          Sizing   => Frames.Is_Sizing (Item.Chrome),
+          Zooming  => Sliders.Is_Dragging (Item.Zoom_Slider),
+          Typing   => Frames.Title_Has_Focus (Item.Chrome) or else Widgets.Has_Focus (Item.Body_Text),
+          Marking  => Marking,
+          Scroll   => Scroll,
+          Across   => Across,
+          Pending  => Items.Models.Scroll_Pending (M)));
+      --  What was marked on the picture.
+      if Source and then not Marking
+        and then Parts.Shown_Marks_Version (Item) /= Items.Models.Marks_Reported (M)
       then
          declare
-            Kept : Items.Marks.Mark_List;
+            Made    : Items.Marks.Mark_List;
+            Version : constant Natural := Parts.Shown_Marks_Version (Item);
          begin
-            Get_Marks (Item, Kept);
-            Items.Marks.Save_Marks (Store, Item.Details.Key, Kept);
+            Get_Marks (Item, Made);
+            Items.Models.Report_Marks (M, Made, Version);
          end;
-         Item.Marks_Saved := Parts.Shown_Marks_Version (Item);
-         Wrote := True;
       end if;
-
-      if (Title_Now /= Item.Title_Saved
-          or else Content_Now /= Item.Content_Saved)
-        and then (Force or else not Typing
-                  or else Now >= Item.Changed_At + Idle_Delay)
-      then
-         if Title_Now /= Item.Title_Saved then
-            Items.Records.Set_Title
-              (Store, Item.Details.Key,
-               Projects.Titles.To_String (Item.Details.Title));
-            Item.Title_Saved := Title_Now;
-         end if;
-         if Content_Now /= Item.Content_Saved then
-            Items.Records.Set_Content
-              (Store, Item.Details.Key, Docs.Stored (Item.Content_Doc));
-            Item.Content_Saved := Content_Now;
-         end if;
-         Wrote := True;
-      end if;
-   end Keep;
+   end Tell_Model;
 
 end Items.Windows.Syncing;

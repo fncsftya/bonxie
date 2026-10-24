@@ -4,7 +4,6 @@ with Pomarine.Widgets.Callbacks;
 with Pomarine.Widgets.Scrollers;
 with Pomarine.Widgets.Text_Fields;
 with Texts.Documents;
-with Viewer.Navigation;
 with Viewer.Outlines.Blocks;
 with Viewer.Outlines.Clicks;
 with Viewer.Outlines.Support;
@@ -44,7 +43,7 @@ package body Viewer.Outlines is
       View  : Outline_Parts renames Item.Outline_View;
       Model : Outline_VM.View_Model renames Item.Outline_Model.Model;
    begin
-      if Item.Opened.Current = 0 or else not Outline_VM.Is_Entered (Model) then
+      if Open_Key (Item) = 0 or else not Outline_VM.Is_Entered (Model) then
          return;
       end if;
       if Docs.Current (View.Name_Doc) /= View.Name_Seen then
@@ -52,11 +51,9 @@ package body Viewer.Outlines is
          declare
             Kept : Boolean;
          begin
-            --  A project is not left without a name.
+            --  A project is not left without a name; the toolbar shows what the view-model has.
             Outline_VM.Set_Project_Title (Model, Docs.Whole (View.Name_Doc), Kept);
-            if Kept then
-               Navigation.Show_Title_Of_Project (Item);
-            end if;
+            pragma Assert (Kept = (Outline_VM.Trimmed (Docs.Whole (View.Name_Doc)) /= ""));
          end;
       end if;
       if Docs.Current (View.Desc_Doc) /= View.Desc_Seen then
@@ -94,7 +91,7 @@ package body Viewer.Outlines is
 
    procedure Reload (Item : in out Session) is
    begin
-      if Item.Toolbar.Mode = Outline then
+      if View_Mode (Item) = Outline then
          Sync (Item);
       end if;
       Outline_VM.Reload (Item.Outline_Model.Model);
@@ -109,7 +106,6 @@ package body Viewer.Outlines is
       View.Drag_Block := 0;
       View.Drag_Moved := False;
       View.Drop_Before := 0;
-      Outline_VM.Enter (Item.Outline_Model.Model, Item.Opened.Current);
       Load_Form (Item);
       Support.Reserve (Item);
       Blocks.Show_Blocks (Item);
@@ -125,8 +121,6 @@ package body Viewer.Outlines is
       View.Drag_Block := 0;
       View.Drag_Moved := False;
       View.Drop_Before := 0;
-      Outline_VM.Leave (Item.Outline_Model.Model);
-      Blocks.Show_Blocks (Item);
       Blocks.Show_Drop_Line (Item);
       Blocks.Show_Ghost (Item);
    end Leave;

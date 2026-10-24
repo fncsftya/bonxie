@@ -1,3 +1,4 @@
+with Items.Models;
 with Pomarine.Widgets;
 with Pomarine.Widgets.Checks;
 with Pomarine.Widgets.Labels;
@@ -72,12 +73,12 @@ package body Viewer.Deletion is
    procedure Confirm_Node (Item : in out Session; Node : Tree_Entry) is
       Kind : constant Confirm_VM.Nodes :=
         (if Node.Kind = Directory_Node then Confirm_VM.Folder
-         elsif Items.Windows.Details (Item.Windows (Node.Doc)).Kind = Items.Source then Confirm_VM.Source
+         elsif Items.Models.Details (Item.Models (Node.Doc)).Kind = Items.Source then Confirm_VM.Source
          else Confirm_VM.Document);
       Name : constant String :=
         (if Node.Kind = Directory_Node
          then Projects.Titles.To_String (Item.Docs.Dirs (Node.Dir).Title)
-         else Projects.Titles.To_String (Items.Windows.Details (Item.Windows (Node.Doc)).Title));
+         else Projects.Titles.To_String (Items.Models.Details (Item.Models (Node.Doc)).Title));
    begin
       Confirm_VM.Ask_Node (Item.Dialog_Model.Model, Kind, Node.Dir, Node.Doc, Name);
       Sync (Item);

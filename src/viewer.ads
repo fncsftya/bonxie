@@ -1,17 +1,23 @@
 private with Backgrounds;
+private with Canvas_VM;
+private with Item_List_VM;
+private with Search_VM;
+private with Writing_VM.Trees;
+private with Pomarine.View_Models;
+with Nav_VM;
 with Projects;
 with SDL3.Cursors;
 with Pomarine.Events;
 with SDL3.Windows.Renderers.Images;
 private with Items;
 private with Items.Windows;
+private with Items.Models.Tables;
 private with Items.Windows.Tables;
 private with SDL3.Windows;
 private with Texts.Documents;
 private with Pomarine.Models;
 with Pomarine.Widgets;
 private with Pomarine.Widgets.Buttons;
-private with Pomarine.Widgets.Commands;
 private with Pomarine.Widgets.Grips;
 private with Pomarine.Widgets.Labels;
 private with Pomarine.Widgets.Lists;
@@ -21,6 +27,7 @@ private with Viewer_Parts.Common;
 private with Viewer_Parts.Rows;
 private with Viewer_Parts.Pages;
 private with Viewer_Parts.Home;
+private with Viewer_Parts.Nav;
 private with Viewer_Parts.Settings;
 private with Viewer_Parts.Outline;
 private with Viewer_Parts.Grammar;
@@ -44,9 +51,9 @@ private with Viewer_Parts.Canvas;
 --    Sources         the sources of the writing view, and the pinned one
 package Viewer is
 
-   type Screens is (Home, Project);
+   type Screens is new Nav_VM.Screens;
 
-   type Modes is (Outline, Canvas, Write, Publish);
+   type Modes is new Nav_VM.Modes;
    --  The views of a project, in the order of their tabs. Outline, the
    --  first, is the project's title and description, and the sections it is
    --  to be written in, in the order they are to come in; a project opens to
@@ -166,30 +173,27 @@ private
 
    use Viewer_Parts.Common;
    use Viewer_Parts.Rows;
+   package Trees renames Writing_VM.Trees;
+   use type Trees.Tree_Kinds;
    use Viewer_Parts.Pages;
    use Viewer_Parts.Home;
+   use Viewer_Parts.Nav;
    use Viewer_Parts.Settings;
    use Viewer_Parts.Outline;
    use Viewer_Parts.Grammar;
    use Viewer_Parts.Canvas;
 
-   --  What the menu bar and the keys can ask for, apart from what edits
-   --  text: each is said as a command (see Viewer.Menus), to be done by
-   --  Viewer.Responses. The buttons that do the same are given the command
-   --  too (see Viewer.Build), to be on or off as it is. What each button
-   --  does is its own (see Pomarine.Widgets.Callbacks).
+   function View_Mode (Item : Session) return Modes;
+   --  The view of the project shown (Canvas at the home screen).
 
-   type Command is
-     (Start_Project,
-      Open_Settings,
-      Leave_Project,
-      Show_Outline,
-      Show_Canvas,
-      Show_Writing,
-      Show_Publish,
-      Open_List);
+   function Open_Key (Item : Session) return Projects.Id;
+   --  The project shown; 0 at the home screen.
 
-   package Commands is new Pomarine.Widgets.Commands (Command);
+   function Items_Listed (Item : Session) return Boolean;
+   --  Whether the list of the project's items is up.
+
+   function Takes_Gestures (Item : Session) return Boolean;
+   --  Whether the canvas, the writing view and the outline may be worked: at a project, with nothing over it.
 
    type Session_Access is access all Session;
 
@@ -206,17 +210,34 @@ private
    type Command_Judge is limited new Pomarine.Widgets.Validator with record
       Owner : Session_Access;
    end record;
-   --  What the tree asks about every command of a widget: the window's own (see
-   --  Viewer.Menus) and the settings' (Viewer_Parts.Settings.Binding).
+   --  What the tree asks about every command of a widget: those of each view-model, which Viewer.Menus asks.
 
    overriding function Validate
      (Self : Command_Judge; Tag : Integer; Index : Natural) return Pomarine.Widgets.Command_State;
 
+   type Room_Maker is limited new Canvas_VM.Surface with record
+      Owner : Session_Access;
+   end record;
+   --  What makes windows for the items the canvas has.
+
+   overriding procedure Make_Room (Self : in out Room_Maker; Slots : Positive);
+
+   type List_Surface is limited new Item_List_VM.Surface with record
+      Owner : Session_Access;
+   end record;
+   overriding procedure Apply (Self : in out List_Surface; What : Canvas_VM.Command; Slot : Items.Slot);
+
+   type Search_Finder is limited new Search_VM.Finder with record
+      Owner : Session_Access;
+   end record;
+   overriding function Valid (Self : Search_Finder; Where : Search_VM.Context) return Boolean;
+   overriding procedure Refresh
+     (Self : in out Search_Finder; Where : Search_VM.Context; Term : String; Found : out Search_VM.Result);
+   overriding procedure Advance (Self : in out Search_Finder; Where : Search_VM.Context; Backwards : Boolean);
+   overriding procedure Clear (Self : in out Search_Finder; Where : Search_VM.Context);
+
    type Item_Rows is limited new Pomarine.Models.List_Model with record
       Owner   : Session_Access;
-      Found   : Natural := 0;
-      --  How many items are listed: the slots are the session's Row_Slots.
-      Changed : Natural := 0;
    end record;
    --  What the list of items shows, a row for each (see Viewer.Listing).
 
@@ -247,7 +268,6 @@ private
       --  rename it.
       Title_Field   : Pomarine.Widgets.Text_Fields.Text_Field;
       Title_Doc     : aliased Texts.Documents.Document;
-      Renaming      : Boolean := False;
       --  In its place while it is renamed.
       Tabs          : Pomarine.Widgets.Panels.Panel;
       Outline_Tab   : Pomarine.Widgets.Buttons.Button;
@@ -257,21 +277,14 @@ private
       --  A tab for each view, in the middle of the toolbar.
       Toolbar_End   : Pomarine.Widgets.Panels.Panel;
       --  On the right: the list of items.
-      Mode          : Modes := Canvas;
-      --  The view shown: its tab is selected. Canvas is the one the widgets
-      --  are built showing; a project shown at once goes to its own.
    end record;
    --  The project screen: its panels, the toolbar and the view shown.
 
    type Nav_State is limited record
-      Shown        : Screens := Home;
       Store        : aliased Projects.Store;
 
       Pinned_Time : Projects.Seconds := 0;
       --  The time pictures are taken at, if not 0: see Pin_Capture_Time.
-
-      Shown_Zoom, Shown_X, Shown_Y : Float := 0.0;
-      --  Of the canvas, as the items' windows have been put by it.
 
       Fetch_Slot : Natural := 0;
       Fetch_Key  : Items.Id := 0;
@@ -295,7 +308,7 @@ private
    type List_Parts is limited record
       List_Overlay  : Pomarine.Widgets.Panels.Panel;
       --  Over the project screen, to grey it out and hold the list of
-      --  items, which is shown when Showing_List.
+      --  items, which is shown while Nav_VM says it is up.
       List_Border   : Pomarine.Widgets.Panels.Panel;
       List_Head     : Pomarine.Widgets.Panels.Panel;
       List_Heading  : Pomarine.Widgets.Labels.Label;
@@ -309,9 +322,9 @@ private
       List_None     : Pomarine.Widgets.Labels.Label;
       --  Shown when there are no items.
       List_Rows     : aliased Item_Rows;
-      Row_Slots     : Slot_Array;
-      --  The window of the item each row is of.
-      Showing_List  : Boolean := False;
+      Model         : Item_List_VM.View_Model;
+      Seen          : Pomarine.View_Models.Watch;
+      View          : aliased List_Surface;
    end record;
    --  The dialog listing the project's items.
 
@@ -321,6 +334,9 @@ private
       Home_View : Home_Parts;
       Confirm : Confirm_Parts;
       Home_Model : Home_Choices;
+      Nav_Model : Nav_Choices;
+      Room : aliased Room_Maker;
+      Canvas_Model : Canvas_Choices;
       Dialog_Model : Confirm_Choices;
       Prefs : Settings_Parts;
       Choices : Settings_Choices;
@@ -335,8 +351,10 @@ private
       Nav : Nav_State;
       Item_List : List_Parts;
       Host : Host_Resources;
+      Models       : Items.Models.Tables.Table;
+      --  What the project's items are, a slot to each: before the windows that show them.
       Windows      : Items.Windows.Tables.Table;
-      --  The windows of the project's items: after Target, which they
+      --  The windows of the project's items, a slot to each: after Target, which they
       --  draw to.
       Docs : Document_State;
       Grammar_Checks : Grammar_State;
@@ -351,7 +369,7 @@ private
       Linking : Link_State;
       Title_Edit : Title_Edit_State;
       Searching : Search_State;
-      Opened : Opened_State;
+      Finding : aliased Search_Finder;
       Shell : Shell_State;
    end record;
 

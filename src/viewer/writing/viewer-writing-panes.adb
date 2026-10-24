@@ -1,3 +1,4 @@
+with Items.Models;
 with Settings_VM;
 with Preferences;
 with Pomarine.Icons;
@@ -17,7 +18,7 @@ package body Viewer.Writing.Panes is
    package Layouts renames Pomarine.Widgets.Layouts;
    package Grips renames Pomarine.Widgets.Grips;
    package Text_Fields renames Pomarine.Widgets.Text_Fields;
-   package Windows renames Items.Windows;
+   package Models renames Items.Models;
 
    use type Items.States;
 
@@ -29,13 +30,13 @@ package body Viewer.Writing.Panes is
       Moved : constant Boolean := Item.Dragging.Dropped_Moved;
    begin
       Item.Dragging.Dropped_Moved := False;
-      if not Support.In_Writing (Item) or else Row > Item.Docs.Tree_Count
+      if not Support.In_Writing (Item) or else Row > Trees.Count (Item.Docs.Ordering)
         or else Moved or else Item.Dragging.Drag_Row /= 0
       then
          return;
       end if;
       declare
-         Node : constant Tree_Entry := Item.Docs.Tree (Row);
+         Node : constant Tree_Entry := Trees.Element (Item.Docs.Ordering, Row);
       begin
          case Node.Kind is
             when Overview_Node =>
@@ -56,11 +57,11 @@ package body Viewer.Writing.Panes is
       pragma Unreferenced (Source);
       Row : constant Positive := Event.Index;
    begin
-      if not Support.In_Writing (Item) or else Row > Item.Docs.Tree_Count then
+      if not Support.In_Writing (Item) or else Row > Trees.Count (Item.Docs.Ordering) then
          return;
       end if;
       declare
-         Node : constant Tree_Entry := Item.Docs.Tree (Row);
+         Node : constant Tree_Entry := Trees.Element (Item.Docs.Ordering, Row);
       begin
          if Node.Kind = Directory_Node and then Item.Naming.Renaming_Dir /= Node.Dir then
             --  The press that began it is not let go on its row.
@@ -244,7 +245,7 @@ package body Viewer.Writing.Panes is
       if Support.In_Writing (Item) and then not Each.Renaming and then Each.Bound /= 0 then
          Text_Fields.Attach
            (Each.Title_Field,
-            Windows.Title_Document (Item.Windows (Each.Bound)));
+            Models.Title_Document (Item.Models (Each.Bound)));
          Each.Renaming := True;
          Widgets.Set_Visible (Each.Heading_Area, False);
          --  The press that began it is not let go on what is hidden.

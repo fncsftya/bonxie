@@ -8,10 +8,16 @@ private package Viewer.Listing is
 
    procedure Open (Item : in out Session)
      with Pre => Screen (Item) = Project;
-   --  Show the list, from its start.
+   --  Put the list up, if Nav_VM lets it be.
 
    procedure Close (Item : in out Session);
-   --  Hide it.
+   --  Put it away.
+
+   procedure Show_List (Item : in out Session);
+   --  Show the list, from its start: the reaction to Nav_VM putting it up (see Viewer.Navigation).
+
+   procedure Hide_List (Item : in out Session);
+   --  Show it away.
 
    procedure Refresh (Item : in out Session);
    --  Make the rows those of the items there are now.
@@ -20,7 +26,7 @@ private package Viewer.Listing is
      (Item    : Session;
       Row     : Positive;
       Content : out Pomarine.Models.Row_Content)
-     with Pre => Row <= Item.Item_List.List_Rows.Found;
+     with Pre => Row <= Item_List_VM.Count (Item.Item_List.Model);
    --  What the list shows for its Rowth item.
 
    --  What the list says (see Viewer.Responses, which gives them to it):

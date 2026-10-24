@@ -1,3 +1,4 @@
+with Canvas_VM;
 with Pomarine.Boxes;
 with Pomarine.Widgets.Menus;
 with Pomarine.Widgets.Selects;
@@ -231,7 +232,9 @@ package body Viewer.Build.Shell_Views is
       Items.Windows.Set_Shared
         (Item.Windows (Which), Item.Host.Doc_Resources'Unchecked_Access);
       Items.Windows.Build
-        (Item.Windows (Which), Item.Canvas_View, Item.Dock.Dock_Content, Toolbar, Item.Shell.Density);
+        (Item.Windows (Which), Item.Models (Which).Item, Canvas_VM.Shown_Camera (Item.Canvas_Model.Model),
+         Item.Canvas_View, Item.Dock.Dock_Content, Toolbar,
+         Item.Shell.Density);
    end Make_Window;
 
    procedure Build_Tray (Item : in out Session) is
