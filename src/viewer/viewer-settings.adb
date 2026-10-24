@@ -48,11 +48,6 @@ package body Viewer.Settings is
    procedure Choose_AI_Enabled (Item : in out Session; To : Boolean)
      renames Settings_View.Enable_AI;
 
-   procedure Choose_AI_Backend (Item : in out Session; To : Preferences.AI_Backends)
-     renames Settings_View.Choose_AI_Backend;
-
-   function AI_Backend (Item : Session) return Preferences.AI_Backends is (Item.Prefs.AI_Backend);
-
    function AI_Enabled (Item : Session) return Boolean is (Item.Prefs.AI_On);
 
    function AI_Model (Item : Session) return String is

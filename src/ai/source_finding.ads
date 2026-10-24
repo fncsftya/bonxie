@@ -19,13 +19,8 @@ package Source_Finding is
    --  How many times the model is asked each, before the work is given up.
 
    Max_Text : constant := 6_000;
-   --  Bytes of the brief, and of a page's text, that the model is given:
+   --  Bytes of the writer's text, and of a page's, that the model is given:
    --  more is cut off.
-
-   function Brief (Project_Title, Project_Description, Section_Title, Document_Title : String) return String
-     with Post => Brief'Result'Length <= Max_Text;
-   --  What the sources are for, as the model is told it: the titles of the project, of the section
-   --  and of the document, and the project's description, one to a line. Not the document's text.
 
    --  The queries
 
@@ -51,10 +46,10 @@ package Source_Finding is
      with Post => Query_System_Prompt'Result'Length > 0;
    --  What the model is told it is for, with the schema of its reply in it.
 
-   function Query_Prompt (Needs : String) return String
-     with Pre  => Needs'Length > 0,
+   function Query_Prompt (Text : String) return String
+     with Pre  => Text'Length > 0,
           Post => Query_Prompt'Result'Length > 0;
-   --  The brief (see Brief), to write queries for.
+   --  The writer's text (the first Max_Text bytes of it), to write queries for.
 
    procedure Parse_Queries
      (Reply  : String;
@@ -138,10 +133,10 @@ package Source_Finding is
      with Post => Evaluation_System_Prompt'Result'Length > 0;
    --  What the model is told it is for, with the schema of its reply in it.
 
-   function Evaluation_Prompt (Needs, Title, Address, Page : String) return String
-     with Pre  => Needs'Length > 0,
+   function Evaluation_Prompt (Text, Title, Address, Page : String) return String
+     with Pre  => Text'Length > 0,
           Post => Evaluation_Prompt'Result'Length > 0;
-   --  The brief, and a page to judge as a source for it: its title,
+   --  The writer's text, and a page to judge as a source of it: its title,
    --  its address, and the words read from its picture. Each is cut to a
    --  size that is of use.
 
@@ -174,22 +169,21 @@ private
      & "}";
 
    Query_Guidelines : constant String :=
-     "You help a writer find sources. You are given the title and description of their project, the title "
-     & "of the section they are writing and the title of the document the sources are for. Work out what "
-     & "the document is about and the claims, facts and ideas in it that a reader would want evidence for, "
+     "You help a writer find sources. You are given a passage they are writing. Work out what "
+     & "it is about and the claims, facts and ideas in it that a reader would want evidence for, "
      & "and write between 1 and 3 queries for a web search engine that would find pages to "
      & "cite: research, reference works, reporting and official sources." & LF & LF
      & "Guidelines:" & LF
      & "- Write each query as keywords, as a person types into a search engine: between 3 and "
      & "8 words, with no quotation marks, operators or punctuation." & LF
      & "- Name the specific subject: the people, places, works, events, methods and terms the "
-     & "titles and description name, rather than words that could be about anything." & LF
-     & "- If the document has one focus, write one query or two; if it has several distinct "
+     & "passage names, rather than words that could be about anything." & LF
+     & "- If the passage has one focus, write one query or two; if it has several distinct "
      & "topics, one query for each, up to 3. Never give two queries that would find the same "
      & "pages." & LF
-     & "- Do not search for the writer's opinions, plans or style, nor for the project "
+     & "- Do not search for the writer's opinions, plans or style, nor for the passage "
      & "itself." & LF
-     & "- Write in the language of the titles." & LF;
+     & "- Write in the language of the passage." & LF;
 
    Query_Closing : constant String :=
      LF & "Do not think aloud or explain. Your whole reply is a single JSON object, starting with an "
@@ -262,27 +256,26 @@ private
      & "}";
 
    Evaluation_Guidelines : constant String :=
-     "You judge whether a web page is a good source for a document that a writer is working on. "
-     & "You are given the title and description of their project, the title of the section and the title "
-     & "of the document, and then the page: its title, its address and its text, "
+     "You judge whether a web page is a good source for a passage that a writer is working on. "
+     & "You are given the passage, and then the page: its title, its address and its text, "
      & "which was read from a picture of the page and so may have menus, advertisements and "
      & "other clutter among it. Give three marks, each a whole number from 0 to 10:" & LF
-     & "- relevance: how closely the page is about what the document is about. 10 is the same "
+     & "- relevance: how closely the page is about what the passage is about. 10 is the same "
      & "subject in the same terms; 0 is another subject." & LF
      & "- support: how much the page has that a writer could use to back up or inform the "
-     & "document's claims: facts, data, findings, quotations or explanation. 0 if it has none." & LF
+     & "passage's claims: facts, data, findings, quotations or explanation. 0 if it has none." & LF
      & "- quality: how far the page can be trusted as a source, and how much there is to it. "
      & "A page of original research, an official or reference site, or careful reporting "
      & "scores high; a thin page, a sales or promotional page, a forum thread, a list made to "
      & "attract clicks, or a page with little of its own scores low." & LF & LF
      & "Guidelines:" & LF
      & "- Be strict. A mark of 8 or more is for a page that a careful writer would be glad to "
-     & "cite for this document." & LF
+     & "cite for this passage." & LF
      & "- A page with no real content, as an error, a login, a cookie notice or a challenge to "
      & "show you are a person, scores 0 on all three." & LF
      & "- Judge only from what you are given. Do not suppose a page says what its title "
      & "suggests." & LF
-     & "- Give a reason in one short sentence, in the language of the titles: what the page "
+     & "- Give a reason in one short sentence, in the language of the passage: what the page "
      & "offers, or why it does not suit." & LF;
 
    Evaluation_Closing : constant String :=

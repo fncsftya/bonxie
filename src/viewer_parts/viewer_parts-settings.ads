@@ -82,11 +82,6 @@ package Viewer_Parts.Settings is
       --  comes, how far.
       AI_Heading     : Pomarine.Widgets.Labels.Label;
       AI_Enable      : Pomarine.Widgets.Switches.Switch;
-      AI_Backend_Name : Pomarine.Widgets.Labels.Label;
-      AI_Local       : Pomarine.Widgets.Checks.Check;
-      AI_Premium     : Pomarine.Widgets.Checks.Check;
-      --  With the AI on, and premium on offer (see Premium.Available): Backend, a radio for the
-      --  model on this computer and one for the hosted backend, which has no model to choose.
       AI_Model_Name  : Pomarine.Widgets.Labels.Label;
       AI_Hub_Note    : Pomarine.Widgets.Labels.Label;
       AI_Select      : Pomarine.Widgets.Selects.Select_Field;
@@ -105,7 +100,6 @@ package Viewer_Parts.Settings is
       AI_Menu_Top    : Float := -1.0E9;
       --  Where the menu was last put, in points of the settings panel.
       AI_On          : Boolean := False;
-      AI_Backend     : Preferences.AI_Backends := Preferences.Local;
       AI_Model       : Ada.Strings.Unbounded.Unbounded_String;
       --  The model chosen, "provider/name", empty for none.
       AI_Found       : MLX.Hub.Models;

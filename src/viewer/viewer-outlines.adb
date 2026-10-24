@@ -399,7 +399,7 @@ package body Viewer.Outlines is
       Located : Ada.Strings.Unbounded.Unbounded_String;
       Why     : Ada.Strings.Unbounded.Unbounded_String;
    begin
-      if not Item.Prefs.AI_On or else Settings_View.Premium_Chosen (Item) or else Generating (Item) then
+      if not Item.Prefs.AI_On or else Generating (Item) then
          return;
       end if;
       Settings_View.Locate_AI_Model (Item, Located, Why);

@@ -7,10 +7,6 @@ package Preferences is
    --  What turns speech into text: the system's, or Parakeet, which needs
    --  its model fetched first (see Speech.Models).
 
-   type AI_Backends is (Local, Premium);
-   --  What does the AI's work: the language model on this computer, or the hosted backend (see
-   --  Premium), which is offered only to a developer.
-
    type Theme_Choices is (Light, Dark, System);
    --  The appearance of the windows: light, dark, or the system's, which
    --  follows its light or dark appearance as it changes.
@@ -73,12 +69,6 @@ package Preferences is
    --  chosen or it cannot be read.
 
    procedure Save_AI_Enabled (Config : String; To : Boolean);
-   --  Keep the choice, making Config if need be.
-
-   function Load_AI_Backend (Config : String) return AI_Backends;
-   --  The one chosen, Local if none was or it cannot be read.
-
-   procedure Save_AI_Backend (Config : String; To : AI_Backends);
    --  Keep the choice, making Config if need be.
 
    function Load_AI_Model (Config : String) return String;

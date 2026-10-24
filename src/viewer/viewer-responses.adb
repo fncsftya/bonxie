@@ -264,32 +264,6 @@ package body Viewer.Responses is
       end if;
    end Choose_Parakeet;
 
-   procedure Choose_Local
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
-
-   procedure Choose_Local
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source, Event);
-   begin
-      if Settings_Open (Item) then
-         Settings_View.Choose_AI_Backend (Item, Preferences.Local);
-      end if;
-   end Choose_Local;
-
-   procedure Choose_Premium
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
-
-   procedure Choose_Premium
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source, Event);
-   begin
-      if Settings_Open (Item) then
-         Settings_View.Choose_AI_Backend (Item, Preferences.Premium);
-      end if;
-   end Choose_Premium;
-
    procedure Switch_AI
      (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
 
@@ -558,8 +532,6 @@ package body Viewer.Responses is
          end if;
       end loop;
       Hear (Prefs.AI_Enable, Change, Switch_AI'Access);
-      Hear (Prefs.AI_Local, Change, Choose_Local'Access);
-      Hear (Prefs.AI_Premium, Change, Choose_Premium'Access);
       Hear (Prefs.AI_Select, Click, Open_AI_Models'Access);
       Hear (Prefs.AI_Menu, Choose, Choose_AI_Model'Access);
       Hear (Prefs.AI_Test_Button, Click, Test_AI_Model'Access);

@@ -46,27 +46,15 @@ package Source_Finder is
 
    function State return States;
 
-   procedure Start
-     (Model_Folder, Project_Title, Project_Description, Section_Title, Document_Title, Directory : String)
+   procedure Start (Model_Folder, Text, Directory : String)
      with Pre  => State /= Running
                   and then Model_Folder'Length in 1 .. MLX.Max_Path
-                  and then (Project_Title /= "" or else Section_Title /= "" or else Document_Title /= "")
+                  and then Text'Length > 0
                   and then Directory'Length in 1 .. Max_Directory,
           Post => State = Running;
-   --  Begin to find sources for the document with the model in Model_Folder, from the titles of its
-   --  project, section and document and the project's description (not the document's text: see
-   --  Source_Finding.Brief). The pictures are made in Directory, which is made if need be. What was
-   --  kept by the last time is forgotten, as Reset does.
-
-   procedure Start_Premium
-     (Project_Title, Project_Description, Section_Title, Document_Title, Directory : String)
-     with Pre  => State /= Running
-                  and then Project_Title /= "" and then Section_Title /= "" and then Document_Title /= ""
-                  and then Directory'Length in 1 .. Max_Directory,
-          Post => State = Running;
-   --  As Start, but the backend finds the pages (see Premium.Sources) and chooses them: no model is
-   --  asked and none is needed. The pages it names are photographed, or fetched if they are PDFs,
-   --  as they are otherwise. If it finds none the state is Done with no sources, and Guidance says why.
+   --  Begin to find sources for Text with the model in Model_Folder. The
+   --  pictures are made in Directory, which is made if need be. What was kept
+   --  by the last time is forgotten, as Reset does.
 
    procedure Poll;
    --  Move the work on, if there is any: look at the jobs, and start what is
@@ -82,14 +70,6 @@ package Source_Finder is
 
    function Message return String
      with Pre => State = Failed;
-
-   function Guidance return String;
-   --  Of a run by Start_Premium that found nothing, what the backend said to the person about why and
-   --  how to ask better; "" if it said none.
-
-   function Scored return Boolean;
-   --  Whether the sources have marks that mean something (Percent): not those of Start_Premium, which
-   --  the backend chose.
 
    function Pressed_Count return Natural;
    --  How many buttons were pressed to clear what covered pages, in the last run.
@@ -183,9 +163,5 @@ package Source_Finder is
      with Pre => State /= Running and then Count < Max_Pages and then Score <= 100;
    --  For tests: keep a source as if it had been found (a PDF, if Document, of
    --  that many pages, whose file is Picture_File), and make the state Done.
-
-   procedure Offer_Guidance (Said : String)
-     with Pre => State /= Running;
-   --  For tests: end as a run by Start_Premium does that found nothing, and the backend said Said.
 
 end Source_Finder;

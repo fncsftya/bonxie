@@ -236,9 +236,6 @@ package body Viewer.Build is
          Item.Prefs.AI_On :=
            Preferences.Load_AI_Enabled
              (Ada.Strings.Unbounded.To_String (Item.Prefs.Config_Dir));
-         Item.Prefs.AI_Backend :=
-           Preferences.Load_AI_Backend
-             (Ada.Strings.Unbounded.To_String (Item.Prefs.Config_Dir));
          Item.Prefs.AI_Model :=
            Ada.Strings.Unbounded.To_Unbounded_String
              (Preferences.Load_AI_Model

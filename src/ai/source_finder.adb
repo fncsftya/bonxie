@@ -7,7 +7,6 @@ with Downloads;
 with Ebook;
 with MLX.Jobs;
 with Model_Replies;
-with Premium.Sources;
 with Source_Finding;
 with Source_Links;
 with Vision.Jobs;
@@ -20,7 +19,6 @@ package body Source_Finder is
    use type Webshot.States;
    use type Websearch.States;
    use type Downloads.States;
-   use type Premium.Sources.States;
 
    package Addresses is new Ada.Strings.Bounded.Generic_Bounded_Length (Websearch.Max_URL);
    package Titles is new Ada.Strings.Bounded.Generic_Bounded_Length (Websearch.Max_Title);
@@ -58,7 +56,7 @@ package body Source_Finder is
 
    --  The work
 
-   type Stages is (Asking, Requesting, Searching, Reading, Stopping);
+   type Stages is (Asking, Searching, Reading, Stopping);
 
    Public     : States := Idle;
    Stage      : Stages := Asking;
@@ -70,12 +68,7 @@ package body Source_Finder is
    Folder     : String (1 .. Max_Directory);
    Folder_Last : Natural := 0;
    Writing    : Page_Texts.Bounded_String;
-   --  What sources are for, as the model is given it (see Source_Finding.Brief).
-
-   Premium_Run : Boolean := False;
-   --  Whether the backend finds the pages (Premium.Sources) and judges them, so that no model is used.
-   Advice      : Source_Finding.Reason_Texts.Bounded_String;
-   --  What the backend said of why it found none, in the last run.
+   --  The text sources are for, as far as the model is given it.
 
    --  Asking for the queries
 
@@ -99,8 +92,6 @@ package body Source_Finder is
       Fallback : Addresses.Bounded_String;
       --  Of a PDF that was had by the address of the page it is the front of: that page,
       --  to be taken if the PDF cannot be had.
-      Label    : Titles.Bounded_String;
-      --  What the backend called the page, if it did.
    end record;
 
    type Candidate_Array is array (1 .. Max_Candidates) of Candidate;
@@ -141,8 +132,6 @@ package body Source_Finder is
       No_Redirect : Boolean := False;
       --  Whether the page is not to be taken for the front of a PDF (it was, and the PDF
       --  could not be had).
-      Label    : Titles.Bounded_String;
-      --  What the backend called the page, which is the title it is kept with if it did.
       Title    : Titles.Bounded_String;
       Text     : Page_Texts.Bounded_String;
       --  The words of the page, or the pages of the PDF, for judging.
@@ -183,9 +172,6 @@ package body Source_Finder is
    Judge_Task : array (1 .. Max_Judges) of Tasks := [others => Mark];
    --  The page each is asked of, 0 if none, and what it is asked.
    Judge_Problem : Source_Finding.Reason_Texts.Bounded_String;
-
-   Trusted : constant Source_Finding.Evaluation := (Relevance | Support | Quality => 10, others => <>);
-   --  The marks of a page the backend chose: it judged it, and no model is asked.
 
    --  The sources kept
 
@@ -334,9 +320,6 @@ package body Source_Finder is
 
    procedure Fail (Words_Of_Why : String) is
    begin
-      if Premium_Run then
-         Premium.Log ("finding sources failed: " & Words_Of_Why);
-      end if;
       Problem :=
         Source_Finding.Reason_Texts.To_Bounded_String
           (Model_Replies.Cut (Words_Of_Why, Source_Finding.Max_Reason));
@@ -372,24 +355,17 @@ package body Source_Finder is
 
    function Message return String is (Source_Finding.Reason_Texts.To_String (Problem));
 
-   function Guidance return String is (Source_Finding.Reason_Texts.To_String (Advice));
-
-   function Scored return Boolean is (not Premium_Run);
-
    function Wanted_Within return Duration is (0.1);
 
    function Status return String is
      (case Stage is
          when Asking => "Writing searches",
-         when Requesting => "Asking Premium",
          when Searching =>
            (if Search_Going or else Websearch.Retry_After = 0.0
             then "Searching (" & Image (Query_Next) & " of " & Image (Queries.Count) & ")"
             else "Waiting to search"),
          when Reading =>
-           (if Premium_Run
-            then "Fetching pages (" & Image (Count_Lanes (Judged)) & " of" & Natural'Image (Candidate_Next - 1) & ")"
-            elsif Busy_Reading or else Has_Pages_To_Take
+           (if Busy_Reading or else Has_Pages_To_Take
             then "Reading pages (" & Image (Count_Lanes (Waiting) + Count_Lanes (Judging) + Count_Lanes (Judged))
                  & " of" & Max_Pages'Image & ")"
             else "Judging pages (" & Image (Count_Lanes (Judged)) & " of "
@@ -411,30 +387,21 @@ package body Source_Finder is
          Fail ("The AI is busy, try again");
    end Ask_For_Queries;
 
-   procedure Begin_Run (Brief, Directory : String) is
+   procedure Start (Model_Folder, Text, Directory : String) is
    begin
       Reset;
-      Advice := Source_Finding.Reason_Texts.Null_Bounded_String;
       Presses_Made := 0;
       Last_Button := Source_Finding.Button_Texts.Null_Bounded_String;
       Documents_Read := 0;
+      Model_Last := Model_Folder'Length;
+      Model (1 .. Model_Last) := Model_Folder;
       Folder_Last := Directory'Length;
       Folder (1 .. Folder_Last) := Directory;
-      Writing := Page_Texts.To_Bounded_String (Model_Replies.Cut (Brief, Source_Finding.Max_Text));
+      Writing := Page_Texts.To_Bounded_String (Model_Replies.Cut (Text, Source_Finding.Max_Text));
       Ada.Directories.Create_Path (Directory);
       --  What an earlier run left (the program was ended with sources found, say) is not wanted.
       Remove_Pictures;
       Public := Running;
-   end Begin_Run;
-
-   procedure Start
-     (Model_Folder, Project_Title, Project_Description, Section_Title, Document_Title, Directory : String)
-   is
-   begin
-      Begin_Run (Source_Finding.Brief (Project_Title, Project_Description, Section_Title, Document_Title), Directory);
-      Premium_Run := False;
-      Model_Last := Model_Folder'Length;
-      Model (1 .. Model_Last) := Model_Folder;
       Stage := Asking;
       Query_Tries := 1;
       Ask_For_Queries;
@@ -442,21 +409,6 @@ package body Source_Finder is
       when Ada.Directories.Use_Error | Ada.Directories.Name_Error =>
          Fail ("The folder for the pages could not be made");
    end Start;
-
-   procedure Start_Premium
-     (Project_Title, Project_Description, Section_Title, Document_Title, Directory : String)
-   is
-   begin
-      Begin_Run (Source_Finding.Brief (Project_Title, Project_Description, Section_Title, Document_Title), Directory);
-      Premium_Run := True;
-      Model_Last := 0;
-      Stage := Requesting;
-      Premium.Sources.Reset;
-      Premium.Sources.Start (Project_Title, Project_Description, Section_Title, Document_Title, Directory);
-   exception
-      when Ada.Directories.Use_Error | Ada.Directories.Name_Error =>
-         Fail ("The folder for the pages could not be made");
-   end Start_Premium;
 
    --  Asking
 
@@ -496,71 +448,6 @@ package body Source_Finder is
             null;
       end case;
    end Poll_Asking;
-
-   --  Asking the backend
-
-   procedure Add_Premium_Links is
-   begin
-      for Item in 1 .. Premium.Sources.Count loop
-         declare
-            Link   : constant String := Premium.Sources.Address (Item);
-            Direct : constant String := Source_Links.Direct_Document (Link);
-            Where  : constant String := (if Direct /= "" and then Direct'Length <= Websearch.Max_URL
-                                         then Direct else Link);
-            Document : constant Boolean := Source_Links.Is_Document (Where);
-         begin
-            if Candidate_Count < Max_Candidates and then Where'Length <= Websearch.Max_URL
-              and then not Known (Where) and then (Document or else not Ebook.Is_Supported (Where))
-            then
-               Premium.Log ("taking " & Where & (if Document then " (PDF)" else ""));
-               Candidate_Count := Candidate_Count + 1;
-               Candidates (Candidate_Count) :=
-                 (Address  => Addresses.To_Bounded_String (Where), Document => Document,
-                  Fallback => (if Where /= Link and then Link'Length <= Websearch.Max_URL
-                               then Addresses.To_Bounded_String (Link) else Addresses.Null_Bounded_String),
-                  Label    => Titles.To_Bounded_String
-                                (Model_Replies.Cut (Premium.Sources.Title (Item), Websearch.Max_Title)));
-            else
-               Premium.Log ("skipping " & Link & " (a text or e-book, a duplicate or too long)");
-            end if;
-         end;
-      end loop;
-   end Add_Premium_Links;
-
-   procedure Poll_Requesting is
-   begin
-      case Premium.Sources.State is
-         when Premium.Sources.Done =>
-            if Premium.Sources.Count = 0 then
-               --  A fair answer: nothing suited, and why.
-               Advice :=
-                 Source_Finding.Reason_Texts.To_Bounded_String
-                   (Model_Replies.Cut (Premium.Sources.Guidance, Source_Finding.Max_Reason));
-               Premium.Sources.Reset;
-               Forget_Work;
-               Public := Done;
-            else
-               Add_Premium_Links;
-               Premium.Sources.Reset;
-               if Candidate_Count > 0 then
-                  Stage := Reading;
-               else
-                  Fail ("Premium found no pages that can be opened");
-               end if;
-            end if;
-         when Premium.Sources.Failed =>
-            declare
-               Said : constant String := Premium.Sources.Message;
-            begin
-               Premium.Sources.Reset;
-               Fail (Said);
-            end;
-         when Premium.Sources.Idle =>
-            Fail ("Premium could not find sources, try again");
-         when Premium.Sources.Running =>
-            null;
-      end case;
-   end Poll_Requesting;
 
    --  Searching
 
@@ -606,8 +493,7 @@ package body Source_Finder is
                Candidates (Candidate_Count) :=
                  (Address  => Addresses.To_Bounded_String (Where), Document => Document,
                   Fallback => (if Where /= Link and then Link'Length <= Websearch.Max_URL
-                               then Addresses.To_Bounded_String (Link) else Addresses.Null_Bounded_String),
-                  Label    => Titles.Null_Bounded_String);
+                               then Addresses.To_Bounded_String (Link) else Addresses.Null_Bounded_String));
                Taken := Taken + 1;
             end if;
          end;
@@ -697,9 +583,6 @@ package body Source_Finder is
 
    procedure Lose_Lane (Which : Positive) is
    begin
-      if Premium_Run then
-         Premium.Log ("page could not be had: " & Addresses.To_String (Lanes (Which).Address));
-      end if;
       Remove_Files_Of (Which);
       Lanes (Which) := (others => <>);
    end Lose_Lane;
@@ -710,14 +593,9 @@ package body Source_Finder is
    begin
       Webshot.Reset (Slot_Of (Which));
       Vision.Jobs.Reset (Slot_Of (Which));
-      if Premium_Run then
-         --  Nothing is read, so the page's own script closes a cookie banner, and the page is taken whole.
-         Webshot.Start (Slot_Of (Which), Addresses.To_String (Lanes (Which).Address), Picture (Which));
-      else
-         Webshot.Start
-           (Slot_Of (Which), Addresses.To_String (Lanes (Which).Address), Picture (Which),
-            Look_File => Look_Picture (Which), Dismiss_Banners => False, Tile_Prefix => Tile_Prefix (Which));
-      end if;
+      Webshot.Start
+        (Slot_Of (Which), Addresses.To_String (Lanes (Which).Address), Picture (Which),
+         Look_File => Look_Picture (Which), Dismiss_Banners => False, Tile_Prefix => Tile_Prefix (Which));
    end Begin_Page;
 
    procedure Start_Lane (Which : Positive) is
@@ -725,7 +603,7 @@ package body Source_Finder is
    begin
       Lanes (Which) :=
         (State => (if Next.Document then Queued else Loading), Document => Next.Document,
-         Address => Next.Address, Fallback => Next.Fallback, Label => Next.Label, others => <>);
+         Address => Next.Address, Fallback => Next.Fallback, others => <>);
       Candidate_Next := Candidate_Next + 1;
       Webshot.Reset (Slot_Of (Which));
       Vision.Jobs.Reset (Slot_Of (Which));
@@ -737,14 +615,13 @@ package body Source_Finder is
    --  The PDF could not be had (the address gave a page that asks for something, or nothing): the
    --  page it is the front of is taken in its place, if there is one that is not had already.
    procedure Retry_As_Page (Which : Positive) is
-      Page  : constant Addresses.Bounded_String := Lanes (Which).Fallback;
-      Label : constant Titles.Bounded_String := Lanes (Which).Label;
+      Page : constant Addresses.Bounded_String := Lanes (Which).Fallback;
    begin
       Remove_Files_Of (Which);
       if Page = Addresses.Null_Bounded_String or else Known (Addresses.To_String (Page)) then
          Lanes (Which) := (others => <>);
       else
-         Lanes (Which) := (State => Loading, Address => Page, No_Redirect => True, Label => Label, others => <>);
+         Lanes (Which) := (State => Loading, Address => Page, No_Redirect => True, others => <>);
          Begin_Page (Which);
       end if;
    end Retry_As_Page;
@@ -857,7 +734,7 @@ package body Source_Finder is
       end if;
       Lanes (Which).Count_Of_Pages := Info.Pages;
       Documents_Read := Documents_Read + 1;
-      for Page in 1 .. (if Premium_Run then 0 else Natural'Min (Document_Pages, Info.Pages)) loop
+      for Page in 1 .. Natural'Min (Document_Pages, Info.Pages) loop
          exit when Page_Texts.Length (Text) >= Document_Text;
          declare
             Raw   : constant String := Ebook.Page_Text (Where, Page, Source_Finding.Max_Text);
@@ -899,14 +776,9 @@ package body Source_Finder is
          end if;
       end;
       Lanes (Which).Text := Page_Texts.To_Bounded_String (Page_Texts.To_String (Text));
-      if Premium_Run then
-         Lanes (Which).Marks := Trusted;
-         Lanes (Which).State := Judged;
-      else
-         Arrivals := Arrivals + 1;
-         Lanes (Which).Arrived := Arrivals;
-         Lanes (Which).State := Waiting;
-      end if;
+      Arrivals := Arrivals + 1;
+      Lanes (Which).Arrived := Arrivals;
+      Lanes (Which).State := Waiting;
    end Read_Document;
 
    procedure Poll_Lane (Which : Positive) is
@@ -957,12 +829,7 @@ package body Source_Finder is
                     Titles.To_Bounded_String (Model_Replies.Tidy (Webshot.Page_Title (Slot), Websearch.Max_Title));
                   Page.Tiles := Webshot.Tile_Count (Slot);
                   Webshot.Reset (Slot);
-                  if Premium_Run then
-                     Page.Marks := Trusted;
-                     Page.State := Judged;
-                  else
-                     Page.State := Pictured;
-                  end if;
+                  Page.State := Pictured;
                when Webshot.Failed =>
                   Webshot.Reset (Slot);
                   Lose_Lane (Which);
@@ -1262,8 +1129,7 @@ package body Source_Finder is
             Page : Lane renames Lanes (Order (Each));
          begin
             Kept (Each) :=
-              (Title => (if Page.Label /= Titles.Null_Bounded_String then Page.Label
-                         elsif Page.Title = Titles.Null_Bounded_String
+              (Title => (if Page.Title = Titles.Null_Bounded_String
                          then Titles.To_Bounded_String
                                 (Model_Replies.Cut (Addresses.To_String (Page.Address), Websearch.Max_Title))
                          else Page.Title),
@@ -1305,9 +1171,6 @@ package body Source_Finder is
             end loop;
          end if;
       end loop;
-      if Premium_Run then
-         Premium.Log ("kept" & Total'Image & " of" & Count_Lanes (Judged)'Image & " pages that could be had");
-      end if;
       declare
          Looked_At : constant Natural := Count_Lanes (Judged);
          Said  : constant String := Source_Finding.Reason_Texts.To_String (Judge_Problem);
@@ -1359,10 +1222,6 @@ package body Source_Finder is
    procedure Poll_Stopping is
       Still : Boolean := MLX.Jobs.State (Query_Job) = MLX.Jobs.Running;
    begin
-      if Premium.Sources.State = Premium.Sources.Running then
-         Premium.Sources.Cancel;
-         Still := True;
-      end if;
       if MLX.Jobs.State (Query_Job) = MLX.Jobs.Running then
          MLX.Jobs.Cancel (Query_Job);
       end if;
@@ -1378,9 +1237,6 @@ package body Source_Finder is
          Still := True;
       end if;
       if not Still then
-         if Premium.Sources.State /= Premium.Sources.Idle then
-            Premium.Sources.Reset;
-         end if;
          if Download_Lane /= 0 and then Downloads.State /= Downloads.Idle then
             Downloads.Reset;
          end if;
@@ -1411,7 +1267,6 @@ package body Source_Finder is
       if Public = Running and then (not Held or else Stage = Stopping) then
          case Stage is
             when Asking   => Poll_Asking;
-            when Requesting => Poll_Requesting;
             when Searching => Poll_Searching;
             when Reading  => Poll_Reading;
             when Stopping => Poll_Stopping;
@@ -1428,7 +1283,6 @@ package body Source_Finder is
 
    procedure Reset is
    begin
-      Advice := Source_Finding.Reason_Texts.Null_Bounded_String;
       Examined_Total := 0;
       Drop_Kept;
       Forget_Work;
@@ -1465,11 +1319,5 @@ package body Source_Finder is
          Count_Of_Pages => Count_Of_Pages);
       Public := Done;
    end Offer;
-
-   procedure Offer_Guidance (Said : String) is
-   begin
-      Advice := Source_Finding.Reason_Texts.To_Bounded_String (Model_Replies.Cut (Said, Source_Finding.Max_Reason));
-      Public := Done;
-   end Offer_Guidance;
 
 end Source_Finder;

@@ -1486,7 +1486,6 @@ begin
    Run ("sources-files", Item_Tests.Source_Files'Access);
    Run ("finding-queries", Finding_Tests.Reading_Queries'Access);
    Run ("finding-evaluations", Finding_Tests.Reading_Evaluations'Access);
-   Run ("finding-premium", Finding_Tests.Premium_Replies'Access);
    Run ("finding-banners", Finding_Tests.Reading_Banners'Access);
    Run ("finding-links", Finding_Tests.Choosing_Links'Access);
    Run ("finding-button", Finding_Tests.Button'Access);

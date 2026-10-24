@@ -5,7 +5,6 @@ with Icon_Set;
 with Items.Readers.Callbacks;
 with Items.Sources;
 with Model_Replies;
-with Projects;
 with Pomarine.Widgets.Callbacks;
 with Pomarine.Widgets.Editors;
 with Pomarine.Widgets.Layouts;
@@ -13,9 +12,6 @@ with Pomarine.Widgets.Menus;
 with Pomarine.Widgets.Toasts;
 with Source_Finder;
 with Viewer.Canvas_Items;
-with Viewer.Outline_Screen;
-with Viewer.Outlines;
-with Viewer.Section_Links;
 with Viewer.Settings_View;
 with Viewer.Style;
 
@@ -47,6 +43,9 @@ package body Viewer.Find_Sources is
 
    function Image (Number : Natural) return String is
      (Model_Replies.Tidy (Natural'Image (Number), 10));
+
+   function Is_Blank (Words : String) return Boolean is
+     (for all C of Words => C <= ' ');
 
    function Note_Window (Item : Session) return Natural is
    begin
@@ -192,9 +191,7 @@ package body Viewer.Find_Sources is
       Menus.Add (Menu, Menus.Heading, "Add as sources");
       for Each in 1 .. Source_Finder.Count loop
          Menus.Add
-           (Menu, Menus.Action,
-            (if Source_Finder.Scored then Image (Source_Finder.Percent (Each)) & "%  " else "")
-            & Source_Finder.Title (Each));
+           (Menu, Menus.Action, Image (Source_Finder.Percent (Each)) & "%  " & Source_Finder.Title (Each));
          Menus.Set_Icon
            (Menu, Each + 1, (if Source_Finder.Is_Document (Each) then Icon_Set.Document else Icon_Set.Link));
       end loop;
@@ -202,64 +199,6 @@ package body Viewer.Find_Sources is
       Menus.Add (Menu, Menus.Action, (if Source_Finder.Count > 1 then "Add all" else "Add"), Shade => Menus.Primary);
       Menus.Add (Menu, Menus.Action, "Dismiss", Shade => Menus.Danger);
    end Fill_Review;
-
-   Guidance_Width : constant := 42;
-   --  Bytes of a line of guidance: what a row of the list holds, at its width, with room over.
-
-   --  What the backend said of why it found nothing, as notes in the list, broken between words, and
-   --  the one thing to do.
-   procedure Fill_Guidance (Item : in out Session) is
-      Menu  : Menus.Menu renames Item.Finder.Review;
-      Words : constant String := Source_Finder.Guidance;
-      First : Positive := Words'First;
-   begin
-      Menus.Clear (Menu);
-      Menus.Add (Menu, Menus.Heading, "No sources found");
-      while First <= Words'Last loop
-         declare
-            Last : Natural := Natural'Min (Words'Last, First + Guidance_Width - 1);
-         begin
-            --  Back to the end of a word, unless one word is the whole line.
-            if Last < Words'Last and then Words (Last + 1) /= ' ' then
-               declare
-                  Cut : Natural := Last;
-               begin
-                  while Cut > First and then Words (Cut) /= ' ' loop
-                     Cut := Cut - 1;
-                  end loop;
-                  if Cut > First then
-                     Last := Cut;
-                  end if;
-               end;
-            end if;
-            --  Not in the middle of a UTF-8 character.
-            while Last > First and then Last < Words'Last
-              and then Character'Pos (Words (Last + 1)) in 16#80# .. 16#BF#
-            loop
-               Last := Last - 1;
-            end loop;
-            declare
-               Line : constant String := Model_Replies.Tidy (Words (First .. Last), Guidance_Width * 2);
-            begin
-               if Line /= "" then
-                  Menus.Add (Menu, Menus.Note, Line);
-               end if;
-            end;
-            First := Last + 1;
-         end;
-      end loop;
-      Menus.Add (Menu, Menus.Separator);
-      Menus.Add (Menu, Menus.Action, "Dismiss", Shade => Menus.Danger);
-   end Fill_Guidance;
-
-   procedure Open_Guidance (Item : in out Session) is
-   begin
-      Fill_Guidance (Item);
-      Item.Finder.Review_Open := True;
-      Widgets.Set_Visible (Item.Finder.Review, True);
-      Widgets.Raise_To_Front (Item.Finder.Review);
-      Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
-   end Open_Guidance;
 
    procedure Open_Review (Item : in out Session) is
    begin
@@ -303,14 +242,6 @@ package body Viewer.Find_Sources is
       if not Item.Finder.Review_Open or else Source_Finder.State /= Source_Finder.Done
         or else Item.Nav.Shown /= Project
       then
-         return;
-      end if;
-      if Total = 0 then
-         --  The guidance: its one row to click is the last.
-         if Event.Row = Menus.Row_Count (Item.Finder.Review) then
-            Source_Finder.Reset;
-            Finish (Item);
-         end if;
          return;
       end if;
       if Event.Row in 2 .. Total + 1 then
@@ -362,52 +293,23 @@ package body Viewer.Find_Sources is
 
    --  Starting
 
-   --  Tell the person why nothing was started.
-   procedure Refuse (Item : in out Session; Why : String) is
-   begin
-      Source_Finder.Reset;
-      Item.Finder.Owner := False;
-      Say (Item, Why, "Dismiss");
-      Item.Finder.Notice := True;
-      Item.Finder.Hide_After := SDL3.Events.Ticks + Seen_For;
-   end Refuse;
-
    procedure Start (Item : in out Session; Which : Items.Slot) is
-      Project_Title : constant String := Model_Replies.Tidy (Outline_Screen.Project_Title (Item), 300);
-      Description   : constant String := Model_Replies.Tidy (Outline_Screen.Project_Description (Item), 20_000);
-      Document      : constant String :=
-        Model_Replies.Tidy (Projects.Titles.To_String (Windows.Details (Item.Windows (Which)).Title), 300);
-      Place         : constant Natural := Section_Links.Section_Of (Item, Which);
-      Section       : constant String :=
-        (if Place = 0 then "" else Model_Replies.Tidy (Outlines.Section_Title (Item, Place), 300));
-      Located       : Ada.Strings.Unbounded.Unbounded_String;
-      Why           : Ada.Strings.Unbounded.Unbounded_String;
+      Words   : constant String := Windows.Text (Item.Windows (Which));
+      Located : Ada.Strings.Unbounded.Unbounded_String;
+      Why     : Ada.Strings.Unbounded.Unbounded_String;
    begin
-      if not Item.Prefs.AI_On or else Source_Finder.State = Source_Finder.Running then
+      if not Item.Prefs.AI_On or else Is_Blank (Words) or else Source_Finder.State = Source_Finder.Running then
          return;
       end if;
       Close_Review (Item);
-      if Settings_View.Premium_Chosen (Item) then
-         --  The backend wants all three titles.
-         if Project_Title = "" then
-            Refuse (Item, "Give the project a title first");
-         elsif Section = "" then
-            Refuse (Item, "Link the note to a section first");
-         elsif Document = "" then
-            Refuse (Item, "Give the note a title first");
-         end if;
-         if Project_Title = "" or else Section = "" or else Document = "" then
-            return;
-         end if;
-      elsif Project_Title = "" and then Section = "" and then Document = "" then
-         Refuse (Item, "Give the note a title first");
+      Settings_View.Locate_AI_Model (Item, Located, Why);
+      if Ada.Strings.Unbounded.Length (Why) > 0 then
+         Source_Finder.Reset;
+         Item.Finder.Owner := False;
+         Say (Item, Ada.Strings.Unbounded.To_String (Why), "Dismiss");
+         Item.Finder.Notice := True;
+         Item.Finder.Hide_After := SDL3.Events.Ticks + Seen_For;
          return;
-      else
-         Settings_View.Locate_AI_Model (Item, Located, Why);
-         if Ada.Strings.Unbounded.Length (Why) > 0 then
-            Refuse (Item, Ada.Strings.Unbounded.To_String (Why));
-            return;
-         end if;
       end if;
       declare
          Key       : constant Items.Id := Windows.Details (Item.Windows (Which)).Key;
@@ -416,12 +318,7 @@ package body Viewer.Find_Sources is
              (Items.Sources.Image_File (Item.Nav.Store, Item.Opened.Current, Key));
       begin
          Source_Finder.Reset;
-         if Settings_View.Premium_Chosen (Item) then
-            Source_Finder.Start_Premium (Project_Title, Description, Section, Document, Directory);
-         else
-            Source_Finder.Start
-              (Ada.Strings.Unbounded.To_String (Located), Project_Title, Description, Section, Document, Directory);
-         end if;
+         Source_Finder.Start (Ada.Strings.Unbounded.To_String (Located), Words, Directory);
          Item.Finder.Owner := True;
          Item.Finder.Notice := False;
          Item.Finder.Project := Item.Opened.Current;
@@ -467,17 +364,12 @@ package body Viewer.Find_Sources is
                Say (Item, Image (Count) & (if Count = 1 then " source found" else " sources found"), "Review");
             else
                Say (Item,
-                    (if Source_Finder.Guidance /= "" then "No sources found" else "No good sources found")
+                    "No good sources found"
                     & (if Source_Finder.Examined_Count = 0 then ""
                        else " (" & Image (Source_Finder.Examined_Count)
                             & (if Source_Finder.Examined_Count = 1 then " page" else " pages") & " checked)"),
                     "Dismiss");
-               if Source_Finder.Guidance /= "" then
-                  --  Left up, with what to do, till it has been read.
-                  if not Item.Finder.Review_Open then
-                     Open_Guidance (Item);
-                  end if;
-               elsif Item.Finder.Hide_After = 0 then
+               if Item.Finder.Hide_After = 0 then
                   Item.Finder.Hide_After := Now + Seen_For;
                end if;
             end if;
@@ -583,7 +475,7 @@ package body Viewer.Find_Sources is
    procedure Pressed (Item : in out Session; X, Y : Float) is
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
    begin
-      if Item.Finder.Review_Open and then Source_Finder.Count > 0
+      if Item.Finder.Review_Open
         and then not Widgets.Contains (Item.Finder.Review, X * Pixels, Y * Pixels)
         and then not Widgets.Contains (Item.Finder.Toast, X * Pixels, Y * Pixels)
         and then not Over_Preview (Item, X * Pixels, Y * Pixels)

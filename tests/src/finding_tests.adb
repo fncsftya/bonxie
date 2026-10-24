@@ -6,9 +6,7 @@ with SDL3.Pictures.Jobs;
 with Goldens;
 with Ada.Text_IO;
 with Item_Tests;
-with Dotenv;
 with Items;
-with Premium.Sources;
 with Source_Finder;
 with Source_Finding;
 with Source_Links;
@@ -109,7 +107,7 @@ package body Finding_Tests is
 
       --  The prompts: the text is cut, the schema is in the system prompt.
       declare
-         Big : constant String := Finding.Brief ([1 .. 3 * Finding.Max_Text => 'x'], "", "S", "D");
+         Big : constant String := [1 .. 3 * Finding.Max_Text => 'x'];
       begin
          Check ("queries-prompt-cut", "TRUE",
                 Boolean'Image (Finding.Query_Prompt (Big)'Length < Finding.Max_Text + 300));
@@ -118,59 +116,6 @@ package body Finding_Tests is
              Boolean'Image (Finding.Query_System_Prompt'Length > 0
                             and then Ada.Strings.Fixed.Index (Finding.Query_System_Prompt, """queries""") > 0));
    end Reading_Queries;
-
-   procedure Premium_Replies is
-      package Remote renames Premium.Sources;
-      use type Remote.States;
-      Sent : constant String :=
-        Remote.Request_Body ("Last ""Orders""", "", "The Smoking Ban", "Effect on pubs");
-
-      procedure Reply (Name : String; Status : Natural; Text : String; Expect : Remote.States) is
-      begin
-         Remote.Reset;
-         Remote.Read_Reply (Status, Text);
-         Check (Name, Remote.States'Image (Expect), Remote.States'Image (Remote.State));
-      end Reply;
-   begin
-      Check ("premium-request",
-             "{""section_title"":""The Smoking Ban"",""document_title"":""Effect on pubs"","
-             & """context"":{""project_title"":""Last \""Orders\""""}}", Sent);
-      Check ("premium-request-description", "TRUE",
-             Boolean'Image (Ada.Strings.Fixed.Index
-                              (Remote.Request_Body ("P", "A" & ASCII.LF & "B", "S", "D"),
-                               """project_description"":""A\nB""") > 0));
-
-      Reply ("premium-ok", 200,
-             "{""results"":[{""url"":""https://a.example/x"",""title"":""A""},"
-             & "{""url"":""ftp://nope"",""title"":""B""},{""url"":""http://b.example/""}]}", Remote.Done);
-      Check ("premium-count", " 2", Integer'Image (Remote.Count));
-      Check ("premium-first", "https://a.example/x", Remote.Address (1));
-      Check ("premium-first-title", "A", Remote.Title (1));
-      Check ("premium-second-title", "", Remote.Title (2));
-      Check ("premium-no-guidance", "", Remote.Guidance);
-      Reply ("premium-empty", 200, "{""results"":[],""guidance"":""Try a more specific title.""}", Remote.Done);
-      Check ("premium-empty-count", " 0", Integer'Image (Remote.Count));
-      Check ("premium-guidance", "Try a more specific title.", Remote.Guidance);
-      --  Words with curly quotes in them are read: their bytes are of UTF-8 characters.
-      Reply ("premium-utf8", 200,
-             "{""results"":[],""guidance"":""the title " & Character'Val (16#E2#) & Character'Val (16#80#)
-             & Character'Val (16#9C#) & "zx" & Character'Val (16#E2#) & Character'Val (16#80#)
-             & Character'Val (16#9D#) & " is cryptic""}", Remote.Done);
-      Check ("premium-utf8-guidance", "TRUE", Boolean'Image (Remote.Guidance'Length > 20));
-      Reply ("premium-502", 502, "{""error"":""upstream""}", Remote.Failed);
-      Check ("premium-generic", "TRUE", Boolean'Image (Remote.Message'Length > 0));
-      Reply ("premium-bad-json", 200, "<html>", Remote.Failed);
-      Reply ("premium-no-results", 200, "{""other"":1}", Remote.Failed);
-      Remote.Reset;
-
-      --  The .env file's keys: the process's environment first.
-      Dotenv.Clear;
-      Dotenv.Parse ("ENV=dev" & ASCII.LF & "BACKEND=""http://localhost:8080/""" & ASCII.LF);
-      Check ("dotenv-env", "dev", Dotenv.Value ("ENV"));
-      Check ("dotenv-quoted", "http://localhost:8080/", Dotenv.Value ("BACKEND"));
-      Check ("dotenv-default", "x", Dotenv.Value ("BONXIE_NO_SUCH_KEY", "x"));
-      Dotenv.Clear;
-   end Premium_Replies;
 
    procedure Reading_Banners is
       Covered : Boolean;
@@ -429,7 +374,7 @@ package body Finding_Tests is
       Snap (Session, "finding-button-ai-off");
       Proj.Close_Project (Session);
 
-      --  With it on, it is on whatever the text: the titles are what sources are found for.
+      --  With it on, it is off until there is text, and spaces are not.
       Prefs.Open_Settings (Session);
       Prefs.Choose_AI_Enabled (Session, True);
       Prefs.Close_Settings (Session);
@@ -437,11 +382,11 @@ package body Finding_Tests is
       Proj.Set_Mode (Session, Viewer.Canvas);
       Windows.Add_Item (Session, "Note");
       Settle (Session);
-      Check ("finding-on-empty", "TRUE", Flag (Windows.Find_Sources_Enabled (Session, 1)));
+      Check ("finding-on-empty", "FALSE", Flag (Windows.Find_Sources_Enabled (Session, 1)));
       Snap (Session, "finding-button-empty");
       Type_In (Session, "   ");
       Settle (Session);
-      Check ("finding-on-spaces", "TRUE", Flag (Windows.Find_Sources_Enabled (Session, 1)));
+      Check ("finding-on-spaces", "FALSE", Flag (Windows.Find_Sources_Enabled (Session, 1)));
       Type_In (Session, "Whales sing");
       Settle (Session);
       Check ("finding-on-text", "TRUE", Flag (Windows.Find_Sources_Enabled (Session, 1)));
@@ -660,7 +605,7 @@ package body Finding_Tests is
 
       --  A run that is under way (held there: there is no model to do the work).
       Source_Finder.Hold (True);
-      Source_Finder.Start ("/tmp/bonxie-no-such-model", "Whales", "", "Songs", "Whales sing", "/tmp/bonxie-finding");
+      Source_Finder.Start ("/tmp/bonxie-no-such-model", "Whales sing", "/tmp/bonxie-finding");
       Ada.Directories.Copy_File ("golden/canvas-1x.png", Picture_A, "mode=overwrite");
       Screen.Adopt (Session, 1);
       Settle (Session);
@@ -683,7 +628,7 @@ package body Finding_Tests is
 
       --  It can be begun again, and stopped at once, with no one to see it, as the
       --  program does when it ends.
-      Source_Finder.Start ("/tmp/bonxie-no-such-model", "Whales", "", "Songs", "Whales sing", "/tmp/bonxie-finding");
+      Source_Finder.Start ("/tmp/bonxie-no-such-model", "Whales sing", "/tmp/bonxie-finding");
       Check ("finding-cancel-again", "RUNNING", Source_Finder.States'Image (Source_Finder.State));
       Source_Finder.Cancel;
       Check ("finding-cancel-stopping-state", "Stopping",
@@ -698,7 +643,7 @@ package body Finding_Tests is
 
       --  Left half way: the work stops, and the toast does not stay in the next project.
       Source_Finder.Hold (True);
-      Source_Finder.Start ("/tmp/bonxie-no-such-model", "Whales", "", "Songs", "Whales sing", "/tmp/bonxie-finding");
+      Source_Finder.Start ("/tmp/bonxie-no-such-model", "Whales sing", "/tmp/bonxie-finding");
       Screen.Adopt (Session, 1);
       Settle (Session);
       Proj.Close_Project (Session);
@@ -728,25 +673,6 @@ package body Finding_Tests is
       Viewer.Tick (Session, Now + 10_000);
       Check ("finding-none-away", "FALSE", Flag (Screen.Toast_Shown (Session)));
       Check ("finding-none-reset", "IDLE", Source_Finder.States'Image (Source_Finder.State));
-
-      --  Nothing found, and the backend said why and how to do better: the toast says so, and the list
-      --  has what it said, as lines, to be read and put away with its one button.
-      Source_Finder.Offer_Guidance
-        ("No suitable sources were found: the document title " & Character'Val (16#E2#) & Character'Val (16#80#)
-         & Character'Val (16#9C#) & "zxqv" & Character'Val (16#E2#) & Character'Val (16#80#) & Character'Val (16#9D#)
-         & " is too cryptic. Please give a more specific title, or describe the project.");
-      Screen.Adopt (Session, 1);
-      Settle (Session);
-      Check ("finding-guidance-toast", "No sources found", Screen.Toast_Message (Session));
-      Check ("finding-guidance-list", "TRUE", Flag (Screen.Review_Shown (Session)));
-      Check ("finding-guidance-heading", "No sources found", Screen.Review_Row (Session, 1));
-      Check ("finding-guidance-lines", "TRUE", Flag (Screen.Review_Row_Count (Session) >= 5));
-      Check ("finding-guidance-dismiss", "Dismiss", Screen.Review_Row (Session, Screen.Review_Row_Count (Session)));
-      Viewer.Tick (Session, Now + 10_000);
-      Check ("finding-guidance-stays", "TRUE", Flag (Screen.Review_Shown (Session)));
-      Click_Review_Row (Session, Screen.Review_Row_Count (Session));
-      Check ("finding-guidance-away", "FALSE", Flag (Screen.Review_Shown (Session)));
-      Check ("finding-guidance-reset", "IDLE", Source_Finder.States'Image (Source_Finder.State));
 
       --  Turned off in the settings, the buttons are too.
       Proj.Close_Project (Session);

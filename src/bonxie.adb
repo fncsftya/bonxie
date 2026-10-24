@@ -1,5 +1,4 @@
 with Ada.Command_Line;
-with Dotenv;
 with Files;
 with SDL3;
 with Speech.Jobs;
@@ -7,11 +6,6 @@ with Viewer;
 
 procedure Bonxie is
 begin
-   --  Settings from .env in the working directory, if there is one.
-   if Dotenv.Load then
-      null;
-   end if;
-
    SDL3.Initialize;
 
    --  The file named on the command line, or an empty document.

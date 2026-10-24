@@ -14,6 +14,7 @@
 --  See the License for the specific language governing permissions and
 --  limitations under the License.
 
+with Ada.Characters.Handling;
 with Ada.Characters.Latin_1;
 with Ada.Strings.Bounded;
 with Ada.Strings.Unbounded;
@@ -129,8 +130,7 @@ package body JSON.Types is
                   end case;
                end;
             else
-               --  Only ASCII controls: the bytes 16#80# .. 16#9F# are parts of UTF-8 characters.
-               if C < ' ' or else C = Character'Val (127) then
+               if Ada.Characters.Handling.Is_Control (C) then
                   raise Program_Error with "Unexpected control character";
                end if;
                SB.Append (Value, C);

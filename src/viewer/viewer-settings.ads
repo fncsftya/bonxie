@@ -73,15 +73,6 @@ package Viewer.Settings is
      with Pre => Is_Open (Item);
    --  Whether the local language model is switched on.
 
-   procedure Choose_AI_Backend (Item : in out Session; To : Preferences.AI_Backends)
-     with Pre  => Is_Open (Item) and then Is_Settings_Open (Item),
-          Post => Preferences."=" (AI_Backend (Item), To);
-   --  Choose what does the AI's work, the model here or premium, as the radios of Backend do.
-
-   function AI_Backend (Item : Session) return Preferences.AI_Backends
-     with Pre => Is_Open (Item);
-   --  What was chosen; premium is used only while it is on offer (see Premium.Available).
-
    function AI_Model (Item : Session) return String
      with Pre => Is_Open (Item);
    --  The language model chosen, "provider/name"; "" if none.
