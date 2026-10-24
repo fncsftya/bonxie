@@ -48,3 +48,6 @@ json = { path = "vendor/json-ada/json" }
 
 [[depends-on]]
 ada_sqlite3 = "~0.1.1"
+
+[[depends-on]]
+gnatprove = "^16.1.0"
