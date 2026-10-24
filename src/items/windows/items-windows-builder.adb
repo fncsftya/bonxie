@@ -7,6 +7,7 @@ with Pomarine.Line_Texts;
 with Pomarine.Widgets.Layouts;
 with Items.Windows.Handlers;
 with Items.Windows.Metrics;
+with Pomarine.Icons;
 
 package body Items.Windows.Builder is
 
@@ -28,11 +29,8 @@ package body Items.Windows.Builder is
       Edge   : constant Float := Pomarine.Boxes.Edge (Metrics.Outline * Pixels);
       --  In whole pixels, as the outline is.
 
-      procedure Size (Part : in out Widgets.Widget'Class; Wide, High : Float)
-      is
-      begin
-         Layouts.Set_Layout (Part, Width => Wide, Height => High);
-      end Size;
+      function Size (Wide, High : Float) return Layouts.Style is
+        (Width => Wide, Height => High, others => <>);
    begin
       Item.Pixels := Pixels;
       Frames.Build
@@ -43,15 +41,25 @@ package body Items.Windows.Builder is
       Frames.Add_Content (Item.Chrome, Item.Pages);
       Frames.Add_Content (Item.Chrome, Item.Text_View);
       Frames.Add_Content (Item.Chrome, Item.Wizard);
-      Widgets.Add (Item.Wizard, Item.Link_Button);
-      Widgets.Add (Item.Wizard, Item.File_Button);
+      Buttons.Add (Item.Wizard, Item.Link_Button,
+                   Buttons.Looks ("From URL", Icon => Pomarine.Icons.Shown (Icon_Set.Link), Captioned => True),
+                   Size (Metrics.Wizard_Button_Width, Metrics.Wizard_Button_Height));
+      Buttons.Add (Item.Wizard, Item.File_Button,
+                   Buttons.Looks ("From File", Icon => Pomarine.Icons.Shown (Icon_Set.Document), Captioned => True),
+                   Size (Metrics.Wizard_Button_Width, Metrics.Wizard_Button_Height));
       Frames.Add_Status_Item (Item.Chrome, Item.Pager);
       Frames.Add_Status_Item (Item.Chrome, Item.Speak_Button);
       Frames.Add_Status_Item (Item.Chrome, Item.Status);
       Frames.Add_Status_Item (Item.Chrome, Item.Tools);
-      Widgets.Add (Item.Tools, Item.Cursor_Button);
-      Widgets.Add (Item.Tools, Item.Marker_Button);
-      Widgets.Add (Item.Tools, Item.Eraser_Button);
+      Buttons.Add (Item.Tools, Item.Cursor_Button,
+                   Buttons.Looks ("Ptr", Icon => Pomarine.Icons.Shown (Icon_Set.Cursor)),
+                   Size (Metrics.Tool_Size, Metrics.Zoom_Row_Height));
+      Buttons.Add (Item.Tools, Item.Marker_Button,
+                   Buttons.Looks ("Mark", Icon => Pomarine.Icons.Shown (Icon_Set.Highlighter)),
+                   Size (Metrics.Tool_Size, Metrics.Zoom_Row_Height));
+      Buttons.Add (Item.Tools, Item.Eraser_Button,
+                   Buttons.Looks ("Rub", Icon => Pomarine.Icons.Shown (Icon_Set.Eraser)),
+                   Size (Metrics.Tool_Size, Metrics.Zoom_Row_Height));
       Frames.Add_Status_Item (Item.Chrome, Item.Outline_Button);
       Frames.Add_Status_Item (Item.Chrome, Item.Zoom_Button);
       Frames.Add_Over_Status (Item.Chrome, Item.Progress);
@@ -87,27 +95,26 @@ package body Items.Windows.Builder is
       Layouts.Set_Layout
         (Item.Wizard, Grow => 1.0, Height => 0.0, Flow => Layouts.Column,
          Align => Layouts.Center, Spread => Layouts.Center, Gap => Metrics.Wizard_Gap);
-      Buttons.Set_Label (Item.Link_Button, "From URL");
-      Buttons.Set_Icon (Item.Link_Button, Icon_Set.Link);
-      Buttons.Set_Captioned (Item.Link_Button, True);
-      Buttons.Set_Label (Item.File_Button, "From File");
-      Buttons.Set_Icon (Item.File_Button, Icon_Set.Document);
-      Buttons.Set_Captioned (Item.File_Button, True);
-      Size (Item.Link_Button, Metrics.Wizard_Button_Width, Metrics.Wizard_Button_Height);
-      Size (Item.File_Button, Metrics.Wizard_Button_Width, Metrics.Wizard_Button_Height);
 
       Layouts.Set_Layout (Item.Status, Grow => 1.0, Width => 0.0, Height => Metrics.Label_Height);
       Frames.Add_Over_Content (Item.Chrome, Item.Zoom_Menu);
-      Widgets.Add (Item.Pager, Item.Prev_Button);
-      Widgets.Add (Item.Pager, Item.Next_Button);
+      Buttons.Add (Item.Pager, Item.Prev_Button,
+                   Buttons.Looks ("Previous page", Icon => Pomarine.Icons.Shown (Icon_Set.Back)),
+                   Size (Metrics.Tool_Size, Metrics.Zoom_Row_Height));
+      Buttons.Add (Item.Pager, Item.Next_Button,
+                   Buttons.Looks ("Next page", Icon => Pomarine.Icons.Shown (Icon_Set.Forward)),
+                   Size (Metrics.Tool_Size, Metrics.Zoom_Row_Height));
       Frames.Add_Over_Content (Item.Chrome, Item.Fetch_Button);
-      Widgets.Add (Item.Zoom_Menu, Item.Zoom_Slider);
-      for Row in Item.Menu_Rows'Range loop
-         Widgets.Add (Item.Zoom_Menu, Item.Menu_Rows (Row));
+      Layouts.Add (Item.Zoom_Menu, Item.Zoom_Slider, Size (Metrics.Zoom_Slider_Width, Metrics.Zoom_Row_Height));
+      for Each of Item.Menu_Rows loop
+         Layouts.Add (Item.Zoom_Menu, Each,
+                      (Flow => Layouts.Row, Gap => Edge, Unit => Layouts.Device_Pixels, others => <>));
       end loop;
       for Which in Item.Menu_Buttons'Range loop
-         Widgets.Add (Item.Menu_Rows (1 + (Which - 1) / 3),
-                      Item.Menu_Buttons (Which));
+         Buttons.Add
+           (Item.Menu_Rows (1 + (Which - 1) / 3), Item.Menu_Buttons (Which),
+            Buttons.Looks (Items.Sources.Percent (Metrics.Preset_Zooms (Which))),
+            Size (Metrics.Preset_Width, Metrics.Zoom_Row_Height));
       end loop;
 
       --  The progress bar, along the foot of the status line.
@@ -117,45 +124,28 @@ package body Items.Windows.Builder is
 
       --  The tools, in the status line.
       Layouts.Set_Layout (Item.Tools, Flow => Layouts.Row, Gap => Metrics.Button_Gap);
-      Buttons.Set_Label (Item.Cursor_Button, "Ptr");
-      Buttons.Set_Icon (Item.Cursor_Button, Icon_Set.Cursor);
-      Buttons.Set_Label (Item.Marker_Button, "Mark");
-      Buttons.Set_Icon (Item.Marker_Button, Icon_Set.Highlighter);
-      Buttons.Set_Label (Item.Eraser_Button, "Rub");
-      Buttons.Set_Icon (Item.Eraser_Button, Icon_Set.Eraser);
       Buttons.Set_Selected (Item.Cursor_Button, True);
-      Size (Item.Eraser_Button, Metrics.Tool_Size, Metrics.Zoom_Row_Height);
-      Size (Item.Cursor_Button, Metrics.Tool_Size, Metrics.Zoom_Row_Height);
-      Size (Item.Marker_Button, Metrics.Tool_Size, Metrics.Zoom_Row_Height);
 
       --  The zoom: the button for the menu, which has the slider.
-      Size (Item.Zoom_Slider, Metrics.Zoom_Slider_Width, Metrics.Zoom_Row_Height);
-      Buttons.Set_Label (Item.Zoom_Button, "100%");
-      Buttons.Set_Captioned (Item.Zoom_Button, True);
-      Buttons.Set_Dropdown (Item.Zoom_Button, True);
-      Size (Item.Zoom_Button, Metrics.Zoom_Button_Width, Metrics.Zoom_Row_Height);
+      Buttons.Configure (Item.Zoom_Button, Buttons.Looks ("100%", Captioned => True, Shape => Buttons.Dropdown));
+      Layouts.Set_Layout (Item.Zoom_Button, Size (Metrics.Zoom_Button_Width, Metrics.Zoom_Row_Height));
 
       --  The button to dictate, of a note.
-      Buttons.Set_Label (Item.Speak_Button, "Dictate");
-      Buttons.Set_Icon (Item.Speak_Button, Icon_Set.Microphone);
-      Buttons.Set_Captioned (Item.Speak_Button, True);
-      Size (Item.Speak_Button, Metrics.Speak_Width, Metrics.Zoom_Row_Height);
-      Buttons.Set_Icon_Size (Item.Speak_Button, Metrics.Speak_Icon_Size);
+      Buttons.Configure
+        (Item.Speak_Button,
+         Buttons.Looks
+           ("Dictate",
+            Icon => Pomarine.Icons.Shown (Icon_Set.Microphone),
+            Icon_Points => Metrics.Speak_Icon_Size,
+            Captioned => True));
+      Layouts.Set_Layout (Item.Speak_Button, Size (Metrics.Speak_Width, Metrics.Zoom_Row_Height));
 
       --  The button of a note's link to the outline, at the right of its status line.
-      Buttons.Set_Label (Item.Outline_Button, "Section");
-      Buttons.Set_Captioned (Item.Outline_Button, True);
-      Buttons.Set_Dropdown (Item.Outline_Button, True);
-      Size (Item.Outline_Button, Metrics.Outline_Button_Width, Metrics.Zoom_Row_Height);
+      Buttons.Configure (Item.Outline_Button, Buttons.Looks ("Section", Captioned => True, Shape => Buttons.Dropdown));
+      Layouts.Set_Layout (Item.Outline_Button, Size (Metrics.Outline_Button_Width, Metrics.Zoom_Row_Height));
 
       --  The page buttons: at the left of the status line.
       Layouts.Set_Layout (Item.Pager, Flow => Layouts.Row, Gap => Metrics.Button_Gap);
-      Buttons.Set_Label (Item.Prev_Button, "Previous page");
-      Buttons.Set_Icon (Item.Prev_Button, Icon_Set.Back);
-      Buttons.Set_Label (Item.Next_Button, "Next page");
-      Buttons.Set_Icon (Item.Next_Button, Icon_Set.Forward);
-      Size (Item.Prev_Button, Metrics.Tool_Size, Metrics.Zoom_Row_Height);
-      Size (Item.Next_Button, Metrics.Tool_Size, Metrics.Zoom_Row_Height);
 
       --  The menu: over the picture, at the right, with the window's
       --  outline between its buttons.
@@ -167,22 +157,11 @@ package body Items.Windows.Builder is
                       others => <>),
          Flow => Layouts.Column, Padding => (others => Edge), Gap => Edge,
          Unit => Layouts.Device_Pixels);
-      for Each of Item.Menu_Rows loop
-         Layouts.Set_Layout
-           (Each, Flow => Layouts.Row, Gap => Edge, Unit => Layouts.Device_Pixels);
-      end loop;
-      for Which in Item.Menu_Buttons'Range loop
-         Buttons.Set_Label
-           (Item.Menu_Buttons (Which),
-            Items.Sources.Percent (Metrics.Preset_Zooms (Which)));
-         Size (Item.Menu_Buttons (Which), Metrics.Preset_Width, Metrics.Zoom_Row_Height);
-      end loop;
 
       --  Over the right of the link, which leaves room for it (see
       --  Show_Fetch); its top is put by Fit_Zoom.
-      Buttons.Set_Label (Item.Fetch_Button, "Add");
-      Buttons.Set_Kind (Item.Fetch_Button, Buttons.Primary);
-      Size (Item.Fetch_Button, Metrics.Fetch_Width, Metrics.Fetch_Height);
+      Buttons.Configure (Item.Fetch_Button, Buttons.Looks ("Add", Buttons.Primary));
+      Layouts.Set_Layout (Item.Fetch_Button, Size (Metrics.Fetch_Width, Metrics.Fetch_Height));
       Layouts.Set_Layout
         (Item.Fetch_Button, Place => Layouts.Absolute,
          Position => (Right => Edge + Pomarine.Boxes.Offset (Pixels) + Metrics.Fetch_Inset * Pixels,

@@ -203,86 +203,73 @@ package body Viewer.Grammar is
       State : Grammar_State renames Item.Grammar_Checks;
       use Layouts;
 
-      procedure Footer_Button (Button : in out Buttons.Button; Wide : Float) is
+      procedure Add_Footer_Button (Button : in out Buttons.Button; Caption : String; Wide : Float) is
       begin
-         Buttons.Set_Focusable (Button, True);
-         Set_Layout (Button, Place => Absolute, Width => Wide, Height => 28.0);
+         Buttons.Add (State.Content, Button, Buttons.Looks (Caption, Focusable => True),
+                      (Place => Absolute, Width => Wide, Height => 28.0, others => <>));
          Widgets.Set_Visible (Button, False);
-      end Footer_Button;
+      end Add_Footer_Button;
    begin
-      Widgets.Add (Item.Toolbar.Content_Panel, State.Popout);
+      Layouts.Add (Item.Toolbar.Content_Panel, State.Popout,
+                   (Place => Absolute, Width => 360.0, Height => 520.0, Flow => Column, Outlined => True,
+                    Shadowed => True, Padding => (others => 8.0), others => <>));
       Panels.Set_Fill (State.Popout, Pomarine.Themes.Background);
       Panels.Set_Border (State.Popout, Pomarine.Themes.Border);
       Panels.Set_Shadow (State.Popout, Pomarine.Themes.Shadow);
       Panels.Set_Radius (State.Popout, Pomarine.Themes.Large_Radius);
-      Set_Layout (State.Popout, Place => Absolute, Width => 360.0, Height => 520.0,
-                  Flow => Column, Outlined => True, Shadowed => True, Padding => (others => 8.0));
-      Widgets.Add (State.Popout, State.Heading, State.Scroll);
+      Layouts.Add (State.Popout, State.Heading, (Height => 32.0, Shrink => 0.0, others => <>));
+      Layouts.Add (State.Popout, State.Scroll, (Grow => 1.0, Height => 0.0, others => <>));
       Labels.Set_Text (State.Heading, "Grammar Suggestions");
       Labels.Set_Style (State.Heading, Pomarine.Line_Texts.Heading);
-      Set_Layout (State.Heading, Height => 32.0, Shrink => 0.0);
-      Set_Layout (State.Scroll, Grow => 1.0, Height => 0.0);
-      Widgets.Add (State.Scroll, State.Content);
-      Set_Layout (State.Content, Height => 40.0, Flow => Column, Shrink => 0.0);
-      Widgets.Add (State.Content, State.Empty);
+      Layouts.Add (State.Scroll, State.Content, (Height => 40.0, Flow => Column, Shrink => 0.0, others => <>));
+      Layouts.Add (State.Content, State.Empty,
+                   (Place => Absolute, Position => (Top | Left => 8.0, others => <>), Height => 24.0, Width => 300.0,
+                    others => <>));
       Labels.Set_Text (State.Empty, "No grammar suggestions");
-      Set_Layout (State.Empty, Place => Absolute, Position => (Top | Left => 8.0, others => <>),
-                  Height => 24.0, Width => 300.0);
       for Index in State.Cards'Range loop
-         Widgets.Add (State.Content, State.Cards (Index));
-         Set_Layout (State.Cards (Index), Place => Absolute, Width => 320.0, Height => 40.0);
+         Layouts.Add (State.Content, State.Cards (Index),
+                      (Place => Absolute, Width => 320.0, Height => 40.0, others => <>));
          Widgets.Set_Tag (State.Cards (Index), Widgets.No_Tag, Index);
          Hooks.On (State.Cards (Index), Widgets.Click, Item'Unchecked_Access, Cards.Expand'Access);
          Widgets.Set_Visible (State.Cards (Index), False);
       end loop;
       for Number in State.Actions'Range loop
-         Widgets.Add (State.Content, State.Actions (Number));
-         Buttons.Set_Label (State.Actions (Number), "Apply");
-         Buttons.Set_Focusable (State.Actions (Number), True);
-         Buttons.Set_Kind (State.Actions (Number), Buttons.Primary);
-         Set_Layout (State.Actions (Number), Place => Absolute, Width => 56.0, Height => 28.0);
+         Buttons.Add (State.Content, State.Actions (Number),
+                      Buttons.Looks ("Apply", Buttons.Primary, Focusable => True),
+                      (Place => Absolute, Width => 56.0, Height => 28.0, others => <>));
          Widgets.Set_Tag (State.Actions (Number), Widgets.No_Tag, Number);
          Hooks.On (State.Actions (Number), Widgets.Click, Item'Unchecked_Access, Cards.Apply'Access);
          Widgets.Set_Visible (State.Actions (Number), False);
       end loop;
-      Widgets.Add (State.Content, State.Add_Rule, State.Ignore_Text);
-      Buttons.Set_Label (State.Add_Rule, "Add rule");
-      Buttons.Set_Label (State.Ignore_Text, "Ignore");
-      Footer_Button (State.Add_Rule, 76.0);
-      Footer_Button (State.Ignore_Text, 60.0);
+      Add_Footer_Button (State.Add_Rule, "Add rule", 76.0);
+      Add_Footer_Button (State.Ignore_Text, "Ignore", 60.0);
       Hooks.On (State.Add_Rule, Widgets.Click, Item'Unchecked_Access, Cards.Rule_Clicked'Access);
       Hooks.On (State.Ignore_Text, Widgets.Click, Item'Unchecked_Access, Cards.Ignore_Clicked'Access);
       Widgets.Add (State.Content, State.Measure_Card);
       Widgets.Set_Visible (State.Measure_Card, False);
       Hooks.On (Item.Page_View.Grammar_Count, Widgets.Click, Item'Unchecked_Access, Cards.Toggle'Access);
       Widgets.Set_Visible (State.Popout, False);
-      Widgets.Add (Item.Toolbar.Content_Panel, State.Inline_Menu);
-      Set_Layout (State.Inline_Menu, Place => Absolute, Width => 200.0);
+      Layouts.Add (Item.Toolbar.Content_Panel, State.Inline_Menu, (Place => Absolute, Width => 200.0, others => <>));
       Hooks.On (State.Inline_Menu, Widgets.Choose, Item'Unchecked_Access, Cards.Inline_Chosen'Access);
       Widgets.Set_Visible (State.Inline_Menu, False);
-      Widgets.Add (Item.Toolbar.Content_Panel, State.Entry_Panel);
+      Layouts.Add (Item.Toolbar.Content_Panel, State.Entry_Panel,
+                   (Place => Absolute, Width => Entry_Width, Height => 124.0, Flow => Column, Outlined => True,
+                    Shadowed => True, Padding => (others => 8.0), Gap => 6.0, others => <>));
       Panels.Set_Fill (State.Entry_Panel, Pomarine.Themes.Background);
       Panels.Set_Border (State.Entry_Panel, Pomarine.Themes.Border);
       Panels.Set_Shadow (State.Entry_Panel, Pomarine.Themes.Shadow);
       Panels.Set_Radius (State.Entry_Panel, Pomarine.Themes.Large_Radius);
-      Set_Layout (State.Entry_Panel, Place => Absolute, Width => Entry_Width, Height => 124.0, Flow => Column,
-                  Outlined => True, Shadowed => True, Padding => (others => 8.0), Gap => 6.0);
-      Widgets.Add (State.Entry_Panel, State.Entry_Prompt, State.Entry_Field);
-      Widgets.Add (State.Entry_Panel, State.Entry_Row);
-      Set_Layout (State.Entry_Prompt, Height => 22.0, Shrink => 0.0);
+      Layouts.Add (State.Entry_Panel, State.Entry_Prompt, (Height => 22.0, Shrink => 0.0, others => <>));
+      Layouts.Add (State.Entry_Panel, State.Entry_Field, (Height => 36.0, Shrink => 0.0, others => <>));
+      Layouts.Add (State.Entry_Panel, State.Entry_Row,
+                   (Height => 28.0, Shrink => 0.0, Flow => Layouts.Row, Gap => 8.0, Spread => Between, others => <>));
       Text_Fields.Set_Shared (State.Entry_Field, Item.Host.Doc_Resources'Unchecked_Access);
       Text_Fields.Configure (State.Entry_Field, Pomarine.Line_Texts.Interface_Font, Viewer.Style.Edit_Size);
       Text_Fields.Attach (State.Entry_Field, State.Entry_Doc'Unchecked_Access);
-      Set_Layout (State.Entry_Field, Height => 36.0, Shrink => 0.0);
-      Set_Layout (State.Entry_Row, Height => 28.0, Shrink => 0.0, Flow => Layouts.Row, Gap => 8.0, Spread => Between);
-      Widgets.Add (State.Entry_Row, State.Entry_Ok, State.Entry_Cancel);
-      Buttons.Set_Label (State.Entry_Ok, "Add rule");
-      Buttons.Set_Kind (State.Entry_Ok, Buttons.Primary);
-      Buttons.Set_Focusable (State.Entry_Ok, True);
-      Buttons.Set_Label (State.Entry_Cancel, "Cancel");
-      Buttons.Set_Focusable (State.Entry_Cancel, True);
-      Set_Layout (State.Entry_Ok, Width => 76.0, Height => 28.0);
-      Set_Layout (State.Entry_Cancel, Width => 64.0, Height => 28.0);
+      Buttons.Add (State.Entry_Row, State.Entry_Ok, Buttons.Looks ("Add rule", Buttons.Primary, Focusable => True),
+                   (Width => 76.0, Height => 28.0, others => <>));
+      Buttons.Add (State.Entry_Row, State.Entry_Cancel, Buttons.Looks ("Cancel", Focusable => True),
+                   (Width => 64.0, Height => 28.0, others => <>));
       Hooks.On (State.Entry_Ok, Widgets.Click, Item'Unchecked_Access, Cards.Entry_Accepted'Access);
       Hooks.On (State.Entry_Field, Widgets.Submit, Item'Unchecked_Access, Cards.Entry_Accepted'Access);
       Hooks.On (State.Entry_Cancel, Widgets.Click, Item'Unchecked_Access, Cards.Entry_Cancelled'Access);

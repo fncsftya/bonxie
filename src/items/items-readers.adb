@@ -6,6 +6,7 @@ with Icon_Set;
 with Pomarine.Widgets.Callbacks;
 with Pomarine.Widgets.Frames.Handlers;
 with Pomarine.Widgets.Layouts;
+with Pomarine.Icons;
 
 package body Items.Readers is
 
@@ -53,11 +54,8 @@ package body Items.Readers is
    is
       Pixels : constant Float := Density;
 
-      procedure Size (Part : in out Widgets.Widget'Class; Wide, High : Float)
-      is
-      begin
-         Layouts.Set_Layout (Part, Width => Wide, Height => High);
-      end Size;
+      function Size (Wide, High : Float) return Layouts.Style is
+        (Width => Wide, Height => High, others => <>);
    begin
       Item.Pixels := Pixels;
       Item.Pinned := Pinned;
@@ -69,19 +67,28 @@ package body Items.Readers is
       Frames.Add_Content (Item.Chrome, Item.Pages);
       Frames.Add_Content (Item.Chrome, Item.Text_View);
       Frames.Add_Status_Item (Item.Chrome, Item.Tools);
-      Widgets.Add (Item.Tools, Item.Cursor_Button);
-      Widgets.Add (Item.Tools, Item.Marker_Button);
-      Widgets.Add (Item.Tools, Item.Eraser_Button);
+      Buttons.Add (Item.Tools, Item.Cursor_Button,
+                   Buttons.Looks ("Ptr", Icon => Pomarine.Icons.Shown (Icon_Set.Cursor)),
+                   Size (Button_Size, Row_Height));
+      Buttons.Add (Item.Tools, Item.Marker_Button,
+                   Buttons.Looks ("Mark", Icon => Pomarine.Icons.Shown (Icon_Set.Highlighter)),
+                   Size (Button_Size, Row_Height));
+      Buttons.Add (Item.Tools, Item.Eraser_Button,
+                   Buttons.Looks ("Rub", Icon => Pomarine.Icons.Shown (Icon_Set.Eraser)),
+                   Size (Button_Size, Row_Height));
       Frames.Add_Status_Item (Item.Chrome, Item.Zoom_Slider);
       Frames.Add_Status_Item (Item.Chrome, Item.Zoom_Label);
       Frames.Add_Status_Item (Item.Chrome, Item.Status);
       Frames.Add_Status_Item (Item.Chrome, Item.Visit_Button);
 
-      Buttons.Set_Label (Item.Pin_Button, "Pin");
-      Buttons.Set_Icon (Item.Pin_Button, Icon_Set.Pin);
-      Buttons.Set_Icon_Size (Item.Pin_Button, Pin_Icon_Size);
+      Buttons.Configure
+        (Item.Pin_Button,
+         Buttons.Looks
+           ("Pin",
+            Icon => Pomarine.Icons.Shown (Icon_Set.Pin),
+            Icon_Points => Pin_Icon_Size));
       Buttons.Set_Selected (Item.Pin_Button, Pinned);
-      Size (Item.Pin_Button, Button_Size, Button_Size);
+      Layouts.Set_Layout (Item.Pin_Button, Size (Button_Size, Button_Size));
 
       Layouts.Set_Layout (Item.Picture, Grow => 1.0, Height => 0.0);
       Layouts.Set_Layout (Item.Pages, Grow => 1.0, Height => 0.0);
@@ -93,23 +100,14 @@ package body Items.Readers is
       Widgets.Set_Visible (Item.Text_View, False);
 
       Layouts.Set_Layout (Item.Tools, Flow => Layouts.Row, Gap => Button_Gap);
-      Buttons.Set_Label (Item.Cursor_Button, "Ptr");
-      Buttons.Set_Icon (Item.Cursor_Button, Icon_Set.Cursor);
-      Buttons.Set_Label (Item.Marker_Button, "Mark");
-      Buttons.Set_Icon (Item.Marker_Button, Icon_Set.Highlighter);
-      Buttons.Set_Label (Item.Eraser_Button, "Rub");
-      Buttons.Set_Icon (Item.Eraser_Button, Icon_Set.Eraser);
       Buttons.Set_Selected (Item.Cursor_Button, True);
-      Size (Item.Cursor_Button, Button_Size, Row_Height);
-      Size (Item.Marker_Button, Button_Size, Row_Height);
-      Size (Item.Eraser_Button, Button_Size, Row_Height);
-      Size (Item.Tools, Tools_Width, Row_Height);
+      Layouts.Set_Layout (Item.Tools, Size (Tools_Width, Row_Height));
 
-      Size (Item.Zoom_Slider, Slider_Width, Row_Height);
-      Size (Item.Zoom_Label, Percent_Width, Label_Height);
+      Layouts.Set_Layout (Item.Zoom_Slider, Size (Slider_Width, Row_Height));
+      Layouts.Set_Layout (Item.Zoom_Label, Size (Percent_Width, Label_Height));
       Layouts.Set_Layout (Item.Status, Grow => 1.0, Width => 0.0, Height => Label_Height);
       Buttons.Set_Label (Item.Visit_Button, "Visit Source");
-      Size (Item.Visit_Button, Visit_Width, Row_Height);
+      Layouts.Set_Layout (Item.Visit_Button, Size (Visit_Width, Row_Height));
       Widgets.Set_Visible (Item.Visit_Button, False);
       Listen (Item);
    end Build;

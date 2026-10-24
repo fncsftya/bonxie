@@ -14,6 +14,7 @@ with Pomarine.Widgets.Scrollers;
 
 package body Viewer.Search is
    package Widgets renames Pomarine.Widgets;
+   package Layouts renames Pomarine.Widgets.Layouts;
    package Fields renames Pomarine.Widgets.Text_Fields;
    package Buttons renames Pomarine.Widgets.Buttons;
    package Docs renames Texts.Documents;
@@ -29,41 +30,36 @@ package body Viewer.Search is
    procedure Build_Bar (Item : in out Session; In_Window : Boolean := False) is
       use Pomarine.Widgets.Layouts;
       S : Search_State renames Item.Searching;
+      Bar_Style : constant Layouts.Style :=
+        (if In_Window
+         then (Flow => Row, Height => 36.0, Shrink => 0.0, Gap => 3.0, Padding => (others => 3.0), others => <>)
+         else (Flow => Row, Height => 44.0, Shrink => 0.0, Gap => 8.0, Padding => (others => 6.0), others => <>));
    begin
       if Widgets.Is_Attached (S.Bar) then
          Widgets.Remove (S.Bar);
       end if;
       if In_Window then
          Items.Windows.Add_Search_Bar (Item.Windows (S.Target), S.Bar);
+         Layouts.Set_Layout (S.Bar, Bar_Style);
       else
-         Widgets.Add (Item.Toolbar.Project_Panel, S.Bar);
+         Layouts.Add (Item.Toolbar.Project_Panel, S.Bar, Bar_Style);
       end if;
-      Widgets.Add (S.Bar, S.Field, S.Count, S.Previous);
-      Widgets.Add (S.Bar, S.Next, S.Close);
-      Set_Layout (S.Bar, Flow => Row, Height => 44.0, Shrink => 0.0, Gap => 8.0, Padding => (others => 6.0));
-      Set_Layout (S.Field, Grow => 1.0, Width => 0.0);
-      if In_Window then
-         Set_Layout (S.Bar, Flow => Row, Height => 36.0, Shrink => 0.0, Gap => 3.0,
-                     Padding => (others => 3.0));
-      end if;
-      Set_Layout (S.Count, Width => (if In_Window then 48.0 else 100.0));
-      Set_Layout (S.Previous, Width => (if In_Window then 24.0 else 36.0));
-      Set_Layout (S.Next, Width => (if In_Window then 24.0 else 36.0));
-      Set_Layout (S.Close, Width => (if In_Window then 24.0 else 36.0));
+      Layouts.Add (S.Bar, S.Field, (Grow => 1.0, Width => 0.0, others => <>));
+      Layouts.Add (S.Bar, S.Count, (Width => (if In_Window then 48.0 else 100.0), others => <>));
+      Buttons.Add (S.Bar, S.Previous,
+                   Buttons.Looks ("Previous", Icon => Pomarine.Icons.Shown (Icon_Set.Back), Focusable => True),
+                   (Width => (if In_Window then 24.0 else 36.0), others => <>));
+      Buttons.Add (S.Bar, S.Next,
+                   Buttons.Looks ("Next", Icon => Pomarine.Icons.Shown (Icon_Set.Forward), Focusable => True),
+                   (Width => (if In_Window then 24.0 else 36.0), others => <>));
+      Buttons.Add (S.Bar, S.Close,
+                   Buttons.Looks ("Close", Icon => Pomarine.Icons.Shown (Pomarine.Icons.Close), Focusable => True),
+                   (Width => (if In_Window then 24.0 else 36.0), others => <>));
       Pomarine.Widgets.Panels.Set_Fill (S.Bar, Pomarine.Themes.Strip);
       Fields.Set_Shared (S.Field, Item.Host.Doc_Resources'Unchecked_Access);
       Fields.Configure (S.Field, Pomarine.Line_Texts.Interface_Font, Viewer.Style.Edit_Size);
       Fields.Attach (S.Field, S.Doc'Unchecked_Access);
       Fields.Set_Placeholder (S.Field, "Find in item");
-      Buttons.Set_Label (S.Previous, "Previous");
-      Buttons.Set_Label (S.Next, "Next");
-      Buttons.Set_Label (S.Close, "Close");
-      Buttons.Set_Icon (S.Previous, Icon_Set.Back);
-      Buttons.Set_Icon (S.Next, Icon_Set.Forward);
-      Buttons.Set_Icon (S.Close, Pomarine.Icons.Close);
-      Buttons.Set_Focusable (S.Previous, True);
-      Buttons.Set_Focusable (S.Next, True);
-      Buttons.Set_Focusable (S.Close, True);
       Widgets.Set_Accessible_Name (S.Field, "Find in item");
       Widgets.Set_Accessible_Help (S.Previous, "Previous match (Shift+F3)");
       Widgets.Set_Accessible_Help (S.Next, "Next match (F3)");

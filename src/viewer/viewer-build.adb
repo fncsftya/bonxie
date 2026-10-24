@@ -301,8 +301,7 @@ package body Viewer.Build is
       Make_Tab_Stops (Item);
       Widgets.Set_Listener (Item.Root.Widgets, Item.Replies'Unchecked_Access);
       Item.Replies.Owner := Item'Unchecked_Access;
-      Buttons.Set_Label (Item.Home_View.Ok_Button, "OK");
-      Buttons.Set_Kind (Item.Home_View.Ok_Button, Buttons.Primary);
+      Buttons.Configure (Item.Home_View.Ok_Button, Buttons.Looks ("OK", Buttons.Primary));
       Buttons.Set_Label (Item.Home_View.Cancel_Button, "Cancel");
       Text_Fields.Set_Shared
         (Item.Title_Edit.Edit_Field, Item.Host.Doc_Resources'Unchecked_Access);

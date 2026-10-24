@@ -123,18 +123,15 @@ package body Viewer.Recent is
 
       --  Built again each time, top down: it is taken out of the card it
       --  was in, with what is in it.
-      Widgets.Add (Item.Home_View.Cards (Row).Info, Item.Home_View.Edit_Panel);
-      Widgets.Add (Item.Home_View.Edit_Panel, Item.Title_Edit.Edit_Field);
-      Widgets.Add (Item.Home_View.Edit_Panel, Item.Home_View.Ok_Button);
-      Widgets.Add (Item.Home_View.Edit_Panel, Item.Home_View.Cancel_Button);
-      Layouts.Set_Layout
-        (Item.Home_View.Edit_Panel, Flow => Layouts.Row, Align => Layouts.Center, Grow => 1.0, Width => 0.0,
-         Gap => Style.Row_Gap);
-      Layouts.Set_Layout (Item.Title_Edit.Edit_Field, Grow => 1.0, Width => 0.0, Height => Style.Card_Button);
-      Layouts.Set_Layout
-        (Item.Home_View.Ok_Button, Width => Style.Ok_Width, Height => Style.Card_Button);
-      Layouts.Set_Layout
-        (Item.Home_View.Cancel_Button, Width => Style.Cancel_Width, Height => Style.Card_Button);
+      Layouts.Add (Item.Home_View.Cards (Row).Info, Item.Home_View.Edit_Panel,
+                   (Flow => Layouts.Row, Align => Layouts.Center, Grow => 1.0, Width => 0.0, Gap => Style.Row_Gap,
+                    others => <>));
+      Layouts.Add (Item.Home_View.Edit_Panel, Item.Title_Edit.Edit_Field,
+                   (Grow => 1.0, Width => 0.0, Height => Style.Card_Button, others => <>));
+      Layouts.Add (Item.Home_View.Edit_Panel, Item.Home_View.Ok_Button,
+                   (Width => Style.Ok_Width, Height => Style.Card_Button, others => <>));
+      Layouts.Add (Item.Home_View.Edit_Panel, Item.Home_View.Cancel_Button,
+                   (Width => Style.Cancel_Width, Height => Style.Card_Button, others => <>));
 
       Docs.Load
         (Item.Title_Edit.Edit_Doc,

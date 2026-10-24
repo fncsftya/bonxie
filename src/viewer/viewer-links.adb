@@ -11,6 +11,7 @@ with Pomarine.Widgets.Layouts;
 with Viewer.Links.Drawing;
 with Viewer.Links.Events;
 with Viewer.Links.Support;
+with Pomarine.Icons;
 
 package body Viewer.Links is
 
@@ -29,73 +30,48 @@ package body Viewer.Links is
    --  Give the widgets of the links the procedures they call.
 
    procedure Build (Item : in out Session) is
-      procedure Size (Part : in out Widgets.Widget'Class; Wide, High : Float)
-      is
-      begin
-         Layouts.Set_Layout (Part, Width => Wide, Height => High);
-      end Size;
+      function Pictured (Name : String; Icon : Pomarine.Icons.Icon) return Buttons.Settings is
+        (Buttons.Looks (Name, Icon => Pomarine.Icons.Shown (Icon)));
 
-      procedure Tool (Part : in out Buttons.Button; Apart : Boolean) is
+      procedure Tool (Part : in out Buttons.Button; Apart : Boolean; Looks : Buttons.Settings) is
       begin
-         Widgets.Add (Item.Linking.Link_Bar, Part);
-         Size (Part, Style.Link_Button_Size, Style.Link_Button_Size);
-         if Apart then
-            Layouts.Set_Layout
-              (Part, Margin => (Left => Style.Link_Group_Gap, others => <>));
-         end if;
+         Buttons.Add
+           (Item.Linking.Link_Bar, Part, Looks,
+            (Width => Style.Link_Button_Size, Height => Style.Link_Button_Size,
+             Margin => (if Apart then (Left => Style.Link_Group_Gap, others => <>) else (others => <>)),
+             others => <>));
       end Tool;
    begin
-      Widgets.Add (Item.Canvas_View, Item.Linking.Link_Bar);
+      Layouts.Add (Item.Canvas_View, Item.Linking.Link_Bar,
+                   (Place => Layouts.Absolute, Flow => Layouts.Row, Align => Layouts.Center,
+                    Padding => (others => Style.Link_Bar_Pad), Gap => Style.Link_Bar_Gap, Width => Style.Link_Bar_Width,
+                    Height => Style.Link_Bar_Height, others => <>));
       Pomarine.Widgets.Panels.Set_Fill (Item.Linking.Link_Bar, Style.Toolbar);
-      Layouts.Set_Layout
-        (Item.Linking.Link_Bar, Place => Layouts.Absolute, Flow => Layouts.Row,
-         Align => Layouts.Center, Padding => (others => Style.Link_Bar_Pad),
-         Gap => Style.Link_Bar_Gap, Width => Style.Link_Bar_Width,
-         Height => Style.Link_Bar_Height);
 
       for Each in Item_Links.Strokes loop
-         Tool (Item.Linking.Stroke_Buttons (Each),
-               Apart => Each = Item_Links.Solid);
+         Tool (Item.Linking.Stroke_Buttons (Each), Apart => Each = Item_Links.Solid,
+               Looks => (case Each is
+                            when Item_Links.Solid  => Pictured ("Solid", Icon_Set.Stroke_Solid),
+                            when Item_Links.Dots   => Pictured ("Dots", Icon_Set.Stroke_Dots),
+                            when Item_Links.Dashed => Pictured ("Dash", Icon_Set.Stroke_Dashed)));
       end loop;
-      Buttons.Set_Label
-        (Item.Linking.Stroke_Buttons (Item_Links.Solid), "Solid");
-      Buttons.Set_Icon (Item.Linking.Stroke_Buttons (Item_Links.Solid),
-                        Icon_Set.Stroke_Solid);
-      Buttons.Set_Label
-        (Item.Linking.Stroke_Buttons (Item_Links.Dots), "Dots");
-      Buttons.Set_Icon (Item.Linking.Stroke_Buttons (Item_Links.Dots),
-                        Icon_Set.Stroke_Dots);
-      Buttons.Set_Label
-        (Item.Linking.Stroke_Buttons (Item_Links.Dashed), "Dash");
-      Buttons.Set_Icon (Item.Linking.Stroke_Buttons (Item_Links.Dashed),
-                        Icon_Set.Stroke_Dashed);
       for Each in Item_Links.Endings loop
-         Tool
-           (Item.Linking.End_Buttons (Each),
-            Apart => Each = Item_Links.Plain);
+         Tool (Item.Linking.End_Buttons (Each), Apart => Each = Item_Links.Plain,
+               Looks => (case Each is
+                            when Item_Links.Plain => Pictured ("Plain", Icon_Set.End_Plain),
+                            when Item_Links.Arrow => Pictured ("Arrow", Icon_Set.End_Arrow)));
       end loop;
-      Buttons.Set_Label (Item.Linking.End_Buttons (Item_Links.Plain), "Plain");
-      Buttons.Set_Icon (Item.Linking.End_Buttons (Item_Links.Plain),
-                        Icon_Set.End_Plain);
-      Buttons.Set_Label (Item.Linking.End_Buttons (Item_Links.Arrow), "Arrow");
-      Buttons.Set_Icon (Item.Linking.End_Buttons (Item_Links.Arrow),
-                        Icon_Set.End_Arrow);
       for Each in Item_Links.Link_Colors loop
-         Tool (Item.Linking.Color_Buttons (Each), Apart => Each = 1);
-         Buttons.Set_Label (Item.Linking.Color_Buttons (Each), "Ink");
+         Tool (Item.Linking.Color_Buttons (Each), Apart => Each = 1, Looks => Buttons.Looks ("Ink"));
          Buttons.Set_Swatch (Item.Linking.Color_Buttons (Each),
                              Style.Link_Inks (Each));
       end loop;
-      Tool (Item.Linking.Delete_Link, Apart => True);
-      Buttons.Set_Label (Item.Linking.Delete_Link, "Del");
-      Buttons.Set_Icon (Item.Linking.Delete_Link, Icon_Set.Delete);
-      Buttons.Set_Kind (Item.Linking.Delete_Link, Buttons.Danger);
+      Tool (Item.Linking.Delete_Link, Apart => True,
+            Looks => Buttons.Looks ("Del", Buttons.Danger, Icon => Pomarine.Icons.Shown (Icon_Set.Delete)));
       Widgets.Set_Visible (Item.Linking.Link_Bar, False);
 
-      Widgets.Add (Item.Canvas_View, Item.Linking.Link_Handle);
-      Layouts.Set_Layout
-        (Item.Linking.Link_Handle, Place => Layouts.Absolute, Width => Pins.Diameter,
-         Height => Pins.Diameter);
+      Layouts.Add (Item.Canvas_View, Item.Linking.Link_Handle,
+                   (Place => Layouts.Absolute, Width => Pins.Diameter, Height => Pins.Diameter, others => <>));
       Widgets.Set_Visible (Item.Linking.Link_Handle, False);
       Listen (Item);
    end Build;
@@ -107,9 +83,8 @@ package body Viewer.Links is
          declare
             Pin : Pins.Pin renames Item.Linking.Pins (Which) (Side);
          begin
-            Widgets.Add (Item.Canvas_View, Pin);
-            Layouts.Set_Layout
-              (Pin, Place => Layouts.Absolute, Width => Pins.Diameter, Height => Pins.Diameter);
+            Layouts.Add (Item.Canvas_View, Pin,
+                         (Place => Layouts.Absolute, Width => Pins.Diameter, Height => Pins.Diameter, others => <>));
             Widgets.Set_Visible (Pin, False);
             Widgets.Set_Tag (Pin, Widgets.No_Tag, Events.Pin_Number (Which, Side));
             Hooks.On (Pin, Press, Item'Unchecked_Access, Events.Pin_Pressed'Access);
