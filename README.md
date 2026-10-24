@@ -32,55 +32,34 @@ Patches welcome!
 
 # Screenshots
 
-## Outlining
+![](docs/write-with-research.png)
+*Full workflow, writing with research*
 
-The outline holds a project's description, ordered sections, colours and section notes.
+![](docs/outline.png)
+*Create an outline for your project*
 
-![Outline view](docs/ada-outline-light.png)
-*Outline view*
+![](docs/canvas.png)
+*See writing and sources on a 2d canvas, create links between writing and research*
+![](docs/canvas-zoomed-out.png)
+*Zoomed out view of the infinite canvas*
 
-## Alternative wordings
+![](docs/write-mode.png)
+*Rich text editing*
+![](docs/write-mode-dark.png)
+*Dark mode supported*
 
-Use reword to create different phrasings for parts of your writing. It's easy to cycle through the options as see which reads the best.
+![](docs/dictation.png)
+*Dictation with macOS or Parakeet (recommended)*
+![](docs/pre-reword.png)
+*Rewording: give alternative wordings to your writing*
+![](docs/post-reword.png)
+*Cycle alternative versions of rewordings inline*
+![](docs/reordering.png)
+*Easily reorder the parts of your project*
 
-![During rewording](docs/reword-editing-light.png)
-*During rewording*
-
-![Cycling available versions](docs/reword-versions-light.png)
-*Cycling available versions*
-
-## Canvas
-
-Plan your project on an infinite canvas, making it easy to get an overview of sections and how they relate to your sources.
-
-![Overview of a project, zoomed out](docs/ada-canvas-overview-dark.png)
-*Zoomed out*
-
-![Normal zoom level](docs/ada-canvas-ink-dark.png)
-*A closer look*
-
-## Themes
-
-It comes with a couple of different procedural themes, as well as a fixed colour light/dark mode.
-
-![Paper theme](docs/suppose-writing-paper-light.png)
-
-![Settings page](docs/settings-local-model-dark.png)
-*Settings page*
-
-## Dictation
-
-Fast speech-to-text with [Parakeet](https://huggingface.co/FluidInference/parakeet-tdt-0.6b-v3-coreml) (recommended) or the built in macOS one (slow).
-
-![Live dictation](docs/transcription-listening-dark.png)
-*Live dictation*
-
-![Accepted transcript](docs/transcription-complete-dark.png)
-*Accepted transcript*
-
-## Projects
-
-Separate your work by project (home screen).
-
-![Recent projects](docs/projects-watercolour-light.png)
-*Recent projects*
+![](docs/export.png)
+*Export your writing*
+![](docs/settings.png)
+*Configurable themes and colours*
+![](docs/homepage.png)
+*Projects view*
