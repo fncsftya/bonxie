@@ -4,6 +4,7 @@ with Pomarine.Widgets.Grips;
 with Pomarine.Widgets.Scrollers;
 with Pomarine.Widgets.Switches;
 with Preferences;
+with Settings_VM;
 with SDL3.Cursors;
 with Icon_Set;
 with Pomarine.Line_Texts;
@@ -158,6 +159,10 @@ package body Viewer.Build.Settings_Form is
       Buttons.Add (Prefs.Download_Row, Prefs.Delete_Button, Buttons.Looks ("Delete", Buttons.Danger, Focusable => True),
                    (Width => Download_Width, Height => Download_Height, Shrink => 0.0, others => <>));
       Widgets.Set_Visible (Prefs.Delete_Button, False);
+      --  Each is on while the view-model says its command can be done (it fetches files that are not
+      --  there; it deletes those that are, and none are coming).
+      Binding.Bind (Prefs.Download_Button, Settings_VM.Download_Model);
+      Binding.Bind (Prefs.Delete_Button, Settings_VM.Delete_Model);
       Layouts.Add (Prefs.Download_Row, Prefs.Download_State,
                    (Grow => 1.0, Width => 0.0, Height => Download_Height, others => <>));
       Labels.Set_Ink (Prefs.Download_State, Quiet_Ink);

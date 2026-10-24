@@ -9,7 +9,7 @@ private with Items.Windows.Tables;
 private with SDL3.Windows;
 private with Texts.Documents;
 private with Pomarine.Models;
-private with Pomarine.Widgets;
+with Pomarine.Widgets;
 private with Pomarine.Widgets.Buttons;
 private with Pomarine.Widgets.Commands;
 private with Pomarine.Widgets.Grips;
@@ -140,6 +140,11 @@ package Viewer is
      with Pre => Is_Open (Item);
    --  As if Event had come.
 
+   function Widget_Tree (Item : aliased in out Session) return access Pomarine.Widgets.Tree
+     with Pre => Is_Open (Item);
+   --  The widgets of the window, for a test to read what an assistive
+   --  technology is told of them (see Pomarine.Testing).
+
    function Clipboard_Text (Item : Session) return String;
    --  What is on the clipboard the session uses (its own, offscreen).
 
@@ -197,6 +202,15 @@ private
      (Self   : in out Responder;
       Source : in out Pomarine.Widgets.Widget'Class;
       Event  : Pomarine.Widgets.Widget_Event);
+
+   type Command_Judge is limited new Pomarine.Widgets.Validator with record
+      Owner : Session_Access;
+   end record;
+   --  What the tree asks about every command of a widget: the window's own (see
+   --  Viewer.Menus) and the settings' (Viewer_Parts.Settings.Binding).
+
+   overriding function Validate
+     (Self : Command_Judge; Tag : Integer) return Pomarine.Widgets.Command_State;
 
    type Item_Rows is limited new Pomarine.Models.List_Model with record
       Owner   : Session_Access;
@@ -307,6 +321,8 @@ private
       Home_View : Home_Parts;
       Confirm : Confirm_Parts;
       Prefs : Settings_Parts;
+      Choices : Settings_Choices;
+      Judge : aliased Command_Judge;
       Toolbar : Toolbar_Parts;
       Canvas_View   : Backgrounds.Canvas;
       --  In the content area, all of it.

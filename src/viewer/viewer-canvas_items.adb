@@ -1,10 +1,10 @@
+with Settings_VM;
 with Ada.Directories;
 with Items.Links;
 with Items.Marks;
 with Items.Records;
 with Items.Sources;
 with Items.Windows.Callbacks;
-with Ada.Strings.Unbounded;
 with Downloads;
 with Preferences;
 with Pomarine.Widgets;
@@ -87,9 +87,9 @@ package body Viewer.Canvas_Items is
             declare
                Model_Directory : constant String :=
                  Preferences.Speech_Model_Directory
-                   (Ada.Strings.Unbounded.To_String (Item.Prefs.Config_Dir));
+                   (Settings_VM.Config_Directory (Item.Choices.Model));
             begin
-               if Item.Prefs.Speech_Choice = Preferences.Parakeet then
+               if Settings_VM.Speech_Model (Item.Choices.Model) = Preferences.Parakeet then
                   if Speech.Models.Present (Model_Directory) then
                      Speech.Jobs.Start
                        (Which, Speech.Jobs.Model, Model_Directory);

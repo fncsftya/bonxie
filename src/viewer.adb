@@ -1,3 +1,4 @@
+with Settings_VM;
 with Speech.Models;
 with Scripts;
 with Pomarine.Accessibility;
@@ -43,6 +44,10 @@ package body Viewer is
 
    package Redraws is new SDL3.Events.Redraws (Session, Painting.Draw);
 
+   overriding function Validate
+     (Self : Command_Judge; Tag : Integer) return Pomarine.Widgets.Command_State is
+     (Menus.Validate (Self.Owner.all, Tag));
+
    overriding procedure Handle_Event
      (Self   : in out Responder;
       Source : in out Pomarine.Widgets.Widget'Class;
@@ -78,7 +83,7 @@ package body Viewer is
       else Widgets.Wanted_Cursor (Item.Root.Widgets));
 
    function Title_Strip_Height (Item : Session) return Float is
-     (if Item.Nav.Shown = Project or else Item.Prefs.Showing_Settings
+     (if Item.Nav.Shown = Project or else Settings_VM.Is_Showing (Item.Choices.Model)
       then Style.Toolbar_Size
       else Style.Header_Size);
    --  How tall the bar across the top is, on this screen.
@@ -160,7 +165,7 @@ package body Viewer is
    begin
       Search.Update (Item);
       if Item.Nav.Shown = Project and then Item.Toolbar.Mode in Canvas | Write
-        and then not Item.Prefs.Showing_Settings and then not Item.Item_List.Showing_List
+        and then not Settings_VM.Is_Showing (Item.Choices.Model) and then not Item.Item_List.Showing_List
         and then not Home_Screen.Is_Confirming (Item)
       then
          Search.Handle (Item, Event, Handled);
@@ -193,11 +198,11 @@ package body Viewer is
             Widgets.Invalidate_All (Item.Root.Widgets);
          when Pomarine.Events.Theme_Changed =>
             --  Only the system's appearance can change by itself.
-            if Item.Prefs.Theme_Chosen = Preferences.System then
+            if Settings_VM.Theme (Item.Choices.Model) = Preferences.System then
                Settings_View.Apply_Theme (Item);
             end if;
          when others =>
-            if Item.Prefs.Showing_Settings then
+            if Settings_VM.Is_Showing (Item.Choices.Model) then
                --  Escape leaves the settings, as their Close button does.
                if Event.Kind = Pomarine.Events.Key_Down
                  and then Event.Key = Pomarine.Events.Key_Escape
@@ -417,6 +422,9 @@ package body Viewer is
    function Text (Item : Session) return String is
      (Scripts.Text (Item.Host.Script));
 
+   function Widget_Tree (Item : aliased in out Session) return access Pomarine.Widgets.Tree is
+     (Item.Root.Widgets'Unchecked_Access);
+
    function Clipboard_Text (Item : Session) return String is
      (Widgets.Clipboard (Item.Publish_View.Copy).Text);
 
@@ -429,7 +437,7 @@ package body Viewer is
          Section_Links.Update (Item);
       end if;
       Grammar.Update (Item, Now);
-      if Item.Prefs.Showing_Settings then
+      if Settings_VM.Is_Showing (Item.Choices.Model) then
          Settings_View.Update (Item);
       end if;
       Grammar.Update_Cursor (Item);
@@ -517,7 +525,7 @@ package body Viewer is
                   and then Ada.Environment_Variables.Value
                              ("BONXIE_VSYNC") = "1");
       Restore_Geometry (Item);
-      if Item.Prefs.VSync_Chosen then
+      if Settings_VM.VSync (Item.Choices.Model) then
          SDL3.Windows.Renderers.Set_VSync (Item.Host.Target, True);
       end if;
 

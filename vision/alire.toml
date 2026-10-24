@@ -16,6 +16,7 @@ pomarine_ui = "*"
 
 [[pins]]
 pomarine_ui = { path = "../pomarine/ui" }
+pomarine_vm = { path = "../pomarine/vm" }
 coretext = { path = "../pomarine/coretext" }
 sdl3 = { path = "../pomarine/sdl3" }
 texts = { path = "../pomarine/texts" }

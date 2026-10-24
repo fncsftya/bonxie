@@ -1,3 +1,4 @@
+with Settings_VM;
 with SDL3.Windows;
 with SDL3.Windows.Renderers;
 with Pomarine.Line_Texts;
@@ -33,7 +34,7 @@ package body Viewer.Painting is
          elsif Item.Toolbar.Mode = Outline then
             Outlines.Sync (Item);
          end if;
-      elsif Item.Prefs.Showing_Settings then
+      elsif Settings_VM.Is_Showing (Item.Choices.Model) then
          Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
          Settings_View.Fit (Item);
       end if;

@@ -1,4 +1,5 @@
 with Pomarine.Events;
+with Pomarine.Widgets;
 
 --  The menu bar across the top of the screen: the commands of the window
 --  that a Mac application has there, with the keys they are chosen by,
@@ -9,6 +10,10 @@ private package Viewer.Menus is
    --  Make the menus, which say what the window's buttons do, and have
    --  what each is for follow what is shown. Not for a session opened
    --  without a window.
+
+   function Validate (Item : Session; Tag : Integer) return Pomarine.Widgets.Command_State;
+   --  What the command called Tag is for: the window's own, as the menu bar
+   --  shows them (without one, as the buttons are set), and the settings'.
 
    procedure Key_Taken (Item : in out Session; Event : Pomarine.Events.Event);
    --  A key was handled by a widget. If a menu item has that key (the

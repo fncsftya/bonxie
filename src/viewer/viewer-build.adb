@@ -4,8 +4,8 @@ with Scripts;
 with Items.Schema;
 with Ada.Command_Line;
 with Ada.Directories;
-with Ada.Strings.Unbounded;
 with Preferences;
+with Settings_VM.Disk;
 with Speech.Models;
 with Icon_Set;
 with Pomarine.Line_Texts;
@@ -202,51 +202,46 @@ package body Viewer.Build is
       Projects.Open (Item.Nav.Store, Store_Path);
       Items.Schema.Prepare (Item.Nav.Store);
       Scripts.Load (Item.Host.Script, Source, File_Name);
-      Item.Prefs.Config_Dir :=
-        Ada.Strings.Unbounded.To_Unbounded_String
-          (Preferences.Config_Directory (Store_Path));
-      Item.Prefs.Persist := Store_Path /= Projects.Memory;
-      if Item.Prefs.Persist then
-         declare
-            Kept : constant Natural :=
-              Preferences.Load_Sidebar_Width (Ada.Strings.Unbounded.To_String (Item.Prefs.Config_Dir));
-         begin
-            if Kept /= 0 then
-               Item.Page_View.Sidebar_Wide :=
-                 Float'Max (Sidebar_Least, Float'Min (Sidebar_Most, Float (Kept)));
-            end if;
-         end;
-         declare
-            Config : constant String := Ada.Strings.Unbounded.To_String (Item.Prefs.Config_Dir);
-         begin
+      declare
+         Config  : constant String := Preferences.Config_Directory (Store_Path);
+         Persist : constant Boolean := Store_Path /= Projects.Memory;
+         Choices : Settings_Choices renames Item.Choices;
+      begin
+         Settings_VM.Disk.Open (Choices.Voice, Preferences.Speech_Model_Directory (Config));
+         if Persist then
+            declare
+               Kept : constant Natural := Preferences.Load_Sidebar_Width (Config);
+            begin
+               if Kept /= 0 then
+                  Item.Page_View.Sidebar_Wide :=
+                    Float'Max (Sidebar_Least, Float'Min (Sidebar_Most, Float (Kept)));
+               end if;
+            end;
             Item.Page_View.Edit_Open := Preferences.Load_Section_Open (Config, "edit");
             Item.Page_View.Docs_Open := Preferences.Load_Section_Open (Config, "documents");
             Item.Page_View.Sources_Open := Preferences.Load_Section_Open (Config, "sources");
-         end;
-         Item.Prefs.Speech_Choice :=
-           Preferences.Load_Speech_Model
-             (Ada.Strings.Unbounded.To_String (Item.Prefs.Config_Dir));
-         Item.Prefs.Theme_Chosen :=
-           Preferences.Load_Theme
-             (Ada.Strings.Unbounded.To_String (Item.Prefs.Config_Dir));
-         Item.Prefs.VSync_Chosen :=
-           Preferences.Load_VSync
-             (Ada.Strings.Unbounded.To_String (Item.Prefs.Config_Dir));
-         Item.Prefs.Background_Chosen :=
-           Preferences.Load_Background
-             (Ada.Strings.Unbounded.To_String (Item.Prefs.Config_Dir));
-         --  The system may have let go of the compiled model: have it
-         --  ready, in the background, before it is wanted.
-         if Preferences."=" (Item.Prefs.Speech_Choice, Preferences.Parakeet) then
-            Speech.Models.Preload
-              (Preferences.Speech_Model_Directory
-                 (Ada.Strings.Unbounded.To_String (Item.Prefs.Config_Dir)));
+            Settings_VM.Disk.Open (Choices.Files, Config);
+            Settings_VM.Initialize
+              (Choices.Model, Choices.Voice'Unchecked_Access, Choices.Files'Unchecked_Access, Config,
+               Kept_Speech => Preferences.Load_Speech_Model (Config),
+               Kept_Theme => Preferences.Load_Theme (Config),
+               Kept_Background => Preferences.Load_Background (Config),
+               Kept_VSync => Preferences.Load_VSync (Config));
+            --  The system may have let go of the compiled model: have it
+            --  ready, in the background, before it is wanted.
+            if Preferences."=" (Settings_VM.Speech_Model (Choices.Model), Preferences.Parakeet) then
+               Speech.Models.Preload (Preferences.Speech_Model_Directory (Config));
+            end if;
+         else
+            --  Offscreen, the light theme, whatever the system's is.
+            Settings_VM.Initialize
+              (Choices.Model, Choices.Voice'Unchecked_Access, null, Config,
+               Kept_Theme => Preferences.Light, Kept_Background => Preferences.Fixed);
          end if;
-      else
-         --  Offscreen, the light theme, whatever the system's is.
-         Item.Prefs.Theme_Chosen := Preferences.Light;
-         Item.Prefs.Background_Chosen := Preferences.Fixed;
-      end if;
+      end;
+      Item.Judge.Owner := Item'Unchecked_Access;
+      Binding.Observe (Item.Choices.Judge, Item.Choices.Model'Unchecked_Access);
+      Widgets.Set_Validator (Item.Root.Widgets, Item.Judge'Unchecked_Access);
       Widgets.Set_Density (Item.Root.Widgets, Item.Shell.Density);
       Widgets.Set_Line_Texts (Item.Root.Widgets, Item.Host.Lines);
       Widgets.Set_Icons (Item.Root.Widgets, Item.Host.Pictures);
@@ -263,15 +258,16 @@ package body Viewer.Build is
       if Item.Shell.Windowed then
          --  Whether it is shown, and the colours to go with it, are for Apply_Theme.
          declare
-            Config : constant String := Ada.Strings.Unbounded.To_String (Item.Prefs.Config_Dir);
-            Saved  : constant Boolean := Item.Prefs.Persist and then Preferences.Has_Seed (Config);
+            Config : constant String := Settings_VM.Config_Directory (Item.Choices.Model);
+            Persist : constant Boolean := Settings_VM.Persists (Item.Choices.Model);
+            Saved  : constant Boolean := Persist and then Preferences.Has_Seed (Config);
             Seed   : constant Backgrounds.Seed_Numbers :=
               (if Saved then Preferences.Load_Seed (Config) else Backgrounds.New_Seed);
          begin
             Backgrounds.Set_Shader
               (Item.Host.Background, Share_Directory ("shaders") & "/backgrounds.metal", Seed);
             --  The first picture is kept, so that it is this one next time.
-            if Item.Prefs.Persist and then not Saved then
+            if Persist and then not Saved then
                Preferences.Save_Seed (Config, Seed);
             end if;
          exception

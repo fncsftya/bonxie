@@ -1,5 +1,4 @@
 with Pomarine.Native_Menus;
-with Pomarine.Widgets;
 
 package body Viewer.Menus is
 
@@ -8,27 +7,26 @@ package body Viewer.Menus is
 
    use type Pomarine.Widgets.Command_State;
 
-   Current : Session_Access;
-   --  Whose window it is: the validator is told only what a command is.
-
    Ellipsis : constant String :=
      [Character'Val (16#E2#), Character'Val (16#80#), Character'Val (16#A6#)];
    --  In UTF-8.
 
    function Tag_Of (What : Command) return Integer is (Command'Pos (What));
 
-   function Validate (Tag : Integer) return Widgets.Command_State;
-   --  What each command is for, as shown.
-
-   function Validate (Tag : Integer) return Widgets.Command_State is
-      Here   : constant Boolean := Current /= null and then Is_Open (Current.all);
+   function Validate (Item : Session; Tag : Integer) return Widgets.Command_State is
    begin
-      if not Here or else Tag not in 0 .. Command'Pos (Command'Last) then
+      if Binding.Is_Mine (Tag) then
+         return Binding.Validate (Item.Choices.Judge, Tag);
+      end if;
+      --  Without a menu bar, the window's buttons are as they are set.
+      if not Menu_Bar.Is_Installed (Item.Host.Menus) or else not Is_Open (Item)
+        or else Tag not in 0 .. Command'Pos (Command'Last)
+      then
          return Widgets.Enabled;
       end if;
       declare
-         What      : constant Command := Command'Val (Tag);
-         In_Project : constant Boolean := Screen (Current.all) = Project;
+         What       : constant Command := Command'Val (Tag);
+         In_Project : constant Boolean := Screen (Item) = Project;
       begin
          case What is
             when Start_Project | Open_Settings =>
@@ -37,19 +35,19 @@ package body Viewer.Menus is
                return (if In_Project then Widgets.Enabled else Widgets.Disabled);
             when Show_Outline =>
                return (if not In_Project then Widgets.Disabled
-                       elsif Current.Toolbar.Mode = Outline then Widgets.Ticked
+                       elsif Item.Toolbar.Mode = Outline then Widgets.Ticked
                        else Widgets.Enabled);
             when Show_Canvas =>
                return (if not In_Project then Widgets.Disabled
-                       elsif Current.Toolbar.Mode = Canvas then Widgets.Ticked
+                       elsif Item.Toolbar.Mode = Canvas then Widgets.Ticked
                        else Widgets.Enabled);
             when Show_Writing =>
                return (if not In_Project then Widgets.Disabled
-                       elsif Current.Toolbar.Mode = Write then Widgets.Ticked
+                       elsif Item.Toolbar.Mode = Write then Widgets.Ticked
                        else Widgets.Enabled);
             when Show_Publish =>
                return (if not In_Project then Widgets.Disabled
-                       elsif Current.Toolbar.Mode = Publish then Widgets.Ticked
+                       elsif Item.Toolbar.Mode = Publish then Widgets.Ticked
                        else Widgets.Enabled);
          end case;
       end;
@@ -86,9 +84,6 @@ package body Viewer.Menus is
       Menu_Bar.Add_Item (Bar, View, "Publish", Tag_Of (Show_Publish), Key => "4");
       Menu_Bar.Add_Separator (Bar, View);
       Menu_Bar.Add_Item (Bar, View, "Items", Tag_Of (Open_List));
-
-      Current := Item'Unchecked_Access;
-      Widgets.Set_Validator (Item.Root.Widgets, Validate'Access);
    end Build;
 
    procedure Key_Taken (Item : in out Session; Event : Pomarine.Events.Event) is
@@ -124,7 +119,7 @@ package body Viewer.Menus is
    begin
       if Menu_Bar.Is_Installed (Item.Host.Menus) then
          Menu_Bar.Pump (Item.Host.Menus, Item.Root.Widgets);
-         Menu_Bar.Update_States (Item.Host.Menus, Validate'Access);
+         Menu_Bar.Update_States (Item.Host.Menus, Item.Root.Widgets);
       end if;
    end Update;
 

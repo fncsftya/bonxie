@@ -1,9 +1,6 @@
-with Ada.Strings.Fixed;
-with Ada.Strings.Unbounded;
 with Backgrounds;
 with Pomarine.Themes;
 with Pomarine.Widgets;
-with Pomarine.Widgets.Buttons;
 with Pomarine.Widgets.Checks;
 with Pomarine.Widgets.Labels;
 with Pomarine.Widgets.Panels;
@@ -19,7 +16,6 @@ with Pomarine.Widgets.Layouts;
 package body Viewer.Settings_View is
 
    package Widgets renames Pomarine.Widgets;
-   package Buttons renames Pomarine.Widgets.Buttons;
    package Checks renames Pomarine.Widgets.Checks;
    package Labels renames Pomarine.Widgets.Labels;
    package Progress_Bars renames Pomarine.Widgets.Progress_Bars;
@@ -33,92 +29,16 @@ package body Viewer.Settings_View is
    use type Preferences.Theme_Choices;
    use type Preferences.Background_Modes;
 
-   function Config (Item : Session) return String is
-     (Ada.Strings.Unbounded.To_String (Item.Prefs.Config_Dir));
+   use type Settings_VM.Command;
 
-   function Model_Directory (Item : Session) return String is
-     (Preferences.Speech_Model_Directory (Config (Item)));
-
-   function Model_Present (Item : Session) return Boolean is
-     (Speech.Models.Present (Model_Directory (Item)));
-
-   function On_Disk (Item : Session) return Long_Long_Integer is
-     (Speech.Models.Size_On_Disk (Model_Directory (Item)));
+   package Model_Parts renames Settings_VM.Parts;
 
    function Downloading (Item : Session) return Boolean is
-     (Item.Prefs.Showing_Settings
-    and then Speech.Models.State = Speech.Models.Running);
+     (Settings_VM.Is_Showing (Item.Choices.Model)
+      and then Settings_VM.Download_State (Item.Choices.Model) = Speech.Models.Running);
 
-   function Percent return String;
-   --  How much of the model has come, as "42%".
-
-   function Percent return String is
-      Done : constant Natural := Natural (Speech.Models.Fraction * 100.0);
-   begin
-      return Ada.Strings.Fixed.Trim (Done'Image, Ada.Strings.Left) & "%";
-   end Percent;
-
-   function Size_Text (Bytes : Long_Long_Integer) return String;
-   --  A size as people say it: "483.0 MB", or "1.20 GB" from a thousand.
-
-   function Size_Text (Bytes : Long_Long_Integer) return String is
-      function Trimmed (Value : Long_Long_Integer) return String is
-        (Ada.Strings.Fixed.Trim (Value'Image, Ada.Strings.Left));
-      function Digits_Of (Value : Long_Long_Integer; Width : Positive) return String is
-         Number : constant String := Trimmed (Value);
-      begin
-         return [1 .. Integer'Max (0, Width - Number'Length) => '0'] & Number;
-      end Digits_Of;
-   begin
-      if Bytes >= 1_000_000_000 then
-         declare
-            Hundredths : constant Long_Long_Integer := (Bytes + 5_000_000) / 10_000_000;
-         begin
-            return Trimmed (Hundredths / 100) & "." & Digits_Of (Hundredths mod 100, 2) & " GB";
-         end;
-      elsif Bytes >= 100_000 then
-         declare
-            Tenths : constant Long_Long_Integer := (Bytes + 50_000) / 100_000;
-         begin
-            return Trimmed (Tenths / 10) & "." & Trimmed (Tenths mod 10) & " MB";
-         end;
-      else
-         return Trimmed ((Bytes + 500) / 1_000) & " KB";
-      end if;
-   end Size_Text;
-
-   function Progress_Text return String;
-   --  "123.4 MB of 483.0 MB (25%)", or just the percentage while the
-   --  total is not known.
-
-   function Progress_Text return String is
-      Total : constant Long_Long_Integer := Speech.Models.Total_Bytes;
-      Got   : constant Long_Long_Integer :=
-        Long_Long_Integer (Float (Total) * Speech.Models.Fraction);
-   begin
-      return (if Total = 0 then Percent
-              else Size_Text (Got) & " of " & Size_Text (Total) & " (" & Percent & ")");
-   end Progress_Text;
-
-   function Status (Item : Session) return String;
-   --  What the label by the Download button says.
-
-   function Status (Item : Session) return String is
-   begin
-      if Model_Present (Item) and then Speech.Models.State /= Speech.Models.Running then
-         return "Model available, " & Size_Text (On_Disk (Item)) & " on disk";
-      end if;
-      case Speech.Models.State is
-         when Speech.Models.Running =>
-            return (if Speech.Models.Preparing
-                    then "Preparing the model, once only"
-                    else "Downloading " & Progress_Text);
-         when Speech.Models.Failed =>
-            return "Download failed: " & Speech.Models.Message;
-         when Speech.Models.Idle | Speech.Models.Done =>
-            return "Model not downloaded";
-      end case;
-   end Status;
+   function Choice_Of (Mode : Preferences.Background_Modes) return Natural is
+     (Preferences.Background_Modes'Pos (Mode));
 
    function Style_Of (Mode : Preferences.Pictures) return Backgrounds.Styles is
      (Backgrounds.Styles'Val (Preferences.Background_Modes'Pos (Mode) - 1));
@@ -131,12 +51,13 @@ package body Viewer.Settings_View is
    --  outlined in the accent, with a shadow.
    procedure Show_Backgrounds (Item : in out Session) is
       Prefs : Settings_Parts renames Item.Prefs;
-      Dark  : constant Boolean := Prefs.Dark_Shown;
+      Dark  : constant Boolean := Item.Choices.Dark_Shown;
+      Picked : constant Preferences.Background_Modes := Settings_VM.Background (Item.Choices.Model);
    begin
       for Mode in Preferences.Background_Modes loop
          declare
             Card   : Background_Card renames Prefs.Cards (Mode);
-            Chosen : constant Boolean := Prefs.Background_Chosen = Mode;
+            Chosen : constant Boolean := Picked = Mode;
          begin
             Panels.Set_Border (Card.Whole, (if Chosen then Themes.Accent else Themes.Border));
             Panels.Set_Shadow (Card.Whole, (if Chosen then Themes.Accent else Themes.Shadow));
@@ -164,7 +85,8 @@ package body Viewer.Settings_View is
    procedure Reveal_Background (Item : in out Session) is
       Prefs : Settings_Parts renames Item.Prefs;
       Pitch : constant Float := Viewer.Style.Background_Card_Width + Viewer.Style.Gap;
-      Left  : constant Float := Float (Preferences.Background_Modes'Pos (Prefs.Background_Chosen)) * Pitch;
+      Left  : constant Float :=
+        Float (Choice_Of (Settings_VM.Background (Item.Choices.Model))) * Pitch;
       Room  : constant Float := Widgets.Width_Of (Prefs.Background_Scroll) / Widgets.Density (Prefs.Background_Scroll);
       Moved : constant Float := Scrollers.Offset (Prefs.Background_Scroll);
    begin
@@ -175,38 +97,44 @@ package body Viewer.Settings_View is
       end if;
    end Reveal_Background;
 
-   procedure Refresh (Item : in out Session) is
-      Parakeet : constant Boolean := Item.Prefs.Speech_Choice
-         = Preferences.Parakeet;
-      Running  : constant Boolean := Speech.Models.State = Speech.Models.Running;
-      Present  : constant Boolean := Model_Present (Item);
+   --  What the view-model says, in the widgets. The setters do nothing when given what the widget has.
+   procedure Draw (Item : in out Session) is
+      Model    : Settings_VM.View_Model renames Item.Choices.Model;
+      Prefs    : Settings_Parts renames Item.Prefs;
+      Parakeet : constant Boolean := Settings_VM.Speech_Model (Model) = Preferences.Parakeet;
+      Theme    : constant Preferences.Theme_Choices := Settings_VM.Theme (Model);
    begin
-      Checks.Set_Checked (Item.Prefs.Model_Native, not Parakeet);
-      Checks.Set_Checked (Item.Prefs.Model_Parakeet, Parakeet);
-      Checks.Set_Checked
-        (Item.Prefs.Theme_Light, Item.Prefs.Theme_Chosen = Preferences.Light);
-      Checks.Set_Checked
-        (Item.Prefs.Theme_Dark, Item.Prefs.Theme_Chosen = Preferences.Dark);
-      Checks.Set_Checked
-        (Item.Prefs.Theme_System,
-         Item.Prefs.Theme_Chosen = Preferences.System);
+      Checks.Set_Checked (Prefs.Model_Native, not Parakeet);
+      Checks.Set_Checked (Prefs.Model_Parakeet, Parakeet);
+      Checks.Set_Checked (Prefs.Theme_Light, Theme = Preferences.Light);
+      Checks.Set_Checked (Prefs.Theme_Dark, Theme = Preferences.Dark);
+      Checks.Set_Checked (Prefs.Theme_System, Theme = Preferences.System);
       Show_Backgrounds (Item);
-      Switches.Set_On (Item.Prefs.VSync_Switch, Item.Prefs.VSync_Chosen);
-      Widgets.Set_Visible (Item.Prefs.Download_Row, Parakeet);
-      Widgets.Set_Visible (Item.Prefs.Download_Bar, Parakeet and then Running);
-      Widgets.Set_Visible (Item.Prefs.Download_Button, not Present);
-      Widgets.Set_Visible (Item.Prefs.Delete_Button, Present and then not Running);
-      Buttons.Set_Enabled (Item.Prefs.Download_Button, not Present and then not Running);
-      Labels.Set_Text (Item.Prefs.Download_State, Status (Item));
-      if Running then
-         Progress_Bars.Set_Value (Item.Prefs.Download_Bar, Speech.Models.Fraction);
+      Switches.Set_On (Prefs.VSync_Switch, Settings_VM.VSync (Model));
+      Widgets.Set_Visible (Prefs.Download_Row, Settings_VM.Download_Row_Shown (Model));
+      Widgets.Set_Visible (Prefs.Download_Bar, Settings_VM.Download_Bar_Shown (Model));
+      Widgets.Set_Visible (Prefs.Download_Button, Settings_VM.Download_Button_Shown (Model));
+      Widgets.Set_Visible (Prefs.Delete_Button, Settings_VM.Delete_Button_Shown (Model));
+      Labels.Set_Text (Prefs.Download_State, Settings_VM.Download_Status (Model));
+      if Settings_VM.Download_State (Model) = Speech.Models.Running then
+         Progress_Bars.Set_Value (Prefs.Download_Bar, Settings_VM.Download_Fraction (Model));
       end if;
-      Item.Prefs.Download_Seen := Speech.Models.State;
+      Item.Choices.Download_Seen := Settings_VM.Download_State (Model);
+      --  The buttons the commands are on are turned on and off as the view-model says.
+      Widgets.Revalidate (Item.Root.Widgets);
+   end Draw;
+
+   procedure Refresh (Item : in out Session) is
+   begin
+      Model_Parts.See (Item.Choices.Seen, Settings_VM.Version (Item.Choices.Model));
+      Draw (Item);
    end Refresh;
+
+   function Showing (Item : Session) return Boolean is (Settings_VM.Is_Showing (Item.Choices.Model));
 
    procedure Open (Item : in out Session) is
    begin
-      Item.Prefs.Showing_Settings := True;
+      Settings_VM.Execute (Item.Choices.Model, Settings_VM.Open);
       Widgets.Clear_Focus (Item.Root.Widgets);
       Widgets.Set_Visible (Item.Home_View.Home_Panel, False);
       Widgets.Set_Visible (Item.Prefs.Settings_Panel, True);
@@ -217,7 +145,7 @@ package body Viewer.Settings_View is
 
    procedure Close (Item : in out Session) is
    begin
-      Item.Prefs.Showing_Settings := False;
+      Settings_VM.Execute (Item.Choices.Model, Settings_VM.Close);
       Widgets.Clear_Focus (Item.Root.Widgets);
       Widgets.Set_Visible (Item.Prefs.Settings_Panel, False);
       Widgets.Set_Visible (Item.Home_View.Home_Panel, True);
@@ -227,16 +155,9 @@ package body Viewer.Settings_View is
    procedure Choose
      (Item : in out Session; To : Preferences.Speech_Models) is
    begin
-      Item.Prefs.Speech_Choice := To;
-      if Item.Prefs.Persist then
-         begin
-            Preferences.Save_Speech_Model (Config (Item), To);
-         exception
-            when others =>
-               null;  --  the choice holds for now; it is not worth a crash
-         end;
-      end if;
-      if Item.Prefs.Showing_Settings then
+      Settings_VM.Execute
+        (Item.Choices.Model, Settings_VM.Choose_Speech_Model, Preferences.Speech_Models'Pos (To));
+      if Showing (Item) then
          Refresh (Item);
          Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
       end if;
@@ -245,36 +166,22 @@ package body Viewer.Settings_View is
    procedure Choose_Appearance
      (Item : in out Session; To : Preferences.Theme_Choices) is
    begin
-      Item.Prefs.Theme_Chosen := To;
-      if Item.Prefs.Persist then
-         begin
-            Preferences.Save_Theme (Config (Item), To);
-         exception
-            when others =>
-               null;  --  the choice holds for now; it is not worth a crash
-         end;
-      end if;
+      Settings_VM.Execute (Item.Choices.Model, Settings_VM.Choose_Theme, Preferences.Theme_Choices'Pos (To));
       Apply_Theme (Item);
-      if Item.Prefs.Showing_Settings then
+      if Showing (Item) then
          Refresh (Item);
       end if;
    end Choose_Appearance;
 
    procedure Choose_VSync (Item : in out Session; To : Boolean) is
    begin
-      Item.Prefs.VSync_Chosen := To;
-      if Item.Prefs.Persist then
-         begin
-            Preferences.Save_VSync (Config (Item), To);
-         exception
-            when others =>
-               null;  --  the choice holds for now; it is not worth a crash
-         end;
+      if Settings_VM.VSync (Item.Choices.Model) /= To then
+         Settings_VM.Execute (Item.Choices.Model, Settings_VM.Toggle_VSync);
       end if;
       if Item.Shell.Windowed then
          SDL3.Windows.Renderers.Set_VSync (Item.Host.Target, To);
       end if;
-      if Item.Prefs.Showing_Settings then
+      if Showing (Item) then
          Refresh (Item);
       end if;
    end Choose_VSync;
@@ -282,17 +189,9 @@ package body Viewer.Settings_View is
    procedure Choose_Background
      (Item : in out Session; To : Preferences.Background_Modes) is
    begin
-      Item.Prefs.Background_Chosen := To;
-      if Item.Prefs.Persist then
-         begin
-            Preferences.Save_Background (Config (Item), To);
-         exception
-            when others =>
-               null;  --  the choice holds for now; it is not worth a crash
-         end;
-      end if;
+      Settings_VM.Execute (Item.Choices.Model, Settings_VM.Choose_Background, Choice_Of (To));
       Apply_Theme (Item);
-      if Item.Prefs.Showing_Settings then
+      if Showing (Item) then
          Refresh (Item);
          Reveal_Background (Item);
       end if;
@@ -300,29 +199,24 @@ package body Viewer.Settings_View is
 
    procedure Reseed (Item : in out Session) is
    begin
+      --  The picture is the world's; the view-model keeps which it is.
       Backgrounds.Reseed (Item.Host.Background);
-      if Item.Prefs.Persist then
-         begin
-            Preferences.Save_Seed (Config (Item), Backgrounds.Seed_Number (Item.Host.Background));
-         exception
-            when others =>
-               null;  --  the picture holds for now; it is not worth a crash
-         end;
-      end if;
+      Settings_VM.Execute
+        (Item.Choices.Model, Settings_VM.Reseed, Backgrounds.Seed_Number (Item.Host.Background));
       Apply_Theme (Item);
       Widgets.Invalidate_All (Item.Root.Widgets);
-      if Item.Prefs.Showing_Settings then
+      if Showing (Item) then
          Refresh (Item);
       end if;
    end Reseed;
 
    procedure Apply_Theme (Item : in out Session) is
       Dark : constant Boolean :=
-        (case Item.Prefs.Theme_Chosen is
+        (case Settings_VM.Theme (Item.Choices.Model) is
             when Preferences.Light  => False,
             when Preferences.Dark   => True,
             when Preferences.System => Pomarine.Events.System_Is_Dark);
-      Mode : constant Preferences.Background_Modes := Item.Prefs.Background_Chosen;
+      Mode : constant Preferences.Background_Modes := Settings_VM.Background (Item.Choices.Model);
       --  Only a window has a painting to go with; offscreen, it is the theme's own colours.
       Adaptive : constant Boolean :=
         Mode in Preferences.Pictures and then Item.Shell.Windowed
@@ -342,14 +236,14 @@ package body Viewer.Settings_View is
          Item.Root.Window_Panel.Painting := null;
       end if;
       Item.Canvas_View.Transparent := Adaptive;
-      if Dark /= Item.Prefs.Dark_Shown or else Adaptive /= Item.Prefs.Adaptive_Shown
-        or else Mode /= Item.Prefs.Mode_Shown
+      if Dark /= Item.Choices.Dark_Shown or else Adaptive /= Item.Choices.Adaptive_Shown
+        or else Mode /= Item.Choices.Mode_Shown
       then
-         Item.Prefs.Dark_Shown := Dark;
-         Item.Prefs.Adaptive_Shown := Adaptive;
-         Item.Prefs.Mode_Shown := Mode;
+         Item.Choices.Dark_Shown := Dark;
+         Item.Choices.Adaptive_Shown := Adaptive;
+         Item.Choices.Mode_Shown := Mode;
          Widgets.Invalidate_All (Item.Root.Widgets);
-         if Item.Prefs.Showing_Settings then
+         if Showing (Item) then
             Refresh (Item);
          end if;
       end if;
@@ -357,10 +251,8 @@ package body Viewer.Settings_View is
 
    procedure Download (Item : in out Session) is
    begin
-      if Speech.Models.State /= Speech.Models.Running
-        and then not Model_Present (Item)
-      then
-         Speech.Models.Start (Model_Directory (Item));
+      if Settings_VM.Can_Execute (Item.Choices.Model, Settings_VM.Download_Model) then
+         Settings_VM.Execute (Item.Choices.Model, Settings_VM.Download_Model);
          Refresh (Item);
          Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
       end if;
@@ -368,32 +260,33 @@ package body Viewer.Settings_View is
 
    procedure Ask_To_Delete (Item : in out Session) is
    begin
-      if Speech.Models.State /= Speech.Models.Running and then Model_Present (Item) then
+      if Settings_VM.Can_Execute (Item.Choices.Model, Settings_VM.Delete_Model) then
          Deletion.Confirm_Model
-           (Item, "Its " & Size_Text (On_Disk (Item)) & " of files go; they can be downloaded again.");
+           (Item, "Its " & Settings_VM.Size_On_Disk_Text (Item.Choices.Model)
+            & " of files go; they can be downloaded again.");
       end if;
    end Ask_To_Delete;
 
    procedure Delete_Files (Item : in out Session) is
    begin
       Deletion.Close (Item);
-      if Speech.Models.State /= Speech.Models.Running then
-         Speech.Models.Delete (Model_Directory (Item));
-         Speech.Models.Reset;
+      if Settings_VM.Can_Execute (Item.Choices.Model, Settings_VM.Delete_Model) then
+         Settings_VM.Execute (Item.Choices.Model, Settings_VM.Delete_Model);
       end if;
       Refresh (Item);
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
    end Delete_Files;
 
    procedure Update (Item : in out Session) is
-      Now : constant Speech.Models.States := Speech.Models.State;
+      Was : constant Speech.Models.States := Item.Choices.Download_Seen;
    begin
-      if Now = Speech.Models.Running then
-         Refresh (Item);
-      elsif Now /= Item.Prefs.Download_Seen then
-         --  It has ended: the button and the bar change.
-         Refresh (Item);
-         Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
+      Settings_VM.Poll (Item.Choices.Model);
+      if Binding.Changed (Item.Choices.Seen, Item.Choices.Model) then
+         Draw (Item);
+         if Settings_VM.Download_State (Item.Choices.Model) /= Was then
+            --  It has ended, or begun: the button and the bar change.
+            Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
+         end if;
       end if;
    end Update;
 

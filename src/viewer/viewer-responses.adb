@@ -1,3 +1,4 @@
+with Settings_VM;
 with Preferences;
 with Pomarine.Widgets.Callbacks;
 with Pomarine.Widgets.Editors.Callbacks;
@@ -42,7 +43,7 @@ package body Viewer.Responses is
    is
       pragma Unreferenced (Source, Event);
    begin
-      if Item.Nav.Shown = Home and then not Item.Prefs.Showing_Settings then
+      if Item.Nav.Shown = Home and then not Settings_VM.Is_Showing (Item.Choices.Model) then
          Settings_View.Open (Item);
       end if;
    end Open_Settings;
@@ -119,7 +120,7 @@ package body Viewer.Responses is
    is
       pragma Unreferenced (Source, Event);
    begin
-      if Item.Nav.Shown = Home and then Item.Prefs.Showing_Settings then
+      if Item.Nav.Shown = Home and then Settings_VM.Is_Showing (Item.Choices.Model) then
          if Item.Confirm.Deleting_Model then
             Settings_View.Delete_Files (Item);
          end if;
@@ -139,7 +140,7 @@ package body Viewer.Responses is
    is
       pragma Unreferenced (Source, Event);
    begin
-      if Item.Nav.Shown = Home and then Item.Prefs.Showing_Settings then
+      if Item.Nav.Shown = Home and then Settings_VM.Is_Showing (Item.Choices.Model) then
          if Item.Confirm.Deleting_Model then
             Deletion.Close (Item);
          end if;
@@ -155,7 +156,7 @@ package body Viewer.Responses is
    --  all that takes clicks.
 
    function Settings_Open (Item : Session) return Boolean is
-     (Item.Prefs.Showing_Settings and then not Item.Confirm.Deleting_Model);
+     (Settings_VM.Is_Showing (Item.Choices.Model) and then not Item.Confirm.Deleting_Model);
 
    procedure Close_Settings
      (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
@@ -218,7 +219,7 @@ package body Viewer.Responses is
       pragma Unreferenced (Source, Event);
    begin
       if Settings_Open (Item) then
-         Settings_View.Choose_VSync (Item, not Item.Prefs.VSync_Chosen);
+         Settings_View.Choose_VSync (Item, not Settings_VM.VSync (Item.Choices.Model));
       end if;
    end Toggle_VSync;
 

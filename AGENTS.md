@@ -21,6 +21,29 @@ PREFER features from the Ada 2022 standard, e.g.
 PREFER to refactor existing code if it can be improved.
 KEEP lines to at most 120 columns (`-gnatyM120` in each project).
 
+## Writing a view-model
+
+A screen that is a form or a list (the settings, and in time the home screen and the outline) has a
+view-model in `src/view_models/`: what the screen means, and nothing of how it looks. The canvas, the
+writing editor and gestures (drag, pan, resize) stay with the code that handles events: do not force them in.
+
+DO give the view-model the parts of `Pomarine.View_Models` (`pomarine/vm`): a `Version` that goes up whenever
+  anything it shows changes, `Property`/`Text_Property` for what is chosen or typed, and a command
+  enumeration with `Can_Execute (What)` and `Execute (What, Index)` (`Command_Models`). `Index` carries
+  which of many: a row, a choice.
+DO keep persistence in the view-model, through a `Store` interface (a file one for the program, a
+  failing one for a test), and what it asks of the world (a speech model, a task's download) through a
+  source interface it is given, polled from the view's update. Applying a result to the world (the window's
+  VSync, the theme the windows are drawn in) is the view's, in reaction to a changed `Version`.
+DO NOT `with` `Pomarine.Widgets` or `SDL3` in `src/view_models/`: the test `view-models-no-widgets` fails if
+  a file there names either.
+DO bind the widgets with `Pomarine.Widgets.Bindings` (`For_Commands`: `Bind`, `Trigger`, `Perform`,
+  `Changed`, `Judge`; `Sync_Root`; `Text_Link`). A widget that only says a command (a field's Return)
+  is `Trigger`ed, not `Bind`ed, or it is turned off with the command. A window with more than one set of
+  commands gives each its own `Tag_Base` and one validator that asks each (see `Viewer.Menus.Validate`).
+DO test in three tiers (TESTING.md): the view-model alone, with fakes for the store and the source; the view
+  offscreen, through `Pomarine.Testing` by what the widgets are called; goldens for drawing only.
+
 ## Testing
 
 See TESTING.md

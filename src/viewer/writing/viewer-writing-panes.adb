@@ -1,7 +1,7 @@
+with Settings_VM;
 with Preferences;
 with Pomarine.Icons;
 with Pomarine.Widgets.Labels;
-with Ada.Strings.Unbounded;
 with Pomarine.Text_Areas;
 with Pomarine.Widgets.Grips;
 with Pomarine.Widgets.Text_Fields;
@@ -124,10 +124,10 @@ package body Viewer.Writing.Panes is
    is
       pragma Unreferenced (Source, Event);
    begin
-      if Item.Prefs.Persist then
+      if Settings_VM.Persists (Item.Choices.Model) then
          begin
             Preferences.Save_Sidebar_Width
-              (Ada.Strings.Unbounded.To_String (Item.Prefs.Config_Dir),
+              (Settings_VM.Config_Directory (Item.Choices.Model),
                Natural (Float'Rounding (Item.Page_View.Sidebar_Wide)));
          exception
             when others =>
@@ -171,10 +171,10 @@ package body Viewer.Writing.Panes is
             when others => raise Program_Error;
          end case;
          Fit_Sections (Item);
-         if Item.Prefs.Persist then
+         if Settings_VM.Persists (Item.Choices.Model) then
             begin
                declare
-                  Config : constant String := Ada.Strings.Unbounded.To_String (Item.Prefs.Config_Dir);
+                  Config : constant String := Settings_VM.Config_Directory (Item.Choices.Model);
                begin
                   Preferences.Save_Section_Open (Config, "edit", View.Edit_Open);
                   Preferences.Save_Section_Open (Config, "documents", View.Docs_Open);

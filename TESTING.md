@@ -75,6 +75,26 @@ documents at multiple levels, deleting whole folder subtrees while retaining
 documents, the optional deletion of documents, cancellation, checkbox defaults,
 and persistence after reopening.
 
+## View-models
+
+A screen's rules are tested without drawing it. In three tiers, the cheapest first:
+
+- **The view-model alone** (`settings-vm-*`): `Settings_VM` with a store that writes down what it was told,
+  or fails, and a speech model that is as the test says (`Settings_VM_Fakes`). What each command can do and
+  when (`Can_Execute`), what is kept for each choice and that a save that fails keeps the choice and does not
+  raise, the file that is kept (read back with `Preferences`), what is said of the download in each of
+  its states, and how sizes are said. No window, display or event; it runs in a moment.
+- **The view, offscreen, through `Pomarine.Testing`** (`settings-by-name`): a `Viewer.Session` driven by
+  what the widgets are called ("Dark", "Parakeet", "VSync", "Projects"), not where they are, and read as
+  an assistive technology is told of them (`radio button 'Dark' ON`, `button 'Download'`), with the
+  view-model's state asked as well. This is where it is checked that the right widget is tied to the right
+  command, that a command's widgets are turned on and off as it says, and that what the view-model changed
+  shows.
+- **Goldens, for drawing only** (`home-settings*`): what the form looks like.
+
+`view-models-no-widgets` reads the files of `src/view_models/` and fails if one names `Pomarine.Widgets` or
+`SDL3`. The parts of a view-model (`Pomarine.View_Models`) and its bindings are tested in `pomarine`.
+
 ## Web pages
 
 `bin/page_probe <address> [look]` takes the picture of a page and says how tall it is and how many

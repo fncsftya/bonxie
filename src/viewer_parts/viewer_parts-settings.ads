@@ -1,8 +1,8 @@
-with Ada.Strings.Unbounded;
 with Backgrounds;
-with Speech.Models;
 with Preferences;
+with Pomarine.View_Models;
 with Pomarine.Widgets;
+with Pomarine.Widgets.Bindings.For_Commands;
 with Pomarine.Widgets.Buttons;
 with Pomarine.Widgets.Checks;
 with Pomarine.Widgets.Grips;
@@ -11,9 +11,17 @@ with Pomarine.Widgets.Panels;
 with Pomarine.Widgets.Progress_Bars;
 with Pomarine.Widgets.Scrollers;
 with Pomarine.Widgets.Switches;
+with Settings_VM;
+with Settings_VM.Disk;
+with Speech.Models;
 
---  The settings.
+--  The settings: their widgets, and the view-model they show with what ties them.
 package Viewer_Parts.Settings is
+
+   Settings_Tag_Base : constant := 100;
+   --  The tag of the settings' first command: the window's own are below it (see Viewer.Command).
+
+   package Binding is new Pomarine.Widgets.Bindings.For_Commands (Settings_VM.Commands, Settings_Tag_Base);
 
    type Background_Card is limited record
       Whole  : Pomarine.Widgets.Panels.Panel;
@@ -33,7 +41,7 @@ package Viewer_Parts.Settings is
 
    type Settings_Parts is limited record
       Settings_Panel : Pomarine.Widgets.Panels.Panel;
-      --  A column, in the home screen's place while Showing_Settings: a
+      --  A column, in the home screen's place while the settings are shown: a
       --  bar across the top, which stays, and below it the form, scrolled.
       Settings_Bar   : Pomarine.Widgets.Panels.Panel;
       Settings_Title : Pomarine.Widgets.Labels.Label;
@@ -73,24 +81,28 @@ package Viewer_Parts.Settings is
       Graphics_Heading : Pomarine.Widgets.Labels.Label;
       VSync_Switch   : Pomarine.Widgets.Switches.Switch;
       --  Graphics' one option, VSync.
-      Showing_Settings : Boolean := False;
-      VSync_Chosen   : Boolean := False;
-      Speech_Choice  : Preferences.Speech_Models := Preferences.MacOS;
-      Theme_Chosen   : Preferences.Theme_Choices := Preferences.System;
+   end record;
+   --  The widgets of the settings. What is chosen in them is Settings_Choices'.
+
+   type Settings_Choices is limited record
+      Model  : aliased Settings_VM.View_Model;
+      --  What the settings mean: the choices, the download, when each command can be done.
+      Files  : aliased Settings_VM.Disk.File_Store;
+      Voice  : aliased Settings_VM.Disk.Speech_Files;
+      --  Where the choices are kept, and the speech model's files.
+      Judge  : aliased Binding.Judge;
+      --  What the tree asks about the commands of the widgets.
+      Seen   : Pomarine.View_Models.Watch;
+      --  The model's version as the widgets last showed it.
+      Download_Seen : Speech.Models.States := Speech.Models.Idle;
+      --  How the download was when the form last showed it.
       Dark_Shown     : Boolean := False;
       --  Whether the windows are drawn in the dark theme, as last applied.
-      Background_Chosen : Preferences.Background_Modes := Preferences.Watercolour;
       Adaptive_Shown : Boolean := False;
       Mode_Shown     : Preferences.Background_Modes := Preferences.Fixed;
       --  Whether the windows are drawn in colours that go with a painted background, as last applied:
       --  what is chosen, if there is a painting to go with.
-      Config_Dir     : Ada.Strings.Unbounded.Unbounded_String;
-      --  Where the settings and the files they need are kept.
-      Persist        : Boolean := False;
-      --  Whether the settings are written there: not offscreen.
-      Download_Seen  : Speech.Models.States := Speech.Models.Idle;
-      --  How the download was when the form last showed it.
    end record;
-   --  The settings, and what is chosen in them.
+   --  The view-model of the settings, and what the view has applied of it to the world.
 
 end Viewer_Parts.Settings;

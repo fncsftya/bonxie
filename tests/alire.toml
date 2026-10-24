@@ -17,6 +17,7 @@ macos = true
 bonxie = "*"
 pomarine_goldens = "*"
 pomarine_native = "*"
+pomarine_testing = "*"
 pomarine_ui = "*"
 texts = "*"
 
@@ -24,7 +25,9 @@ texts = "*"
 bonxie = { path = ".." }
 pomarine_goldens = { path = "../pomarine/goldens" }
 pomarine_native = { path = "../pomarine/native" }
+pomarine_testing = { path = "../pomarine/testing" }
 pomarine_ui = { path = "../pomarine/ui" }
+pomarine_vm = { path = "../pomarine/vm" }
 coretext = { path = "../pomarine/coretext" }
 sdl3 = { path = "../pomarine/sdl3" }
 speech = { path = "../speech" }

@@ -40,7 +40,7 @@ package Viewer_Parts.Common is
    subtype Placed_Array is Placed_Lists.List;
 
    type Root_Parts is limited record
-      Widgets      : Pomarine.Widgets.Tree;
+      Widgets      : aliased Pomarine.Widgets.Tree;
       Window_Panel : Backgrounds.Panel;
       --  The root, of both screens, one of which is hidden.
       Header_Panel : Pomarine.Widgets.Panels.Panel;
