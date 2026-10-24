@@ -1,6 +1,5 @@
 with Items.Windows;
 with Pomarine.Text_Areas;
-with Pomarine.Widgets.Editors;
 with Projects;
 with Word_Tools;
 with Items.Readers.Callbacks;
@@ -463,31 +462,28 @@ package body Viewer.Writing is
 
    procedure Tool_Used
      (Item   : in out Session;
-      Source : in out Pomarine.Widgets.Widget'Class;
-      Event  : Pomarine.Widgets.Widget_Event)
+      Source : in out Pomarine.Widgets.Editors.Editor'Class;
+      Tool   : Positive)
    is
       pragma Unreferenced (Item);
    begin
-      Word_Tools.Use_Tool (Source, Event.Row);
+      Word_Tools.Use_Tool (Source, Tool);
    end Tool_Used;
 
    procedure Link_Followed
      (Item   : in out Session;
-      Source : in out Pomarine.Widgets.Widget'Class;
-      Event  : Pomarine.Widgets.Widget_Event)
+      Source : in out Pomarine.Widgets.Editors.Editor'Class)
    is
-      pragma Unreferenced (Item, Event);
+      pragma Unreferenced (Item);
    begin
       Word_Tools.Follow (Source);
    end Link_Followed;
 
    procedure Link_Asked
      (Item   : in out Session;
-      Source : in out Pomarine.Widgets.Widget'Class;
-      Event  : Pomarine.Widgets.Widget_Event)
+      Source : in out Pomarine.Widgets.Editors.Editor'Class)
    is
-      pragma Unreferenced (Event);
-      Editor : Pomarine.Widgets.Editors.Editor'Class renames Pomarine.Widgets.Editors.Editor'Class (Source);
+      Editor : Pomarine.Widgets.Editors.Editor'Class renames Source;
    begin
       Pomarine.Widgets.Editors.Clear_Link_Choices (Editor);
       for Row in 1 .. Item.Reading.Source_Total loop

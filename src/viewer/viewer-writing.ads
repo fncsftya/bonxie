@@ -1,4 +1,5 @@
 with Pomarine.Widgets;
+with Pomarine.Widgets.Editors;
 with Vision;
 
 --  The writing view: the items that are not sources, as documents, each
@@ -135,20 +136,18 @@ private package Viewer.Writing is
 
    procedure Tool_Used
      (Item   : in out Session;
-      Source : in out Pomarine.Widgets.Widget'Class;
-      Event  : Pomarine.Widgets.Widget_Event);
-   --  A tool of a page's toolbar (Word_Tools): its Row is the tool's number.
+      Source : in out Pomarine.Widgets.Editors.Editor'Class;
+      Tool   : Positive);
+   --  A tool of a page's toolbar (Word_Tools), by its number.
 
    procedure Link_Followed
      (Item   : in out Session;
-      Source : in out Pomarine.Widgets.Widget'Class;
-      Event  : Pomarine.Widgets.Widget_Event);
+      Source : in out Pomarine.Widgets.Editors.Editor'Class);
    --  A link of a page's text Command-clicked: it is opened (Word_Tools.Follow).
 
    procedure Link_Asked
      (Item   : in out Session;
-      Source : in out Pomarine.Widgets.Widget'Class;
-      Event  : Pomarine.Widgets.Widget_Event);
+      Source : in out Pomarine.Widgets.Editors.Editor'Class);
    --  A page's text has begun to ask for a link's address: it is offered the web pages among the
    --  project's sources.
 

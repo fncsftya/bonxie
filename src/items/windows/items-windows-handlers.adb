@@ -1,6 +1,7 @@
 with Word_Tools;
 with Items.Sources;
 with Pomarine.Widgets.Callbacks;
+with Pomarine.Widgets.Editors.Callbacks;
 with Pomarine.Widgets.Frames.Handlers;
 with Items.Windows.Displays;
 with Items.Windows.Metrics;
@@ -13,6 +14,7 @@ package body Items.Windows.Handlers is
    package Sliders renames Pomarine.Widgets.Sliders;
 
    package Hooks is new Pomarine.Widgets.Callbacks (Window);
+   package Editor_Hooks is new Pomarine.Widgets.Editors.Callbacks (Window);
 
    package Frame_Hooks is new Pomarine.Widgets.Frames.Handlers (Window);
 
@@ -256,20 +258,18 @@ package body Items.Windows.Handlers is
    end Speak_Clicked;
 
    procedure Tool_Used
-     (Item : in out Window; From : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
+     (Item : in out Window; From : in out Widgets.Editors.Editor'Class; Number : Positive);
 
    procedure Tool_Used
-     (Item : in out Window; From : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
+     (Item : in out Window; From : in out Widgets.Editors.Editor'Class; Number : Positive)
    is
       pragma Unreferenced (Item);
    begin
-      Word_Tools.Use_Tool (From, Event.Row);
+      Word_Tools.Use_Tool (From, Number);
    end Tool_Used;
 
-   procedure Link_Followed
-     (Item : in out Window; From : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Item, Event);
+   procedure Link_Followed (Item : in out Window; From : in out Widgets.Editors.Editor'Class) is
+      pragma Unreferenced (Item);
    begin
       Word_Tools.Follow (From);
    end Link_Followed;
@@ -345,8 +345,8 @@ package body Items.Windows.Handlers is
       Hooks.On (Item.Link_Button, Click, Item'Unrestricted_Access, Way_Chosen'Access);
       Hooks.On (Item.File_Button, Click, Item'Unrestricted_Access, Way_Chosen'Access);
       Hooks.On (Item.Body_Text, Click, Item'Unrestricted_Access, Way_Chosen'Access);
-      Hooks.On (Item.Body_Text, Use_Tool, Item'Unrestricted_Access, Tool_Used'Access);
-      Hooks.On (Item.Body_Text, Follow, Item'Unrestricted_Access, Link_Followed'Access);
+      Editor_Hooks.On_Tool (Item.Body_Text, Item'Unrestricted_Access, Tool_Used'Access);
+      Editor_Hooks.On_Follow (Item.Body_Text, Item'Unrestricted_Access, Link_Followed'Access);
       Hooks.On (Item.Zoom_Slider, Change, Item'Unrestricted_Access, Zoom_Moved'Access);
       Hooks.On (Item.Cursor_Button, Click, Item'Unrestricted_Access, Pointer_Clicked'Access);
       Hooks.On (Item.Marker_Button, Click, Item'Unrestricted_Access, Marker_Clicked'Access);

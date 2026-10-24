@@ -1,5 +1,6 @@
 with Preferences;
 with Pomarine.Widgets.Callbacks;
+with Pomarine.Widgets.Editors.Callbacks;
 with Viewer.Canvas_Items;
 with Viewer.Deletion;
 with Viewer.Listing;
@@ -12,6 +13,7 @@ package body Viewer.Responses is
 
    package Widgets renames Pomarine.Widgets;
    package Hooks is new Pomarine.Widgets.Callbacks (Session);
+   package Editor_Hooks is new Pomarine.Widgets.Editors.Callbacks (Session);
 
    use type Projects.Id;
 
@@ -551,9 +553,9 @@ package body Viewer.Responses is
    begin
       Hear (Item.Docs.Pages (Which).Sources_Button, Click, Writing.Sources_Clicked'Access);
       Hear (Item.Docs.Pages (Which).Mic_Button, Click, Writing.Dictate_Clicked'Access);
-      Hear (Item.Docs.Pages (Which).Text, Use_Tool, Writing.Tool_Used'Access);
-      Hear (Item.Docs.Pages (Which).Text, Follow, Writing.Link_Followed'Access);
-      Hear (Item.Docs.Pages (Which).Text, Ask_Link, Writing.Link_Asked'Access);
+      Editor_Hooks.On_Tool (Item.Docs.Pages (Which).Text, Item'Unchecked_Access, Writing.Tool_Used'Access);
+      Editor_Hooks.On_Follow (Item.Docs.Pages (Which).Text, Item'Unchecked_Access, Writing.Link_Followed'Access);
+      Editor_Hooks.On_Ask_Link (Item.Docs.Pages (Which).Text, Item'Unchecked_Access, Writing.Link_Asked'Access);
       Hear (Item.Reading.Source_Rows (Which).Row, Click, Writing.Source_Row_Clicked'Access);
    end Listen_Slot;
 

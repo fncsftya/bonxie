@@ -4,6 +4,7 @@ with Pomarine.Widgets;
 with Pomarine.Widgets.Buttons;
 with Pomarine.Widgets.Callbacks;
 with Pomarine.Widgets.Canvases;
+with Pomarine.Widgets.Canvases.Callbacks;
 with Pomarine.Widgets.Panels;
 with Pomarine.Widgets.Pins;
 with Viewer.Style;
@@ -22,6 +23,7 @@ package body Viewer.Links is
    package Buttons renames Pomarine.Widgets.Buttons;
    package Item_Links renames Items.Links;
    package Hooks is new Pomarine.Widgets.Callbacks (Session);
+   package Canvas_Hooks is new Pomarine.Widgets.Canvases.Callbacks (Session);
 
    use type Item_Links.Strokes;
    use type Item_Links.Endings;
@@ -160,8 +162,8 @@ package body Viewer.Links is
       Hear (Item.Linking.Delete_Link, Click, Events.Delete_Clicked'Access);
       Hear (Item.Linking.Link_Handle, Press, Events.Handle_Pressed'Access);
       Hear (Item.Linking.Link_Handle, Release, Events.Pin_Released'Access);
-      Hear (Item.Canvas_View, Select_Tag, Events.Line_Selected'Access);
-      Hear (Item.Canvas_View, Delete, Events.Line_Deleted'Access);
+      Canvas_Hooks.On_Select (Item.Canvas_View, Item'Unchecked_Access, Events.Line_Selected'Access);
+      Canvas_Hooks.On_Delete (Item.Canvas_View, Item'Unchecked_Access, Events.Line_Deleted'Access);
    end Listen;
 
    function Shown_Pins (Item : Session) return Natural is

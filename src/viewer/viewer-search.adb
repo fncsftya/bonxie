@@ -5,6 +5,7 @@ with Pomarine.Icons;
 with Icon_Set;
 with Pomarine.Themes;
 with Pomarine.Text_Areas;
+with Pomarine.Widgets.Callbacks;
 with Pomarine.Widgets.Layouts;
 with Viewer.Canvas_Items;
 with Viewer.Style;
@@ -20,12 +21,51 @@ package body Viewer.Search is
    package Docs renames Texts.Documents;
    package Areas renames Pomarine.Text_Areas;
    package Editors renames Pomarine.Widgets.Editors;
+   package Hooks is new Pomarine.Widgets.Callbacks (Session);
    use Ada.Strings.Unbounded;
    use type Pomarine.Events.Event_Kind;
    use type Pomarine.Events.Key_Code;
    use type Docs.Version;
    use type Items.Id;
    use type Widgets.Widget_Access;
+
+   procedure Step (Item : in out Session; Backwards : Boolean := False);
+   procedure Previous_Clicked
+     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
+
+   procedure Previous_Clicked
+     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source, Event);
+   begin
+      if Item.Searching.Showing then
+         Step (Item, True);
+      end if;
+   end Previous_Clicked;
+
+   procedure Next_Clicked
+     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
+
+   procedure Next_Clicked
+     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source, Event);
+   begin
+      if Item.Searching.Showing then
+         Step (Item);
+      end if;
+   end Next_Clicked;
+
+   procedure Close_Clicked
+     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
+
+   procedure Close_Clicked
+     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source, Event);
+   begin
+      Close (Item);
+   end Close_Clicked;
 
    procedure Build_Bar (Item : in out Session; In_Window : Boolean := False) is
       use Pomarine.Widgets.Layouts;
@@ -56,6 +96,9 @@ package body Viewer.Search is
                    Buttons.Looks ("Close", Icon => Pomarine.Icons.Shown (Pomarine.Icons.Close), Focusable => True),
                    (Width => (if In_Window then 24.0 else 36.0), others => <>));
       Pomarine.Widgets.Panels.Set_Fill (S.Bar, Pomarine.Themes.Strip);
+      Hooks.On (S.Previous, Widgets.Click, Item'Unchecked_Access, Previous_Clicked'Access);
+      Hooks.On (S.Next, Widgets.Click, Item'Unchecked_Access, Next_Clicked'Access);
+      Hooks.On (S.Close, Widgets.Click, Item'Unchecked_Access, Close_Clicked'Access);
       Fields.Set_Shared (S.Field, Item.Host.Doc_Resources'Unchecked_Access);
       Fields.Configure (S.Field, Pomarine.Line_Texts.Interface_Font, Viewer.Style.Edit_Size);
       Fields.Attach (S.Field, S.Doc'Unchecked_Access);
@@ -206,7 +249,6 @@ package body Viewer.Search is
 
    procedure Update (Item : in out Session) is
       S : Search_State renames Item.Searching;
-      Clicked : Boolean;
       function Image (N : Natural) return String is
         (Ada.Strings.Fixed.Trim (N'Image, Ada.Strings.Both));
    begin
@@ -224,21 +266,9 @@ package body Viewer.Search is
       end if;
       if S.In_Writing then
          Update_Documents (Item);
-         Buttons.Take_Click (S.Previous, Clicked);
-         if Clicked then
-            Step (Item, True);
-         end if;
-         Buttons.Take_Click (S.Next, Clicked);
-         if Clicked then
-            Step (Item);
-         end if;
          Pomarine.Widgets.Labels.Set_Text (S.Count, Image (S.Current) & " / " & Image (S.Total));
          Buttons.Set_Enabled (S.Previous, S.Total > 0);
          Buttons.Set_Enabled (S.Next, S.Total > 0);
-         Buttons.Take_Click (S.Close, Clicked);
-         if Clicked then
-            Close (Item);
-         end if;
          return;
       end if;
       declare
@@ -252,24 +282,12 @@ package body Viewer.Search is
             Items.Windows.Search (W, Term);
             Items.Windows.Search_Step (W);
          end if;
-         Buttons.Take_Click (S.Previous, Clicked);
-         if Clicked then
-            Items.Windows.Search_Step (W, True);
-         end if;
-         Buttons.Take_Click (S.Next, Clicked);
-         if Clicked then
-            Items.Windows.Search_Step (W);
-         end if;
          Pomarine.Widgets.Labels.Set_Text
            (S.Count, Image (Items.Windows.Search_Current (W)) & " / " & Image (Items.Windows.Search_Count (W))
             & (if Items.Windows.Search_Busy (W) then " ..." else ""));
          Buttons.Set_Enabled (S.Previous, Items.Windows.Search_Count (W) > 0);
          Buttons.Set_Enabled (S.Next, Items.Windows.Search_Count (W) > 0);
       end;
-      Buttons.Take_Click (S.Close, Clicked);
-      if Clicked then
-         Close (Item);
-      end if;
    end Update;
 
    procedure Handle (Item : in out Session; Event : Pomarine.Events.Event; Handled : out Boolean) is

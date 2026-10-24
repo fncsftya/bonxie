@@ -223,23 +223,21 @@ package body Viewer.Links.Events is
    end Delete_Clicked;
 
    procedure Line_Selected
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
+     (Item : in out Session; Source : in out Widgets.Canvases.Canvas'Class; Tag : Natural)
    is
       pragma Unreferenced (Source);
    begin
       Item.Linking.Link_Key :=
-        (if Event.Row in 1 .. Item.Linking.Link_Set.Count
-         then Item.Linking.Link_Set (Event.Row).Key else 0);
+        (if Tag in 1 .. Item.Linking.Link_Set.Count
+         then Item.Linking.Link_Set (Tag).Key else 0);
       if Item.Linking.Link_Key /= 0 then
          --  So that Backspace is not for the text being typed in.
          Widgets.Clear_Focus (Item.Root.Widgets);
       end if;
    end Line_Selected;
 
-   procedure Line_Deleted
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source, Event);
+   procedure Line_Deleted (Item : in out Session; Source : in out Widgets.Canvases.Canvas'Class) is
+      pragma Unreferenced (Source);
    begin
       if Item.Linking.Link_Key /= 0 then
          Item_Links.Delete_Link (Item.Nav.Store, Item.Linking.Link_Key);
