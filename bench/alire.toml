@@ -28,6 +28,7 @@ bonxie = { path = ".." }
 pomarine_native = { path = "../pomarine/native" }
 pomarine_ui = { path = "../pomarine/ui" }
 pomarine_vm = { path = "../pomarine/vm" }
+pomarine_model = { path = "../pomarine/model" }
 coretext = { path = "../pomarine/coretext" }
 sdl3 = { path = "../pomarine/sdl3" }
 speech = { path = "../speech" }

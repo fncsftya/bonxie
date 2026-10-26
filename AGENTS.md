@@ -21,6 +21,11 @@ PREFER features from the Ada 2022 standard, e.g.
 PREFER to refactor existing code if it can be improved.
 KEEP lines to at most 120 columns (`-gnatyM120` in each project).
 
+## Layers
+
+See docs/ARCHITECTURE.md. Run `tools/check_layers.py` before committing: it fails on a dependency that points
+up (a view-model naming a widget, the domain naming a screen, support naming the application).
+
 ## Testing
 
 See TESTING.md

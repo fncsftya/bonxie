@@ -1,4 +1,4 @@
-with Pomarine.Text_Areas;
+with Texts.Documents;
 with Projects;
 
 package body Writing_Sources_VM is
@@ -59,7 +59,7 @@ package body Writing_Sources_VM is
             Kept : Items.Models.Item renames Self.Models (Slot_At (Self, Row));
          begin
             if Is_Source (Self, Slot_At (Self, Row)) and then Items.Models.Details (Kept).Origin = Items.Remote
-              and then Pomarine.Text_Areas.Is_Address (Items.Models.Text (Kept))
+              and then Texts.Documents.Is_Address (Items.Models.Text (Kept))
             then
                Offer (Projects.Titles.To_String (Items.Models.Details (Kept).Title), Items.Models.Text (Kept));
             end if;

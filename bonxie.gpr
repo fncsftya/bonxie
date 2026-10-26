@@ -1,4 +1,5 @@
 with "config/bonxie_config.gpr";
+with "pomarine_model.gpr";
 with "pomarine_native.gpr";
 with "pomarine_ui.gpr";
 with "coretext.gpr";

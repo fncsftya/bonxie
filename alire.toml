@@ -10,6 +10,7 @@ tags = []
 executables = ["bonxie"]
 
 [[depends-on]]
+pomarine_model = "*"
 pomarine_native = "*"
 pomarine_ui = "*"
 coretext = "*"
@@ -29,6 +30,7 @@ pomarine_native = { path = "pomarine/native" }
 pomarine_testing = { path = "pomarine/testing" }
 pomarine_ui = { path = "pomarine/ui" }
 pomarine_vm = { path = "pomarine/vm" }
+pomarine_model = { path = "pomarine/model" }
 coretext = { path = "pomarine/coretext" }
 ebook = { path = "ebook" }
 harper = { path = "harper" }
