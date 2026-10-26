@@ -1,3 +1,4 @@
+with Pomarine.Widgets.Panels;
 with Publish_UI;
 with Publish_VM;
 with Pomarine.UI.Menus;

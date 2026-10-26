@@ -21,9 +21,6 @@ private package View.Links.Support is
    function Slot_Of (Item : Session; Key : Items.Id) return Natural;
    --  The window of the item, if it is open; 0 if not.
 
-   function Index_Of (Item : Session; Key : Items.Id) return Natural;
-   --  Of the link in the set; 0 if there is none.
-
    function Middle
      (Where : Items.Frame; Side : Item_Links.Sides) return Point;
    --  The middle of the side of the window, in canvas units.

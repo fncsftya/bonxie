@@ -36,9 +36,6 @@ package body View.Section_Links is
 
    function Is_Shown (Item : Session) return Boolean is (Item.Section_Menu.Which /= 0);
 
-   function Is_Open_For (Item : Session; Which : Items.Slot) return Boolean is
-     (Item.Section_Menu.Which = Which);
-
    function Changes (Item : Session) return Natural is (Item.Section_Menu.Changes);
 
    procedure Close (Item : in out Session) is

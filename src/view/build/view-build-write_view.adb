@@ -1,3 +1,4 @@
+with Pomarine.Widgets.Panels;
 with Writing_Sources_UI;
 with Writing_Sources_VM;
 with Writing_Actions_UI;

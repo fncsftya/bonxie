@@ -42,7 +42,6 @@ package Item_Tests is
 
    From_Url_X  : constant Float := 358.0;
    From_Url_Y  : constant Float := 241.0;
-   From_File_Y : constant Float := 283.0;
    --  The buttons of a source yet to say where it comes from.
 
    Pager_Y    : constant Float := 339.0;

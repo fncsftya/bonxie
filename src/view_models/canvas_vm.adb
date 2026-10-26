@@ -91,10 +91,6 @@ package body Canvas_VM is
 
    function Camera_Version (Self : View_Model) return Parts.Version_Number is (Parts.Value (Self.Looks));
 
-   function Viewport_Width (Self : View_Model) return Float is (Self.Width);
-
-   function Viewport_Height (Self : View_Model) return Float is (Self.Height);
-
    function Middle (Self : View_Model; Across : Boolean) return Float is
      (if Across then (Self.Width / 2.0 - Self.Looking.Origin_X) / Self.Looking.Zoom
       else (Self.Height / 2.0 - Self.Looking.Origin_Y) / Self.Looking.Zoom);

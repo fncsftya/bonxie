@@ -179,10 +179,6 @@ package Canvas_VM is
      with Pre => Width >= 0.0 and then Height >= 0.0;
    --  How much of the canvas there is to see, in points.
 
-   function Viewport_Width (Self : View_Model) return Float;
-
-   function Viewport_Height (Self : View_Model) return Float;
-
    function Camera_Version (Self : View_Model) return Parts.Version_Number;
 
    function Middle (Self : View_Model; Across : Boolean) return Float;

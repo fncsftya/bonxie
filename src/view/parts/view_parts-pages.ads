@@ -52,8 +52,6 @@ package View_Parts.Pages is
       Swatch  : Pomarine.Widgets.Panels.Panel;
       --  Before the title: the colour of the section the document is the
       --  own of, if it is.
-      Swatch_Shown : Natural := 0;
-      --  How it was last shown: 0 for none, else 1 and the colour.
       Sheet   : Pomarine.Widgets.Panels.Panel;
       --  The white page.
       Text    : Pomarine.Widgets.Editors.Editor;

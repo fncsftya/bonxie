@@ -245,7 +245,6 @@ private package View.Style is
    --  Of the text in the field to rename a project.
    Gap           : constant Float := 12.0;
 
-   No_Projects : constant String := "No projects yet";
    No_Items    : constant String := "No items yet";
 
    --  The colours. Widgets keep slots of the theme (as Toolbar and
@@ -286,8 +285,6 @@ private package View.Style is
    --  The side rail, and the writing view's desk.
    Dock_Back    : constant Pomarine.Themes.Slot := Pomarine.Themes.Custom (1);
    --  Behind the minimised items.
-   Grid_Dot     : constant Pomarine.Themes.Slot := Pomarine.Themes.Custom (2);
-   --  The dots of the canvas's grid.
    Closed       : constant Pomarine.Themes.Slot := Pomarine.Themes.Custom (3);
    --  The title of an item that is not shown.
    New_Project_Ink : constant Pomarine.Themes.Slot := Pomarine.Themes.Custom (4);

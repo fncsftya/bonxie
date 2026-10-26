@@ -25,9 +25,6 @@ private package View.Section_Links is
    function Is_Shown (Item : Session) return Boolean;
    --  Whether the menu is shown.
 
-   function Is_Open_For (Item : Session; Which : Items.Slot) return Boolean;
-   --  Whether it is shown for that item.
-
    procedure Open (Item : in out Session; Which : Items.Slot; Page : Natural := 0)
      with Pre => Items.Windows.Is_Assigned (Item.Windows (Which));
    --  Show the menu for the item, by its button: that of the window on the

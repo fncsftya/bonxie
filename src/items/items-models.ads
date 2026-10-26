@@ -174,8 +174,6 @@ package Items.Models is
    function Is_Text_Source (Self : Item) return Boolean;
    --  A source that shows a text file, not a picture.
 
-   function Is_Open_Source (Self : Item) return Boolean;
-
    function Wants_Pages (Self : Item) return Boolean
      with Pre => Is_Assigned (Self);
    --  Whether the source's document is to be shown as all its pages one under another, drawn from what is on them

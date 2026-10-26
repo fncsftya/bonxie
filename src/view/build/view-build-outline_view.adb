@@ -1,3 +1,4 @@
+with Pomarine.Widgets.Panels;
 with Pomarine.Widgets.Editors;
 with SDL3.Cursors;
 with Pomarine.Boxes;

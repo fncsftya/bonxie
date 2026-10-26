@@ -1,3 +1,4 @@
+with Pomarine.Widgets.Panels;
 with Pomarine.Boxes;
 with Nav_UI;
 with Nav_VM;

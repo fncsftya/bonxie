@@ -133,10 +133,6 @@ private package View.Canvas_Items is
    --  view and its links are shown in: by its place among the project's
    --  sources, the earliest made first (see Style.Source_Ink).
 
-   function Capture_Time (Item : Session) return Projects.Seconds;
-   --  The time a picture taken now is said to be taken at: now, in seconds
-   --  since the epoch, or the time a test has pinned (see Pin_Capture_Time).
-
    function Count (Item : Session) return Natural;
    --  How many items there are.
 

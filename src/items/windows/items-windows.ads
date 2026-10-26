@@ -64,9 +64,6 @@ package Items.Windows is
 
    Meter_Slot : constant Pomarine.Themes.Slot := Pomarine.Themes.Custom (Meter_Offset);
 
-   function Model_Of (Item : Window) return access Items.Models.Item;
-   --  What the window shows.
-
    function Is_Assigned (Item : Window) return Boolean;
    --  Whether its model has an item.
 
@@ -337,8 +334,6 @@ private
       --  What the text area's font is for: a note's text, or a source's
       --  link.
       Placed_Once : Boolean := False;
-      Opened_Pages : Boolean := False;
-      --  Whether the pages of the document are open in the page view.
 
       Chrome       : Pomarine.Widgets.Frames.Frame;
       --  On the canvas: the outline, round the bar, the text and the

@@ -23,9 +23,6 @@ package body View.Links.Support is
       return (if Which /= 0 and then Is_Open (Item, Which) then Which else 0);
    end Slot_Of;
 
-   function Index_Of (Item : Session; Key : Items.Id) return Natural is
-     (Canvas_VM.Link_Number (Item.Canvas_Model.Model, Key));
-
    function Middle
      (Where : Items.Frame; Side : Item_Links.Sides) return Point is
      (Boxes.Side_Midpoint

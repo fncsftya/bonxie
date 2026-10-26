@@ -20,8 +20,6 @@ package body Items.Windows is
    use type Widgets.Clipboard_Access;
    use type Docs.Version;
 
-   function Model_Of (Item : Window) return access Items.Models.Item is (Item.Model);
-
    function Is_Assigned (Item : Window) return Boolean is
      (Item.Model /= null and then Items.Models.Is_Assigned (Item.Model.all));
 

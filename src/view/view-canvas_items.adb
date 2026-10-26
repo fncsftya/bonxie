@@ -123,8 +123,6 @@ package body View.Canvas_Items is
       Opening.Start_Capture (Item, Which);
    end File_Picked;
 
-   function Capture_Time (Item : Session) return Projects.Seconds is (Basics.Epoch_Now (Item));
-
    function Count (Item : Session) return Natural is (Canvas_VM.Count (Item.Canvas_Model.Model));
 
    procedure Order (Item : Session; Slots : in out Slot_List) is

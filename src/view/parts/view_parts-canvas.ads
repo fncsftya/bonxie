@@ -112,11 +112,9 @@ package View_Parts.Canvas is
       Library : aliased Canvas_VM.Stored.Project_Kept;
       Model   : aliased Canvas_VM.View_Model;
       --  What is on the canvas, where it is looked at from, what is done to it.
-      Seen_Items    : Pomarine.View_Models.Watch;
       Seen_Camera   : Pomarine.View_Models.Watch;
       Seen_Steering : Pomarine.View_Models.Watch;
       Seen_Raised   : Pomarine.View_Models.Watch;
-      Seen_Links    : Pomarine.View_Models.Watch;
       --  What the windows and the lines last showed of it.
    end record;
    --  The view-model of the canvas, and what the widgets show of it.

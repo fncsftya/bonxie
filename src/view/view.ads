@@ -8,7 +8,6 @@ private with Confirm_VM;
 private with Outline_VM;
 private with Home_VM;
 private with Pomarine.UI;
-private with Pomarine.Widgets.Panels;
 private with Pomarine.Widgets.Buttons;
 private with Settings_VM;
 private with Backgrounds;
@@ -213,9 +212,6 @@ private
    end record;
    overriding function Allowed (Self : Menu_Router; What : Menu_VM.Command; Row : Natural) return Boolean;
    overriding procedure Choose (Self : in out Menu_Router; What : Menu_VM.Command; Row : Positive);
-
-   type Panel_Access is access all Pomarine.Widgets.Panels.Panel;
-   --  For the children, which build panels (the private withs here are theirs).
 
    type Responder is limited new Pomarine.Widgets.Listener with record
       Owner : Session_Access;

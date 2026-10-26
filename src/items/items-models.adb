@@ -74,9 +74,6 @@ package body Items.Models is
      (Self.Fields.Kind = Source and then Self.Fields.Origin /= Unchosen
       and then Items.Sources.Is_Text (Items.Extensions.To_String (Self.Fields.Document)));
 
-   function Is_Open_Source (Self : Item) return Boolean is
-     (Self.Fields.Kind = Source and then Self.Fields.State = Open);
-
    function Wants_Pages (Self : Item) return Boolean is
      (Self.Fields.Page > 0 and then Items.Sources.Is_Vector (Items.Extensions.To_String (Self.Fields.Document)));
 
