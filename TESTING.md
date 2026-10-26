@@ -97,7 +97,9 @@ view-models alone (each with fakes for what it is given and, for the database, t
 `*-stored`); `home-by-name`, `outline-by-name`, `settings-by-name`, `nav-by-name`, `item-list-by-name` and
 `write-grammar-entry-by-name` drive the
 session through `Pomarine.Testing` (`tests/src/view_driver.ads` lets it take a `View.Session`'s events and
-time) and found, among others, that the form that makes a grammar rule closed the list when pressed.
+time); `nav-by-name` also checks toolbar renaming by double press, selected text replacement, Return, blur
+and blank-name rejection. These tests found, among others, that the form that makes a grammar rule closed the
+list when pressed.
 
 `item-model-*` checks widget-free item details, documents, marks, capture and dictation states, versions and
 flush rules. `canvas-vm-*` checks camera and steering, item lifecycle, source origin, links and persistence;

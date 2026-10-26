@@ -20,10 +20,12 @@ package body View.Menus is
             return Pomarine.UI.Command_State (Each.Screen.all, Tag, Index);
          end if;
       end loop;
-      if Nav_Binding.Is_Mine (Tag) then
+      if Is_Nav_Tag (Tag) then
          declare
-            State : constant Widgets.Command_State := Nav_Binding.Validate (Item.Nav_Model.Judge, Tag, Index);
-            What  : constant Nav_VM.Command := Nav_VM.Command'Val (Tag - Nav_Tag_Base);
+            State : constant Widgets.Command_State :=
+              (if Nav_VM.Can_Execute (Item.Nav_Model.Model, Command_Of (Tag), Index)
+               then Widgets.Enabled else Widgets.Disabled);
+            What  : constant Nav_VM.Command := Command_Of (Tag);
          begin
             --  The menu ticks the view that is shown.
             if State = Widgets.Enabled and then Menu_Bar.Is_Installed (Item.Host.Menus)

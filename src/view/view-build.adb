@@ -252,8 +252,6 @@ package body View.Build is
          Pomarine.View_Models.See (Nav.Seen, Nav_VM.Version (Nav.Model));
          Pomarine.View_Models.See (Nav.Screens, Nav_VM.Screen_Version (Nav.Model));
          Pomarine.View_Models.See (Nav.Views, Nav_VM.Mode_Version (Nav.Model));
-         Pomarine.View_Models.See (Nav.Naming, Nav_VM.Renaming_Version (Nav.Model));
-         Pomarine.View_Models.See (Nav.Names, Nav_VM.Name_Version (Nav.Model));
       end;
       Canvas_VM.Stored.Open (Item.Canvas_Model.Library, Item.Nav.Store'Unchecked_Access);
       Item.Room.Owner := Item'Unchecked_Access;
@@ -267,7 +265,6 @@ package body View.Build is
         (Item.Item_List.Model, Item.Canvas_Model.Model'Unchecked_Access,
          Item.Models'Unrestricted_Access, Item.Item_List.View'Unchecked_Access);
       Item.Judge.Owner := Item'Unchecked_Access;
-      Nav_Binding.Observe (Item.Nav_Model.Judge, Item.Nav_Model.Model'Unchecked_Access);
       Widgets.Set_Validator (Item.Root.Widgets, Item.Judge'Unchecked_Access);
       Widgets.Set_Density (Item.Root.Widgets, Item.Shell.Density);
       Widgets.Set_Line_Texts (Item.Root.Widgets, Item.Host.Lines);

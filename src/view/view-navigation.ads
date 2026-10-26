@@ -1,5 +1,4 @@
 with Nav_VM;
-with Pomarine.Widgets;
 
 --  Going between the home screen and a project's, and between the views of a project: what Nav_VM says is shown, in
 --  the widgets.
@@ -9,9 +8,7 @@ private package View.Navigation is
    --  Ask the view-model, if it can be done, and show what it comes to.
 
    procedure Sync (Item : in out Session);
-   --  Take what was typed in the field of the project's name for the draft, and show what the view-model says if it
-   --  has changed: the screen entered or left, the view, the settings and the list put up or away, the field to
-   --  rename the project in.
+   --  Synchronize the declarative toolbar, then show screen, view and modal-layer transitions.
 
    procedure Enter (Item : in out Session; Key : Projects.Id)
      with Pre => Screen (Item) = Home;
@@ -28,22 +25,6 @@ private package View.Navigation is
    procedure Show (Item : in out Session; To : Modes)
      with Pre => Screen (Item) = Project;
    --  Show the view, in place of the one shown, and keep it as the project's.
-
-   procedure Show_Title_Of_Project (Item : in out Session);
-   --  Put the title of the current project, as kept, on the toolbar.
-
-   procedure Title_Double_Clicked
-     (Item   : in out Session;
-      Source : in out Pomarine.Widgets.Widget'Class;
-      Event  : Pomarine.Widgets.Widget_Event);
-   --  The project's name was pressed twice: begin renaming it.
-
-   procedure Title_Ended
-     (Item   : in out Session;
-      Source : in out Pomarine.Widgets.Widget'Class;
-      Event  : Pomarine.Widgets.Widget_Event);
-   --  Return was pressed in the name's field, or it has lost the focus:
-   --  end the renaming.
 
    procedure Going_To_Execute (Item : in out Session; What : Nav_VM.Command);
    --  Before the navigation does What: let go of the views of the project that is left.

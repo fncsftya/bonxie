@@ -7,6 +7,7 @@ with Markdown_Export;
 with Projects.Sections;
 with SDL3.Dialogs;
 with Pomarine.Events;
+with Pomarine.UI.Menus;
 with SDL3.Windows;
 with Texts.Documents;
 with Pomarine.Widgets.Buttons;
@@ -107,7 +108,8 @@ package body View.Writing.Publishing is
       Pane : Publish_Parts renames Item.Publish_View;
    begin
       Selects.Set_Value (Pane.Format, (if Pane.Markdown then "Markdown" else "Choose a format"));
-      Menus.Set_Checked (Pane.Format_Menu, 1, Pane.Markdown);
+      Pomarine.UI.Menus.Set_Content
+        (Pane.Format_Menu, [Pomarine.UI.Menus.Row (Menus.Check, "Markdown", Checked => Pane.Markdown)]);
       Buttons.Set_Enabled (Pane.Export, Pane.Markdown);
       Buttons.Set_Enabled (Pane.Copy, Pane.Markdown);
       Widgets.Set_Visible (Pane.Source_Scroll, Pane.Markdown);
@@ -126,7 +128,8 @@ package body View.Writing.Publishing is
       else
          Pane.Format_Open := True;
          Selects.Set_Open (Pane.Format, True);
-         Menus.Set_Checked (Pane.Format_Menu, 1, Pane.Markdown);
+         Pomarine.UI.Menus.Set_Content
+           (Pane.Format_Menu, [Pomarine.UI.Menus.Row (Menus.Check, "Markdown", Checked => Pane.Markdown)]);
          Layouts.Set_Layout
            (Pane.Format_Menu,
             Position =>

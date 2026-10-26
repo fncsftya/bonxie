@@ -57,6 +57,28 @@ package body Nav_Tests is
       Testing.Click_On (Window, "Open Untitled project");
       Check ("nav-name-reopened", "PROJECT CANVAS", View.Screen (Session)'Image & " " & Project.Mode (Session)'Image);
 
+      --  The toolbar collects the edit before Return or blur executes the command.
+      Testing.Click_On (Window, "Untitled project", Clicks => 2);
+      Check ("nav-name-rename-focused", "Untitled project", Testing.Value_Of (Window, "Project name"));
+      Testing.Type_Text (Window, "Great skua");
+      Check ("nav-name-rename-typed", "Great skua", Testing.Value_Of (Window, "Project name"));
+      Testing.Press (Window, Pomarine.Events.Key_Return);
+      Check ("nav-name-rename-submit", "TRUE FALSE",
+             Image (Testing.Exists (Window, "Great skua")) & " "
+             & Image (Testing.Exists (Window, "Project name")));
+      Testing.Click_On (Window, "Great skua", Clicks => 2);
+      Testing.Type_Text (Window, "Arctic skua");
+      Testing.Press (Window, Pomarine.Events.Key_Tab);
+      Check ("nav-name-rename-blur", "TRUE FALSE",
+             Image (Testing.Exists (Window, "Arctic skua")) & " "
+             & Image (Testing.Exists (Window, "Project name")));
+      Testing.Click_On (Window, "Arctic skua", Clicks => 2);
+      Testing.Press (Window, Pomarine.Events.Key_Backspace);
+      Testing.Press (Window, Pomarine.Events.Key_Return);
+      Check ("nav-name-rename-blank", "TRUE FALSE",
+             Image (Testing.Exists (Window, "Arctic skua")) & " "
+             & Image (Testing.Exists (Window, "Project name")));
+
       --  The settings take the place of the home screen, as far as the person can tell.
       Testing.Click_On (Window, "Projects");
       Testing.Click_On (Window, "Settings");

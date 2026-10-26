@@ -310,6 +310,14 @@ package body View.Build.Shell_Views is
       end loop;
    end Build_Home;
 
+   function Not_Renaming (Model : Nav_VM.View_Model) return Boolean is
+     (not Nav_VM.Is_Renaming (Model));
+
+   package Project_Name is new Nav_UI.Read_Text (Nav_VM.Name, Nav_VM.Name_Version);
+   package Project_Draft is new Nav_UI.Edit_Text (Nav_VM.Draft, Nav_VM.Set_Draft);
+   package Renaming is new Nav_UI.Read_Flag (Nav_VM.Is_Renaming);
+   package Named is new Nav_UI.Read_Flag (Not_Renaming);
+
    procedure Build_Project (Item : in out Session) is
       Bar : Toolbar_Parts renames Item.Toolbar;
 
@@ -319,6 +327,12 @@ package body View.Build.Shell_Views is
       function Side (Along : Spread_Kind) return Layouts.Style is
         (Flow => Row, Align => Center, Spread => Along, Grow => 1.0, Width => 0.0, others => <>);
    begin
+      Text_Fields.Set_Shared
+        (Bar.Title_Field, Item.Host.Doc_Resources'Unchecked_Access);
+      Text_Fields.Configure
+        (Bar.Title_Field, Pomarine.Line_Texts.Interface_Font,
+         Pomarine.Line_Texts.Heading_Size);
+      Text_Fields.Attach (Bar.Title_Field, Bar.Title_Doc'Unchecked_Access);
       Open (Item.Forms (Project_Region), Item.Root.Widgets'Unchecked_Access, Project_Region);
       declare
          Form  : UI.View renames Item.Forms (Project_Region).Screen.all;
@@ -341,7 +355,10 @@ package body View.Build.Shell_Views is
              (Buttons.Looks ("Items", Icon => Pomarine.Icons.Shown (Icon_Set.List), Captioned => True,
                              Focusable => True),
               Nav_VM.Open_List);
-         Field   : constant UI.Widget_Handle := Navs.Borrow_Widget (Bar.Title_Field);
+         Caption : constant UI.Label_Handle := Navs.Borrow_Label (Bar.Project_Title, Project_Name.Property);
+         Area    : constant UI.Widget_Handle := Navs.Borrow_Widget (Bar.Title_Area);
+         Field   : constant UI.Field_Handle :=
+           Navs.Borrow_Field (Bar.Title_Field, Bar.Title_Doc, Project_Draft.Property);
 
          --  The bar across the top: the way back and the project's name at the left, the tabs in the
          --  middle (the sides take equal shares), the list of items at the right.
@@ -354,7 +371,7 @@ package body View.Build.Shell_Views is
            UI.Styled
              (UI.Put_In
                 (Form, Bar.Title_Area,
-                 [UI.Styled (UI.Put (Form, Bar.Project_Title), (Shrink => 0.0, Height => Tab_Height, others => <>))]),
+                 [UI.Styled (UI.Place (Caption), (Shrink => 0.0, Height => Tab_Height, others => <>))]),
               (Flow => Row, Align => Center, Shrink => 0.0, Height => Tab_Height, others => <>));
          Left_Side : constant UI.Layout :=
            UI.Styled
@@ -404,6 +421,14 @@ package body View.Build.Shell_Views is
          Project : constant UI.Layout :=
            UI.Styled (UI.Column ([Toolbar_Row, Content, Dock_Row]), (Flow => Column, Grow => 1.0, others => <>));
       begin
+         Widgets.Set_Accessible_Name (Bar.Title_Field, "Project name");
+         Navs.On_Event (Area, Widgets.Double_Click, Nav_VM.Begin_Rename);
+         Navs.On_Event (UI.Any (Field), Widgets.Submit, Nav_VM.Accept_Rename);
+         Navs.On_Event (UI.Any (Field), Widgets.Blur, Nav_VM.Accept_Rename);
+         Navs.Show_When (UI.Any (Area), Named.Property);
+         Navs.Show_When (UI.Any (Field), Renaming.Property);
+         Navs.Focus_When (UI.Focus_Of (Field), Renaming.Property);
+         UI.Observe (Form, Item.Layout_Watcher'Access);
          Bar.Project_Layout := Project;
          Bar.Content_Layout := Content;
          Bar.Close_Button := Back;
@@ -419,12 +444,6 @@ package body View.Build.Shell_Views is
       Labels.Set_Intrinsic (Bar.Project_Title);
       Grips.Set_Hover_Outline (Bar.Title_Area, Themes.Rule);
       Grips.Set_Wanted_Cursor (Bar.Title_Area, SDL3.Cursors.Pointer);
-      Text_Fields.Set_Shared
-        (Bar.Title_Field, Item.Host.Doc_Resources'Unchecked_Access);
-      Text_Fields.Configure
-        (Bar.Title_Field, Pomarine.Line_Texts.Interface_Font,
-         Pomarine.Line_Texts.Heading_Size);
-      Widgets.Set_Visible (Bar.Title_Field, False);
 
       Buttons.Set_Selected (UI.Widget_Of (Item.Forms (Project_Region).Screen.all, Bar.Canvas_Tab).all, True);
 

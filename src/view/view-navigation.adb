@@ -1,11 +1,6 @@
 with Settings_VM;
-with Texts.Documents;
-with Pomarine.Text_Areas;
+with Pomarine.UI;
 with Pomarine.View_Models;
-with Pomarine.Widgets.Bindings;
-with Pomarine.Widgets.Grips;
-with Pomarine.Widgets.Labels;
-with Pomarine.Widgets.Text_Fields;
 with View.Canvas_Items;
 with View.Listing;
 with View.Outlines;
@@ -17,43 +12,10 @@ with View.Writing;
 package body View.Navigation is
 
    package Widgets renames Pomarine.Widgets;
-   package Bindings renames Pomarine.Widgets.Bindings;
-   package Grips renames Pomarine.Widgets.Grips;
-   package Labels renames Pomarine.Widgets.Labels;
-   package Text_Fields renames Pomarine.Widgets.Text_Fields;
    package Parts renames Pomarine.View_Models;
 
    use type Nav_VM.Command;
    use type Nav_VM.Screens;
-
-   procedure Show_Title_Of_Project (Item : in out Session) is
-   begin
-      Labels.Set_Text (Item.Toolbar.Project_Title, Nav_VM.Name (Item.Nav_Model.Model));
-   end Show_Title_Of_Project;
-
-   --  The name's field in place of the name, to type over it; or the name, with what it has come to.
-   procedure Show_Renaming (Item : in out Session);
-
-   procedure Show_Renaming (Item : in out Session) is
-      Model : Nav_VM.View_Model renames Item.Nav_Model.Model;
-   begin
-      if Nav_VM.Is_Renaming (Model) then
-         Bindings.Show (Item.Nav_Model.Link, Item.Toolbar.Title_Doc, Nav_VM.Draft (Model));
-         Text_Fields.Attach (Item.Toolbar.Title_Field, Item.Toolbar.Title_Doc'Unchecked_Access);
-         Widgets.Set_Visible (Item.Toolbar.Title_Area, False);
-         --  The press that began it is not let go on what is hidden.
-         Grips.Cancel_Drag (Item.Toolbar.Title_Area);
-         Widgets.Set_Visible (Item.Toolbar.Title_Field, True);
-         Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
-         Pomarine.Text_Areas.Select_All (Text_Fields.Area (Item.Toolbar.Title_Field).all);
-         Widgets.Focus (Item.Toolbar.Title_Field);
-      else
-         Widgets.Set_Visible (Item.Toolbar.Title_Field, False);
-         Widgets.Set_Visible (Item.Toolbar.Title_Area, True);
-         Show_Title_Of_Project (Item);
-         Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
-      end if;
-   end Show_Renaming;
 
    procedure Show_Entered (Item : in out Session);
 
@@ -103,17 +65,10 @@ package body View.Navigation is
       Model : Nav_VM.View_Model renames Item.Nav_Model.Model;
       Home  : constant Boolean := Nav_VM.Screen (Model) = Nav_VM.Home;
    begin
-      --  What was typed is the draft.
-      if Nav_VM.Is_Renaming (Model) and then Bindings.Edited (Item.Nav_Model.Link, Item.Toolbar.Title_Doc) then
-         Nav_VM.Set_Draft (Model, Texts.Documents.Whole (Item.Toolbar.Title_Doc));
+      if Item.Forms (Project_Region).Screen /= null then
+         Pomarine.UI.Synchronize (Item.Forms (Project_Region).Screen.all);
       end if;
-      if Nav_Binding.Changed (Item.Nav_Model.Seen, Model) then
-         if Parts.Changed (Item.Nav_Model.Naming, Nav_VM.Renaming_Version (Model)) then
-            Show_Renaming (Item);
-         end if;
-         if Parts.Changed (Item.Nav_Model.Names, Nav_VM.Name_Version (Model)) then
-            Show_Title_Of_Project (Item);
-         end if;
+      if Parts.Changed (Item.Nav_Model.Seen, Nav_VM.Version (Model)) then
          if Parts.Changed (Item.Nav_Model.Screens, Nav_VM.Screen_Version (Model)) then
             if Home then
                Show_Left (Item);
@@ -163,26 +118,6 @@ package body View.Navigation is
    begin
       Sync (Item);
    end Executed;
-
-   procedure Title_Double_Clicked
-     (Item   : in out Session;
-      Source : in out Pomarine.Widgets.Widget'Class;
-      Event  : Pomarine.Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source, Event);
-   begin
-      Do_Command (Item, Nav_VM.Begin_Rename);
-   end Title_Double_Clicked;
-
-   procedure Title_Ended
-     (Item   : in out Session;
-      Source : in out Pomarine.Widgets.Widget'Class;
-      Event  : Pomarine.Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source, Event);
-   begin
-      Do_Command (Item, Nav_VM.Accept_Rename);
-   end Title_Ended;
 
    procedure Show (Item : in out Session; To : Modes) is
    begin

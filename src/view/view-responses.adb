@@ -108,9 +108,9 @@ package body View.Responses is
      (Item  : in out Session;
       Event : Widgets.Widget_Event) is
    begin
-      if Nav_Binding.Is_Bound (Event) then
+      if Is_Nav_Tag (Event.Tag) then
          if Event.Kind in Widgets.Click | Widgets.Submit then
-            Navigation.Do_Command (Item, Nav_Binding.What (Event), Event.Index);
+            Navigation.Do_Command (Item, Command_Of (Event.Tag), Event.Index);
          end if;
          return;
       end if;
@@ -121,7 +121,6 @@ package body View.Responses is
    procedure Install (Item : in out Session) is
       Start   : Home_Parts renames Item.Home_View;
       Prefs   : Settings_Parts renames Item.Prefs;
-      Bar     : Toolbar_Parts renames Item.Toolbar;
       Pages   : Page_Parts renames Item.Page_View;
 
       procedure Hear
@@ -162,10 +161,6 @@ package body View.Responses is
       Hear (Item.Item_List.List_View, Click, Listing.Clicked'Access);
       Hear (Item.Item_List.List_View, Submit, Listing.Clicked'Access);
       Hear (Item.Item_List.List_View, Act, Listing.Acted'Access);
-
-      Hear (Bar.Title_Area, Double_Click, Navigation.Title_Double_Clicked'Access);
-      Hear (Bar.Title_Field, Submit, Navigation.Title_Ended'Access);
-      Hear (Bar.Title_Field, Blur, Navigation.Title_Ended'Access);
 
       --  The writing view
       Hear (Pages.Docs_Add, Click, Writing.Add_Page_Clicked'Access);
