@@ -144,8 +144,10 @@ package body Settings_VM is
       Kept_Speech     : Preferences.Speech_Models := Preferences.MacOS;
       Kept_Theme      : Preferences.Theme_Choices := Preferences.System;
       Kept_Background : Preferences.Background_Modes := Preferences.Watercolour;
-      Kept_VSync      : Boolean := False) is
+      Kept_VSync      : Boolean := False;
+      Reactions       : access Effects'Class := null) is
    begin
+      Self.Reactions := (if Reactions = null then null else Reactions.all'Unrestricted_Access);
       Self.Source := Source.all'Unrestricted_Access;
       Self.Store := (if Kept_In = null then null else Kept_In.all'Unrestricted_Access);
       Self.Config := Ada.Strings.Unbounded.To_Unbounded_String (Config_Dir);
@@ -166,7 +168,7 @@ package body Settings_VM is
             when Open           => not Is_Showing (Self),
             when Close          => Is_Showing (Self),
             when Download_Model => not Self.Download.Present and then not Running (Self),
-            when Delete_Model   => Self.Download.Present and then not Running (Self),
+            when Delete_Model | Confirm_Delete => Self.Download.Present and then not Running (Self),
             when Choose_Theme | Choose_Background | Choose_Speech_Model | Toggle_VSync | Reseed => True);
    end Can_Execute;
 
@@ -271,7 +273,19 @@ package body Settings_VM is
          when Delete_Model =>
             Delete (Self.Source.all);
             Look (Self, Files => True);
+         when Confirm_Delete =>
+            null;
       end case;
+      if Self.Reactions /= null then
+         case What is
+            when Open | Close =>
+               null;
+            when Confirm_Delete =>
+               Ask_To_Delete (Self.Reactions.all, Size_On_Disk_Text (Self));
+            when others =>
+               Done (Self.Reactions.all, What);
+         end case;
+      end if;
    end Execute;
 
 end Settings_VM;

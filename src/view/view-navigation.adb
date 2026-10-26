@@ -61,8 +61,8 @@ package body View.Navigation is
       Model : Nav_VM.View_Model renames Item.Nav_Model.Model;
    begin
       Recent.Cancel_Edit (Item);
-      Widgets.Set_Visible (Item.Home_View.Home_Panel, False);
-      Widgets.Set_Visible (Item.Toolbar.Project_Panel, True);
+      Widgets.Set_Visible (Home_Panel (Item).all, False);
+      Widgets.Set_Visible (Project_Panel (Item).all, True);
       Widgets.Clear_Focus (Item.Root.Widgets);
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
       --  Once the canvas is laid out, to have an origin.
@@ -91,9 +91,9 @@ package body View.Navigation is
 
    procedure Show_Left (Item : in out Session) is
    begin
-      Widgets.Set_Visible (Item.Item_List.List_Overlay, False);
-      Widgets.Set_Visible (Item.Toolbar.Project_Panel, False);
-      Widgets.Set_Visible (Item.Home_View.Home_Panel, True);
+      Widgets.Set_Visible (Listing.Overlay (Item).all, False);
+      Widgets.Set_Visible (Project_Panel (Item).all, False);
+      Widgets.Set_Visible (Home_Panel (Item).all, True);
       Recent.Refresh (Item);
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
       Parts.See (Item.Nav_Model.Views, Nav_VM.Mode_Version (Item.Nav_Model.Model));
@@ -131,7 +131,7 @@ package body View.Navigation is
                Settings_View.Hide_Form (Item);
             end if;
          end if;
-         if not Home and then Widgets.Is_Visible (Item.Item_List.List_Overlay) /= Nav_VM.Is_Listing (Model) then
+         if not Home and then Widgets.Is_Visible (Listing.Overlay (Item).all) /= Nav_VM.Is_Listing (Model) then
             if Nav_VM.Is_Listing (Model) then
                Listing.Show_List (Item);
             else
@@ -147,13 +147,22 @@ package body View.Navigation is
    begin
       Sync (Item);
       if Nav_VM.Can_Execute (Item.Nav_Model.Model, What, Index) then
-         if What = Nav_VM.Leave_Project then
-            Close_Views (Item);
-         end if;
          Nav_VM.Execute (Item.Nav_Model.Model, What, Index);
       end if;
       Sync (Item);
    end Do_Command;
+
+   procedure Going_To_Execute (Item : in out Session; What : Nav_VM.Command) is
+   begin
+      if What = Nav_VM.Leave_Project then
+         Close_Views (Item);
+      end if;
+   end Going_To_Execute;
+
+   procedure Executed (Item : in out Session) is
+   begin
+      Sync (Item);
+   end Executed;
 
    procedure Title_Double_Clicked
      (Item   : in out Session;

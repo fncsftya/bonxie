@@ -32,6 +32,11 @@ with View.Writing.Support;
 with View.Writing.Tree;
 
 package body View.Writing is
+   procedure Choose_Format (Item : in out Session; Row : Positive) is
+   begin
+      Publishing.Format_Chosen (Item, Item.Publish_View.Format_Menu,
+            (Kind => Pomarine.Widgets.Choose, Row => Row, others => <>));
+   end Choose_Format;
 
    package Widgets renames Pomarine.Widgets;
    package Buttons renames Pomarine.Widgets.Buttons;
@@ -77,13 +82,13 @@ package body View.Writing is
       Widgets.Set_Visible (Item.Outline_View.View, To = Outline);
       Widgets.Set_Visible (Item.Canvas_View, To = Canvas);
       Widgets.Set_Visible (Item.Page_View.Write_View, To = Write);
-      Buttons.Set_Selected (Item.Toolbar.Outline_Tab, To = Outline);
-      Buttons.Set_Selected (Item.Toolbar.Canvas_Tab, To = Canvas);
-      Buttons.Set_Selected (Item.Toolbar.Write_Tab, To = Write);
-      Buttons.Set_Selected (Item.Toolbar.Publish_Tab, To = Publish);
+      Buttons.Set_Selected (Tab_Of (Item, Item.Toolbar.Outline_Tab).all, To = Outline);
+      Buttons.Set_Selected (Tab_Of (Item, Item.Toolbar.Canvas_Tab).all, To = Canvas);
+      Buttons.Set_Selected (Tab_Of (Item, Item.Toolbar.Write_Tab).all, To = Write);
+      Buttons.Set_Selected (Tab_Of (Item, Item.Toolbar.Publish_Tab).all, To = Publish);
       Widgets.Set_Visible (Item.Publish_View.View, To = Publish);
-      Widgets.Set_Visible (Item.Dock.Tools, To = Canvas);
-      Widgets.Set_Visible (Item.Dock.Tool_List, To = Canvas);
+      Widgets.Set_Visible (Tray_Panel (Item).all, To = Canvas);
+      Widgets.Set_Visible (Tab_Of (Item, Item.Dock.Tool_List).all, To = Canvas);
       Canvas_Items.Show_Dock (Item);
       if To in Write | Publish then
          Tree.Rebuild (Item);
@@ -272,7 +277,6 @@ package body View.Writing is
       Hear (Item.Publish_View.Section_Headings, Change, Publishing.Publish_Options_Changed'Access);
       Hear (Item.Publish_View.Document_Headings, Change, Publishing.Publish_Options_Changed'Access);
       Hear (Item.Publish_View.Format, Click, Publishing.Format_Clicked'Access);
-      Hear (Item.Publish_View.Format_Menu, Choose, Publishing.Format_Chosen'Access);
       Hear (Item.Publish_View.Export, Click, Publishing.Export_Clicked'Access);
       Hear (Item.Publish_View.Copy, Click, Publishing.Copy_Clicked'Access);
       Hear (Item.Naming.Dir_Field, Submit, Panes.Directory_Field_Ended'Access);

@@ -124,7 +124,25 @@ package body Nav_VM is
       Set_Tab (Self.Kept.all, Self.Current, Modes'Pos (View));
    end Show;
 
+   procedure Observe (Self : in out View_Model; Reactions : access Effects'Class) is
+   begin
+      Self.Reactions := (if Reactions = null then null else Reactions.all'Unrestricted_Access);
+   end Observe;
+
+   procedure Run (Self : in out View_Model; What : Command; Index : Natural);
+
    overriding procedure Execute (Self : in out View_Model; What : Command; Index : Natural := 0) is
+   begin
+      if Self.Reactions /= null then
+         Going_To_Execute (Self.Reactions.all, What, Index);
+      end if;
+      Run (Self, What, Index);
+      if Self.Reactions /= null then
+         Executed (Self.Reactions.all, What);
+      end if;
+   end Execute;
+
+   procedure Run (Self : in out View_Model; What : Command; Index : Natural) is
    begin
       case What is
          when Start_Project =>
@@ -187,6 +205,6 @@ package body Nav_VM is
                   Execute (Self, Close_List);
             end case;
       end case;
-   end Execute;
+   end Run;
 
 end Nav_VM;

@@ -13,6 +13,7 @@ with Vision;
 --  its window on the canvas (see Items.Readers), but its highlights are
 --  the same.
 private package View.Writing is
+   procedure Choose_Format (Item : in out Session; Row : Positive);
 
    procedure Enter (Item : in out Session)
      with Pre => Screen (Item) = Project;

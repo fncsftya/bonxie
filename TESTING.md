@@ -251,3 +251,29 @@ page and membership indexes internally; tests check those indexes after moves an
 `writing-by-name` creates and selects a folder, checks filtering, adds a document in it, switches tabs and returns
 to Overview through semantic controls. Tree rows expose Overview, Directory <title> and Document <title> names;
 the sidebar's document button is named Add document.
+
+## Declarative screen bindings
+
+Most screen structures use `Pomarine.UI`: home project cards (each with its own rename field), settings,
+the publish pane, outline blocks and buttons, the writing structure, grammar popups, links and search bars.
+The semantic view tests above exercise their bindings; the existing goldens check their drawing.
+`pomarine/UI.md` describes grips, app-owned containers, indexed bindings, late mounting, observers and
+conditional focus. Their library checks live in `pomarine/examples/tests` (see `pomarine/TESTING.md`).
+
+Item windows and readers in `src/items/` now declare their content, toolbars and overlays with `Pomarine.UI`.
+Pomarine's frame chrome is also composed through an embedded view. Their drawing and interactions remain
+covered by `items-*`, `sources-*`, `write-source*`, context-menu and search checks. Section-link, linked-source,
+writing context, grammar and publish menu rows use `Pomarine.UI.Menus` snapshots.
+
+Item-window and reader toolbar commands now bind through `Item_Window_VM` and `Reader_VM`. Their rules
+are checked without widgets by `item-window-vm-rules` and `reader-vm-rules`; `item-controls-by-name` exercises
+tool selection and zoom presets on the production item window. `reader-controls-by-name` checks the
+production reader, external tool changes and reuse after release.
+
+Item/source editor submit and path clicks, title-edit completion, minimize/restore/close, and both zoom
+sliders now bind through `Pomarine.UI`. Source, writing-context, section-link, grammar-inline and publish-format
+menu choices bind through `Menu_VM`; it checks current row availability through an injected router. The
+widget-free rule tests cover minimized/closed frames, slider updates and invalid or disabled menu rows.
+
+App-owned editor tool/follow operations, canvas widgets and continuous frame gestures still use view hooks. `Pomarine.Widgets.Layouts` remains the layout engine, and the native menu bar
+retains `Nav_Binding`.

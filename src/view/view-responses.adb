@@ -1,16 +1,12 @@
-with Settings_VM;
-with Confirm_VM;
-with Home_VM;
 with Nav_VM;
 with Preferences;
+with Pomarine.UI;
 with Pomarine.Widgets.Callbacks;
 with Pomarine.Widgets.Editors.Callbacks;
 with View.Canvas_Items;
 with View.Deletion;
 with View.Listing;
 with View.Navigation;
-with View.Outlines;
-with View.Recent;
 with View.Settings_View;
 with View.Writing;
 
@@ -19,6 +15,7 @@ package body View.Responses is
    use type Nav_VM.Layers;
 
    package Widgets renames Pomarine.Widgets;
+   package UI renames Pomarine.UI;
 
    use type Widgets.Event_Kind;
    package Hooks is new Pomarine.Widgets.Callbacks (Session);
@@ -48,58 +45,6 @@ package body View.Responses is
    function Settings_Open (Item : Session) return Boolean is
      (Nav_VM.Layer (Item.Nav_Model.Model) = Nav_VM.Settings_Form);
 
-   procedure Choose_Light
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
-
-   procedure Choose_Light
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source, Event);
-   begin
-      if Settings_Open (Item) then
-         Settings_View.Choose_Appearance (Item, Preferences.Light);
-      end if;
-   end Choose_Light;
-
-   procedure Choose_Dark
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
-
-   procedure Choose_Dark
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source, Event);
-   begin
-      if Settings_Open (Item) then
-         Settings_View.Choose_Appearance (Item, Preferences.Dark);
-      end if;
-   end Choose_Dark;
-
-   procedure Choose_System
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
-
-   procedure Choose_System
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source, Event);
-   begin
-      if Settings_Open (Item) then
-         Settings_View.Choose_Appearance (Item, Preferences.System);
-      end if;
-   end Choose_System;
-
-   procedure Toggle_VSync
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
-
-   procedure Toggle_VSync
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source, Event);
-   begin
-      if Settings_Open (Item) then
-         Settings_View.Choose_VSync (Item, not Settings_VM.VSync (Item.Choices.Model));
-      end if;
-   end Toggle_VSync;
-
    --  A card of backgrounds is clicked, in its picture or its name: the one the widget is tagged with.
    procedure Choose_Card
      (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
@@ -128,58 +73,6 @@ package body View.Responses is
          Settings_View.Reseed (Item);
       end if;
    end Reseed_Card;
-
-   procedure Choose_MacOS
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
-
-   procedure Choose_MacOS
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source, Event);
-   begin
-      if Settings_Open (Item) then
-         Settings_View.Choose (Item, Preferences.MacOS);
-      end if;
-   end Choose_MacOS;
-
-   procedure Choose_Parakeet
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
-
-   procedure Choose_Parakeet
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source, Event);
-   begin
-      if Settings_Open (Item) then
-         Settings_View.Choose (Item, Preferences.Parakeet);
-      end if;
-   end Choose_Parakeet;
-
-   procedure Download_Model
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
-
-   procedure Download_Model
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source, Event);
-   begin
-      if Settings_Open (Item) then
-         Settings_View.Download (Item);
-      end if;
-   end Download_Model;
-
-   procedure Delete_Model
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
-
-   procedure Delete_Model
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source, Event);
-   begin
-      if Settings_Open (Item) then
-         Settings_View.Ask_To_Delete (Item);
-      end if;
-   end Delete_Model;
 
    --  A project
 
@@ -215,25 +108,6 @@ package body View.Responses is
      (Item  : in out Session;
       Event : Widgets.Widget_Event) is
    begin
-      --  The home screen's: what was typed in the field for a title is the model's before a command
-      --  reads it, and the dialog's answer is done.
-      Recent.Sync (Item);
-      if Home_Binding.Perform (Item.Home_Model.Model, Event) then
-         Recent.Sync (Item);
-         return;
-      end if;
-      if Outline_Binding.Is_Bound (Event) then
-         if Event.Kind = Widgets.Click then
-            Outlines.Do_Command (Item, Outline_Binding.What (Event), Event.Index);
-         end if;
-         return;
-      end if;
-      if Confirm_Binding.Is_Bound (Event) then
-         if Event.Kind = Widgets.Click then
-            Deletion.Answer (Item, Confirm_Binding.What (Event));
-         end if;
-         return;
-      end if;
       if Nav_Binding.Is_Bound (Event) then
          if Event.Kind in Widgets.Click | Widgets.Submit then
             Navigation.Do_Command (Item, Nav_Binding.What (Event), Event.Index);
@@ -267,29 +141,11 @@ package body View.Responses is
       --  The home screen (the buttons that are also in the menu bar are given
       --  their command too, to be as it says: see View.Menus)
       for Card in Start.Cards'Range loop
-         Home_Binding.Bind (Start.Cards (Card).Rename, Home_VM.Begin_Rename, Card);
-      end loop;
-      Home_Binding.Bind (Start.Ok_Button, Home_VM.Accept_Rename);
-      Home_Binding.Bind (Start.Cancel_Button, Home_VM.Cancel_Rename);
-      Home_Binding.Trigger (Item.Title_Edit.Edit_Field, Home_VM.Accept_Rename);
-      Confirm_Binding.Bind (Item.Confirm.Confirm_Delete, Confirm_VM.Confirm);
-      Confirm_Binding.Bind (Item.Confirm.Confirm_Cancel, Confirm_VM.Cancel);
-      Confirm_Binding.Bind (Item.Confirm.Dialog_Close, Confirm_VM.Cancel);
-      Nav_Binding.Trigger (Start.New_Button, Nav_VM.Start_Project);
-      Nav_Binding.Trigger (Start.New_Card, Nav_VM.Start_Project);
-      Nav_Binding.Trigger (Start.New_Card_Plus, Nav_VM.Start_Project);
-      Nav_Binding.Trigger (Start.Settings_Button, Nav_VM.Open_Settings);
-      for Card in Start.Cards'Range loop
-         Nav_Binding.Trigger (Start.Cards (Card).Peek, Nav_VM.Open_Project, Card);
-         Nav_Binding.Trigger (Start.Cards (Card).Name, Nav_VM.Open_Project, Card);
-         Hear (Start.Cards (Card).Delete, Click, Delete_Project'Access, Card);
+         Hear (UI.Widget_Of (Item.Forms (Home_Region).Screen.all, Start.Cards (Card).Delete).all, Click,
+               Delete_Project'Access, Card);
       end loop;
 
       --  The settings
-      Nav_Binding.Bind (Prefs.Settings_Close, Nav_VM.Close_Settings);
-      Hear (Prefs.Theme_Light, Change, Choose_Light'Access);
-      Hear (Prefs.Theme_Dark, Change, Choose_Dark'Access);
-      Hear (Prefs.Theme_System, Change, Choose_System'Access);
       for Mode in Prefs.Cards'Range loop
          Hear (Prefs.Cards (Mode).Peek, Click, Choose_Card'Access, Preferences.Background_Modes'Pos (Mode));
          Hear (Prefs.Cards (Mode).Pick, Click, Choose_Card'Access, Preferences.Background_Modes'Pos (Mode));
@@ -297,22 +153,12 @@ package body View.Responses is
             Hear (Prefs.Cards (Mode).Reseed, Click, Reseed_Card'Access, Preferences.Background_Modes'Pos (Mode));
          end if;
       end loop;
-      Hear (Prefs.Model_Native, Change, Choose_MacOS'Access);
-      Hear (Prefs.Model_Parakeet, Change, Choose_Parakeet'Access);
-      Hear (Prefs.VSync_Switch, Change, Toggle_VSync'Access);
-      Hear (Prefs.Download_Button, Click, Download_Model'Access);
-      Hear (Prefs.Delete_Button, Click, Delete_Model'Access);
 
       --  A project: the bar, the tray, and the list of items
-      Nav_Binding.Bind (Bar.Close_Button, Nav_VM.Leave_Project);
-      Nav_Binding.Bind (Bar.Outline_Tab, Nav_VM.Show_Outline);
-      Nav_Binding.Bind (Bar.Canvas_Tab, Nav_VM.Show_Canvas);
-      Nav_Binding.Bind (Bar.Write_Tab, Nav_VM.Show_Writing);
-      Nav_Binding.Bind (Bar.Publish_Tab, Nav_VM.Show_Publish);
-      Nav_Binding.Bind (Item.Dock.Tool_List, Nav_VM.Open_List);
-      Nav_Binding.Bind (Item.Item_List.List_Close, Nav_VM.Close_List);
-      Hear (Item.Dock.Tool_Item, Click, Add_Document'Access);
-      Hear (Item.Dock.Tool_Source, Click, Add_Source'Access);
+      Hear (Pomarine.UI.Widget_Of (Item.Forms (Tray_Region).Screen.all, Item.Dock.Tool_Item).all, Click,
+            Add_Document'Access);
+      Hear (Pomarine.UI.Widget_Of (Item.Forms (Tray_Region).Screen.all, Item.Dock.Tool_Source).all, Click,
+            Add_Source'Access);
       Hear (Item.Item_List.List_View, Click, Listing.Clicked'Access);
       Hear (Item.Item_List.List_View, Submit, Listing.Clicked'Access);
       Hear (Item.Item_List.List_View, Act, Listing.Acted'Access);
@@ -324,8 +170,6 @@ package body View.Responses is
       --  The writing view
       Hear (Pages.Docs_Add, Click, Writing.Add_Page_Clicked'Access);
       Hear (Pages.Docs_Folder, Click, Writing.Add_Folder_Clicked'Access);
-      Hear (Pages.Menu, Choose, Writing.Source_Chosen'Access);
-      Hear (Item.Context.Context_Menu, Choose, Writing.Context_Chosen'Access);
    end Install;
 
    procedure Listen_Section (Item : in out Session; Index : Positive) is

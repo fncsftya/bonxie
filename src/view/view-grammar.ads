@@ -1,4 +1,5 @@
 private package View.Grammar is
+   procedure Choose_Inline (Item : in out Session; Row : Positive);
 
    Idle_Delay : constant := 500;
    procedure Build (Item : in out Session);

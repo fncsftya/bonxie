@@ -1,5 +1,9 @@
+with Confirm_VM;
+with Item_List_VM;
+with Nav_UI;
+with Nav_VM;
 with Icon_Set;
-with Pomarine.Widgets.Checks;
+with Pomarine.UI.Contexts;
 with Pomarine.Icons;
 with Pomarine.Line_Texts;
 with Pomarine.Themes;
@@ -9,127 +13,184 @@ with View.Style;
 
 package body View.Build.Dialogs is
 
-   package Widgets renames Pomarine.Widgets;
-   package Layouts renames Pomarine.Widgets.Layouts;
-   package Panels renames Pomarine.Widgets.Panels;
    package Buttons renames Pomarine.Widgets.Buttons;
    package Labels renames Pomarine.Widgets.Labels;
    package Themes renames Pomarine.Themes;
 
+   package UI renames Pomarine.UI;
+
    use Style;
    use Pomarine.Widgets.Layouts;
 
-   procedure Add_Dialog_Bar
-     (Parent : in out Widgets.Widget'Class;
-      Bar    : in out Panels.Panel;
-      Named  : in out Labels.Label;
-      Close  : in out Buttons.Button;
-      Name   : String);
-   --  Add the dark bar across the top of a dialog, as a window's, to Parent: its
-   --  title, white, and a small button to close it, at the right.
-
-   procedure Add_Dialog_Bar
-     (Parent : in out Widgets.Widget'Class;
-      Bar    : in out Panels.Panel;
-      Named  : in out Labels.Label;
-      Close  : in out Buttons.Button;
-      Name   : String) is
-   begin
-      Layouts.Add
-        (Parent, Bar,
+   function Bar
+     (Heading : UI.Label_Handle; Close : UI.Button_Handle) return UI.Layout is
+     (UI.Styled
+        (UI.Row
+           ([UI.Styled
+               (UI.Place (Heading), (Grow => 1.0, Width => 0.0, Height => Dialog_Bar_Height, others => <>)),
+             UI.Styled
+               (UI.Place (Close),
+                (Width => Dialog_Close_Size, Height => Dialog_Close_Size, Shrink => 0.0, others => <>))],
+            Appearance => (Fill => Toolbar, others => <>)),
          (Flow => Row, Align => Center, Height => Dialog_Bar_Height, Shrink => 0.0,
-          Padding => (Left | Right => Dialog_Bar_Pad, others => <>), others => <>));
-      Panels.Set_Fill (Bar, Toolbar);
-      Layouts.Add (Bar, Named, (Grow => 1.0, Width => 0.0, Height => Dialog_Bar_Height, others => <>));
-      Labels.Set_Text (Named, Name);
-      Labels.Set_Style (Named, Pomarine.Line_Texts.Strong);
-      Labels.Set_Ink (Named, Themes.Bar_Ink);
-      Buttons.Add
-        (Bar, Close,
-         Buttons.Looks
-           ("Close",
-            Icon => Pomarine.Icons.Shown (Pomarine.Icons.Close),
-            Icon_Points => Dialog_Close_Icon),
-         (Width => Dialog_Close_Size, Height => Dialog_Close_Size, Shrink => 0.0, others => <>));
-   end Add_Dialog_Bar;
+          Padding => (Left | Right => Dialog_Bar_Pad, others => <>), others => <>)));
+   --  The dark bar across the top of a dialog, as a window's: its title, white, and a small button to close
+   --  it, at the right.
 
-   procedure Add_Border
-     (Parent : in out Widgets.Widget'Class;
-      Border : in out Panels.Panel;
-      Width  : Float;
-      Height : Float := Unset);
-   --  Add the outline round a dialog to Parent, of this size.
+   function Closer return Buttons.Settings is
+     (Buttons.Looks
+        ("Close", Icon => Pomarine.Icons.Shown (Pomarine.Icons.Close), Icon_Points => Dialog_Close_Icon,
+         Focusable => True));
 
-   procedure Add_Border
-     (Parent : in out Widgets.Widget'Class;
-      Border : in out Panels.Panel;
-      Width  : Float;
-      Height : Float := Unset) is
+   function Boxed (Inside : UI.Layout_Array; Width : Float; Height : Float := Unset) return UI.Layout is
+     (UI.Styled
+        (UI.Column
+           (Inside,
+            Appearance => (Fill => Themes.Border, Radius => Themes.Large_Radius, Framed => True, others => <>)),
+         (Flow => Column, Outlined => True, Width => Width, Height => Height, others => <>)));
+   --  The outline round a dialog, of this size.
+
+   function Over_All (Dialog : UI.Layout) return UI.Layout is
+     (UI.Styled
+        (UI.Column ([Dialog], Appearance => (Fill => Themes.Scrim, others => <>)),
+         (Place => Absolute, Position => (others => 0.0), Flow => Column, Spread => Center, Align => Center,
+          others => <>)));
+   --  Not in the layout of the screens: over them, all of the window, with the dialog in the middle.
+
+   --  The dialog that asks before something is deleted: its controls are the view's (Pomarine.UI), bound to
+   --  the Confirm_VM, which has what it says and what it is about.
+
+   package Confirm_UI is new Pomarine.UI.Contexts (Confirm_VM.Commands, Confirm_VM.View_Model);
+
+   procedure Set_Documents (Item : in out Confirm_VM.View_Model; To : Boolean);
+   procedure Set_Documents (Item : in out Confirm_VM.View_Model; To : Boolean) is
    begin
-      Layouts.Add (Parent, Border, (Flow => Column, Outlined => True, Width => Width, Height => Height, others => <>));
-      Panels.Set_Fill (Border, Themes.Border);
-      Panels.Set_Radius (Border, Themes.Large_Radius, Framed => True);
-   end Add_Border;
+      --  The box is the person's to tick, where it is offered.
+      if Confirm_VM.Offers_Documents (Item) then
+         Confirm_VM.Set_Delete_Documents (Item, To);
+      end if;
+   end Set_Documents;
+
+   package Title_Text is new Confirm_UI.Read_Text (Confirm_VM.Title);
+   package Message_Text is new Confirm_UI.Read_Text (Confirm_VM.Message);
+   package Note_Text is new Confirm_UI.Read_Text (Confirm_VM.Note);
+   package Documents_Flag is new Confirm_UI.Edit_Flag (Confirm_VM.Delete_Documents, Set_Documents);
+   package Offers_Flag is new Confirm_UI.Read_Flag (Confirm_VM.Offers_Documents);
 
    procedure Build_Modal (Item : in out Session) is
       Ask : Confirm_Parts renames Item.Confirm;
    begin
-      Layouts.Add (Item.Root.Window_Panel, Ask.Overlay,
-                   (Place => Absolute, Position => (others => 0.0), Flow => Column, Spread => Center, Align => Center,
-                    others => <>));
-      Add_Border (Ask.Overlay, Ask.Dialog_Border, Width => Dialog_Width);
-      Add_Dialog_Bar (Ask.Dialog_Border, Ask.Dialog_Bar, Ask.Dialog_Title, Ask.Dialog_Close, "Delete project");
-      Layouts.Add (Ask.Dialog_Border, Ask.Dialog, (Flow => Column, Padding => (others => Dialog_Pad), others => <>));
-      Layouts.Add (Ask.Dialog, Ask.Confirm_Message, (Height => Dialog_Line, others => <>));
-      Layouts.Add (Ask.Dialog, Ask.Confirm_Note, (Height => Dialog_Line, others => <>));
-      Layouts.Add (Ask.Dialog, Ask.Delete_Documents, (Height => Dialog_Line, others => <>));
-      Pomarine.Widgets.Checks.Set_Label (Ask.Delete_Documents, "Delete documents too");
-      Pomarine.Widgets.Checks.Set_Focusable (Ask.Delete_Documents, True);
-      Widgets.Set_Visible (Ask.Delete_Documents, False);
-      Layouts.Add (Ask.Dialog_Border, Ask.Dialog_Rule, (Height => Hairline, others => <>));
-      Layouts.Add (Ask.Dialog_Border, Ask.Confirm_Buttons,
-                   (Flow => Row, Spread => Finish, Padding => (others => Dialog_Foot_Pad), Gap => Row_Gap,
-                    others => <>));
-      Layouts.Add (Ask.Confirm_Buttons, Ask.Confirm_Cancel,
-                   (Height => Dialog_Button_Height, Width => Dialog_Button_Width, others => <>));
-      Buttons.Add (Ask.Confirm_Buttons, Ask.Confirm_Delete,
-                   Buttons.Looks ("Delete", Buttons.Danger, Icon => Pomarine.Icons.Shown (Icon_Set.Delete),
-                                  Icon_Points => Mic_Icon_Size, Captioned => True),
-                   (Height => Dialog_Button_Height, Width => Dialog_Button_Width, others => <>));
+      Open (Item.Forms (Confirm_Region), Item.Root.Widgets'Unchecked_Access, Confirm_Region);
+      declare
+         Form  : UI.View renames Item.Forms (Confirm_Region).Screen.all;
+         Bound : constant Confirm_UI.Context'Class :=
+           Confirm_UI.Bind (Form, Item.Dialog_Model.Model'Unrestricted_Access);
 
-      Panels.Set_Fill (Ask.Overlay, Themes.Scrim);
-      Panels.Set_Fill (Ask.Dialog, Paper);
-      Labels.Set_Text (Ask.Confirm_Note, "This cannot be undone.");
-      Buttons.Set_Label (Ask.Confirm_Cancel, "Cancel");
-      Panels.Set_Fill (Ask.Dialog_Rule, Themes.Border);
-      Panels.Set_Fill (Ask.Confirm_Buttons, Themes.Tint);
+         Heading   : constant UI.Label_Handle := Bound.Label (Title_Text.Property);
+         Close   : constant UI.Button_Handle := Bound.Button (Closer, Confirm_VM.Cancel);
+         Message : constant UI.Label_Handle := Bound.Label (Message_Text.Property);
+         Note    : constant UI.Label_Handle := Bound.Label (Note_Text.Property);
+         Offered : constant UI.Check_Handle :=
+           Bound.Check ("Delete documents too", Documents_Flag.Property);
+         Cancel  : constant UI.Button_Handle :=
+           Bound.Button (Buttons.Looks ("Cancel", Focusable => True), Confirm_VM.Cancel);
+         Delete  : constant UI.Button_Handle :=
+           Bound.Button
+             (Buttons.Looks
+                ("Delete", Buttons.Danger, Icon => Pomarine.Icons.Shown (Icon_Set.Delete),
+                 Icon_Points => Mic_Icon_Size, Captioned => True, Focusable => True),
+              Confirm_VM.Confirm);
 
-      --  Not in the layout of the screens: over them, all of the window,
-      --  with the dialog in the middle.
+         Body_Layout : constant UI.Layout :=
+           UI.Styled
+             (UI.Column
+                ([UI.Styled (UI.Place (Message), (Height => Dialog_Line, others => <>)),
+                  UI.Styled (UI.Place (Note), (Height => Dialog_Line, others => <>)),
+                  UI.Styled (UI.Place (Offered), (Height => Dialog_Line, others => <>))],
+                 Appearance => (Fill => Paper, others => <>)),
+              (Flow => Column, Padding => (others => Dialog_Pad), others => <>));
+
+         Rule : constant UI.Layout :=
+           UI.Styled (UI.Spacer (Form, (Fill => Themes.Border, others => <>)), (Height => Hairline, others => <>));
+
+         Foot : constant UI.Layout :=
+           UI.Styled
+             (UI.Row
+                ([UI.Styled
+                    (UI.Place (Cancel), (Height => Dialog_Button_Height, Width => Dialog_Button_Width, others => <>)),
+                  UI.Styled
+                    (UI.Place (Delete), (Height => Dialog_Button_Height, Width => Dialog_Button_Width, others => <>))],
+                 Appearance => (Fill => Themes.Tint, others => <>)),
+              (Flow => Row, Spread => Finish, Padding => (others => Dialog_Foot_Pad), Gap => Row_Gap,
+               others => <>));
+
+         Border : constant UI.Layout :=
+           Boxed ([Bar (Heading, Close), Body_Layout, Rule, Foot], Dialog_Width);
+         Overlay : constant UI.Layout := Over_All (Border);
+      begin
+         Labels.Set_Style (UI.Widget_Of (Form, Heading).all, Pomarine.Line_Texts.Strong);
+         Labels.Set_Ink (UI.Widget_Of (Form, Heading).all, Themes.Bar_Ink);
+         Bound.Show_When (UI.Any (Offered), Offers_Flag.Property);
+         Ask.Overlay := Overlay;
+         Ask.Border := Border;
+         Ask.Dialog_Close := Close;
+         Ask.Delete_Documents := Offered;
+         Ask.Confirm_Cancel := Cancel;
+         Ask.Confirm_Delete := Delete;
+         UI.Mount_Into (Form, Item.Root.Window_Panel, Overlay);
+      end;
    end Build_Modal;
 
+   --  The list of items: a dialog over the project screen. Its closing is the navigation's; what it says
+   --  when there are no items is the list's.
+
+   package Items_UI is new Pomarine.UI.Contexts (Item_List_VM.Commands, Item_List_VM.View_Model);
+
+   function Is_Empty (Item : Item_List_VM.View_Model) return Boolean is (Item_List_VM.Count (Item) = 0);
+   function Is_Filled (Item : Item_List_VM.View_Model) return Boolean is (Item_List_VM.Count (Item) > 0);
+
+   package Empty_Flag is new Items_UI.Read_Flag (Is_Empty);
+   package Filled_Flag is new Items_UI.Read_Flag (Is_Filled);
+
    procedure Build_List (Item : in out Session) is
-      Items_View : List_Parts renames Item.Item_List;
+      Parts : List_Parts renames Item.Item_List;
    begin
-      Layouts.Add (Item.Root.Window_Panel, Items_View.List_Overlay,
-                   (Place => Absolute, Position => (others => 0.0), Flow => Column, Spread => Center, Align => Center,
-                    others => <>));
-      Add_Border (Items_View.List_Overlay, Items_View.List_Border, Width => List_Width, Height => List_Height);
-      Add_Dialog_Bar
-        (Items_View.List_Border, Items_View.List_Head, Items_View.List_Heading, Items_View.List_Close, "Items");
-      Layouts.Add (Items_View.List_Border, Items_View.List_Dialog,
-                   (Flow => Column, Grow => 1.0, Height => 0.0, Padding => (others => Dialog_Pad), others => <>));
-      Layouts.Add (Items_View.List_Dialog, Items_View.List_View, (Grow => 1.0, Height => 0.0, others => <>));
-      Layouts.Add (Items_View.List_Dialog, Items_View.List_None, (Height => Title_Height, others => <>));
-      Items_View.List_Rows.Owner := Item'Unchecked_Access;
-      Pomarine.Widgets.Lists.Set_Model
-        (Items_View.List_View, Items_View.List_Rows'Unchecked_Access);
-      Pomarine.Widgets.Lists.Set_Row_Height (Items_View.List_View, Row_Height);
+      Open (Item.Forms (List_Region), Item.Root.Widgets'Unchecked_Access, List_Region);
+      declare
+         Form    : UI.View renames Item.Forms (List_Region).Screen.all;
+         Navs    : constant Nav_UI.Context'Class := Nav_UI.Bind (Form, Item.Nav_Model.Model'Unrestricted_Access);
+         Bound   : constant Items_UI.Context'Class :=
+           Items_UI.Bind (Form, Item.Item_List.Model'Unrestricted_Access);
 
-      Panels.Set_Fill (Items_View.List_Overlay, Themes.Scrim);
-      Panels.Set_Fill (Items_View.List_Dialog, Paper);
-      Labels.Set_Text (Items_View.List_None, No_Items);
+         Heading : constant UI.Label_Handle := Bound.Label ("Items");
+         Close   : constant UI.Button_Handle := Navs.Button (Closer, Nav_VM.Close_List);
+         Rows    : constant UI.Widget_Handle := Bound.Borrow_Widget (Parts.List_View);
+         None    : constant UI.Label_Handle := Bound.Label (No_Items);
 
+         Dialog : constant UI.Layout :=
+           UI.Styled
+             (UI.Column
+                ([UI.Styled (UI.Place (Rows), (Grow => 1.0, Height => 0.0, others => <>)),
+                  UI.Styled (UI.Place (None), (Height => Title_Height, others => <>))],
+                 Appearance => (Fill => Paper, others => <>)),
+              (Flow => Column, Grow => 1.0, Height => 0.0, Padding => (others => Dialog_Pad), others => <>));
+
+         Border : constant UI.Layout :=
+           Boxed ([Bar (Heading, Close), Dialog], List_Width, List_Height);
+         Overlay : constant UI.Layout := Over_All (Border);
+      begin
+         Labels.Set_Style (UI.Widget_Of (Form, Heading).all, Pomarine.Line_Texts.Strong);
+         Labels.Set_Ink (UI.Widget_Of (Form, Heading).all, Themes.Bar_Ink);
+         Bound.Show_When (UI.Any (Rows), Filled_Flag.Property);
+         Bound.Show_When (UI.Any (None), Empty_Flag.Property);
+         Parts.Overlay := Overlay;
+         Parts.Border := Border;
+         Parts.List_Close := Close;
+         Parts.List_Rows.Owner := Item'Unchecked_Access;
+         Pomarine.Widgets.Lists.Set_Model (Parts.List_View, Parts.List_Rows'Unchecked_Access);
+         Pomarine.Widgets.Lists.Set_Row_Height (Parts.List_View, Row_Height);
+         UI.Mount_Into (Form, Item.Root.Window_Panel, Overlay);
+      end;
       --  The list takes what the title bar and the border leave.
    end Build_List;
 

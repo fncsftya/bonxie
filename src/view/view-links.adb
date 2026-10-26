@@ -1,3 +1,4 @@
+with Pomarine.UI;
 with Canvas_VM;
 with Items.Links;
 with Icon_Set;
@@ -22,6 +23,8 @@ package body View.Links is
    package Pins renames Pomarine.Widgets.Pins;
    package Buttons renames Pomarine.Widgets.Buttons;
    package Item_Links renames Items.Links;
+   package UI renames Pomarine.UI;
+
    package Hooks is new Pomarine.Widgets.Callbacks (Session);
    package Canvas_Hooks is new Pomarine.Widgets.Canvases.Callbacks (Session);
 
@@ -35,45 +38,67 @@ package body View.Links is
       function Pictured (Name : String; Icon : Pomarine.Icons.Icon) return Buttons.Settings is
         (Buttons.Looks (Name, Icon => Pomarine.Icons.Shown (Icon)));
 
-      procedure Tool (Part : in out Buttons.Button; Apart : Boolean; Looks : Buttons.Settings) is
-      begin
-         Buttons.Add
-           (Item.Linking.Link_Bar, Part, Looks,
-            (Width => Style.Link_Button_Size, Height => Style.Link_Button_Size,
-             Margin => (if Apart then (Left => Style.Link_Group_Gap, others => <>) else (others => <>)),
-             others => <>));
-      end Tool;
+      Buttons_Needed : constant Natural :=
+        Item_Links.Strokes'Pos (Item_Links.Strokes'Last) + 1 + Item_Links.Endings'Pos (Item_Links.Endings'Last) + 1
+        + Item_Links.Link_Colors'Pos (Item_Links.Link_Colors'Last) + 1 + 1;
+      Tools : UI.Layout_Array (1 .. Buttons_Needed);
+      Last  : Natural := 0;
    begin
-      Layouts.Add (Item.Canvas_View, Item.Linking.Link_Bar,
-                   (Place => Layouts.Absolute, Flow => Layouts.Row, Align => Layouts.Center,
-                    Padding => (others => Style.Link_Bar_Pad), Gap => Style.Link_Bar_Gap, Width => Style.Link_Bar_Width,
-                    Height => Style.Link_Bar_Height, others => <>));
+      Open (Item.Forms (Canvas_Region), Item.Root.Widgets'Unchecked_Access, Canvas_Region);
+      declare
+         Form : UI.View renames Item.Forms (Canvas_Region).Screen.all;
+
+         procedure Tool (Part : in out Buttons.Button; Apart : Boolean; Looks : Buttons.Settings) is
+         begin
+            Buttons.Configure (Part, Looks);
+            Last := Last + 1;
+            Tools (Last) :=
+              UI.Styled
+                (UI.Put (Form, Part),
+                 (Width => Style.Link_Button_Size, Height => Style.Link_Button_Size,
+                  Margin => (if Apart then (Left => Style.Link_Group_Gap, others => <>) else (others => <>)),
+                  others => <>));
+         end Tool;
+      begin
+         for Each in Item_Links.Strokes loop
+            Tool (Item.Linking.Stroke_Buttons (Each), Apart => Each = Item_Links.Solid,
+                  Looks => (case Each is
+                               when Item_Links.Solid  => Pictured ("Solid", Icon_Set.Stroke_Solid),
+                               when Item_Links.Dots   => Pictured ("Dots", Icon_Set.Stroke_Dots),
+                               when Item_Links.Dashed => Pictured ("Dash", Icon_Set.Stroke_Dashed)));
+         end loop;
+         for Each in Item_Links.Endings loop
+            Tool (Item.Linking.End_Buttons (Each), Apart => Each = Item_Links.Plain,
+                  Looks => (case Each is
+                               when Item_Links.Plain => Pictured ("Plain", Icon_Set.End_Plain),
+                               when Item_Links.Arrow => Pictured ("Arrow", Icon_Set.End_Arrow)));
+         end loop;
+         for Each in Item_Links.Link_Colors loop
+            Tool (Item.Linking.Color_Buttons (Each), Apart => Each = 1, Looks => Buttons.Looks ("Ink"));
+            Buttons.Set_Swatch (Item.Linking.Color_Buttons (Each),
+                                Style.Link_Inks (Each));
+         end loop;
+         Tool (Item.Linking.Delete_Link, Apart => True,
+               Looks => Buttons.Looks ("Del", Buttons.Danger, Icon => Pomarine.Icons.Shown (Icon_Set.Delete)));
+
+         declare
+            Bar    : constant UI.Layout :=
+              UI.Styled
+                (UI.Put_In (Form, Item.Linking.Link_Bar, Tools, Flow => Layouts.Row),
+                 (Place => Layouts.Absolute, Flow => Layouts.Row, Align => Layouts.Center,
+                  Padding => (others => Style.Link_Bar_Pad), Gap => Style.Link_Bar_Gap,
+                  Width => Style.Link_Bar_Width, Height => Style.Link_Bar_Height, others => <>));
+            Grabber : constant UI.Layout :=
+              UI.Styled
+                (UI.Put (Form, Item.Linking.Link_Handle),
+                 (Place => Layouts.Absolute, Width => Pins.Diameter, Height => Pins.Diameter, others => <>));
+         begin
+            UI.Mount_Into (Form, Item.Canvas_View, Bar);
+            UI.Mount_Into (Form, Item.Canvas_View, Grabber);
+         end;
+      end;
       Pomarine.Widgets.Panels.Set_Fill (Item.Linking.Link_Bar, Style.Toolbar);
-
-      for Each in Item_Links.Strokes loop
-         Tool (Item.Linking.Stroke_Buttons (Each), Apart => Each = Item_Links.Solid,
-               Looks => (case Each is
-                            when Item_Links.Solid  => Pictured ("Solid", Icon_Set.Stroke_Solid),
-                            when Item_Links.Dots   => Pictured ("Dots", Icon_Set.Stroke_Dots),
-                            when Item_Links.Dashed => Pictured ("Dash", Icon_Set.Stroke_Dashed)));
-      end loop;
-      for Each in Item_Links.Endings loop
-         Tool (Item.Linking.End_Buttons (Each), Apart => Each = Item_Links.Plain,
-               Looks => (case Each is
-                            when Item_Links.Plain => Pictured ("Plain", Icon_Set.End_Plain),
-                            when Item_Links.Arrow => Pictured ("Arrow", Icon_Set.End_Arrow)));
-      end loop;
-      for Each in Item_Links.Link_Colors loop
-         Tool (Item.Linking.Color_Buttons (Each), Apart => Each = 1, Looks => Buttons.Looks ("Ink"));
-         Buttons.Set_Swatch (Item.Linking.Color_Buttons (Each),
-                             Style.Link_Inks (Each));
-      end loop;
-      Tool (Item.Linking.Delete_Link, Apart => True,
-            Looks => Buttons.Looks ("Del", Buttons.Danger, Icon => Pomarine.Icons.Shown (Icon_Set.Delete)));
       Widgets.Set_Visible (Item.Linking.Link_Bar, False);
-
-      Layouts.Add (Item.Canvas_View, Item.Linking.Link_Handle,
-                   (Place => Layouts.Absolute, Width => Pins.Diameter, Height => Pins.Diameter, others => <>));
       Widgets.Set_Visible (Item.Linking.Link_Handle, False);
       Listen (Item);
    end Build;
@@ -85,8 +110,11 @@ package body View.Links is
          declare
             Pin : Pins.Pin renames Item.Linking.Pins (Which) (Side);
          begin
-            Layouts.Add (Item.Canvas_View, Pin,
-                         (Place => Layouts.Absolute, Width => Pins.Diameter, Height => Pins.Diameter, others => <>));
+            UI.Mount_Into
+              (Item.Forms (Canvas_Region).Screen.all, Item.Canvas_View,
+               UI.Styled
+                 (UI.Put (Item.Forms (Canvas_Region).Screen.all, Pin),
+                  (Place => Layouts.Absolute, Width => Pins.Diameter, Height => Pins.Diameter, others => <>)));
             Widgets.Set_Visible (Pin, False);
             Widgets.Set_Tag (Pin, Widgets.No_Tag, Events.Pin_Number (Which, Side));
             Hooks.On (Pin, Press, Item'Unchecked_Access, Events.Pin_Pressed'Access);

@@ -458,14 +458,14 @@ package body View.Canvas_Items is
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
       Middle : constant Float :=
         Float'Rounding
-          ((Widgets.Width_Of (Item.Toolbar.Content_Panel)
+          ((Widgets.Width_Of (Content_Panel (Item).all)
             - Style.Tray_Width * Pixels) / 2.0);
    begin
       --  The tray of tools, in the middle of the foot.
       if Middle /= Item.Dock.Tray_Left then
          Item.Dock.Tray_Left := Middle;
          Pomarine.Widgets.Layouts.Set_Layout
-           (Item.Dock.Tools, Position => (Left => Middle, others => <>),
+           (Tray_Panel (Item).all, Position => (Left => Middle, others => <>),
             Unit => Pomarine.Widgets.Layouts.Device_Pixels);
       end if;
       Placement.Follow (Item);

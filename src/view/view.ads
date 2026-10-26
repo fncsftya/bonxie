@@ -1,3 +1,11 @@
+private with Menu_VM;
+private with Confirm_VM;
+private with Outline_VM;
+private with Home_VM;
+private with Pomarine.UI;
+private with Pomarine.Widgets.Panels;
+private with Pomarine.Widgets.Buttons;
+private with Settings_VM;
 private with Backgrounds;
 private with Canvas_VM;
 private with Item_List_VM;
@@ -17,12 +25,10 @@ private with SDL3.Windows;
 private with Texts.Documents;
 private with Pomarine.Models;
 with Pomarine.Widgets;
-private with Pomarine.Widgets.Buttons;
 private with Pomarine.Widgets.Grips;
 private with Pomarine.Widgets.Labels;
 private with Pomarine.Widgets.Lists;
 private with Pomarine.Widgets.Text_Fields;
-private with Pomarine.Widgets.Panels;
 private with View_Parts.Common;
 private with View_Parts.Rows;
 private with View_Parts.Pages;
@@ -197,6 +203,15 @@ private
 
    type Session_Access is access all Session;
 
+   type Menu_Router is limited new Menu_VM.Router with record
+      Owner : Session_Access;
+   end record;
+   overriding function Allowed (Self : Menu_Router; What : Menu_VM.Command; Row : Natural) return Boolean;
+   overriding procedure Choose (Self : in out Menu_Router; What : Menu_VM.Command; Row : Positive);
+
+   type Panel_Access is access all Pomarine.Widgets.Panels.Panel;
+   --  For the children, which build panels (the private withs here are theirs).
+
    type Responder is limited new Pomarine.Widgets.Listener with record
       Owner : Session_Access;
    end record;
@@ -214,6 +229,52 @@ private
 
    overriding function Validate
      (Self : Command_Judge; Tag : Integer; Index : Natural) return Pomarine.Widgets.Command_State;
+
+   type Settings_Effects is limited new Settings_VM.Effects with record
+      Owner : Session_Access;
+   end record;
+   --  What the world does about the settings the view-model has changed.
+
+   overriding procedure Done (Self : in out Settings_Effects; What : Settings_VM.Command);
+   overriding procedure Ask_To_Delete (Self : in out Settings_Effects; Size : String);
+
+   type Home_Effects is limited new Home_VM.Effects with record
+      Owner : Session_Access;
+   end record;
+   --  The cards follow the projects the view-model lists, and the renaming.
+
+   overriding procedure Home_Changed (Self : in out Home_Effects);
+
+   type Layout_Watch is limited new Pomarine.UI.Observer with record
+      Owner : Session_Access;
+   end record;
+   --  A turn of a form changed what it shows: the tree is laid out again, as when the application does it.
+
+   overriding procedure Turned (Self : in out Layout_Watch);
+
+   type Outline_Effects is limited new Outline_VM.Effects with record
+      Owner : Session_Access;
+   end record;
+   --  The blocks of the outline show what the view-model did.
+
+   overriding procedure Outline_Going (Self : in out Outline_Effects; What : Outline_VM.Command; Index : Natural);
+   overriding procedure Outline_Done (Self : in out Outline_Effects; What : Outline_VM.Command; Index : Natural);
+
+   type Confirm_Effects is limited new Confirm_VM.Effects with record
+      Owner : Session_Access;
+   end record;
+   --  The dialog that asks before deleting is shown or hidden, and what it asked is done.
+
+   overriding procedure Dialog_Changed (Self : in out Confirm_Effects);
+   overriding procedure Answered (Self : in out Confirm_Effects; Said : Confirm_VM.Answer);
+
+   type Nav_Effects is limited new Nav_VM.Effects with record
+      Owner : Session_Access;
+   end record;
+   --  The screens follow the navigation.
+
+   overriding procedure Going_To_Execute (Self : in out Nav_Effects; What : Nav_VM.Command; Index : Natural);
+   overriding procedure Executed (Self : in out Nav_Effects; What : Nav_VM.Command);
 
    type Room_Maker is limited new Canvas_VM.Surface with record
       Owner : Session_Access;
@@ -253,15 +314,11 @@ private
       Content : out Pomarine.Models.Row_Content);
 
    type Toolbar_Parts is limited record
-      Project_Panel : Pomarine.Widgets.Panels.Panel;
+      Project_Layout : Pomarine.UI.Layout;
       --  A column: the toolbar, the content area, and the dock.
-      Content_Panel : Pomarine.Widgets.Panels.Panel;
-      Toolbar_Panel : Pomarine.Widgets.Panels.Panel;
-      Toolbar_Start : Pomarine.Widgets.Panels.Panel;
-      --  On the left of the toolbar: the way back, and the project's name.
-      Close_Button  : Pomarine.Widgets.Buttons.Button;
+      Content_Layout : Pomarine.UI.Layout;
+      Close_Button  : Pomarine.UI.Button_Handle;
       --  Back to the projects.
-      Bar_Rule      : Pomarine.Widgets.Panels.Panel;
       Title_Area    : Pomarine.Widgets.Grips.Grip;
       Project_Title : Pomarine.Widgets.Labels.Label;
       --  The project's name, in a grip that takes a double press to
@@ -269,16 +326,13 @@ private
       Title_Field   : Pomarine.Widgets.Text_Fields.Text_Field;
       Title_Doc     : aliased Texts.Documents.Document;
       --  In its place while it is renamed.
-      Tabs          : Pomarine.Widgets.Panels.Panel;
-      Outline_Tab   : Pomarine.Widgets.Buttons.Button;
-      Canvas_Tab    : Pomarine.Widgets.Buttons.Button;
-      Publish_Tab   : Pomarine.Widgets.Buttons.Button;
-      Write_Tab     : Pomarine.Widgets.Buttons.Button;
+      Outline_Tab   : Pomarine.UI.Button_Handle;
+      Canvas_Tab    : Pomarine.UI.Button_Handle;
+      Publish_Tab   : Pomarine.UI.Button_Handle;
+      Write_Tab     : Pomarine.UI.Button_Handle;
       --  A tab for each view, in the middle of the toolbar.
-      Toolbar_End   : Pomarine.Widgets.Panels.Panel;
-      --  On the right: the list of items.
    end record;
-   --  The project screen: its panels, the toolbar and the view shown.
+   --  The project screen: its toolbar (the view's controls, Pomarine.UI), and the title in it that is renamed.
 
    type Nav_State is limited record
       Store        : aliased Projects.Store;
@@ -306,21 +360,16 @@ private
    --  by.
 
    type List_Parts is limited record
-      List_Overlay  : Pomarine.Widgets.Panels.Panel;
-      --  Over the project screen, to grey it out and hold the list of
-      --  items, which is shown while Nav_VM says it is up.
-      List_Border   : Pomarine.Widgets.Panels.Panel;
-      List_Head     : Pomarine.Widgets.Panels.Panel;
-      List_Heading  : Pomarine.Widgets.Labels.Label;
-      List_Close    : Pomarine.Widgets.Buttons.Button;
-      --  A dark bar across its top, as a window's: its title, and a
-      --  button to close it.
-      List_Dialog   : Pomarine.Widgets.Panels.Panel;
+      Overlay       : Pomarine.UI.Layout;
+      --  Over the project screen, to grey it out and hold the list of items, which is shown while Nav_VM
+      --  says it is up.
+      Border        : Pomarine.UI.Layout;
+      --  The dialog: a dark bar across its top, as a window's (its title, and a button to close it), and the
+      --  list under it.
+      List_Close    : Pomarine.UI.Button_Handle;
+      --  The dialog's controls are the view's (Pomarine.UI); the list is the application's, borrowed.
       List_View     : Pomarine.Widgets.Lists.List;
-      --  A row for each item: its title, to show it, and buttons to show
-      --  or hide it and to remove it.
-      List_None     : Pomarine.Widgets.Labels.Label;
-      --  Shown when there are no items.
+      --  A row for each item: its title, to show it, and buttons to show or hide it and to remove it.
       List_Rows     : aliased Item_Rows;
       Model         : Item_List_VM.View_Model;
       Seen          : Pomarine.View_Models.Watch;
@@ -334,12 +383,20 @@ private
       Home_View : Home_Parts;
       Confirm : Confirm_Parts;
       Home_Model : Home_Choices;
+      Menu_Target : aliased Menu_Router;
+      Menu_Model : aliased Menu_VM.Model;
       Nav_Model : Nav_Choices;
       Room : aliased Room_Maker;
       Canvas_Model : Canvas_Choices;
       Dialog_Model : Confirm_Choices;
       Prefs : Settings_Parts;
       Choices : Settings_Choices;
+      Settings_Reactions : aliased Settings_Effects;
+      Confirm_Reactions : aliased Confirm_Effects;
+      Home_Reactions : aliased Home_Effects;
+      Layout_Watcher : aliased Layout_Watch;
+      Outline_Reactions : aliased Outline_Effects;
+      Nav_Reactions : aliased Nav_Effects;
       Judge : aliased Command_Judge;
       Toolbar : Toolbar_Parts;
       Canvas_View   : Backgrounds.Canvas;
@@ -367,10 +424,32 @@ private
       Reading : Reading_State;
       Dragging : Drag_State;
       Linking : Link_State;
-      Title_Edit : Title_Edit_State;
       Searching : Search_State;
       Finding : aliased Search_Finder;
       Shell : Shell_State;
+      Forms : Form_Array;
+      --  After all the widgets the forms are mounted into: they go first, with their panels out of those.
    end record;
+
+   function Project_Panel (Item : Session) return access Pomarine.Widgets.Widget'Class is
+     (Pomarine.UI.Panel_Of (Item.Forms (Project_Region).Screen.all, Item.Toolbar.Project_Layout));
+   --  A column: the toolbar, the content area, and the dock.
+
+   function Home_Panel (Item : Session) return access Pomarine.Widgets.Widget'Class is
+     (Pomarine.UI.Panel_Of (Item.Forms (Home_Region).Screen.all, Item.Home_View.Home_Layout));
+   --  A row: the sidebar of actions, and the recent projects.
+
+   function Tab_Of
+     (Item : Session; Which : Pomarine.UI.Button_Handle) return not null access Pomarine.Widgets.Buttons.Button is
+     (Pomarine.UI.Widget_Of (Item.Forms (Project_Region).Screen.all, Which));
+   --  A button of the project's toolbar.
+
+   function Tray_Panel (Item : Session) return access Pomarine.Widgets.Widget'Class is
+     (Pomarine.UI.Panel_Of (Item.Forms (Tray_Region).Screen.all, Item.Dock.Tools));
+   --  The tray of tools, over the canvas at the foot.
+
+   function Content_Panel (Item : Session) return access Pomarine.Widgets.Widget'Class is
+     (Pomarine.UI.Panel_Of (Item.Forms (Project_Region).Screen.all, Item.Toolbar.Content_Layout));
+   --  Where the views of a project are, and the tray and the menus over them.
 
 end View;

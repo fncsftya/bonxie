@@ -26,6 +26,12 @@ private package View.Outlines is
      with Pre => Screen (Item) = Project and then Which <= Section_Count (Item);
    --  Whether the section's notes are shown.
 
+   procedure Going (Item : in out Session; What : Outline_VM.Command);
+   --  Before the outline does What: what was typed in the titles is the model's.
+
+   procedure Done (Item : in out Session; What : Outline_VM.Command; Index : Natural);
+   --  After it did: the blocks show it (see Outline_VM.Effects).
+
    procedure Toggle_Notes (Item : in out Session; Which : Positive; Focus : Boolean := True)
      with Pre => Screen (Item) = Project and then Which <= Section_Count (Item),
           Post => Notes_Shown (Item, Which) /= Notes_Shown (Item, Which)'Old;
@@ -73,10 +79,6 @@ private package View.Outlines is
 
    procedure Listen (Item : in out Session);
    --  Have the view's buttons and blocks do what they are for.
-
-   procedure Do_Command (Item : in out Session; What : Outline_VM.Command; Index : Natural);
-   --  A button of the outline was pressed: do the command, for the row Index, if the view-model says it can
-   --  be done and the outline is in use; and show it.
 
    procedure Pressed (Item : in out Session; X, Y : Float);
    --  A press of the mouse button at X, Y points: put the colour popout

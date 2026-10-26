@@ -1,8 +1,10 @@
 with Pomarine.Boxes;
+with Nav_UI;
+with Nav_VM;
+with Pomarine.UI.Contexts;
 with Pomarine.Widgets.Checks;
 with Pomarine.Widgets.Grips;
 with Pomarine.Widgets.Scrollers;
-with Pomarine.Widgets.Switches;
 with Preferences;
 with Settings_VM;
 with SDL3.Cursors;
@@ -23,160 +25,260 @@ package body View.Build.Settings_Form is
    package Labels renames Pomarine.Widgets.Labels;
    package Checks renames Pomarine.Widgets.Checks;
    package Grips renames Pomarine.Widgets.Grips;
-   package Switches renames Pomarine.Widgets.Switches;
    package Scrollers renames Pomarine.Widgets.Scrollers;
    package Themes renames Pomarine.Themes;
+
+   package UI renames Pomarine.UI;
 
    use Style;
    use Pomarine.Widgets.Layouts;
 
+   --  The controls of the form, bound to the view-model (Pomarine.UI): a binding is a pointer to an adapter
+   --  that is there as long as the program is, so they are made here, not in the procedure.
+
+   package Settings_UI is new Pomarine.UI.Contexts (Settings_VM.Commands, Settings_VM.View_Model);
+
+   function Is_Theme (Item : Settings_VM.View_Model; To : Preferences.Theme_Choices) return Boolean is
+     (Preferences."=" (Settings_VM.Theme (Item), To));
+   function Is_Voice (Item : Settings_VM.View_Model; To : Preferences.Speech_Models) return Boolean is
+     (Preferences."=" (Settings_VM.Speech_Model (Item), To));
+
+   function Is_Light (Item : Settings_VM.View_Model) return Boolean is (Is_Theme (Item, Preferences.Light));
+   function Is_Dark (Item : Settings_VM.View_Model) return Boolean is (Is_Theme (Item, Preferences.Dark));
+   function Is_System (Item : Settings_VM.View_Model) return Boolean is (Is_Theme (Item, Preferences.System));
+   function Is_MacOS (Item : Settings_VM.View_Model) return Boolean is (Is_Voice (Item, Preferences.MacOS));
+   function Is_Parakeet (Item : Settings_VM.View_Model) return Boolean is (Is_Voice (Item, Preferences.Parakeet));
+
+   package Light_Flag is new Settings_UI.Read_Flag (Is_Light);
+   package Dark_Flag is new Settings_UI.Read_Flag (Is_Dark);
+   package System_Flag is new Settings_UI.Read_Flag (Is_System);
+   package MacOS_Flag is new Settings_UI.Read_Flag (Is_MacOS);
+   package Parakeet_Flag is new Settings_UI.Read_Flag (Is_Parakeet);
+   package VSync_Flag is new Settings_UI.Read_Flag (Settings_VM.VSync);
+   package Row_Flag is new Settings_UI.Read_Flag (Settings_VM.Download_Row_Shown);
+   package Download_Flag is new Settings_UI.Read_Flag (Settings_VM.Download_Button_Shown);
+   package Delete_Flag is new Settings_UI.Read_Flag (Settings_VM.Delete_Button_Shown);
+   package Bar_Flag is new Settings_UI.Read_Flag (Settings_VM.Download_Bar_Shown);
+   package Status_Text is new Settings_UI.Read_Text (Settings_VM.Download_Status);
+   package Fraction_Value is new Settings_UI.Read_Fraction (Settings_VM.Download_Fraction);
+
    procedure Build_Settings (Item : in out Session) is
       Prefs : Settings_Parts renames Item.Prefs;
-
-      function Line (High : Float; Margin : Layouts.Sides := (others => <>)) return Layouts.Style is
-        (Height => High, Shrink => 0.0, Margin => Margin, others => <>);
-
-      procedure Add_Radio (Part : in out Checks.Check; Name : String) is
-      begin
-         Layouts.Add (Prefs.Settings_Form, Part, Line (Settings_Line));
-         Checks.Set_Kind (Part, Checks.Radio);
-         Checks.Set_Label (Part, Name);
-         Checks.Set_Focusable (Part, True);
-      end Add_Radio;
-
-      --  A choice of background: a picture, which is clicked, and a foot with its name, which is too.
-      procedure Add_Card (Card : in out Background_Card; Words : String; Pictured : Boolean) is
-      begin
-         Layouts.Add (Prefs.Background_Row, Card.Whole,
-                      (Flow => Column, Width => Background_Card_Width, Height => Background_Card_Height,
-                       Shrink => 0.0, Outlined => True, Shadowed => True, others => <>));
-         Panels.Set_Radius (Card.Whole, Themes.Large_Radius, Framed => True);
-         Panels.Set_Fill (Card.Whole, Themes.Page);
-         Panels.Set_Border (Card.Whole, Themes.Border);
-         Layouts.Add (Card.Whole, Card.Peek, (Grow => 1.0, Flow => Column, others => <>));
-         Grips.Set_Wanted_Cursor (Card.Peek, SDL3.Cursors.Pointer);
-         Grips.Set_Focusable (Card.Peek, True);
-         Layouts.Add (Card.Whole, Card.Foot,
-                      (Height => Card_Foot_Height, Shrink => 0.0, Flow => Row, Align => Center, Gap => Row_Gap,
-                       Padding => (Left | Right => Card_Pad, others => <>), others => <>));
-         Panels.Set_Fill (Card.Foot, Themes.Tint);
-         --  Its foot is as round as the card's own foot, or its square corner shows between the outline and the shadow.
-         Panels.Set_Radius (Card.Foot, Themes.Large_Radius, Round => Pomarine.Boxes.Bottom_Corners);
-         Layouts.Add (Card.Peek, Card.Sample, (Grow => 1.0, others => <>));
-         Card.Sample.Radius := Themes.Large_Radius;
-         Layouts.Add (Card.Foot, Card.Pick,
-                      (Grow => 1.0, Width => 0.0, Flow => Column, Spread => Center, Align_Self => Stretch,
-                       others => <>));
-         Grips.Set_Wanted_Cursor (Card.Pick, SDL3.Cursors.Pointer);
-         Layouts.Add (Card.Pick, Card.Name, (Height => Card_Title_Height, others => <>));
-         Labels.Set_Text (Card.Name, Words);
-         Labels.Set_Style (Card.Name, Pomarine.Line_Texts.Strong);
-         if Pictured then
-            Buttons.Add (Card.Foot, Card.Reseed,
-                         Buttons.Looks ("New picture", Icon => Pomarine.Icons.Shown (Icon_Set.Refresh),
-                                        Focusable => True),
-                         (Width => Card_Button, Height => Card_Button, Shrink => 0.0, others => <>));
-         end if;
-      end Add_Card;
    begin
-      Layouts.Add (Item.Root.Window_Panel, Prefs.Settings_Panel, (Flow => Column, Grow => 1.0, others => <>));
-      Layouts.Add (Prefs.Settings_Panel, Prefs.Settings_Bar,
-                   (Height => Toolbar_Size, Shrink => 0.0, Flow => Row, Align => Center,
-                    Padding => (Left  => (if Item.Shell.Windowed then Header_Inset else Bar_Inset), Right => Bar_Inset,
-                                others => <>),
-                    others => <>));
-      Buttons.Add (Prefs.Settings_Bar, Prefs.Settings_Close,
-                   Buttons.Looks ("Projects", Buttons.Quiet, Icon => Pomarine.Icons.Shown (Icon_Set.Back),
-                                  Captioned => True),
-                   (Width => Back_Width, Height => Tab_Height, Shrink => 0.0,
-                    Margin => (Right => Name_Gap, others => <>), others => <>));
-      Layouts.Add (Prefs.Settings_Bar, Prefs.Settings_Title,
-                   (Grow => 1.0, Width => 0.0, Height => Tab_Height, others => <>));
-      Layouts.Add (Prefs.Settings_Panel, Prefs.Settings_Scroll, (Grow => 1.0, Height => 0.0, others => <>));
-      Layouts.Add (Prefs.Settings_Scroll, Prefs.Settings_Content,
-                   (Flow => Column, Shrink => 0.0, Align => Center, Padding => (others => Page_Margin), others => <>));
-      Layouts.Add (Prefs.Settings_Content, Prefs.Settings_Form,
-                   (Flow => Column, Shrink => 0.0, Width => Page_Width, Padding => (others => Dialog_Pad),
-                    Shadowed => True, Gap => Row_Gap, others => <>));
-      if not Item.Shell.Windowed then
-         Panels.Set_Fill (Prefs.Settings_Panel, Desk);
-      end if;
+      Open (Item.Forms (Settings_Region), Item.Root.Widgets'Unchecked_Access, Settings_Region);
+      declare
+         Form  : UI.View renames Item.Forms (Settings_Region).Screen.all;
+         Bound : constant Settings_UI.Context'Class :=
+           Settings_UI.Bind (Form, Item.Choices.Model'Unrestricted_Access);
+         Navs  : constant Nav_UI.Context'Class := Nav_UI.Bind (Form, Item.Nav_Model.Model'Unrestricted_Access);
 
-      --  The bar, outside what scrolls, so that it stays: the way back
-      --  at the left (clear of the window's own buttons), as in a project, then the title.
-      Panels.Set_Fill (Prefs.Settings_Bar, Toolbar);
-      Labels.Set_Text (Prefs.Settings_Title, "Settings");
-      Labels.Set_Style (Prefs.Settings_Title, Pomarine.Line_Texts.Heading);
-      Labels.Set_Ink (Prefs.Settings_Title, Themes.Bar_Ink);
+         function Line
+           (High : Float; Top : Float := Unset) return Layouts.Style is
+           (Height => High, Shrink => 0.0, Margin => (Top => Top, others => <>), others => <>);
 
-      --  The form, on a page of its own, in the middle.
-      Panels.Set_Fill (Prefs.Settings_Form, Paper);
-      Panels.Set_Border (Prefs.Settings_Form, Themes.Border);
-      Panels.Set_Shadow (Prefs.Settings_Form, Themes.Shadow);
-      Prefs.Form_Wide := Page_Width;
+         function Heading (Words : String; Top : Float := Unset) return UI.Layout is
+            Made : constant UI.Label_Handle := Bound.Label (Words);
+         begin
+            Labels.Set_Style (UI.Widget_Of (Form, Made).all, Pomarine.Line_Texts.Caption);
+            return UI.Styled (UI.Place (Made), Line (Heading_Height, Top));
+         end Heading;
 
-      --  Display: Theme, and Background.
-      Layouts.Add (Prefs.Settings_Form, Prefs.Display_Heading, Line (Heading_Height));
-      Labels.Set_Text (Prefs.Display_Heading, "DISPLAY");
-      Labels.Set_Style (Prefs.Display_Heading, Pomarine.Line_Texts.Caption);
-      Layouts.Add (Prefs.Settings_Form, Prefs.Theme_Name, Line (Settings_Line));
-      Labels.Set_Text (Prefs.Theme_Name, "Theme");
-      Labels.Set_Style (Prefs.Theme_Name, Pomarine.Line_Texts.Strong);
-      Add_Radio (Prefs.Theme_Light, "Light");
-      Add_Radio (Prefs.Theme_Dark, "Dark");
-      Add_Radio (Prefs.Theme_System, "System");
-      Layouts.Add (Prefs.Settings_Form, Prefs.Background_Name, Line (Settings_Line, (Top => Gap, others => <>)));
-      Labels.Set_Text (Prefs.Background_Name, "Background");
-      Labels.Set_Style (Prefs.Background_Name, Pomarine.Line_Texts.Strong);
-      Layouts.Add (Prefs.Settings_Form, Prefs.Background_Scroll,
-                   (Flow => Row, Height => Background_Card_Height + Scroll_Room, Shrink => 0.0, others => <>));
-      --  The cards, side by side, in a row wider than the form, which is scrolled across.
-      Scrollers.Set_Across (Prefs.Background_Scroll, True);
-      Layouts.Add (Prefs.Background_Scroll, Prefs.Background_Row,
-                   (Flow => Row, Gap => Gap, Shrink => 0.0, Padding => (Bottom => Scroll_Room, others => <>),
-                    others => <>));
-      for Mode in Preferences.Background_Modes loop
-         Add_Card (Prefs.Cards (Mode), Background_Name_Of (Mode), Pictured => Mode in Preferences.Pictures);
-      end loop;
+         function Name (Words : String; Top : Float := Unset) return UI.Layout is
+            Made : constant UI.Label_Handle := Bound.Label (Words);
+         begin
+            Labels.Set_Style (UI.Widget_Of (Form, Made).all, Pomarine.Line_Texts.Strong);
+            return UI.Styled (UI.Place (Made), Line (Settings_Line, Top));
+         end Name;
 
-      --  Speech: its one option, Model.
-      Layouts.Add (Prefs.Settings_Form, Prefs.Speech_Heading,
-                   Line (Heading_Height, (Top => Heading_Top, others => <>)));
-      Labels.Set_Text (Prefs.Speech_Heading, "SPEECH");
-      Labels.Set_Style (Prefs.Speech_Heading, Pomarine.Line_Texts.Caption);
-      Layouts.Add (Prefs.Settings_Form, Prefs.Model_Name, Line (Settings_Line));
-      Labels.Set_Text (Prefs.Model_Name, "Model");
-      Labels.Set_Style (Prefs.Model_Name, Pomarine.Line_Texts.Strong);
-      Add_Radio (Prefs.Model_Native, "MacOS");
-      Add_Radio (Prefs.Model_Parakeet, "Parakeet");
+         function Radio
+           (Words : String; Chosen : Settings_UI.Flag_Property; What : Settings_VM.Command; Index : Natural)
+            return UI.Layout is
+           (UI.Styled
+              (UI.Place
+                 (Bound.Check (Words, Chosen, What, Form => Checks.Radio, Index => Index)),
+               Line (Settings_Line)));
 
-      Layouts.Add (Prefs.Settings_Form, Prefs.Download_Row,
-                   (Height => Download_Height, Shrink => 0.0, Flow => Row, Align => Center, Gap => Gap,
-                    Margin => (Top => Gap, others => <>), others => <>));
-      Buttons.Add (Prefs.Download_Row, Prefs.Download_Button,
-                   Buttons.Looks ("Download", Buttons.Primary, Focusable => True),
-                   (Width => Download_Width, Height => Download_Height, Shrink => 0.0, others => <>));
-      Buttons.Add (Prefs.Download_Row, Prefs.Delete_Button, Buttons.Looks ("Delete", Buttons.Danger, Focusable => True),
-                   (Width => Download_Width, Height => Download_Height, Shrink => 0.0, others => <>));
-      Widgets.Set_Visible (Prefs.Delete_Button, False);
-      --  Each is on while the view-model says its command can be done (it fetches files that are not
-      --  there; it deletes those that are, and none are coming).
-      Binding.Bind (Prefs.Download_Button, Settings_VM.Download_Model);
-      Binding.Bind (Prefs.Delete_Button, Settings_VM.Delete_Model);
-      Layouts.Add (Prefs.Download_Row, Prefs.Download_State,
-                   (Grow => 1.0, Width => 0.0, Height => Download_Height, others => <>));
-      Labels.Set_Ink (Prefs.Download_State, Quiet_Ink);
-      Layouts.Add (Prefs.Settings_Form, Prefs.Download_Bar, Line (Progress_Height));
-      Widgets.Set_Visible (Prefs.Download_Bar, False);
+         function Sized (Made : UI.Button_Handle) return UI.Layout is
+           (UI.Styled
+              (UI.Place (Made),
+               (Width => Download_Width, Height => Download_Height, Shrink => 0.0, others => <>)));
 
-      --  Graphics: its one option, VSync.
-      Layouts.Add
-        (Prefs.Settings_Form, Prefs.Graphics_Heading, Line (Heading_Height, (Top => Heading_Top, others => <>)));
-      Labels.Set_Text (Prefs.Graphics_Heading, "GRAPHICS");
-      Labels.Set_Style (Prefs.Graphics_Heading, Pomarine.Line_Texts.Caption);
-      Layouts.Add (Prefs.Settings_Form, Prefs.VSync_Switch, Line (Settings_Line));
-      Switches.Set_Label (Prefs.VSync_Switch, "VSync");
-      Switches.Set_Focusable (Prefs.VSync_Switch, True);
+         --  A choice of background: a picture, which is clicked, and a foot with its name, which is too.
+         function Card_Of (Mode : Preferences.Background_Modes) return UI.Layout is
+            Card     : Background_Card renames Prefs.Cards (Mode);
+            Pictured : constant Boolean := Mode in Preferences.Pictures;
+            Words    : constant String := Background_Name_Of (Mode);
+
+            Naming : constant UI.Layout :=
+              UI.Styled
+                (UI.Put_In
+                   (Form, Card.Pick,
+                    [UI.Styled (UI.Put (Form, Card.Name), (Height => Card_Title_Height, others => <>))]),
+                 (Grow => 1.0, Width => 0.0, Flow => Column, Spread => Center, Align_Self => Stretch, others => <>));
+            Reseeding : constant UI.Layout :=
+              (if Pictured
+               then UI.Styled
+                      (UI.Put (Form, Card.Reseed), (Width => Card_Button, Height => Card_Button, Shrink => 0.0,
+                                                    others => <>))
+               else UI.Nothing);
+            Foot  : constant UI.Layout :=
+              UI.Styled
+                (UI.Put_In (Form, Card.Foot, (if Pictured then [Naming, Reseeding] else [Naming])),
+                 (Height => Card_Foot_Height, Shrink => 0.0, Flow => Row, Align => Center, Gap => Row_Gap,
+                  Padding => (Left | Right => Card_Pad, others => <>), others => <>));
+            Peek  : constant UI.Layout :=
+              UI.Styled
+                (UI.Put_In (Form, Card.Peek, [UI.Styled (UI.Put (Form, Card.Sample), (Grow => 1.0, others => <>))]),
+                 (Grow => 1.0, Flow => Column, others => <>));
+         begin
+            if Pictured then
+               Buttons.Configure
+                 (Card.Reseed,
+                  Buttons.Looks ("New picture", Icon => Pomarine.Icons.Shown (Icon_Set.Refresh), Focusable => True));
+            end if;
+            Panels.Set_Radius (Card.Whole, Themes.Large_Radius, Framed => True);
+            Panels.Set_Fill (Card.Whole, Themes.Page);
+            Panels.Set_Border (Card.Whole, Themes.Border);
+            Grips.Set_Wanted_Cursor (Card.Peek, SDL3.Cursors.Pointer);
+            Grips.Set_Focusable (Card.Peek, True);
+            Panels.Set_Fill (Card.Foot, Themes.Tint);
+            --  Its foot is as round as the card's own foot, or its square corner shows between the outline
+            --  and the shadow.
+            Panels.Set_Radius (Card.Foot, Themes.Large_Radius, Round => Pomarine.Boxes.Bottom_Corners);
+            Card.Sample.Radius := Themes.Large_Radius;
+            Grips.Set_Wanted_Cursor (Card.Pick, SDL3.Cursors.Pointer);
+            Labels.Set_Text (Card.Name, Words);
+            Labels.Set_Style (Card.Name, Pomarine.Line_Texts.Strong);
+            return UI.Styled
+              (UI.Put_In (Form, Card.Whole, [Peek, Foot]),
+               (Flow => Column, Width => Background_Card_Width, Height => Background_Card_Height, Shrink => 0.0,
+                Outlined => True, Shadowed => True, others => <>));
+         end Card_Of;
+
+         Download : constant UI.Button_Handle :=
+           Bound.Button ("Download", Settings_VM.Download_Model, Buttons.Primary, Focusable => True);
+         Delete   : constant UI.Button_Handle :=
+           Bound.Button ("Delete", Settings_VM.Confirm_Delete, Buttons.Danger, Focusable => True);
+
+         Status : constant UI.Label_Handle := Bound.Label (Status_Text.Property);
+         Bar    : constant UI.Progress_Handle := Bound.Progress (Fraction_Value.Property);
+         Switch : constant UI.Switch_Handle := Bound.Switch ("VSync", VSync_Flag.Property, Settings_VM.Toggle_VSync);
+         Close  : constant UI.Button_Handle :=
+           Navs.Button
+             (Buttons.Looks ("Projects", Buttons.Quiet, Icon => Pomarine.Icons.Shown (Icon_Set.Back),
+                             Captioned => True, Focusable => True),
+              Nav_VM.Close_Settings);
+
+         Download_Row : constant UI.Layout :=
+           UI.Styled
+             (UI.Row
+                ([Sized (Download), Sized (Delete),
+                  UI.Styled
+                    (UI.Place (Status), (Grow => 1.0, Width => 0.0, Height => Download_Height, others => <>))]),
+              (Height => Download_Height, Shrink => 0.0, Flow => Layouts.Row, Align => Center, Gap => Gap,
+               Margin => (Top => Gap, others => <>), others => <>));
+
+         --  The cards, side by side, in a row wider than the form, which is scrolled across.
+         function Every_Card return UI.Layout_Array is
+            Result : UI.Layout_Array (1 .. Preferences.Background_Modes'Pos (Preferences.Background_Modes'Last) + 1);
+         begin
+            for Mode in Preferences.Background_Modes loop
+               Result (Preferences.Background_Modes'Pos (Mode) + 1) := Card_Of (Mode);
+            end loop;
+            return Result;
+         end Every_Card;
+
+         Every       : constant UI.Layout_Array := Every_Card;
+         Cards_Row   : constant UI.Layout :=
+           UI.Styled
+             (UI.Put_In (Form, Prefs.Background_Row, Every, Flow => Layouts.Row),
+              (Flow => Row, Gap => Gap, Shrink => 0.0, Padding => (Bottom => Scroll_Room, others => <>),
+               others => <>));
+         Cards : constant UI.Layout :=
+           UI.Styled
+             (UI.Put_In (Form, Prefs.Background_Scroll, [Cards_Row]),
+              (Flow => Layouts.Row, Height => Background_Card_Height + Scroll_Room, Shrink => 0.0, others => <>));
+
+         Choices : constant UI.Layout_Array :=
+           [Heading ("DISPLAY"),
+            Name ("Theme"),
+            Radio ("Light", Light_Flag.Property, Settings_VM.Choose_Theme,
+                   Preferences.Theme_Choices'Pos (Preferences.Light)),
+            Radio ("Dark", Dark_Flag.Property, Settings_VM.Choose_Theme,
+                   Preferences.Theme_Choices'Pos (Preferences.Dark)),
+            Radio ("System", System_Flag.Property, Settings_VM.Choose_Theme,
+                   Preferences.Theme_Choices'Pos (Preferences.System)),
+            Name ("Background", Top => Gap),
+            Cards,
+            Heading ("SPEECH", Top => Heading_Top),
+            Name ("Model"),
+            Radio ("MacOS", MacOS_Flag.Property, Settings_VM.Choose_Speech_Model,
+                   Preferences.Speech_Models'Pos (Preferences.MacOS)),
+            Radio ("Parakeet", Parakeet_Flag.Property, Settings_VM.Choose_Speech_Model,
+                   Preferences.Speech_Models'Pos (Preferences.Parakeet)),
+            Download_Row,
+            UI.Styled (UI.Place (Bar), Line (Progress_Height)),
+            Heading ("GRAPHICS", Top => Heading_Top),
+            UI.Styled (UI.Place (Switch), Line (Settings_Line))];
+
+         --  The form, on a page of its own, in the middle, scrolled.
+         Page : constant UI.Layout :=
+           UI.Styled
+             (UI.Put_In (Form, Prefs.Settings_Form, Choices),
+              (Flow => Column, Shrink => 0.0, Width => Page_Width, Padding => (others => Dialog_Pad),
+               Shadowed => True, Gap => Row_Gap, others => <>));
+         Sheet : constant UI.Layout :=
+           UI.Styled
+             (UI.Put_In
+                (Form, Prefs.Settings_Scroll,
+                 [UI.Styled
+                    (UI.Put_In (Form, Prefs.Settings_Content, [Page]),
+                     (Flow => Column, Shrink => 0.0, Align => Center, Padding => (others => Page_Margin),
+                      others => <>))]),
+              (Grow => 1.0, Height => 0.0, others => <>));
+
+         --  The bar, outside what scrolls, so that it stays: the way back at the left (clear of the window's
+         --  own buttons), as in a project, then the title.
+         Title_Bar : constant UI.Layout :=
+           UI.Styled
+             (UI.Put_In
+                (Form, Prefs.Settings_Bar,
+                 [UI.Styled
+                    (UI.Place (Close),
+                     (Width => Back_Width, Height => Tab_Height, Shrink => 0.0,
+                      Margin => (Right => Name_Gap, others => <>), others => <>)),
+                  UI.Styled
+                    (UI.Put (Form, Prefs.Settings_Title), (Grow => 1.0, Width => 0.0, Height => Tab_Height,
+                                                           others => <>))],
+                 Flow => Layouts.Row),
+              (Height => Toolbar_Size, Shrink => 0.0, Flow => Row, Align => Center,
+               Padding => (Left  => (if Item.Shell.Windowed then Header_Inset else Bar_Inset), Right => Bar_Inset,
+                           others => <>),
+               others => <>));
+
+         Whole : constant UI.Layout :=
+           UI.Styled (UI.Put_In (Form, Prefs.Settings_Panel, [Title_Bar, Sheet]), (Flow => Column, Grow => 1.0,
+                                                                                       others => <>));
+      begin
+         Labels.Set_Ink (UI.Widget_Of (Form, Status).all, Quiet_Ink);
+         Bound.Show_When (Download_Row, Row_Flag.Property);
+         Bound.Show_When (UI.Any (Download), Download_Flag.Property);
+         Bound.Show_When (UI.Any (Bar), Bar_Flag.Property);
+         Bound.Show_When (UI.Any (Delete), Delete_Flag.Property);
+         Scrollers.Set_Across (Prefs.Background_Scroll, True);
+         Panels.Set_Fill (Prefs.Settings_Bar, Toolbar);
+         Labels.Set_Text (Prefs.Settings_Title, "Settings");
+         Labels.Set_Style (Prefs.Settings_Title, Pomarine.Line_Texts.Heading);
+         Labels.Set_Ink (Prefs.Settings_Title, Themes.Bar_Ink);
+         if not Item.Shell.Windowed then
+            Panels.Set_Fill (Prefs.Settings_Panel, Desk);
+         end if;
+         Panels.Set_Fill (Prefs.Settings_Form, Paper);
+         Panels.Set_Border (Prefs.Settings_Form, Themes.Border);
+         Panels.Set_Shadow (Prefs.Settings_Form, Themes.Shadow);
+         Prefs.Form_Wide := Page_Width;
+         UI.Mount_Into (Form, Item.Root.Window_Panel, Whole);
+      end;
       Widgets.Set_Visible (Prefs.Settings_Panel, False);
    end Build_Settings;
 

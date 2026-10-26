@@ -1,4 +1,6 @@
+with Ada.Finalization;
 with Backgrounds;
+with Pomarine.UI;
 with SDL3.Windows.Renderers;
 with SDL3.Cursors;
 with Ada.Strings.Unbounded;
@@ -34,6 +36,32 @@ package View_Parts.Common is
 
    package Placed_Lists is new Growing (Boolean);
    subtype Placed_Array is Placed_Lists.List;
+
+   type Screen_Access is access Pomarine.UI.View;
+
+   type Screen_Holder is new Ada.Finalization.Limited_Controlled with record
+      Screen : Screen_Access;
+   end record;
+   --  A view of a screen's controls (Pomarine.UI), made when the screen is built: its tree is the session's,
+   --  which a component of the session cannot name as a discriminant. Declare it last of the screen's parts,
+   --  so that it goes first, with its panels out of the others'.
+
+   overriding procedure Finalize (Item : in out Screen_Holder);
+
+   type Form_Kinds is
+     (Settings_Region, Confirm_Region, List_Region, Home_Region, Project_Region, Tray_Region, Publish_Region,
+      Outline_Region, Search_Region, Writing_Region, Canvas_Region, Grammar_Region, Header_Region);
+   --  The views of the session's controls (Pomarine.UI), one for each region of the window.
+
+   type Form_Array is array (Form_Kinds) of Screen_Holder;
+
+   function Tag_Base (Kind : Form_Kinds) return Positive is (10_000 * (Form_Kinds'Pos (Kind) + 1));
+   --  The tags of a form's commands begin here: clear of the ones the session's own models have, and of
+   --  the other forms'.
+
+   procedure Open
+     (Holder : in out Screen_Holder; Tree : not null access Pomarine.Widgets.Tree; Kind : Form_Kinds);
+   --  Make the view of a region's controls, with its tags from Tag_Base (before any control is made).
 
    type Root_Parts is limited record
       Widgets      : aliased Pomarine.Widgets.Tree;

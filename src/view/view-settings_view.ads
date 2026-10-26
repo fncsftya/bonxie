@@ -49,6 +49,13 @@ private package View.Settings_View is
    procedure Reseed (Item : in out Session);
    --  Paint another watercolour, and keep which it is. It is drawn so now if it is the background.
 
+   procedure Done (Item : in out Session; What : Settings_VM.Command);
+   --  What the world does after the view-model has done What, as a click in the form made it do: draw in the
+   --  theme, set the display's VSync, show the download's controls (see Settings_VM.Effects).
+
+   procedure Confirm_Delete (Item : in out Session; Size : String);
+   --  Ask before the speech model's files, which take Size, are deleted.
+
    procedure Apply_Theme (Item : in out Session);
    --  Draw in the theme the choices make now: the system's, for System,
    --  which may have changed; with the painted background, if Watercolour is

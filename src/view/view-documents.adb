@@ -1,7 +1,8 @@
+with Confirm_VM;
+with Pomarine.UI;
 with Writing_VM;
 with View.Deletion;
 with View.Grammar;
-with Pomarine.Widgets.Checks;
 with View.Writing;
 with Pomarine.Widgets;
 with Pomarine.Widgets.Editors;
@@ -86,19 +87,21 @@ package body View.Documents is
    end Ask_Delete_Directory;
 
    function Delete_Documents_Checked (Item : Session) return Boolean is
-     (Pomarine.Widgets.Checks.Is_Checked (Item.Confirm.Delete_Documents));
+     (Confirm_VM.Delete_Documents (Item.Dialog_Model.Model));
 
    procedure Deletion_Points (Item : Session; Check_X, Check_Y, Delete_X, Delete_Y : out Float) is
       package Widgets renames Pomarine.Widgets;
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
+      Form   : Pomarine.UI.View renames Item.Forms (Confirm_Region).Screen.all;
+      Check  : Widgets.Widget'Class renames
+        Widgets.Widget'Class (Pomarine.UI.Widget_Of (Form, Item.Confirm.Delete_Documents).all);
+      Delete : Widgets.Widget'Class renames
+        Widgets.Widget'Class (Pomarine.UI.Widget_Of (Form, Item.Confirm.Confirm_Delete).all);
    begin
-      Check_X := (Widgets.Left_Of (Item.Confirm.Delete_Documents) + 10.0 * Pixels) / Pixels;
-      Check_Y := (Widgets.Top_Of (Item.Confirm.Delete_Documents)
-                  + Widgets.Height_Of (Item.Confirm.Delete_Documents) / 2.0) / Pixels;
-      Delete_X := (Widgets.Left_Of (Item.Confirm.Confirm_Delete)
-                   + Widgets.Width_Of (Item.Confirm.Confirm_Delete) / 2.0) / Pixels;
-      Delete_Y := (Widgets.Top_Of (Item.Confirm.Confirm_Delete)
-                   + Widgets.Height_Of (Item.Confirm.Confirm_Delete) / 2.0) / Pixels;
+      Check_X := (Widgets.Left_Of (Check) + 10.0 * Pixels) / Pixels;
+      Check_Y := (Widgets.Top_Of (Check) + Widgets.Height_Of (Check) / 2.0) / Pixels;
+      Delete_X := (Widgets.Left_Of (Delete) + Widgets.Width_Of (Delete) / 2.0) / Pixels;
+      Delete_Y := (Widgets.Top_Of (Delete) + Widgets.Height_Of (Delete) / 2.0) / Pixels;
    end Deletion_Points;
 
    function Directory_Row (Item : Session; Dir : Positive) return Natural is

@@ -31,8 +31,10 @@ package Settings_VM is
       --  Index: the number of the picture now painted (below Preferences.Seed_Limit), which is kept.
       Download_Model,
       --  Fetch the speech model's files.
-      Delete_Model);
-      --  Remove them: the view asks first.
+      Delete_Model,
+      --  Remove them.
+      Confirm_Delete);
+      --  Ask whether to remove them (Effects.Ask_To_Delete); Delete_Model is the answer.
 
    package Commands is new Parts.Command_Models (Command);
 
@@ -76,6 +78,17 @@ package Settings_VM is
    procedure Delete (Self : in out Model_Source) is abstract;
    --  Remove the files, and forget how the last fetch ended.
 
+   --  What the world is told, after a command is done, for what is the view's to do about it: the colours
+   --  the windows are drawn in, the display's VSync, a question to ask before files are deleted.
+
+   type Effects is limited interface;
+
+   procedure Done (Self : in out Effects; What : Command) is abstract;
+   --  After What was executed (not Open and Close, which are the navigation's).
+
+   procedure Ask_To_Delete (Self : in out Effects; Size : String) is abstract;
+   --  Confirm_Delete was executed: ask before the files, which take Size, are deleted.
+
    type View_Model is limited new Commands.Model with private;
 
    procedure Initialize
@@ -86,7 +99,8 @@ package Settings_VM is
       Kept_Speech     : Preferences.Speech_Models := Preferences.MacOS;
       Kept_Theme      : Preferences.Theme_Choices := Preferences.System;
       Kept_Background : Preferences.Background_Modes := Preferences.Watercolour;
-      Kept_VSync      : Boolean := False);
+      Kept_VSync      : Boolean := False;
+      Reactions       : access Effects'Class := null);
    --  With the choices as they were kept. Source and Kept_In must be there as
    --  long as the view-model is. Without a Kept_In, nothing is kept. The
    --  download is looked at (Poll).
@@ -101,7 +115,7 @@ package Settings_VM is
 
    overriding function Can_Execute (Self : View_Model; What : Command; Index : Natural := 0) return Boolean;
    --  Open: the settings are not shown. Close: they are. Download_Model: the
-   --  files are not there and not on their way. Delete_Model: they are there and
+   --  files are not there and not on their way. Delete_Model and Confirm_Delete: they are there and
    --  not being replaced. The choices, Toggle_VSync and Reseed: always.
 
    overriding procedure Execute (Self : in out View_Model; What : Command; Index : Natural := 0)
@@ -178,6 +192,8 @@ private
 
    type Store_Access is access all Store'Class;
 
+   type Effects_Access is access all Effects'Class;
+
    type Snapshot is record
       State     : Speech.Models.States := Speech.Models.Idle;
       Fraction  : Float := 0.0;
@@ -192,6 +208,7 @@ private
    type View_Model is limited new Commands.Model with record
       Source   : Source_Access;
       Store    : Store_Access;
+      Reactions : Effects_Access;
       Config   : Ada.Strings.Unbounded.Unbounded_String;
       Showing  : Flag_Properties.Property;
       Themes   : Theme_Properties.Property;

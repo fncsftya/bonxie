@@ -33,7 +33,15 @@ package Home_VM is
 
    procedure Delete (Self : in out Library; Key : Projects.Id) is abstract;
 
+   type Effects is limited interface;
+
+   procedure Home_Changed (Self : in out Effects) is abstract;
+   --  After a command was done: the screen shows the projects and the renaming.
+
    type View_Model is limited new Commands.Model with private;
+
+   procedure Observe (Self : in out View_Model; Reactions : access Effects'Class);
+   --  Tell Reactions, from now on, after every command that is done.
 
    procedure Initialize (Self : in out View_Model; Kept : not null access Library'Class);
    --  Kept must be there as long as the view-model is. The projects are listed.
@@ -89,7 +97,10 @@ private
 
    type Library_Access is access all Library'Class;
 
+   type Effects_Access is access all Effects'Class;
+
    type View_Model is limited new Commands.Model with record
+      Reactions : Effects_Access;
       Kept    : Library_Access;
       Listed  : Projects.Recent_List;
       Numbers : Count_Array;

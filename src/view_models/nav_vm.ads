@@ -61,7 +61,18 @@ package Nav_VM is
 
    procedure Set_Tab (Self : in out Library; Key : Projects.Id; To : Natural) is abstract;
 
+   type Effects is limited interface;
+
+   procedure Going_To_Execute (Self : in out Effects; What : Command; Index : Natural) is abstract;
+   --  Before What is done, for what must be let go of first (the views of the project that is left).
+
+   procedure Executed (Self : in out Effects; What : Command) is abstract;
+   --  After What is done: the screen shows it.
+
    type View_Model is limited new Commands.Model with private;
+
+   procedure Observe (Self : in out View_Model; Reactions : access Effects'Class);
+   --  Tell Reactions, from now on, around every command that is done.
 
    procedure Initialize
      (Self     : in out View_Model;
@@ -184,7 +195,10 @@ private
    type Settings_Access is access all Settings_VM.View_Model;
    type Dialog_Access is access all Confirm_VM.View_Model;
 
+   type Effects_Access is access all Effects'Class;
+
    type View_Model is limited new Commands.Model with record
+      Reactions : Effects_Access;
       Kept      : Library_Access;
       Recent    : Recent_Access;
       Outline   : Outline_Access;

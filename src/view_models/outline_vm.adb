@@ -229,7 +229,25 @@ package body Outline_VM is
          when Remove_Section | Toggle_Notes =>
             (if Index = 0 then Self.Order.Count > 0 else Index <= Self.Order.Count));
 
+   procedure Observe (Self : in out View_Model; Reactions : access Effects'Class) is
+   begin
+      Self.Reactions := (if Reactions = null then null else Reactions.all'Unrestricted_Access);
+   end Observe;
+
+   procedure Run (Self : in out View_Model; What : Command; Index : Natural);
+
    overriding procedure Execute (Self : in out View_Model; What : Command; Index : Natural := 0) is
+   begin
+      if Self.Reactions /= null then
+         Outline_Going (Self.Reactions.all, What, Index);
+      end if;
+      Run (Self, What, Index);
+      if Self.Reactions /= null then
+         Outline_Done (Self.Reactions.all, What, Index);
+      end if;
+   end Execute;
+
+   procedure Run (Self : in out View_Model; What : Command; Index : Natural) is
    begin
       if What in Move_Up | Move_Down | Remove_Section | Toggle_Notes and then Index not in 1 .. Self.Order.Count then
          raise Constraint_Error with "no such section" & Index'Image;
@@ -258,6 +276,6 @@ package body Outline_VM is
             end;
       end case;
       Parts.Bump (Self.Changes);
-   end Execute;
+   end Run;
 
 end Outline_VM;

@@ -2,26 +2,17 @@ with Backgrounds;
 with Preferences;
 with Pomarine.View_Models;
 with Pomarine.Widgets;
-with Pomarine.Widgets.Bindings.For_Commands;
 with Pomarine.Widgets.Buttons;
-with Pomarine.Widgets.Checks;
 with Pomarine.Widgets.Grips;
 with Pomarine.Widgets.Labels;
 with Pomarine.Widgets.Panels;
-with Pomarine.Widgets.Progress_Bars;
 with Pomarine.Widgets.Scrollers;
-with Pomarine.Widgets.Switches;
 with Settings_VM;
 with Settings_VM.Disk;
 with Speech.Models;
 
 --  The settings: their widgets, and the view-model they show with what ties them.
 package View_Parts.Settings is
-
-   Settings_Tag_Base : constant := 100;
-   --  The tag of the settings' first command: the window's own are below it (see View.Command).
-
-   package Binding is new Pomarine.Widgets.Bindings.For_Commands (Settings_VM.Commands, Settings_Tag_Base);
 
    type Background_Card is limited record
       Whole  : Pomarine.Widgets.Panels.Panel;
@@ -45,42 +36,18 @@ package View_Parts.Settings is
       --  bar across the top, which stays, and below it the form, scrolled.
       Settings_Bar   : Pomarine.Widgets.Panels.Panel;
       Settings_Title : Pomarine.Widgets.Labels.Label;
-      Settings_Close : Pomarine.Widgets.Buttons.Button;
       Settings_Scroll  : Pomarine.Widgets.Scrollers.Scroller;
       Settings_Content : Pomarine.Widgets.Panels.Panel;
       --  Centres the form, which is as wide as a page in the writing view.
       Settings_Form  : Pomarine.Widgets.Panels.Panel;
       Form_Wide      : Float := 0.0;
       --  Its width, in points, as last set (see Settings_View.Fit).
-      Speech_Heading : Pomarine.Widgets.Labels.Label;
-      Model_Name     : Pomarine.Widgets.Labels.Label;
-      Model_Native   : Pomarine.Widgets.Checks.Check;
-      Model_Parakeet : Pomarine.Widgets.Checks.Check;
-      --  Speech's one option, Model: a radio for each.
-      Display_Heading : Pomarine.Widgets.Labels.Label;
-      Theme_Name     : Pomarine.Widgets.Labels.Label;
-      Theme_Light    : Pomarine.Widgets.Checks.Check;
-      Theme_Dark     : Pomarine.Widgets.Checks.Check;
-      Theme_System   : Pomarine.Widgets.Checks.Check;
-      Background_Name : Pomarine.Widgets.Labels.Label;
-      --  Display's options, Theme and Background: a radio for each theme, and for the background
-      --  a row of cards, scrolled across, each a small picture of a window drawn on it, with its name
-      --  below.
       Background_Scroll : Pomarine.Widgets.Scrollers.Scroller;
       Background_Row : Pomarine.Widgets.Panels.Panel;
       Cards          : Background_Card_Array;
-      Download_Row   : Pomarine.Widgets.Panels.Panel;
-      Download_Button : Pomarine.Widgets.Buttons.Button;
-      Delete_Button  : Pomarine.Widgets.Buttons.Button;
-      Download_State : Pomarine.Widgets.Labels.Label;
-      Download_Bar   : Pomarine.Widgets.Progress_Bars.Progress_Bar;
-      --  Under the radios, with Parakeet chosen: the button to fetch its
-      --  file, shown while it is not there, or else the button to delete
-      --  it; what is the matter with it, or how big it is, or, while it
-      --  comes, how far.
-      Graphics_Heading : Pomarine.Widgets.Labels.Label;
-      VSync_Switch   : Pomarine.Widgets.Switches.Switch;
-      --  Graphics' one option, VSync.
+      --  Display's Background: a row of cards, scrolled across, each a small picture of a window drawn on
+      --  it, with its name below. The rest of the form (the choices of theme and speech model, the
+      --  download, VSync) is the view's controls, bound to the view-model (see View.Build.Settings_Form).
    end record;
    --  The widgets of the settings. What is chosen in them is Settings_Choices'.
 
@@ -90,8 +57,6 @@ package View_Parts.Settings is
       Files  : aliased Settings_VM.Disk.File_Store;
       Voice  : aliased Settings_VM.Disk.Speech_Files;
       --  Where the choices are kept, and the speech model's files.
-      Judge  : aliased Binding.Judge;
-      --  What the tree asks about the commands of the widgets.
       Seen   : Pomarine.View_Models.Watch;
       --  The model's version as the widgets last showed it.
       Download_Seen : Speech.Models.States := Speech.Models.Idle;

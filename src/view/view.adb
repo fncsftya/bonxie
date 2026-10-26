@@ -1,4 +1,4 @@
-with Settings_VM;
+with Pomarine.Widgets.Menus;
 with Speech.Models;
 with Scripts;
 with Pomarine.Accessibility;
@@ -36,6 +36,44 @@ package body View is
    package Widgets renames Pomarine.Widgets;
    package Labels renames Pomarine.Widgets.Labels;
 
+   function Menu_Of (Self : Menu_Router; What : Menu_VM.Command)
+      return access Pomarine.Widgets.Menus.Menu is
+   begin
+      case What is
+         when Menu_VM.Source_Menu => return Self.Owner.Page_View.Menu'Unrestricted_Access;
+         when Menu_VM.Context_Menu => return Self.Owner.Context.Context_Menu'Unrestricted_Access;
+         when Menu_VM.Section_Menu => return Self.Owner.Section_Menu.Menu'Unrestricted_Access;
+         when Menu_VM.Grammar_Menu => return Self.Owner.Grammar_Checks.Inline_Menu'Unrestricted_Access;
+         when Menu_VM.Format_Menu => return Self.Owner.Publish_View.Format_Menu'Unrestricted_Access;
+      end case;
+   end Menu_Of;
+
+   overriding function Allowed (Self : Menu_Router; What : Menu_VM.Command; Row : Natural) return Boolean is
+   begin
+      if Self.Owner = null then
+         return False;
+      end if;
+      declare
+         Menu : Pomarine.Widgets.Menus.Menu renames Menu_Of (Self, What).all;
+      begin
+         return Widgets.Is_Shown (Menu) and then Row in 1 .. Pomarine.Widgets.Menus.Row_Count (Menu)
+           and then Pomarine.Widgets.Menus.Is_Enabled (Menu, Row);
+      end;
+   end Allowed;
+
+   overriding procedure Choose (Self : in out Menu_Router; What : Menu_VM.Command; Row : Positive) is
+      Item : Session renames Self.Owner.all;
+      Event : constant Widgets.Widget_Event := (Kind => Widgets.Choose, Row => Row, others => <>);
+   begin
+      case What is
+         when Menu_VM.Source_Menu => Writing.Source_Chosen (Item, Item.Page_View.Menu, Event);
+         when Menu_VM.Context_Menu => Writing.Context_Chosen (Item, Item.Context.Context_Menu, Event);
+         when Menu_VM.Section_Menu => Section_Links.Choose (Item, Row);
+         when Menu_VM.Grammar_Menu => Grammar.Choose_Inline (Item, Row);
+         when Menu_VM.Format_Menu => Writing.Choose_Format (Item, Row);
+      end case;
+   end Choose;
+
    use Ada.Strings.Unbounded;
    use type Pomarine.View_Models.Version_Number;
    use type Preferences.Theme_Choices;
@@ -49,6 +87,59 @@ package body View is
    overriding function Validate
      (Self : Command_Judge; Tag : Integer; Index : Natural) return Pomarine.Widgets.Command_State is
      (Menus.Validate (Self.Owner.all, Tag, Index));
+
+   overriding procedure Outline_Going (Self : in out Outline_Effects; What : Outline_VM.Command; Index : Natural) is
+      pragma Unreferenced (Index);
+   begin
+      Outlines.Going (Self.Owner.all, What);
+   end Outline_Going;
+
+   overriding procedure Outline_Done (Self : in out Outline_Effects; What : Outline_VM.Command; Index : Natural) is
+   begin
+      Outlines.Done (Self.Owner.all, What, Index);
+   end Outline_Done;
+
+   overriding procedure Turned (Self : in out Layout_Watch) is
+   begin
+      Widgets.Layout (Self.Owner.Root.Widgets, Self.Owner.Host.Target);
+   end Turned;
+
+   overriding procedure Home_Changed (Self : in out Home_Effects) is
+   begin
+      Recent.Sync (Self.Owner.all);
+   end Home_Changed;
+
+   overriding procedure Dialog_Changed (Self : in out Confirm_Effects) is
+   begin
+      Deletion.Sync (Self.Owner.all);
+   end Dialog_Changed;
+
+   overriding procedure Answered (Self : in out Confirm_Effects; Said : Confirm_VM.Answer) is
+   begin
+      Deletion.Answered (Self.Owner.all, Said);
+   end Answered;
+
+   overriding procedure Going_To_Execute (Self : in out Nav_Effects; What : Nav_VM.Command; Index : Natural) is
+      pragma Unreferenced (Index);
+   begin
+      Navigation.Going_To_Execute (Self.Owner.all, What);
+   end Going_To_Execute;
+
+   overriding procedure Executed (Self : in out Nav_Effects; What : Nav_VM.Command) is
+      pragma Unreferenced (What);
+   begin
+      Navigation.Executed (Self.Owner.all);
+   end Executed;
+
+   overriding procedure Done (Self : in out Settings_Effects; What : Settings_VM.Command) is
+   begin
+      Settings_View.Done (Self.Owner.all, What);
+   end Done;
+
+   overriding procedure Ask_To_Delete (Self : in out Settings_Effects; Size : String) is
+   begin
+      Settings_View.Confirm_Delete (Self.Owner.all, Size);
+   end Ask_To_Delete;
 
    overriding procedure Handle_Event
      (Self   : in out Responder;

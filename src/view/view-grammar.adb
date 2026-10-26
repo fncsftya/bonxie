@@ -1,3 +1,6 @@
+with View.Menu_Commands;
+with Pomarine.UI.Menus;
+with Pomarine.UI;
 with Grammar_Rules;
 with Grammar_VM;
 with Harper;
@@ -20,14 +23,21 @@ with View.Grammar.Basics;
 with View.Grammar.Cards;
 
 package body View.Grammar is
+   procedure Choose_Inline (Item : in out Session; Row : Positive) is
+   begin
+      Cards.Inline_Chosen (Item, Item.Grammar_Checks.Inline_Menu,
+            (Kind => Pomarine.Widgets.Choose, Row => Row, others => <>));
+   end Choose_Inline;
 
    package Docs renames Texts.Documents;
    package Areas renames Pomarine.Text_Areas;
    package Editors renames Pomarine.Widgets.Editors;
+   package UI renames Pomarine.UI;
    package Widgets renames Pomarine.Widgets;
    package Buttons renames Pomarine.Widgets.Buttons;
    package Labels renames Pomarine.Widgets.Labels;
    package Layouts renames Pomarine.Widgets.Layouts;
+   package Menu_Rows renames Pomarine.UI.Menus;
    package Menus renames Pomarine.Widgets.Menus;
    package Panels renames Pomarine.Widgets.Panels;
    package Text_Fields renames Pomarine.Widgets.Text_Fields;
@@ -206,74 +216,126 @@ package body View.Grammar is
    procedure Build (Item : in out Session) is
       State : Grammar_State renames Item.Grammar_Checks;
       use Layouts;
-
-      procedure Add_Footer_Button (Button : in out Buttons.Button; Caption : String; Wide : Float) is
-      begin
-         Buttons.Add (State.Content, Button, Buttons.Looks (Caption, Focusable => True),
-                      (Place => Absolute, Width => Wide, Height => 28.0, others => <>));
-         Widgets.Set_Visible (Button, False);
-      end Add_Footer_Button;
    begin
-      Layouts.Add (Item.Toolbar.Content_Panel, State.Popout,
-                   (Place => Absolute, Width => 360.0, Height => 520.0, Flow => Column, Outlined => True,
-                    Shadowed => True, Padding => (others => 8.0), others => <>));
+      Open (Item.Forms (Grammar_Region), Item.Root.Widgets'Unchecked_Access, Grammar_Region);
+      declare
+         Form : UI.View renames Item.Forms (Grammar_Region).Screen.all;
+         Rows : UI.Layout_Array (1 .. 1 + State.Cards'Length + State.Actions'Length + 3);
+         Last : Natural := 0;
+
+         procedure Add (Row : UI.Layout) is
+         begin
+            Last := Last + 1;
+            Rows (Last) := Row;
+         end Add;
+
+         procedure Add_Footer_Button (Part : in out Buttons.Button; Caption : String; Wide : Float) is
+         begin
+            Buttons.Configure (Part, Buttons.Looks (Caption, Focusable => True));
+            Add (UI.Styled (UI.Put (Form, Part), (Place => Absolute, Width => Wide, Height => 28.0, others => <>)));
+         end Add_Footer_Button;
+      begin
+         --  The cards of the suggestions, the buttons that apply them, and the ones of what is chosen in a
+         --  card, are put by hand, over each other (Absolute), in the content of the scroller.
+         Add (UI.Styled
+                (UI.Put (Form, State.Empty),
+                 (Place => Absolute, Position => (Top | Left => 8.0, others => <>), Height => 24.0, Width => 300.0,
+                  others => <>)));
+         for Index in State.Cards'Range loop
+            Add (UI.Styled
+                   (UI.Put (Form, State.Cards (Index)),
+                    (Place => Absolute, Width => 320.0, Height => 40.0, others => <>)));
+         end loop;
+         for Number in State.Actions'Range loop
+            Buttons.Configure (State.Actions (Number), Buttons.Looks ("Apply", Buttons.Primary, Focusable => True));
+            Add (UI.Styled
+                   (UI.Put (Form, State.Actions (Number)),
+                    (Place => Absolute, Width => 56.0, Height => 28.0, others => <>)));
+         end loop;
+         Add_Footer_Button (State.Add_Rule, "Add rule", 76.0);
+         Add_Footer_Button (State.Ignore_Text, "Ignore", 60.0);
+         Add (UI.Put (Form, State.Measure_Card));
+
+         declare
+            Scrolled : constant UI.Layout :=
+              UI.Styled
+                (UI.Put_In
+                   (Form, State.Scroll,
+                    [UI.Styled
+                       (UI.Put_In (Form, State.Content, Rows),
+                        (Height => 40.0, Flow => Column, Shrink => 0.0, others => <>))]),
+                 (Grow => 1.0, Height => 0.0, others => <>));
+            Heading : constant UI.Layout :=
+              UI.Styled (UI.Put (Form, State.Heading), (Height => 32.0, Shrink => 0.0, others => <>));
+            Popout : constant UI.Layout :=
+              UI.Styled
+                (UI.Put_In (Form, State.Popout, [Heading, Scrolled]),
+                 (Place => Absolute, Width => 360.0, Height => 520.0, Flow => Column, Outlined => True,
+                  Shadowed => True, Padding => (others => 8.0), others => <>));
+            Inline : constant UI.Layout :=
+              Menu_Commands.Place (Item, Form, State.Inline_Menu, Menu_VM.Grammar_Menu,
+                                   (Place => Absolute, Width => 200.0, others => <>));
+
+            Buttons_Row : constant UI.Layout :=
+              UI.Styled
+                (UI.Put_In
+                   (Form, State.Entry_Row,
+                    [UI.Styled
+                       (UI.Put (Form, State.Entry_Ok), (Width => 76.0, Height => 28.0, others => <>)),
+                     UI.Styled
+                       (UI.Put (Form, State.Entry_Cancel), (Width => 64.0, Height => 28.0, others => <>))],
+                    Flow => Layouts.Row),
+                 (Height => 28.0, Shrink => 0.0, Flow => Layouts.Row, Gap => 8.0, Spread => Between, others => <>));
+            Entry_Box : constant UI.Layout :=
+              UI.Styled
+                (UI.Put_In
+                   (Form, State.Entry_Panel,
+                    [UI.Styled (UI.Put (Form, State.Entry_Prompt), (Height => 22.0, Shrink => 0.0, others => <>)),
+                     UI.Styled (UI.Put (Form, State.Entry_Field), (Height => 36.0, Shrink => 0.0, others => <>)),
+                     Buttons_Row]),
+                 (Place => Absolute, Width => Entry_Width, Height => 124.0, Flow => Column, Outlined => True,
+                  Shadowed => True, Padding => (others => 8.0), Gap => 6.0, others => <>));
+         begin
+            Buttons.Configure (State.Entry_Ok, Buttons.Looks ("Add rule", Buttons.Primary, Focusable => True));
+            Buttons.Configure (State.Entry_Cancel, Buttons.Looks ("Cancel", Focusable => True));
+            UI.Mount_Into (Form, Content_Panel (Item).all, Popout);
+            UI.Mount_Into (Form, Content_Panel (Item).all, Inline);
+            UI.Mount_Into (Form, Content_Panel (Item).all, Entry_Box);
+         end;
+      end;
+
       Panels.Set_Fill (State.Popout, Pomarine.Themes.Background);
       Panels.Set_Border (State.Popout, Pomarine.Themes.Border);
       Panels.Set_Shadow (State.Popout, Pomarine.Themes.Shadow);
       Panels.Set_Radius (State.Popout, Pomarine.Themes.Large_Radius);
-      Layouts.Add (State.Popout, State.Heading, (Height => 32.0, Shrink => 0.0, others => <>));
-      Layouts.Add (State.Popout, State.Scroll, (Grow => 1.0, Height => 0.0, others => <>));
       Labels.Set_Text (State.Heading, "Grammar Suggestions");
       Labels.Set_Style (State.Heading, Pomarine.Line_Texts.Heading);
-      Layouts.Add (State.Scroll, State.Content, (Height => 40.0, Flow => Column, Shrink => 0.0, others => <>));
-      Layouts.Add (State.Content, State.Empty,
-                   (Place => Absolute, Position => (Top | Left => 8.0, others => <>), Height => 24.0, Width => 300.0,
-                    others => <>));
       Labels.Set_Text (State.Empty, "No grammar suggestions");
       for Index in State.Cards'Range loop
-         Layouts.Add (State.Content, State.Cards (Index),
-                      (Place => Absolute, Width => 320.0, Height => 40.0, others => <>));
          Widgets.Set_Tag (State.Cards (Index), Widgets.No_Tag, Index);
          Hooks.On (State.Cards (Index), Widgets.Click, Item'Unchecked_Access, Cards.Expand'Access);
          Widgets.Set_Visible (State.Cards (Index), False);
       end loop;
       for Number in State.Actions'Range loop
-         Buttons.Add (State.Content, State.Actions (Number),
-                      Buttons.Looks ("Apply", Buttons.Primary, Focusable => True),
-                      (Place => Absolute, Width => 56.0, Height => 28.0, others => <>));
          Widgets.Set_Tag (State.Actions (Number), Widgets.No_Tag, Number);
          Hooks.On (State.Actions (Number), Widgets.Click, Item'Unchecked_Access, Cards.Apply'Access);
          Widgets.Set_Visible (State.Actions (Number), False);
       end loop;
-      Add_Footer_Button (State.Add_Rule, "Add rule", 76.0);
-      Add_Footer_Button (State.Ignore_Text, "Ignore", 60.0);
+      Widgets.Set_Visible (State.Add_Rule, False);
+      Widgets.Set_Visible (State.Ignore_Text, False);
       Hooks.On (State.Add_Rule, Widgets.Click, Item'Unchecked_Access, Cards.Rule_Clicked'Access);
       Hooks.On (State.Ignore_Text, Widgets.Click, Item'Unchecked_Access, Cards.Ignore_Clicked'Access);
-      Widgets.Add (State.Content, State.Measure_Card);
       Widgets.Set_Visible (State.Measure_Card, False);
       Hooks.On (Item.Page_View.Grammar_Count, Widgets.Click, Item'Unchecked_Access, Cards.Toggle'Access);
       Widgets.Set_Visible (State.Popout, False);
-      Layouts.Add (Item.Toolbar.Content_Panel, State.Inline_Menu, (Place => Absolute, Width => 200.0, others => <>));
-      Hooks.On (State.Inline_Menu, Widgets.Choose, Item'Unchecked_Access, Cards.Inline_Chosen'Access);
       Widgets.Set_Visible (State.Inline_Menu, False);
-      Layouts.Add (Item.Toolbar.Content_Panel, State.Entry_Panel,
-                   (Place => Absolute, Width => Entry_Width, Height => 124.0, Flow => Column, Outlined => True,
-                    Shadowed => True, Padding => (others => 8.0), Gap => 6.0, others => <>));
       Panels.Set_Fill (State.Entry_Panel, Pomarine.Themes.Background);
       Panels.Set_Border (State.Entry_Panel, Pomarine.Themes.Border);
       Panels.Set_Shadow (State.Entry_Panel, Pomarine.Themes.Shadow);
       Panels.Set_Radius (State.Entry_Panel, Pomarine.Themes.Large_Radius);
-      Layouts.Add (State.Entry_Panel, State.Entry_Prompt, (Height => 22.0, Shrink => 0.0, others => <>));
-      Layouts.Add (State.Entry_Panel, State.Entry_Field, (Height => 36.0, Shrink => 0.0, others => <>));
-      Layouts.Add (State.Entry_Panel, State.Entry_Row,
-                   (Height => 28.0, Shrink => 0.0, Flow => Layouts.Row, Gap => 8.0, Spread => Between, others => <>));
       Text_Fields.Set_Shared (State.Entry_Field, Item.Host.Doc_Resources'Unchecked_Access);
       Text_Fields.Configure (State.Entry_Field, Pomarine.Line_Texts.Interface_Font, View.Style.Edit_Size);
       Text_Fields.Attach (State.Entry_Field, State.Entry_Doc'Unchecked_Access);
-      Buttons.Add (State.Entry_Row, State.Entry_Ok, Buttons.Looks ("Add rule", Buttons.Primary, Focusable => True),
-                   (Width => 76.0, Height => 28.0, others => <>));
-      Buttons.Add (State.Entry_Row, State.Entry_Cancel, Buttons.Looks ("Cancel", Focusable => True),
-                   (Width => 64.0, Height => 28.0, others => <>));
       Hooks.On (State.Entry_Ok, Widgets.Click, Item'Unchecked_Access, Cards.Entry_Accepted'Access);
       Hooks.On (State.Entry_Field, Widgets.Submit, Item'Unchecked_Access, Cards.Entry_Accepted'Access);
       Hooks.On (State.Entry_Cancel, Widgets.Click, Item'Unchecked_Access, Cards.Entry_Cancelled'Access);
@@ -368,10 +430,11 @@ package body View.Grammar is
          Doc : Docs.Document renames Areas.Document (Area).all;
          First_Match : Natural := 0;
          Wide : Float := 140.0;
-         Parent_Left : constant Float := Widgets.Left_Of (Item.Toolbar.Content_Panel) / Pixels;
-         Parent_Top : constant Float := Widgets.Top_Of (Item.Toolbar.Content_Panel) / Pixels;
-         Parent_Wide : constant Float := Widgets.Width_Of (Item.Toolbar.Content_Panel) / Pixels;
-         Parent_High : constant Float := Widgets.Height_Of (Item.Toolbar.Content_Panel) / Pixels;
+         Parent_Left : constant Float := Widgets.Left_Of (Content_Panel (Item).all) / Pixels;
+         Parent_Top : constant Float := Widgets.Top_Of (Content_Panel (Item).all) / Pixels;
+         Parent_Wide : constant Float := Widgets.Width_Of (Content_Panel (Item).all) / Pixels;
+         Parent_High : constant Float := Widgets.Height_Of (Content_Panel (Item).all) / Pixels;
+         Content : Menu_Rows.Content;
          use Layouts;
       begin
          if Hit = null or else Widgets.Id_Of (Hit.all) /= Widgets.Id_Of (Item.Docs.Pages (Rank).Text)
@@ -380,7 +443,7 @@ package body View.Grammar is
             return;
          end if;
          Close_Inline (Item);
-         Menus.Clear (State.Inline_Menu);
+
          for Pass in 1 .. 2 loop
             for Index in 1 .. State.Rows.Count loop
                declare
@@ -410,7 +473,7 @@ package body View.Grammar is
                                  C := ' ';
                               end if;
                            end loop;
-                           Menus.Add (State.Inline_Menu, Menus.Action, Label);
+                           Content.Append (Menu_Rows.Row (Menus.Action, Label));
                            State.Inline_Count := State.Inline_Count + 1;
                            State.Inline_Choices (State.Inline_Count) :=
                              (Command => Apply_Suggestion, Row => Index, Suggestion => Number, Token => Mark.Token);
@@ -426,7 +489,7 @@ package body View.Grammar is
          if First_Match = 0 then
             return;
          elsif State.Inline_Count = 0 then
-            Menus.Add (State.Inline_Menu, Menus.Note, "No suggested fixes");
+            Content.Append (Menu_Rows.Row (Menus.Note, "No suggested fixes"));
             State.Inline_Count := 1;
             State.Inline_Choices (1) := (Command => Nothing, Row => First_Match, Suggestion => 0,
                                          Token => State.Rows (First_Match).Token);
@@ -439,19 +502,20 @@ package body View.Grammar is
 
             procedure Add_Command (Label : String; Which : Choice_Command) is
             begin
-               Menus.Add (State.Inline_Menu, Menus.Action, Label);
+               Content.Append (Menu_Rows.Row (Menus.Action, Label));
                State.Inline_Count := State.Inline_Count + 1;
                State.Inline_Choices (State.Inline_Count) :=
                  (Command => Which, Row => First_Match, Suggestion => 0, Token => Token);
             end Add_Command;
          begin
-            Menus.Add (State.Inline_Menu, Menus.Separator);
+            Content.Append (Menu_Rows.Row (Menus.Separator));
             State.Inline_Count := State.Inline_Count + 1;
             State.Inline_Choices (State.Inline_Count) :=
               (Command => Nothing, Row => First_Match, Suggestion => 0, Token => Token);
             Add_Command ((if Made then "Remove rule" else "Add rule"), (if Made then Remove_Rule else Add_Rule));
             Add_Command ("Ignore", Ignore_Text);
          end;
+         Menu_Rows.Set_Content (State.Inline_Menu, Content);
          Wide := Float'Max (80.0, Float'Min (Float'Min (Wide, 380.0), Parent_Wide - 16.0));
          Menus.Set_Max_Height (State.Inline_Menu, Float'Max (40.0, Float'Min (240.0, Parent_High - 16.0)));
          declare

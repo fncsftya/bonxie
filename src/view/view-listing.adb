@@ -1,4 +1,5 @@
 with Icon_Set;
+with Pomarine.UI;
 with Pomarine.Widgets.Lists;
 with Nav_VM;
 with View.Navigation;
@@ -30,14 +31,17 @@ package body View.Listing is
       Models.Set_Action (Content, Remove, Icon_Set.Delete, "Remove", Danger => True);
    end Describe;
 
+   function Overlay (Item : Session) return access Pomarine.Widgets.Widget'Class is
+     (Pomarine.UI.Panel_Of (Item.Forms (List_Region).Screen.all, Item.Item_List.Overlay));
+
    procedure Refresh (Item : in out Session) is
    begin
       Item_List_VM.Refresh (Item.Item_List.Model);
       if not Pomarine.View_Models.Changed (Item.Item_List.Seen, Item_List_VM.Version (Item.Item_List.Model)) then
          return;
       end if;
-      Widgets.Set_Visible (Item.Item_List.List_None, Item_List_VM.Count (Item.Item_List.Model) = 0);
-      Widgets.Set_Visible (Item.Item_List.List_View, Item_List_VM.Count (Item.Item_List.Model) > 0);
+      --  The words that say there are none, or the list, are the view's.
+      Pomarine.UI.Synchronize (Item.Forms (List_Region).Screen.all);
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
    end Refresh;
 
@@ -46,11 +50,12 @@ package body View.Listing is
       --  What is typed in is not for the list, but the keys are: the
       --  list has the focus.
       Widgets.Clear_Focus (Item.Root.Widgets);
-      Widgets.Set_Visible (Item.Item_List.List_Overlay, True);
+      Widgets.Set_Visible (Overlay (Item).all, True);
       Refresh (Item);
       Lists.Select_Row (Item.Item_List.List_View, 0);
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
-      Widgets.Set_Focus_Scope (Item.Root.Widgets, Item.Item_List.List_Border);
+      Widgets.Set_Focus_Scope
+        (Item.Root.Widgets, Pomarine.UI.Panel_Of (Item.Forms (List_Region).Screen.all, Item.Item_List.Border).all);
       if Item_List_VM.Count (Item.Item_List.Model) > 0 then
          Widgets.Focus (Item.Item_List.List_View);
       end if;
@@ -60,7 +65,7 @@ package body View.Listing is
    begin
       Widgets.Clear_Focus_Scope (Item.Root.Widgets);
       Widgets.Clear_Focus (Item.Root.Widgets);
-      Widgets.Set_Visible (Item.Item_List.List_Overlay, False);
+      Widgets.Set_Visible (Overlay (Item).all, False);
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
    end Hide_List;
 

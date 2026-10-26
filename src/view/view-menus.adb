@@ -1,5 +1,6 @@
 with Nav_VM;
 with Pomarine.Native_Menus;
+with Pomarine.UI;
 
 package body View.Menus is
 
@@ -14,15 +15,12 @@ package body View.Menus is
 
    function Validate (Item : Session; Tag : Integer; Index : Natural) return Widgets.Command_State is
    begin
-      if Binding.Is_Mine (Tag) then
-         return Binding.Validate (Item.Choices.Judge, Tag, Index);
-      elsif Home_Binding.Is_Mine (Tag) then
-         return Home_Binding.Validate (Item.Home_Model.Judge, Tag, Index);
-      elsif Outline_Binding.Is_Mine (Tag) then
-         return Outline_Binding.Validate (Item.Outline_Model.Judge, Tag, Index);
-      elsif Confirm_Binding.Is_Mine (Tag) then
-         return Confirm_Binding.Validate (Item.Dialog_Model.Judge, Tag, Index);
-      elsif Nav_Binding.Is_Mine (Tag) then
+      for Each of Item.Forms loop
+         if Each.Screen /= null and then Pomarine.UI.Owns_Tag (Each.Screen.all, Tag) then
+            return Pomarine.UI.Command_State (Each.Screen.all, Tag, Index);
+         end if;
+      end loop;
+      if Nav_Binding.Is_Mine (Tag) then
          declare
             State : constant Widgets.Command_State := Nav_Binding.Validate (Item.Nav_Model.Judge, Tag, Index);
             What  : constant Nav_VM.Command := Nav_VM.Command'Val (Tag - Nav_Tag_Base);

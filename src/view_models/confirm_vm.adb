@@ -14,7 +14,15 @@ package body Confirm_VM is
       Self.Name := Unbounded.To_Unbounded_String (Name);
       Self.Size := Unbounded.To_Unbounded_String (Size);
       Parts.Bump (Self.Changes);
+      if Self.Reactions /= null then
+         Self.Reactions.Dialog_Changed;
+      end if;
    end Ask;
+
+   procedure Observe (Self : in out View_Model; Reactions : access Effects'Class) is
+   begin
+      Self.Reactions := (if Reactions = null then null else Reactions.all'Unrestricted_Access);
+   end Observe;
 
    procedure Ask_Project (Self : in out View_Model; Row : Positive; Name : String) is
    begin
@@ -83,6 +91,12 @@ package body Confirm_VM is
       Self.Given := (if What = Confirm then Self.Asked else (others => <>));
       Self.Asked := (others => <>);
       Parts.Bump (Self.Changes);
+      if Self.Reactions /= null then
+         Self.Reactions.Dialog_Changed;
+         if What = Confirm then
+            Self.Reactions.Answered (Self.Given);
+         end if;
+      end if;
    end Execute;
 
    function Last_Answer (Self : View_Model) return Answer is (Self.Given);

@@ -8,6 +8,7 @@ with Preferences;
 with Grammar_VM.Stored;
 with Home_VM.Stored;
 with Canvas_VM;
+with Confirm_VM;
 with Canvas_VM.Stored;
 with Nav_VM;
 with Nav_VM.Stored;
@@ -17,10 +18,12 @@ with Settings_VM.Disk;
 with Speech.Models;
 with Icon_Set;
 with Pomarine.Line_Texts;
+with Pomarine.UI;
 with Pomarine.Widgets;
 with Pomarine.Widgets.Layouts;
 with View.Canvas_Items;
 with View.Links;
+with View.Listing;
 with View.Section_Links;
 with View.Writing;
 with View.Outlines;
@@ -85,33 +88,11 @@ package body View.Build is
          Buttons.Set_Focusable (Part, True);
       end Stop;
 
-      procedure Stop (Part : in out Grips.Grip) is
-      begin
-         Grips.Set_Focusable (Part, True);
-      end Stop;
    begin
-      Stop (Item.Home_View.New_Button);
-      Stop (Item.Home_View.Settings_Button);
-      Stop (Item.Home_View.New_Card);
-      Widgets.Set_Accessible_Name (Item.Home_View.New_Card, "New project");
       --  The plus in the card does what the card does: not a stop of its own,
       --  nor a button more to an assistive technology.
-      Widgets.Hide_From_Accessibility (Item.Home_View.New_Card_Plus);
-      Stop (Item.Home_View.Ok_Button);
-      Stop (Item.Home_View.Cancel_Button);
-      for Each of Item.Home_View.Cards loop
-         Stop (Each.Peek);
-         Stop (Each.Rename);
-         Stop (Each.Delete);
-      end loop;
-      Stop (Item.Confirm.Dialog_Close);
-      Stop (Item.Confirm.Confirm_Cancel);
-      Stop (Item.Confirm.Confirm_Delete);
-      Stop (Item.Prefs.Settings_Close);
-      Stop (Item.Dock.Tool_Item);
-      Stop (Item.Dock.Tool_Source);
-      Stop (Item.Dock.Tool_List);
-      Stop (Item.Item_List.List_Close);
+      Widgets.Hide_From_Accessibility
+        (Pomarine.UI.Widget_Of (Item.Forms (Home_Region).Screen.all, Item.Home_View.New_Card_Plus).all);
       Stop (Item.Page_View.Docs_Add);
       Stop (Item.Page_View.Docs_Folder);
    end Make_Tab_Stops;
@@ -212,10 +193,15 @@ package body View.Build is
       Grammar_VM.Initialize (Item.Grammar_Model.Model, Item.Grammar_Model.Library'Unchecked_Access);
       Outline_VM.Stored.Open (Item.Outline_Model.Library, Item.Nav.Store'Unchecked_Access);
       Outline_VM.Initialize (Item.Outline_Model.Model, Item.Outline_Model.Library'Unchecked_Access);
-      Outline_Binding.Observe (Item.Outline_Model.Judge, Item.Outline_Model.Model'Unchecked_Access);
-      Home_Binding.Observe (Item.Home_Model.Judge, Item.Home_Model.Model'Unchecked_Access);
-      Confirm_Binding.Observe (Item.Dialog_Model.Judge, Item.Dialog_Model.Model'Unchecked_Access);
+      Item.Outline_Reactions.Owner := Item'Unchecked_Access;
+      Outline_VM.Observe (Item.Outline_Model.Model, Item.Outline_Reactions'Access);
+      Item.Layout_Watcher.Owner := Item'Unchecked_Access;
+      Item.Home_Reactions.Owner := Item'Unchecked_Access;
+      Home_VM.Observe (Item.Home_Model.Model, Item.Home_Reactions'Access);
+      Item.Confirm_Reactions.Owner := Item'Unchecked_Access;
+      Confirm_VM.Observe (Item.Dialog_Model.Model, Item.Confirm_Reactions'Access);
       Scripts.Load (Item.Host.Script, Source, File_Name);
+      Item.Settings_Reactions.Owner := Item'Unchecked_Access;
       declare
          Config  : constant String := Preferences.Config_Directory (Store_Path);
          Persist : constant Boolean := Store_Path /= Projects.Memory;
@@ -240,7 +226,7 @@ package body View.Build is
                Kept_Speech => Preferences.Load_Speech_Model (Config),
                Kept_Theme => Preferences.Load_Theme (Config),
                Kept_Background => Preferences.Load_Background (Config),
-               Kept_VSync => Preferences.Load_VSync (Config));
+               Kept_VSync => Preferences.Load_VSync (Config), Reactions => Item.Settings_Reactions'Access);
             --  The system may have let go of the compiled model: have it
             --  ready, in the background, before it is wanted.
             if Preferences."=" (Settings_VM.Speech_Model (Choices.Model), Preferences.Parakeet) then
@@ -250,7 +236,8 @@ package body View.Build is
             --  Offscreen, the light theme, whatever the system's is.
             Settings_VM.Initialize
               (Choices.Model, Choices.Voice'Unchecked_Access, null, Config,
-               Kept_Theme => Preferences.Light, Kept_Background => Preferences.Fixed);
+               Kept_Theme => Preferences.Light, Kept_Background => Preferences.Fixed,
+               Reactions => Item.Settings_Reactions'Access);
          end if;
       end;
       Nav_VM.Stored.Open (Item.Nav_Model.Library, Item.Nav.Store'Unchecked_Access);
@@ -273,12 +260,13 @@ package body View.Build is
       Canvas_VM.Initialize
         (Item.Canvas_Model.Model, Item.Canvas_Model.Library'Unchecked_Access, Item.Room'Unchecked_Access,
          Item.Models'Unrestricted_Access);
+      Item.Nav_Reactions.Owner := Item'Unchecked_Access;
+      Nav_VM.Observe (Item.Nav_Model.Model, Item.Nav_Reactions'Access);
       Item.Item_List.View.Owner := Item'Unchecked_Access;
       Item_List_VM.Initialize
         (Item.Item_List.Model, Item.Canvas_Model.Model'Unchecked_Access,
          Item.Models'Unrestricted_Access, Item.Item_List.View'Unchecked_Access);
       Item.Judge.Owner := Item'Unchecked_Access;
-      Binding.Observe (Item.Choices.Judge, Item.Choices.Model'Unchecked_Access);
       Nav_Binding.Observe (Item.Nav_Model.Judge, Item.Nav_Model.Model'Unchecked_Access);
       Widgets.Set_Validator (Item.Root.Widgets, Item.Judge'Unchecked_Access);
       Widgets.Set_Density (Item.Root.Widgets, Item.Shell.Density);
@@ -336,19 +324,23 @@ package body View.Build is
       Make_Tab_Stops (Item);
       Widgets.Set_Listener (Item.Root.Widgets, Item.Replies'Unchecked_Access);
       Item.Replies.Owner := Item'Unchecked_Access;
-      Buttons.Configure (Item.Home_View.Ok_Button, Buttons.Looks ("OK", Buttons.Primary));
-      Buttons.Set_Label (Item.Home_View.Cancel_Button, "Cancel");
-      Text_Fields.Set_Shared
-        (Item.Title_Edit.Edit_Field, Item.Host.Doc_Resources'Unchecked_Access);
-      Text_Fields.Configure
-        (Item.Title_Edit.Edit_Field, Pomarine.Line_Texts.Interface_Font, Edit_Size);
+      for Card of Item.Home_View.Cards loop
+         declare
+            Field : Text_Fields.Text_Field renames
+              Pomarine.UI.Widget_Of (Item.Forms (Home_Region).Screen.all, Card.Field).all;
+         begin
+            Text_Fields.Set_Shared (Field, Item.Host.Doc_Resources'Unchecked_Access);
+            Text_Fields.Configure (Field, Pomarine.Line_Texts.Interface_Font, Edit_Size);
+         end;
+      end loop;
 
       --  It starts at the home screen.
-      Widgets.Set_Visible (Item.Toolbar.Project_Panel, False);
+      Widgets.Set_Visible (Project_Panel (Item).all, False);
       Widgets.Set_Visible (Item.Page_View.Write_View, False);
       Widgets.Set_Visible (Item.Outline_View.View, False);
-      Widgets.Set_Visible (Item.Confirm.Overlay, False);
-      Widgets.Set_Visible (Item.Item_List.List_Overlay, False);
+      Widgets.Set_Visible
+        (Pomarine.UI.Panel_Of (Item.Forms (Confirm_Region).Screen.all, Item.Confirm.Overlay).all, False);
+      Widgets.Set_Visible (Listing.Overlay (Item).all, False);
       Widgets.Set_Visible (Item.Dock.Dock_Panel, False);
       Recent.Refresh (Item);
       --  Before any event: the widgets must know where they are.

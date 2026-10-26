@@ -1,5 +1,8 @@
 with System;
+with Reader_VM;
+with Pomarine.UI.Hosts;
 with Items.Marks;
+with Items.Models;
 with Pomarine.Themes;
 with Pomarine.Widgets.Buttons;
 with Pomarine.Widgets.Editors;
@@ -208,6 +211,17 @@ private
    type Said_Runner is access procedure
      (Self, Proc : System.Address; Which : Natural; Action : Actions);
 
+   type Reader_Access is access all Reader;
+   type Control_Engine is limited new Reader_VM.Engine with record
+      Owner : Reader_Access;
+   end record;
+   overriding function Is_Open (Self : Control_Engine) return Boolean;
+   overriding function Tool (Self : Control_Engine) return Items.Models.Tools;
+   overriding procedure Select_Tool (Self : in out Control_Engine; To : Items.Models.Tools);
+   overriding function Zoom (Self : Control_Engine) return Float;
+   overriding procedure Set_Zoom (Self : in out Control_Engine; Value : Float);
+   overriding procedure Requested (Self : in out Control_Engine; What : Reader_VM.Command);
+
    type Reader is limited record
       Assigned : Boolean := False;
       Said      : Said_Runner;
@@ -246,6 +260,10 @@ private
       Zoom_Slider : Pomarine.Widgets.Sliders.Slider;
       Zoom_Label  : Pomarine.Widgets.Labels.Label;
       Status      : Pomarine.Widgets.Labels.Label;
+      Control_Source : aliased Control_Engine;
+      Controls : aliased Reader_VM.Model;
+      UI_Host : Pomarine.UI.Hosts.Host;
+      --  Last: detach the borrowed controls before their finalization.
    end record;
 
 end Items.Readers;

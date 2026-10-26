@@ -1,4 +1,5 @@
 with Items.Models;
+with Pomarine.UI.Menus;
 with Items;
 with Projects;
 with Pomarine.Boxes;
@@ -10,11 +11,13 @@ with Projects.Sections;
 with View.Canvas_Items;
 with View.Style;
 with Icon_Set;
+with Pomarine.Icons;
 
 package body View.Section_Links is
 
    package Widgets renames Pomarine.Widgets;
    package Layouts renames Pomarine.Widgets.Layouts;
+   package Rows renames Pomarine.UI.Menus;
    package Menus renames Pomarine.Widgets.Menus;
    package Hooks is new Pomarine.Widgets.Callbacks (Session);
 
@@ -67,14 +70,14 @@ package body View.Section_Links is
       Wide   : constant Float := Menu_Wide * Pixels;
       Full   : constant Float := Menus.Height_For (Parts.Menu) * Pixels;
       Gap    : constant Float := Style.Menu_Gap * Pixels;
-      Panel_Top : constant Float := Widgets.Top_Of (Item.Toolbar.Content_Panel);
-      Panel_Left : constant Float := Widgets.Left_Of (Item.Toolbar.Content_Panel);
-      Panel_Wide : constant Float := Widgets.Width_Of (Item.Toolbar.Content_Panel);
+      Panel_Top : constant Float := Widgets.Top_Of (Content_Panel (Item).all);
+      Panel_Left : constant Float := Widgets.Left_Of (Content_Panel (Item).all);
+      Panel_Wide : constant Float := Widgets.Width_Of (Content_Panel (Item).all);
       --  What the menu has room in: above the button, or below it; never
       --  over it.
       Above  : constant Float := Float'Max (0.0, Box.Top - Panel_Top - Gap);
       Below  : constant Float :=
-        Float'Max (0.0, Panel_Top + Widgets.Height_Of (Item.Toolbar.Content_Panel) - (Box.Top + Box.Height) - Gap);
+        Float'Max (0.0, Panel_Top + Widgets.Height_Of (Content_Panel (Item).all) - (Box.Top + Box.Height) - Gap);
       Up     : constant Boolean :=
         (if Above >= Full and then Below >= Full then Parts.Page = 0
          elsif Above >= Full then True
@@ -115,14 +118,13 @@ package body View.Section_Links is
       Parts : Section_Menu_Parts renames Item.Section_Menu;
       Total : constant Natural := Outlines.Section_Count (Item);
       Own   : constant Natural := Section_Of (Item, Which);
+      Content : Rows.Content := [Rows.Row (Menus.Heading, Heading_Text)];
    begin
       if Parts.Which = Which and then Parts.Page = Page then
          Close (Item);
          return;
       end if;
       Close (Item);
-      Menus.Clear (Parts.Menu);
-      Menus.Add (Parts.Menu, Menus.Heading, Heading_Text);
       for Each of Parts.Rows loop
          Each := 0;
       end loop;
@@ -132,24 +134,22 @@ package body View.Section_Links is
             Section : constant Projects.Sections.Section := Outlines.Section_At (Item, Each);
             Row     : Positive;
          begin
-            Menus.Add
-              (Parts.Menu, Menus.Check,
-               Projects.Sections.Title_Texts.To_String (Section.Title),
-               Checked => Each = Own);
-            Row := Menus.Row_Count (Parts.Menu);
-            Menus.Set_Swatch (Parts.Menu, Row, Style.Section_Ink (Section.Colour));
+            Content.Append
+              (Rows.Row (Menus.Check, Projects.Sections.Title_Texts.To_String (Section.Title),
+                         Checked => Each = Own, Swatch => Style.Section_Ink (Section.Colour)));
+            Row := Rows.Count (Content);
             Parts.Rows (Row) := Each;
          end;
       end loop;
       if Total = 0 then
-         Menus.Add (Parts.Menu, Menus.Note, "No sections yet");
+         Content.Append (Rows.Row (Menus.Note, "No sections yet"));
       end if;
       if Own /= 0 then
-         Menus.Add (Parts.Menu, Menus.Separator);
-         Menus.Add (Parts.Menu, Menus.Action, "Remove link");
-         Menus.Set_Icon (Parts.Menu, Menus.Row_Count (Parts.Menu), Icon_Set.Delete);
-         Parts.Remove := Menus.Row_Count (Parts.Menu);
+         Content.Append (Rows.Row (Menus.Separator));
+         Content.Append (Rows.Row (Menus.Action, "Remove link", Icon => Pomarine.Icons.Shown (Icon_Set.Delete)));
+         Parts.Remove := Rows.Count (Content);
       end if;
+      Rows.Set_Content (Parts.Menu, Content);
       Parts.Which := Which;
       Parts.Page := Page;
       Parts.Left := -1.0E9;
@@ -239,19 +239,6 @@ package body View.Section_Links is
       end;
    end Choose;
 
-   procedure Chosen
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
-
-   procedure Chosen
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source);
-   begin
-      if Item.Section_Menu.Which /= 0 and then Event.Row /= 0 then
-         Choose (Item, Event.Row);
-      end if;
-   end Chosen;
-
    procedure Page_Clicked
      (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
 
@@ -265,12 +252,6 @@ package body View.Section_Links is
          Open (Item, Trees.Page_At (Item.Docs.Ordering, Rank), Page => Rank);
       end if;
    end Page_Clicked;
-
-   procedure Listen (Item : in out Session) is
-      use all type Widgets.Event_Kind;
-   begin
-      Hooks.On (Item.Section_Menu.Menu, Choose, Item'Unchecked_Access, Chosen'Access);
-   end Listen;
 
    procedure Listen_Page (Item : in out Session; Rank : Items.Slot) is
       use all type Widgets.Event_Kind;

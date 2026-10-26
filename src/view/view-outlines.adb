@@ -138,14 +138,33 @@ package body View.Outlines is
       end if;
    end Shown;
 
-   --  What is done to the sections
+   --  What is done to the sections: the view-model does it (its buttons are the view's, bound to it), and says
+   --  so, around it (Outline_VM.Effects).
 
-   procedure Add_Section (Item : in out Session) is
+   procedure Going (Item : in out Session; What : Outline_VM.Command) is
+      pragma Unreferenced (What);
+   begin
+      Sync (Item);
+   end Going;
+
+   procedure Show_Notes (Item : in out Session; Which : Positive; Focus : Boolean) is
+      Pane     : Outline_Parts renames Item.Outline_View;
+      Block    : Section_Block renames Pane.Blocks (Which);
+      Now_Open : constant Boolean := Outline_VM.Is_Open (Item.Outline_Model.Model, Which);
+   begin
+      Buttons.Set_Selected (Block.Notes, Now_Open);
+      Widgets.Set_Visible (Block.Notes_Sheet, Now_Open);
+      Widgets.Request_Layout (Block.Row);
+      Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
+      if Now_Open and then Focus then
+         Widgets.Focus (Block.Notes_Text);
+      end if;
+   end Show_Notes;
+
+   procedure Show_Added (Item : in out Session) is
       Pane  : Outline_Parts renames Item.Outline_View;
       Model : Outline_VM.View_Model renames Item.Outline_Model.Model;
    begin
-      Sync (Item);
-      Outline_VM.Execute (Model, Outline_VM.Add_Section);
       Support.Reserve (Item);
       Blocks.Show_Blocks (Item);
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
@@ -161,6 +180,25 @@ package body View.Outlines is
          Widgets.Focus (Block.Field);
          Pomarine.Text_Areas.Select_All (Text_Fields.Area (Block.Field).all);
       end;
+   end Show_Added;
+
+   procedure Done (Item : in out Session; What : Outline_VM.Command; Index : Natural) is
+      use all type Outline_VM.Command;
+   begin
+      case What is
+         when Add_Section =>
+            Show_Added (Item);
+         when Move_Up | Move_Down | Remove_Section =>
+            Blocks.Show_Blocks (Item);
+            Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
+         when Toggle_Notes =>
+            Show_Notes (Item, Index, Item.Outline_Model.Focus_Notes);
+      end case;
+   end Done;
+
+   procedure Add_Section (Item : in out Session) is
+   begin
+      Outline_VM.Execute (Item.Outline_Model.Model, Outline_VM.Add_Section);
    end Add_Section;
 
    procedure Move_Section (Item : in out Session; From, To : Positive) is
@@ -176,28 +214,14 @@ package body View.Outlines is
 
    procedure Remove_Section (Item : in out Session; Which : Positive) is
    begin
-      Sync (Item);
       Outline_VM.Execute (Item.Outline_Model.Model, Outline_VM.Remove_Section, Which);
-      Blocks.Show_Blocks (Item);
-      Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
    end Remove_Section;
 
    procedure Toggle_Notes (Item : in out Session; Which : Positive; Focus : Boolean := True) is
-      Pane     : Outline_Parts renames Item.Outline_View;
-      Block    : Section_Block renames Pane.Blocks (Which);
    begin
+      Item.Outline_Model.Focus_Notes := Focus;
       Outline_VM.Execute (Item.Outline_Model.Model, Outline_VM.Toggle_Notes, Which);
-      declare
-         Now_Open : constant Boolean := Outline_VM.Is_Open (Item.Outline_Model.Model, Which);
-      begin
-         Buttons.Set_Selected (Block.Notes, Now_Open);
-         Widgets.Set_Visible (Block.Notes_Sheet, Now_Open);
-         Widgets.Request_Layout (Block.Row);
-         Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
-         if Now_Open and then Focus then
-            Widgets.Focus (Block.Notes_Text);
-         end if;
-      end;
+      Item.Outline_Model.Focus_Notes := True;
    end Toggle_Notes;
 
    function Section_Notes (Item : Session; Which : Positive) return String is
@@ -205,28 +229,6 @@ package body View.Outlines is
 
    function Notes_Shown (Item : Session; Which : Positive) return Boolean is
      (Outline_VM.Is_Open (Item.Outline_Model.Model, Which));
-
-   procedure Do_Command (Item : in out Session; What : Outline_VM.Command; Index : Natural) is
-      use all type Outline_VM.Command;
-   begin
-      if not Support.In_Outline (Item)
-        or else not Outline_VM.Can_Execute (Item.Outline_Model.Model, What, Index)
-      then
-         return;
-      end if;
-      case What is
-         when Add_Section =>
-            Add_Section (Item);
-         when Move_Up =>
-            Move_Section (Item, Index, Index - 1);
-         when Move_Down =>
-            Move_Section (Item, Index, Index + 1);
-         when Remove_Section =>
-            Remove_Section (Item, Index);
-         when Toggle_Notes =>
-            Toggle_Notes (Item, Index);
-      end case;
-   end Do_Command;
 
    procedure Pressed (Item : in out Session; X, Y : Float) is
       Pane   : Outline_Parts renames Item.Outline_View;
@@ -269,7 +271,6 @@ package body View.Outlines is
       Hear (Item.Outline_View.Colour_OK, Click, Clicks.Colour_Accepted'Access);
       Hear (Item.Outline_View.Colour_Cancel, Click, Clicks.Colour_Cancelled'Access);
 
-      Outline_Binding.Bind (Item.Outline_View.Add_Button, Outline_VM.Add_Section);
    end Listen;
 
    procedure Listen_Block (Item : in out Session; Index : Positive) is
@@ -292,10 +293,6 @@ package body View.Outlines is
       Hear (Block.Row, Drag, Blocks.Block_Dragged'Access, Index);
       Hear (Block.Row, Release, Blocks.Block_Released'Access);
       Hear (Block.Field, Submit, Clicks.Title_Submitted'Access);
-      Outline_Binding.Bind (Block.Notes, Outline_VM.Toggle_Notes, Index);
-      Outline_Binding.Bind (Block.Up, Outline_VM.Move_Up, Index);
-      Outline_Binding.Bind (Block.Down, Outline_VM.Move_Down, Index);
-      Outline_Binding.Bind (Block.Remove, Outline_VM.Remove_Section, Index);
    end Listen_Block;
 
 end View.Outlines;

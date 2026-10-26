@@ -1,12 +1,9 @@
 with Backgrounds;
 with Pomarine.Themes;
+with Pomarine.UI;
 with Pomarine.Widgets;
-with Pomarine.Widgets.Checks;
-with Pomarine.Widgets.Labels;
 with Pomarine.Widgets.Panels;
 with Pomarine.Widgets.Scrollers;
-with Pomarine.Widgets.Switches;
-with Pomarine.Widgets.Progress_Bars;
 with Pomarine.Events;
 with Speech.Models;
 with Nav_VM;
@@ -18,12 +15,8 @@ with Pomarine.Widgets.Layouts;
 package body View.Settings_View is
 
    package Widgets renames Pomarine.Widgets;
-   package Checks renames Pomarine.Widgets.Checks;
-   package Labels renames Pomarine.Widgets.Labels;
-   package Progress_Bars renames Pomarine.Widgets.Progress_Bars;
    package Themes renames Pomarine.Themes;
    package Panels renames Pomarine.Widgets.Panels;
-   package Switches renames Pomarine.Widgets.Switches;
    package Scrollers renames Pomarine.Widgets.Scrollers;
 
    use type Speech.Models.States;
@@ -99,29 +92,13 @@ package body View.Settings_View is
       end if;
    end Reveal_Background;
 
-   --  What the view-model says, in the widgets. The setters do nothing when given what the widget has.
+   --  What the view-model says, in the widgets: the form's controls are the view's, which shows it; the
+   --  cards are the application's.
    procedure Draw (Item : in out Session) is
-      Model    : Settings_VM.View_Model renames Item.Choices.Model;
-      Prefs    : Settings_Parts renames Item.Prefs;
-      Parakeet : constant Boolean := Settings_VM.Speech_Model (Model) = Preferences.Parakeet;
-      Theme    : constant Preferences.Theme_Choices := Settings_VM.Theme (Model);
    begin
-      Checks.Set_Checked (Prefs.Model_Native, not Parakeet);
-      Checks.Set_Checked (Prefs.Model_Parakeet, Parakeet);
-      Checks.Set_Checked (Prefs.Theme_Light, Theme = Preferences.Light);
-      Checks.Set_Checked (Prefs.Theme_Dark, Theme = Preferences.Dark);
-      Checks.Set_Checked (Prefs.Theme_System, Theme = Preferences.System);
       Show_Backgrounds (Item);
-      Switches.Set_On (Prefs.VSync_Switch, Settings_VM.VSync (Model));
-      Widgets.Set_Visible (Prefs.Download_Row, Settings_VM.Download_Row_Shown (Model));
-      Widgets.Set_Visible (Prefs.Download_Bar, Settings_VM.Download_Bar_Shown (Model));
-      Widgets.Set_Visible (Prefs.Download_Button, Settings_VM.Download_Button_Shown (Model));
-      Widgets.Set_Visible (Prefs.Delete_Button, Settings_VM.Delete_Button_Shown (Model));
-      Labels.Set_Text (Prefs.Download_State, Settings_VM.Download_Status (Model));
-      if Settings_VM.Download_State (Model) = Speech.Models.Running then
-         Progress_Bars.Set_Value (Prefs.Download_Bar, Settings_VM.Download_Fraction (Model));
-      end if;
-      Item.Choices.Download_Seen := Settings_VM.Download_State (Model);
+      Item.Choices.Download_Seen := Settings_VM.Download_State (Item.Choices.Model);
+      Pomarine.UI.Synchronize (Item.Forms (Settings_Region).Screen.all);
       --  The buttons the commands are on are turned on and off as the view-model says.
       Widgets.Revalidate (Item.Root.Widgets);
    end Draw;
@@ -137,7 +114,7 @@ package body View.Settings_View is
    procedure Show_Form (Item : in out Session) is
    begin
       Widgets.Clear_Focus (Item.Root.Widgets);
-      Widgets.Set_Visible (Item.Home_View.Home_Panel, False);
+      Widgets.Set_Visible (Home_Panel (Item).all, False);
       Widgets.Set_Visible (Item.Prefs.Settings_Panel, True);
       Refresh (Item);
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
@@ -148,7 +125,7 @@ package body View.Settings_View is
    begin
       Widgets.Clear_Focus (Item.Root.Widgets);
       Widgets.Set_Visible (Item.Prefs.Settings_Panel, False);
-      Widgets.Set_Visible (Item.Home_View.Home_Panel, True);
+      Widgets.Set_Visible (Home_Panel (Item).all, True);
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
    end Hide_Form;
 
@@ -162,25 +139,19 @@ package body View.Settings_View is
       Navigation.Do_Command (Item, Nav_VM.Close_Settings);
    end Close;
 
+   --  The view-model does what is chosen and, as Settings_VM.Effects, says Done: what the world does is there.
+
    procedure Choose
      (Item : in out Session; To : Preferences.Speech_Models) is
    begin
       Settings_VM.Execute
         (Item.Choices.Model, Settings_VM.Choose_Speech_Model, Preferences.Speech_Models'Pos (To));
-      if Showing (Item) then
-         Refresh (Item);
-         Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
-      end if;
    end Choose;
 
    procedure Choose_Appearance
      (Item : in out Session; To : Preferences.Theme_Choices) is
    begin
       Settings_VM.Execute (Item.Choices.Model, Settings_VM.Choose_Theme, Preferences.Theme_Choices'Pos (To));
-      Apply_Theme (Item);
-      if Showing (Item) then
-         Refresh (Item);
-      end if;
    end Choose_Appearance;
 
    procedure Choose_VSync (Item : in out Session; To : Boolean) is
@@ -188,23 +159,12 @@ package body View.Settings_View is
       if Settings_VM.VSync (Item.Choices.Model) /= To then
          Settings_VM.Execute (Item.Choices.Model, Settings_VM.Toggle_VSync);
       end if;
-      if Item.Shell.Windowed then
-         SDL3.Windows.Renderers.Set_VSync (Item.Host.Target, To);
-      end if;
-      if Showing (Item) then
-         Refresh (Item);
-      end if;
    end Choose_VSync;
 
    procedure Choose_Background
      (Item : in out Session; To : Preferences.Background_Modes) is
    begin
       Settings_VM.Execute (Item.Choices.Model, Settings_VM.Choose_Background, Choice_Of (To));
-      Apply_Theme (Item);
-      if Showing (Item) then
-         Refresh (Item);
-         Reveal_Background (Item);
-      end if;
    end Choose_Background;
 
    procedure Reseed (Item : in out Session) is
@@ -213,11 +173,6 @@ package body View.Settings_View is
       Backgrounds.Reseed (Item.Host.Background);
       Settings_VM.Execute
         (Item.Choices.Model, Settings_VM.Reseed, Backgrounds.Seed_Number (Item.Host.Background));
-      Apply_Theme (Item);
-      Widgets.Invalidate_All (Item.Root.Widgets);
-      if Showing (Item) then
-         Refresh (Item);
-      end if;
    end Reseed;
 
    procedure Apply_Theme (Item : in out Session) is
@@ -263,34 +218,71 @@ package body View.Settings_View is
    begin
       if Settings_VM.Can_Execute (Item.Choices.Model, Settings_VM.Download_Model) then
          Settings_VM.Execute (Item.Choices.Model, Settings_VM.Download_Model);
-         Refresh (Item);
-         Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
       end if;
    end Download;
 
    procedure Ask_To_Delete (Item : in out Session) is
    begin
-      if Settings_VM.Can_Execute (Item.Choices.Model, Settings_VM.Delete_Model) then
-         Deletion.Confirm_Model
-           (Item, "Its " & Settings_VM.Size_On_Disk_Text (Item.Choices.Model)
-            & " of files go; they can be downloaded again.");
+      if Settings_VM.Can_Execute (Item.Choices.Model, Settings_VM.Confirm_Delete) then
+         Settings_VM.Execute (Item.Choices.Model, Settings_VM.Confirm_Delete);
       end if;
    end Ask_To_Delete;
+
+   procedure Done (Item : in out Session; What : Settings_VM.Command) is
+   begin
+      case What is
+         when Settings_VM.Choose_Theme =>
+            Apply_Theme (Item);
+            if Showing (Item) then
+               Refresh (Item);
+            end if;
+         when Settings_VM.Choose_Background =>
+            Apply_Theme (Item);
+            if Showing (Item) then
+               Refresh (Item);
+               Reveal_Background (Item);
+            end if;
+         when Settings_VM.Choose_Speech_Model | Settings_VM.Download_Model | Settings_VM.Delete_Model =>
+            if Showing (Item) then
+               Refresh (Item);
+               Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
+            end if;
+         when Settings_VM.Toggle_VSync =>
+            if Item.Shell.Windowed then
+               SDL3.Windows.Renderers.Set_VSync (Item.Host.Target, Settings_VM.VSync (Item.Choices.Model));
+            end if;
+            if Showing (Item) then
+               Refresh (Item);
+            end if;
+         when Settings_VM.Reseed =>
+            Apply_Theme (Item);
+            Widgets.Invalidate_All (Item.Root.Widgets);
+            if Showing (Item) then
+               Refresh (Item);
+            end if;
+         when others =>
+            null;
+      end case;
+   end Done;
+
+   procedure Confirm_Delete (Item : in out Session; Size : String) is
+   begin
+      Deletion.Confirm_Model
+        (Item, "Its " & Size & " of files go; they can be downloaded again.");
+   end Confirm_Delete;
 
    procedure Delete_Files (Item : in out Session) is
    begin
       if Settings_VM.Can_Execute (Item.Choices.Model, Settings_VM.Delete_Model) then
          Settings_VM.Execute (Item.Choices.Model, Settings_VM.Delete_Model);
       end if;
-      Refresh (Item);
-      Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
    end Delete_Files;
 
    procedure Update (Item : in out Session) is
       Was : constant Speech.Models.States := Item.Choices.Download_Seen;
    begin
       Settings_VM.Poll (Item.Choices.Model);
-      if Binding.Changed (Item.Choices.Seen, Item.Choices.Model) then
+      if Model_Parts.Changed (Item.Choices.Seen, Settings_VM.Version (Item.Choices.Model)) then
          Draw (Item);
          if Settings_VM.Download_State (Item.Choices.Model) /= Was then
             --  It has ended, or begun: the button and the bar change.

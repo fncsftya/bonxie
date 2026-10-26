@@ -45,6 +45,13 @@ private package View.Navigation is
    --  Return was pressed in the name's field, or it has lost the focus:
    --  end the renaming.
 
+   procedure Going_To_Execute (Item : in out Session; What : Nav_VM.Command);
+   --  Before the navigation does What: let go of the views of the project that is left.
+
+   procedure Executed (Item : in out Session);
+   --  After it did: the screens show it (Sync). The model says so around every command it does, including
+   --  those of a button that is the view's (Pomarine.UI), which Do_Command is not.
+
    procedure Keep
      (Item    : in out Session;
       Name    : String;

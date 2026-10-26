@@ -1,3 +1,4 @@
+with Pomarine.UI.Menus;
 with Writing_VM;
 with Items.Directories;
 with Items.Readers;
@@ -22,6 +23,7 @@ package body View.Writing.Context is
    package Widgets renames Pomarine.Widgets;
    package Layouts renames Pomarine.Widgets.Layouts;
    package Editors renames Pomarine.Widgets.Editors;
+   package Rows renames Pomarine.UI.Menus;
    package Menus renames Pomarine.Widgets.Menus;
    package Readers renames Items.Readers;
    package Windows renames Items.Windows;
@@ -30,15 +32,16 @@ package body View.Writing.Context is
    use type Items.States;
 
    procedure Show_Context
-     (Item : in out Session; Kind : Context_Kinds; X, Y : Float);
+     (Item : in out Session; Content : Rows.Content; Kind : Context_Kinds; X, Y : Float);
    --  Show the menu, its rows added, at X, Y, in points of the window, as
    --  far in as keeps it in the view.
 
    procedure Show_Context
-     (Item : in out Session; Kind : Context_Kinds; X, Y : Float)
+     (Item : in out Session; Content : Rows.Content; Kind : Context_Kinds; X, Y : Float)
    is
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
    begin
+      Rows.Set_Content (Item.Context.Context_Menu, Content);
       Item.Context.Context_Kind := Kind;
       Layouts.Set_Layout
         (Item.Context.Context_Menu,
@@ -48,16 +51,16 @@ package body View.Writing.Context is
                 (Float'Max
                    (0.0,
                     Float'Min
-                      (X - Widgets.Left_Of (Item.Toolbar.Content_Panel) / Pixels,
-                       Widgets.Width_Of (Item.Toolbar.Content_Panel) / Pixels
+                      (X - Widgets.Left_Of (Content_Panel (Item).all) / Pixels,
+                       Widgets.Width_Of (Content_Panel (Item).all) / Pixels
                        - Style.Context_Width)) * Pixels),
             Top =>
               Float'Rounding
                 (Float'Max
                    (0.0,
                     Float'Min
-                      (Y - Widgets.Top_Of (Item.Toolbar.Content_Panel) / Pixels,
-                       Widgets.Height_Of (Item.Toolbar.Content_Panel) / Pixels
+                      (Y - Widgets.Top_Of (Content_Panel (Item).all) / Pixels,
+                       Widgets.Height_Of (Content_Panel (Item).all) / Pixels
                        - Menus.Height_For (Item.Context.Context_Menu))) * Pixels),
             others => <>),
          Unit => Layouts.Device_Pixels);
@@ -69,6 +72,7 @@ package body View.Writing.Context is
 
    procedure Add_Act
      (Item    : in out Session;
+      Content : in out Rows.Content;
       Act     : Context_Acts;
       Name    : String;
       Icon    : Pomarine.Icons.Icon;
@@ -79,30 +83,22 @@ package body View.Writing.Context is
 
    procedure Add_Act
      (Item    : in out Session;
+      Content : in out Rows.Content;
       Act     : Context_Acts;
       Name    : String;
       Icon    : Pomarine.Icons.Icon;
       Enabled : Boolean := True;
       Shade   : Menus.Tone := Menus.Plain) is
    begin
-      Menus.Add
-        (Item.Context.Context_Menu, (if Enabled
-                                     then Menus.Action else Menus.Note),
-         Name, Shade);
-      --  (Select all has none: the others' make room for it.)
-      if Act /= Select_All_Act then
-         Menus.Set_Icon
-           (Item.Context.Context_Menu,
-            Menus.Row_Count (Item.Context.Context_Menu), Icon);
-      end if;
-      Item.Context.Context_Acts
-        (Menus.Row_Count (Item.Context.Context_Menu)) :=
-        (if Enabled then Act else No_Act);
+      Content.Append
+        (Rows.Row ((if Enabled then Menus.Action else Menus.Note), Name, Shade,
+                   Icon => (if Act = Select_All_Act then Pomarine.Icons.No_Icon else Pomarine.Icons.Shown (Icon))));
+      Item.Context.Context_Acts (Rows.Count (Content)) := (if Enabled then Act else No_Act);
    end Add_Act;
 
    function Board_Has_Text (Item : Session) return Boolean is
-     (Widgets.Clipboard (Item.Toolbar.Content_Panel) /= null
-      and then Widgets.Clipboard (Item.Toolbar.Content_Panel).Text /= "");
+     (Widgets.Clipboard (Content_Panel (Item).all) /= null
+      and then Widgets.Clipboard (Content_Panel (Item).all).Text /= "");
    --  Whether there is something to paste.
 
    procedure Open_At
@@ -111,10 +107,11 @@ package body View.Writing.Context is
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
       PX     : constant Float := X * Pixels;
       PY     : constant Float := Y * Pixels;
+      Content : Rows.Content;
 
       procedure Begin_Menu is
       begin
-         Menus.Clear (Item.Context.Context_Menu);
+         Content.Clear;
          Item.Context.Context_Acts := [others => No_Act];
          Item.Context.Context_Canvas := 0;
       end Begin_Menu;
@@ -124,34 +121,34 @@ package body View.Writing.Context is
          Begin_Menu;
          Item.Context.Context_Node := Node;
          if Node.Kind /= Document_Leaf then
-            Add_Act (Item, Add_Document_Act, "Add Document", Icon_Set.Document);
-            Add_Act (Item, Add_Folder_Act, "Add Folder", Icon_Set.Folder);
+            Add_Act (Item, Content, Add_Document_Act, "Add Document", Icon_Set.Document);
+            Add_Act (Item, Content, Add_Folder_Act, "Add Folder", Icon_Set.Folder);
             if Node.Kind /= Overview_Node then
-               Menus.Add (Item.Context.Context_Menu, Menus.Separator);
+               Content.Append (Rows.Row (Menus.Separator));
             end if;
          end if;
          if Node.Kind /= Overview_Node then
-            Add_Act (Item, Rename_Act, "Rename", Icon_Set.Edit);
+            Add_Act (Item, Content, Rename_Act, "Rename", Icon_Set.Edit);
          end if;
          --  A section is made and removed in the outline, not here.
          if Node.Kind /= Overview_Node
            and then not (Node.Kind = Directory_Node and then Support.Is_Section (Item, Node.Dir))
          then
-            Add_Act (Item, Delete_Act, "Delete", Icon_Set.Delete,
+            Add_Act (Item, Content, Delete_Act, "Delete", Icon_Set.Delete,
                      Shade => Menus.Danger);
          end if;
-         Show_Context (Item, Tree_Context, X, Y);
+         Show_Context (Item, Content, Tree_Context, X, Y);
          Opened := True;
       end Of_Row;
 
       procedure Picture_Menu (Over, Words : Boolean) is
       begin
          if Over then
-            Add_Act (Item, Copy_Act, "Copy", Icon_Set.Document);
+            Add_Act (Item, Content, Copy_Act, "Copy", Icon_Set.Document);
          end if;
-         Add_Act (Item, Select_All_Act, "Select all", Pomarine.Icons.Check,
+         Add_Act (Item, Content, Select_All_Act, "Select all", Pomarine.Icons.Check,
                   Enabled => Words);
-         Show_Context (Item, Picture_Context, X, Y);
+         Show_Context (Item, Content, Picture_Context, X, Y);
          Opened := True;
       end Picture_Menu;
 
@@ -159,15 +156,15 @@ package body View.Writing.Context is
          Paste : constant Boolean := Board_Has_Text (Item);
       begin
          if Over then
-            Add_Act (Item, Copy_Act, "Copy", Icon_Set.Document);
-            Add_Act (Item, Cut_Act, "Cut", Icon_Set.Eraser);
-            Add_Act (Item, Paste_Act, "Paste", Icon_Set.Plus, Paste);
-            Add_Act (Item, Select_All_Act, "Select all", Pomarine.Icons.Check);
+            Add_Act (Item, Content, Copy_Act, "Copy", Icon_Set.Document);
+            Add_Act (Item, Content, Cut_Act, "Cut", Icon_Set.Eraser);
+            Add_Act (Item, Content, Paste_Act, "Paste", Icon_Set.Plus, Paste);
+            Add_Act (Item, Content, Select_All_Act, "Select all", Pomarine.Icons.Check);
          else
-            Add_Act (Item, Paste_Act, "Paste", Icon_Set.Plus, Paste);
-            Add_Act (Item, Select_All_Act, "Select all", Pomarine.Icons.Check);
+            Add_Act (Item, Content, Paste_Act, "Paste", Icon_Set.Plus, Paste);
+            Add_Act (Item, Content, Select_All_Act, "Select all", Pomarine.Icons.Check);
          end if;
-         Show_Context (Item, Text_Context, X, Y);
+         Show_Context (Item, Content, Text_Context, X, Y);
          Opened := True;
       end Text_Menu;
 
@@ -311,7 +308,7 @@ package body View.Writing.Context is
       Slot : constant Natural := Item.Context.Context_Reader;
       On_Canvas : constant Natural := Item.Context.Context_Canvas;
       Board : constant Widgets.Clipboard_Access :=
-        Widgets.Clipboard (Item.Toolbar.Content_Panel);
+        Widgets.Clipboard (Content_Panel (Item).all);
    begin
       Popups.Close_Context (Item);
       case Kind is

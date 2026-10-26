@@ -1,6 +1,5 @@
 with Outline_VM;
 with Outline_VM.Stored;
-with Pomarine.Widgets.Bindings.For_Commands;
 with Section_Colour_Pickers;
 with Growing;
 with Projects;
@@ -19,12 +18,6 @@ with Pomarine.Widgets.Scrollers;
 
 --  The outline view: the form of the project's title and description, and the blocks of its sections.
 package View_Parts.Outline is
-
-   Outline_Tag_Base : constant := 400;
-   --  The tag of the outline's first command (see View_Parts.Home for the ones before).
-
-   package Outline_Binding is
-     new Pomarine.Widgets.Bindings.For_Commands (Outline_VM.Commands, Outline_Tag_Base);
 
    type Section_Block is limited record
       Doc    : aliased Texts.Documents.Document;
@@ -109,7 +102,8 @@ package View_Parts.Outline is
    type Outline_Choices is limited record
       Library : aliased Outline_VM.Stored.Sections_Kept;
       Model   : aliased Outline_VM.View_Model;
-      Judge   : aliased Outline_Binding.Judge;
+      Focus_Notes : Boolean := True;
+      --  Whether the notes of a section, when its button shows them, are given the focus.
       --  What the outline means: the project's title and description, the sections in order, which
       --  have their notes open.
    end record;

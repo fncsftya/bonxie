@@ -29,10 +29,10 @@ package body View.Grammar.Cards is
    procedure Refresh (Item : in out Session) is
       State : Grammar_State renames Item.Grammar_Checks;
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
-      Parent_Left : constant Float := Widgets.Left_Of (Item.Toolbar.Content_Panel) / Pixels;
-      Parent_Top : constant Float := Widgets.Top_Of (Item.Toolbar.Content_Panel) / Pixels;
-      Parent_Wide : constant Float := Widgets.Width_Of (Item.Toolbar.Content_Panel) / Pixels;
-      Parent_High : constant Float := Widgets.Height_Of (Item.Toolbar.Content_Panel) / Pixels;
+      Parent_Left : constant Float := Widgets.Left_Of (Content_Panel (Item).all) / Pixels;
+      Parent_Top : constant Float := Widgets.Top_Of (Content_Panel (Item).all) / Pixels;
+      Parent_Wide : constant Float := Widgets.Width_Of (Content_Panel (Item).all) / Pixels;
+      Parent_High : constant Float := Widgets.Height_Of (Content_Panel (Item).all) / Pixels;
       Wide : constant Float := Float'Max (144.0, Float'Min (360.0, Parent_Wide - 16.0));
       Left : constant Float := Float'Max (8.0, Float'Min (Parent_Wide - Wide - 8.0,
         (Widgets.Left_Of (Item.Page_View.Grammar_Count) + Widgets.Width_Of (Item.Page_View.Grammar_Count))
@@ -283,10 +283,10 @@ package body View.Grammar.Cards is
    procedure Begin_Entry (Item : in out Session; Index : Natural) is
       State : Grammar_State renames Item.Grammar_Checks;
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
-      Parent_Left : constant Float := Widgets.Left_Of (Item.Toolbar.Content_Panel) / Pixels;
-      Parent_Top : constant Float := Widgets.Top_Of (Item.Toolbar.Content_Panel) / Pixels;
-      Parent_Wide : constant Float := Widgets.Width_Of (Item.Toolbar.Content_Panel) / Pixels;
-      Parent_High : constant Float := Widgets.Height_Of (Item.Toolbar.Content_Panel) / Pixels;
+      Parent_Left : constant Float := Widgets.Left_Of (Content_Panel (Item).all) / Pixels;
+      Parent_Top : constant Float := Widgets.Top_Of (Content_Panel (Item).all) / Pixels;
+      Parent_Wide : constant Float := Widgets.Width_Of (Content_Panel (Item).all) / Pixels;
+      Parent_High : constant Float := Widgets.Height_Of (Content_Panel (Item).all) / Pixels;
       use Layouts;
    begin
       if Index not in 1 .. State.Rows.Count or else not Basics.Valid (Item, State.Rows (Index)) then

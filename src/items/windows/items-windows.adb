@@ -1,6 +1,7 @@
 with Pomarine.Marks;
 with Pomarine.Text_Areas;
 with Items.Windows.Builder;
+with Items.Windows.Handlers;
 with Items.Windows.Displays;
 with Items.Windows.Parts;
 with Items.Windows.Speaking;
@@ -24,10 +25,11 @@ package body Items.Windows is
    function Is_Assigned (Item : Window) return Boolean is
      (Item.Model /= null and then Items.Models.Is_Assigned (Item.Model.all));
 
-   procedure Add_Search_Bar (Item : in out Window; Bar : in out Pomarine.Widgets.Widget'Class) is
+   procedure Mount_Search_Bar
+     (Item : in out Window; Screen : in out Pomarine.UI.View; Content : Pomarine.UI.Layout) is
    begin
-      Pomarine.Widgets.Frames.Add_Content (Item.Chrome, Bar);
-   end Add_Search_Bar;
+      Pomarine.UI.Mount_Before (Screen, Frames.Content_End (Item.Chrome).all, Content);
+   end Mount_Search_Bar;
 
    function Searchable (Item : Window) return Boolean is
      (Is_Assigned (Item) and then Items.Models.Details (Item.Model.all).State = Open and then
@@ -318,6 +320,16 @@ package body Items.Windows is
    function Is_Dragging (Item : Window) return Boolean is
      (Frames.Is_Dragging (Item.Chrome));
 
+   overriding procedure Requested (Self : in out Command_Effects; What : Item_Window_VM.Command; Index : Natural) is
+   begin
+      Handlers.Perform (Self.Owner.all, What, Index);
+   end Requested;
+
+   overriding procedure Changed (Self : in out Command_Effects) is
+   begin
+      Show (Self.Owner.all);
+   end Changed;
+
    procedure Build
      (Item    : in out Window;
       Model   : not null access Items.Models.Item;
@@ -329,6 +341,8 @@ package body Items.Windows is
    begin
       Item.Model := Model.all'Unrestricted_Access;
       Item.Looking := Looking.all'Unrestricted_Access;
+      Item.Control_Effects.Owner := Item'Unrestricted_Access;
+      Item_Window_VM.Initialize (Item.Controls, Model, Item.Control_Effects'Access);
       Builder.Make_Parts (Item, Canvas, Dock, Bar, Density);
    end Build;
 
@@ -367,6 +381,8 @@ package body Items.Windows is
          if Versions.Changed (Item.Seen_Tool, Items.Models.Tool_Version (M)) then
             Displays.Show_Tool (Item);
          end if;
+         Item_Window_VM.Poll (Item.Controls);
+         Pomarine.UI.Synchronize (Item.UI_Host.Screen.all);
          Displays.Show_Status (Item);
          if Versions.Changed (Item.Seen_Where, Items.Models.Where_Version (M)) then
             Displays.Show_Where (Item);

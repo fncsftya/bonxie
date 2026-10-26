@@ -56,7 +56,7 @@ private package Items.Windows.Metrics is
    --  The page buttons' width, and how far they are above the status line.
 
    Preset_Zooms : constant array (Preset_Index) of Float :=
-     [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
+     [for Index in Preset_Index => Item_Window_VM.Preset_Zooms (Index)];
    --  The menu's, in two rows of three, under its slider.
 
    Url_Height    : constant Float := 38.0;

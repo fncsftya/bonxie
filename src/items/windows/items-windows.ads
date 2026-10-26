@@ -1,4 +1,6 @@
 with System;
+with Item_Window_VM;
+with Pomarine.UI.Hosts;
 with Items.Marks;
 with Items.Models;
 with Pomarine.View_Models;
@@ -68,7 +70,9 @@ package Items.Windows is
    function Is_Assigned (Item : Window) return Boolean;
    --  Whether its model has an item.
 
-   procedure Add_Search_Bar (Item : in out Window; Bar : in out Pomarine.Widgets.Widget'Class);
+   procedure Mount_Search_Bar
+     (Item : in out Window; Screen : in out Pomarine.UI.View; Content : Pomarine.UI.Layout);
+   --  Place the search view's declared bar after the item content, before its status line.
 
    function Searchable (Item : Window) return Boolean;
    procedure Search (Item : in out Window; Term : String);
@@ -299,6 +303,13 @@ private
    type Model_Access is access all Items.Models.Item;
    type Camera_Access is access constant Items.Models.Camera;
 
+   type Window_Access is access all Window;
+   type Command_Effects is limited new Item_Window_VM.Effects with record
+      Owner : Window_Access;
+   end record;
+   overriding procedure Requested (Self : in out Command_Effects; What : Item_Window_VM.Command; Index : Natural);
+   overriding procedure Changed (Self : in out Command_Effects);
+
    type Window is limited record
       Model     : Model_Access;
       Looking   : Camera_Access;
@@ -383,6 +394,10 @@ private
       Progress     : Pomarine.Widgets.Progress_Bars.Progress_Bar;
       --  Along the foot of the status line while the picture is taken.
       Status       : Pomarine.Widgets.Labels.Label;
+      Control_Effects : aliased Command_Effects;
+      Controls : aliased Item_Window_VM.Model;
+      UI_Host : Pomarine.UI.Hosts.Host;
+      --  Last: detach the borrowed controls before their finalization.
    end record;
 
 end Items.Windows;

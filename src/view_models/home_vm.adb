@@ -81,6 +81,11 @@ package body Home_VM is
       List (Self);
    end Initialize;
 
+   procedure Observe (Self : in out View_Model; Reactions : access Effects'Class) is
+   begin
+      Self.Reactions := (if Reactions = null then null else Reactions.all'Unrestricted_Access);
+   end Observe;
+
    overriding procedure Execute (Self : in out View_Model; What : Command; Index : Natural := 0) is
    begin
       case What is
@@ -114,6 +119,9 @@ package body Home_VM is
             Delete (Self.Kept.all, Key_Of (Self, Index));
             List (Self);
       end case;
+      if Self.Reactions /= null then
+         Self.Reactions.Home_Changed;
+      end if;
    end Execute;
 
 end Home_VM;

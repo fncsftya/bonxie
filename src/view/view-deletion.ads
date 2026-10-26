@@ -25,7 +25,7 @@ private package View.Deletion is
    procedure Sync (Item : in out Session);
    --  Show the dialog, or hide it, as the view-model says, and what it says.
 
-   procedure Answer (Item : in out Session; Command : Confirm_VM.Command);
-   --  The dialog's button was pressed: Cancel closes it. Confirm does what it was about, and closes it.
+   procedure Answered (Item : in out Session; Said : Confirm_VM.Answer);
+   --  Confirm was done: do what it was about (the dialog is closed).
 
 end View.Deletion;

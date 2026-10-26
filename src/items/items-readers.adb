@@ -1,16 +1,18 @@
 with Pomarine.Marks;
+with Reader_UI;
 with Items.Sources;
 with Pomarine.Line_Texts;
 with Pomarine.Text_Areas;
 with Icon_Set;
-with Pomarine.Widgets.Callbacks;
 with Pomarine.Widgets.Frames.Handlers;
 with Pomarine.Widgets.Layouts;
+with Pomarine.UI;
 with Pomarine.Icons;
 
 package body Items.Readers is
 
    package Widgets renames Pomarine.Widgets;
+   package UI renames Pomarine.UI;
    package Layouts renames Pomarine.Widgets.Layouts;
    package Buttons renames Pomarine.Widgets.Buttons;
    package Labels renames Pomarine.Widgets.Labels;
@@ -20,6 +22,43 @@ package body Items.Readers is
    package Views renames Pomarine.Widgets.Page_Views;
    package Editors renames Pomarine.Widgets.Editors;
    package Docs renames Texts.Documents;
+
+   overriding function Is_Open (Self : Control_Engine) return Boolean is
+     (Self.Owner.Assigned and then Self.Owner.Details.State = Open);
+
+   overriding function Tool (Self : Control_Engine) return Items.Models.Tools is
+     (if not Self.Owner.Assigned then Items.Models.Pointer
+      elsif Tool (Self.Owner.all) = Pictures.Highlighter then Items.Models.Highlighter
+      elsif Tool (Self.Owner.all) = Pictures.Eraser then Items.Models.Eraser
+      else Items.Models.Pointer);
+
+   overriding procedure Select_Tool (Self : in out Control_Engine; To : Items.Models.Tools) is
+   begin
+      Select_Tool (Self.Owner.all,
+                   (case To is
+                       when Items.Models.Pointer => Pictures.Pointer,
+                       when Items.Models.Highlighter => Pictures.Highlighter,
+                       when Items.Models.Eraser => Pictures.Eraser));
+   end Select_Tool;
+
+   procedure Say (Item : in out Reader; Action : Actions);
+
+   overriding function Zoom (Self : Control_Engine) return Float is (Self.Owner.Details.Zoom);
+
+   overriding procedure Set_Zoom (Self : in out Control_Engine; Value : Float) is
+   begin
+      Set_Zoom (Self.Owner.all, Value);
+   end Set_Zoom;
+
+   overriding procedure Requested (Self : in out Control_Engine; What : Reader_VM.Command) is
+   begin
+      case What is
+         when Reader_VM.Toggle_Pin => Say (Self.Owner.all, Toggle_Pin);
+         when Reader_VM.Close_Reader => Say (Self.Owner.all, Close);
+         when Reader_VM.Visit => Say (Self.Owner.all, Visit);
+         when others => raise Program_Error with "tool commands are handled by the reading engine";
+      end case;
+   end Requested;
 
    function Is_Texty (Item : Reader) return Boolean is
      (Item.Details.Origin /= Unchosen
@@ -53,34 +92,12 @@ package body Items.Readers is
       Pinned  : Boolean := False)
    is
       Pixels : constant Float := Density;
-
-      function Size (Wide, High : Float) return Layouts.Style is
-        (Width => Wide, Height => High, others => <>);
    begin
       Item.Pixels := Pixels;
       Item.Pinned := Pinned;
       Frames.Build
         (Item.Chrome, Parent, Bar, Pixels,
          Placement => (if Pinned then Frames.Filling else Frames.Floating));
-      Frames.Add_Title_Button (Item.Chrome, Item.Pin_Button);
-      Frames.Add_Content (Item.Chrome, Item.Picture);
-      Frames.Add_Content (Item.Chrome, Item.Pages);
-      Frames.Add_Content (Item.Chrome, Item.Text_View);
-      Frames.Add_Status_Item (Item.Chrome, Item.Tools);
-      Buttons.Add (Item.Tools, Item.Cursor_Button,
-                   Buttons.Looks ("Ptr", Icon => Pomarine.Icons.Shown (Icon_Set.Cursor)),
-                   Size (Button_Size, Row_Height));
-      Buttons.Add (Item.Tools, Item.Marker_Button,
-                   Buttons.Looks ("Mark", Icon => Pomarine.Icons.Shown (Icon_Set.Highlighter)),
-                   Size (Button_Size, Row_Height));
-      Buttons.Add (Item.Tools, Item.Eraser_Button,
-                   Buttons.Looks ("Rub", Icon => Pomarine.Icons.Shown (Icon_Set.Eraser)),
-                   Size (Button_Size, Row_Height));
-      Frames.Add_Status_Item (Item.Chrome, Item.Zoom_Slider);
-      Frames.Add_Status_Item (Item.Chrome, Item.Zoom_Label);
-      Frames.Add_Status_Item (Item.Chrome, Item.Status);
-      Frames.Add_Status_Item (Item.Chrome, Item.Visit_Button);
-
       Buttons.Configure
         (Item.Pin_Button,
          Buttons.Looks
@@ -88,26 +105,77 @@ package body Items.Readers is
             Icon => Pomarine.Icons.Shown (Icon_Set.Pin),
             Icon_Points => Pin_Icon_Size));
       Buttons.Set_Selected (Item.Pin_Button, Pinned);
-      Layouts.Set_Layout (Item.Pin_Button, Size (Button_Size, Button_Size));
 
-      Layouts.Set_Layout (Item.Picture, Grow => 1.0, Height => 0.0);
-      Layouts.Set_Layout (Item.Pages, Grow => 1.0, Height => 0.0);
+      Buttons.Set_Label (Item.Visit_Button, "Visit Source");
+      Item.Control_Source.Owner := Item'Unrestricted_Access;
+      Reader_VM.Initialize (Item.Controls, Item.Control_Source'Access);
+      Item.UI_Host.Open (Parent);
+      declare
+         Screen : UI.View renames Item.UI_Host.Screen.all;
+         Bound : constant Reader_UI.Controls.Context'Class := Reader_UI.Controls.Bind (Screen, Item.Controls'Access);
+
+         function Put (Part : in out Widgets.Widget'Class; Wide, High : Float) return UI.Layout is
+           (UI.Styled (UI.Put (Screen, Part), (Width => Wide, Height => High, others => <>)));
+
+         function Tool
+           (Part : in out Buttons.Button; What : Reader_VM.Command; Caption : String; Icon : Pomarine.Icons.Optional)
+           return UI.Layout is
+         begin
+            Buttons.Configure (Part, Buttons.Looks (Caption, Icon => Icon));
+            declare
+               Handle : constant UI.Button_Handle := Bound.Borrow_Button (Part, What, Reflect => False);
+            begin
+               case What is
+                  when Reader_VM.Use_Pointer => Bound.Selected_When (Handle, Reader_UI.Pointer_Flag.Property);
+                  when Reader_VM.Use_Marker => Bound.Selected_When (Handle, Reader_UI.Marker_Flag.Property);
+                  when Reader_VM.Use_Eraser => Bound.Selected_When (Handle, Reader_UI.Eraser_Flag.Property);
+                  when others => null;
+               end case;
+               return UI.Styled (UI.Place (Handle), (Width => Button_Size, Height => Row_Height, others => <>));
+            end;
+         end Tool;
+
+         Cursor : constant UI.Layout :=
+           Tool (Item.Cursor_Button, Reader_VM.Use_Pointer, "Ptr", Pomarine.Icons.Shown (Icon_Set.Cursor));
+         Marker : constant UI.Layout :=
+           Tool (Item.Marker_Button, Reader_VM.Use_Marker, "Mark", Pomarine.Icons.Shown (Icon_Set.Highlighter));
+         Eraser : constant UI.Layout :=
+           Tool (Item.Eraser_Button, Reader_VM.Use_Eraser, "Rub", Pomarine.Icons.Shown (Icon_Set.Eraser));
+         Tools  : constant UI.Layout := UI.Styled
+           (UI.Put_In (Screen, Item.Tools, [Cursor, Marker, Eraser], Flow => Layouts.Row, Gap => Button_Gap),
+            (Width => Tools_Width, Height => Row_Height, Gap => Button_Gap, others => <>));
+         Content : constant UI.Layout := UI.Fragment
+           (Screen, [UI.Styled (UI.Put (Screen, Item.Picture), (Grow => 1.0, Height => 0.0, others => <>)),
+                     UI.Styled (UI.Put (Screen, Item.Pages), (Grow => 1.0, Height => 0.0, others => <>)),
+                     UI.Styled (UI.Put (Screen, Item.Text_View), (Grow => 1.0, Height => 0.0, others => <>))]);
+         Zoom_Control : constant UI.Widget_Handle :=
+           Bound.Borrow_Slider (Item.Zoom_Slider, Reader_UI.Zoom_Value.Property);
+         Visit_Control : constant UI.Button_Handle :=
+           Bound.Borrow_Button (Item.Visit_Button, Reader_VM.Visit, Reflect => False);
+         Status : constant UI.Layout := UI.Fragment
+           (Screen, [Tools,
+                     UI.Styled (UI.Place (Zoom_Control),
+                                (Width => Slider_Width, Height => Row_Height, others => <>)),
+                     Put (Item.Zoom_Label, Percent_Width, Label_Height),
+                     UI.Styled (UI.Put (Screen, Item.Status),
+                                (Grow => 1.0, Width => 0.0, Height => Label_Height, others => <>)),
+                     UI.Styled (UI.Place (Visit_Control), (Width => Visit_Width, Height => Row_Height, others => <>))]);
+         Pin_Control : constant UI.Button_Handle :=
+           Bound.Borrow_Button (Item.Pin_Button, Reader_VM.Toggle_Pin, Reflect => False);
+         Pin : constant UI.Layout :=
+           UI.Styled (UI.Place (Pin_Control), (Width => Button_Size, Height => Button_Size, others => <>));
+      begin
+         Bound.On_Frame_Event (Item.Chrome, Widgets.Close, Reader_VM.Close_Reader);
+         UI.Mount_Before (Screen, Frames.Title_End (Item.Chrome).all, Pin);
+         UI.Mount_Before (Screen, Frames.Content_End (Item.Chrome).all, Content);
+         UI.Mount_Before (Screen, Frames.Status_End (Item.Chrome).all, Status);
+      end;
       Editors.Configure
         (Item.Text_View, Pomarine.Line_Texts.Serif, Text_Size, 2000.0);
       Editors.Set_Paper (Item.Text_View, Pomarine.Themes.Page);
       Pomarine.Text_Areas.Set_Read_Only (Editors.Area (Item.Text_View).all);
-      Layouts.Set_Layout (Item.Text_View, Grow => 1.0, Height => 0.0);
       Widgets.Set_Visible (Item.Text_View, False);
 
-      Layouts.Set_Layout (Item.Tools, Flow => Layouts.Row, Gap => Button_Gap);
-      Buttons.Set_Selected (Item.Cursor_Button, True);
-      Layouts.Set_Layout (Item.Tools, Size (Tools_Width, Row_Height));
-
-      Layouts.Set_Layout (Item.Zoom_Slider, Size (Slider_Width, Row_Height));
-      Layouts.Set_Layout (Item.Zoom_Label, Size (Percent_Width, Label_Height));
-      Layouts.Set_Layout (Item.Status, Grow => 1.0, Width => 0.0, Height => Label_Height);
-      Buttons.Set_Label (Item.Visit_Button, "Visit Source");
-      Layouts.Set_Layout (Item.Visit_Button, Size (Visit_Width, Row_Height));
       Widgets.Set_Visible (Item.Visit_Button, False);
       Listen (Item);
    end Build;
@@ -232,9 +300,8 @@ package body Items.Readers is
    begin
       Pictures.Set_Tool (Item.Picture, To);
       Views.Set_Tool (Item.Pages, To);
-      Buttons.Set_Selected (Item.Cursor_Button, To = Pictures.Pointer);
-      Buttons.Set_Selected (Item.Marker_Button, To = Pictures.Highlighter);
-      Buttons.Set_Selected (Item.Eraser_Button, To = Pictures.Eraser);
+      Reader_VM.Poll (Item.Controls);
+      Pomarine.UI.Synchronize (Item.UI_Host.Screen.all);
    end Select_Tool;
 
    procedure Set_Zoom (Item : in out Reader; To : Float) is
@@ -242,8 +309,9 @@ package body Items.Readers is
       Item.Details.Zoom := To;
       Pictures.Set_Zoom (Item.Picture, To);
       Views.Set_Zoom (Item.Pages, To);
-      Sliders.Set_Value (Item.Zoom_Slider, Items.Sources.To_Slider (To));
       Labels.Set_Text (Item.Zoom_Label, Items.Sources.Percent (To));
+      Reader_VM.Poll (Item.Controls);
+      Pomarine.UI.Synchronize (Item.UI_Host.Screen.all);
    end Set_Zoom;
 
    procedure Set_Title (Item : in out Reader; To : String) is
@@ -385,6 +453,8 @@ package body Items.Readers is
       end if;
       Frames.Set_Shown (Item.Chrome, To = Open, False);
       Item.Was_Used := False;
+      Reader_VM.Poll (Item.Controls);
+      Pomarine.UI.Synchronize (Item.UI_Host.Screen.all);
    end Set_State;
 
    procedure Assign
@@ -446,6 +516,8 @@ package body Items.Readers is
       Frames.Set_Shown (Item.Chrome, False, False);
       Item.Assigned := False;
       Item.Was_Used := False;
+      Reader_VM.Poll (Item.Controls);
+      Pomarine.UI.Synchronize (Item.UI_Host.Screen.all);
    end Release;
 
    procedure Place (Item : in out Reader) is
@@ -482,13 +554,9 @@ package body Items.Readers is
    function Is_Dragging (Item : Reader) return Boolean is
      (Frames.Is_Dragging (Item.Chrome));
 
-   package Hooks is new Pomarine.Widgets.Callbacks (Reader);
    package Frame_Hooks is new Pomarine.Widgets.Frames.Handlers (Reader);
 
    subtype Source_Widget is Widgets.Widget'Class;
-
-   procedure Say (Item : in out Reader; Action : Actions);
-   --  Tell the application what a button asked for, if it listens.
 
    procedure Say (Item : in out Reader; Action : Actions) is
    begin
@@ -536,109 +604,11 @@ package body Items.Readers is
       Item.Resizing := Frames.Is_Sizing (Item.Chrome);
    end Sized;
 
-   function Is_Open (Item : Reader) return Boolean is (Item.Details.State = Open);
-
-   procedure Zoom_Moved
-     (Item : in out Reader; From : in out Source_Widget; Event : Widgets.Widget_Event);
-
-   procedure Zoom_Moved
-     (Item : in out Reader; From : in out Source_Widget; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (From, Event);
-   begin
-      if Is_Open (Item) then
-         Set_Zoom (Item, Items.Sources.From_Slider (Sliders.Value (Item.Zoom_Slider)));
-      end if;
-   end Zoom_Moved;
-
-   procedure Pointer_Clicked
-     (Item : in out Reader; From : in out Source_Widget; Event : Widgets.Widget_Event);
-   procedure Marker_Clicked
-     (Item : in out Reader; From : in out Source_Widget; Event : Widgets.Widget_Event);
-   procedure Eraser_Clicked
-     (Item : in out Reader; From : in out Source_Widget; Event : Widgets.Widget_Event);
-
-   procedure Pointer_Clicked
-     (Item : in out Reader; From : in out Source_Widget; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (From, Event);
-   begin
-      if Is_Open (Item) then
-         Select_Tool (Item, Pictures.Pointer);
-      end if;
-   end Pointer_Clicked;
-
-   procedure Marker_Clicked
-     (Item : in out Reader; From : in out Source_Widget; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (From, Event);
-   begin
-      if Is_Open (Item) then
-         Select_Tool (Item, Pictures.Highlighter);
-      end if;
-   end Marker_Clicked;
-
-   procedure Eraser_Clicked
-     (Item : in out Reader; From : in out Source_Widget; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (From, Event);
-   begin
-      if Is_Open (Item) then
-         Select_Tool (Item, Pictures.Eraser);
-      end if;
-   end Eraser_Clicked;
-
-   procedure Pin_Clicked
-     (Item : in out Reader; From : in out Source_Widget; Event : Widgets.Widget_Event);
-
-   procedure Pin_Clicked
-     (Item : in out Reader; From : in out Source_Widget; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (From, Event);
-   begin
-      if Is_Open (Item) then
-         Say (Item, Toggle_Pin);
-      end if;
-   end Pin_Clicked;
-
-   procedure Visit_Clicked
-     (Item : in out Reader; From : in out Source_Widget; Event : Widgets.Widget_Event);
-
-   procedure Visit_Clicked
-     (Item : in out Reader; From : in out Source_Widget; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (From, Event);
-   begin
-      if Is_Open (Item) then
-         Say (Item, Visit);
-      end if;
-   end Visit_Clicked;
-
-   procedure Close_Clicked
-     (Item : in out Reader; From : in out Source_Widget; Event : Widgets.Widget_Event);
-
-   procedure Close_Clicked
-     (Item : in out Reader; From : in out Source_Widget; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (From, Event);
-   begin
-      if Is_Open (Item) then
-         Say (Item, Close);
-      end if;
-   end Close_Clicked;
-
    procedure Listen (Item : in out Reader) is
       use all type Widgets.Event_Kind;
    begin
       Frame_Hooks.On (Item.Chrome, Move, Item'Unrestricted_Access, Moved'Access);
       Frame_Hooks.On (Item.Chrome, Resize, Item'Unrestricted_Access, Sized'Access);
-      Frame_Hooks.On (Item.Chrome, Close, Item'Unrestricted_Access, Close_Clicked'Access);
-      Hooks.On (Item.Zoom_Slider, Change, Item'Unrestricted_Access, Zoom_Moved'Access);
-      Hooks.On (Item.Cursor_Button, Click, Item'Unrestricted_Access, Pointer_Clicked'Access);
-      Hooks.On (Item.Marker_Button, Click, Item'Unrestricted_Access, Marker_Clicked'Access);
-      Hooks.On (Item.Eraser_Button, Click, Item'Unrestricted_Access, Eraser_Clicked'Access);
-      Hooks.On (Item.Pin_Button, Click, Item'Unrestricted_Access, Pin_Clicked'Access);
-      Hooks.On (Item.Visit_Button, Click, Item'Unrestricted_Access, Visit_Clicked'Access);
    end Listen;
 
    procedure Update (Item : in out Reader) is

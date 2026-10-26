@@ -7,6 +7,7 @@ with Slot_Tables;
 with Canvas_VM;
 with Canvas_VM.Stored;
 with Items.Links;
+with Pomarine.UI;
 with Pomarine.View_Models;
 with Texts.Documents;
 with Pomarine.Widgets;
@@ -48,14 +49,14 @@ package View_Parts.Canvas is
       --  when they are wider than the window.
       --  A bar above the tools, of the bars of the items that are
       --  minimised: shown only when there are any.
-      Tools         : Pomarine.Widgets.Panels.Panel;
-      Tool_Item     : Pomarine.Widgets.Buttons.Button;
-      Tool_Source   : Pomarine.Widgets.Buttons.Button;
+      Tools         : Pomarine.UI.Layout;
+      Tool_Item     : Pomarine.UI.Button_Handle;
+      Tool_Source   : Pomarine.UI.Button_Handle;
       --  The tray of the canvas's tools, over it at the foot, in the
       --  middle: Add Document, Add Source.
       Tray_Left     : Float := -1.0E9;
       --  Where it was last put, in pixels from the left of the content.
-      Tool_List     : Pomarine.Widgets.Buttons.Button;
+      Tool_List     : Pomarine.UI.Button_Handle;
       --  At the right of the toolbar: the list of items.
    end record;
    --  The dock of minimised items and the tray of tools, over the canvas.
@@ -117,13 +118,5 @@ package View_Parts.Canvas is
       --  What the windows and the lines last showed of it.
    end record;
    --  The view-model of the canvas, and what the widgets show of it.
-
-   type Title_Edit_State is limited record
-      Edit_Doc     : aliased Texts.Documents.Document;
-      Edit_Field   : Pomarine.Widgets.Text_Fields.Text_Field;
-      --  The title being renamed, and the field for it, which is in the
-      --  edit panel: after Target, and the document.
-   end record;
-   --  The title of an item on the canvas being renamed.
 
 end View_Parts.Canvas;

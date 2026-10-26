@@ -1,7 +1,6 @@
 with Items.Models;
+with Pomarine.UI;
 with Pomarine.Widgets;
-with Pomarine.Widgets.Checks;
-with Pomarine.Widgets.Labels;
 with View.Recent;
 with View.Settings_View;
 with View.Writing;
@@ -9,25 +8,29 @@ with View.Writing;
 package body View.Deletion is
 
    package Widgets renames Pomarine.Widgets;
-   package Labels renames Pomarine.Widgets.Labels;
-   package Checks renames Pomarine.Widgets.Checks;
+   package UI renames Pomarine.UI;
 
    use type Confirm_VM.Subjects;
    use type Items.Kinds;
+
+   function Dialog (Item : Session) return access Widgets.Widget'Class is
+     (UI.Panel_Of (Item.Forms (Confirm_Region).Screen.all, Item.Confirm.Overlay));
+   --  The grey that covers the window, and holds the dialog.
 
    --  Show the dialog over the rest: Tab goes round only its buttons, and Return, which a button has when it has
    --  the focus, is for Cancel. The speech model's has no scope: it is the settings' own.
    procedure Raise_Dialog (Item : in out Session);
 
    procedure Raise_Dialog (Item : in out Session) is
+      Form : UI.View renames Item.Forms (Confirm_Region).Screen.all;
    begin
-      Widgets.Set_Visible (Item.Confirm.Overlay, True);
+      Widgets.Set_Visible (Dialog (Item).all, True);
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
       if Confirm_VM.Subject (Item.Dialog_Model.Model) /= Confirm_VM.Model then
-         Widgets.Set_Focus_Scope (Item.Root.Widgets, Item.Confirm.Dialog_Border);
+         Widgets.Set_Focus_Scope (Item.Root.Widgets, UI.Panel_Of (Form, Item.Confirm.Border).all);
          --  Its buttons are on now (see Revalidate), so that one can have the focus.
          Widgets.Revalidate (Item.Root.Widgets);
-         Widgets.Focus (Item.Confirm.Confirm_Cancel);
+         Widgets.Focus (UI.Widget_Of (Form, Item.Confirm.Confirm_Cancel).all);
       end if;
    end Raise_Dialog;
 
@@ -37,29 +40,22 @@ package body View.Deletion is
    begin
       Widgets.Clear_Focus_Scope (Item.Root.Widgets);
       Widgets.Clear_Focus (Item.Root.Widgets);
-      Widgets.Set_Visible (Item.Confirm.Overlay, False);
+      Widgets.Set_Visible (Dialog (Item).all, False);
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
    end Lower_Dialog;
 
    procedure Sync (Item : in out Session) is
       Model : Confirm_VM.View_Model renames Item.Dialog_Model.Model;
    begin
-      --  The box is the person's to tick.
-      if Confirm_VM.Offers_Documents (Model) then
-         Confirm_VM.Set_Delete_Documents (Model, Checks.Is_Checked (Item.Confirm.Delete_Documents));
-      end if;
-      if Confirm_Binding.Changed (Item.Dialog_Model.Seen, Model) then
-         Labels.Set_Text (Item.Confirm.Dialog_Title, Confirm_VM.Title (Model));
-         Labels.Set_Text (Item.Confirm.Confirm_Message, Confirm_VM.Message (Model));
-         Labels.Set_Text (Item.Confirm.Confirm_Note, Confirm_VM.Note (Model));
-         Widgets.Set_Visible (Item.Confirm.Delete_Documents, Confirm_VM.Offers_Documents (Model));
-         Checks.Set_Checked (Item.Confirm.Delete_Documents, Confirm_VM.Delete_Documents (Model));
+      --  What it says, and the box the person ticks, are the view's.
+      if Pomarine.View_Models.Changed (Item.Dialog_Model.Seen, Confirm_VM.Version (Model)) then
+         UI.Synchronize (Item.Forms (Confirm_Region).Screen.all);
          Widgets.Revalidate (Item.Root.Widgets);
-         if Confirm_VM.Is_Asking (Model) and then not Widgets.Is_Visible (Item.Confirm.Overlay) then
-            Raise_Dialog (Item);
-         elsif not Confirm_VM.Is_Asking (Model) and then Widgets.Is_Visible (Item.Confirm.Overlay) then
-            Lower_Dialog (Item);
-         end if;
+      end if;
+      if Confirm_VM.Is_Asking (Model) and then not Widgets.Is_Visible (Dialog (Item).all) then
+         Raise_Dialog (Item);
+      elsif not Confirm_VM.Is_Asking (Model) and then Widgets.Is_Visible (Dialog (Item).all) then
+         Lower_Dialog (Item);
       end if;
    end Sync;
 
@@ -98,37 +94,24 @@ package body View.Deletion is
       Sync (Item);
    end Close;
 
-   procedure Answer (Item : in out Session; Command : Confirm_VM.Command) is
-      use all type Confirm_VM.Command;
+   procedure Answered (Item : in out Session; Said : Confirm_VM.Answer) is
    begin
-      Sync (Item);
-      if not Confirm_VM.Can_Execute (Item.Dialog_Model.Model, Command) then
-         return;
-      end if;
-      Confirm_VM.Execute (Item.Dialog_Model.Model, Command);
-      Sync (Item);
-      if Command = Confirm then
-         declare
-            Said : constant Confirm_VM.Answer := Confirm_VM.Last_Answer (Item.Dialog_Model.Model);
-         begin
-            case Said.Subject is
-               when Confirm_VM.Nothing =>
-                  null;
-               when Confirm_VM.Project =>
-                  Home_VM.Execute (Item.Home_Model.Model, Home_VM.Delete_Project, Said.Row);
-                  Recent.Sync (Item);
-               when Confirm_VM.Folder =>
-                  Writing.Delete_Node
-                    (Item, (Kind => Directory_Node, Dir => Said.Dir, Doc => 0), Said.Delete_Documents);
-               when Confirm_VM.Document | Confirm_VM.Source =>
-                  Writing.Delete_Node
-                    (Item, (Kind => Document_Leaf, Dir => Said.Dir, Doc => Said.Doc), Said.Delete_Documents);
-               when Confirm_VM.Model =>
-                  Settings_View.Delete_Files (Item);
-            end case;
-            Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
-         end;
-      end if;
-   end Answer;
+      case Said.Subject is
+         when Confirm_VM.Nothing =>
+            null;
+         when Confirm_VM.Project =>
+            Home_VM.Execute (Item.Home_Model.Model, Home_VM.Delete_Project, Said.Row);
+            Recent.Sync (Item);
+         when Confirm_VM.Folder =>
+            Writing.Delete_Node
+              (Item, (Kind => Directory_Node, Dir => Said.Dir, Doc => 0), Said.Delete_Documents);
+         when Confirm_VM.Document | Confirm_VM.Source =>
+            Writing.Delete_Node
+              (Item, (Kind => Document_Leaf, Dir => Said.Dir, Doc => Said.Doc), Said.Delete_Documents);
+         when Confirm_VM.Model =>
+            Settings_View.Delete_Files (Item);
+      end case;
+      Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
+   end Answered;
 
 end View.Deletion;

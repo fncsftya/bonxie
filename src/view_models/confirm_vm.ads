@@ -22,7 +22,31 @@ package Confirm_VM is
 
    package Commands is new Parts.Command_Models (Command);
 
+   type Answer is record
+      Subject          : Subjects := Nothing;
+      --  What was confirmed; Nothing if the dialog was cancelled.
+      Row              : Natural := 0;
+      --  Of a project.
+      Dir, Doc         : Natural := 0;
+      --  Of a node.
+      Delete_Documents : Boolean := False;
+   end record;
+
+   --  What the world is told, for what is the view's to do about it: show or hide the dialog, and do what
+   --  was confirmed.
+
+   type Effects is limited interface;
+
+   procedure Dialog_Changed (Self : in out Effects) is abstract;
+   --  The dialog was asked about something, or answered.
+
+   procedure Answered (Self : in out Effects; Said : Answer) is abstract;
+   --  Confirm was executed (after Changed): this is what it was about.
+
    type View_Model is limited new Commands.Model with private;
+
+   procedure Observe (Self : in out View_Model; Reactions : access Effects'Class);
+   --  Tell Reactions, from now on.
 
    --  Asking: whatever was asked before is forgotten.
 
@@ -76,21 +100,14 @@ package Confirm_VM is
 
    --  The answer to the last Confirm
 
-   type Answer is record
-      Subject          : Subjects := Nothing;
-      --  What was confirmed; Nothing if the dialog was cancelled.
-      Row              : Natural := 0;
-      --  Of a project.
-      Dir, Doc         : Natural := 0;
-      --  Of a node.
-      Delete_Documents : Boolean := False;
-   end record;
-
    function Last_Answer (Self : View_Model) return Answer;
 
 private
 
+   type Effects_Access is access all Effects'Class;
+
    type View_Model is limited new Commands.Model with record
+      Reactions : Effects_Access;
       Asked    : Answer;
       --  What the dialog is about; its Subject is Nothing when it is not up.
       Name     : Ada.Strings.Unbounded.Unbounded_String;

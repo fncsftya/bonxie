@@ -27,12 +27,12 @@ package body View.Outlines.Clicks is
         (Pane.Colour_Popout,
          Position =>
            (Left => Float'Max (0.0, Float'Min
-              ((Widgets.Left_Of (Source) - Widgets.Left_Of (Item.Toolbar.Content_Panel)) / Pixels,
-               Widgets.Width_Of (Item.Toolbar.Content_Panel) / Pixels - 264.0)),
+              ((Widgets.Left_Of (Source) - Widgets.Left_Of (Content_Panel (Item).all)) / Pixels,
+               Widgets.Width_Of (Content_Panel (Item).all) / Pixels - 264.0)),
             Top => Float'Max (0.0, Float'Min
               ((Widgets.Top_Of (Source) + Widgets.Height_Of (Source)
-                - Widgets.Top_Of (Item.Toolbar.Content_Panel)) / Pixels,
-               Widgets.Height_Of (Item.Toolbar.Content_Panel) / Pixels - 270.0)), others => <>));
+                - Widgets.Top_Of (Content_Panel (Item).all)) / Pixels,
+               Widgets.Height_Of (Content_Panel (Item).all) / Pixels - 270.0)), others => <>));
       Widgets.Set_Visible (Pane.Colour_Popout, True);
       Widgets.Raise_To_Front (Pane.Colour_Popout);
    end Colour_Clicked;

@@ -92,6 +92,29 @@ package body Item_List_VM_Tests is
       Check ("item-list-vm-last-removed", "TRUE FALSE", Image (Item_List_VM.Count (Model) = 0) & " "
              & Image (Item_List_VM.Can_Execute (Model, Item_List_VM.Remove)));
    end Rows_And_Actions;
+   procedure Window_Controls_By_Name is
+      Session : aliased View.Session;
+      Ears : aliased View_Driver.Driver (Session'Access);
+      Window : Pomarine.Testing.Session;
+      package Testing renames Pomarine.Testing;
+      package Windows renames View.Canvas_Windows;
+   begin
+      View.Open (Session, "", 1000, 800);
+      Testing.Attach (Window, View.Widget_Tree (Session).all, Ears'Access);
+      Testing.Click_On (Window, "New project");
+      Testing.Click_On (Window, "Canvas");
+      Windows.Add_Unchosen_Source (Session, "Toolbar source");
+      Testing.Click_On (Window, "From URL");
+      Testing.Click_On (Window, "Mark");
+      Check ("item-controls-marker", "TRUE", Image (Testing.Shows (Window, "button 'Mark' selected")));
+      Testing.Click_On (Window, "Rub");
+      Check ("item-controls-eraser", "TRUE FALSE", Image (Testing.Shows (Window, "button 'Rub' selected"))
+             & " " & Image (Testing.Shows (Window, "button 'Mark' selected")));
+      Testing.Click_On (Window, "100%");
+      Testing.Click_On (Window, "150%");
+      Check ("item-controls-preset", "TRUE", Image (Windows.Item_Zoom (Session, 1) = 1.5));
+   end Window_Controls_By_Name;
+
    procedure By_Name is
       Session : aliased View.Session;
       Ears : aliased View_Driver.Driver (Session'Access);

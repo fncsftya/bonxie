@@ -4,8 +4,10 @@ with Pomarine.Line_Texts;
 with Pomarine.Icons;
 with Icon_Set;
 with Pomarine.Themes;
+with Pomarine.Widgets.Panels;
 with Pomarine.Text_Areas;
 with Pomarine.Widgets.Callbacks;
+with Pomarine.UI;
 with Pomarine.Widgets.Layouts;
 with View.Canvas_Items;
 with View.Style;
@@ -14,6 +16,7 @@ with Pomarine.Widgets.Editors;
 with Pomarine.Widgets.Scrollers;
 
 package body View.Search is
+   package UI renames Pomarine.UI;
    package Widgets renames Pomarine.Widgets;
    package Layouts renames Pomarine.Widgets.Layouts;
    package Fields renames Pomarine.Widgets.Text_Fields;
@@ -75,27 +78,50 @@ package body View.Search is
         (if In_Window
          then (Flow => Row, Height => 36.0, Shrink => 0.0, Gap => 3.0, Padding => (others => 3.0), others => <>)
          else (Flow => Row, Height => 44.0, Shrink => 0.0, Gap => 8.0, Padding => (others => 6.0), others => <>));
+      Wide : constant Float := (if In_Window then 24.0 else 36.0);
    begin
-      if Widgets.Is_Attached (S.Bar) then
-         Widgets.Remove (S.Bar);
+      if Item.Forms (Search_Region).Screen = null then
+         Open (Item.Forms (Search_Region), Item.Root.Widgets'Unchecked_Access, Search_Region);
       end if;
-      if In_Window then
-         Items.Windows.Add_Search_Bar (Item.Windows (Search_VM.Location (S.Model).Target), S.Bar);
-         Layouts.Set_Layout (S.Bar, Bar_Style);
-      else
-         Layouts.Add (Item.Toolbar.Project_Panel, S.Bar, Bar_Style);
-      end if;
-      Layouts.Add (S.Bar, S.Field, (Grow => 1.0, Width => 0.0, others => <>));
-      Layouts.Add (S.Bar, S.Count, (Width => (if In_Window then 48.0 else 100.0), others => <>));
-      Buttons.Add (S.Bar, S.Previous,
-                   Buttons.Looks ("Previous", Icon => Pomarine.Icons.Shown (Icon_Set.Back), Focusable => True),
-                   (Width => (if In_Window then 24.0 else 36.0), others => <>));
-      Buttons.Add (S.Bar, S.Next,
-                   Buttons.Looks ("Next", Icon => Pomarine.Icons.Shown (Icon_Set.Forward), Focusable => True),
-                   (Width => (if In_Window then 24.0 else 36.0), others => <>));
-      Buttons.Add (S.Bar, S.Close,
-                   Buttons.Looks ("Close", Icon => Pomarine.Icons.Shown (Pomarine.Icons.Close), Focusable => True),
-                   (Width => (if In_Window then 24.0 else 36.0), others => <>));
+      declare
+         Form : UI.View renames Item.Forms (Search_Region).Screen.all;
+
+         function Button (Part : in out Buttons.Button; Look : Buttons.Settings) return UI.Layout is
+         begin
+            Buttons.Configure (Part, Look);
+            return UI.Styled (UI.Put (Form, Part), (Width => Wide, others => <>));
+         end Button;
+
+         Field    : constant UI.Layout :=
+           UI.Styled (UI.Put (Form, S.Field), (Grow => 1.0, Width => 0.0, others => <>));
+         Counting : constant UI.Layout :=
+           UI.Styled (UI.Put (Form, S.Count), (Width => (if In_Window then 48.0 else 100.0), others => <>));
+         Back     : constant UI.Layout :=
+           Button (S.Previous,
+                   Buttons.Looks ("Previous", Icon => Pomarine.Icons.Shown (Icon_Set.Back), Focusable => True));
+         Forward  : constant UI.Layout :=
+           Button (S.Next,
+                   Buttons.Looks ("Next", Icon => Pomarine.Icons.Shown (Icon_Set.Forward), Focusable => True));
+         Closer   : constant UI.Layout :=
+           Button (S.Close,
+                   Buttons.Looks ("Close", Icon => Pomarine.Icons.Shown (Pomarine.Icons.Close), Focusable => True));
+         Parts    : constant UI.Layout_Array := [Field, Counting, Back, Forward, Closer];
+      begin
+         --  The bar moves between the project and the window of an item: it is taken out, with what is in it,
+         --  and put again where it is wanted.
+         if Widgets.Is_Attached (S.Bar) then
+            Widgets.Remove (S.Bar);
+         end if;
+         if In_Window then
+            Items.Windows.Mount_Search_Bar
+              (Item.Windows (Search_VM.Location (S.Model).Target), Form,
+               UI.Styled (UI.Put_In (Form, S.Bar, Parts, Flow => Layouts.Row), Bar_Style));
+         else
+            UI.Mount_Into
+              (Form, Project_Panel (Item).all,
+               UI.Styled (UI.Put_In (Form, S.Bar, Parts, Flow => Layouts.Row), Bar_Style));
+         end if;
+      end;
       Pomarine.Widgets.Panels.Set_Fill (S.Bar, Pomarine.Themes.Strip);
       Hooks.On (S.Previous, Widgets.Click, Item'Unchecked_Access, Previous_Clicked'Access);
       Hooks.On (S.Next, Widgets.Click, Item'Unchecked_Access, Next_Clicked'Access);

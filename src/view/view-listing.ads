@@ -6,6 +6,9 @@ with Pomarine.Widgets;
 
 private package View.Listing is
 
+   function Overlay (Item : Session) return access Pomarine.Widgets.Widget'Class;
+   --  The grey over the screen, with the dialog in it.
+
    procedure Open (Item : in out Session)
      with Pre => Screen (Item) = Project;
    --  Put the list up, if Nav_VM lets it be.

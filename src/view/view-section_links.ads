@@ -21,10 +21,6 @@ private package View.Section_Links is
    procedure Listen_Page (Item : in out Session; Rank : Items.Slot);
    --  Have the Section button of the page of the slot do what it is for.
 
-   procedure Listen (Item : in out Session);
-   --  Have the menu, and the buttons of the writing view's pages, do what
-   --  they are for.
-
    function Is_Shown (Item : Session) return Boolean;
    --  Whether the menu is shown.
 

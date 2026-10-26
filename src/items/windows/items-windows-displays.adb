@@ -16,7 +16,6 @@ package body Items.Windows.Displays is
    package Frames renames Pomarine.Widgets.Frames;
    package Editors renames Pomarine.Widgets.Editors;
    package Pictures renames Pomarine.Widgets.Pictures;
-   package Sliders renames Pomarine.Widgets.Sliders;
    package Views renames Pomarine.Widgets.Page_Views;
 
    use type Items.Models.Captures;
@@ -37,8 +36,6 @@ package body Items.Windows.Displays is
         Details.Kind = Source and then Details.Page_Count > 1 and then not Items.Models.Is_Text_Source (Item.Model.all);
    begin
       Widgets.Set_Visible (Item.Pager, Paged);
-      Buttons.Set_Enabled (Item.Prev_Button, Paged and then Details.Page > 1);
-      Buttons.Set_Enabled (Item.Next_Button, Paged and then Details.Page < Details.Page_Count);
    end Show_Pager;
 
    procedure Show_Fetch (Item : in out Window) is
@@ -109,9 +106,6 @@ package body Items.Windows.Displays is
    begin
       Pictures.Set_Tool (Item.Picture, Tool_Of (Chosen));
       Views.Set_Tool (Item.Pages, Tool_Of (Chosen));
-      Buttons.Set_Selected (Item.Cursor_Button, Chosen = Items.Models.Pointer);
-      Buttons.Set_Selected (Item.Marker_Button, Chosen = Items.Models.Highlighter);
-      Buttons.Set_Selected (Item.Eraser_Button, Chosen = Items.Models.Eraser);
    end Show_Tool;
 
    --  A source's link, or a note's text.
@@ -172,7 +166,6 @@ package body Items.Windows.Displays is
    begin
       Pictures.Set_Zoom (Item.Picture, To);
       Views.Set_Zoom (Item.Pages, To);
-      Sliders.Set_Value (Item.Zoom_Slider, Items.Sources.To_Slider (To));
       Buttons.Set_Label (Item.Zoom_Button, Items.Sources.Percent (To));
       for Which in Item.Menu_Buttons'Range loop
          Buttons.Set_Selected (Item.Menu_Buttons (Which), abs (Metrics.Preset_Zooms (Which) - To) < 0.005);
