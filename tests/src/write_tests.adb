@@ -20,6 +20,8 @@ with View.Home_Screen;
 with View.Project_Screen;
 with View.Sources;
 
+with Gestures; use Gestures;
+
 package body Write_Tests is
 
    package Events renames Pomarine.Events;
@@ -99,50 +101,6 @@ package body Write_Tests is
    --  none), and the grammar switch above them and the handle between.
 
    --  Events
-
-   procedure Move_To (Session : in out View.Session; X, Y : Float;
-                      Held : Boolean := False) is
-   begin
-      View.Handle
-        (Session, Events.Event'(Kind => Events.Mouse_Move, Mouse_X => X,
-                                Mouse_Y => Y, Left_Held => Held,
-                                others => <>));
-   end Move_To;
-
-   procedure Click_On (Session : in out View.Session; X, Y : Float) is
-   begin
-      Move_To (Session, X, Y);
-      View.Handle
-        (Session, Events.Event'(Kind => Events.Mouse_Down, Button => 1,
-                                Clicks => 1, Mouse_X => X, Mouse_Y => Y,
-                                others => <>));
-      View.Handle
-        (Session, Events.Event'(Kind => Events.Mouse_Up, Button => 1,
-                                Clicks => 1, Mouse_X => X, Mouse_Y => Y,
-                                others => <>));
-   end Click_On;
-
-   procedure Type_In (Session : in out View.Session; Text : String) is
-   begin
-      View.Handle (Session, Events.Text_Event (Text));
-   end Type_In;
-
-   procedure Drag
-     (Session : in out View.Session; From_X, From_Y, To_X, To_Y : Float) is
-   begin
-      Move_To (Session, From_X, From_Y);
-      View.Handle
-        (Session, Events.Event'(Kind => Events.Mouse_Down, Button => 1,
-                                Clicks => 1, Mouse_X => From_X,
-                                Mouse_Y => From_Y, others => <>));
-      Move_To
-        (Session, (From_X + To_X) / 2.0, (From_Y + To_Y) / 2.0, Held => True);
-      Move_To (Session, To_X, To_Y, Held => True);
-      View.Handle
-        (Session, Events.Event'(Kind => Events.Mouse_Up, Button => 1,
-                                Clicks => 1, Mouse_X => To_X, Mouse_Y => To_Y,
-                                others => <>));
-   end Drag;
 
    procedure Settle (Session : in out View.Session) is
       Drawn : Pictures.Image;

@@ -24,12 +24,8 @@ package body Repository.Word is
    end Prepare;
 
    procedure Delete (Store : in out Projects.Store; Key : Items.Id) is
-      Remove : Ada_Sqlite3.Statement :=
-        Ada_Sqlite3.Prepare
-          (DB (Store).all, "DELETE FROM item_words WHERE item_id = :id");
    begin
-      Ada_Sqlite3.Bind_Int64 (Remove, ":id", Long_Integer (Key));
-      Ada_Sqlite3.Step (Remove);
+      Delete_Where (Store, "item_words", "item_id", Long_Integer (Key));
    end Delete;
 
    procedure Replace

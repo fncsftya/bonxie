@@ -14,6 +14,8 @@ with View.Outline_Screen;
 with View.Project_Screen;
 with View.Settings;
 
+with Gestures; use Gestures;
+
 package body Outline_Tests is
 
    package Events renames Pomarine.Events;
@@ -37,33 +39,6 @@ package body Outline_Tests is
       View.Open (Session, "", Width, Height, 2.0);
       Home.New_Project (Session);
    end Start;
-
-   procedure Type_In (Session : in out View.Session; Text : String) is
-   begin
-      View.Handle (Session, Events.Text_Event (Text));
-   end Type_In;
-
-   procedure Move_To
-     (Session : in out View.Session; X, Y : Float; Held : Boolean := False) is
-   begin
-      View.Handle
-        (Session, Events.Event'(Kind => Events.Mouse_Move, Mouse_X => X,
-                                Mouse_Y => Y, Left_Held => Held, others => <>));
-   end Move_To;
-
-   procedure Press (Session : in out View.Session; X, Y : Float) is
-   begin
-      View.Handle
-        (Session, Events.Event'(Kind => Events.Mouse_Down, Button => 1, Clicks => 1,
-                                Mouse_X => X, Mouse_Y => Y, others => <>));
-   end Press;
-
-   procedure Release (Session : in out View.Session; X, Y : Float) is
-   begin
-      View.Handle
-        (Session, Events.Event'(Kind => Events.Mouse_Up, Button => 1, Clicks => 1,
-                                Mouse_X => X, Mouse_Y => Y, others => <>));
-   end Release;
 
    procedure Settle (Session : in out View.Session) is
       Drawn : Pictures.Image;

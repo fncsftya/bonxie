@@ -20,6 +20,17 @@ package Adaptive_Themes is
      with Post => Luminance'Result in 0.0 .. 1.0;
    --  How bright it looks, as the relative luminance of sRGB: 0.0 for black, 1.0 for white.
 
+   function From_Chroma
+     (Hue : Hues; Chroma, Shift : Float; Alpha : SDL3.Windows.Renderers.Color_Component := 255)
+      return Pomarine.Themes.Color;
+   --  The colour on the wheel at Hue, Chroma strong, each of its channels raised by Shift (so a
+   --  lightness L has Shift L - Chroma / 2, and a brightness B, B - Chroma).
+
+   function From_HSL
+     (Hue, Saturation, Lightness : Float; Alpha : SDL3.Windows.Renderers.Color_Component := 255)
+      return Pomarine.Themes.Color;
+   --  The colour of that hue (a turn of the wheel), saturation and lightness (each 0.0 .. 1.0).
+
    subtype Strengths is Float range 0.0 .. 1.0;
    --  How much of its hue a grey takes on, of what is made for it: 1.0 is the most.
 

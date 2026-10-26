@@ -1,6 +1,6 @@
+with Adaptive_Themes;
 with Pomarine.Boxes;
 with Pomarine.Widgets;
-with SDL3.Windows.Renderers;
 
 package body Section_Colour_Pickers is
    use Pomarine.Widgets;
@@ -12,23 +12,9 @@ package body Section_Colour_Pickers is
      (Float'Max (0.0, Float'Min (1.0, Value)));
 
    function RGB (Hue, Brightness, Purity : Unit) return Pomarine.Themes.Color is
-      Sector : constant Float := Hue * 6.0;
       Chroma : constant Float := Brightness * Purity;
-      Second : constant Float := Chroma * (1.0 - abs ((Sector - 2.0 * Float'Floor (Sector / 2.0)) - 1.0));
-      Shift : constant Float := Brightness - Chroma;
-      R, G, B : Float;
-      function Byte (Value : Float) return SDL3.Windows.Renderers.Color_Component is
-        (SDL3.Windows.Renderers.Color_Component (Float'Rounding (Clamp (Value + Shift) * 255.0)));
    begin
-      case Natural (Float'Floor (Sector)) mod 6 is
-         when 0 => R := Chroma; G := Second; B := 0.0;
-         when 1 => R := Second; G := Chroma; B := 0.0;
-         when 2 => R := 0.0; G := Chroma; B := Second;
-         when 3 => R := 0.0; G := Second; B := Chroma;
-         when 4 => R := Second; G := 0.0; B := Chroma;
-         when others => R := Chroma; G := 0.0; B := Second;
-      end case;
-      return (Byte (R), Byte (G), Byte (B), 255);
+      return Adaptive_Themes.From_Chroma (Hue, Chroma, Brightness - Chroma);
    end RGB;
 
    function Colour (Item : Picker) return Projects.Sections.Colour_Value is

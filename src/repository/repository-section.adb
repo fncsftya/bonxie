@@ -137,12 +137,8 @@ package body Repository.Section is
      (Store : in out Projects.Store; Key : Projects.Sections.Section_Id;
       Colour : Projects.Sections.Colour_Value)
    is
-      Query : Ada_Sqlite3.Statement := Ada_Sqlite3.Prepare
-        (DB (Store).all, "UPDATE sections SET colour = :colour WHERE id = :id");
    begin
-      Ada_Sqlite3.Bind_Int (Query, ":colour", Colour);
-      Ada_Sqlite3.Bind_Int64 (Query, ":id", Long_Integer (Key));
-      Ada_Sqlite3.Step (Query);
+      Set_Int (Store, "sections", "colour", Long_Integer (Key), Colour);
    end Set_Colour;
 
    procedure Rename
@@ -150,13 +146,8 @@ package body Repository.Section is
       Key   : Projects.Sections.Section_Id;
       Title : String)
    is
-      Update : Ada_Sqlite3.Statement :=
-        Ada_Sqlite3.Prepare
-          (DB (Store).all, "UPDATE sections SET title = :title WHERE id = :id");
    begin
-      Ada_Sqlite3.Bind_Text (Update, ":title", Title);
-      Ada_Sqlite3.Bind_Int64 (Update, ":id", Long_Integer (Key));
-      Ada_Sqlite3.Step (Update);
+      Set_Text (Store, "sections", "title", Long_Integer (Key), Title);
    end Rename;
 
    function Stored_Notes (Store : Projects.Store; Key : Projects.Sections.Section_Id) return String is
@@ -175,13 +166,8 @@ package body Repository.Section is
       Key   : Projects.Sections.Section_Id;
       Notes : String)
    is
-      Update : Ada_Sqlite3.Statement :=
-        Ada_Sqlite3.Prepare
-          (DB (Store).all, "UPDATE sections SET notes = :notes WHERE id = :id");
    begin
-      Ada_Sqlite3.Bind_Text (Update, ":notes", Notes);
-      Ada_Sqlite3.Bind_Int64 (Update, ":id", Long_Integer (Key));
-      Ada_Sqlite3.Step (Update);
+      Set_Text (Store, "sections", "notes", Long_Integer (Key), Notes);
    end Set_Notes;
 
    procedure Set_Order

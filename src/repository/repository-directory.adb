@@ -162,27 +162,15 @@ package body Repository.Directory is
    procedure Rename
      (Store : in out Projects.Store; Key : Items.Id; Title : String)
    is
-      Update : Ada_Sqlite3.Statement :=
-        Ada_Sqlite3.Prepare
-          (DB (Store).all,
-           "UPDATE directories SET title = :title WHERE id = :id");
    begin
-      Ada_Sqlite3.Bind_Text (Update, ":title", Title);
-      Ada_Sqlite3.Bind_Int64 (Update, ":id", Long_Integer (Key));
-      Ada_Sqlite3.Step (Update);
+      Set_Text (Store, "directories", "title", Long_Integer (Key), Title);
    end Rename;
 
    procedure Set_Position
      (Store : in out Projects.Store; Key : Items.Id; Position : Positive)
    is
-      Update : Ada_Sqlite3.Statement :=
-        Ada_Sqlite3.Prepare
-          (DB (Store).all,
-           "UPDATE directories SET position = :position WHERE id = :id");
    begin
-      Ada_Sqlite3.Bind_Int (Update, ":position", Position);
-      Ada_Sqlite3.Bind_Int64 (Update, ":id", Long_Integer (Key));
-      Ada_Sqlite3.Step (Update);
+      Set_Int (Store, "directories", "position", Long_Integer (Key), Position);
    end Set_Position;
 
    procedure Set_Parent
@@ -203,12 +191,8 @@ package body Repository.Directory is
    end Set_Parent;
 
    procedure Delete (Store : in out Projects.Store; Key : Items.Id) is
-      Remove : Ada_Sqlite3.Statement :=
-        Ada_Sqlite3.Prepare
-          (DB (Store).all, "DELETE FROM directories WHERE id = :id");
    begin
-      Ada_Sqlite3.Bind_Int64 (Remove, ":id", Long_Integer (Key));
-      Ada_Sqlite3.Step (Remove);
+      Delete_Where (Store, "directories", "id", Long_Integer (Key));
    end Delete;
 
 end Repository.Directory;

@@ -170,26 +170,15 @@ package body Repository.Item is
    procedure Set_Title
      (Store : in out Projects.Store; Key : Items.Id; Title : String)
    is
-      Update : Ada_Sqlite3.Statement :=
-        Ada_Sqlite3.Prepare
-          (DB (Store).all, "UPDATE items SET title = :title WHERE id = :id");
    begin
-      Ada_Sqlite3.Bind_Text (Update, ":title", Title);
-      Ada_Sqlite3.Bind_Int64 (Update, ":id", Long_Integer (Key));
-      Ada_Sqlite3.Step (Update);
+      Set_Text (Store, "items", "title", Long_Integer (Key), Title);
    end Set_Title;
 
    procedure Set_Content
      (Store : in out Projects.Store; Key : Items.Id; Text : String)
    is
-      Update : Ada_Sqlite3.Statement :=
-        Ada_Sqlite3.Prepare
-          (DB (Store).all,
-           "UPDATE items SET content = :content WHERE id = :id");
    begin
-      Ada_Sqlite3.Bind_Text (Update, ":content", Text);
-      Ada_Sqlite3.Bind_Int64 (Update, ":id", Long_Integer (Key));
-      Ada_Sqlite3.Step (Update);
+      Set_Text (Store, "items", "content", Long_Integer (Key), Text);
    end Set_Content;
 
    procedure Set_Frame
@@ -211,13 +200,8 @@ package body Repository.Item is
    procedure Set_State
      (Store : in out Projects.Store; Key : Items.Id; State : Items.States)
    is
-      Update : Ada_Sqlite3.Statement :=
-        Ada_Sqlite3.Prepare
-          (DB (Store).all, "UPDATE items SET state = :state WHERE id = :id");
    begin
-      Ada_Sqlite3.Bind_Int (Update, ":state", Items.States'Pos (State));
-      Ada_Sqlite3.Bind_Int64 (Update, ":id", Long_Integer (Key));
-      Ada_Sqlite3.Step (Update);
+      Set_Int (Store, "items", "state", Long_Integer (Key), Items.States'Pos (State));
    end Set_State;
 
    procedure Set_Scroll
@@ -238,26 +222,15 @@ package body Repository.Item is
    procedure Set_Zoom
      (Store : in out Projects.Store; Key : Items.Id; Zoom : Items.Zoom_Level)
    is
-      Update : Ada_Sqlite3.Statement :=
-        Ada_Sqlite3.Prepare
-          (DB (Store).all, "UPDATE items SET zoom = :zoom WHERE id = :id");
    begin
-      Ada_Sqlite3.Bind_Double (Update, ":zoom", Zoom);
-      Ada_Sqlite3.Bind_Int64 (Update, ":id", Long_Integer (Key));
-      Ada_Sqlite3.Step (Update);
+      Set_Double (Store, "items", "zoom", Long_Integer (Key), Zoom);
    end Set_Zoom;
 
    procedure Set_Captured
      (Store : in out Projects.Store; Key : Items.Id; At_Time : Projects.Seconds)
    is
-      Update : Ada_Sqlite3.Statement :=
-        Ada_Sqlite3.Prepare
-          (DB (Store).all,
-           "UPDATE items SET captured_at = :time WHERE id = :id");
    begin
-      Ada_Sqlite3.Bind_Int64 (Update, ":time", At_Time);
-      Ada_Sqlite3.Bind_Int64 (Update, ":id", Long_Integer (Key));
-      Ada_Sqlite3.Step (Update);
+      Set_Int64 (Store, "items", "captured_at", Long_Integer (Key), At_Time);
    end Set_Captured;
 
    procedure Set_Document
@@ -282,25 +255,15 @@ package body Repository.Item is
    procedure Set_Origin
      (Store : in out Projects.Store; Key : Items.Id; Origin : Items.Origins)
    is
-      Update : Ada_Sqlite3.Statement :=
-        Ada_Sqlite3.Prepare
-          (DB (Store).all, "UPDATE items SET origin = :origin WHERE id = :id");
    begin
-      Ada_Sqlite3.Bind_Int (Update, ":origin", Items.Origins'Pos (Origin));
-      Ada_Sqlite3.Bind_Int64 (Update, ":id", Long_Integer (Key));
-      Ada_Sqlite3.Step (Update);
+      Set_Int (Store, "items", "origin", Long_Integer (Key), Items.Origins'Pos (Origin));
    end Set_Origin;
 
    procedure Set_Page
      (Store : in out Projects.Store; Key : Items.Id; Page : Natural)
    is
-      Update : Ada_Sqlite3.Statement :=
-        Ada_Sqlite3.Prepare
-          (DB (Store).all, "UPDATE items SET page = :page WHERE id = :id");
    begin
-      Ada_Sqlite3.Bind_Int (Update, ":page", Page);
-      Ada_Sqlite3.Bind_Int64 (Update, ":id", Long_Integer (Key));
-      Ada_Sqlite3.Step (Update);
+      Set_Int (Store, "items", "page", Long_Integer (Key), Page);
    end Set_Page;
 
    procedure Set_Recognized
@@ -353,14 +316,8 @@ package body Repository.Item is
    procedure Set_Position
      (Store : in out Projects.Store; Key : Items.Id; Position : Positive)
    is
-      Update : Ada_Sqlite3.Statement :=
-        Ada_Sqlite3.Prepare
-          (DB (Store).all,
-           "UPDATE items SET position = :position WHERE id = :id");
    begin
-      Ada_Sqlite3.Bind_Int (Update, ":position", Position);
-      Ada_Sqlite3.Bind_Int64 (Update, ":id", Long_Integer (Key));
-      Ada_Sqlite3.Step (Update);
+      Set_Int (Store, "items", "position", Long_Integer (Key), Position);
    end Set_Position;
 
    procedure Load_Order
@@ -398,14 +355,8 @@ package body Repository.Item is
    procedure Set_Directory
      (Store : in out Projects.Store; Key, Directory : Items.Id)
    is
-      Update : Ada_Sqlite3.Statement :=
-        Ada_Sqlite3.Prepare
-          (DB (Store).all,
-           "UPDATE items SET directory_id = :directory WHERE id = :id");
    begin
-      Ada_Sqlite3.Bind_Int64 (Update, ":directory", Long_Integer (Directory));
-      Ada_Sqlite3.Bind_Int64 (Update, ":id", Long_Integer (Key));
-      Ada_Sqlite3.Step (Update);
+      Set_Int64 (Store, "items", "directory_id", Long_Integer (Key), Long_Integer (Directory));
    end Set_Directory;
 
    procedure Free_Directory
@@ -421,12 +372,8 @@ package body Repository.Item is
    end Free_Directory;
 
    procedure Delete (Store : in out Projects.Store; Key : Items.Id) is
-      Remove : Ada_Sqlite3.Statement :=
-        Ada_Sqlite3.Prepare
-          (DB (Store).all, "DELETE FROM items WHERE id = :id");
    begin
-      Ada_Sqlite3.Bind_Int64 (Remove, ":id", Long_Integer (Key));
-      Ada_Sqlite3.Step (Remove);
+      Delete_Where (Store, "items", "id", Long_Integer (Key));
    end Delete;
 
 end Repository.Item;

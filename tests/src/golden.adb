@@ -12,6 +12,7 @@ with Pomarine.Events;
 with SDL3.Windows.Renderers;
 with Downloads;
 with Files;
+with Gestures; use Gestures;
 with Goldens;
 with Item_Tests;
 with Layout_Tests;
@@ -384,19 +385,6 @@ procedure Golden is
       end loop;
       return Result (1 .. Last);
    end Titles;
-
-   function Button_Click (X, Y : Float) return Events.Event is
-     ((Kind => Events.Mouse_Up, Button => 1, Clicks => 1,
-       Mouse_X => X, Mouse_Y => Y, others => <>));
-
-   procedure Click_On (Item : in out View.Session; X, Y : Float) is
-   begin
-      View.Handle (Item, Events.Event'(Kind => Events.Mouse_Move,
-                                         Mouse_X => X, Mouse_Y => Y,
-                                         others => <>));
-      View.Handle (Item, Click (X, Y));
-      View.Handle (Item, Button_Click (X, Y));
-   end Click_On;
 
    --  The home screen is tested in a window Home_Width wide and
    --  Home_Height high, as a window opens: room for two columns of cards.

@@ -95,11 +95,8 @@ package body Repository.Rule is
    end Insert;
 
    procedure Delete (Store : in out Projects.Store; Key : Projects.Rules.Rule_Id) is
-      Remove : Ada_Sqlite3.Statement :=
-        Ada_Sqlite3.Prepare (DB (Store).all, "DELETE FROM grammar_rules WHERE id = :id");
    begin
-      Ada_Sqlite3.Bind_Int64 (Remove, ":id", Long_Integer (Key));
-      Ada_Sqlite3.Step (Remove);
+      Delete_Where (Store, "grammar_rules", "id", Long_Integer (Key));
    end Delete;
 
 end Repository.Rule;

@@ -27,13 +27,12 @@ package body Adaptive_Themes is
       return (Bright + 0.05) / (Dim + 0.05);
    end Contrast;
 
-   function From_HSL (Hue, Saturation, Lightness : Float; Alpha : SDL3.Windows.Renderers.Color_Component)
-     return Themes.Color
+   function From_Chroma
+     (Hue : Hues; Chroma, Shift : Float; Alpha : SDL3.Windows.Renderers.Color_Component := 255)
+      return Themes.Color
    is
-      Chroma : constant Float := (1.0 - abs (2.0 * Lightness - 1.0)) * Saturation;
       Sector : constant Float := Hue * 6.0;
       Second : constant Float := Chroma * (1.0 - abs (Sector - 2.0 * Float'Floor (Sector / 2.0) - 1.0));
-      Shift  : constant Float := Lightness - Chroma / 2.0;
       R, G, B : Float;
 
       function Byte (Value : Float) return SDL3.Windows.Renderers.Color_Component is
@@ -49,6 +48,15 @@ package body Adaptive_Themes is
          when others => R := Chroma; G := 0.0;    B := Second;
       end case;
       return (Byte (R), Byte (G), Byte (B), Alpha);
+   end From_Chroma;
+
+   function From_HSL
+     (Hue, Saturation, Lightness : Float; Alpha : SDL3.Windows.Renderers.Color_Component := 255)
+     return Themes.Color
+   is
+      Chroma : constant Float := (1.0 - abs (2.0 * Lightness - 1.0)) * Saturation;
+   begin
+      return From_Chroma (Hue, Chroma, Lightness - Chroma / 2.0, Alpha);
    end From_HSL;
 
    function Retint (Value : Themes.Color; Hue : Hues; Saturation : Float) return Themes.Color is

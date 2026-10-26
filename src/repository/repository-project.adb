@@ -65,26 +65,15 @@ package body Repository.Project is
       Key         : Projects.Id;
       Description : String)
    is
-      Update : Ada_Sqlite3.Statement :=
-        Ada_Sqlite3.Prepare
-          (DB (Store).all,
-           "UPDATE projects SET description = :description WHERE id = :id");
    begin
-      Ada_Sqlite3.Bind_Text (Update, ":description", Description);
-      Ada_Sqlite3.Bind_Int64 (Update, ":id", Long_Integer (Key));
-      Ada_Sqlite3.Step (Update);
+      Set_Text (Store, "projects", "description", Long_Integer (Key), Description);
    end Set_Description;
 
    procedure Set_Tab
      (Store : in out Projects.Store; Key : Projects.Id; To : Natural)
    is
-      Update : Ada_Sqlite3.Statement :=
-        Ada_Sqlite3.Prepare
-          (DB (Store).all, "UPDATE projects SET tab = :tab WHERE id = :id");
    begin
-      Ada_Sqlite3.Bind_Int (Update, ":tab", To);
-      Ada_Sqlite3.Bind_Int64 (Update, ":id", Long_Integer (Key));
-      Ada_Sqlite3.Step (Update);
+      Set_Int (Store, "projects", "tab", Long_Integer (Key), To);
    end Set_Tab;
 
    function Tab
@@ -216,12 +205,8 @@ package body Repository.Project is
    end Find;
 
    procedure Delete (Store : in out Projects.Store; Key : Projects.Id) is
-      Remove : Ada_Sqlite3.Statement :=
-        Ada_Sqlite3.Prepare
-          (DB (Store).all, "DELETE FROM projects WHERE id = :id");
    begin
-      Ada_Sqlite3.Bind_Int64 (Remove, ":id", Long_Integer (Key));
-      Ada_Sqlite3.Step (Remove);
+      Delete_Where (Store, "projects", "id", Long_Integer (Key));
    end Delete;
 
    procedure Recent

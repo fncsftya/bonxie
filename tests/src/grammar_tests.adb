@@ -1,4 +1,5 @@
 with Ada.Real_Time;
+with Gestures; use Gestures;
 with Goldens;
 with Grammar_Rules;
 with Harper;
@@ -22,15 +23,6 @@ package body Grammar_Tests is
    package Proj renames View.Project_Screen;
    use type Ada.Real_Time.Time;
    use type Events.Milliseconds;
-
-   procedure Click (Item : in out View.Session; X, Y : Float) is
-   begin
-      View.Handle (Item, (Kind => Events.Mouse_Move, Mouse_X => X, Mouse_Y => Y, others => <>));
-      View.Handle (Item, (Kind => Events.Mouse_Down, Button => 1, Clicks => 1,
-                           Mouse_X => X, Mouse_Y => Y, others => <>));
-      View.Handle (Item, (Kind => Events.Mouse_Up, Button => 1, Clicks => 1,
-                           Mouse_X => X, Mouse_Y => Y, others => <>));
-   end Click;
 
    procedure Check (Name : String; Value : Boolean) is
    begin
@@ -81,18 +73,18 @@ package body Grammar_Tests is
       Snap (Item, "write-grammar-highlights");
 
       --  Turning off clears all documents, including those below the viewport.
-      Click (Item, 28.0, 115.0);
+      Click_On (Item, 28.0, 115.0);
       View.Tick (Item, Now);
       Check ("grammar-off", not Docs.Grammar_Suggestions_Shown (Item));
       Check ("grammar-cleared", Docs.Grammar_Highlights (Item, 1) = 0
              and then Docs.Grammar_Highlights (Item, 2) = 0);
       Snap (Item, "write-grammar-off");
-      Click (Item, 28.0, 115.0);
+      Click_On (Item, 28.0, 115.0);
       Await (Item, Now);
       Check ("grammar-back-on", Docs.Grammar_Highlights (Item, 1) > 0);
 
       --  Edits expire marks immediately; checks wait until 500 ms idle.
-      Click (Item, 400.0, 140.0);
+      Click_On (Item, 400.0, 140.0);
       View.Handle (Item, (Kind => Events.Key_Down, Key => Events.Key_A, Command => True, others => <>));
       View.Handle (Item, Events.Text_Event ("This is a correct sentence."));
       Goldens.Check_Text ("grammar-edited-text", "This is a correct sentence.", Windows.Item_Text (Item, 1));
@@ -122,17 +114,17 @@ package body Grammar_Tests is
       Check ("grammar-stale-result", Docs.Grammar_Highlights (Item, 1) = 0);
 
       --  Diagnostics span all documents: editing a clean one keeps the others' marks, count and menu.
-      Click (Item, 400.0, 140.0);
+      Click_On (Item, 400.0, 140.0);
       View.Handle (Item, (Kind => Events.Key_Down, Key => Events.Key_A, Command => True, others => <>));
       View.Handle (Item, Events.Text_Event ("This is a speling mistake."));
       View.Tick (Item, Now);
       Now := Now + 500;
       Await (Item, Now);
       Check ("grammar-span-first", Docs.Grammar_Highlights (Item, 1) > 0 and then Docs.Grammar_Count (Item) = "2");
-      Click (Item, 100.0, 277.0);
+      Click_On (Item, 100.0, 277.0);
       View.Tick (Item, Now + 1000);
       View.Render (Item, Image);
-      Click (Item, 400.0, 460.0);
+      Click_On (Item, 400.0, 460.0);
       View.Handle (Item, (Kind => Events.Key_Down, Key => Events.Key_A, Command => True, others => <>));
       for C of String'("Fine and dandy. It is good.") loop
          View.Handle (Item, Events.Text_Event ([C]));
@@ -152,7 +144,7 @@ package body Grammar_Tests is
       Proj.Set_Mode (Item, View.Write);
       View.Tick (Item, Now);
       Check ("grammar-tab-return", Docs.Grammar_Count (Item) = "1" and then Docs.Grammar_Highlights (Item, 1) > 0);
-      Click (Item, 181.0, 166.0);
+      Click_On (Item, 181.0, 166.0);
       View.Tick (Item, Now + 1000);
       Check ("grammar-added-count", Docs.Document_Count (Item) = 3);
       View.Handle (Item, Events.Text_Event ("Brand new."));

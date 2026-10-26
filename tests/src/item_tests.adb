@@ -33,6 +33,8 @@ with View.Canvas_Windows;
 with View.Home_Screen;
 with View.Project_Screen;
 
+with Gestures; use Gestures;
+
 package body Item_Tests is
 
    package Events renames Pomarine.Events;
@@ -128,85 +130,6 @@ package body Item_Tests is
       return String is (Place (Windows.Item_Frame (Session, Row)));
 
    --  Events
-
-   procedure Move_To (Session : in out View.Session; X, Y : Float;
-                      Held : Boolean := False) is
-   begin
-      View.Handle
-        (Session, Events.Event'(Kind => Events.Mouse_Move, Mouse_X => X,
-                                Mouse_Y => Y, Left_Held => Held,
-                                others => <>));
-   end Move_To;
-
-   procedure Press (Session : in out View.Session; X, Y : Float) is
-   begin
-      Move_To (Session, X, Y);
-      View.Handle
-        (Session, Events.Event'(Kind => Events.Mouse_Down, Button => 1,
-                                Clicks => 1, Mouse_X => X, Mouse_Y => Y,
-                                others => <>));
-   end Press;
-
-   procedure Release (Session : in out View.Session; X, Y : Float) is
-   begin
-      View.Handle
-        (Session, Events.Event'(Kind => Events.Mouse_Up, Button => 1,
-                                Clicks => 1, Mouse_X => X, Mouse_Y => Y,
-                                others => <>));
-   end Release;
-
-   procedure Click_On (Session : in out View.Session; X, Y : Float) is
-   begin
-      Press (Session, X, Y);
-      Release (Session, X, Y);
-   end Click_On;
-
-   procedure Double_Click_On (Session : in out View.Session; X, Y : Float)
-   is
-   begin
-      Click_On (Session, X, Y);
-      Move_To (Session, X, Y);
-      View.Handle
-        (Session, Events.Event'(Kind => Events.Mouse_Down, Button => 1,
-                                Clicks => 2, Mouse_X => X, Mouse_Y => Y,
-                                others => <>));
-      Release (Session, X, Y);
-   end Double_Click_On;
-
-   procedure Drag
-     (Session : in out View.Session; From_X, From_Y, To_X, To_Y : Float) is
-   begin
-      Press (Session, From_X, From_Y);
-      --  In two moves, as a pointer is.
-      Move_To
-        (Session, (From_X + To_X) / 2.0, (From_Y + To_Y) / 2.0, Held => True);
-      Move_To (Session, To_X, To_Y, Held => True);
-      Release (Session, To_X, To_Y);
-   end Drag;
-
-   procedure Type_In (Session : in out View.Session; Text : String) is
-      First : Positive := Text'First;
-      Last : Natural;
-   begin
-      while First <= Text'Last loop
-         Last := Natural'Min (Text'Last, First + Events.Text_Capacity - 1);
-         while Last < Text'Last and then Character'Pos (Text (Last + 1)) in 16#80# .. 16#BF# loop
-            Last := Last - 1;
-         end loop;
-         pragma Assert (Last >= First);
-         View.Handle (Session, Events.Text_Event (Text (First .. Last)));
-         First := Last + 1;
-      end loop;
-   end Type_In;
-
-   procedure Press_Key
-     (Session : in out View.Session; Code : Events.Key_Code;
-      Command : Boolean := False) is
-   begin
-      View.Handle
-        (Session, Events.Event'(Kind => Events.Key_Down, Key => Code,
-                                Command => Command, others => <>));
-   end Press_Key;
 
    procedure Start (Session : in out View.Session) is
    begin
