@@ -8,9 +8,20 @@ with Speech.Models;
 --  made to fail, and a speech model that is as the test says.
 package Settings_VM_Fakes is
 
+   type Reactions is limited new Settings_VM.Effects with record
+      Seed : Natural := 1234;
+      Requests, Notices : Natural := 0;
+      Last : Settings_VM.Command := Settings_VM.Open;
+   end record;
+
+   overriding function New_Picture_Seed (Self : in out Reactions) return Natural;
+   overriding procedure Done (Self : in out Reactions; What : Settings_VM.Command);
+   overriding procedure Ask_To_Delete (Self : in out Reactions; Size : String);
+
    type Notes is limited new Settings_VM.Store with record
       Said    : Ada.Strings.Unbounded.Unbounded_String;
       Failing : Boolean := False;
+      Background_Failing : Boolean := False;
    end record;
 
    overriding procedure Save_Speech_Model (Self : in out Notes; To : Preferences.Speech_Models);

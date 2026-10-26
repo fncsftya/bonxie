@@ -59,13 +59,6 @@ package body View.Deletion is
       end if;
    end Sync;
 
-   procedure Confirm (Item : in out Session; Row : Positive) is
-   begin
-      Recent.Cancel_Edit (Item);
-      Confirm_VM.Ask_Project (Item.Dialog_Model.Model, Row, Home_VM.Title (Item.Home_Model.Model, Row));
-      Sync (Item);
-   end Confirm;
-
    procedure Confirm_Node (Item : in out Session; Node : Tree_Entry) is
       Kind : constant Confirm_VM.Nodes :=
         (if Node.Kind = Directory_Node then Confirm_VM.Folder
@@ -100,7 +93,7 @@ package body View.Deletion is
          when Confirm_VM.Nothing =>
             null;
          when Confirm_VM.Project =>
-            Home_VM.Execute (Item.Home_Model.Model, Home_VM.Delete_Project, Said.Row);
+            Home_VM.Delete_Confirmed (Item.Home_Model.Model, Said.Project_Key);
             Recent.Sync (Item);
          when Confirm_VM.Folder =>
             Writing.Delete_Node

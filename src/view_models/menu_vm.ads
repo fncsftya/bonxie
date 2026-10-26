@@ -4,7 +4,7 @@ with Pomarine.View_Models;
 --  and translates the choice into its existing application operation; no widget state is retained here.
 package Menu_VM is
    package Parts renames Pomarine.View_Models;
-   type Command is (Source_Menu, Context_Menu, Section_Menu, Grammar_Menu, Format_Menu);
+   type Command is (Source_Menu, Context_Menu, Section_Menu, Grammar_Menu);
    package Commands is new Parts.Command_Models (Command);
    type Router is limited interface;
    function Allowed (Self : Router; What : Command; Row : Natural) return Boolean is abstract;

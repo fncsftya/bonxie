@@ -6,7 +6,7 @@ with Icon_Set;
 with Pomarine.Themes;
 with Pomarine.Widgets.Panels;
 with Pomarine.Text_Areas;
-with Pomarine.Widgets.Callbacks;
+with Search_UI;
 with Pomarine.UI;
 with Pomarine.Widgets.Layouts;
 with View.Canvas_Items;
@@ -24,7 +24,6 @@ package body View.Search is
    package Docs renames Texts.Documents;
    package Areas renames Pomarine.Text_Areas;
    package Editors renames Pomarine.Widgets.Editors;
-   package Hooks is new Pomarine.Widgets.Callbacks (Session);
    use Ada.Strings.Unbounded;
    use type Pomarine.Events.Event_Kind;
    use type Pomarine.Events.Key_Code;
@@ -32,44 +31,6 @@ package body View.Search is
    use type Items.Id;
    use type Search_VM.Scopes;
    use type Widgets.Widget_Access;
-
-   procedure Step (Item : in out Session; Backwards : Boolean := False);
-   procedure Previous_Clicked
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
-
-   procedure Previous_Clicked
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source, Event);
-   begin
-      if Search_VM.Is_Showing (Item.Searching.Model) then
-         Step (Item, True);
-      end if;
-   end Previous_Clicked;
-
-   procedure Next_Clicked
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
-
-   procedure Next_Clicked
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source, Event);
-   begin
-      if Search_VM.Is_Showing (Item.Searching.Model) then
-         Step (Item);
-      end if;
-   end Next_Clicked;
-
-   procedure Close_Clicked
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
-
-   procedure Close_Clicked
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source, Event);
-   begin
-      Close (Item);
-   end Close_Clicked;
 
    procedure Build_Bar (Item : in out Session; In_Window : Boolean := False) is
       use Pomarine.Widgets.Layouts;
@@ -81,29 +42,45 @@ package body View.Search is
       Wide : constant Float := (if In_Window then 24.0 else 36.0);
    begin
       if Item.Forms (Search_Region).Screen = null then
+         Fields.Set_Shared (S.Field, Item.Host.Doc_Resources'Unchecked_Access);
+         Fields.Configure (S.Field, Pomarine.Line_Texts.Interface_Font, View.Style.Edit_Size);
+         Fields.Attach (S.Field, S.Doc'Unchecked_Access);
          Open (Item.Forms (Search_Region), Item.Root.Widgets'Unchecked_Access, Search_Region);
+         declare
+            Bound : constant Search_UI.Controls.Context'Class :=
+              Search_UI.Controls.Bind (Item.Forms (Search_Region).Screen.all, S.Model'Unrestricted_Access);
+            Bar : constant UI.Widget_Handle := Bound.Borrow_Widget (S.Bar);
+         begin
+            S.Query_Control := Bound.Borrow_Field (S.Field, S.Doc, Search_UI.Query.Property);
+            S.Count_Control := Bound.Borrow_Label (S.Count, Search_UI.Summary.Property);
+            S.Previous_Control := Bound.Borrow_Button (S.Previous, Search_VM.Previous);
+            S.Next_Control := Bound.Borrow_Button (S.Next, Search_VM.Next);
+            S.Close_Control := Bound.Borrow_Button (S.Close, Search_VM.Close);
+            Bound.Show_When (UI.Any (Bar), Search_UI.Showing.Property);
+         end;
       end if;
       declare
          Form : UI.View renames Item.Forms (Search_Region).Screen.all;
 
-         function Button (Part : in out Buttons.Button; Look : Buttons.Settings) return UI.Layout is
+         function Button
+           (Part : in out Buttons.Button; Control : UI.Button_Handle; Look : Buttons.Settings) return UI.Layout is
          begin
             Buttons.Configure (Part, Look);
-            return UI.Styled (UI.Put (Form, Part), (Width => Wide, others => <>));
+            return UI.Styled (UI.Place (Control), (Width => Wide, others => <>));
          end Button;
 
          Field    : constant UI.Layout :=
-           UI.Styled (UI.Put (Form, S.Field), (Grow => 1.0, Width => 0.0, others => <>));
+           UI.Styled (UI.Place (S.Query_Control), (Grow => 1.0, Width => 0.0, others => <>));
          Counting : constant UI.Layout :=
-           UI.Styled (UI.Put (Form, S.Count), (Width => (if In_Window then 48.0 else 100.0), others => <>));
+           UI.Styled (UI.Place (S.Count_Control), (Width => (if In_Window then 48.0 else 100.0), others => <>));
          Back     : constant UI.Layout :=
-           Button (S.Previous,
+           Button (S.Previous, S.Previous_Control,
                    Buttons.Looks ("Previous", Icon => Pomarine.Icons.Shown (Icon_Set.Back), Focusable => True));
          Forward  : constant UI.Layout :=
-           Button (S.Next,
+           Button (S.Next, S.Next_Control,
                    Buttons.Looks ("Next", Icon => Pomarine.Icons.Shown (Icon_Set.Forward), Focusable => True));
          Closer   : constant UI.Layout :=
-           Button (S.Close,
+           Button (S.Close, S.Close_Control,
                    Buttons.Looks ("Close", Icon => Pomarine.Icons.Shown (Pomarine.Icons.Close), Focusable => True));
          Parts    : constant UI.Layout_Array := [Field, Counting, Back, Forward, Closer];
       begin
@@ -123,18 +100,11 @@ package body View.Search is
          end if;
       end;
       Pomarine.Widgets.Panels.Set_Fill (S.Bar, Pomarine.Themes.Strip);
-      Hooks.On (S.Previous, Widgets.Click, Item'Unchecked_Access, Previous_Clicked'Access);
-      Hooks.On (S.Next, Widgets.Click, Item'Unchecked_Access, Next_Clicked'Access);
-      Hooks.On (S.Close, Widgets.Click, Item'Unchecked_Access, Close_Clicked'Access);
-      Fields.Set_Shared (S.Field, Item.Host.Doc_Resources'Unchecked_Access);
-      Fields.Configure (S.Field, Pomarine.Line_Texts.Interface_Font, View.Style.Edit_Size);
-      Fields.Attach (S.Field, S.Doc'Unchecked_Access);
       Fields.Set_Placeholder (S.Field, "Find in item");
       Widgets.Set_Accessible_Name (S.Field, "Find in item");
       Widgets.Set_Accessible_Help (S.Previous, "Previous match (Shift+F3)");
       Widgets.Set_Accessible_Help (S.Next, "Next match (F3)");
       Widgets.Set_Accessible_Help (S.Close, "Close search (Escape)");
-      Widgets.Set_Visible (S.Bar, False);
    end Build_Bar;
 
    procedure Build (Item : in out Session) is
@@ -316,14 +286,8 @@ package body View.Search is
    end Refresh_Engine;
 
    procedure Sync (Item : in out Session) is
-      S : Search_State renames Item.Searching;
    begin
-      if Pomarine.View_Models.Changed (S.Shown, Search_VM.Version (S.Model)) then
-         Widgets.Set_Visible (S.Bar, Search_VM.Is_Showing (S.Model));
-         Pomarine.Widgets.Labels.Set_Text (S.Count, Search_VM.Summary (S.Model));
-         Buttons.Set_Enabled (S.Previous, Search_VM.Can_Execute (S.Model, Search_VM.Previous));
-         Buttons.Set_Enabled (S.Next, Search_VM.Can_Execute (S.Model, Search_VM.Next));
-      end if;
+      UI.Synchronize (Item.Forms (Search_Region).Screen.all);
    end Sync;
 
    procedure Close (Item : in out Session) is
@@ -336,7 +300,7 @@ package body View.Search is
 
    procedure Update (Item : in out Session) is
    begin
-      Search_VM.Set_Term (Item.Searching.Model, Docs.Whole (Item.Searching.Doc));
+      Sync (Item);
       Search_VM.Poll (Item.Searching.Model);
       Sync (Item);
    end Update;
@@ -361,11 +325,10 @@ package body View.Search is
          if View_Mode (Item) = Write then
             if not Search_VM.Is_Showing (S.Model) then
                Build_Bar (Item);
-               Search_VM.Set_Term (S.Model, Docs.Whole (S.Doc));
                Search_VM.Open (S.Model, (Scope => Search_VM.Writing, others => <>));
                Fields.Set_Placeholder (S.Field, "Find in all documents");
                Widgets.Set_Accessible_Name (S.Field, "Find in all documents");
-               Widgets.Set_Visible (S.Bar, True);
+               Sync (Item);
             end if;
             Widgets.Focus (S.Field);
             Areas.Select_All (Fields.Area (S.Field).all);
@@ -394,11 +357,10 @@ package body View.Search is
             Close (Item);
             Fields.Set_Placeholder (S.Field, "Find in item");
             Widgets.Set_Accessible_Name (S.Field, "Find in item");
-            Search_VM.Set_Term (S.Model, Docs.Whole (S.Doc));
             Search_VM.Open
               (S.Model, (Search_VM.Canvas_Item, Target, Items.Models.Details (Item.Models (Target)).Key));
             Build_Bar (Item, In_Window => True);
-            Widgets.Set_Visible (S.Bar, True);
+            Sync (Item);
          end if;
          if Search_VM.Is_Showing (S.Model) then
             Widgets.Focus (S.Field);

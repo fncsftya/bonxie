@@ -46,8 +46,8 @@ private package View.Settings_View is
    --  (Watercolour), or the theme's own on a plain one (Fixed), and keep the choice. It is
    --  drawn so now (see Apply_Theme).
 
-   procedure Reseed (Item : in out Session);
-   --  Paint another watercolour, and keep which it is. It is drawn so now if it is the background.
+   function New_Picture_Seed (Item : in out Session) return Natural;
+   --  Generate a seed for a new picture. Settings_VM owns choosing its style and keeping the seed.
 
    procedure Done (Item : in out Session; What : Settings_VM.Command);
    --  What the world does after the view-model has done What, as a click in the form made it do: draw in the

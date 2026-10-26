@@ -1,3 +1,5 @@
+with Naming_VM;
+with Sidebar_VM;
 with Items.Models;
 with Settings_VM;
 with Preferences;
@@ -22,11 +24,7 @@ package body View.Writing.Panes is
 
    use type Items.States;
 
-   procedure Row_Clicked
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source);
-      Row   : constant Positive := Event.Index;
+   procedure Row_Clicked (Item : in out Session; Row : Positive) is
       Moved : constant Boolean := Item.Dragging.Dropped_Moved;
    begin
       Item.Dragging.Dropped_Moved := False;
@@ -42,7 +40,7 @@ package body View.Writing.Panes is
             when Overview_Node =>
                Tree.Show_Directory (Item, 0);
             when Directory_Node =>
-               if Item.Naming.Renaming_Dir /= Node.Dir then
+               if Naming_VM.Directory (Item.Naming.Names) /= Node.Dir then
                   Tree.Show_Directory (Item, Node.Dir);
                end if;
             when Document_Leaf =>
@@ -51,11 +49,7 @@ package body View.Writing.Panes is
       end;
    end Row_Clicked;
 
-   procedure Row_Double_Clicked
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source);
-      Row : constant Positive := Event.Index;
+   procedure Row_Double_Clicked (Item : in out Session; Row : Positive) is
    begin
       if not Support.In_Writing (Item) or else Row > Trees.Count (Item.Docs.Ordering) then
          return;
@@ -63,7 +57,7 @@ package body View.Writing.Panes is
       declare
          Node : constant Tree_Entry := Trees.Element (Item.Docs.Ordering, Row);
       begin
-         if Node.Kind = Directory_Node and then Item.Naming.Renaming_Dir /= Node.Dir then
+         if Node.Kind = Directory_Node and then Naming_VM.Directory (Item.Naming.Names) /= Node.Dir then
             --  The press that began it is not let go on its row.
             Grips.Cancel_Drag (Item.Docs.Doc_Rows (Row).Row);
             Rename.Begin_Rename_Dir (Item, Node.Dir);
@@ -71,27 +65,21 @@ package body View.Writing.Panes is
       end;
    end Row_Double_Clicked;
 
-   procedure Directory_Field_Ended
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source, Event);
+   procedure Directory_Field_Ended (Item : in out Session) is
    begin
       if not Support.In_Writing (Item) then
          return;
       end if;
-      if Item.Naming.Renaming_Dir /= 0 then
+      if Naming_VM.Directory (Item.Naming.Names) /= 0 then
          Rename.End_Rename_Dir (Item);
-      elsif Item.Naming.Renaming_Doc /= 0 then
+      elsif Naming_VM.Document (Item.Naming.Names) /= 0 then
          Rename.End_Rename_Doc (Item);
       end if;
    end Directory_Field_Ended;
 
-   procedure Source_Field_Ended
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source, Event);
+   procedure Source_Field_Ended (Item : in out Session) is
    begin
-      if Support.In_Writing (Item) and then Item.Naming.Renaming_Source /= 0 then
+      if Support.In_Writing (Item) and then Naming_VM.Source (Item.Naming.Names) /= 0 then
          Rename.End_Rename_Source (Item);
       end if;
    end Source_Field_Ended;
@@ -146,48 +134,19 @@ package body View.Writing.Panes is
            (Fold.Mark, (if Unfolded then Pomarine.Icons.Chevron_Up else Pomarine.Icons.Chevron_Down));
       end Head;
    begin
-      Head (Pane.Edit_Heading, Pane.Edit_Open);
-      Head (Pane.Docs_Heading, Pane.Docs_Open);
-      Head (Pane.Sources_Heading, Pane.Sources_Open);
-      Widgets.Set_Visible (Pane.Grammar_Row, Pane.Edit_Open);
-      Widgets.Set_Visible (Pane.Docs_Scroll, Pane.Docs_Open);
-      Widgets.Set_Visible (Pane.Docs_Add, Pane.Docs_Open);
-      Widgets.Set_Visible (Pane.Docs_Folder, Pane.Docs_Open);
-      Widgets.Set_Visible (Pane.Sources_Scroll, Pane.Sources_Open);
+      Head (Pane.Edit_Heading, Sidebar_VM.Is_Open (Pane.Folding, Sidebar_VM.Edit));
+      Head (Pane.Docs_Heading, Sidebar_VM.Is_Open (Pane.Folding, Sidebar_VM.Documents));
+      Head (Pane.Sources_Heading, Sidebar_VM.Is_Open (Pane.Folding, Sidebar_VM.Sources));
+      Widgets.Set_Visible (Pane.Grammar_Row, Sidebar_VM.Is_Open (Pane.Folding, Sidebar_VM.Edit));
+      Widgets.Set_Visible (Pane.Docs_Scroll, Sidebar_VM.Is_Open (Pane.Folding, Sidebar_VM.Documents));
+      Widgets.Set_Visible (Pane.Docs_Add, Sidebar_VM.Is_Open (Pane.Folding, Sidebar_VM.Documents));
+      Widgets.Set_Visible (Pane.Docs_Folder, Sidebar_VM.Is_Open (Pane.Folding, Sidebar_VM.Documents));
+      Widgets.Set_Visible (Pane.Sources_Scroll, Sidebar_VM.Is_Open (Pane.Folding, Sidebar_VM.Sources));
       --  The divider is between two lists that are both there.
-      Widgets.Set_Visible (Pane.Sources_Edge, Pane.Docs_Open and then Pane.Sources_Open);
+      Widgets.Set_Visible
+        (Pane.Sources_Edge, Sidebar_VM.Is_Open (Pane.Folding, Sidebar_VM.Documents)
+         and then Sidebar_VM.Is_Open (Pane.Folding, Sidebar_VM.Sources));
    end Fit_Sections;
-
-   procedure Section_Clicked
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source);
-      Pane : Page_Parts renames Item.Page_View;
-   begin
-      if Support.In_Writing (Item) then
-         case Event.Index is
-            when 1 => Pane.Edit_Open := not Pane.Edit_Open;
-            when 2 => Pane.Docs_Open := not Pane.Docs_Open;
-            when 3 => Pane.Sources_Open := not Pane.Sources_Open;
-            when others => raise Program_Error;
-         end case;
-         Fit_Sections (Item);
-         if Settings_VM.Persists (Item.Choices.Model) then
-            begin
-               declare
-                  Config : constant String := Settings_VM.Config_Directory (Item.Choices.Model);
-               begin
-                  Preferences.Save_Section_Open (Config, "edit", Pane.Edit_Open);
-                  Preferences.Save_Section_Open (Config, "documents", Pane.Docs_Open);
-                  Preferences.Save_Section_Open (Config, "sources", Pane.Sources_Open);
-               end;
-            exception
-               when others =>
-                  null;  --  the folding is only not kept
-            end;
-         end if;
-      end if;
-   end Section_Clicked;
 
    procedure Sources_Edge_Dragged
      (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
@@ -236,17 +195,16 @@ package body View.Writing.Panes is
       end if;
    end Pane_Dragged;
 
-   procedure Page_Title_Double_Clicked
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source);
-      Each : Doc_Page renames Item.Docs.Pages (Event.Index);
+   procedure Page_Title_Double_Clicked (Item : in out Session; Rank : Positive) is
+      Each : Doc_Page renames Item.Docs.Pages (Rank);
    begin
-      if Support.In_Writing (Item) and then not Each.Renaming and then Each.Bound /= 0 then
+      if Support.In_Writing (Item) and then not Naming_VM.Is_Titling (Item.Naming.Names, Rank)
+        and then Each.Bound /= 0
+      then
          Text_Fields.Attach
            (Each.Title_Field,
             Models.Title_Document (Item.Models (Each.Bound)));
-         Each.Renaming := True;
+         Naming_VM.Begin_Title (Item.Naming.Names, Rank);
          Widgets.Set_Visible (Each.Heading_Area, False);
          --  The press that began it is not let go on what is hidden.
          Grips.Cancel_Drag (Each.Heading_Area);
@@ -256,14 +214,11 @@ package body View.Writing.Panes is
       end if;
    end Page_Title_Double_Clicked;
 
-   procedure Page_Title_Ended
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source);
-      Each : Doc_Page renames Item.Docs.Pages (Event.Index);
+   procedure Page_Title_Ended (Item : in out Session; Rank : Positive) is
+      Each : Doc_Page renames Item.Docs.Pages (Rank);
    begin
-      if Each.Renaming then
-         Each.Renaming := False;
+      if Naming_VM.Is_Titling (Item.Naming.Names, Rank) then
+         Naming_VM.End_Title (Item.Naming.Names, Rank);
          Widgets.Set_Visible (Each.Title_Field, False);
          Widgets.Set_Visible (Each.Heading_Area, True);
       end if;

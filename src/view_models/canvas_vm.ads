@@ -40,8 +40,15 @@ package Canvas_VM is
       --  Index: the slot. For good. The window has been let go of: see View.Canvas_Items.
       Delete_Link,
       --  The link selected.
-      Cancel_Link);
+      Cancel_Link,
       --  Put away the line being dragged from a pin.
+      Pick_Link,
+      --  Index: the number of the link, 0 for none. Select it.
+      Set_Stroke,
+      Set_Ending,
+      Set_Color);
+      --  Index: of Items.Links.Strokes, Endings (the place in the type, from 1) or Link_Colors. The look of the
+      --  link selected.
 
    package Commands is new Parts.Command_Models (Command);
 
@@ -296,6 +303,8 @@ package Canvas_VM is
    --  Add_Note and Add_Source: the canvas is entered. Of an item (Index; 0 asks whether there is any): Open_Item, if it
    --  is not open; Minimize_Item, if it is; Close_Item, if it is not closed; Show_Item and Remove_Item, if it is there.
    --  Delete_Link: one is selected. Cancel_Link: a line is being dragged.
+   --  Pick_Link: always (a number that is of no link is none).
+   --  Set_Stroke, Set_Ending and Set_Color: one is selected, and the Index is of one of the type.
 
    overriding procedure Execute (Self : in out View_Model; What : Command; Index : Natural := 0);
 

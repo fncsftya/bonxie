@@ -54,7 +54,7 @@ package View.Settings is
    --  Which picture is painted, of whatever style (or would be): the same on every run, until it is changed.
 
    procedure Reseed_Background (Item : in out Session; Mode : Preferences.Pictures)
-     with Pre  => Is_Open (Item),
+     with Pre  => Is_Open (Item) and then Is_Settings_Open (Item),
           Post => Watercolour_Seed (Item) /= Watercolour_Seed (Item)'Old
                   and then Preferences."=" (Background_Choice (Item), Mode);
    --  Paint another picture, and choose the style of Mode, as the button on its card does.

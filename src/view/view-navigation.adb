@@ -114,8 +114,22 @@ package body View.Navigation is
       end if;
    end Going_To_Execute;
 
-   procedure Executed (Item : in out Session) is
+   procedure Executed (Item : in out Session; What : Nav_VM.Command; Index : Natural) is
    begin
+      case What is
+         when Nav_VM.Add_Document =>
+            if Index = 0 then
+               Canvas_Items.Add
+                 (Item, (if View_Mode (Item) = Write then Canvas_Items.Untitled_Document else Canvas_Items.Untitled));
+            else
+               Writing.Add_For_Section (Item, Index);
+            end if;
+         when Nav_VM.Add_Source =>
+            Canvas_Items.Add (Item, Canvas_Items.Untitled_Source, Items.Source);
+         when Nav_VM.Add_Folder =>
+            Writing.Add_Folder (Item);
+         when others => null;
+      end case;
       Sync (Item);
    end Executed;
 

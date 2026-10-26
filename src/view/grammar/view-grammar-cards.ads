@@ -7,26 +7,12 @@ private package View.Grammar.Cards is
 
    procedure Refresh (Item : in out Session);
 
-   procedure Toggle (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
+   procedure Rules_Changed (Item : in out Session);
 
-   procedure Expand (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
+   function State_Of
+     (Item : Session; What : Grammar_VM.Card_Command; Index : Natural) return Grammar_VM.Card_State;
+   procedure Run (Item : in out Session; What : Grammar_VM.Card_Command; Index : Natural);
 
-   procedure Apply (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
-
-   procedure Rule_Clicked
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
-   --  The expanded card's button: to make a rule of its text, or to unmake the rule that made it.
-
-   procedure Ignore_Clicked
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
-
-   procedure Entry_Accepted
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
-
-   procedure Entry_Cancelled
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
-
-   procedure Inline_Chosen
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
+   procedure Choose_Row (Item : in out Session; Row : Positive);
 
 end View.Grammar.Cards;

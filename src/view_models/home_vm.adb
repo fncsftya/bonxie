@@ -59,8 +59,10 @@ package body Home_VM is
    overriding function Can_Execute (Self : View_Model; What : Command; Index : Natural := 0) return Boolean is
      (case What is
          when Refresh                       => True,
-         when Begin_Rename | Delete_Project =>
+         when Begin_Rename =>
             (if Index = 0 then Self.Listed.Count > 0 else Index <= Self.Listed.Count),
+         when Ask_Delete => Index in 1 .. Self.Listed.Count and then Self.Dialog /= null
+           and then not Confirm_VM.Is_Asking (Self.Dialog.all),
          when Cancel_Rename                 => Self.Row /= 0,
          when Accept_Rename                 => Self.Row /= 0 and then Is_Something (Draft (Self)));
 
@@ -75,9 +77,12 @@ package body Home_VM is
       Parts.Bump (Self.Lists);
    end List;
 
-   procedure Initialize (Self : in out View_Model; Kept : not null access Library'Class) is
+   procedure Initialize
+     (Self : in out View_Model; Kept : not null access Library'Class;
+      Dialog : access Confirm_VM.View_Model := null) is
    begin
       Self.Kept := Kept.all'Unrestricted_Access;
+      Self.Dialog := (if Dialog = null then null else Dialog.all'Unrestricted_Access);
       List (Self);
    end Initialize;
 
@@ -85,6 +90,15 @@ package body Home_VM is
    begin
       Self.Reactions := (if Reactions = null then null else Reactions.all'Unrestricted_Access);
    end Observe;
+
+   procedure Delete_Confirmed (Self : in out View_Model; Key : Projects.Id) is
+   begin
+      Delete (Self.Kept.all, Key);
+      List (Self);
+      if Self.Reactions /= null then
+         Self.Reactions.Home_Changed;
+      end if;
+   end Delete_Confirmed;
 
    overriding procedure Execute (Self : in out View_Model; What : Command; Index : Natural := 0) is
    begin
@@ -112,12 +126,12 @@ package body Home_VM is
                Rename (Self.Kept.all, Key_Of (Self, Self.Row), Text (First .. Last));
             end;
             List (Self);
-         when Delete_Project =>
-            if Index not in 1 .. Self.Listed.Count then
-               raise Constraint_Error with "no such row" & Index'Image;
+         when Ask_Delete =>
+            if Self.Row /= 0 then
+               Self.Row := 0;
+               Parts.Bump (Self.Changes);
             end if;
-            Delete (Self.Kept.all, Key_Of (Self, Index));
-            List (Self);
+            Confirm_VM.Ask_Project (Self.Dialog.all, Key_Of (Self, Index), Title (Self, Index));
       end case;
       if Self.Reactions /= null then
          Self.Reactions.Home_Changed;

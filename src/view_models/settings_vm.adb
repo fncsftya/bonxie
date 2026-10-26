@@ -160,8 +160,6 @@ package body Settings_VM is
    end Initialize;
 
    overriding function Can_Execute (Self : View_Model; What : Command; Index : Natural := 0) return Boolean is
-      pragma Unreferenced (Index);
-      --  What is chosen is no matter of whether it can be.
    begin
       return
         (case What is
@@ -169,6 +167,9 @@ package body Settings_VM is
             when Close          => Is_Showing (Self),
             when Download_Model => not Self.Download.Present and then not Running (Self),
             when Delete_Model | Confirm_Delete => Self.Download.Present and then not Running (Self),
+            when New_Picture => Is_Showing (Self) and then Self.Reactions /= null
+              and then Index in Preferences.Background_Modes'Pos (Preferences.Pictures'First)
+                .. Preferences.Background_Modes'Pos (Preferences.Pictures'Last),
             when Choose_Theme | Choose_Background | Choose_Speech_Model | Toggle_VSync | Reseed => True);
    end Can_Execute;
 
@@ -267,6 +268,27 @@ package body Settings_VM is
             Self.Number := Index;
             Parts.Bump (Self.Changes);
             Keep_Seed (Self, Index);
+         when New_Picture =>
+            declare
+               To : constant Preferences.Pictures := Preferences.Pictures'Val (Index);
+               Number : constant Natural range 0 .. Preferences.Seed_Limit - 1 :=
+                 New_Picture_Seed (Self.Reactions.all);
+               Failed_Before : constant Boolean := Self.Failed;
+               Background_Failed : Boolean;
+            begin
+               Background_Properties.Set (Self.Pictures, To);
+               Keep_Background (Self, To);
+               Background_Failed := Self.Failed;
+               if Self.Number /= Number then
+                  Self.Number := Number;
+                  Parts.Bump (Self.Changes);
+               end if;
+               Keep_Seed (Self, Number);
+               Self.Failed := Self.Failed or else Background_Failed;
+               if Self.Failed /= Failed_Before then
+                  Parts.Bump (Self.Changes);
+               end if;
+            end;
          when Download_Model =>
             Start (Self.Source.all);
             Look (Self, Files => True);

@@ -1408,6 +1408,7 @@ begin
    Run ("outline-by-name", Outline_Screen_Tests.By_Name'Access);
    Run ("settings-by-name", Settings_Tests.By_Name'Access);
    Run ("settings-vm-commands", Settings_VM_Tests.Command_Rules'Access);
+   Run ("settings-vm-pictures", Settings_VM_Tests.New_Pictures'Access);
    Run ("settings-vm-keeping", Settings_VM_Tests.Keeping'Access);
    Run ("settings-vm-downloading", Settings_VM_Tests.Downloading'Access);
    Run ("settings-vm-sizes", Settings_VM_Tests.Sizes'Access);
@@ -1425,6 +1426,9 @@ begin
    Run ("editor-vm-live", Editor_VM_Tests.Live_Text'Access);
    Run ("editor-vm-interrupted", Editor_VM_Tests.Interrupted'Access);
    Run ("editor-vm-boundaries", Editor_VM_Tests.Boundaries'Access);
+   Run ("publish-by-name", Writing_VM_Tests.Publishing_By_Name'Access);
+   Run ("writing-sidebar-by-name", Writing_VM_Tests.Sidebar_By_Name'Access);
+   Run ("writing-sections-by-name", Writing_VM_Tests.Sections_By_Name'Access);
    Run ("writing-by-name", Writing_VM_Tests.By_Name'Access);
    Run ("writing-vm-ordering", Writing_VM_Tests.Ordering'Access);
    Run ("writing-vm-navigation", Writing_VM_Tests.Navigation'Access);
@@ -1439,11 +1443,22 @@ begin
    Run ("canvas-vm-handling", Canvas_VM_Tests.Handling'Access);
    Run ("canvas-vm-linking", Canvas_VM_Tests.Linking'Access);
    Run ("canvas-vm-stored", Canvas_VM_Tests.Stored'Access);
+   Run ("nav-create-by-name", Nav_Tests.Creating'Access);
    Run ("nav-by-name", Nav_Tests.By_Name'Access);
    Run ("nav-vm-opening", Nav_VM_Tests.Opening'Access);
    Run ("nav-vm-views", Nav_VM_Tests.Views'Access);
    Run ("nav-vm-renaming", Nav_VM_Tests.Renaming'Access);
    Run ("nav-vm-layers", Nav_VM_Tests.Layers'Access);
+   Run ("nav-vm-writing-sections", Nav_VM_Tests.Writing_Sections'Access);
+   Run ("nav-vm-creating", Nav_VM_Tests.Creating'Access);
+   Run ("item-list-vm-layers", Nav_VM_Tests.List_Commands'Access);
+   Run ("publish-output-vm", Nav_VM_Tests.Publishing_Output'Access);
+   Run ("publish-vm", Nav_VM_Tests.Publishing'Access);
+   Run ("writing-sources-vm", Nav_VM_Tests.Source_Commands'Access);
+   Run ("writing-link-offers", Nav_VM_Tests.Link_Offers'Access);
+   Run ("naming-vm", Nav_VM_Tests.Naming'Access);
+   Run ("writing-page-vm", Nav_VM_Tests.Page_Commands'Access);
+   Run ("sidebar-vm", Nav_VM_Tests.Sidebar'Access);
    Run ("nav-vm-stored", Nav_VM_Tests.Stored'Access);
    Run ("home-vm-listing", Home_VM_Tests.Listing'Access);
    Run ("home-vm-renaming", Home_VM_Tests.Renaming'Access);
@@ -1456,6 +1471,7 @@ begin
    Run ("outline-vm-stored", Outline_VM_Tests.Stored'Access);
    Run ("grammar-vm-rules", Grammar_VM_Tests.Rule_List'Access);
    Run ("grammar-vm-entry", Grammar_VM_Tests.Entry_Form'Access);
+   Run ("grammar-vm-cards", Grammar_VM_Tests.Card_Actions'Access);
    Run ("grammar-vm-stored", Grammar_VM_Tests.Stored'Access);
    Run ("view-models-no-widgets", Settings_VM_Tests.No_Widgets'Access);
    Run ("home-dark", Dark_Screens'Access);

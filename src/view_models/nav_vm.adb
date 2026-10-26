@@ -29,8 +29,8 @@ package body Nav_VM is
    function Layer (Self : View_Model) return Layers is
      (if Confirm_VM.Subject (Self.Dialog.all) = Confirm_VM.Model then Model_Dialog
       elsif Settings_VM.Is_Showing (Self.Settings.all) then Settings_Form
-      elsif Self.Listing then Item_List
       elsif Confirm_VM.Is_Asking (Self.Dialog.all) then Deleting
+      elsif Self.Listing then Item_List
       else Plain);
 
    function Takes_Gestures (Self : View_Model) return Boolean is
@@ -106,7 +106,14 @@ package body Nav_VM is
             when Close_List      => Self.Listing,
             when Begin_Rename    => Takes_Gestures (Self) and then not Self.Renaming,
             when Accept_Rename | Cancel_Rename => Self.Renaming,
-            when Dismiss         => Layer (Self) /= Plain);
+            when Dismiss         => Layer (Self) /= Plain,
+            when Add_Document => Takes_Gestures (Self)
+              and then (if Index = 0 then Mode (Self) in Canvas | Write
+                        else Mode (Self) = Write and then Index <= Outline_VM.Count (Self.Outline.all)),
+            when Add_Source => Takes_Gestures (Self) and then Mode (Self) = Canvas,
+            when Add_Folder => Takes_Gestures (Self) and then Mode (Self) = Write,
+            when Toggle_Section_Notes => Takes_Gestures (Self) and then Mode (Self) = Write
+              and then Index in 1 .. Outline_VM.Count (Self.Outline.all));
    end Can_Execute;
 
    procedure Accept_Draft (Self : in out View_Model) is
@@ -138,7 +145,7 @@ package body Nav_VM is
       end if;
       Run (Self, What, Index);
       if Self.Reactions /= null then
-         Executed (Self.Reactions.all, What);
+         Executed (Self.Reactions.all, What, Index);
       end if;
    end Execute;
 
@@ -193,6 +200,11 @@ package body Nav_VM is
          when Cancel_Rename =>
             Self.Renaming := False;
             Parts.Bump (Self.Titles);
+         when Toggle_Section_Notes =>
+            Outline_VM.Execute (Self.Outline.all, Outline_VM.Toggle_Notes, Index);
+         when Add_Document | Add_Source | Add_Folder =>
+            --  Creation needs the surface's geometry and focus; Executed supplies that effect.
+            null;
          when Dismiss =>
             case Layer (Self) is
                when Plain =>

@@ -7,6 +7,8 @@ package Settings_VM_Tests is
    procedure Command_Rules;
    --  When each command is possible; the choices, and that the same is no change.
 
+   procedure New_Pictures;
+
    procedure Keeping;
    --  What is kept for each choice, a save that fails, and the file kept.
 

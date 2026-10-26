@@ -1,3 +1,4 @@
+with Publish_VM;
 with Writing_VM;
 with Projects.Sections;
 with Texts.Documents;
@@ -353,7 +354,7 @@ package body View.Writing.Layout is
                Changed := False;
                Fit (Pane.Scroll, Pane.Content, Pane.Text, Editors.Area (Pane.Text).all,
                     Pane.Left, Pane.Wide, Pane.High);
-               if Pane.Markdown then
+               if Publish_VM.Markdown (Pane.Options) then
                   Fit (Pane.Source_Scroll, Pane.Source_Content, Pane.Source_Text,
                        Editors.Area (Pane.Source_Text).all,
                        Pane.Source_Left, Pane.Source_Wide, Pane.Source_High);

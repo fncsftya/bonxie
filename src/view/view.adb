@@ -1,3 +1,5 @@
+with SDL3.Dialogs;
+with Sidebar_VM;
 with Pomarine.Widgets.Menus;
 with Speech.Models;
 with Scripts;
@@ -44,7 +46,6 @@ package body View is
          when Menu_VM.Context_Menu => return Self.Owner.Context.Context_Menu'Unrestricted_Access;
          when Menu_VM.Section_Menu => return Self.Owner.Section_Menu.Menu'Unrestricted_Access;
          when Menu_VM.Grammar_Menu => return Self.Owner.Grammar_Checks.Inline_Menu'Unrestricted_Access;
-         when Menu_VM.Format_Menu => return Self.Owner.Publish_View.Format_Menu'Unrestricted_Access;
       end case;
    end Menu_Of;
 
@@ -70,7 +71,6 @@ package body View is
          when Menu_VM.Context_Menu => Writing.Context_Chosen (Item, Item.Context.Context_Menu, Event);
          when Menu_VM.Section_Menu => Section_Links.Choose (Item, Row);
          when Menu_VM.Grammar_Menu => Grammar.Choose_Inline (Item, Row);
-         when Menu_VM.Format_Menu => Writing.Choose_Format (Item, Row);
       end case;
    end Choose;
 
@@ -104,10 +104,161 @@ package body View is
       Widgets.Layout (Self.Owner.Root.Widgets, Self.Owner.Host.Target);
    end Turned;
 
+   overriding procedure Turned (Self : in out Sidebar_Watch) is
+   begin
+      if Pomarine.View_Models.Changed (Self.Seen, Sidebar_VM.Version (Self.Owner.Page_View.Folding)) then
+         Writing.Fit_Sidebar (Self.Owner.all);
+         Widgets.Layout (Self.Owner.Root.Widgets, Self.Owner.Host.Target);
+      end if;
+   end Turned;
+
+   overriding procedure Toggle_Source (Self : in out Source_Effects; Slot : Items.Slot) is
+   begin
+      Writing.Apply_Source_Command (Self.Owner.all, Slot);
+   end Toggle_Source;
+
+   overriding procedure Open_Sources (Self : in out Writing_Effects; Rank : Positive) is
+   begin
+      Writing.Open_Sources (Self.Owner.all, Rank);
+   end Open_Sources;
+
+   overriding procedure Toggle_Dictation (Self : in out Writing_Effects; Slot : Items.Slot) is
+   begin
+      Canvas_Items.Toggle_Dictation (Self.Owner.all, Slot);
+   end Toggle_Dictation;
+
+   overriding procedure Use_Tool (Self : in out Writing_Effects; Rank : Positive; Tool : Positive) is
+   begin
+      Writing.Tool_Used (Self.Owner.all, Rank, Tool);
+   end Use_Tool;
+
+   overriding procedure Follow_Link (Self : in out Writing_Effects; Rank : Positive) is
+   begin
+      Writing.Link_Followed (Self.Owner.all, Rank);
+   end Follow_Link;
+
+   overriding procedure Ask_Link (Self : in out Writing_Effects; Rank : Positive) is
+   begin
+      Writing.Link_Asked (Self.Owner.all, Rank);
+   end Ask_Link;
+
+   overriding procedure Begin_Page_Title (Self : in out Writing_Effects; Rank : Positive) is
+   begin
+      Writing.Begin_Page_Title (Self.Owner.all, Rank);
+   end Begin_Page_Title;
+
+   overriding procedure End_Page_Title (Self : in out Writing_Effects; Rank : Positive) is
+   begin
+      Writing.End_Page_Title (Self.Owner.all, Rank);
+   end End_Page_Title;
+
+   overriding procedure Open_Section_Menu (Self : in out Writing_Effects; Rank : Positive) is
+   begin
+      Section_Links.Open_Page_Menu (Self.Owner.all, Rank);
+   end Open_Section_Menu;
+
+   overriding procedure Select_Row (Self : in out Writing_Effects; Row : Positive) is
+   begin
+      Writing.Select_Row (Self.Owner.all, Row);
+   end Select_Row;
+
+   overriding procedure Rename_Row (Self : in out Writing_Effects; Row : Positive) is
+   begin
+      Writing.Rename_Row (Self.Owner.all, Row);
+   end Rename_Row;
+
+   overriding procedure End_Name_Edit (Self : in out Writing_Effects) is
+   begin
+      Writing.End_Name_Edit (Self.Owner.all);
+   end End_Name_Edit;
+
+   overriding procedure End_Source_Name_Edit (Self : in out Writing_Effects) is
+   begin
+      Writing.End_Source_Name_Edit (Self.Owner.all);
+   end End_Source_Name_Edit;
+
+   overriding function Export_Available (Self : Publishing_Effects) return Boolean is
+      use type SDL3.Dialogs.States;
+   begin
+      return SDL3.Windows.Is_Open (Self.Owner.Host.Win) and then SDL3.Dialogs.State /= SDL3.Dialogs.Waiting;
+   end Export_Available;
+
+   overriding function Copy_Available (Self : Publishing_Effects) return Boolean is
+      use type Widgets.Clipboard_Access;
+   begin
+      return Widgets.Clipboard (Self.Owner.Publish_View.Copy) /= null;
+   end Copy_Available;
+
+   overriding function Markdown_Text (Self : Publishing_Effects) return String is
+     (Texts.Documents.Whole (Self.Owner.Publish_View.Source_Doc));
+
+   overriding function Clock (Self : Publishing_Effects) return Pomarine.Events.Milliseconds is
+      pragma Unreferenced (Self);
+   begin
+      return Pomarine.Events.Ticks;
+   end Clock;
+
+   overriding procedure Ask_Export (Self : in out Publishing_Effects) is
+   begin
+      SDL3.Dialogs.Reset;
+      SDL3.Dialogs.Save_File (Self.Owner.Host.Win, "Markdown", "md", "Export.md");
+   end Ask_Export;
+
+   overriding procedure Export_Result
+     (Self : in out Publishing_Effects; State : out Publish_VM.Export_States; Path : out Long_Texts.Text)
+   is
+      pragma Unreferenced (Self);
+   begin
+      Path := Long_Texts.Null_Text;
+      case SDL3.Dialogs.State is
+         when SDL3.Dialogs.Waiting =>
+            State := Publish_VM.Waiting;
+         when SDL3.Dialogs.Chosen =>
+            State := Publish_VM.Chosen;
+            Path := Long_Texts.To_Text (SDL3.Dialogs.Path);
+            SDL3.Dialogs.Reset;
+         when SDL3.Dialogs.Idle | SDL3.Dialogs.Cancelled | SDL3.Dialogs.Failed =>
+            State := Publish_VM.Cancelled;
+            SDL3.Dialogs.Reset;
+      end case;
+   end Export_Result;
+
+   overriding procedure Copy_Text (Self : in out Publishing_Effects; Words : String; Succeeded : out Boolean) is
+      use type Widgets.Clipboard_Access;
+      Board : constant Widgets.Clipboard_Access := Widgets.Clipboard (Self.Owner.Publish_View.Copy);
+   begin
+      Succeeded := False;
+      if Board /= null then
+         Board.Set_Text (Words);
+         Succeeded := Board.Text = Words;
+      end if;
+   end Copy_Text;
+
+   overriding procedure Turned (Self : in out Publish_Watch) is
+   begin
+      if Pomarine.View_Models.Changed (Self.Seen, Publish_VM.Version (Self.Owner.Publish_View.Options)) then
+         Writing.Synchronize_Publish (Self.Owner.all);
+      end if;
+   end Turned;
+
    overriding procedure Home_Changed (Self : in out Home_Effects) is
    begin
       Recent.Sync (Self.Owner.all);
    end Home_Changed;
+
+   overriding function Inspect
+     (Self : Grammar_Effects; What : Grammar_VM.Card_Command; Index : Natural) return Grammar_VM.Card_State is
+     (Grammar.Inspect (Self.Owner.all, What, Index));
+
+   overriding procedure Perform (Self : in out Grammar_Effects; What : Grammar_VM.Card_Command; Index : Natural) is
+   begin
+      Grammar.Perform (Self.Owner.all, What, Index);
+   end Perform;
+
+   overriding procedure Entry_Ended (Self : in out Grammar_Effects; Accepted : Boolean) is
+   begin
+      Grammar.Entry_Ended (Self.Owner.all, Accepted);
+   end Entry_Ended;
 
    overriding procedure Dialog_Changed (Self : in out Confirm_Effects) is
    begin
@@ -125,16 +276,20 @@ package body View is
       Navigation.Going_To_Execute (Self.Owner.all, What);
    end Going_To_Execute;
 
-   overriding procedure Executed (Self : in out Nav_Effects; What : Nav_VM.Command) is
-      pragma Unreferenced (What);
+   overriding procedure Executed (Self : in out Nav_Effects; What : Nav_VM.Command; Index : Natural) is
    begin
-      Navigation.Executed (Self.Owner.all);
+      Navigation.Executed (Self.Owner.all, What, Index);
    end Executed;
 
    overriding procedure Done (Self : in out Settings_Effects; What : Settings_VM.Command) is
    begin
       Settings_View.Done (Self.Owner.all, What);
    end Done;
+
+   overriding function New_Picture_Seed (Self : in out Settings_Effects) return Natural is
+   begin
+      return Settings_View.New_Picture_Seed (Self.Owner.all);
+   end New_Picture_Seed;
 
    overriding procedure Ask_To_Delete (Self : in out Settings_Effects; Size : String) is
    begin
@@ -202,8 +357,8 @@ package body View is
      (Natural (Item_List_VM.Version (Self.Owner.Item_List.Model) mod 2 ** 31));
 
    overriding function Row_Id (Self : Item_Rows; Row : Positive) return Positive is
-     (Positive (Item_List_VM.Slot_Of (Self.Owner.Item_List.Model, Row)));
-   --  An item is its slot: the row of it goes as it is hidden or others go.
+     (Item_List_VM.Row_Id (Self.Owner.Item_List.Model, Row));
+   --  Selection follows the item across row movement and is not inherited by a slot's replacement.
 
    overriding procedure Describe_Row
      (Self    : Item_Rows;
@@ -543,6 +698,7 @@ package body View is
 
    procedure Tick (Item : in out Session; Now : Pomarine.Events.Milliseconds) is
    begin
+      Publish_VM.Poll (Item.Publish_View.Options);
       Widgets.Update (Item.Root.Widgets, Now);
       Recent.Sync (Item);
       Deletion.Sync (Item);

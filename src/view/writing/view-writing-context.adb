@@ -1,3 +1,4 @@
+with Writing_Sources_VM;
 with Pomarine.UI.Menus;
 with Writing_VM;
 with Items.Directories;
@@ -247,13 +248,13 @@ package body View.Writing.Context is
             end if;
          end loop;
       elsif Widgets.Contains (Item.Page_View.Sources_Scroll, PX, PY) then
-         for Row in 1 .. Item.Reading.Source_Total loop
+         for Row in 1 .. Writing_Sources_VM.Count (Item.Reading.Sources) loop
             if Widgets.Contains (Item.Reading.Source_Rows (Row).Row, PX,
                                  PY)
             then
                Of_Row
                  ((Kind => Document_Leaf, Dir => 0,
-                   Doc  => Item.Reading.Source_Order (Row)));
+                   Doc  => Writing_Sources_VM.Slot_At (Item.Reading.Sources, Row)));
                return;
             end if;
          end loop;

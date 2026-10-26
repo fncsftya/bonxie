@@ -1,5 +1,4 @@
 with Pomarine.Widgets;
-with Pomarine.Widgets.Editors;
 with Vision;
 
 --  The writing view: the items that are not sources, as documents, each
@@ -13,7 +12,7 @@ with Vision;
 --  its window on the canvas (see Items.Readers), but its highlights are
 --  the same.
 private package View.Writing is
-   procedure Choose_Format (Item : in out Session; Row : Positive);
+   procedure Synchronize_Publish (Item : in out Session);
 
    procedure Enter (Item : in out Session)
      with Pre => Screen (Item) = Project;
@@ -77,20 +76,12 @@ private package View.Writing is
    --  of the sidebar, a page's text or a source's window; on the canvas,
    --  the text or the picture of a window.
 
+   procedure Add_Folder (Item : in out Session)
+     with Pre => Screen (Item) = Project and then View_Mode (Item) = Write;
+   --  Create a directory in the current writing directory and focus its name field.
+
    --  What the writing view's widgets say (see View.Responses, which
    --  gives them to the widgets):
-
-   procedure Add_Page_Clicked
-     (Item   : in out Session;
-      Source : in out Pomarine.Widgets.Widget'Class;
-      Event  : Pomarine.Widgets.Widget_Event);
-   --  Add a document.
-
-   procedure Add_Folder_Clicked
-     (Item   : in out Session;
-      Source : in out Pomarine.Widgets.Widget'Class;
-      Event  : Pomarine.Widgets.Widget_Event);
-   --  Add a directory.
 
    procedure Source_Chosen
      (Item   : in out Session;
@@ -108,53 +99,43 @@ private package View.Writing is
    procedure Add_For_Section (Item : in out Session; Section : Positive);
    --  Write a document that is of the section, last among the documents.
 
-   procedure Section_Notes_Clicked
-     (Item   : in out Session;
-      Source : in out Pomarine.Widgets.Widget'Class;
-      Event  : Pomarine.Widgets.Widget_Event);
-   --  The Notes button of a section's heading (Event.Index its place in
-   --  the outline): show its notes under it, or put them away.
+   procedure Section_Notes_Changed (Item : in out Session; Section : Positive)
+     with Pre => Section <= Outline_VM.Count (Item.Outline_Model.Model);
+   --  Lay out the writing notes after the model changes them; focus the editor when they open.
 
-   procedure Section_Add_Clicked
-     (Item   : in out Session;
-      Source : in out Pomarine.Widgets.Widget'Class;
-      Event  : Pomarine.Widgets.Widget_Event);
-   --  The button of a section that has no documents: write one, of it.
+   procedure Open_Sources (Item : in out Session; Rank : Positive);
+   --  Position and open the linked-source menu for the current page rank.
 
-   procedure Sources_Clicked
-     (Item   : in out Session;
-      Source : in out Pomarine.Widgets.Widget'Class;
-      Event  : Pomarine.Widgets.Widget_Event);
-   --  A page's Sources button: its Index is the page's rank.
+   procedure Tool_Used (Item : in out Session; Rank : Positive; Tool : Positive);
+   --  A tool of the toolbar of the page of this rank (Word_Tools), by its number.
 
-   procedure Dictate_Clicked
-     (Item   : in out Session;
-      Source : in out Pomarine.Widgets.Widget'Class;
-      Event  : Pomarine.Widgets.Widget_Event);
-   --  A page's microphone button: its Index is the page's rank.
+   procedure Link_Followed (Item : in out Session; Rank : Positive);
+   --  A link of the page's text Command-clicked: it is opened (Word_Tools.Follow).
 
-   procedure Tool_Used
-     (Item   : in out Session;
-      Source : in out Pomarine.Widgets.Editors.Editor'Class;
-      Tool   : Positive);
-   --  A tool of a page's toolbar (Word_Tools), by its number.
-
-   procedure Link_Followed
-     (Item   : in out Session;
-      Source : in out Pomarine.Widgets.Editors.Editor'Class);
-   --  A link of a page's text Command-clicked: it is opened (Word_Tools.Follow).
-
-   procedure Link_Asked
-     (Item   : in out Session;
-      Source : in out Pomarine.Widgets.Editors.Editor'Class);
-   --  A page's text has begun to ask for a link's address: it is offered the web pages among the
+   procedure Link_Asked (Item : in out Session; Rank : Positive);
+   --  The page's text has begun to ask for a link's address: it is offered the web pages among the
    --  project's sources.
 
-   procedure Source_Row_Clicked
-     (Item   : in out Session;
-      Source : in out Pomarine.Widgets.Widget'Class;
-      Event  : Pomarine.Widgets.Widget_Event);
-   --  A row of the sources' list: its Index is the row.
+   procedure Begin_Page_Title (Item : in out Session; Rank : Positive);
+   --  The title of the page of this rank was pressed twice: rename it.
+
+   procedure End_Page_Title (Item : in out Session; Rank : Positive);
+   --  The page's title field was returned in, or lost the focus.
+
+   procedure Select_Row (Item : in out Session; Row : Positive);
+   --  A row of the tree was clicked (and not dragged): show what it is of.
+
+   procedure Rename_Row (Item : in out Session; Row : Positive);
+   --  A directory's row was pressed twice: rename it.
+
+   procedure End_Name_Edit (Item : in out Session);
+   --  The field of a directory's or a document's name was returned in, or lost the focus.
+
+   procedure End_Source_Name_Edit (Item : in out Session);
+   --  The field of a source's name was returned in, or lost the focus.
+
+   procedure Apply_Source_Command (Item : in out Session; Slot : Items.Slot);
+   --  Open or close the source reader and refresh its row's appearance.
 
    procedure Delete_Node
      (Item : in out Session; Node : Tree_Entry; Delete_Documents : Boolean := False)

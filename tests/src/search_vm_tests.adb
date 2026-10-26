@@ -150,5 +150,20 @@ package body Search_VM_Tests is
              & Image (Testing.Is_Disabled (Window, "Previous")));
       Testing.Click_On (Window, "Close", Nth => 2);
       Check ("search-name-close", "FALSE", Image (View.Canvas_Windows.Search_Is_Open (App)));
+      --  Reuse the same bar and bindings after closing and changing its parent.
+      Testing.Press (Window, Pomarine.Events.Key_F, Command => True);
+      Check ("search-name-reopen", "TRUE TRUE", Image (Testing.Exists (Window, "Find in item")) & " "
+             & Image (Testing.Shows (Window, "0 / 0")));
+      Testing.Click_On (Window, "Find in item");
+      Testing.Press (Window, Pomarine.Events.Key_A, Command => True);
+      Testing.Type_Text (Window, "bonxie");
+      Testing.Click_On (Window, "Next");
+      Check ("search-name-reused-next", "TRUE", Image (Testing.Shows (Window, "2 / 2")));
+      Testing.Click_On (Window, "Write");
+      Testing.Press (Window, Pomarine.Events.Key_F, Command => True);
+      Check ("search-name-writing", "TRUE", Image (Testing.Exists (Window, "Find in all documents")));
+      Testing.Click_On (Window, "Close");
+      Check ("search-name-writing-close", "FALSE", Image (Testing.Exists (Window, "Find in all documents")));
+
    end By_Name;
 end Search_VM_Tests;

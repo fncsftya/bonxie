@@ -227,7 +227,11 @@ package body Outline_VM is
          when Move_Down =>
             (if Index = 0 then Self.Order.Count > 1 else Index in 1 .. Self.Order.Count - 1),
          when Remove_Section | Toggle_Notes =>
-            (if Index = 0 then Self.Order.Count > 0 else Index <= Self.Order.Count));
+            (if Index = 0 then Self.Order.Count > 0 else Index <= Self.Order.Count),
+         when Choose_Colour =>
+            Index in 1 .. Self.Order.Count,
+         when Accept_Colour | Cancel_Colour | End_Title =>
+            Index = 0);
 
    procedure Observe (Self : in out View_Model; Reactions : access Effects'Class) is
    begin
@@ -249,7 +253,9 @@ package body Outline_VM is
 
    procedure Run (Self : in out View_Model; What : Command; Index : Natural) is
    begin
-      if What in Move_Up | Move_Down | Remove_Section | Toggle_Notes and then Index not in 1 .. Self.Order.Count then
+      if What in Move_Up | Move_Down | Remove_Section | Toggle_Notes | Choose_Colour
+        and then Index not in 1 .. Self.Order.Count
+      then
          raise Constraint_Error with "no such section" & Index'Image;
       end if;
       case What is
@@ -274,8 +280,12 @@ package body Outline_VM is
             begin
                Section.Open := not Section.Open;
             end;
+         when Choose_Colour | Accept_Colour | Cancel_Colour | End_Title =>
+            null;
       end case;
-      Parts.Bump (Self.Changes);
+      if What not in Choose_Colour | Accept_Colour | Cancel_Colour | End_Title then
+         Parts.Bump (Self.Changes);
+      end if;
    end Run;
 
 end Outline_VM;

@@ -1,8 +1,8 @@
 with Items.Links;
 with Pomarine.Widgets;
-with Pomarine.Widgets.Canvases;
 
---  What the pins and the link's buttons say: links made, moved, restyled and deleted.
+--  What the pins and the link's handle say: links made and moved. Restyling and deleting are commands of
+--  Canvas_VM, bound beside the buttons.
 private package View.Links.Events is
 
    package Widgets renames Pomarine.Widgets;
@@ -28,26 +28,5 @@ private package View.Links.Events is
      (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
    --  The pin that was held, while a line was dragged, was let go: end the
    --  drag where the button was let go.
-
-   procedure Stroke_Clicked
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
-   --  A stroke button of the toolbar: Index says which.
-
-   procedure Ending_Clicked
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
-
-   procedure Color_Clicked
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
-
-   procedure Delete_Clicked
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
-   --  The toolbar's button to delete the link selected.
-
-   procedure Line_Selected
-     (Item : in out Session; Source : in out Widgets.Canvases.Canvas'Class; Tag : Natural);
-   --  A line was pressed on (Tag is its tag), or none: select that link.
-
-   procedure Line_Deleted (Item : in out Session; Source : in out Widgets.Canvases.Canvas'Class);
-   --  Backspace was pressed with a line selected: delete its link.
 
 end View.Links.Events;

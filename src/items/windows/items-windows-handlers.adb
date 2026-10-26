@@ -1,5 +1,4 @@
 with Word_Tools;
-with Pomarine.Widgets.Editors.Callbacks;
 with Pomarine.Widgets.Frames.Handlers;
 with Items.Windows.Displays;
 
@@ -7,8 +6,6 @@ package body Items.Windows.Handlers is
 
    package Widgets renames Pomarine.Widgets;
    package Frames renames Pomarine.Widgets.Frames;
-
-   package Editor_Hooks is new Pomarine.Widgets.Editors.Callbacks (Window);
 
    package Frame_Hooks is new Pomarine.Widgets.Frames.Handlers (Window);
 
@@ -66,25 +63,7 @@ package body Items.Windows.Handlers is
       Say (Item, Sized);
    end Corner_Dragged;
 
-   procedure Tool_Used
-     (Item : in out Window; From : in out Widgets.Editors.Editor'Class; Number : Positive);
-
-   procedure Tool_Used
-     (Item : in out Window; From : in out Widgets.Editors.Editor'Class; Number : Positive)
-   is
-      pragma Unreferenced (Item);
-   begin
-      Word_Tools.Use_Tool (From, Number);
-   end Tool_Used;
-
-   procedure Link_Followed (Item : in out Window; From : in out Widgets.Editors.Editor'Class) is
-      pragma Unreferenced (Item);
-   begin
-      Word_Tools.Follow (From);
-   end Link_Followed;
-
    procedure Perform (Item : in out Window; What : Item_Window_VM.Command; Index : Natural) is
-      pragma Unreferenced (Index);
    begin
       case What is
          when Item_Window_VM.Begin_Title_Edit =>
@@ -105,6 +84,8 @@ package body Items.Windows.Handlers is
          when Item_Window_VM.Next_Page => Say (Item, Next_Page);
          when Item_Window_VM.Speak => Say (Item, Speak);
          when Item_Window_VM.Link_To_Outline => Say (Item, Link_To_Outline);
+         when Item_Window_VM.Use_Tool => Word_Tools.Use_Tool (Item.Body_Text, Index);
+         when Item_Window_VM.Follow_Link => Word_Tools.Follow (Item.Body_Text);
          when Item_Window_VM.Toggle_Zoom =>
             Widgets.Set_Visible (Item.Zoom_Menu, not Widgets.Is_Visible (Item.Zoom_Menu));
             Widgets.Raise_To_Front (Item.Zoom_Menu);
@@ -118,8 +99,6 @@ package body Items.Windows.Handlers is
    begin
       Frame_Hooks.On (Item.Chrome, Move, Item'Unrestricted_Access, Dragged'Access);
       Frame_Hooks.On (Item.Chrome, Resize, Item'Unrestricted_Access, Corner_Dragged'Access);
-      Editor_Hooks.On_Tool (Item.Body_Text, Item'Unrestricted_Access, Tool_Used'Access);
-      Editor_Hooks.On_Follow (Item.Body_Text, Item'Unrestricted_Access, Link_Followed'Access);
    end Listen;
 
 end Items.Windows.Handlers;

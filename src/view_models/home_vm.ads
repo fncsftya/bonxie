@@ -1,4 +1,5 @@
 with Pomarine.View_Models;
+with Confirm_VM;
 with Projects;
 
 --  The view-model of the home screen: the recent projects, how many documents and
@@ -8,6 +9,8 @@ package Home_VM is
 
    package Parts renames Pomarine.View_Models;
 
+   use type Projects.Id;
+
    type Command is
      (Refresh,
       --  List the most recently updated projects again; any renaming stops.
@@ -16,8 +19,8 @@ package Home_VM is
       Accept_Rename,
       --  Give the project being renamed the draft, unless it is nothing but spaces.
       Cancel_Rename,
-      Delete_Project);
-      --  Index: the row. The view has asked first.
+      Ask_Delete);
+      --  Index: a listed row. Stop renaming and ask before deleting it, retaining its stable key.
 
    package Commands is new Parts.Command_Models (Command);
 
@@ -43,8 +46,15 @@ package Home_VM is
    procedure Observe (Self : in out View_Model; Reactions : access Effects'Class);
    --  Tell Reactions, from now on, after every command that is done.
 
-   procedure Initialize (Self : in out View_Model; Kept : not null access Library'Class);
-   --  Kept must be there as long as the view-model is. The projects are listed.
+   procedure Initialize
+     (Self : in out View_Model; Kept : not null access Library'Class;
+      Dialog : access Confirm_VM.View_Model := null);
+   --  Kept and an optional confirmation model must outlive Self. The projects are listed.
+
+   procedure Delete_Confirmed (Self : in out View_Model; Key : Projects.Id)
+     with Pre => Key /= 0,
+          Post => Editing (Self) = 0;
+   --  Delete the confirmed identity, even if the recent-project list has since moved or omitted its row.
 
    --  The rows
 
@@ -78,13 +88,14 @@ package Home_VM is
    overriding function Version (Self : View_Model) return Parts.Version_Number;
 
    overriding function Can_Execute (Self : View_Model; What : Command; Index : Natural := 0) return Boolean;
-   --  Refresh: always. Begin_Rename and Delete_Project: the project of the row (Index; 0 for any) is listed.
+   --  Refresh: always. Begin_Rename: the project of the row (Index; 0 for any) is listed.
+   --  Ask_Delete: a positive listed row and an injected confirmation model that is not already asking.
    --  Cancel_Rename: one is being renamed. Accept_Rename: one is, and the draft is something besides spaces.
 
    overriding procedure Execute (Self : in out View_Model; What : Command; Index : Natural := 0)
      with Post => (case What is
                       when Begin_Rename => Editing (Self) = Index,
-                      when Accept_Rename | Cancel_Rename | Refresh | Delete_Project => Editing (Self) = 0);
+                      when Accept_Rename | Cancel_Rename | Refresh | Ask_Delete => Editing (Self) = 0);
    --  A row that is not listed is refused by the precondition.
 
 private
@@ -98,9 +109,11 @@ private
    type Library_Access is access all Library'Class;
 
    type Effects_Access is access all Effects'Class;
+   type Dialog_Access is access all Confirm_VM.View_Model;
 
    type View_Model is limited new Commands.Model with record
       Reactions : Effects_Access;
+      Dialog : Dialog_Access;
       Kept    : Library_Access;
       Listed  : Projects.Recent_List;
       Numbers : Count_Array;

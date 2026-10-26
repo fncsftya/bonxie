@@ -18,7 +18,8 @@ private package View.Section_Links is
      with Pre => Section <= Outlines.Section_Count (Item);
    --  The colour of the section, in the theme.
 
-   procedure Listen_Page (Item : in out Session; Rank : Items.Slot);
+   procedure Open_Page_Menu (Item : in out Session; Rank : Positive);
+   --  The button of the page of this rank was pressed: its section menu is shown, or put away.
    --  Have the Section button of the page of the slot do what it is for.
 
    function Is_Shown (Item : Session) return Boolean;

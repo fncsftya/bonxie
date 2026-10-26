@@ -1,4 +1,5 @@
 with Ada.Strings.Unbounded;
+with Projects;
 with Pomarine.View_Models;
 
 --  The view-model of the dialog that asks before something is deleted: what it
@@ -11,6 +12,8 @@ with Pomarine.View_Models;
 package Confirm_VM is
 
    package Parts renames Pomarine.View_Models;
+
+   use type Projects.Id;
 
    type Subjects is (Nothing, Project, Folder, Document, Source, Model);
    --  What is to be deleted. Nothing: the dialog is not up.
@@ -25,8 +28,8 @@ package Confirm_VM is
    type Answer is record
       Subject          : Subjects := Nothing;
       --  What was confirmed; Nothing if the dialog was cancelled.
-      Row              : Natural := 0;
-      --  Of a project.
+      Project_Key      : Projects.Id := 0;
+      --  Stable identity of the project whose deletion was requested.
       Dir, Doc         : Natural := 0;
       --  Of a node.
       Delete_Documents : Boolean := False;
@@ -50,9 +53,10 @@ package Confirm_VM is
 
    --  Asking: whatever was asked before is forgotten.
 
-   procedure Ask_Project (Self : in out View_Model; Row : Positive; Name : String)
-     with Post => Subject (Self) = Project;
-   --  About the project listed in the row.
+   procedure Ask_Project (Self : in out View_Model; Key : Projects.Id; Name : String)
+     with Pre => Key /= 0,
+          Post => Subject (Self) = Project;
+   --  About this project, independently of the order of the recent-project list.
 
    procedure Ask_Node (Self : in out View_Model; Kind : Nodes; Dir, Doc : Natural; Name : String)
      with Post => Subject (Self) = Kind;

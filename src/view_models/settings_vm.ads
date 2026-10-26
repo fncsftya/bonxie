@@ -29,6 +29,8 @@ package Settings_VM is
       Toggle_VSync,
       Reseed,
       --  Index: the number of the picture now painted (below Preferences.Seed_Limit), which is kept.
+      New_Picture,
+      --  Index: a pictured background style. Choose it and keep a new seed from the injected effects.
       Download_Model,
       --  Fetch the speech model's files.
       Delete_Model,
@@ -86,6 +88,10 @@ package Settings_VM is
    procedure Done (Self : in out Effects; What : Command) is abstract;
    --  After What was executed (not Open and Close, which are the navigation's).
 
+   function New_Picture_Seed (Self : in out Effects) return Natural is abstract
+     with Post'Class => New_Picture_Seed'Result < Preferences.Seed_Limit;
+   --  Generate a picture seed; the model owns choosing its style and keeping the result.
+
    procedure Ask_To_Delete (Self : in out Effects; Size : String) is abstract;
    --  Confirm_Delete was executed: ask before the files, which take Size, are deleted.
 
@@ -117,6 +123,7 @@ package Settings_VM is
    --  Open: the settings are not shown. Close: they are. Download_Model: the
    --  files are not there and not on their way. Delete_Model and Confirm_Delete: they are there and
    --  not being replaced. The choices, Toggle_VSync and Reseed: always.
+   --  New_Picture: settings are shown, effects are injected, and Index names a pictured style.
 
    overriding procedure Execute (Self : in out View_Model; What : Command; Index : Natural := 0)
      with Post => (case What is
@@ -124,6 +131,7 @@ package Settings_VM is
                       when Close => not Is_Showing (Self),
                       when Choose_Theme => Preferences.Theme_Choices'Pos (Theme (Self)) = Index,
                       when Choose_Background => Preferences.Background_Modes'Pos (Background (Self)) = Index,
+                      when New_Picture => Preferences.Background_Modes'Pos (Background (Self)) = Index,
                       when Choose_Speech_Model => Preferences.Speech_Models'Pos (Speech_Model (Self)) = Index,
                       when others => True);
    --  A choice out of range raises Constraint_Error, and changes nothing.

@@ -13,6 +13,7 @@ with View.Style;
 
 package body View.Build.Dialogs is
 
+   package Widgets renames Pomarine.Widgets;
    package Buttons renames Pomarine.Widgets.Buttons;
    package Labels renames Pomarine.Widgets.Labels;
    package Themes renames Pomarine.Themes;
@@ -181,6 +182,9 @@ package body View.Build.Dialogs is
       begin
          Labels.Set_Style (UI.Widget_Of (Form, Heading).all, Pomarine.Line_Texts.Strong);
          Labels.Set_Ink (UI.Widget_Of (Form, Heading).all, Themes.Bar_Ink);
+         Bound.On_Event (Rows, Widgets.Click, Item_List_VM.Reveal, Index_From_Event => True);
+         Bound.On_Event (Rows, Widgets.Submit, Item_List_VM.Reveal, Index_From_Event => True);
+         Bound.On_List_Actions (Rows, [Item_List_VM.Toggle_Shown, Item_List_VM.Remove]);
          Bound.Show_When (UI.Any (Rows), Filled_Flag.Property);
          Bound.Show_When (UI.Any (None), Empty_Flag.Property);
          Parts.Overlay := Overlay;

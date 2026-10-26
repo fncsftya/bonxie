@@ -4,7 +4,6 @@ with Items;
 with Projects;
 with Pomarine.Boxes;
 with Pomarine.Widgets.Buttons;
-with Pomarine.Widgets.Callbacks;
 with Pomarine.Widgets.Layouts;
 with Pomarine.Widgets.Menus;
 with Projects.Sections;
@@ -19,11 +18,8 @@ package body View.Section_Links is
    package Layouts renames Pomarine.Widgets.Layouts;
    package Rows renames Pomarine.UI.Menus;
    package Menus renames Pomarine.Widgets.Menus;
-   package Hooks is new Pomarine.Widgets.Callbacks (Session);
 
    use type Items.Kinds;
-
-   subtype Source_Widget is Widgets.Widget'Class;
 
    Heading_Text : constant String := "LINK TO OUTLINE";
    Menu_Wide    : constant Float := 220.0;
@@ -239,26 +235,12 @@ package body View.Section_Links is
       end;
    end Choose;
 
-   procedure Page_Clicked
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event);
-
-   procedure Page_Clicked
-     (Item : in out Session; Source : in out Source_Widget; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source);
-      Rank : constant Natural := Event.Index;
+   procedure Open_Page_Menu (Item : in out Session; Rank : Positive) is
    begin
       if Rank in 1 .. Trees.Page_Count (Item.Docs.Ordering) then
          Open (Item, Trees.Page_At (Item.Docs.Ordering, Rank), Page => Rank);
       end if;
-   end Page_Clicked;
-
-   procedure Listen_Page (Item : in out Session; Rank : Items.Slot) is
-      use all type Widgets.Event_Kind;
-   begin
-      Widgets.Set_Tag (Item.Docs.Pages (Rank).Outline_Button, Widgets.No_Tag, Rank);
-      Hooks.On (Item.Docs.Pages (Rank).Outline_Button, Click, Item'Unchecked_Access, Page_Clicked'Access);
-   end Listen_Page;
+   end Open_Page_Menu;
 
    procedure Update (Item : in out Session) is
       Parts : Section_Menu_Parts renames Item.Section_Menu;

@@ -1,3 +1,4 @@
+with Writing_Sources_VM;
 with Items.Models;
 with Items.Directories;
 with View.Build;
@@ -57,7 +58,7 @@ package body View.Writing.Order is
       Ordered : Items.Id_List;
       Docs : Trees.Documents;
    begin
-      Item.Reading.Source_Total := 0;
+      Writing_Sources_VM.Reset (Item.Reading.Sources);
       Items.Directories.Load_Directories
         (Item.Nav.Store, Open_Key (Item), Item.Docs.Dirs);
       Build.Reserve_Rows (Item);
@@ -86,9 +87,7 @@ package body View.Writing.Order is
                          Position => Items.Directories.Position_Of (Item.Nav.Store, Ordered (Place))));
                   end;
                else
-                  Item.Reading.Source_Total := Item.Reading.Source_Total + 1;
-                  Item.Reading.Source_Order (Item.Reading.Source_Total)
-                     := Which;
+                  Writing_Sources_VM.Add (Item.Reading.Sources, Which);
                end if;
             end if;
          end loop;

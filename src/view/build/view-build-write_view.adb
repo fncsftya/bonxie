@@ -1,3 +1,11 @@
+with Writing_Sources_UI;
+with Writing_Sources_VM;
+with Writing_Actions_UI;
+with Writing_VM.Actions;
+with Sidebar_UI;
+with Sidebar_VM;
+with Nav_UI;
+with Nav_VM;
 with View.Menu_Commands;
 with Word_Tools;
 with Pomarine.Widgets.Switches;
@@ -78,13 +86,21 @@ package body View.Build.Write_View is
       Content : in out Panels.Panel;
       Before  : in out Widgets.Widget'Class;
       Each    : in out Index_Row;
-      Counted : Boolean)
+      Counted : Boolean;
+      Source_Row : Natural := 0;
+      Of_Tree    : Natural := 0)
    is
       pragma Unreferenced (Content);
       Pixels : constant Float := Item.Shell.Density;
+      Bound : constant Writing_Sources_UI.Context'Class :=
+        Writing_Sources_UI.Bind (Form_Of (Item).all, Item.Reading.Sources'Unrestricted_Access);
+      Actions : constant Writing_Actions_UI.Context'Class :=
+        Writing_Actions_UI.Bind (Form_Of (Item).all, Item.Page_View.Actions'Unrestricted_Access);
+      Row_Control : constant UI.Widget_Handle :=
+        (if Of_Tree /= 0 then Actions.Borrow_Widget (Each.Row) else Bound.Borrow_Widget (Each.Row));
       Whole  : constant UI.Layout :=
-        Holding
-          (Item, Each.Row,
+        UI.Styled (UI.Hold
+          (Row_Control,
            [Line (Item, Each.Tag,
                   (Width => Tag_Size, Height => Tag_Size, Shrink => 0.0, Margin => (Right => Index_Pad, others => <>),
                    others => <>)),
@@ -92,11 +108,18 @@ package body View.Build.Write_View is
                   (Width => 18.0, Height => 18.0, Shrink => 0.0, Margin => (Right => Index_Pad, others => <>),
                    others => <>)),
             Line (Item, Each.Caption, (Grow => 1.0, Width => 0.0, Height => Index_Height, others => <>)),
-            Line (Item, Each.Count, (Width => Count_Width, Height => Index_Height, others => <>))],
+            Line (Item, Each.Count, (Width => Count_Width, Height => Index_Height, others => <>))]),
            (Shrink => 0.0, Flow => Row, Align => Center, Padding => (Left | Right => Index_Pad * Pixels, others => <>),
             Shadowed => True, Height => Index_Height * Pixels + Pomarine.Boxes.Offset (Pixels), Unit => Device_Pixels,
             others => <>));
    begin
+      if Source_Row /= 0 then
+         Bound.On_Event (Row_Control, Widgets.Click, Writing_Sources_VM.Toggle_Source, Source_Row);
+      end if;
+      if Of_Tree /= 0 then
+         Actions.On_Event (Row_Control, Widgets.Click, Writing_VM.Actions.Select_Row, Of_Tree);
+         Actions.On_Event (Row_Control, Widgets.Double_Click, Writing_VM.Actions.Rename_Row, Of_Tree);
+      end if;
       UI.Mount_Before (Form_Of (Item).all, Before, Whole);
       Labels.Set_Text (Each.Folder_Mark, " ");
       Labels.Set_Icon (Each.Folder_Mark, Icon_Set.Folder);
@@ -118,7 +141,7 @@ package body View.Build.Write_View is
    procedure Make_Tree_Row (Item : in out Session; Index : Positive) is
       Each : Index_Row renames Item.Docs.Doc_Rows (Index);
    begin
-      Build_Row (Item, Item.Page_View.Docs_Content, Item.Page_View.Docs_None, Each, Counted => True);
+      Build_Row (Item, Item.Page_View.Docs_Content, Item.Page_View.Docs_None, Each, Counted => True, Of_Tree => Index);
       Panels.Set_Fill (Each.Tag, Quiet_Ink);
    end Make_Tree_Row;
 
@@ -126,41 +149,57 @@ package body View.Build.Write_View is
    begin
       Build_Row
         (Item, Item.Page_View.Sources_Content, Item.Page_View.Sources_None,
-         Item.Reading.Source_Rows (Which), Counted => False);
+         Item.Reading.Source_Rows (Which), Counted => False, Source_Row => Which);
    end Make_Source_Row;
 
    procedure Make_Page (Item : in out Session; Rank : Items.Slot) is
       Each : Doc_Page renames Item.Docs.Pages (Rank);
+      Bound : constant Writing_Actions_UI.Context'Class :=
+        Writing_Actions_UI.Bind (Form_Of (Item).all, Item.Page_View.Actions'Unrestricted_Access);
+      function Command_Button
+        (Part : in out Buttons.Button; Look : Buttons.Settings; What : Writing_VM.Actions.Command;
+         Box : Layouts.Style) return UI.Layout is
+      begin
+         Buttons.Configure (Part, Look);
+         return UI.Styled (UI.Place (Bound.Borrow_Button (Part, What, Rank)), Box);
+      end Command_Button;
    begin
       declare
+         Heading_Control : constant UI.Widget_Handle := Bound.Borrow_Widget (Each.Heading_Area);
+         Title_Control : constant UI.Widget_Handle := Bound.Borrow_Widget (Each.Title_Field);
          Bar : constant UI.Layout :=
            Holding
              (Item, Each.Bar,
-              [Holding
-                 (Item, Each.Heading_Area,
-                  [Line (Item, Each.Swatch,
-                         (Width => Section_Swatch, Height => Section_Swatch, Shrink => 0.0,
-                          Margin => (Right => Tool_Gap, others => <>), others => <>)),
-                   Line (Item, Each.Heading, (Grow => 1.0, Width => 0.0, Height => Page_Head, others => <>))],
+              [UI.Styled
+                 (UI.Hold
+                    (Heading_Control,
+                     [Line (Item, Each.Swatch,
+                            (Width => Section_Swatch, Height => Section_Swatch, Shrink => 0.0,
+                             Margin => (Right => Tool_Gap, others => <>), others => <>)),
+                      Line (Item, Each.Heading, (Grow => 1.0, Width => 0.0, Height => Page_Head, others => <>))]),
                   (Flow => Row, Align => Center, Grow => 1.0, Width => 0.0, Height => Page_Head, others => <>)),
-               Line (Item, Each.Title_Field, (Grow => 1.0, Width => 0.0, Height => Title_Height, others => <>)),
-               Press (Item, Each.Outline_Button,
+               UI.Styled (UI.Place (Title_Control), (Grow => 1.0, Width => 0.0, Height => Title_Height, others => <>)),
+               Command_Button (Each.Outline_Button,
                       Buttons.Looks ("Section", Captioned => True, Shape => Buttons.Dropdown),
+                      Writing_VM.Actions.Open_Section_Menu,
                       (Width => Outline_Link_Width, Height => Bar_Button_Height, others => <>)),
-               Press (Item, Each.Sources_Button, Buttons.Looks ("Sources", Shape => Buttons.Dropdown),
+               Command_Button (Each.Sources_Button, Buttons.Looks ("Sources", Shape => Buttons.Dropdown),
+                      Writing_VM.Actions.Open_Sources,
                       (Width => Sources_Width, Height => Bar_Button_Height, others => <>)),
-               Press (Item, Each.Mic_Button,
+               Command_Button (Each.Mic_Button,
                       Buttons.Looks ("Mic", Icon => Pomarine.Icons.Shown (Icon_Set.Microphone),
-                                     Icon_Points => Mic_Icon_Size),
+                                     Icon_Points => Mic_Icon_Size), Writing_VM.Actions.Toggle_Dictation,
                       (Width => Mic_Width, Height => Bar_Button_Height, others => <>)),
                Line (Item, Each.Level,
                      (Place => Absolute, Position => (Left | Bottom => 0.0, Right => Shadow_Room, others => <>),
                       Height => Level_Height, others => <>))],
               (Flow => Row, Align => Center, Height => Page_Head, Gap => Tool_Gap,
                Padding => (Right => Shadow_Room, others => <>), others => <>));
+         Page_Text : constant UI.Widget_Handle := Bound.Borrow_Widget (Each.Text);
          Sheet : constant UI.Layout :=
            Holding
-             (Item, Each.Sheet, [Line (Item, Each.Text, (Shrink => 0.0, Height => Page_Min_Height, others => <>))],
+             (Item, Each.Sheet,
+              [UI.Styled (UI.Place (Page_Text), (Shrink => 0.0, Height => Page_Min_Height, others => <>))],
               (Flow => Column, Shrink => 0.0, Shadowed => True, Padding => (others => Page_Border), others => <>));
          Whole : constant UI.Layout :=
            Holding
@@ -170,6 +209,13 @@ package body View.Build.Write_View is
                                         others => <>))],
               (Flow => Column, Shrink => 0.0, Width => Write_Width, others => <>));
       begin
+         pragma Assert (Writing_VM.Actions.Tools_Per_Page = Editors.Tool_Capacity);
+         Bound.On_Event (Heading_Control, Widgets.Double_Click, Writing_VM.Actions.Begin_Page_Title, Rank);
+         Bound.On_Event (Title_Control, Widgets.Submit, Writing_VM.Actions.End_Page_Title, Rank);
+         Bound.On_Event (Title_Control, Widgets.Blur, Writing_VM.Actions.End_Page_Title, Rank);
+         Bound.On_Editor_Event (Page_Text, Writing_Actions_UI.Tool_Used, Writing_VM.Actions.Use_Tool, Rank, True);
+         Bound.On_Editor_Event (Page_Text, Writing_Actions_UI.Link_Followed, Writing_VM.Actions.Follow_Link, Rank);
+         Bound.On_Editor_Event (Page_Text, Writing_Actions_UI.Link_Asked, Writing_VM.Actions.Ask_Link, Rank);
          UI.Mount_Into (Form_Of (Item).all, Item.Page_View.Pages_Content, Whole);
       end;
       Labels.Set_Style (Each.Heading, Pomarine.Line_Texts.Heading);
@@ -219,6 +265,16 @@ package body View.Build.Write_View is
    procedure Make_Section (Item : in out Session; Index : Positive) is
       Sections : Section_View_Parts renames Item.Section_View;
       Pane     : Page_Parts renames Item.Page_View;
+      Bound : constant Nav_UI.Context'Class :=
+        Nav_UI.Bind (Form_Of (Item).all, Item.Nav_Model.Model'Unrestricted_Access);
+
+      function Section_Button
+        (Part : in out Buttons.Button; Look : Buttons.Settings; Box : Layouts.Style;
+         What : Nav_VM.Command) return UI.Layout is
+      begin
+         Buttons.Configure (Part, Look);
+         return UI.Styled (UI.Place (Bound.Borrow_Button (Part, What, Index)), Box);
+      end Section_Button;
    begin
       declare
          Head  : Section_Head renames Sections.Heads (Index);
@@ -233,13 +289,14 @@ package body View.Build.Write_View is
                                          others => <>)),
                   Line (Item, Head.Title, (Grow => 1.0, Width => 0.0, Height => Section_Head_Height, others => <>)),
                   Line (Item, Head.Count, (Width => 140.0, Height => Section_Head_Height, others => <>)),
-                  Press (Item, Head.Notes, Buttons.Looks ("Notes", Captioned => True, Focusable => True),
-                         (Width => Notes_Width, Height => Outline_Button, Shrink => 0.0, others => <>)),
-                  Press (Item, Head.Add,
+                  Section_Button (Head.Notes, Buttons.Looks ("Notes", Captioned => True, Focusable => True),
+                                  (Width => Notes_Width, Height => Outline_Button, Shrink => 0.0, others => <>),
+                                  Nav_VM.Toggle_Section_Notes),
+                  Section_Button (Head.Add,
                          Buttons.Looks ("Add document to this section", Icon => Pomarine.Icons.Shown (Icon_Set.Plus),
                                         Focusable => True),
                          (Width => Outline_Button, Height => Outline_Button, Shrink => 0.0,
-                          Margin => (Right => Shadow_Room, others => <>), others => <>))],
+                          Margin => (Right => Shadow_Room, others => <>), others => <>), Nav_VM.Add_Document)],
                  (Place => Absolute, Flow => Row, Align => Center, Gap => Tool_Gap, Height => Section_Head_Height,
                   Width => Write_Width, others => <>));
             Notes_Layout : constant UI.Layout :=
@@ -251,10 +308,10 @@ package body View.Build.Write_View is
               Holding
                 (Item, Empty.Box,
                  [Line (Item, Empty.Note, (Height => Heading_Height, others => <>)),
-                  Press (Item, Empty.Add,
+                  Section_Button (Empty.Add,
                          Buttons.Looks ("Add document", Icon => Pomarine.Icons.Shown (Icon_Set.Plus),
                                         Captioned => True, Focusable => True),
-                         (Width => Wide_Tool_Width, Height => Bar_Button_Height, others => <>))],
+                         (Width => Wide_Tool_Width, Height => Bar_Button_Height, others => <>), Nav_VM.Add_Document)],
                  (Place => Absolute, Flow => Column, Align => Center, Spread => Center, Gap => Tool_Gap,
                   Height => Section_Empty_Height, Width => Write_Width, Outlined => True, others => <>));
          begin
@@ -310,6 +367,17 @@ package body View.Build.Write_View is
       Pixels : constant Float := Item.Shell.Density;
       Offset : constant Float := Pomarine.Boxes.Offset (Pixels);
 
+      function Command_Button
+        (Part : in out Buttons.Button; Look : Buttons.Settings; Box : Layouts.Style;
+         What : Nav_VM.Command) return UI.Layout
+      is
+         Bound : constant Nav_UI.Context'Class :=
+           Nav_UI.Bind (Form_Of (Item).all, Item.Nav_Model.Model'Unrestricted_Access);
+      begin
+         Buttons.Configure (Part, Look);
+         return UI.Styled (UI.Place (Bound.Borrow_Button (Part, What)), Box);
+      end Command_Button;
+
       --  A list of rows, as tall as its rows, if there is room; the second list follows the first. The scroll
       --  bar, which is shown only while the pointer is over the list, is over the rows' right edge.
       function Index
@@ -334,10 +402,16 @@ package body View.Build.Write_View is
       function Fold
         (Head   : in out Fold_Head;
          Name   : String;
+         What   : Sidebar_VM.Command;
          Grow   : Float := Unset;
          Width  : Float := Unset;
-         Margin : Layouts.Sides := (others => <>)) return UI.Layout is
+         Margin : Layouts.Sides := (others => <>)) return UI.Layout
+      is
+         Bound : constant Sidebar_UI.Context'Class :=
+           Sidebar_UI.Bind (Form_Of (Item).all, Pane.Folding'Unrestricted_Access);
+         Grip : constant UI.Widget_Handle := Bound.Borrow_Widget (Head.Bar);
       begin
+         Bound.On_Event (Grip, Widgets.Click, What);
          Labels.Set_Text (Head.Mark, " ");
          Labels.Set_Text (Head.Name, Name);
          Labels.Set_Style (Head.Name, Pomarine.Line_Texts.Caption);
@@ -345,10 +419,10 @@ package body View.Build.Write_View is
          Grips.Set_Hover_Fill (Head.Bar, Row_Hover);
          Grips.Set_Wanted_Cursor (Head.Bar, SDL3.Cursors.Pointer);
          Widgets.Set_Accessible_Name (Head.Bar, "Fold or unfold " & Name);
-         return Holding
-           (Item, Head.Bar,
+         return UI.Styled (UI.Hold
+           (Grip,
             [Line (Item, Head.Mark, (Width => 18.0, Height => Heading_Height, Shrink => 0.0, others => <>)),
-             Line (Item, Head.Name, (Grow => 1.0, Width => 0.0, Height => Heading_Height, others => <>))],
+             Line (Item, Head.Name, (Grow => 1.0, Width => 0.0, Height => Heading_Height, others => <>))]),
             (Flow => Row, Align => Center, Height => Heading_Height, Shrink => 0.0, Grow => Grow, Width => Width,
              Margin => Margin, others => <>));
       end Fold;
@@ -382,6 +456,10 @@ package body View.Build.Write_View is
          declare
             --  Over the rows of the tree, out of their layout: the line where a document dragged would go
             --  between two, the ghost of the row, and the field to rename a directory by.
+            Actions : constant Writing_Actions_UI.Context'Class :=
+              Writing_Actions_UI.Bind (Form_Of (Item).all, Pane.Actions'Unrestricted_Access);
+            Dir_Control : constant UI.Widget_Handle := Actions.Borrow_Widget (Item.Naming.Dir_Field);
+            Source_Control : constant UI.Widget_Handle := Actions.Borrow_Widget (Item.Naming.Source_Field);
             Docs_Over : constant UI.Layout_Array :=
               [Line (Item, Item.Docs.Drop_Line, (Place => Absolute, Height => Drop_Line_Height, others => <>)),
                Holding
@@ -390,15 +468,15 @@ package body View.Build.Write_View is
                          (Grow => 1.0, Width => 0.0, Height => Index_Height, others => <>))],
                   (Place => Absolute, Flow => Row, Align => Center,
                    Padding => (Left | Right => Index_Pad, others => <>), others => <>)),
-               Line (Item, Item.Naming.Dir_Field, (Place => Absolute, Height => Index_Height, others => <>))];
+               UI.Styled (UI.Place (Dir_Control), (Place => Absolute, Height => Index_Height, others => <>))];
             Sources_Over : constant UI.Layout_Array :=
-              [Line (Item, Item.Naming.Source_Field, (Place => Absolute, Height => Index_Height, others => <>))];
+              [UI.Styled (UI.Place (Source_Control), (Place => Absolute, Height => Index_Height, others => <>))];
 
             --  The sidebar: two lists one above the other, with a line at its right.
             Sidebar : constant UI.Layout :=
               Holding
                 (Item, Pane.Sidebar,
-                 [Fold (Pane.Edit_Heading, "EDIT"),
+                 [Fold (Pane.Edit_Heading, "EDIT", Sidebar_VM.Toggle_Edit),
                   Holding
                     (Item, Pane.Grammar_Row,
                      [Line (Item, Pane.Grammar_Switch, (Height => 34.0, Grow => 1.0, Width => 0.0, others => <>)),
@@ -407,15 +485,15 @@ package body View.Build.Write_View is
                      (Flow => Row, Align => Center, Height => 34.0, Shrink => 0.0, Gap => 4.0, others => <>)),
                   Holding
                     (Item, Pane.Docs_Head,
-                     [Fold (Pane.Docs_Heading, "DOCUMENTS", Grow => 1.0, Width => 0.0),
-                      Press (Item, Pane.Docs_Folder,
+                     [Fold (Pane.Docs_Heading, "DOCUMENTS", Sidebar_VM.Toggle_Documents, Grow => 1.0, Width => 0.0),
+                      Command_Button (Pane.Docs_Folder,
                              Buttons.Looks ("New folder", Icon => Pomarine.Icons.Shown (Icon_Set.Folder),
-                                            Icon_Points => Mic_Icon_Size),
-                             (Width => Add_Size, Height => Add_Size, others => <>)),
-                      Press (Item, Pane.Docs_Add,
+                                            Icon_Points => Mic_Icon_Size, Focusable => True),
+                             (Width => Add_Size, Height => Add_Size, others => <>), Nav_VM.Add_Folder),
+                      Command_Button (Pane.Docs_Add,
                              Buttons.Looks ("+", Icon => Pomarine.Icons.Shown (Icon_Set.Plus),
-                                            Icon_Points => Mic_Icon_Size),
-                             (Width => Add_Size, Height => Add_Size, others => <>))],
+                                            Icon_Points => Mic_Icon_Size, Focusable => True),
+                             (Width => Add_Size, Height => Add_Size, others => <>), Nav_VM.Add_Document)],
                      (Flow => Row, Align => Center, Gap => Index_Gap, Padding => (Right => Shadow_Room, others => <>),
                       Margin => (Top => Heading_Top, others => <>), others => <>)),
                   Index (Pane.Docs_Scroll, Pane.Docs_Content, Pane.Docs_None, No_Documents, Docs_Over),
@@ -423,7 +501,8 @@ package body View.Build.Write_View is
                     (Item, Pane.Sources_Edge,
                      [Line (Item, Pane.Sources_Grab, (Width => 32.0, Height => 3.0, Shrink => 0.0, others => <>))],
                      (Height => 16.0, Shrink => 0.0, Align => Center, Spread => Center, others => <>)),
-                  Fold (Pane.Sources_Heading, "SOURCES", Margin => (Top => Heading_Top, others => <>)),
+                  Fold (Pane.Sources_Heading, "SOURCES", Sidebar_VM.Toggle_Sources,
+                        Margin => (Top => Heading_Top, others => <>)),
                   Index (Pane.Sources_Scroll, Pane.Sources_Content, Pane.Sources_None, No_Sources, Sources_Over)],
                  (Width => Pane.Sidebar_Wide, Shrink => 0.0, Flow => Column, Gap => Sidebar_Gap,
                   Padding => (Top => Sidebar_Pad + Heading_Top, others => Sidebar_Pad), others => <>));
@@ -464,6 +543,10 @@ package body View.Build.Write_View is
                   Source_Menu],
                  (Flow => Row, Grow => 1.0, Height => 0.0, others => <>));
          begin
+            Actions.On_Event (Dir_Control, Widgets.Submit, Writing_VM.Actions.End_Name_Edit);
+            Actions.On_Event (Dir_Control, Widgets.Blur, Writing_VM.Actions.End_Name_Edit);
+            Actions.On_Event (Source_Control, Widgets.Submit, Writing_VM.Actions.End_Source_Name_Edit);
+            Actions.On_Event (Source_Control, Widgets.Blur, Writing_VM.Actions.End_Source_Name_Edit);
             UI.Mount_Into (Form_Of (Item).all, Content_Panel (Item).all, Whole);
          end;
          if not Item.Shell.Windowed then
@@ -508,6 +591,7 @@ package body View.Build.Write_View is
          Items.Readers.Build
            (Item.Reading.Pane_Reader, Pane.Pane_Body, Toolbar, Pixels,
             Pinned => True);
+         UI.Observe (Form_Of (Item).all, Item.Sidebar_Watcher'Access);
          Writing.Listen (Item);
          Grammar.Build (Item);
       end Hook_Up;

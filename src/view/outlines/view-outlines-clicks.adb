@@ -8,21 +8,22 @@ with Section_Colour_Pickers;
 
 package body View.Outlines.Clicks is
 
-   procedure Colour_Clicked
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
-   is
+   package Widgets renames Pomarine.Widgets;
+
+   procedure Colour_Clicked (Item : in out Session; Index : Positive) is
       Pane : Outline_Parts renames Item.Outline_View;
+      Source : Widgets.Widget'Class renames Pane.Blocks (Index).Swatch;
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
       use Pomarine.Widgets.Layouts;
    begin
-      if not Support.In_Outline (Item) or else Event.Index not in 1 .. Section_Count (Item) then
+      if not Support.In_Outline (Item) or else Index not in 1 .. Section_Count (Item) then
          return;
       end if;
       Sync (Item);
-      Pane.Colour_Key := Section_At (Item, Event.Index).Key;
+      Pane.Colour_Key := Section_At (Item, Index).Key;
       Section_Colour_Pickers.Set_Colour
         (Pane.Colour_Picker,
-         Pomarine.Themes.Resolve (Style.Colors, Style.Section_Ink (Section_At (Item, Event.Index).Colour)));
+         Pomarine.Themes.Resolve (Style.Colors, Style.Section_Ink (Section_At (Item, Index).Colour)));
       Set_Layout
         (Pane.Colour_Popout,
          Position =>
@@ -37,18 +38,13 @@ package body View.Outlines.Clicks is
       Widgets.Raise_To_Front (Pane.Colour_Popout);
    end Colour_Clicked;
 
-   procedure Colour_Cancelled
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source, Event);
+   procedure Colour_Cancelled (Item : in out Session) is
    begin
       Item.Outline_View.Colour_Key := 0;
       Widgets.Set_Visible (Item.Outline_View.Colour_Popout, False);
    end Colour_Cancelled;
 
-   procedure Colour_Accepted
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
-   is
+   procedure Colour_Accepted (Item : in out Session) is
       Pane : Outline_Parts renames Item.Outline_View;
       Row : constant Natural := Index_Of_Key (Item, Pane.Colour_Key);
    begin
@@ -59,13 +55,10 @@ package body View.Outlines.Clicks is
          Item.Section_Menu.Changes := @ + 1;
          Blocks.Show_Blocks (Item);
       end if;
-      Colour_Cancelled (Item, Source, Event);
+      Colour_Cancelled (Item);
    end Colour_Accepted;
 
-   procedure Title_Submitted
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source, Event);
+   procedure Title_Submitted (Item : in out Session) is
    begin
       if Support.In_Outline (Item) then
          Widgets.Clear_Focus (Item.Root.Widgets);

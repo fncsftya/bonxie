@@ -39,12 +39,15 @@ package body Grammar_Tests is
 
    procedure Await (Item : in out View.Session; Now : Events.Milliseconds) is
       Deadline : constant Ada.Real_Time.Time := Ada.Real_Time.Clock + Ada.Real_Time.Seconds (60);
+      Passed   : Events.Milliseconds := Now;
    begin
+      --  Time moves on while waiting: an edit seen here is only rechecked after the idle delay.
       loop
-         View.Tick (Item, Now);
+         View.Tick (Item, Passed);
          exit when not Docs.Grammar_Pending (Item);
          pragma Assert (Ada.Real_Time.Clock < Deadline, "grammar checking timed out");
          delay 0.002;
+         Passed := Passed + 1;
       end loop;
    end Await;
 
@@ -368,11 +371,12 @@ package body Grammar_Tests is
       View.Handle (Session, Events.Text_Event ("This is a speling mistake. Another speling here."));
       Proj.Set_Mode (Session, View.Write);
       Await (Session, Now);
-      Docs.Grammar_Show (Session);
+      Ears.Clock := Now;
+      Testing.Attach (Window, View.Widget_Tree (Session).all, Ears'Access);
+      Testing.Click_On (Window, "Fixable grammar suggestions: " & Docs.Grammar_Count (Session));
       View.Tick (Session, Now);
       Docs.Grammar_Expand (Session, "speling");
       Ears.Clock := Now;
-      Testing.Attach (Window, View.Widget_Tree (Session).all, Ears'Access);
 
       --  The card's button, Add rule, begins the rule: the form asks what the text is always to be corrected to,
       --  and has an Add rule of its own, after the card's.
@@ -384,6 +388,8 @@ package body Grammar_Tests is
       --  What changes nothing is no rule, and the form stays.
       Testing.Press (Window, Events.Key_A, Command => True);
       Testing.Type_Text (Window, "speling");
+      Check ("grammar-name-same-disabled", Testing.Is_Disabled (Window, "Add rule", Nth => 2));
+      Testing.Press (Window, Events.Key_Return);
       Testing.Click_On (Window, "Add rule", Nth => 2);
       Check ("grammar-name-same",
              Docs.Grammar_Rule_Count (Session) = 0 and then Testing.Shows (Window, "Always correct"));
@@ -397,12 +403,34 @@ package body Grammar_Tests is
       Testing.Click_On (Window, "Add rule");
       Testing.Press (Window, Events.Key_A, Command => True);
       Testing.Type_Text (Window, "spelling");
-      Testing.Click_On (Window, "Add rule", Nth => 2);
+      Check ("grammar-name-valid-enabled", not Testing.Is_Disabled (Window, "Add rule", Nth => 2));
+      Testing.Press (Window, Events.Key_Return);
       Check ("grammar-name-made",
              Docs.Grammar_Rule_Count (Session) = 1 and then not Testing.Exists (Window, "Add rule", Nth => 2));
       Now := Now + 1;
       Await (Session, Now);
       Goldens.Check_Text ("grammar-name-first-fix", "spelling", Docs.Grammar_First_Suggestion (Session, "speling"));
+
+      --  The custom rule's card has a stable semantic description. Expand and apply through its bindings.
+      Testing.Click_On (Window, "Your rule: Spelling: Your rule: replace ""speling"" with ""spelling"".");
+      Check ("grammar-name-expanded", Testing.Exists (Window, "Remove rule"));
+      Testing.Click_On (Window, "Apply: spelling");
+      Now := Ears.Clock + 1000;
+      Await (Session, Now);
+      Check ("grammar-name-applied", Docs.Grammar_Marking (Session, "speling") = 1);
+      Testing.Click_On (Window, "Your rule: Spelling: Your rule: replace ""speling"" with ""spelling"".");
+      Testing.Click_On (Window, "Remove rule");
+      Check ("grammar-name-removed", Docs.Grammar_Rule_Count (Session) = 0);
+      Now := Ears.Clock + 1000;
+      Await (Session, Now);
+      Docs.Grammar_Expand (Session, "speling");
+      Testing.Click_On (Window, "Ignore");
+      Now := Ears.Clock + 1000;
+      Await (Session, Now);
+      Check ("grammar-name-ignored", Docs.Grammar_Marking (Session, "speling") = 0);
+      Testing.Click_On (Window, "Fixable grammar suggestions: " & Docs.Grammar_Count (Session));
+      Check ("grammar-name-hidden", not Testing.Shows (Window, "Grammar Suggestions ("));
+
    end Entry_By_Name;
 
 end Grammar_Tests;

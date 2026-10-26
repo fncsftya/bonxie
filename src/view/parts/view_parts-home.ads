@@ -22,7 +22,6 @@ package View_Parts.Home is
       Name    : Pomarine.UI.Grip_Handle;
       --  Clicked, to open it; in the place of which, the field to rename it.
       Rename  : Pomarine.UI.Button_Handle;
-      Delete  : Pomarine.UI.Button_Handle;
       Editing : Pomarine.UI.Layout;
       --  In place of the name and the buttons, while the project is renamed: the field, and OK and Cancel.
       Field   : Pomarine.UI.Field_Handle;

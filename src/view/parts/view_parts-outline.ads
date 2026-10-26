@@ -102,8 +102,6 @@ package View_Parts.Outline is
    type Outline_Choices is limited record
       Library : aliased Outline_VM.Stored.Sections_Kept;
       Model   : aliased Outline_VM.View_Model;
-      Focus_Notes : Boolean := True;
-      --  Whether the notes of a section, when its button shows them, are given the focus.
       --  What the outline means: the project's title and description, the sections in order, which
       --  have their notes open.
    end record;

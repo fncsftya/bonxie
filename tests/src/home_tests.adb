@@ -74,13 +74,15 @@ package body Home_Tests is
              Image (Home.Is_Renaming (Session)) & " " & Home.Row_Title (Session, 1) & " "
              & Home.Row_Title (Session, 2));
 
-      --  Delete asks first, and what it asks is of the card.
+      --  Delete asks first, stops a rename on another card, and asks of the chosen card.
+      Testing.Click_On (Window, "Rename", Nth => 3);
       Testing.Click_On (Window, "Delete", Nth => 2);
       Check ("home-name-delete-asks", "TRUE TRUE",
              Image (Home.Is_Confirming (Session)) & " "
              & Image (Testing.Shows (Window, "text 'Delete project'")
                       and then Testing.Shows (Window, "Last")
                       and then Testing.Shows (Window, "This cannot be undone.")));
+      Check ("home-name-delete-stops-rename", "FALSE", Image (Home.Is_Renaming (Session)));
       Testing.Click_On (Window, "Cancel");
       Check ("home-name-delete-cancelled", "FALSE Last", Image (Home.Is_Confirming (Session)) & " "
              & Home.Row_Title (Session, 2));
@@ -93,6 +95,13 @@ package body Home_Tests is
       Check ("home-name-deleted", "FALSE Pilot Episode 3 ",
              Image (Home.Is_Confirming (Session)) & " " & Home.Row_Title (Session, 1) & " "
              & Home.Row_Title (Session, 2) & " " & Home.Row_Title (Session, 3));
+      --  A card added after initial mounting has the same declared command.
+      Home.Add_Project (Session, "Episode 4", 14400);
+      Testing.Click_On (Window, "Delete", Nth => 2);
+      Check ("home-name-late-delete-asks", "TRUE", Image (Home.Is_Confirming (Session)));
+      Testing.Click_On (Window, "Delete", Nth => 4);
+      Check ("home-name-late-deleted", "Pilot Episode 3 ",
+             Home.Row_Title (Session, 1) & " " & Home.Row_Title (Session, 2) & " " & Home.Row_Title (Session, 3));
    end By_Name;
 
 end Home_Tests;

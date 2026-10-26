@@ -260,6 +260,11 @@ package body Canvas_VM_Tests is
       Side  : Items.Links.Sides;
    begin
       Prepare (Where);
+      Check ("canvas-vm-restyle-needs-link", "FALSE FALSE FALSE TRUE",
+             Image (Canvas_VM.Can_Execute (Model, Set_Stroke, 1)) & " "
+             & Image (Canvas_VM.Can_Execute (Model, Set_Ending, 1)) & " "
+             & Image (Canvas_VM.Can_Execute (Model, Set_Color, 1)) & " "
+             & Image (Canvas_VM.Can_Execute (Model, Pick_Link, 0)));
       Check ("canvas-vm-no-links", "0 0 FALSE FALSE", Number (Canvas_VM.Link_Count (Model)) & " "
              & Number (Integer (Canvas_VM.Selected_Link (Model))) & " "
              & Image (Canvas_VM.Can_Execute (Model, Delete_Link))
@@ -306,9 +311,21 @@ package body Canvas_VM_Tests is
       Canvas_VM.End_Link (Model, 2, Side);
       Check ("canvas-vm-moved-link", "BOTTOM FALSE", Canvas_VM.Link_At (Model, 1).To_Side'Image & " "
              & Image (Canvas_VM.Is_Moving_Link (Model)));
-      Canvas_VM.Restyle (Model, Items.Links.Dashed, Items.Links.Arrow, 3);
+      Check ("canvas-vm-style-ranges", "FALSE TRUE FALSE TRUE TRUE FALSE",
+             Image (Canvas_VM.Can_Execute (Model, Set_Stroke, 0)) & " "
+             & Image (Canvas_VM.Can_Execute (Model, Set_Stroke, 3)) & " "
+             & Image (Canvas_VM.Can_Execute (Model, Set_Stroke, 4)) & " "
+             & Image (Canvas_VM.Can_Execute (Model, Set_Ending, 2)) & " "
+             & Image (Canvas_VM.Can_Execute (Model, Set_Color, Items.Links.Link_Color_Count)) & " "
+             & Image (Canvas_VM.Can_Execute (Model, Set_Color, Items.Links.Link_Color_Count + 1)));
+      Canvas_VM.Execute (Model, Set_Stroke, 3);
+      Canvas_VM.Execute (Model, Set_Ending, 2);
+      Canvas_VM.Execute (Model, Set_Color, 3);
       Check ("canvas-vm-restyled", "DASHED ARROW 3", Canvas_VM.Link_At (Model, 1).Stroke'Image & " "
              & Canvas_VM.Link_At (Model, 1).Ending'Image & " " & Number (Canvas_VM.Link_At (Model, 1).Color));
+      Canvas_VM.Execute (Model, Pick_Link, 99);
+      Check ("canvas-vm-pick-none", "0", Number (Integer (Canvas_VM.Selected_Link (Model))));
+      Canvas_VM.Execute (Model, Pick_Link, 1);
       Canvas_VM.Execute (Model, Delete_Link);
       Check ("canvas-vm-link-deleted", "0 0 0", Number (Canvas_VM.Link_Count (Model)) & " "
              & Number (Integer (Canvas_VM.Selected_Link (Model))) & " " & Number (Where.Kept.Links.Count));

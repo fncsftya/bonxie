@@ -3,6 +3,24 @@ with Ada.Text_IO;
 
 package body Settings_VM_Fakes is
 
+   overriding function New_Picture_Seed (Self : in out Reactions) return Natural is
+   begin
+      Self.Requests := Self.Requests + 1;
+      return Self.Seed;
+   end New_Picture_Seed;
+
+   overriding procedure Done (Self : in out Reactions; What : Settings_VM.Command) is
+   begin
+      Self.Notices := Self.Notices + 1;
+      Self.Last := What;
+   end Done;
+
+   overriding procedure Ask_To_Delete (Self : in out Reactions; Size : String) is
+      pragma Unreferenced (Self, Size);
+   begin
+      null;
+   end Ask_To_Delete;
+
    procedure Note (Self : in out Notes; What : String) is
    begin
       if Self.Failing then
@@ -23,6 +41,9 @@ package body Settings_VM_Fakes is
 
    overriding procedure Save_Background (Self : in out Notes; To : Preferences.Background_Modes) is
    begin
+      if Self.Background_Failing then
+         raise Ada.Text_IO.Use_Error with "cannot save background";
+      end if;
       Note (Self, "background=" & To'Image);
    end Save_Background;
 

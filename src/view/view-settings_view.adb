@@ -167,13 +167,11 @@ package body View.Settings_View is
       Settings_VM.Execute (Item.Choices.Model, Settings_VM.Choose_Background, Choice_Of (To));
    end Choose_Background;
 
-   procedure Reseed (Item : in out Session) is
+   function New_Picture_Seed (Item : in out Session) return Natural is
    begin
-      --  The picture is the world's; the view-model keeps which it is.
       Backgrounds.Reseed (Item.Host.Background);
-      Settings_VM.Execute
-        (Item.Choices.Model, Settings_VM.Reseed, Backgrounds.Seed_Number (Item.Host.Background));
-   end Reseed;
+      return Backgrounds.Seed_Number (Item.Host.Background);
+   end New_Picture_Seed;
 
    procedure Apply_Theme (Item : in out Session) is
       Dark : constant Boolean :=
@@ -254,11 +252,14 @@ package body View.Settings_View is
             if Showing (Item) then
                Refresh (Item);
             end if;
-         when Settings_VM.Reseed =>
+         when Settings_VM.Reseed | Settings_VM.New_Picture =>
             Apply_Theme (Item);
             Widgets.Invalidate_All (Item.Root.Widgets);
             if Showing (Item) then
                Refresh (Item);
+               if What = Settings_VM.New_Picture then
+                  Reveal_Background (Item);
+               end if;
             end if;
          when others =>
             null;

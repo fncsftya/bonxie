@@ -1,14 +1,9 @@
 with Confirm_VM;
-with Home_VM;
 
 --  The dialog over the home screen and the writing view to confirm deleting a project, a folder, a document
 --  or source, or the speech model's files: the widgets set from Confirm_VM, which has what it says and
 --  what it is about.
 private package View.Deletion is
-
-   procedure Confirm (Item : in out Session; Row : Positive)
-     with Pre => Row <= Home_VM.Count (Item.Home_Model.Model);
-   --  Show the dialog to confirm deleting the project of the row.
 
    procedure Confirm_Node (Item : in out Session; Node : Tree_Entry)
      with Pre => Node.Kind /= Overview_Node;

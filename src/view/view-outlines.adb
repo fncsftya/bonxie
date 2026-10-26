@@ -1,3 +1,4 @@
+with View.Writing;
 with Pomarine.Text_Areas;
 with Pomarine.Widgets.Buttons;
 with Pomarine.Widgets.Callbacks;
@@ -192,7 +193,18 @@ package body View.Outlines is
             Blocks.Show_Blocks (Item);
             Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
          when Toggle_Notes =>
-            Show_Notes (Item, Index, Item.Outline_Model.Focus_Notes);
+            Show_Notes (Item, Index, Focus => View_Mode (Item) /= Write);
+            if View_Mode (Item) = Write then
+               Writing.Section_Notes_Changed (Item, Index);
+            end if;
+         when Choose_Colour =>
+            Clicks.Colour_Clicked (Item, Index);
+         when Accept_Colour =>
+            Clicks.Colour_Accepted (Item);
+         when Cancel_Colour =>
+            Clicks.Colour_Cancelled (Item);
+         when End_Title =>
+            Clicks.Title_Submitted (Item);
       end case;
    end Done;
 
@@ -217,11 +229,9 @@ package body View.Outlines is
       Outline_VM.Execute (Item.Outline_Model.Model, Outline_VM.Remove_Section, Which);
    end Remove_Section;
 
-   procedure Toggle_Notes (Item : in out Session; Which : Positive; Focus : Boolean := True) is
+   procedure Toggle_Notes (Item : in out Session; Which : Positive) is
    begin
-      Item.Outline_Model.Focus_Notes := Focus;
       Outline_VM.Execute (Item.Outline_Model.Model, Outline_VM.Toggle_Notes, Which);
-      Item.Outline_Model.Focus_Notes := True;
    end Toggle_Notes;
 
    function Section_Notes (Item : Session; Which : Positive) return String is
@@ -253,26 +263,6 @@ package body View.Outlines is
 
    --  What the widgets say
 
-   procedure Listen (Item : in out Session) is
-      use all type Widgets.Event_Kind;
-
-      procedure Hear
-        (Part    : in out Widgets.Widget'Class;
-         Kind    : Widgets.Event_Kind;
-         Do_This : Hooks.Handler;
-         Index   : Natural := 0) is
-      begin
-         if Index /= 0 then
-            Widgets.Set_Tag (Part, Widgets.No_Tag, Index);
-         end if;
-         Hooks.On (Part, Kind, Item'Unchecked_Access, Do_This);
-      end Hear;
-   begin
-      Hear (Item.Outline_View.Colour_OK, Click, Clicks.Colour_Accepted'Access);
-      Hear (Item.Outline_View.Colour_Cancel, Click, Clicks.Colour_Cancelled'Access);
-
-   end Listen;
-
    procedure Listen_Block (Item : in out Session; Index : Positive) is
       use all type Widgets.Event_Kind;
       Block : Section_Block renames Item.Outline_View.Blocks (Index);
@@ -289,10 +279,8 @@ package body View.Outlines is
          Hooks.On (Part, Kind, Item'Unchecked_Access, Do_This);
       end Hear;
    begin
-      Hear (Block.Swatch, Click, Clicks.Colour_Clicked'Access, Index);
       Hear (Block.Row, Drag, Blocks.Block_Dragged'Access, Index);
       Hear (Block.Row, Release, Blocks.Block_Released'Access);
-      Hear (Block.Field, Submit, Clicks.Title_Submitted'Access);
    end Listen_Block;
 
 end View.Outlines;

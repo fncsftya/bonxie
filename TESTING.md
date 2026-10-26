@@ -99,7 +99,16 @@ view-models alone (each with fakes for what it is given and, for the database, t
 session through `Pomarine.Testing` (`tests/src/view_driver.ads` lets it take a `View.Session`'s events and
 time); `nav-by-name` also checks toolbar renaming by double press, selected text replacement, Return, blur
 and blank-name rejection. These tests found, among others, that the form that makes a grammar rule closed the
-list when pressed.
+list when pressed. The grammar entry uses `Grammar_UI` for its prompt, correction, visibility and
+Accept/Cancel commands. Its semantic test checks invalid corrections disable acceptance, Return submits
+valid edits, cancellation and reopening; model tests check completion effects run after the rule is saved
+and the entry closes, and can be detached. Grammar card actions bind through the same model: `grammar-vm-cards`
+checks current diagnostics, suggestion bounds, editable documents, project requirements and command contracts;
+the semantic test opens and expands cards, applies a fix, removes a rule, ignores text and closes the popup.
+
+Background cards bind style selection and new-picture requests through `Settings_VM`. `settings-vm-pictures`
+checks the injected seed source, style bounds, command contracts, persistence failures and unchanged versions;
+`settings-by-name` also checks clicking a picture, reseeding a different style and reuse after reopening settings.
 
 `item-model-*` checks widget-free item details, documents, marks, capture and dictation states, versions and
 flush rules. `canvas-vm-*` checks camera and steering, item lifecycle, source origin, links and persistence;
@@ -241,7 +250,8 @@ stale target identity. The Finder owns match navigation and wrapping; the view-m
 scope, target, query, result summary and command availability. `search-by-name` checks the field, result count,
 Previous/Next, disabled controls with no matches, and Close through `Pomarine.Testing`.
 The production Finder in `View.Search` adapts the text-area and picture/page engines and clears their
-transient decorations when the search closes.
+transient decorations when the search closes. `Search_UI` binds the query, summary, visibility and navigation
+commands; `search-by-name` also checks closing and reopening the bar and moving it into the writing view.
 
 `writing-vm-navigation` checks directory ancestry, section lookup, subtree visibility, selection by stable key,
 reordering, deletion/replacement, no-op versions, reset and selection contracts without widgets.
@@ -259,6 +269,36 @@ the sidebar's document button is named Add document.
 Most screen structures use `Pomarine.UI`: home project cards (each with its own rename field), settings,
 the publish pane, outline blocks and buttons, the writing structure, grammar popups, links and search bars.
 The semantic view tests above exercise their bindings; the existing goldens check their drawing.
+The canvas tray's Add document and Add source buttons declare navigation commands. `nav-vm-creating`
+checks their mode and modal-layer rules, refused-command contracts, effects and unchanged navigation
+versions. The writing sidebar binds Add document to the same command and New folder to `Add_Folder`;
+`writing-by-name` checks default document titles, insertion into the selected directory, nested folders,
+focus in a new folder's name field and persistence after reopening. `nav-create-by-name` creates both
+item kinds through their semantic names and checks their titles after reopening the project. Creation
+geometry and focus remain in the view.
+Writing section headers and empty sections bind indexed Add document and Notes commands.
+`nav-vm-writing-sections` checks section bounds, modes, modal layers and effects;
+`writing-sections-by-name` checks notes editing and focus, document placement after section reordering,
+and bindings for sections added after mounting.
+The writing sidebar headings bind `Sidebar_VM` commands. `sidebar-vm` checks saved choices,
+mode and modal-layer rules, refused-command contracts, versions and failed preference writes.
+`writing-sidebar-by-name` folds and unfolds all three sections, checks their controls disappear and return,
+and creates a document after unfolding. The view retains sidebar geometry and continuous drags.
+Publishing heading switches and the format select/menu bind `Publish_VM` commands. `publish-vm` checks
+mode and modal-layer rules, invalid menu rows, refused commands and separate content/menu versions.
+`publish-by-name` checks copied Markdown with each heading option, select and outside dismissal, and
+choices retained after leaving Publish. `write-publishing` checks the existing preview and menu goldens.
+Export and Copy also declare `Publish_VM` commands, with injected dialog, clipboard, clock and file interfaces.
+`publish-output-vm` checks capability and modal rules, duplicate-export refusal, cancellation, empty paths,
+write failures and retries, a captured 200,000-byte export completed after leaving its project, long paths,
+extensions, real file output, copy verification and exact confirmation expiry/renewal. `publish-by-name`
+checks the clipboard contents and Copied label, declared through `Caption_From`; the offscreen Export button
+is disabled without a native window.
+
+Home-card Delete buttons declare `Home_VM.Ask_Delete`; the model cancels renaming and asks the injected
+confirmation model. Confirmation retains a project key across changes to the recent list. `home-vm-deleting`
+checks cancellation, unavailable rows, missing dialogs and deletion after reordering; `home-by-name` checks
+confirmation, Escape, rename cancellation and cards added after mounting.
 `pomarine/UI.md` describes grips, app-owned containers, indexed bindings, late mounting, observers and
 conditional focus. Their library checks live in `pomarine/examples/tests` (see `pomarine/TESTING.md`).
 
@@ -266,6 +306,12 @@ Item windows and readers in `src/items/` now declare their content, toolbars and
 Pomarine's frame chrome is also composed through an embedded view. Their drawing and interactions remain
 covered by `items-*`, `sources-*`, `write-source*`, context-menu and search checks. Section-link, linked-source,
 writing context, grammar and publish menu rows use `Pomarine.UI.Menus` snapshots.
+
+Item-list Click, Return and row actions bind beside the list through `On_Event` and `On_List_Actions`.
+`item-list-vm-layers` checks that commands require the list's layer and revealing closes it before the surface acts.
+`item-list-vm-rows-actions` checks stable row identities across changes and fresh identities for reused slots;
+`item-list-by-name` and `items-list*` cover the production bindings by semantic name, keyboard and drawing.
+Pomarine's `ui_controls_test` checks selection routing, action maps, invalid actions, model refusals and teardown.
 
 Item-window and reader toolbar commands now bind through `Item_Window_VM` and `Reader_VM`. Their rules
 are checked without widgets by `item-window-vm-rules` and `reader-vm-rules`; `item-controls-by-name` exercises
@@ -279,3 +325,12 @@ widget-free rule tests cover minimized/closed frames, slider updates and invalid
 
 App-owned editor tool/follow operations, canvas widgets and continuous frame gestures still use view hooks. `Pomarine.Widgets.Layouts` remains the layout engine, and the native menu bar
 retains `Nav_Binding`.
+
+`writing-page-vm` tests page command ranks against the current document tree, modal guards,
+released or reused item slots, transcription availability and injected menu/speech effects without widgets.
+The writing semantic-name tests also open and close Sources through its declarative button binding.
+
+`writing-sources-vm` checks source row commands, growing order, removal, modal layers and stored identities
+across slot reuse. `write-sources` opens a production source row by semantic name and covers reader opening,
+closing, pinning and drawing. Source rows declare their Click binding beside their layout; the generic widget callback
+adapter is removed from `View.Responses`, leaving its continuous editor hooks.

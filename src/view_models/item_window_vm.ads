@@ -9,7 +9,9 @@ package Item_Window_VM is
    type Command is
      (Capture, Choose_Link, Choose_File, Previous_Page, Next_Page, Speak, Link_To_Outline,
       Use_Pointer, Use_Marker, Use_Eraser, Toggle_Zoom, Zoom_Preset,
-      Begin_Title_Edit, Accept_Title, Minimize_Window, Restore_Window, Close_Window);
+      Begin_Title_Edit, Accept_Title, Minimize_Window, Restore_Window, Close_Window, Use_Tool, Follow_Link);
+   --  Use_Tool and Follow_Link are of the body's text: the tool, from 1, of its toolbar is the Index; a link was
+   --  Command-clicked.
    package Commands is new Parts.Command_Models (Command);
 
    subtype Preset_Index is Positive range 1 .. 6;

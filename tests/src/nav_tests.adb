@@ -3,6 +3,7 @@ with Pomarine.Events;
 with Pomarine.Testing;
 with View;
 with View.Project_Screen;
+with View.Canvas_Windows;
 with View_Driver;
 
 package body Nav_Tests is
@@ -88,5 +89,35 @@ package body Nav_Tests is
       Check ("nav-name-settings-escaped", "TRUE FALSE", Image (Testing.Exists (Window, "New project")) & " "
             & Image (Testing.Exists (Window, "Dark")));
    end By_Name;
+
+   procedure Creating is
+      Session : aliased View.Session;
+      Ears : aliased View_Driver.Driver (Session'Access);
+      Window : Testing.Session;
+   begin
+      View.Open (Session, "", 1000, 800);
+      Testing.Attach (Window, View.Widget_Tree (Session).all, Ears'Access);
+      Testing.Click_On (Window, "New project");
+      Testing.Click_On (Window, "Canvas");
+      --  The canvas toolbar declares creation commands and preserves the existing default names and kinds.
+      Testing.Click_On (Window, "Add document");
+      Testing.Click_On (Window, "Add source");
+      Check ("nav-name-created", " 2 Untitled item NOTE Untitled source SOURCE",
+             Natural'Image (View.Canvas_Windows.Item_Count (Session)) & " "
+             & View.Canvas_Windows.Item_Title (Session, 1) & " "
+             & View.Canvas_Windows.Item_Kind (Session, 1)'Image & " "
+             & View.Canvas_Windows.Item_Title (Session, 2) & " "
+             & View.Canvas_Windows.Item_Kind (Session, 2)'Image);
+
+      Testing.Click_On (Window, "Items");
+      Testing.Press (Window, Pomarine.Events.Key_Escape);
+      Testing.Click_On (Window, "Projects");
+      Testing.Click_On (Window, "Open Untitled project");
+      Check ("nav-name-created-reopened", " 2 Untitled item Untitled source",
+             Natural'Image (View.Canvas_Windows.Item_Count (Session)) & " "
+             & View.Canvas_Windows.Item_Title (Session, 1) & " "
+             & View.Canvas_Windows.Item_Title (Session, 2));
+
+   end Creating;
 
 end Nav_Tests;

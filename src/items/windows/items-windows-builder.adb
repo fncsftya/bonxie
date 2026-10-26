@@ -189,6 +189,8 @@ package body Items.Windows.Builder is
          Bound.On_Frame_Event (Item.Chrome, Widgets.Close, Item_Window_VM.Close_Window);
          Bound.On_Event (Body_Control, Widgets.Submit, Item_Window_VM.Capture);
          Bound.On_Event (Body_Control, Widgets.Click, Item_Window_VM.Choose_File);
+         Bound.On_Editor_Event (Body_Control, Item_Window_UI.Controls.Tool_Used, Item_Window_VM.Use_Tool, 0, True);
+         Bound.On_Editor_Event (Body_Control, Item_Window_UI.Controls.Link_Followed, Item_Window_VM.Follow_Link);
          UI.Mount_Before (Screen, Frames.Content_End (Item.Chrome).all, Content);
          UI.Mount_Before (Screen, Frames.Status_End (Item.Chrome).all, Status);
          UI.Mount_Into (Screen, Frames.Status_Surface (Item.Chrome).all, Progress);

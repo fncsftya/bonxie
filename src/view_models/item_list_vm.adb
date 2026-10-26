@@ -1,4 +1,5 @@
 package body Item_List_VM is
+   use type Nav_VM.Layers;
    use type Items.Id;
    use type Items.States;
    use type Projects.Titles.Text;
@@ -7,8 +8,10 @@ package body Item_List_VM is
      (Self : in out View_Model;
       Canvas : not null access Canvas_VM.View_Model;
       Models : not null access Items.Models.Tables.Table;
-      View : not null access Surface'Class) is
+      View : not null access Surface'Class;
+      Navigation : access Nav_VM.View_Model := null) is
    begin
+      Self.Navigation := (if Navigation = null then null else Navigation.all'Unrestricted_Access);
       Self.Canvas := Canvas_Access (Canvas);
       Self.Models := Models_Access (Models);
       Self.View := Surface_Access (View);
@@ -20,16 +23,31 @@ package body Item_List_VM is
    begin
       Canvas_VM.Order (Self.Canvas.all, Order);
       Changed := Order.Count /= Self.Listed.Count;
-      Rows.Resize (Self.Listed, Order.Count, (1, 0, Projects.Titles.Null_Text, False));
+      Rows.Resize (Self.Listed, Order.Count, (1, 1, 0, Projects.Titles.Null_Text, False));
       for Row in 1 .. Order.Count loop
          declare
             Info : constant Items.Info := Items.Models.Details (Self.Models (Order (Row)));
-            Fresh : constant Row_Info := (Order (Row), Info.Key, Info.Title, Info.State = Items.Closed);
          begin
-            if Self.Listed (Row) /= Fresh then
-               Self.Listed (Row) := Fresh;
-               Changed := True;
-            end if;
+            Self.Identity_Of.Grow (Order (Row));
+            declare
+               Identity : Slot_Identity renames Self.Identity_Of (Order (Row));
+            begin
+               if Identity.Key /= Info.Key then
+                  --  List-model row identities are positive protocol numbers, independent of database keys.
+                  pragma Assert (Self.Last_Identity < Positive'Last);
+                  Self.Last_Identity := @ + 1;
+                  Identity := (Info.Key, Self.Last_Identity);
+               end if;
+               declare
+                  Fresh : constant Row_Info :=
+                    (Order (Row), Identity.Identity, Info.Key, Info.Title, Info.State = Items.Closed);
+               begin
+                  if Self.Listed (Row) /= Fresh then
+                     Self.Listed (Row) := Fresh;
+                     Changed := True;
+                  end if;
+               end;
+            end;
          end;
       end loop;
       if Changed then
@@ -39,6 +57,7 @@ package body Item_List_VM is
 
    function Count (Self : View_Model) return Natural is (Self.Listed.Count);
    function Slot_Of (Self : View_Model; Row : Positive) return Items.Slot is (Self.Listed (Row).Slot);
+   function Row_Id (Self : View_Model; Row : Positive) return Positive is (Self.Listed (Row).Identity);
    function Title (Self : View_Model; Row : Positive) return String is
      (if Projects.Titles.Length (Self.Listed (Row).Title) = 0 then "(untitled)"
       else Projects.Titles.To_String (Self.Listed (Row).Title));
@@ -48,6 +67,9 @@ package body Item_List_VM is
    overriding function Can_Execute (Self : View_Model; What : Command; Index : Natural := 0) return Boolean is
       pragma Unreferenced (What);
    begin
+      if Self.Navigation /= null and then Nav_VM.Layer (Self.Navigation.all) /= Nav_VM.Item_List then
+         return False;
+      end if;
       if Index = 0 then
          for Row in 1 .. Count (Self) loop
             if Can_Execute (Self, Reveal, Row) then
@@ -77,7 +99,14 @@ package body Item_List_VM is
                     when Toggle_Shown =>
                       (if Items.Models.Details (Self.Models (Slot_Of (Self, Row))).State = Items.Closed
                        then Canvas_VM.Open_Item else Canvas_VM.Close_Item));
-      Apply (Self.View.all, Action, Slot_Of (Self, Row));
+      declare
+         Slot : constant Items.Slot := Slot_Of (Self, Row);
+      begin
+         if What = Reveal and then Self.Navigation /= null then
+            Nav_VM.Execute (Self.Navigation.all, Nav_VM.Close_List);
+         end if;
+         Apply (Self.View.all, Action, Slot);
+      end;
       Refresh (Self);
    end Execute;
 end Item_List_VM;

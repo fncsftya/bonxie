@@ -1,8 +1,6 @@
 with Icon_Set;
 with Pomarine.UI;
 with Pomarine.Widgets.Lists;
-with Nav_VM;
-with View.Navigation;
 
 package body View.Listing is
 
@@ -68,52 +66,5 @@ package body View.Listing is
       Widgets.Set_Visible (Overlay (Item).all, False);
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
    end Hide_List;
-
-   procedure Open (Item : in out Session) is
-   begin
-      Navigation.Do_Command (Item, Nav_VM.Open_List);
-   end Open;
-
-   procedure Close (Item : in out Session) is
-   begin
-      Navigation.Do_Command (Item, Nav_VM.Close_List);
-   end Close;
-
-   procedure Clicked
-     (Item   : in out Session;
-      Source : in out Pomarine.Widgets.Widget'Class;
-      Event  : Pomarine.Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source, Event);
-      Row : constant Natural := Lists.Selected (Item.Item_List.List_View);
-   begin
-      if Items_Listed (Item) and then Row in 1 .. Item_List_VM.Count (Item.Item_List.Model) then
-         Close (Item);
-         if Item_List_VM.Can_Execute (Item.Item_List.Model, Item_List_VM.Reveal, Row) then
-            Item_List_VM.Execute (Item.Item_List.Model, Item_List_VM.Reveal, Row);
-         end if;
-      end if;
-   end Clicked;
-
-   procedure Acted
-     (Item   : in out Session;
-      Source : in out Pomarine.Widgets.Widget'Class;
-      Event  : Pomarine.Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source);
-   begin
-      if not Items_Listed (Item) or else Event.Row not in 1 .. Item_List_VM.Count (Item.Item_List.Model) then
-         return;
-      end if;
-      declare
-         What : constant Item_List_VM.Command :=
-           (if Event.Action = Show_Or_Hide then Item_List_VM.Toggle_Shown else Item_List_VM.Remove);
-      begin
-         if Item_List_VM.Can_Execute (Item.Item_List.Model, What, Event.Row) then
-            Item_List_VM.Execute (Item.Item_List.Model, What, Event.Row);
-            Refresh (Item);
-         end if;
-      end;
-   end Acted;
 
 end View.Listing;

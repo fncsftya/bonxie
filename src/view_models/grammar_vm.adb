@@ -32,6 +32,16 @@ package body Grammar_VM is
       Self.Kept := Kept.all'Unrestricted_Access;
    end Initialize;
 
+   procedure Attach_Cards (Self : in out View_Model; Engine : not null access Card_Engine'Class) is
+   begin
+      Self.Engine := Engine.all'Unrestricted_Access;
+   end Attach_Cards;
+
+   procedure Observe (Self : in out View_Model; Reactions : access Effects'Class) is
+   begin
+      Self.Reactions := (if Reactions = null then null else Reactions.all'Unrestricted_Access);
+   end Observe;
+
    procedure Read (Self : in out View_Model) is
    begin
       Load (Self.Kept.all, Self.Owner, Self.Known);
@@ -97,19 +107,43 @@ package body Grammar_VM is
    end Begin_Entry;
 
    overriding function Can_Execute (Self : View_Model; What : Command; Index : Natural := 0) return Boolean is
-      pragma Unreferenced (Index);
    begin
+      if What in Card_Command then
+         if Self.Engine = null then
+            return False;
+         end if;
+         declare
+            State : constant Card_State := Inspect (Self.Engine.all, What, Index);
+         begin
+            if not State.Writing then
+               return False;
+            end if;
+            return
+              (case Card_Command (What) is
+                  when Toggle_Cards => Index = 0,
+                  when Expand_Card => Index > 0 and then State.Showing and then State.Current,
+                  when Apply_Fix => State.Showing and then State.Current and then State.Editable
+                    and then Index in 1 .. State.Suggestions,
+                  when Edit_Rule | Ignore_Text => Index = 0 and then State.Showing and then State.Current
+                    and then State.Has_Text and then Self.Owner /= 0);
+         end;
+      end if;
       return
         (case What is
             when Cancel_Entry => Self.Entering,
             when Accept_Entry =>
                Self.Entering and then Correction (Self) /= Entry_Text (Self)
-               and then Correction (Self)'Length <= Longest_Correction);
+               and then Correction (Self)'Length <= Longest_Correction,
+            when Card_Command => False);
    end Can_Execute;
 
    overriding procedure Execute (Self : in out View_Model; What : Command; Index : Natural := 0) is
-      pragma Unreferenced (Index);
    begin
+      if What in Card_Command then
+         Perform (Self.Engine.all, What, Index);
+         Parts.Bump (Self.Changes);
+         return;
+      end if;
       if What = Accept_Entry then
          declare
             Key : constant Rules.Rule_Id :=
@@ -121,6 +155,9 @@ package body Grammar_VM is
       end if;
       Self.Entering := False;
       Parts.Bump (Self.Changes);
+      if Self.Reactions /= null then
+         Entry_Ended (Self.Reactions.all, Accepted => What = Accept_Entry);
+      end if;
    end Execute;
 
 end Grammar_VM;

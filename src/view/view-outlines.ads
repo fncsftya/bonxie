@@ -32,11 +32,11 @@ private package View.Outlines is
    procedure Done (Item : in out Session; What : Outline_VM.Command; Index : Natural);
    --  After it did: the blocks show it (see Outline_VM.Effects).
 
-   procedure Toggle_Notes (Item : in out Session; Which : Positive; Focus : Boolean := True)
+   procedure Toggle_Notes (Item : in out Session; Which : Positive)
      with Pre => Screen (Item) = Project and then Which <= Section_Count (Item),
           Post => Notes_Shown (Item, Which) /= Notes_Shown (Item, Which)'Old;
    --  As the section's Notes button does: show its notes, or hide them;
-   --  shown, they have the focus if Focus.
+   --  shown, the notes editor in the visible view receives focus.
 
    function Documents_In (Item : Session; Which : Positive) return Natural
      with Pre => Screen (Item) = Project and then Which <= Section_Count (Item);
@@ -76,9 +76,6 @@ private package View.Outlines is
      with Pre => Screen (Item) = Project;
    --  Keep the title, description and sections' titles if they have been
    --  typed in since.
-
-   procedure Listen (Item : in out Session);
-   --  Have the view's buttons and blocks do what they are for.
 
    procedure Pressed (Item : in out Session; X, Y : Float);
    --  A press of the mouse button at X, Y points: put the colour popout

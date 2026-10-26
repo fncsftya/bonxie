@@ -498,7 +498,13 @@ package body Canvas_VM is
             when Close_Item    => Self.Entered and then Of_Item (Not_Closed'Access),
             when Show_Item | Remove_Item => Self.Entered and then Of_Item (Any'Access),
             when Delete_Link   => Self.Chosen /= 0,
-            when Cancel_Link   => Self.From /= 0);
+            when Cancel_Link   => Self.From /= 0,
+            when Pick_Link     => True,
+            when Set_Stroke    =>
+               Self.Chosen /= 0 and then Index in 1 .. Items.Links.Strokes'Pos (Items.Links.Strokes'Last) + 1,
+            when Set_Ending    =>
+               Self.Chosen /= 0 and then Index in 1 .. Items.Links.Endings'Pos (Items.Links.Endings'Last) + 1,
+            when Set_Color     => Self.Chosen /= 0 and then Index in Items.Links.Link_Colors);
    end Can_Execute;
 
    overriding procedure Execute (Self : in out View_Model; What : Command; Index : Natural := 0) is
@@ -539,6 +545,18 @@ package body Canvas_VM is
             Self.From := 0;
             Self.Moving := False;
             Parts.Bump (Self.Joined);
+         when Pick_Link =>
+            Select_Link (Self, (if Index <= Self.Link_Set.Count then Index else 0));
+         when Set_Stroke | Set_Ending | Set_Color =>
+            declare
+               Was : constant Items.Links.Link := Link_At (Self, Link_Number (Self, Self.Chosen));
+            begin
+               Restyle
+                 (Self,
+                  (if What = Set_Stroke then Items.Links.Strokes'Val (Index - 1) else Was.Stroke),
+                  (if What = Set_Ending then Items.Links.Endings'Val (Index - 1) else Was.Ending),
+                  (if What = Set_Color then Index else Was.Color));
+            end;
       end case;
    end Execute;
 

@@ -60,6 +60,9 @@ package body Settings_Tests is
                     and then Testing.Shows (Window, "radio button 'System' ON")));
       Testing.Click_On (Window, "Light");
 
+      --  Both the picture and its name choose a style. Reseeding another card chooses that style too.
+      Testing.Click_On (Window, "Choose Fixed background");
+      Check ("settings-name-picture-choice", "TRUE", Image (Settings.Background_Choice (Session) = Preferences.Fixed));
       --  The button on a painted card paints another, and chooses its style.
       declare
          Before : constant Natural := Settings.Watercolour_Seed (Session);
@@ -108,6 +111,14 @@ package body Settings_Tests is
       Testing.Click_On (Window, "Projects");
       Check ("settings-name-closed", "FALSE", Image (Settings.Is_Settings_Open (Session)));
       Testing.Click_On (Window, "Settings");
+      declare
+         Before : constant Natural := Settings.Watercolour_Seed (Session);
+      begin
+         Testing.Click_On (Window, "New picture");
+         Check ("settings-name-reopened-reseed", "TRUE", Image
+           (Settings.Watercolour_Seed (Session) /= Before
+            and then Settings.Background_Choice (Session) = Preferences.Watercolour));
+      end;
       Testing.Press (Window, Events.Key_Escape);
       Check ("settings-name-escaped", "FALSE", Image (Settings.Is_Settings_Open (Session)));
    end By_Name;

@@ -40,4 +40,30 @@ package body Grammar_VM_Fakes is
       Self.Writes := Self.Writes + 1;
    end Remove;
 
+   overriding function Inspect
+     (Self : Engine; What : Grammar_VM.Card_Command; Index : Natural) return Grammar_VM.Card_State
+   is
+      pragma Unreferenced (What, Index);
+   begin
+      return Self.State;
+   end Inspect;
+
+   overriding procedure Perform (Self : in out Engine; What : Grammar_VM.Card_Command; Index : Natural) is
+   begin
+      Self.Calls := Self.Calls + 1;
+      Self.Last := What;
+      Self.Index := Index;
+   end Perform;
+
+   overriding procedure Entry_Ended (Self : in out Reactions; Accepted : Boolean) is
+   begin
+      if Accepted then
+         Self.Accepted := Self.Accepted + 1;
+      else
+         Self.Cancelled := Self.Cancelled + 1;
+      end if;
+      Self.Closed := not Grammar_VM.Is_Entering (Self.Model.all);
+      Self.Rules := Grammar_VM.Count (Self.Model.all);
+   end Entry_Ended;
+
 end Grammar_VM_Fakes;

@@ -129,6 +129,23 @@ package body Outline_VM_Tests is
       end;
       Check ("outline-vm-up-first-same", "Two,Three,One,Untitled section", Fakes.Titles (Kept));
 
+      --  The colour box and the title field are the view's: the commands change nothing of the model.
+      Seen := Outline_VM.Version (Model);
+      Check ("outline-vm-colour-rules", "FALSE TRUE FALSE|TRUE TRUE TRUE|FALSE",
+             Image (Outline_VM.Can_Execute (Model, Choose_Colour, 0)) & " "
+             & Image (Outline_VM.Can_Execute (Model, Choose_Colour, 4)) & " "
+             & Image (Outline_VM.Can_Execute (Model, Choose_Colour, 5)) & "|"
+             & Image (Outline_VM.Can_Execute (Model, Accept_Colour)) & " "
+             & Image (Outline_VM.Can_Execute (Model, Cancel_Colour)) & " "
+             & Image (Outline_VM.Can_Execute (Model, End_Title)) & "|"
+             & Image (Outline_VM.Can_Execute (Model, End_Title, 1)));
+      Outline_VM.Execute (Model, Choose_Colour, 2);
+      Outline_VM.Execute (Model, Accept_Colour);
+      Outline_VM.Execute (Model, Cancel_Colour);
+      Outline_VM.Execute (Model, End_Title);
+      Check ("outline-vm-colour-no-change", "TRUE Two,Three,One,Untitled section",
+             Image (Outline_VM.Version (Model) = Seen) & " " & Titles (Model));
+
       --  A drag comes to Move, to any place.
       Outline_VM.Move (Model, 4, 1);
       Check ("outline-vm-move-first", "Untitled section,Two,Three,One", Titles (Model));

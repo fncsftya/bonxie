@@ -5,21 +5,17 @@ private package View.Writing.Panes is
    package Widgets renames Pomarine.Widgets;
    package Readers renames Items.Readers;
 
-   procedure Row_Clicked
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
+   procedure Row_Clicked (Item : in out Session; Row : Positive);
    --  A row of the tree was clicked, and was not dragged.
 
-   procedure Row_Double_Clicked
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
+   procedure Row_Double_Clicked (Item : in out Session; Row : Positive);
    --  A directory's row was pressed twice: rename it.
 
-   procedure Directory_Field_Ended
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
+   procedure Directory_Field_Ended (Item : in out Session);
    --  Return in the field of a directory's or a document's name, or it
    --  lost the focus: the renaming is over.
 
-   procedure Source_Field_Ended
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
+   procedure Source_Field_Ended (Item : in out Session);
 
    procedure Sidebar_Dragged
      (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
@@ -32,11 +28,6 @@ private package View.Writing.Panes is
    procedure Fit_Sections (Item : in out Session);
    --  Show each section of the sidebar open or folded, and its head to say so.
 
-   procedure Section_Clicked
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
-   --  The head of a section (Event.Index: 1 Edit, 2 Documents, 3 Sources) was clicked: fold or
-   --  unfold it, and keep which are open.
-
    procedure Sources_Edge_Dragged
      (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
    --  The edge above the sources list was dragged: size the list.
@@ -45,13 +36,11 @@ private package View.Writing.Panes is
      (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
    --  The edge of the pane was dragged: size it.
 
-   procedure Page_Title_Double_Clicked
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
-   --  A page's title was pressed twice: rename it.
+   procedure Page_Title_Double_Clicked (Item : in out Session; Rank : Positive);
+   --  The title of the page of this rank was pressed twice: rename it.
 
-   procedure Page_Title_Ended
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
-   --  Return in a page's title field, or it lost the focus.
+   procedure Page_Title_Ended (Item : in out Session; Rank : Positive);
+   --  Return in the page's title field, or it lost the focus.
 
    procedure Reader_Asked
      (Item   : in out Session;

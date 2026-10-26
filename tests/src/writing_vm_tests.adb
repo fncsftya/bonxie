@@ -10,6 +10,7 @@ with Pomarine.Testing;
 with View;
 with View.Canvas_Windows;
 with View.Documents;
+with View.Outline_Screen;
 with View_Driver;
 
 package body Writing_VM_Tests is
@@ -234,6 +235,10 @@ package body Writing_VM_Tests is
       View.Canvas_Windows.Add_Item (App, "Alpha");
       View.Canvas_Windows.Add_Item (App, "Beta");
       Testing.Click_On (Window, "Write");
+      Testing.Click_On (Window, "Sources", Nth => 1);
+      Check ("writing-name-page-sources", Testing.Exists (Window, "No linked sources"));
+      Testing.Click_On (Window, "Sources", Nth => 1);
+      Check ("writing-name-page-sources-closed", not Testing.Exists (Window, "No linked sources"));
       Testing.Click_On (Window, "New folder");
       Testing.Type_Text (Window, "Part");
       Testing.Press (Window, Pomarine.Events.Key_Return);
@@ -246,7 +251,8 @@ package body Writing_VM_Tests is
              and then not Testing.Exists (Window, "Text of Beta"));
       Testing.Click_On (Window, "Add document");
       Check ("writing-name-add-in-directory", Docs.Document_Count (App) = 3
-             and then Docs.Document_Directory (App, 3) = 1);
+             and then Docs.Document_Directory (App, 3) = 1
+             and then Docs.Document_Title (App, 3) = "Untitled document");
       Testing.Click_On (Window, "Canvas");
       Testing.Click_On (Window, "Write");
       Check ("writing-name-rebuild", Docs.Shown_Directory (App) = 1
@@ -255,5 +261,155 @@ package body Writing_VM_Tests is
       Testing.Click_On (Window, "Overview");
       Check ("writing-name-overview", Docs.Shown_Directory (App) = 0
              and then Testing.Exists (Window, "Text of Beta"));
+      Testing.Click_On (Window, "Directory Part");
+      Testing.Click_On (Window, "New folder");
+      Testing.Type_Text (Window, "Child");
+      Testing.Press (Window, Pomarine.Events.Key_Return);
+      Check ("writing-name-nested-created", Docs.Directory_Count (App) = 2
+             and then Docs.Directory_Title (App, 2) = "Child"
+             and then Docs.Directory_Parent (App, 2) = 1);
+      Testing.Click_On (Window, "Projects");
+      Testing.Click_On (Window, "Open Untitled project");
+      Check ("writing-name-creation-reopened", Docs.Document_Count (App) = 3
+             and then Docs.Document_Title (App, 3) = "Untitled document"
+             and then Docs.Document_Directory (App, 3) = 1
+             and then Docs.Directory_Count (App) = 2
+             and then Docs.Directory_Title (App, 2) = "Child"
+             and then Docs.Directory_Parent (App, 2) = 1);
    end By_Name;
+   procedure Sidebar_By_Name is
+      App : aliased View.Session;
+      Ears : aliased View_Driver.Driver (App'Access);
+      Window : Pomarine.Testing.Session;
+      package Testing renames Pomarine.Testing;
+   begin
+      View.Open (App, "", 1000, 800);
+      Testing.Attach (Window, View.Widget_Tree (App).all, Ears'Access);
+      Testing.Click_On (Window, "New project");
+      Testing.Click_On (Window, "Write");
+      Check ("sidebar-name-initial", Testing.Exists (Window, "Show Grammar Suggestions")
+             and then Testing.Exists (Window, "Overview") and then Testing.Exists (Window, "No sources yet"));
+      Testing.Click_On (Window, "Fold or unfold EDIT");
+      Check ("sidebar-name-edit", not Testing.Exists (Window, "Show Grammar Suggestions")
+             and then Testing.Exists (Window, "Add document"));
+      Testing.Click_On (Window, "Fold or unfold DOCUMENTS");
+      Check ("sidebar-name-documents", not Testing.Exists (Window, "Overview")
+             and then not Testing.Exists (Window, "Add document")
+             and then not Testing.Exists (Window, "New folder"));
+      Testing.Click_On (Window, "Fold or unfold SOURCES");
+      Check ("sidebar-name-sources", not Testing.Exists (Window, "No sources yet"));
+      Testing.Click_On (Window, "Canvas");
+      Testing.Click_On (Window, "Write");
+      Check ("sidebar-name-return", not Testing.Exists (Window, "Overview")
+             and then not Testing.Exists (Window, "Show Grammar Suggestions"));
+      Testing.Click_On (Window, "Fold or unfold DOCUMENTS");
+      Testing.Click_On (Window, "Fold or unfold SOURCES");
+      Testing.Click_On (Window, "Fold or unfold EDIT");
+      Check ("sidebar-name-unfolded", Testing.Exists (Window, "Overview")
+             and then Testing.Exists (Window, "Add document") and then Testing.Exists (Window, "New folder")
+             and then Testing.Exists (Window, "Show Grammar Suggestions")
+             and then Testing.Exists (Window, "No sources yet"));
+      Testing.Click_On (Window, "Add document");
+      Check ("sidebar-name-create-after-unfold", View.Documents.Document_Count (App) = 1);
+   end Sidebar_By_Name;
+
+   procedure Publishing_By_Name is
+      App : aliased View.Session;
+      Ears : aliased View_Driver.Driver (App'Access);
+      Window : Pomarine.Testing.Session;
+      package Testing renames Pomarine.Testing;
+      LF : constant Character := ASCII.LF;
+
+      procedure Copy_And_Check (Name, Expected : String) is
+      begin
+         Testing.Click_On (Window, (if Testing.Exists (Window, "Copy to Clipboard")
+                                    then "Copy to Clipboard" else "Copied"));
+         Goldens.Check_Text (Name, Expected, View.Clipboard_Text (App));
+         Check (Name & "-confirmed", Testing.Exists (Window, "Copied"));
+      end Copy_And_Check;
+   begin
+      View.Open (App, "", 1000, 800);
+      Testing.Attach (Window, View.Widget_Tree (App).all, Ears'Access);
+      Testing.Click_On (Window, "New project");
+      Testing.Click_On (Window, "Add Section");
+      Testing.Type_Text (Window, "Chapter");
+      Testing.Click_On (Window, "Write");
+      Testing.Click_On (Window, "Add document", Nth => 2);
+      Testing.Type_Text (Window, "Body");
+      Testing.Click_On (Window, "Publish");
+      Check ("publish-name-initial", Testing.Is_Disabled (Window, "Export")
+             and then Testing.Is_Disabled (Window, "Copy to Clipboard"));
+      Testing.Click_On (Window, "Publish format");
+      Check ("publish-name-menu", Testing.Exists (Window, "Markdown"));
+      Testing.Click_On (Window, "Publish format");
+      Check ("publish-name-select-dismiss", not Testing.Exists (Window, "Markdown"));
+      Testing.Click_On (Window, "Publish format");
+      Testing.Click_On (Window, "Markdown");
+      Check ("publish-name-chosen", not Testing.Exists (Window, "Markdown")
+             and then Testing.Value_Of (Window, "Publish format") = "Markdown"
+             and then not Testing.Is_Disabled (Window, "Copy to Clipboard"));
+      Check ("publish-name-export-needs-window", Testing.Is_Disabled (Window, "Export"));
+      Copy_And_Check ("publish-name-plain", "Body" & LF);
+      Testing.Click_On (Window, "Include section headings");
+      Copy_And_Check ("publish-name-sections", "## Chapter" & LF & LF & "Body" & LF);
+      Testing.Click_On (Window, "Include document headings");
+      Copy_And_Check ("publish-name-documents", "## Chapter" & LF & LF & "### Chapter" & LF & LF & "Body" & LF);
+      Testing.Click_On (Window, "Publish format");
+      Testing.Click_On (Window, "Publish");
+      Check ("publish-name-outside-dismiss", not Testing.Exists (Window, "Markdown"));
+      Testing.Click_On (Window, "Include section headings");
+      Copy_And_Check ("publish-name-sections-off", "### Chapter" & LF & LF & "Body" & LF);
+      Testing.Click_On (Window, "Publish format");
+      Testing.Click_On (Window, "Write");
+      Testing.Click_On (Window, "Publish");
+      Check ("publish-name-return", not Testing.Exists (Window, "Markdown")
+             and then Testing.Value_Of (Window, "Publish format") = "Markdown");
+      Copy_And_Check ("publish-name-kept-options", "### Chapter" & LF & LF & "Body" & LF);
+   end Publishing_By_Name;
+
+   procedure Sections_By_Name is
+      App : aliased View.Session;
+      Ears : aliased View_Driver.Driver (App'Access);
+      Window : Pomarine.Testing.Session;
+      package Testing renames Pomarine.Testing;
+      package Outline renames View.Outline_Screen;
+      package Docs renames View.Documents;
+   begin
+      View.Open (App, "", 1000, 2200);
+      Testing.Attach (Window, View.Widget_Tree (App).all, Ears'Access);
+      Testing.Click_On (Window, "New project");
+      Testing.Click_On (Window, "Add Section");
+      Testing.Type_Text (Window, "First");
+      Testing.Click_On (Window, "Add Section");
+      Testing.Type_Text (Window, "Second");
+      Testing.Click_On (Window, "Write");
+      Testing.Click_On (Window, "Notes", Nth => 1);
+      Testing.Type_Text (Window, "Shared section notes");
+      Testing.Click_On (Window, "Notes", Nth => 1);
+      Check ("writing-section-notes-focused", Outline.Section_Notes (App, 1) = "Shared section notes"
+             and then not Outline.Notes_Shown (App, 1));
+      Testing.Click_On (Window, "Notes", Nth => 1);
+      Check ("writing-section-notes-reopened", Outline.Notes_Shown (App, 1));
+      Testing.Click_On (Window, "Notes", Nth => 1);
+      --  The empty section button targets the second section, alongside the sidebar's Add document.
+      Testing.Click_On (Window, "Add document", Nth => 3);
+      Check ("writing-section-empty-add", Docs.Document_Count (App) = 1
+             and then Outline.Section_Item (App, 1) = ""
+             and then Outline.Section_Item (App, 2) = "Second,");
+      --  Header bindings follow current row positions after a reorder.
+      Outline.Move_Section (App, 2, 1);
+      Testing.Settle (Window);
+      Testing.Click_On (Window, "Add document to this section", Nth => 1);
+      Check ("writing-section-header-add", Docs.Document_Count (App) = 2
+             and then Outline.Section_Item (App, 1) = "Second,Second,"
+             and then Outline.Section_Item (App, 2) = "");
+      Testing.Click_On (Window, "Outline");
+      Testing.Click_On (Window, "Add Section");
+      Testing.Type_Text (Window, "Late");
+      Testing.Click_On (Window, "Write");
+      Testing.Click_On (Window, "Add document", Nth => 3);
+      Check ("writing-section-late-add", Docs.Document_Count (App) = 3
+             and then Outline.Section_Item (App, 3) = "Late,");
+   end Sections_By_Name;
+
 end Writing_VM_Tests;

@@ -1,3 +1,4 @@
+with Writing_Sources_VM;
 with Writing_VM;
 with Items.Models;
 with Ada.Strings.Fixed;
@@ -42,14 +43,7 @@ package body View.Writing.Support is
      (Trees.Rank_Of (Item.Docs.Ordering, Which));
 
    function Row_Of (Item : Session; Which : Items.Slot) return Natural is
-   begin
-      for Row in 1 .. Item.Reading.Source_Total loop
-         if Item.Reading.Source_Order (Row) = Which then
-            return Row;
-         end if;
-      end loop;
-      return 0;
-   end Row_Of;
+     (Writing_Sources_VM.Row_Of (Item.Reading.Sources, Which));
 
    function In_View (Item : Session; Which : Items.Slot) return Boolean is
      (Writing_VM.In_View (Item.Docs.Navigation, Item.Docs.Dirs, Trees.Directory_Of (Item.Docs.Ordering, Which)));

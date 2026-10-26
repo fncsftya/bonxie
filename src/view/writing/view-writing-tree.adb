@@ -1,3 +1,5 @@
+with Naming_VM;
+with Writing_Sources_VM;
 with Writing_VM;
 with Canvas_VM;
 with Items.Links;
@@ -6,7 +8,6 @@ with Projects.Sections;
 with Items.Readers;
 with Pomarine.Themes;
 with Pomarine.Line_Texts;
-with Pomarine.Widgets.Buttons;
 with Pomarine.Widgets.Editors;
 with Pomarine.Widgets.Grips;
 with Pomarine.Widgets.Labels;
@@ -25,7 +26,6 @@ package body View.Writing.Tree is
 
    package Widgets renames Pomarine.Widgets;
    package Layouts renames Pomarine.Widgets.Layouts;
-   package Buttons renames Pomarine.Widgets.Buttons;
    package Editors renames Pomarine.Widgets.Editors;
    package Grips renames Pomarine.Widgets.Grips;
    package Labels renames Pomarine.Widgets.Labels;
@@ -60,10 +60,10 @@ package body View.Writing.Tree is
       Key   : constant Items.Id := Models.Details (Item.Models (Which)).Key;
       Total : Natural := 0;
    begin
-      for Row in 1 .. Item.Reading.Source_Total loop
+      for Row in 1 .. Writing_Sources_VM.Count (Item.Reading.Sources) loop
          declare
             Other : constant Items.Id :=
-              Models.Details (Item.Models (Item.Reading.Source_Order (Row))).Key;
+              Models.Details (Item.Models (Writing_Sources_VM.Slot_At (Item.Reading.Sources, Row))).Key;
          begin
             for Number in 1 .. Canvas_VM.Link_Count (Item.Canvas_Model.Model) loop
                declare
@@ -197,7 +197,7 @@ package body View.Writing.Tree is
                      := Trees.Page_At (Item.Docs.Ordering, Rank);
                begin
                   if Each.Bound /= Which then
-                     Each.Renaming := False;
+                     Naming_VM.End_Title (Item.Naming.Names, Rank);
                      Widgets.Set_Visible (Each.Title_Field, False);
                      Widgets.Set_Visible (Each.Heading_Area, True);
                      Editors.Attach
@@ -220,7 +220,7 @@ package body View.Writing.Tree is
                   if not Support.In_View (Item, Which) then
                      --  Out of sight, it keeps neither the focus nor a
                      --  title being renamed.
-                     Each.Renaming := False;
+                     Naming_VM.End_Title (Item.Naming.Names, Rank);
                      Widgets.Set_Visible (Each.Title_Field, False);
                      Widgets.Set_Visible (Each.Heading_Area, True);
                      if Widgets.Has_Focus (Each.Text) then
@@ -230,7 +230,7 @@ package body View.Writing.Tree is
                end;
             elsif Each.Bound /= 0 then
                Each.Bound := 0;
-               Each.Renaming := False;
+               Naming_VM.End_Title (Item.Naming.Names, Rank);
                Widgets.Set_Visible (Each.Title_Field, False);
                Widgets.Set_Visible (Each.Heading_Area, True);
                if Widgets.Has_Focus (Each.Text) then
@@ -245,7 +245,6 @@ package body View.Writing.Tree is
       end loop;
       Widgets.Set_Visible (Item.Page_View.Docs_None,
                            Trees.Page_Count (Item.Docs.Ordering) = 0);
-      Buttons.Set_Enabled (Item.Page_View.Docs_Folder, True);
 
       for Row in 1 .. Item.Docs.Doc_Rows.Count loop
          if Row <= Trees.Count (Item.Docs.Ordering) then
@@ -259,11 +258,12 @@ package body View.Writing.Tree is
          declare
             Each : Index_Row renames Item.Reading.Source_Rows (Row);
          begin
-            if Row <= Item.Reading.Source_Total then
+            if Row <= Writing_Sources_VM.Count (Item.Reading.Sources) then
                declare
                   Which : constant Items.Slot
-                     := Item.Reading.Source_Order (Row);
+                     := Writing_Sources_VM.Slot_At (Item.Reading.Sources, Row);
                begin
+                  Widgets.Set_Accessible_Name (Each.Row, "Source " & Support.Title_Of (Item, Which));
                   Labels.Set_Text
                     (Each.Caption, Support.Title_Of (Item, Which));
                   Pomarine.Widgets.Panels.Set_Fill
@@ -276,11 +276,11 @@ package body View.Writing.Tree is
                              = Items.Open);
                end;
             end if;
-            Widgets.Set_Visible (Each.Row, Row <= Item.Reading.Source_Total);
+            Widgets.Set_Visible (Each.Row, Row <= Writing_Sources_VM.Count (Item.Reading.Sources));
          end;
       end loop;
       Widgets.Set_Visible (Item.Page_View.Sources_None,
-                           Item.Reading.Source_Total = 0);
+                           Writing_Sources_VM.Count (Item.Reading.Sources) = 0);
    end Refresh;
 
    procedure Go_To (Item : in out Session; Rank : Positive) is

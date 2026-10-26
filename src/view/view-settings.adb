@@ -39,8 +39,7 @@ package body View.Settings is
 
    procedure Reseed_Background (Item : in out Session; Mode : Preferences.Pictures) is
    begin
-      Settings_View.Choose_Background (Item, Mode);
-      Settings_View.Reseed (Item);
+      Settings_VM.Execute (Item.Choices.Model, Settings_VM.New_Picture, Preferences.Background_Modes'Pos (Mode));
    end Reseed_Background;
 
    function VSync_Choice (Item : Session) return Boolean is (Settings_VM.VSync (Item.Choices.Model));

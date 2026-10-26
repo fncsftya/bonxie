@@ -3,9 +3,9 @@ with Pomarine.UI.Menus;
 with Pomarine.UI;
 with Grammar_Rules;
 with Grammar_VM;
+with Grammar_UI;
 with Harper;
 with Pomarine.Widgets.Buttons;
-with Pomarine.Widgets.Callbacks;
 with Pomarine.Widgets.Labels;
 with Pomarine.Widgets.Layouts;
 with Pomarine.Widgets.Panels;
@@ -23,10 +23,18 @@ with View.Grammar.Basics;
 with View.Grammar.Cards;
 
 package body View.Grammar is
+   function Inspect
+     (Item : Session; What : Grammar_VM.Card_Command; Index : Natural) return Grammar_VM.Card_State is
+     (Cards.State_Of (Item, What, Index));
+
+   procedure Perform (Item : in out Session; What : Grammar_VM.Card_Command; Index : Natural) is
+   begin
+      Cards.Run (Item, What, Index);
+   end Perform;
+
    procedure Choose_Inline (Item : in out Session; Row : Positive) is
    begin
-      Cards.Inline_Chosen (Item, Item.Grammar_Checks.Inline_Menu,
-            (Kind => Pomarine.Widgets.Choose, Row => Row, others => <>));
+      Cards.Choose_Row (Item, Row);
    end Choose_Inline;
 
    package Docs renames Texts.Documents;
@@ -41,7 +49,6 @@ package body View.Grammar is
    package Menus renames Pomarine.Widgets.Menus;
    package Panels renames Pomarine.Widgets.Panels;
    package Text_Fields renames Pomarine.Widgets.Text_Fields;
-   package Hooks is new Pomarine.Widgets.Callbacks (Session);
 
    use type Widgets.Widget_Access;
    use type Widgets.Node_Id;
@@ -95,18 +102,25 @@ package body View.Grammar is
       Widgets.Set_Visible (Item.Grammar_Checks.Inline_Menu, False);
    end Close_Inline;
 
-   procedure Close_Entry (Item : in out Session) is
+   procedure Entry_Ended (Item : in out Session; Accepted : Boolean) is
       State : Grammar_State renames Item.Grammar_Checks;
    begin
-      if Grammar_VM.Is_Entering (Item.Grammar_Model.Model) then
-         Grammar_VM.Execute (Item.Grammar_Model.Model, Grammar_VM.Cancel_Entry);
-         if Widgets.Has_Focus (State.Entry_Field) or else Widgets.Has_Focus (State.Entry_Ok)
-           or else Widgets.Has_Focus (State.Entry_Cancel)
-         then
-            Widgets.Focus (Item.Page_View.Grammar_Count);
-         end if;
+      if Widgets.Has_Focus (State.Entry_Field) or else Widgets.Has_Focus (State.Entry_Ok)
+        or else Widgets.Has_Focus (State.Entry_Cancel)
+      then
+         Widgets.Focus (Item.Page_View.Grammar_Count);
       end if;
-      Widgets.Set_Visible (State.Entry_Panel, False);
+      if Accepted then
+         Cards.Rules_Changed (Item);
+      end if;
+   end Entry_Ended;
+
+   procedure Close_Entry (Item : in out Session) is
+   begin
+      if Grammar_VM.Can_Execute (Item.Grammar_Model.Model, Grammar_VM.Cancel_Entry) then
+         Grammar_VM.Execute (Item.Grammar_Model.Model, Grammar_VM.Cancel_Entry);
+      end if;
+      UI.Synchronize (Item.Forms (Grammar_Region).Screen.all);
    end Close_Entry;
 
    procedure Close (Item : in out Session) is
@@ -217,9 +231,23 @@ package body View.Grammar is
       State : Grammar_State renames Item.Grammar_Checks;
       use Layouts;
    begin
+      Item.Grammar_Reactions.Owner := Item'Unchecked_Access;
+      Grammar_VM.Observe (Item.Grammar_Model.Model, Item.Grammar_Reactions'Access);
+      Grammar_VM.Attach_Cards (Item.Grammar_Model.Model, Item.Grammar_Reactions'Access);
+      Text_Fields.Set_Shared (State.Entry_Field, Item.Host.Doc_Resources'Unchecked_Access);
+      Text_Fields.Configure (State.Entry_Field, Pomarine.Line_Texts.Interface_Font, View.Style.Edit_Size);
+      Text_Fields.Attach (State.Entry_Field, State.Entry_Doc'Unchecked_Access);
       Open (Item.Forms (Grammar_Region), Item.Root.Widgets'Unchecked_Access, Grammar_Region);
       declare
          Form : UI.View renames Item.Forms (Grammar_Region).Screen.all;
+         Bound : constant Grammar_UI.Controls.Context'Class := Grammar_UI.Controls.Bind
+           (Form, Item.Grammar_Model.Model'Access);
+         Prompt : constant UI.Label_Handle := Bound.Borrow_Label (State.Entry_Prompt, Grammar_UI.Prompt.Property);
+         Field : constant UI.Field_Handle := Bound.Borrow_Field
+           (State.Entry_Field, State.Entry_Doc, Grammar_UI.Correction.Property);
+         Accept_Button : constant UI.Button_Handle := Bound.Borrow_Button (State.Entry_Ok, Grammar_VM.Accept_Entry);
+         Cancel_Button : constant UI.Button_Handle := Bound.Borrow_Button (State.Entry_Cancel, Grammar_VM.Cancel_Entry);
+
          Rows : UI.Layout_Array (1 .. 1 + State.Cards'Length + State.Actions'Length + 3);
          Last : Natural := 0;
 
@@ -229,12 +257,20 @@ package body View.Grammar is
             Rows (Last) := Row;
          end Add;
 
-         procedure Add_Footer_Button (Part : in out Buttons.Button; Caption : String; Wide : Float) is
+         procedure Add_Footer_Button
+           (Part : in out Buttons.Button; Caption : String; Wide : Float; Command : Grammar_VM.Card_Command)
+         is
+            Control : constant UI.Button_Handle := Bound.Borrow_Button (Part, Command);
          begin
             Buttons.Configure (Part, Buttons.Looks (Caption, Focusable => True));
-            Add (UI.Styled (UI.Put (Form, Part), (Place => Absolute, Width => Wide, Height => 28.0, others => <>)));
+            Add (UI.Styled (UI.Place (Control), (Place => Absolute, Width => Wide, Height => 28.0, others => <>)));
          end Add_Footer_Button;
       begin
+         declare
+            Toggle : constant UI.Widget_Handle := Bound.Borrow_Widget (Item.Page_View.Grammar_Count);
+         begin
+            Bound.On_Event (Toggle, Widgets.Click, Grammar_VM.Toggle_Cards);
+         end;
          --  The cards of the suggestions, the buttons that apply them, and the ones of what is chosen in a
          --  card, are put by hand, over each other (Absolute), in the content of the scroller.
          Add (UI.Styled
@@ -242,18 +278,24 @@ package body View.Grammar is
                  (Place => Absolute, Position => (Top | Left => 8.0, others => <>), Height => 24.0, Width => 300.0,
                   others => <>)));
          for Index in State.Cards'Range loop
-            Add (UI.Styled
-                   (UI.Put (Form, State.Cards (Index)),
-                    (Place => Absolute, Width => 320.0, Height => 40.0, others => <>)));
+            declare
+               Card : constant UI.Widget_Handle := Bound.Borrow_Widget (State.Cards (Index));
+            begin
+               Bound.On_Event (Card, Widgets.Click, Grammar_VM.Expand_Card, Index);
+               Add (UI.Styled (UI.Place (Card), (Place => Absolute, Width => 320.0, Height => 40.0, others => <>)));
+            end;
          end loop;
          for Number in State.Actions'Range loop
-            Buttons.Configure (State.Actions (Number), Buttons.Looks ("Apply", Buttons.Primary, Focusable => True));
-            Add (UI.Styled
-                   (UI.Put (Form, State.Actions (Number)),
-                    (Place => Absolute, Width => 56.0, Height => 28.0, others => <>)));
+            declare
+               Action : constant UI.Button_Handle :=
+                 Bound.Borrow_Button (State.Actions (Number), Grammar_VM.Apply_Fix, Number);
+            begin
+               Buttons.Configure (State.Actions (Number), Buttons.Looks ("Apply", Buttons.Primary, Focusable => True));
+               Add (UI.Styled (UI.Place (Action), (Place => Absolute, Width => 56.0, Height => 28.0, others => <>)));
+            end;
          end loop;
-         Add_Footer_Button (State.Add_Rule, "Add rule", 76.0);
-         Add_Footer_Button (State.Ignore_Text, "Ignore", 60.0);
+         Add_Footer_Button (State.Add_Rule, "Add rule", 76.0, Grammar_VM.Edit_Rule);
+         Add_Footer_Button (State.Ignore_Text, "Ignore", 60.0, Grammar_VM.Ignore_Text);
          Add (UI.Put (Form, State.Measure_Card));
 
          declare
@@ -281,23 +323,25 @@ package body View.Grammar is
                 (UI.Put_In
                    (Form, State.Entry_Row,
                     [UI.Styled
-                       (UI.Put (Form, State.Entry_Ok), (Width => 76.0, Height => 28.0, others => <>)),
+                       (UI.Place (Accept_Button), (Width => 76.0, Height => 28.0, others => <>)),
                      UI.Styled
-                       (UI.Put (Form, State.Entry_Cancel), (Width => 64.0, Height => 28.0, others => <>))],
+                       (UI.Place (Cancel_Button), (Width => 64.0, Height => 28.0, others => <>))],
                     Flow => Layouts.Row),
                  (Height => 28.0, Shrink => 0.0, Flow => Layouts.Row, Gap => 8.0, Spread => Between, others => <>));
             Entry_Box : constant UI.Layout :=
               UI.Styled
                 (UI.Put_In
                    (Form, State.Entry_Panel,
-                    [UI.Styled (UI.Put (Form, State.Entry_Prompt), (Height => 22.0, Shrink => 0.0, others => <>)),
-                     UI.Styled (UI.Put (Form, State.Entry_Field), (Height => 36.0, Shrink => 0.0, others => <>)),
+                    [UI.Styled (UI.Place (Prompt), (Height => 22.0, Shrink => 0.0, others => <>)),
+                     UI.Styled (UI.Place (Field), (Height => 36.0, Shrink => 0.0, others => <>)),
                      Buttons_Row]),
                  (Place => Absolute, Width => Entry_Width, Height => 124.0, Flow => Column, Outlined => True,
                   Shadowed => True, Padding => (others => 8.0), Gap => 6.0, others => <>));
          begin
             Buttons.Configure (State.Entry_Ok, Buttons.Looks ("Add rule", Buttons.Primary, Focusable => True));
             Buttons.Configure (State.Entry_Cancel, Buttons.Looks ("Cancel", Focusable => True));
+            Bound.On_Event (UI.Any (Field), Widgets.Submit, Grammar_VM.Accept_Entry);
+            Bound.Show_When (Entry_Box, Grammar_UI.Entering.Property);
             UI.Mount_Into (Form, Content_Panel (Item).all, Popout);
             UI.Mount_Into (Form, Content_Panel (Item).all, Inline);
             UI.Mount_Into (Form, Content_Panel (Item).all, Entry_Box);
@@ -312,34 +356,20 @@ package body View.Grammar is
       Labels.Set_Style (State.Heading, Pomarine.Line_Texts.Heading);
       Labels.Set_Text (State.Empty, "No grammar suggestions");
       for Index in State.Cards'Range loop
-         Widgets.Set_Tag (State.Cards (Index), Widgets.No_Tag, Index);
-         Hooks.On (State.Cards (Index), Widgets.Click, Item'Unchecked_Access, Cards.Expand'Access);
          Widgets.Set_Visible (State.Cards (Index), False);
       end loop;
       for Number in State.Actions'Range loop
-         Widgets.Set_Tag (State.Actions (Number), Widgets.No_Tag, Number);
-         Hooks.On (State.Actions (Number), Widgets.Click, Item'Unchecked_Access, Cards.Apply'Access);
          Widgets.Set_Visible (State.Actions (Number), False);
       end loop;
       Widgets.Set_Visible (State.Add_Rule, False);
       Widgets.Set_Visible (State.Ignore_Text, False);
-      Hooks.On (State.Add_Rule, Widgets.Click, Item'Unchecked_Access, Cards.Rule_Clicked'Access);
-      Hooks.On (State.Ignore_Text, Widgets.Click, Item'Unchecked_Access, Cards.Ignore_Clicked'Access);
       Widgets.Set_Visible (State.Measure_Card, False);
-      Hooks.On (Item.Page_View.Grammar_Count, Widgets.Click, Item'Unchecked_Access, Cards.Toggle'Access);
       Widgets.Set_Visible (State.Popout, False);
       Widgets.Set_Visible (State.Inline_Menu, False);
       Panels.Set_Fill (State.Entry_Panel, Pomarine.Themes.Background);
       Panels.Set_Border (State.Entry_Panel, Pomarine.Themes.Border);
       Panels.Set_Shadow (State.Entry_Panel, Pomarine.Themes.Shadow);
       Panels.Set_Radius (State.Entry_Panel, Pomarine.Themes.Large_Radius);
-      Text_Fields.Set_Shared (State.Entry_Field, Item.Host.Doc_Resources'Unchecked_Access);
-      Text_Fields.Configure (State.Entry_Field, Pomarine.Line_Texts.Interface_Font, View.Style.Edit_Size);
-      Text_Fields.Attach (State.Entry_Field, State.Entry_Doc'Unchecked_Access);
-      Hooks.On (State.Entry_Ok, Widgets.Click, Item'Unchecked_Access, Cards.Entry_Accepted'Access);
-      Hooks.On (State.Entry_Field, Widgets.Submit, Item'Unchecked_Access, Cards.Entry_Accepted'Access);
-      Hooks.On (State.Entry_Cancel, Widgets.Click, Item'Unchecked_Access, Cards.Entry_Cancelled'Access);
-      Widgets.Set_Visible (State.Entry_Panel, False);
    end Build;
 
    procedure Recheck (Item : in out Session) is
@@ -614,6 +644,7 @@ package body View.Grammar is
       State : Grammar_State renames Item.Grammar_Checks;
       On    : constant Boolean := Pomarine.Widgets.Switches.Is_On (Item.Page_View.Grammar_Switch);
    begin
+      UI.Synchronize (Item.Forms (Grammar_Region).Screen.all);
       if On /= State.Enabled then
          State.Enabled := On;
          Reset (Item);
@@ -843,7 +874,7 @@ package body View.Grammar is
    procedure Show (Item : in out Session) is
    begin
       if not Item.Grammar_Checks.Showing then
-         Cards.Toggle (Item, Item.Page_View.Grammar_Count, (Kind => Widgets.Click, others => <>));
+         Grammar_VM.Execute (Item.Grammar_Model.Model, Grammar_VM.Toggle_Cards);
       end if;
    end Show;
 
@@ -855,11 +886,15 @@ package body View.Grammar is
       State : Grammar_State renames Item.Grammar_Checks;
       Index : constant Natural := Find (Item, Marked);
    begin
-      if Index /= 0 then
-         State.Expanded := Index;
-         State.Dirty := True;
-         Cards.Refresh (Item);
-         Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
+      if Index /= 0 and then State.Expanded /= Index then
+         for Card in State.Bindings'Range loop
+            if State.Bindings (Card) = Index then
+               Grammar_VM.Execute (Item.Grammar_Model.Model, Grammar_VM.Expand_Card, Card);
+               UI.Synchronize (Item.Forms (Grammar_Region).Screen.all);
+               Widgets.Revalidate (Item.Root.Widgets);
+               return;
+            end if;
+         end loop;
       end if;
    end Expand;
 
@@ -869,7 +904,7 @@ package body View.Grammar is
    begin
       if Index /= 0 then
          State.Expanded := Index;
-         Cards.Rule_Clicked (Item, State.Add_Rule, (Kind => Widgets.Click, others => <>));
+         Grammar_VM.Execute (Item.Grammar_Model.Model, Grammar_VM.Edit_Rule);
       end if;
    end Begin_Rule;
 
@@ -879,7 +914,7 @@ package body View.Grammar is
    begin
       if Index /= 0 then
          State.Expanded := Index;
-         Cards.Ignore_Clicked (Item, State.Ignore_Text, (Kind => Widgets.Click, others => <>));
+         Grammar_VM.Execute (Item.Grammar_Model.Model, Grammar_VM.Ignore_Text);
       end if;
    end Ignore;
 
@@ -889,10 +924,13 @@ package body View.Grammar is
    begin
       if Index /= 0 then
          State.Expanded := Index;
-         Cards.Rule_Clicked (Item, State.Add_Rule, (Kind => Widgets.Click, others => <>));
+         Grammar_VM.Execute (Item.Grammar_Model.Model, Grammar_VM.Edit_Rule);
          if Grammar_VM.Is_Entering (Item.Grammar_Model.Model) then
-            Docs.Load (State.Entry_Doc, To);
-            Cards.Entry_Accepted (Item, State.Entry_Ok, (Kind => Widgets.Click, others => <>));
+            Grammar_VM.Set_Correction (Item.Grammar_Model.Model, To);
+            if Grammar_VM.Can_Execute (Item.Grammar_Model.Model, Grammar_VM.Accept_Entry) then
+               Grammar_VM.Execute (Item.Grammar_Model.Model, Grammar_VM.Accept_Entry);
+               UI.Synchronize (Item.Forms (Grammar_Region).Screen.all);
+            end if;
          end if;
       end if;
    end Correct;
@@ -903,7 +941,7 @@ package body View.Grammar is
    begin
       if Index /= 0 then
          State.Expanded := Index;
-         Cards.Rule_Clicked (Item, State.Add_Rule, (Kind => Widgets.Click, others => <>));
+         Grammar_VM.Execute (Item.Grammar_Model.Model, Grammar_VM.Edit_Rule);
       end if;
    end Remove_Rule;
 

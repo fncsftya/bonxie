@@ -1,4 +1,5 @@
 with Ada.Directories;
+with Ada.Assertions;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO;
@@ -90,6 +91,60 @@ package body Settings_VM_Tests is
       Check ("settings-vm-range-unchanged", "DARK FALSE",
              Settings_VM.Theme (Model)'Image & " " & Image (Settings_VM.Version (Model) /= Seen));
    end Command_Rules;
+
+   procedure New_Pictures is
+      Voice : aliased Fakes.Pretend;
+      Saved : aliased Fakes.Notes;
+      Pictures : aliased Fakes.Reactions;
+      Model, Without_Effects : Settings_VM.View_Model;
+      Seen : Parts.Version_Number;
+      Choice : constant Natural := Preferences.Background_Modes'Pos (Preferences.Mist);
+      Rejected : Boolean := False;
+   begin
+      Settings_VM.Initialize (Without_Effects, Voice'Access, null, "/nowhere");
+      Settings_VM.Execute (Without_Effects, Open);
+      Check ("settings-picture-no-effects", "FALSE",
+             Image (Settings_VM.Can_Execute (Without_Effects, New_Picture, Choice)));
+      Settings_VM.Initialize (Model, Voice'Access, Saved'Access, "/nowhere", Reactions => Pictures'Access);
+      Check ("settings-picture-closed", "FALSE", Image (Settings_VM.Can_Execute (Model, New_Picture, Choice)));
+      Settings_VM.Execute (Model, Open);
+      Check ("settings-picture-range", "TRUE", Image
+        (Settings_VM.Can_Execute (Model, New_Picture, Choice)
+         and then not Settings_VM.Can_Execute (Model, New_Picture, Preferences.Background_Modes'Pos (Preferences.Fixed))
+         and then not Settings_VM.Can_Execute (Model, New_Picture, Natural'Last)));
+      Seen := Settings_VM.Version (Model);
+      begin
+         Settings_VM.Execute (Model, New_Picture, Natural'Last);
+      exception
+         when Ada.Assertions.Assertion_Error => Rejected := True;
+      end;
+      Check ("settings-picture-invalid-contract", "TRUE", Image
+        (Rejected and then Pictures.Requests = 0 and then Fakes.Told (Saved) = ""
+         and then Settings_VM.Version (Model) = Seen));
+      Settings_VM.Execute (Model, New_Picture, Choice);
+      Check ("settings-picture-kept", "background=MIST;seed=1234;", Fakes.Told (Saved));
+      Check ("settings-picture-changed", "TRUE", Image
+        (Settings_VM.Background (Model) = Preferences.Mist and then Settings_VM.Seed (Model) = 1234
+         and then Pictures.Requests = 1 and then Pictures.Notices = 1 and then Pictures.Last = New_Picture
+         and then Settings_VM.Version (Model) /= Seen));
+      Seen := Settings_VM.Version (Model);
+      Settings_VM.Execute (Model, New_Picture, Choice);
+      Check ("settings-picture-same-version", "TRUE", Image (Settings_VM.Version (Model) = Seen));
+      Saved.Background_Failing := True;
+      Seen := Settings_VM.Version (Model);
+      Settings_VM.Execute (Model, New_Picture, Choice);
+      Check ("settings-picture-partial-failure", "TRUE", Image
+        (Settings_VM.Keep_Failed (Model) and then Settings_VM.Version (Model) /= Seen));
+      Saved.Background_Failing := False;
+      Settings_VM.Execute (Model, New_Picture, Choice);
+      Check ("settings-picture-save-recovered", "FALSE", Image (Settings_VM.Keep_Failed (Model)));
+      Saved.Failing := True;
+      Pictures.Seed := Preferences.Seed_Limit - 1;
+      Settings_VM.Execute (Model, New_Picture, Preferences.Background_Modes'Pos (Preferences.Grain));
+      Check ("settings-picture-save-failed", "TRUE", Image
+        (Settings_VM.Background (Model) = Preferences.Grain and then Settings_VM.Seed (Model) = Pictures.Seed
+         and then Settings_VM.Keep_Failed (Model)));
+   end New_Pictures;
 
    procedure Keeping is
       Voice : aliased Fakes.Pretend;

@@ -36,6 +36,7 @@ package body Item_List_VM_Tests is
       Model : Item_List_VM.View_Model;
       Seen : Pomarine.View_Models.Version_Number;
       Slot : Items.Slot;
+      First_Id, Second_Id : Positive;
       Rejected : Boolean := False;
       Long_Title : constant String (1 .. 700) := [others => 'x'];
    begin
@@ -54,11 +55,14 @@ package body Item_List_VM_Tests is
       Check ("item-list-vm-rows", "TRUE (untitled) TRUE TRUE", Image (Item_List_VM.Count (Model) = 2) & " "
              & Item_List_VM.Title (Model, 1) & " " & Image (Item_List_VM.Title (Model, 2) = Long_Title) & " "
              & Image (Item_List_VM.Slot_Of (Model, 2) = Slot));
+      First_Id := Item_List_VM.Row_Id (Model, 1);
+      Second_Id := Item_List_VM.Row_Id (Model, 2);
       Seen := Item_List_VM.Version (Model);
       Item_List_VM.Refresh (Model);
       Check ("item-list-vm-no-change", "TRUE", Image (Item_List_VM.Version (Model) = Seen));
       Items.Models.Set_Title_Text (Slots (1), "Renamed");
       Item_List_VM.Refresh (Model);
+      Check ("item-list-vm-id-retained", "TRUE", Image (Item_List_VM.Row_Id (Model, 1) = First_Id));
       Check ("item-list-vm-title", "Renamed TRUE", Item_List_VM.Title (Model, 1) & " "
              & Image (Item_List_VM.Version (Model) /= Seen));
       Item_List_VM.Execute (Model, Item_List_VM.Toggle_Shown, 1);
@@ -85,6 +89,9 @@ package body Item_List_VM_Tests is
       Check ("item-list-vm-reused-slot", "TRUE FALSE", Image (Slot = 1) & " "
              & Image (Item_List_VM.Can_Execute (Model, Item_List_VM.Remove, 1)));
       Item_List_VM.Refresh (Model);
+      Check ("item-list-vm-id-replaced", "TRUE TRUE",
+             Image (Item_List_VM.Row_Id (Model, 2) /= First_Id) & " "
+             & Image (Item_List_VM.Row_Id (Model, 1) = Second_Id));
       Item_List_VM.Execute (Model, Item_List_VM.Remove, 1);
       Check ("item-list-vm-removed", "TRUE Replacement TRUE", Image (Item_List_VM.Count (Model) = 1) & " "
              & Item_List_VM.Title (Model, 1) & " " & Image (Item_List_VM.Slot_Of (Model, 1) = 1));

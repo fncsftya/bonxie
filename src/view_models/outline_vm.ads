@@ -25,8 +25,15 @@ package Outline_VM is
       --  Index: the row. Nothing is done for the last.
       Remove_Section,
       --  Index: the row.
-      Toggle_Notes);
+      Toggle_Notes,
       --  Index: the row. Show its notes, or hide them.
+      Choose_Colour,
+      --  Index: the row. Ask for the section's colour.
+      Accept_Colour,
+      Cancel_Colour,
+      --  Of the colour being asked for. The model keeps nothing of it: the view's picker does.
+      End_Title);
+      --  Return in a section's title: the title is kept (the view-model has it as it is typed).
 
    package Commands is new Parts.Command_Models (Command);
 

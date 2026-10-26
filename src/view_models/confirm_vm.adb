@@ -24,9 +24,9 @@ package body Confirm_VM is
       Self.Reactions := (if Reactions = null then null else Reactions.all'Unrestricted_Access);
    end Observe;
 
-   procedure Ask_Project (Self : in out View_Model; Row : Positive; Name : String) is
+   procedure Ask_Project (Self : in out View_Model; Key : Projects.Id; Name : String) is
    begin
-      Ask (Self, (Subject => Project, Row => Row, others => <>), Name, "");
+      Ask (Self, (Subject => Project, Project_Key => Key, others => <>), Name, "");
    end Ask_Project;
 
    procedure Ask_Node (Self : in out View_Model; Kind : Nodes; Dir, Doc : Natural; Name : String) is

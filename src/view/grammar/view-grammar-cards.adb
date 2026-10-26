@@ -1,5 +1,6 @@
 with Grammar_Rules;
 with Grammar_VM;
+with Pomarine.UI;
 with Harper;
 with Pomarine.Widgets.Text_Fields;
 with Grammar_Cards;
@@ -25,6 +26,7 @@ package body View.Grammar.Cards is
    Entry_Width : constant := 288.0;
 
    use type Harper.Request_Id;
+   use type Grammar_VM.Command;
 
    procedure Refresh (Item : in out Session) is
       State : Grammar_State renames Item.Grammar_Checks;
@@ -155,8 +157,7 @@ package body View.Grammar.Cards is
       end if;
    end Refresh;
 
-   procedure Toggle (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event) is
-      pragma Unreferenced (Source, Event);
+   procedure Toggle (Item : in out Session) is
       State : Grammar_State renames Item.Grammar_Checks;
    begin
       if State.Showing then
@@ -173,13 +174,12 @@ package body View.Grammar.Cards is
       end if;
    end Toggle;
 
-   procedure Expand (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event) is
-      pragma Unreferenced (Source);
+   procedure Expand (Item : in out Session; Card : Positive) is
       State : Grammar_State renames Item.Grammar_Checks;
    begin
-      if Event.Index in State.Bindings'Range then
+      if Card in State.Bindings'Range then
          declare
-            Index : constant Natural := State.Bindings (Event.Index);
+            Index : constant Natural := State.Bindings (Card);
          begin
             if Index /= 0 and then Basics.Valid (Item, State.Rows (Index)) then
                State.Expanded := (if State.Expanded = Index then 0 else Index);
@@ -228,14 +228,6 @@ package body View.Grammar.Cards is
          end if;
       end;
    end Apply_Fix;
-
-   procedure Apply (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event) is
-      pragma Unreferenced (Source);
-   begin
-      if Item.Grammar_Checks.Expanded /= 0 and then Event.Index > 0 then
-         Apply_Fix (Item, Item.Grammar_Checks.Expanded, Event.Index, Inline => False);
-      end if;
-   end Apply;
 
    procedure Rules_Changed (Item : in out Session) is
    begin
@@ -306,13 +298,11 @@ package body View.Grammar.Cards is
            (Item.Grammar_Model.Model, Marked, Grammar_Rules.Kind_Code (Mark.Lint.Kind),
             (if Mark.Lint.Suggestion_Count > 0
              then Harper.Replacements.To_String (Mark.Lint.Suggestions (1).Text) else Marked));
-         Docs.Load (State.Entry_Doc, Grammar_VM.Correction (Item.Grammar_Model.Model));
-         Labels.Set_Text (State.Entry_Prompt, Grammar_VM.Prompt (Item.Grammar_Model.Model));
+         Pomarine.UI.Synchronize (Item.Forms (Grammar_Region).Screen.all);
          Set_Layout (State.Entry_Panel, Width => Wide, Position =>
            (Left => Float'Max (8.0, Float'Min (State.Pointer_X - Parent_Left - Wide / 2.0, Parent_Wide - Wide - 8.0)),
             Top => Float'Max (8.0, Float'Min (State.Pointer_Y - Parent_Top + 12.0, Parent_High - 132.0)),
             others => <>));
-         Widgets.Set_Visible (State.Entry_Panel, True);
          Widgets.Raise_To_Front (State.Entry_Panel);
          Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
          Pomarine.Text_Areas.Select_All (Text_Fields.Area (State.Entry_Field).all);
@@ -320,10 +310,7 @@ package body View.Grammar.Cards is
       end;
    end Begin_Entry;
 
-   procedure Rule_Clicked
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source, Event);
+   procedure Edit_Rule (Item : in out Session) is
       State : Grammar_State renames Item.Grammar_Checks;
    begin
       if State.Expanded in 1 .. State.Rows.Count and then Basics.Valid (Item, State.Rows (State.Expanded)) then
@@ -333,52 +320,50 @@ package body View.Grammar.Cards is
             Begin_Entry (Item, State.Expanded);
          end if;
       end if;
-   end Rule_Clicked;
+   end Edit_Rule;
 
-   procedure Ignore_Clicked
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
+   function State_Of
+     (Item : Session; What : Grammar_VM.Card_Command; Index : Natural) return Grammar_VM.Card_State
    is
-      pragma Unreferenced (Source, Event);
-   begin
-      Ignore_Row (Item, Item.Grammar_Checks.Expanded);
-   end Ignore_Clicked;
-
-   procedure Entry_Accepted
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source, Event);
       State : Grammar_State renames Item.Grammar_Checks;
+      Row : Natural := State.Expanded;
+      Result : Grammar_VM.Card_State :=
+        (Writing => Screen (Item) = Project and then View_Mode (Item) = Write,
+         Showing => State.Showing, others => <>);
    begin
-      if not Grammar_VM.Is_Entering (Item.Grammar_Model.Model) then
-         return;
+      if What = Grammar_VM.Expand_Card then
+         Row := (if Index in State.Bindings'Range then State.Bindings (Index) else 0);
       end if;
-      --  What was typed is the correction. One that changes nothing, or is longer than a suggestion can
-      --  be, is not a rule.
-      Grammar_VM.Set_Correction (Item.Grammar_Model.Model, Docs.Whole (State.Entry_Doc));
-      if Grammar_VM.Can_Execute (Item.Grammar_Model.Model, Grammar_VM.Accept_Entry) then
-         Grammar_VM.Execute (Item.Grammar_Model.Model, Grammar_VM.Accept_Entry);
-         Close_Entry (Item);
-         Rules_Changed (Item);
-      end if;
-   end Entry_Accepted;
-
-   procedure Entry_Cancelled
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source, Event);
-   begin
-      Close_Entry (Item);
-   end Entry_Cancelled;
-
-   procedure Inline_Chosen
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source);
-      State : Grammar_State renames Item.Grammar_Checks;
-   begin
-      if State.Inline_Open and then Event.Row in 1 .. State.Inline_Count then
+      if Row in 1 .. State.Rows.Count and then Basics.Valid (Item, State.Rows (Row)) then
          declare
-            Choice : constant Grammar_Choice := State.Inline_Choices (Event.Row);
+            Mark : Grammar_Row renames State.Rows (Row);
+         begin
+            Result.Current := True;
+            Result.Editable := Editors.Can_Edit (Item.Docs.Pages (Mark.Rank).Text);
+            Result.Has_Text := Basics.Flagged (Item, Mark)'Length > 0;
+            Result.Suggestions := Mark.Lint.Suggestion_Count;
+         end;
+      end if;
+      return Result;
+   end State_Of;
+
+   procedure Run (Item : in out Session; What : Grammar_VM.Card_Command; Index : Natural) is
+   begin
+      case What is
+         when Grammar_VM.Toggle_Cards => Toggle (Item);
+         when Grammar_VM.Expand_Card => Expand (Item, Index);
+         when Grammar_VM.Apply_Fix => Apply_Fix (Item, Item.Grammar_Checks.Expanded, Index, Inline => False);
+         when Grammar_VM.Edit_Rule => Edit_Rule (Item);
+         when Grammar_VM.Ignore_Text => Ignore_Row (Item, Item.Grammar_Checks.Expanded);
+      end case;
+   end Run;
+
+   procedure Choose_Row (Item : in out Session; Row : Positive) is
+      State : Grammar_State renames Item.Grammar_Checks;
+   begin
+      if State.Inline_Open and then Row in 1 .. State.Inline_Count then
+         declare
+            Choice : constant Grammar_Choice := State.Inline_Choices (Row);
          begin
             Close_Inline (Item);
             if Choice.Row /= 0 and then Choice.Token = State.Rows (Choice.Row).Token then
@@ -395,6 +380,6 @@ package body View.Grammar.Cards is
             end if;
          end;
       end if;
-   end Inline_Chosen;
+   end Choose_Row;
 
 end View.Grammar.Cards;

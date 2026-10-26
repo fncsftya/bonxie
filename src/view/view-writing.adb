@@ -1,12 +1,15 @@
+with Naming_VM;
+with Writing_Sources_VM;
+with Publish_VM;
 with Writing_VM;
 with Items.Models;
 with Items.Windows;
-with Pomarine.Text_Areas;
 with Projects;
 with Word_Tools;
 with Items.Readers.Callbacks;
 with Icon_Set;
 with Pomarine.Widgets.Buttons;
+with Pomarine.Widgets.Editors;
 with Pomarine.Widgets.Callbacks;
 with Pomarine.Widgets.Grips;
 with Pomarine.Widgets.Labels;
@@ -32,11 +35,7 @@ with View.Writing.Support;
 with View.Writing.Tree;
 
 package body View.Writing is
-   procedure Choose_Format (Item : in out Session; Row : Positive) is
-   begin
-      Publishing.Format_Chosen (Item, Item.Publish_View.Format_Menu,
-            (Kind => Pomarine.Widgets.Choose, Row => Row, others => <>));
-   end Choose_Format;
+   procedure Synchronize_Publish (Item : in out Session) renames Publishing.Synchronize;
 
    package Widgets renames Pomarine.Widgets;
    package Buttons renames Pomarine.Widgets.Buttons;
@@ -66,7 +65,7 @@ package body View.Writing is
       end loop;
       Item.Dragging.Drag_Row := 0;
       Item.Docs.Drop := (others => <>);
-      Item.Naming.Renaming_Dir := 0;
+      Naming_VM.End_Directory (Item.Naming.Names);
       Widgets.Set_Visible (Item.Naming.Dir_Field, False);
       Widgets.Set_Visible (Item.Docs.Drop_Line, False);
       Tree.Refresh (Item);
@@ -128,13 +127,13 @@ package body View.Writing is
             Readers.Release (Item.Reading.Readers (Which));
          end if;
       end loop;
-      Item.Reading.Source_Total := 0;
+      Writing_Sources_VM.Reset (Item.Reading.Sources);
       Item.Docs.Dirs.Count := 0;
       Trees.Reset (Item.Docs.Ordering);
       Writing_VM.Reset (Item.Docs.Navigation);
       Item.Dragging.Drag_Row := 0;
       Item.Docs.Drop := (others => <>);
-      Item.Naming.Renaming_Dir := 0;
+      Naming_VM.End_Directory (Item.Naming.Names);
       Widgets.Set_Visible (Item.Naming.Dir_Field, False);
       Widgets.Set_Visible (Item.Docs.Drop_Line, False);
       Tree.Refresh (Item);
@@ -171,8 +170,7 @@ package body View.Writing is
             Widgets.Focus (Item.Docs.Pages (Support.Rank_Of (Item, Which)).Text);
          end if;
       else
-         Item.Reading.Source_Total := Item.Reading.Source_Total + 1;
-         Item.Reading.Source_Order (Item.Reading.Source_Total) := Which;
+         Writing_Sources_VM.Add (Item.Reading.Sources, Which);
          Reader_Windows.Make_Reader (Item, Which);
          Tree.Refresh (Item);
       end if;
@@ -189,23 +187,13 @@ package body View.Writing is
             end if;
          end;
       else
-         declare
-            Row : constant Natural := Support.Row_Of (Item, Which);
-         begin
-            if Item.Reading.Pinned_Slot = Which then
-               Reader_Windows.Unpin (Item, Reopen => False);
-            end if;
-            if Readers.Is_Assigned (Item.Reading.Readers (Which)) then
-               Readers.Release (Item.Reading.Readers (Which));
-            end if;
-            if Row > 0 then
-               for Place in Row .. Item.Reading.Source_Total - 1 loop
-                  Item.Reading.Source_Order (Place)
-                     := Item.Reading.Source_Order (Place + 1);
-               end loop;
-               Item.Reading.Source_Total := Item.Reading.Source_Total - 1;
-            end if;
-         end;
+         if Item.Reading.Pinned_Slot = Which then
+            Reader_Windows.Unpin (Item, Reopen => False);
+         end if;
+         if Readers.Is_Assigned (Item.Reading.Readers (Which)) then
+            Readers.Release (Item.Reading.Readers (Which));
+         end if;
+         Writing_Sources_VM.Remove (Item.Reading.Sources, Which);
       end if;
       Tree.Refresh (Item);
    end Removed;
@@ -265,30 +253,14 @@ package body View.Writing is
       procedure Hear
         (Part    : in out Widgets.Widget'Class;
          Kind    : Widgets.Event_Kind;
-         Do_This : Hooks.Handler;
-         Index   : Natural := 0) is
+         Do_This : Hooks.Handler) is
       begin
-         if Index /= 0 then
-            Widgets.Set_Tag (Part, Widgets.No_Tag, Index);
-         end if;
          Hooks.On (Part, Kind, Item'Unchecked_Access, Do_This);
       end Hear;
    begin
-      Hear (Item.Publish_View.Section_Headings, Change, Publishing.Publish_Options_Changed'Access);
-      Hear (Item.Publish_View.Document_Headings, Change, Publishing.Publish_Options_Changed'Access);
-      Hear (Item.Publish_View.Format, Click, Publishing.Format_Clicked'Access);
-      Hear (Item.Publish_View.Export, Click, Publishing.Export_Clicked'Access);
-      Hear (Item.Publish_View.Copy, Click, Publishing.Copy_Clicked'Access);
-      Hear (Item.Naming.Dir_Field, Submit, Panes.Directory_Field_Ended'Access);
-      Hear (Item.Naming.Dir_Field, Blur, Panes.Directory_Field_Ended'Access);
-      Hear (Item.Naming.Source_Field, Submit, Panes.Source_Field_Ended'Access);
-      Hear (Item.Naming.Source_Field, Blur, Panes.Source_Field_Ended'Access);
       Hear (Item.Page_View.Pane_Edge, Drag, Panes.Pane_Dragged'Access);
       Hear (Item.Page_View.Sidebar_Edge, Drag, Panes.Sidebar_Dragged'Access);
       Hear (Item.Page_View.Sidebar_Edge, Release, Panes.Sidebar_Released'Access);
-      Hear (Item.Page_View.Edit_Heading.Bar, Click, Panes.Section_Clicked'Access, 1);
-      Hear (Item.Page_View.Docs_Heading.Bar, Click, Panes.Section_Clicked'Access, 2);
-      Hear (Item.Page_View.Sources_Heading.Bar, Click, Panes.Section_Clicked'Access, 3);
       Hear (Item.Page_View.Sources_Edge, Drag, Panes.Sources_Edge_Dragged'Access);
       Reader_Events.On (Item.Reading.Pane_Reader, 0, Item'Unchecked_Access, Panes.Reader_Asked'Access);
    end Listen;
@@ -300,34 +272,12 @@ package body View.Writing is
       Widgets.Set_Tag (Box, Widgets.No_Tag, Row);
       Hooks.On (Box, Drag, Item'Unchecked_Access, Row_Drags.Row_Dragged'Access);
       Hooks.On (Box, Release, Item'Unchecked_Access, Row_Drags.Row_Released'Access);
-      Hooks.On (Box, Click, Item'Unchecked_Access, Panes.Row_Clicked'Access);
-      Hooks.On (Box, Double_Click, Item'Unchecked_Access, Panes.Row_Double_Clicked'Access);
    end Listen_Row;
 
    procedure Listen_Slot (Item : in out Session; Rank : Items.Slot) is
-      use all type Widgets.Event_Kind;
-
-      procedure Hear (Part : in out Widgets.Widget'Class; Kind : Widgets.Event_Kind; Do_This : Hooks.Handler) is
-      begin
-         Widgets.Set_Tag (Part, Widgets.No_Tag, Rank);
-         Hooks.On (Part, Kind, Item'Unchecked_Access, Do_This);
-      end Hear;
    begin
-      Hear (Item.Docs.Pages (Rank).Heading_Area, Double_Click, Panes.Page_Title_Double_Clicked'Access);
-      Hear (Item.Docs.Pages (Rank).Title_Field, Submit, Panes.Page_Title_Ended'Access);
-      Hear (Item.Docs.Pages (Rank).Title_Field, Blur, Panes.Page_Title_Ended'Access);
       Reader_Events.On (Item.Reading.Readers (Rank), Rank, Item'Unchecked_Access, Panes.Reader_Asked'Access);
    end Listen_Slot;
-
-   procedure Add_Page_Clicked
-     (Item   : in out Session;
-      Source : in out Pomarine.Widgets.Widget'Class;
-      Event  : Pomarine.Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source, Event);
-   begin
-      Canvas_Items.Add (Item, Canvas_Items.Untitled_Document);
-   end Add_Page_Clicked;
 
    procedure Add_For_Section (Item : in out Session; Section : Positive) is
    begin
@@ -340,42 +290,18 @@ package body View.Writing is
       end if;
    end Add_For_Section;
 
-   procedure Section_Notes_Clicked
-     (Item   : in out Session;
-      Source : in out Pomarine.Widgets.Widget'Class;
-      Event  : Pomarine.Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source);
-      Place : constant Natural := Event.Index;
+   procedure Section_Notes_Changed (Item : in out Session; Section : Positive) is
    begin
-      if Place in 1 .. Outlines.Section_Count (Item) then
-         Outlines.Toggle_Notes (Item, Place, Focus => False);
-         Layout.Fit_Pages (Item);
-         if Outlines.Notes_Shown (Item, Place) then
-            Widgets.Focus (Item.Section_View.Notes (Place).Text);
-         end if;
+      Layout.Fit_Pages (Item);
+      if Outlines.Notes_Shown (Item, Section) then
+         Widgets.Focus (Item.Section_View.Notes (Section).Text);
       end if;
-   end Section_Notes_Clicked;
+   end Section_Notes_Changed;
 
-   procedure Section_Add_Clicked
-     (Item   : in out Session;
-      Source : in out Pomarine.Widgets.Widget'Class;
-      Event  : Pomarine.Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source);
-   begin
-      Add_For_Section (Item, Event.Index);
-   end Section_Add_Clicked;
-
-   procedure Add_Folder_Clicked
-     (Item   : in out Session;
-      Source : in out Pomarine.Widgets.Widget'Class;
-      Event  : Pomarine.Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source, Event);
+   procedure Add_Folder (Item : in out Session) is
    begin
       Rename.New_Directory (Item, Untitled_Directory);
-   end Add_Folder_Clicked;
+   end Add_Folder;
 
    procedure Source_Chosen
      (Item   : in out Session;
@@ -426,79 +352,68 @@ package body View.Writing is
       end if;
    end Context_Chosen;
 
-   procedure Sources_Clicked
-     (Item   : in out Session;
-      Source : in out Pomarine.Widgets.Widget'Class;
-      Event  : Pomarine.Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source);
+   procedure Open_Sources (Item : in out Session; Rank : Positive) is
    begin
-      Popups.Open_Menu (Item, Event.Index);
-   end Sources_Clicked;
+      Popups.Open_Menu (Item, Rank);
+   end Open_Sources;
 
-   procedure Dictate_Clicked
-     (Item   : in out Session;
-      Source : in out Pomarine.Widgets.Widget'Class;
-      Event  : Pomarine.Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source);
+   procedure Tool_Used (Item : in out Session; Rank : Positive; Tool : Positive) is
    begin
-      Canvas_Items.Toggle_Dictation (Item, Trees.Page_At (Item.Docs.Ordering, Event.Index));
-   end Dictate_Clicked;
-
-   procedure Tool_Used
-     (Item   : in out Session;
-      Source : in out Pomarine.Widgets.Editors.Editor'Class;
-      Tool   : Positive)
-   is
-      pragma Unreferenced (Item);
-   begin
-      Word_Tools.Use_Tool (Source, Tool);
+      Word_Tools.Use_Tool (Item.Docs.Pages (Rank).Text, Tool);
    end Tool_Used;
 
-   procedure Link_Followed
-     (Item   : in out Session;
-      Source : in out Pomarine.Widgets.Editors.Editor'Class)
-   is
-      pragma Unreferenced (Item);
+   procedure Link_Followed (Item : in out Session; Rank : Positive) is
    begin
-      Word_Tools.Follow (Source);
+      Word_Tools.Follow (Item.Docs.Pages (Rank).Text);
    end Link_Followed;
 
-   procedure Link_Asked
-     (Item   : in out Session;
-      Source : in out Pomarine.Widgets.Editors.Editor'Class)
-   is
-      Editor : Pomarine.Widgets.Editors.Editor'Class renames Source;
+   procedure Link_Asked (Item : in out Session; Rank : Positive) is
+      Editor : Pomarine.Widgets.Editors.Editor renames Item.Docs.Pages (Rank).Text;
+
+      procedure Offer (Name, Address : String) is
+      begin
+         Pomarine.Widgets.Editors.Add_Link_Choice (Editor, Name, Address);
+      end Offer;
    begin
       Pomarine.Widgets.Editors.Clear_Link_Choices (Editor);
-      for Row in 1 .. Item.Reading.Source_Total loop
-         declare
-            Kept : Items.Models.Item renames Item.Models (Item.Reading.Source_Order (Row));
-         begin
-            if Items.Models.Is_Assigned (Kept)
-              and then Items."=" (Items.Models.Details (Kept).Kind, Items.Source)
-              and then Items."=" (Items.Models.Details (Kept).Origin, Items.Remote)
-              and then Pomarine.Text_Areas.Is_Address (Items.Models.Text (Kept))
-            then
-               Pomarine.Widgets.Editors.Add_Link_Choice
-                 (Editor, Projects.Titles.To_String (Items.Models.Details (Kept).Title),
-                  Items.Models.Text (Kept));
-            end if;
-         end;
-      end loop;
+      Writing_Sources_VM.Offer_Links (Item.Reading.Sources, Offer'Access);
    end Link_Asked;
 
-   procedure Source_Row_Clicked
-     (Item   : in out Session;
-      Source : in out Pomarine.Widgets.Widget'Class;
-      Event  : Pomarine.Widgets.Widget_Event)
-   is
-      pragma Unreferenced (Source);
+   procedure Begin_Page_Title (Item : in out Session; Rank : Positive) is
    begin
-      Reader_Windows.Toggle_Source (Item, Item.Reading.Source_Order (Event.Index));
+      Panes.Page_Title_Double_Clicked (Item, Rank);
+   end Begin_Page_Title;
+
+   procedure End_Page_Title (Item : in out Session; Rank : Positive) is
+   begin
+      Panes.Page_Title_Ended (Item, Rank);
+   end End_Page_Title;
+
+   procedure Select_Row (Item : in out Session; Row : Positive) is
+   begin
+      Panes.Row_Clicked (Item, Row);
+   end Select_Row;
+
+   procedure Rename_Row (Item : in out Session; Row : Positive) is
+   begin
+      Panes.Row_Double_Clicked (Item, Row);
+   end Rename_Row;
+
+   procedure End_Name_Edit (Item : in out Session) is
+   begin
+      Panes.Directory_Field_Ended (Item);
+   end End_Name_Edit;
+
+   procedure End_Source_Name_Edit (Item : in out Session) is
+   begin
+      Panes.Source_Field_Ended (Item);
+   end End_Source_Name_Edit;
+
+   procedure Apply_Source_Command (Item : in out Session; Slot : Items.Slot) is
+   begin
+      Reader_Windows.Toggle_Source (Item, Slot);
       Tree.Refresh (Item);
-   end Source_Row_Clicked;
+   end Apply_Source_Command;
 
    procedure Pressed (Item : in out Session; X, Y : Float) is
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
@@ -553,11 +468,10 @@ package body View.Writing is
       Away (Item.Reading.Pane_Reader);
    end Pressed;
 
-   function Until_Copy_Ends (Item : Session) return Integer is (Publishing.Copy_Remaining (Item));
+   function Until_Copy_Ends (Item : Session) return Integer is (Publish_VM.Copy_Remaining (Item.Publish_View.Options));
 
    procedure Update (Item : in out Session) is
    begin
-      Publishing.Poll_Export (Item);
       if Support.In_Writing (Item) and then Section_Links.Changes (Item) /= Item.Section_Menu.Seen
         and then Item.Dragging.Drag_Row = 0
       then
@@ -673,6 +587,8 @@ package body View.Writing is
                Row : constant Natural := Support.Row_Of (Item, Which);
             begin
                if Row > 0 then
+                  Widgets.Set_Accessible_Name
+                    (Item.Reading.Source_Rows (Row).Row, "Source " & Support.Title_Of (Item, Which));
                   Labels.Set_Text
                     (Item.Reading.Source_Rows (Row).Caption,
                      Support.Title_Of (Item, Which));

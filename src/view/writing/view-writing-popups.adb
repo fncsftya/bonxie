@@ -1,3 +1,4 @@
+with Writing_Sources_VM;
 with Pomarine.UI.Menus;
 with Items.Models;
 with Items.Links;
@@ -68,9 +69,9 @@ package body View.Writing.Popups is
            [Rows.Row (Menus.Heading, Heading_For (Support.Title_Of (Item, Which_Doc)))];
       begin
          Item.Page_View.Menu_Count := 0;
-         for Row in 1 .. Item.Reading.Source_Total loop
+         for Row in 1 .. Writing_Sources_VM.Count (Item.Reading.Sources) loop
             declare
-               Which : constant Items.Slot := Item.Reading.Source_Order (Row);
+               Which : constant Items.Slot := Writing_Sources_VM.Slot_At (Item.Reading.Sources, Row);
             begin
                if Items.Links.Is_Linked
                     (Item.Nav.Store, Key,

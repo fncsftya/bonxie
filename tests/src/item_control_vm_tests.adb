@@ -102,8 +102,20 @@ package body Item_Control_VM_Tests is
       Check ("item-window-vm-note", Windows.Can_Execute (Model, Windows.Speak)
              and then Windows.Can_Execute (Model, Windows.Link_To_Outline)
              and then not Windows.Can_Execute (Model, Windows.Use_Marker));
+      Check ("item-window-vm-editor-events", Windows.Can_Execute (Model, Windows.Use_Tool, 3)
+             and then Windows.Can_Execute (Model, Windows.Follow_Link)
+             and then not Windows.Can_Execute (Model, Windows.Use_Tool)
+             and then not Windows.Can_Execute (Model, Windows.Follow_Link, 1));
+      Windows.Execute (Model, Windows.Use_Tool, 3);
+      Check ("item-window-vm-tool-effect", View.Last = Windows.Use_Tool and then View.Index = 3);
       Windows.Execute (Model, Windows.Speak);
       Check ("item-window-vm-speech-effect", View.Last = Windows.Speak);
+      Models.Set_State (Item, Items.Minimized);
+      Windows.Poll (Model);
+      Check ("item-window-vm-editor-minimized", not Windows.Can_Execute (Model, Windows.Use_Tool, 1)
+             and then not Windows.Can_Execute (Model, Windows.Follow_Link));
+      Models.Set_State (Item, Items.Open);
+      Windows.Poll (Model);
       begin
          Windows.Execute (Model, Windows.Capture);
       exception

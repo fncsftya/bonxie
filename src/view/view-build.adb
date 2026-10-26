@@ -1,3 +1,8 @@
+with Writing_Sources_VM;
+with Writing_VM.Actions;
+with Publish_VM;
+with Sidebar_VM;
+with Sidebar_VM.Disk;
 with View.Search;
 with Backgrounds;
 with Scripts;
@@ -24,10 +29,8 @@ with Pomarine.Widgets.Layouts;
 with View.Canvas_Items;
 with View.Links;
 with View.Listing;
-with View.Section_Links;
 with View.Writing;
 with View.Outlines;
-with View.Responses;
 with View.Recent;
 with View.Style;
 with View.Build.Dialogs;
@@ -77,25 +80,16 @@ package body View.Build is
       end if;
    end Share_Directory;
 
-   procedure Make_Tab_Stops (Item : in out Session);
-   --  Let Tab reach the buttons, and the cards that are clicked, as it
-   --  does the fields: in the order they are in, which is the order of the
-   --  screen. A click on one does not take the focus from a field.
+   procedure Hide_Card_Plus (Item : in out Session);
+   --  The new-project card declares its focus; its decorative plus is not a separate accessible control.
 
-   procedure Make_Tab_Stops (Item : in out Session) is
-      procedure Stop (Part : in out Buttons.Button) is
-      begin
-         Buttons.Set_Focusable (Part, True);
-      end Stop;
-
+   procedure Hide_Card_Plus (Item : in out Session) is
    begin
       --  The plus in the card does what the card does: not a stop of its own,
       --  nor a button more to an assistive technology.
       Widgets.Hide_From_Accessibility
         (Pomarine.UI.Widget_Of (Item.Forms (Home_Region).Screen.all, Item.Home_View.New_Card_Plus).all);
-      Stop (Item.Page_View.Docs_Add);
-      Stop (Item.Page_View.Docs_Folder);
-   end Make_Tab_Stops;
+   end Hide_Card_Plus;
 
    procedure Make_Slot (Item : in out Session; Which : Items.Slot) is
       Slots : constant Natural := Which;
@@ -110,7 +104,6 @@ package body View.Build is
       Item.Linking.Pin_Top.Resize (Slots, [others => -1.0E9]);
       Item.Reading.Reader_Sync.Resize (Slots, (others => <>));
       Item.Reading.Reader_Placed.Resize (Slots, False);
-      Item.Reading.Source_Order.Resize (Slots, 1);
       Item.Page_View.Menu_Slots.Resize (Slots, 1);
       Item.Grammar_Checks.Documents.Resize (Slots, (others => <>));
       Shell_Views.Make_Window (Item, Which);
@@ -121,9 +114,7 @@ package body View.Build is
       Write_View.Make_Reader (Item, Which);
       Buttons.Set_Focusable (Item.Docs.Pages (Which).Sources_Button, True);
       Grips.Set_Focusable (Item.Reading.Source_Rows (Which).Row, True);
-      Responses.Listen_Slot (Item, Which);
       Writing.Listen_Slot (Item, Which);
-      Section_Links.Listen_Page (Item, Which);
    end Make_Slot;
    --  The widgets of one more item.
 
@@ -137,7 +128,6 @@ package body View.Build is
       Outline_View.Make_Block (Item, Index);
       Outlines.Listen_Block (Item, Index);
       Write_View.Make_Section (Item, Index);
-      Responses.Listen_Section (Item, Index);
       --  One more mark than there are sections: before the first, and after each.
       Item.Section_View.Gaps.Grow (Index + 1);
       Write_View.Make_Gap (Item, Index);
@@ -188,7 +178,8 @@ package body View.Build is
       Projects.Open (Item.Nav.Store, Store_Path);
       Items.Schema.Prepare (Item.Nav.Store);
       Home_VM.Stored.Open (Item.Home_Model.Library, Item.Nav.Store'Unchecked_Access);
-      Home_VM.Initialize (Item.Home_Model.Model, Item.Home_Model.Library'Unchecked_Access);
+      Home_VM.Initialize
+        (Item.Home_Model.Model, Item.Home_Model.Library'Unchecked_Access, Item.Dialog_Model.Model'Access);
       Grammar_VM.Stored.Open (Item.Grammar_Model.Library, Item.Nav.Store'Unchecked_Access);
       Grammar_VM.Initialize (Item.Grammar_Model.Model, Item.Grammar_Model.Library'Unchecked_Access);
       Outline_VM.Stored.Open (Item.Outline_Model.Library, Item.Nav.Store'Unchecked_Access);
@@ -217,9 +208,7 @@ package body View.Build is
                     Float'Max (Sidebar_Least, Float'Min (Sidebar_Most, Float (Kept)));
                end if;
             end;
-            Item.Page_View.Edit_Open := Preferences.Load_Section_Open (Config, "edit");
-            Item.Page_View.Docs_Open := Preferences.Load_Section_Open (Config, "documents");
-            Item.Page_View.Sources_Open := Preferences.Load_Section_Open (Config, "sources");
+            Sidebar_VM.Disk.Open (Item.Page_View.Folds_Kept, Config);
             Settings_VM.Disk.Open (Choices.Files, Config);
             Settings_VM.Initialize
               (Choices.Model, Choices.Voice'Unchecked_Access, Choices.Files'Unchecked_Access, Config,
@@ -245,6 +234,25 @@ package body View.Build is
         (Item.Nav_Model.Model, Item.Nav_Model.Library'Unchecked_Access, Item.Home_Model.Model'Unchecked_Access,
          Item.Outline_Model.Model'Unchecked_Access, Item.Choices.Model'Unchecked_Access,
          Item.Dialog_Model.Model'Unchecked_Access);
+      Sidebar_VM.Initialize
+        (Item.Page_View.Folding, Item.Nav_Model.Model'Access,
+         (if Settings_VM.Persists (Item.Choices.Model) then Item.Page_View.Folds_Kept'Access else null));
+      Item.Source_Platform.Owner := Item'Unchecked_Access;
+      Writing_Sources_VM.Initialize
+        (Item.Reading.Sources, Item.Nav_Model.Model'Access, Item.Models'Unrestricted_Access,
+         Item.Source_Platform'Access);
+      Item.Writing_Platform.Owner := Item'Unchecked_Access;
+      Writing_VM.Actions.Initialize
+        (Item.Page_View.Actions, Item.Nav_Model.Model'Access, Item.Docs.Ordering'Unrestricted_Access,
+         Item.Models'Unrestricted_Access, Item.Naming.Names'Unrestricted_Access, Item.Writing_Platform'Access);
+      Item.Publishing_Platform.Owner := Item'Unchecked_Access;
+      Publish_VM.Initialize
+        (Item.Publish_View.Options, Item.Nav_Model.Model'Access,
+         Item.Publishing_Platform'Access, Item.Publish_View.Files'Access);
+      Item.Publish_Watcher.Owner := Item'Unchecked_Access;
+      Pomarine.View_Models.See (Item.Publish_Watcher.Seen, Publish_VM.Version (Item.Publish_View.Options));
+      Item.Sidebar_Watcher.Owner := Item'Unchecked_Access;
+      Pomarine.View_Models.See (Item.Sidebar_Watcher.Seen, Sidebar_VM.Version (Item.Page_View.Folding));
       --  It is shown as it is built: at the home screen.
       declare
          Nav : Nav_Choices renames Item.Nav_Model;
@@ -263,7 +271,7 @@ package body View.Build is
       Item.Item_List.View.Owner := Item'Unchecked_Access;
       Item_List_VM.Initialize
         (Item.Item_List.Model, Item.Canvas_Model.Model'Unchecked_Access,
-         Item.Models'Unrestricted_Access, Item.Item_List.View'Unchecked_Access);
+         Item.Models'Unrestricted_Access, Item.Item_List.View'Unchecked_Access, Item.Nav_Model.Model'Access);
       Item.Judge.Owner := Item'Unchecked_Access;
       Widgets.Set_Validator (Item.Root.Widgets, Item.Judge'Unchecked_Access);
       Widgets.Set_Density (Item.Root.Widgets, Item.Shell.Density);
@@ -277,7 +285,7 @@ package body View.Build is
       end if;
 
       --  Tab and Shift+Tab move the focus between the controls made
-      --  focusable (see Make_Tab_Stops) and the text fields.
+      --  focusable in their declarations and the text fields.
       Widgets.Set_Tab_Navigation (Item.Root.Widgets, True);
       if Item.Shell.Windowed then
          --  Whether it is shown, and the colours to go with it, are for Apply_Theme.
@@ -317,8 +325,7 @@ package body View.Build is
       Reserve_Sections (Item, 0);
       Reserve_Rows (Item);
 
-      Responses.Install (Item);
-      Make_Tab_Stops (Item);
+      Hide_Card_Plus (Item);
       Widgets.Set_Listener (Item.Root.Widgets, Item.Replies'Unchecked_Access);
       Item.Replies.Owner := Item'Unchecked_Access;
       for Card of Item.Home_View.Cards loop

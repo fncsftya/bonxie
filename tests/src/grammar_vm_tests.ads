@@ -7,6 +7,8 @@ package Grammar_VM_Tests is
    procedure Entry_Form;
    --  The form that makes a correction: when it can be accepted, and what it makes.
 
+   procedure Card_Actions;
+
    procedure Stored;
    --  The same over the database the program keeps.
 

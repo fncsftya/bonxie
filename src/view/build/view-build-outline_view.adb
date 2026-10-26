@@ -10,7 +10,6 @@ with Outline_VM;
 with Pomarine.UI;
 with Pomarine.Widgets;
 with Pomarine.Widgets.Layouts;
-with View.Outlines;
 with View.Style;
 
 package body View.Build.Outline_View is
@@ -59,6 +58,9 @@ package body View.Build.Outline_View is
             (Width => Notes_Width, Height => Outline_Button, Shrink => 0.0, others => <>));
       end Notes_Button;
 
+      Swatch : constant UI.Widget_Handle := Outs.Borrow_Widget (Block.Swatch);
+      Name   : constant UI.Widget_Handle := Outs.Borrow_Widget (Block.Field);
+
       Line : constant UI.Layout :=
         UI.Styled
           (UI.Put_In
@@ -67,12 +69,11 @@ package body View.Build.Outline_View is
                  (UI.Put (Form, Block.Handle), (Width => Outline_Handle, Height => Index_Height, Shrink => 0.0,
                                                 others => <>)),
                UI.Styled
-                 (UI.Put (Form, Block.Swatch),
+                 (UI.Place (Swatch),
                   (Width => Outline_Field_Height - 2.0, Height => Outline_Field_Height - 2.0, Shrink => 0.0,
                    others => <>)),
                UI.Styled
-                 (UI.Put (Form, Block.Field), (Grow => 1.0, Width => 0.0, Height => Outline_Field_Height,
-                                               others => <>)),
+                 (UI.Place (Name), (Grow => 1.0, Width => 0.0, Height => Outline_Field_Height, others => <>)),
                Notes_Button,
                Icon_Button (Block.Up, "Move up", Pomarine.Icons.Chevron_Up, Outline_VM.Move_Up),
                Icon_Button (Block.Down, "Move down", Pomarine.Icons.Chevron_Down, Outline_VM.Move_Down),
@@ -95,6 +96,8 @@ package body View.Build.Outline_View is
            (Shrink => 0.0, Flow => Column, Padding => (Left | Right => Index_Pad * Pixels, others => <>),
             Shadowed => True, Unit => Device_Pixels, others => <>));
    begin
+      Outs.On_Event (Swatch, Widgets.Click, Outline_VM.Choose_Colour, Index);
+      Outs.On_Event (Name, Widgets.Submit, Outline_VM.End_Title);
       UI.Mount_Before (Form, Pane.None, Whole);
       Grips.Set_Fill (Block.Row, Row_Fill);
       Grips.Set_Hover_Fill (Block.Row, Row_Fill);
@@ -145,6 +148,10 @@ package body View.Build.Outline_View is
          Outs : constant Outline_UI.Context'Class :=
            Outline_UI.Bind (Form, Item.Outline_Model.Model'Unrestricted_Access);
          Adding : constant UI.Button_Handle := Outs.Borrow_Button (Pane.Add_Button, Outline_VM.Add_Section);
+         Cancelling : constant UI.Button_Handle :=
+           Outs.Borrow_Button (Pane.Colour_Cancel, Outline_VM.Cancel_Colour, Reflect => False);
+         Accepting : constant UI.Button_Handle :=
+           Outs.Borrow_Button (Pane.Colour_OK, Outline_VM.Accept_Colour, Reflect => False);
 
          --  Two columns of the same width: the form, and the sections.
          Form_Column : constant UI.Layout :=
@@ -213,8 +220,8 @@ package body View.Build.Outline_View is
                   UI.Styled
                     (UI.Put_In
                        (Form, Pane.Colour_Actions,
-                        [Line (Pane.Colour_Cancel, (Grow => 1.0, Width => 0.0, others => <>)),
-                         Line (Pane.Colour_OK, (Grow => 1.0, Width => 0.0, others => <>))],
+                        [UI.Styled (UI.Place (Cancelling), (Grow => 1.0, Width => 0.0, others => <>)),
+                         UI.Styled (UI.Place (Accepting), (Grow => 1.0, Width => 0.0, others => <>))],
                         Flow => Layouts.Row),
                      (Flow => Row, Height => 28.0, Gap => 8.0, others => <>))]),
               (Place => Absolute, Flow => Column, Width => 264.0, Height => 270.0, Padding => (others => 12.0),
@@ -266,7 +273,6 @@ package body View.Build.Outline_View is
       Panels.Set_Border (Pane.Colour_Popout, Themes.Border);
       Panels.Set_Shadow (Pane.Colour_Popout, Themes.Shadow);
       Widgets.Set_Visible (Pane.Colour_Popout, False);
-      Outlines.Listen (Item);
       Widgets.Set_Visible (Pane.View, False);
    end Build_Outline;
 

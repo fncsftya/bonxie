@@ -1,4 +1,5 @@
 with Pomarine.UI;
+with Canvas_UI;
 with Canvas_VM;
 with Items.Links;
 with Icon_Set;
@@ -6,7 +7,6 @@ with Pomarine.Widgets;
 with Pomarine.Widgets.Buttons;
 with Pomarine.Widgets.Callbacks;
 with Pomarine.Widgets.Canvases;
-with Pomarine.Widgets.Canvases.Callbacks;
 with Pomarine.Widgets.Panels;
 with Pomarine.Widgets.Pins;
 with View.Style;
@@ -26,8 +26,8 @@ package body View.Links is
    package UI renames Pomarine.UI;
 
    package Hooks is new Pomarine.Widgets.Callbacks (Session);
-   package Canvas_Hooks is new Pomarine.Widgets.Canvases.Callbacks (Session);
 
+   use type Items.Id;
    use type Item_Links.Strokes;
    use type Item_Links.Endings;
 
@@ -47,14 +47,18 @@ package body View.Links is
       Open (Item.Forms (Canvas_Region), Item.Root.Widgets'Unchecked_Access, Canvas_Region);
       declare
          Form : UI.View renames Item.Forms (Canvas_Region).Screen.all;
+         Bound : constant Canvas_UI.Context'Class :=
+           Canvas_UI.Bind (Form, Item.Canvas_Model.Model'Unrestricted_Access);
 
-         procedure Tool (Part : in out Buttons.Button; Apart : Boolean; Looks : Buttons.Settings) is
+         procedure Tool
+           (Part : in out Buttons.Button; Apart : Boolean; Looks : Buttons.Settings; What : Canvas_VM.Command;
+            Index : Natural := 0) is
          begin
             Buttons.Configure (Part, Looks);
             Last := Last + 1;
             Tools (Last) :=
               UI.Styled
-                (UI.Put (Form, Part),
+                (UI.Place (Bound.Borrow_Button (Part, What, Index, Reflect => False)),
                  (Width => Style.Link_Button_Size, Height => Style.Link_Button_Size,
                   Margin => (if Apart then (Left => Style.Link_Group_Gap, others => <>) else (others => <>)),
                   others => <>));
@@ -65,21 +69,25 @@ package body View.Links is
                   Looks => (case Each is
                                when Item_Links.Solid  => Pictured ("Solid", Icon_Set.Stroke_Solid),
                                when Item_Links.Dots   => Pictured ("Dots", Icon_Set.Stroke_Dots),
-                               when Item_Links.Dashed => Pictured ("Dash", Icon_Set.Stroke_Dashed)));
+                               when Item_Links.Dashed => Pictured ("Dash", Icon_Set.Stroke_Dashed)),
+                  What => Canvas_VM.Set_Stroke, Index => Item_Links.Strokes'Pos (Each) + 1);
          end loop;
          for Each in Item_Links.Endings loop
             Tool (Item.Linking.End_Buttons (Each), Apart => Each = Item_Links.Plain,
                   Looks => (case Each is
                                when Item_Links.Plain => Pictured ("Plain", Icon_Set.End_Plain),
-                               when Item_Links.Arrow => Pictured ("Arrow", Icon_Set.End_Arrow)));
+                               when Item_Links.Arrow => Pictured ("Arrow", Icon_Set.End_Arrow)),
+                  What => Canvas_VM.Set_Ending, Index => Item_Links.Endings'Pos (Each) + 1);
          end loop;
          for Each in Item_Links.Link_Colors loop
-            Tool (Item.Linking.Color_Buttons (Each), Apart => Each = 1, Looks => Buttons.Looks ("Ink"));
+            Tool (Item.Linking.Color_Buttons (Each), Apart => Each = 1, Looks => Buttons.Looks ("Ink"),
+                  What => Canvas_VM.Set_Color, Index => Each);
             Buttons.Set_Swatch (Item.Linking.Color_Buttons (Each),
                                 Style.Link_Inks (Each));
          end loop;
          Tool (Item.Linking.Delete_Link, Apart => True,
-               Looks => Buttons.Looks ("Del", Buttons.Danger, Icon => Pomarine.Icons.Shown (Icon_Set.Delete)));
+               Looks => Buttons.Looks ("Del", Buttons.Danger, Icon => Pomarine.Icons.Shown (Icon_Set.Delete)),
+               What => Canvas_VM.Delete_Link);
 
          declare
             Bar    : constant UI.Layout :=
@@ -92,7 +100,10 @@ package body View.Links is
               UI.Styled
                 (UI.Put (Form, Item.Linking.Link_Handle),
                  (Place => Layouts.Absolute, Width => Pins.Diameter, Height => Pins.Diameter, others => <>));
+            Lines : constant UI.Widget_Handle := Bound.Borrow_Widget (Item.Canvas_View);
          begin
+            Bound.On_Canvas_Event (Lines, Canvas_UI.Line_Selected, Canvas_VM.Pick_Link, Index_From_Event => True);
+            Bound.On_Canvas_Event (Lines, Canvas_UI.Line_Deleted, Canvas_VM.Delete_Link);
             UI.Mount_Into (Form, Item.Canvas_View, Bar);
             UI.Mount_Into (Form, Item.Canvas_View, Grabber);
          end;
@@ -166,22 +177,8 @@ package body View.Links is
          Hooks.On (Part, Kind, Item'Unchecked_Access, Do_This);
       end Hear;
    begin
-      for Each in Item_Links.Strokes loop
-         Hear (Item.Linking.Stroke_Buttons (Each), Click, Events.Stroke_Clicked'Access,
-               Item_Links.Strokes'Pos (Each) + 1);
-      end loop;
-      for Each in Item_Links.Endings loop
-         Hear (Item.Linking.End_Buttons (Each), Click, Events.Ending_Clicked'Access,
-               Item_Links.Endings'Pos (Each) + 1);
-      end loop;
-      for Each in Item_Links.Link_Colors loop
-         Hear (Item.Linking.Color_Buttons (Each), Click, Events.Color_Clicked'Access, Each);
-      end loop;
-      Hear (Item.Linking.Delete_Link, Click, Events.Delete_Clicked'Access);
       Hear (Item.Linking.Link_Handle, Press, Events.Handle_Pressed'Access);
       Hear (Item.Linking.Link_Handle, Release, Events.Pin_Released'Access);
-      Canvas_Hooks.On_Select (Item.Canvas_View, Item'Unchecked_Access, Events.Line_Selected'Access);
-      Canvas_Hooks.On_Delete (Item.Canvas_View, Item'Unchecked_Access, Events.Line_Deleted'Access);
    end Listen;
 
    function Shown_Pins (Item : Session) return Natural is
@@ -199,7 +196,15 @@ package body View.Links is
 
    procedure Update (Item : in out Session) is
       Changed : Boolean := False;
+      Picked  : constant Items.Id := Canvas_VM.Selected_Link (Item.Canvas_Model.Model);
    begin
+      if Picked /= Item.Linking.Picked then
+         Item.Linking.Picked := Picked;
+         if Picked /= 0 then
+            --  So that Backspace is not for the text being typed in.
+            Widgets.Clear_Focus (Item.Root.Widgets);
+         end if;
+      end if;
       Drawing.Show_Pins (Item, Changed);
       Drawing.Draw_Lines (Item, Changed);
       Drawing.Raise_Over (Item);

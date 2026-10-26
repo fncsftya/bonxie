@@ -1,3 +1,4 @@
+with Naming_VM;
 with Writing_VM;
 with Items.Models;
 with Items.Directories;
@@ -64,7 +65,7 @@ package body View.Writing.Rename is
          Projects.Titles.To_String (Item.Docs.Dirs (Dir).Title));
       Text_Fields.Attach (Item.Naming.Dir_Field,
                           Item.Naming.Dir_Doc'Unchecked_Access);
-      Item.Naming.Renaming_Dir := Dir;
+      Naming_VM.Begin_Directory (Item.Naming.Names, Dir);
       Put_Field
         (Item, Item.Naming.Dir_Field, Item.Page_View.Docs_Content,
          Item.Docs.Doc_Rows (Row).Row);
@@ -72,7 +73,7 @@ package body View.Writing.Rename is
 
    procedure End_Rename_Doc (Item : in out Session) is
    begin
-      Item.Naming.Renaming_Doc := 0;
+      Naming_VM.End_Document (Item.Naming.Names);
       Widgets.Set_Visible (Item.Naming.Dir_Field, False);
       Tree.Refresh (Item);
    end End_Rename_Doc;
@@ -85,7 +86,7 @@ package body View.Writing.Rename is
       end if;
       Text_Fields.Attach
         (Item.Naming.Dir_Field, Models.Title_Document (Item.Models (Which)));
-      Item.Naming.Renaming_Doc := Which;
+      Naming_VM.Begin_Document (Item.Naming.Names, Which);
       Put_Field
         (Item, Item.Naming.Dir_Field, Item.Page_View.Docs_Content,
          Item.Docs.Doc_Rows (Row).Row);
@@ -101,7 +102,7 @@ package body View.Writing.Rename is
       Text_Fields.Attach
         (Item.Naming.Source_Field,
          Models.Title_Document (Item.Models (Which)));
-      Item.Naming.Renaming_Source := Which;
+      Naming_VM.Begin_Source (Item.Naming.Names, Which);
       Put_Field
         (Item, Item.Naming.Source_Field, Item.Page_View.Sources_Content,
          Item.Reading.Source_Rows (Row).Row);
@@ -109,11 +110,11 @@ package body View.Writing.Rename is
 
    procedure End_Rename_Dir (Item : in out Session) is
       Content : constant String := Docs.Whole (Item.Naming.Dir_Doc);
-      Dir     : constant Natural := Item.Naming.Renaming_Dir;
+      Dir     : constant Natural := Naming_VM.Directory (Item.Naming.Names);
       First   : Positive := Content'First;
       Last    : Natural := Content'Last;
    begin
-      Item.Naming.Renaming_Dir := 0;
+      Naming_VM.End_Directory (Item.Naming.Names);
       Widgets.Set_Visible (Item.Naming.Dir_Field, False);
       while First <= Last and then Content (First) = ' ' loop
          First := First + 1;
@@ -152,7 +153,7 @@ package body View.Writing.Rename is
 
    procedure End_Rename_Source (Item : in out Session) is
    begin
-      Item.Naming.Renaming_Source := 0;
+      Naming_VM.End_Source (Item.Naming.Names);
       Widgets.Set_Visible (Item.Naming.Source_Field, False);
       Tree.Refresh (Item);
    end End_Rename_Source;

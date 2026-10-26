@@ -1,4 +1,8 @@
 private package View.Grammar is
+   function Inspect
+     (Item : Session; What : Grammar_VM.Card_Command; Index : Natural) return Grammar_VM.Card_State;
+   procedure Perform (Item : in out Session; What : Grammar_VM.Card_Command; Index : Natural);
+
    procedure Choose_Inline (Item : in out Session; Row : Positive);
 
    Idle_Delay : constant := 500;
@@ -8,6 +12,7 @@ private package View.Grammar is
    procedure Released (Item : in out Session; Event : Pomarine.Events.Event);
    procedure Update_Cursor (Item : in out Session);
    procedure Close_Inline (Item : in out Session);
+   procedure Entry_Ended (Item : in out Session; Accepted : Boolean);
    procedure Close_Entry (Item : in out Session);
    --  Put away the field that a rule's correction is typed in.
    procedure Update (Item : in out Session; Now : Pomarine.Events.Milliseconds);

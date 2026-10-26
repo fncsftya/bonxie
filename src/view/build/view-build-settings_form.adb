@@ -108,19 +108,34 @@ package body View.Build.Settings_Form is
             Card     : Background_Card renames Prefs.Cards (Mode);
             Pictured : constant Boolean := Mode in Preferences.Pictures;
             Words    : constant String := Background_Name_Of (Mode);
+            Choice   : constant Natural := Preferences.Background_Modes'Pos (Mode);
+            Pick_Control : constant UI.Widget_Handle := Bound.Borrow_Widget (Card.Pick);
+            Peek_Control : constant UI.Widget_Handle := Bound.Borrow_Widget (Card.Peek);
+
+            function New_Picture return UI.Layout is
+            begin
+               if not Pictured then
+                  return UI.Nothing;
+               end if;
+               declare
+                  Button : constant UI.Button_Handle := Bound.Borrow_Button
+                    (Card.Reseed, Settings_VM.New_Picture, Choice);
+               begin
+                  Buttons.Configure
+                    (Card.Reseed,
+                     Buttons.Looks ("New picture", Icon => Pomarine.Icons.Shown (Icon_Set.Refresh), Focusable => True));
+                  return UI.Styled
+                    (UI.Place (Button), (Width => Card_Button, Height => Card_Button, Shrink => 0.0, others => <>));
+               end;
+            end New_Picture;
 
             Naming : constant UI.Layout :=
               UI.Styled
-                (UI.Put_In
-                   (Form, Card.Pick,
+                (UI.Hold
+                   (Pick_Control,
                     [UI.Styled (UI.Put (Form, Card.Name), (Height => Card_Title_Height, others => <>))]),
                  (Grow => 1.0, Width => 0.0, Flow => Column, Spread => Center, Align_Self => Stretch, others => <>));
-            Reseeding : constant UI.Layout :=
-              (if Pictured
-               then UI.Styled
-                      (UI.Put (Form, Card.Reseed), (Width => Card_Button, Height => Card_Button, Shrink => 0.0,
-                                                    others => <>))
-               else UI.Nothing);
+            Reseeding : constant UI.Layout := New_Picture;
             Foot  : constant UI.Layout :=
               UI.Styled
                 (UI.Put_In (Form, Card.Foot, (if Pictured then [Naming, Reseeding] else [Naming])),
@@ -128,19 +143,17 @@ package body View.Build.Settings_Form is
                   Padding => (Left | Right => Card_Pad, others => <>), others => <>));
             Peek  : constant UI.Layout :=
               UI.Styled
-                (UI.Put_In (Form, Card.Peek, [UI.Styled (UI.Put (Form, Card.Sample), (Grow => 1.0, others => <>))]),
+                (UI.Hold (Peek_Control, [UI.Styled (UI.Put (Form, Card.Sample), (Grow => 1.0, others => <>))]),
                  (Grow => 1.0, Flow => Column, others => <>));
          begin
-            if Pictured then
-               Buttons.Configure
-                 (Card.Reseed,
-                  Buttons.Looks ("New picture", Icon => Pomarine.Icons.Shown (Icon_Set.Refresh), Focusable => True));
-            end if;
+            Bound.On_Event (Pick_Control, Widgets.Click, Settings_VM.Choose_Background, Choice);
+            Bound.On_Event (Peek_Control, Widgets.Click, Settings_VM.Choose_Background, Choice);
             Panels.Set_Radius (Card.Whole, Themes.Large_Radius, Framed => True);
             Panels.Set_Fill (Card.Whole, Themes.Page);
             Panels.Set_Border (Card.Whole, Themes.Border);
             Grips.Set_Wanted_Cursor (Card.Peek, SDL3.Cursors.Pointer);
             Grips.Set_Focusable (Card.Peek, True);
+            Widgets.Set_Accessible_Name (Card.Peek, "Choose " & Words & " background");
             Panels.Set_Fill (Card.Foot, Themes.Tint);
             --  Its foot is as round as the card's own foot, or its square corner shows between the outline
             --  and the shadow.

@@ -52,6 +52,10 @@ package body Item_Window_VM is
          return Index = 0 and then Now.State = Items.Minimized;
       elsif Now.State /= Items.Open then
          return False;
+      elsif What = Use_Tool then
+         return Index > 0;
+      elsif What = Follow_Link then
+         return Index = 0;
       elsif What = Zoom_Preset then
          return Source and then Index in Preset_Index;
       elsif Index /= 0 then

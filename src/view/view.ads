@@ -1,4 +1,9 @@
+private with Writing_Sources_VM;
+private with Writing_VM.Actions;
+private with Publish_VM;
+private with Long_Texts;
 private with Menu_VM;
+private with Grammar_VM;
 private with Confirm_VM;
 private with Outline_VM;
 private with Home_VM;
@@ -237,6 +242,7 @@ private
 
    overriding procedure Done (Self : in out Settings_Effects; What : Settings_VM.Command);
    overriding procedure Ask_To_Delete (Self : in out Settings_Effects; Size : String);
+   overriding function New_Picture_Seed (Self : in out Settings_Effects) return Natural;
 
    type Home_Effects is limited new Home_VM.Effects with record
       Owner : Session_Access;
@@ -251,6 +257,51 @@ private
    --  A turn of a form changed what it shows: the tree is laid out again, as when the application does it.
 
    overriding procedure Turned (Self : in out Layout_Watch);
+
+   type Sidebar_Watch is limited new Pomarine.UI.Observer with record
+      Owner : Session_Access;
+      Seen : Pomarine.View_Models.Watch;
+   end record;
+   overriding procedure Turned (Self : in out Sidebar_Watch);
+
+   type Source_Effects is limited new Writing_Sources_VM.Effects with record
+      Owner : Session_Access;
+   end record;
+   overriding procedure Toggle_Source (Self : in out Source_Effects; Slot : Items.Slot);
+
+   type Writing_Effects is limited new Writing_VM.Actions.Effects with record
+      Owner : Session_Access;
+   end record;
+   overriding procedure Open_Sources (Self : in out Writing_Effects; Rank : Positive);
+   overriding procedure Toggle_Dictation (Self : in out Writing_Effects; Slot : Items.Slot);
+   overriding procedure Use_Tool (Self : in out Writing_Effects; Rank : Positive; Tool : Positive);
+   overriding procedure Follow_Link (Self : in out Writing_Effects; Rank : Positive);
+   overriding procedure Ask_Link (Self : in out Writing_Effects; Rank : Positive);
+   overriding procedure Begin_Page_Title (Self : in out Writing_Effects; Rank : Positive);
+   overriding procedure End_Page_Title (Self : in out Writing_Effects; Rank : Positive);
+   overriding procedure Open_Section_Menu (Self : in out Writing_Effects; Rank : Positive);
+   overriding procedure Select_Row (Self : in out Writing_Effects; Row : Positive);
+   overriding procedure Rename_Row (Self : in out Writing_Effects; Row : Positive);
+   overriding procedure End_Name_Edit (Self : in out Writing_Effects);
+   overriding procedure End_Source_Name_Edit (Self : in out Writing_Effects);
+
+   type Publishing_Effects is limited new Publish_VM.Effects with record
+      Owner : Session_Access;
+   end record;
+   overriding function Export_Available (Self : Publishing_Effects) return Boolean;
+   overriding function Copy_Available (Self : Publishing_Effects) return Boolean;
+   overriding function Markdown_Text (Self : Publishing_Effects) return String;
+   overriding function Clock (Self : Publishing_Effects) return Pomarine.Events.Milliseconds;
+   overriding procedure Ask_Export (Self : in out Publishing_Effects);
+   overriding procedure Export_Result
+     (Self : in out Publishing_Effects; State : out Publish_VM.Export_States; Path : out Long_Texts.Text);
+   overriding procedure Copy_Text (Self : in out Publishing_Effects; Words : String; Succeeded : out Boolean);
+
+   type Publish_Watch is limited new Pomarine.UI.Observer with record
+      Owner : Session_Access;
+      Seen : Pomarine.View_Models.Watch;
+   end record;
+   overriding procedure Turned (Self : in out Publish_Watch);
 
    type Outline_Effects is limited new Outline_VM.Effects with record
       Owner : Session_Access;
@@ -268,13 +319,22 @@ private
    overriding procedure Dialog_Changed (Self : in out Confirm_Effects);
    overriding procedure Answered (Self : in out Confirm_Effects; Said : Confirm_VM.Answer);
 
+   type Grammar_Effects is limited new Grammar_VM.Effects and Grammar_VM.Card_Engine with record
+      Owner : Session_Access;
+   end record;
+
+   overriding procedure Entry_Ended (Self : in out Grammar_Effects; Accepted : Boolean);
+   overriding function Inspect
+     (Self : Grammar_Effects; What : Grammar_VM.Card_Command; Index : Natural) return Grammar_VM.Card_State;
+   overriding procedure Perform (Self : in out Grammar_Effects; What : Grammar_VM.Card_Command; Index : Natural);
+
    type Nav_Effects is limited new Nav_VM.Effects with record
       Owner : Session_Access;
    end record;
    --  The screens follow the navigation.
 
    overriding procedure Going_To_Execute (Self : in out Nav_Effects; What : Nav_VM.Command; Index : Natural);
-   overriding procedure Executed (Self : in out Nav_Effects; What : Nav_VM.Command);
+   overriding procedure Executed (Self : in out Nav_Effects; What : Nav_VM.Command; Index : Natural);
 
    type Room_Maker is limited new Canvas_VM.Surface with record
       Owner : Session_Access;
@@ -353,8 +413,6 @@ private
       --  The window whose source is having a file chosen, in the system's
       --  dialog (see SDL3.Dialogs, which shows one at a time), 0 if none;
       --  its item.
-      Export_Waiting : Boolean := False;
-      --  Whether the system's dialog is asking where to save the publish view's export.
    end record;
    --  Which screen is shown, the database, and what the canvas was last put
    --  by.
@@ -395,6 +453,11 @@ private
       Confirm_Reactions : aliased Confirm_Effects;
       Home_Reactions : aliased Home_Effects;
       Layout_Watcher : aliased Layout_Watch;
+      Sidebar_Watcher : aliased Sidebar_Watch;
+      Publish_Watcher : aliased Publish_Watch;
+      Source_Platform : aliased Source_Effects;
+      Writing_Platform : aliased Writing_Effects;
+      Publishing_Platform : aliased Publishing_Effects;
       Outline_Reactions : aliased Outline_Effects;
       Nav_Reactions : aliased Nav_Effects;
       Judge : aliased Command_Judge;
@@ -416,6 +479,7 @@ private
       Docs : Document_State;
       Grammar_Checks : Grammar_State;
       Grammar_Model : Rule_Choices;
+      Grammar_Reactions : aliased Grammar_Effects;
       Outline_View : Outline_Parts;
       Outline_Model : Outline_Choices;
       Context : Context_State;

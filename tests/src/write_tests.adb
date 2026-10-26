@@ -1,3 +1,5 @@
+with Pomarine.Testing;
+with View_Driver;
 with Ada.Directories;
 with Ada.Text_IO;
 with Pomarine.Page_Builds;
@@ -887,14 +889,17 @@ package body Write_Tests is
    end Markdown;
 
    procedure Sources is
-      Session : View.Session;
+      Session : aliased View.Session;
+      Ears : aliased View_Driver.Driver (Session'Access);
+      Window : Pomarine.Testing.Session;
    begin
       Start_With_Three (Session);
       Proj.Set_Mode (Session, View.Write);
       Snap (Session, "write-sources-listed");
       Check ("write-source-closed", "FALSE",
              Boolean'Image (Source_List.Source_Is_Open (Session, 1)));
-      Click_On (Session, Source_Row_X, Source_Row_Y (3));
+      Pomarine.Testing.Attach (Window, View.Widget_Tree (Session).all, Ears'Access);
+      Pomarine.Testing.Click_On (Window, "Source Page");
       Settle (Session);
       Check ("write-source-opened", "TRUE",
              Boolean'Image (Source_List.Source_Is_Open (Session, 1)));

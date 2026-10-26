@@ -44,8 +44,15 @@ package Nav_VM is
       --  The project's name, to type over.
       Accept_Rename,
       Cancel_Rename,
-      Dismiss);
+      Dismiss,
       --  Put away the layer that is over the rest, as Escape does.
+      Add_Document,
+      Add_Source,
+      --  Create a document in Canvas or Write, or a source on the canvas.
+      Add_Folder,
+      --  Create a folder in the writing view and begin naming it.
+      Toggle_Section_Notes);
+      --  Index: a writing section. Toggle its shared outline notes.
 
    package Commands is new Parts.Command_Models (Command);
 
@@ -66,7 +73,7 @@ package Nav_VM is
    procedure Going_To_Execute (Self : in out Effects; What : Command; Index : Natural) is abstract;
    --  Before What is done, for what must be let go of first (the views of the project that is left).
 
-   procedure Executed (Self : in out Effects; What : Command) is abstract;
+   procedure Executed (Self : in out Effects; What : Command; Index : Natural) is abstract;
    --  After What is done: the screen shows it.
 
    type View_Model is limited new Commands.Model with private;
@@ -169,7 +176,9 @@ package Nav_VM is
    --  screen, with nothing over it. Close_Settings: they are up, and the dialog over them is not. Leave_Project and the
    --  views: at a project. Open_List: at a project. Begin_Rename: at a project with nothing over it.
    --  Close_List: it is up. Accept_Rename and Cancel_Rename: a name is being typed. Dismiss: something is over the
-   --  screen.
+   --  screen. Add_Document: Canvas or Write; Add_Source: Canvas; Add_Folder: Write. Each needs a project
+   --  with nothing over it. Add_Document accepts Index 0 for an ordinary document, or a listed section in Write.
+   --  Toggle_Section_Notes requires a positive listed section in Write.
 
    overriding procedure Execute (Self : in out View_Model; What : Command; Index : Natural := 0)
      with Post => (case What is

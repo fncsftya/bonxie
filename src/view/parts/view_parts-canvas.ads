@@ -50,8 +50,6 @@ package View_Parts.Canvas is
       --  A bar above the tools, of the bars of the items that are
       --  minimised: shown only when there are any.
       Tools         : Pomarine.UI.Layout;
-      Tool_Item     : Pomarine.UI.Button_Handle;
-      Tool_Source   : Pomarine.UI.Button_Handle;
       --  The tray of the canvas's tools, over it at the foot, in the
       --  middle: Add Document, Add Source.
       Tray_Left     : Float := -1.0E9;
@@ -68,6 +66,8 @@ package View_Parts.Canvas is
       --  Where each was last put, in pixels, to put it again only if it
       --  moves.
       Link_Handle  : Pomarine.Widgets.Pins.Pin;
+      Picked       : Items.Id := 0;
+      --  The link last seen selected (its key): choosing one takes the focus from the text typed in.
       --  Over the target end of the selected link, to drag it to another
       --  pin by.
       Link_Bar     : Pomarine.Widgets.Panels.Panel;
@@ -96,8 +96,10 @@ package View_Parts.Canvas is
       Field : Pomarine.Widgets.Text_Fields.Text_Field;
       Previous, Next, Close : Pomarine.Widgets.Buttons.Button;
       Count : Pomarine.Widgets.Labels.Label;
+      Query_Control : Pomarine.UI.Field_Handle;
+      Count_Control : Pomarine.UI.Label_Handle;
+      Previous_Control, Next_Control, Close_Control : Pomarine.UI.Button_Handle;
       Model : Search_VM.View_Model;
-      Shown : Pomarine.View_Models.Watch;
       --  Finder cache and navigation state of the writing/text engines. Search lifecycle and query are in Model.
       Documents : Search_Document_Lists.List;
       Total, Current, Rank : Natural := 0;

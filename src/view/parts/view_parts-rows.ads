@@ -1,3 +1,4 @@
+with Naming_VM;
 with Writing_VM.Trees;
 with Texts.Documents;
 with Slot_Tables;
@@ -95,12 +96,10 @@ package View_Parts.Rows is
    type Renaming_State is limited record
       Dir_Field    : Pomarine.Widgets.Text_Fields.Text_Field;
       Dir_Doc      : aliased Texts.Documents.Document;
-      Renaming_Dir : Natural := 0;
-      Renaming_Doc : Natural := 0;
       Source_Field : Pomarine.Widgets.Text_Fields.Text_Field;
-      Renaming_Source : Natural := 0;
-      --  The directory, the document or the source being renamed, 0 if
-      --  none, in the field over its row (of Source_Field, for a source).
+      Names : Naming_VM.Model;
+      --  The directory, the document or the source being renamed, if any, in the field over its row (of
+      --  Source_Field, for a source).
    end record;
    --  The fields over a row being renamed.
 

@@ -1,9 +1,15 @@
+with Writing_Sources_VM;
+with Writing_VM.Actions;
+with Publish_VM.Disk;
+with Publish_VM;
+with Pomarine.View_Models;
+with Sidebar_VM;
+with Sidebar_VM.Disk;
 with Writing_VM.Trees;
 with Items.Directories;
 with Growing;
 with Slot_Tables;
 with Items.Readers.Tables;
-with Pomarine.Events;
 with Texts.Documents;
 with Pomarine.Widgets;
 with Pomarine.Widgets.Buttons;
@@ -32,7 +38,6 @@ package View_Parts.Pages is
       --  The title, in a grip that takes a double press to rename it.
       Title_Field : Pomarine.Widgets.Text_Fields.Text_Field;
       --  In its place while it is renamed, on the title of the window.
-      Renaming : Boolean := False;
       Sources_Button : Pomarine.Widgets.Buttons.Button;
       --  A dropdown: opens the menu of the sources the document is
       --  linked to, and shows how many.
@@ -78,20 +83,14 @@ package View_Parts.Pages is
       View    : Pomarine.Widgets.Panels.Panel;
       Sidebar : Pomarine.Widgets.Panels.Panel;
       Rule    : Pomarine.Widgets.Panels.Panel;
-      Section_Headings : Pomarine.Widgets.Switches.Switch;
-      Document_Headings : Pomarine.Widgets.Switches.Switch;
+      Options : aliased Publish_VM.View_Model;
+      Files : aliased Publish_VM.Disk.File_Store;
+      Content_Seen : Pomarine.View_Models.Watch;
       Format  : Pomarine.Widgets.Selects.Select_Field;
       Format_Menu : Pomarine.Widgets.Menus.Menu;
-      Format_Open : Boolean := False;
-      Markdown : Boolean := False;
-      --  Whether Markdown is the format chosen: the content area is then split, the Markdown
-      --  (Source_Text) at the left of the page as it is rendered.
       Divider : Pomarine.Widgets.Panels.Panel;
       --  Between the options and Export.
-      Export  : Pomarine.Widgets.Buttons.Button;
       Copy    : Pomarine.Widgets.Buttons.Button;
-      Copied_Until : Pomarine.Events.Milliseconds := 0;
-      --  When Copy goes back to its label, after it said Copied; 0 if it is not saying so.
       Doc     : aliased Texts.Documents.Document;
       Text    : Pomarine.Widgets.Editors.Editor;
       Split_Rule : Pomarine.Widgets.Panels.Panel;
@@ -118,9 +117,9 @@ package View_Parts.Pages is
       Sidebar       : Pomarine.Widgets.Panels.Panel;
       Edit_Heading  : Fold_Head;
       --  The head of the Edit section, above the grammar suggestions.
-      Edit_Open     : Boolean := True;
-      Docs_Open     : Boolean := True;
-      Sources_Open  : Boolean := True;
+      Actions : aliased Writing_VM.Actions.Page_Model;
+      Folding : aliased Sidebar_VM.View_Model;
+      Folds_Kept : aliased Sidebar_VM.Disk.File_Store;
       --  Whether each section of the sidebar is open; the heads fold them.
       Grammar_Row   : Pomarine.Widgets.Panels.Panel;
       Grammar_Switch : Pomarine.Widgets.Switches.Switch;
@@ -300,8 +299,7 @@ package View_Parts.Pages is
       Pane_Sync    : Common.Sync_State;
       Reader_Placed : Common.Placed_Array;
       --  Whether a reader has been given a place yet.
-      Source_Order : Common.Slot_Array;
-      Source_Total : Natural := 0;
+      Sources : aliased Writing_Sources_VM.View_Model;
       --  The windows of the sources, the earliest made first.
       Pinned_Slot  : Natural := 0;
       --  The window of the source in the pane, 0 if none.

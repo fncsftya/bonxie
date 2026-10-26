@@ -1,4 +1,5 @@
-with View.Menu_Commands;
+with Publish_UI;
+with Publish_VM;
 with Pomarine.UI.Menus;
 with Canvas_VM;
 with Home_UI;
@@ -9,7 +10,6 @@ with Pomarine.UI;
 with Pomarine.Boxes;
 with Pomarine.Widgets.Menus;
 with Pomarine.Widgets.Selects;
-with Pomarine.Widgets.Switches;
 with Pomarine.Widgets.Editors;
 with Items.Windows;
 with SDL3.Cursors;
@@ -35,7 +35,6 @@ package body View.Build.Shell_Views is
    package Grips renames Pomarine.Widgets.Grips;
    package Scrollers renames Pomarine.Widgets.Scrollers;
    package Editors renames Pomarine.Widgets.Editors;
-   package Switches renames Pomarine.Widgets.Switches;
    package Selects renames Pomarine.Widgets.Selects;
    package Menus renames Pomarine.Widgets.Menus;
    package Themes renames Pomarine.Themes;
@@ -136,9 +135,9 @@ package body View.Build.Shell_Views is
                 (Buttons.Looks ("Rename", Icon => Pomarine.Icons.Shown (Icon_Set.Edit), Focusable => True),
                  Home_VM.Begin_Rename, Number);
             Delete  : constant UI.Button_Handle :=
-              Homes.Plain_Button
+              Homes.Button
                 (Buttons.Looks ("Delete", Buttons.Danger, Icon => Pomarine.Icons.Shown (Icon_Set.Delete),
-                                Focusable => True));
+                                Focusable => True), Home_VM.Ask_Delete, Number);
             Sized   : constant Layouts.Style := (Width => Card_Button, Height => Card_Button, others => <>);
 
             --  In place of the name and the buttons, while the project is renamed.
@@ -211,7 +210,6 @@ package body View.Build.Shell_Views is
             Card.Peek := Peek;
             Card.Name := Name;
             Card.Rename := Rename;
-            Card.Delete := Delete;
             return Whole;
          end Card_Of;
 
@@ -473,13 +471,13 @@ package body View.Build.Shell_Views is
          Navs  : constant Nav_UI.Context'Class := Nav_UI.Bind (Form, Item.Nav_Model.Model'Unrestricted_Access);
 
          Document : constant UI.Button_Handle :=
-           Navs.Plain_Button
+           Navs.Button
              (Buttons.Looks ("Add document", Icon => Pomarine.Icons.Shown (Icon_Set.Document), Captioned => True,
-                             Focusable => True));
+                             Focusable => True), Nav_VM.Add_Document);
          Source   : constant UI.Button_Handle :=
-           Navs.Plain_Button
+           Navs.Button
              (Buttons.Looks ("Add source", Buttons.Primary, Icon => Pomarine.Icons.Shown (Icon_Set.Link),
-                             Captioned => True, Focusable => True));
+                             Captioned => True, Focusable => True), Nav_VM.Add_Source);
          Tools    : constant UI.Layout :=
            UI.Styled
              (UI.Row
@@ -491,8 +489,6 @@ package body View.Build.Shell_Views is
                Padding => (others => Tray_Pad), Shadowed => True, Gap => Tray_Gap, others => <>));
       begin
          Tray.Tools := Tools;
-         Tray.Tool_Item := Document;
-         Tray.Tool_Source := Source;
          UI.Mount_Into (Form, Content_Panel (Item).all, Tools);
       end;
    end Build_Tray;
@@ -500,11 +496,20 @@ package body View.Build.Shell_Views is
    procedure Build_Publish (Item : in out Session) is
       Pane : Publish_Parts renames Item.Publish_View;
    begin
-      Buttons.Configure (Pane.Export, Buttons.Looks ("Export", Focusable => True));
       Buttons.Configure (Pane.Copy, Buttons.Looks ("Copy to Clipboard", Focusable => True));
       Open (Item.Forms (Publish_Region), Item.Root.Widgets'Unchecked_Access, Publish_Region);
       declare
          Form : UI.View renames Item.Forms (Publish_Region).Screen.all;
+         Bound : constant Publish_UI.Controls.Context'Class :=
+           Publish_UI.Controls.Bind (Form, Pane.Options'Unrestricted_Access);
+         Format_Field : constant UI.Widget_Handle := Bound.Borrow_Widget (Pane.Format);
+         Format_Menu : constant UI.Widget_Handle := Bound.Borrow_Widget (Pane.Format_Menu);
+         Export : constant UI.Button_Handle := Bound.Button ("Export", Publish_VM.Export, Focusable => True);
+         Copy : constant UI.Button_Handle := Bound.Borrow_Button (Pane.Copy, Publish_VM.Copy);
+         Sections : constant UI.Switch_Handle := Bound.Switch
+           ("Include section headings", Publish_UI.Sections.Property, Publish_VM.Toggle_Section_Headings);
+         Documents : constant UI.Switch_Handle := Bound.Switch
+           ("Include document headings", Publish_UI.Documents.Property, Publish_VM.Toggle_Document_Headings);
 
          function Line (Widget : in out Widgets.Widget'Class; Box : Layouts.Style) return UI.Layout is
            (UI.Styled (UI.Put (Form, Widget), Box));
@@ -513,14 +518,16 @@ package body View.Build.Shell_Views is
            UI.Styled
              (UI.Put_In
                 (Form, Pane.Sidebar,
-                 [Line (Pane.Format, (Height => 32.0, Margin => (Bottom => 8.0, others => <>), others => <>)),
-                  Line (Pane.Section_Headings, (Height => 32.0, others => <>)),
-                  Line (Pane.Document_Headings, (Height => 32.0, others => <>)),
+                 [UI.Styled (UI.Place (Format_Field),
+                             (Height => 32.0, Margin => (Bottom => 8.0, others => <>), others => <>)),
+                  UI.Styled (UI.Place (Sections), (Height => 32.0, others => <>)),
+                  UI.Styled (UI.Place (Documents), (Height => 32.0, others => <>)),
                   Line (Pane.Divider,
                         (Height => Hairline, Shrink => 0.0, Margin => (Top => 12.0, Bottom => 12.0, others => <>),
                          others => <>)),
-                  Line (Pane.Export, (Height => Tab_Height, others => <>)),
-                  Line (Pane.Copy, (Height => Tab_Height, Margin => (Top => 8.0, others => <>), others => <>))]),
+                  UI.Styled (UI.Place (Export), (Height => Tab_Height, others => <>)),
+                  UI.Styled (UI.Place (Copy),
+                             (Height => Tab_Height, Margin => (Top => 8.0, others => <>), others => <>))]),
               (Flow => Column, Width => Item.Page_View.Sidebar_Wide, Shrink => 0.0,
                Padding => (Top => Sidebar_Pad + Heading_Top, others => Sidebar_Pad), others => <>));
 
@@ -560,29 +567,27 @@ package body View.Build.Shell_Views is
                   Source_Sheet,
                   Line (Pane.Split_Rule, (Width => Hairline, Shrink => 0.0, others => <>)),
                   Sheet,
-                  Menu_Commands.Place (Item, Form, Pane.Format_Menu, Menu_VM.Format_Menu,
-                                       (Place => Absolute, Width => Menu_Width, others => <>))],
+                  UI.Styled (UI.Place (Format_Menu), (Place => Absolute, Width => Menu_Width, others => <>))],
                  Flow => Layouts.Row),
               (Flow => Row, Grow => 1.0, Height => 0.0, others => <>));
       begin
+         Bound.Caption_From (Copy, Publish_UI.Copy_Caption.Property);
+         Bound.On_Event (Format_Field, Widgets.Click, Publish_VM.Toggle_Format);
+         Bound.On_Event (Format_Menu, Widgets.Choose, Publish_VM.Choose_Markdown, Index_From_Event => True);
          UI.Mount_Into (Form, Content_Panel (Item).all, Whole);
+         UI.Observe (Form, Item.Publish_Watcher'Access);
       end;
       Panels.Set_Fill (Pane.Split_Rule, Themes.Border);
       Selects.Set_Value (Pane.Format, "Choose a format");
+      Widgets.Set_Accessible_Name (Pane.Format, "Publish format");
       Widgets.Set_Visible (Pane.Format_Menu, False);
       Pomarine.UI.Menus.Set_Content (Pane.Format_Menu, [Pomarine.UI.Menus.Row (Menus.Check, "Markdown")]);
       Panels.Set_Fill (Pane.Divider, Themes.Border);
-      Switches.Set_Label (Pane.Section_Headings, "Include section headings");
-      Switches.Set_Label (Pane.Document_Headings, "Include document headings");
-      Switches.Set_Focusable (Pane.Section_Headings, True);
-      Switches.Set_Focusable (Pane.Document_Headings, True);
       if not Item.Shell.Windowed then
          Panels.Set_Fill (Pane.View, Desk);
       end if;
       Panels.Set_Fill (Pane.Sidebar, Side_Fill);
       Panels.Set_Fill (Pane.Rule, Themes.Border);
-      Buttons.Set_Enabled (Pane.Export, False);
-      Buttons.Set_Enabled (Pane.Copy, False);
       Editors.Set_Shared (Pane.Source_Text, Item.Host.Doc_Resources'Unchecked_Access);
       Editors.Configure (Pane.Source_Text, "Menlo", Source_Text_Size, 2000.0, Spacing => 0.35 * Source_Text_Size);
       Editors.Set_Paper (Pane.Source_Text, Paper);
