@@ -117,12 +117,12 @@ package body View.Outlines.Blocks is
          Layouts.Set_Layout
            (Pane.Drop_Line,
             Position =>
-              (Left => Widgets.Left_Of (First) - Widgets.Left_Of (Pane.Content),
-               Top  => Float'Max
+              (Left => Layouts.Length_Of (Widgets.Left_Of (First) - Widgets.Left_Of (Pane.Content)),
+               Top  => Layouts.Length_Of (Float'Max
                          (0.0, Float'Rounding
-                                 (Mid - Thick / 2.0 - Widgets.Top_Of (Pane.Content))),
+                                 (Mid - Thick / 2.0 - Widgets.Top_Of (Pane.Content)))),
                others => <>),
-            Width => Widgets.Width_Of (First) - Offset,
+            Width => Layouts.Length_Of (Widgets.Width_Of (First) - Offset),
             Unit => Layouts.Device_Pixels);
       end;
       Widgets.Set_Visible (Pane.Drop_Line, True);
@@ -158,16 +158,16 @@ package body View.Outlines.Blocks is
          Layouts.Set_Layout
            (Pane.Ghost,
             Position =>
-              (Left => Widgets.Left_Of (Held) - Widgets.Left_Of (Pane.Content)
-                       + Float'Rounding (Leeway * Pixels),
-               Top  => Float'Min
+              (Left => Layouts.Length_Of (Widgets.Left_Of (Held) - Widgets.Left_Of (Pane.Content)
+                       + Float'Rounding (Leeway * Pixels)),
+               Top  => Layouts.Length_Of (Float'Min
                          (Most, Float'Max
                                   (Least, Float'Rounding
                                             (Y * Pixels - High / 2.0
-                                             - Widgets.Top_Of (Pane.Content)))),
+                                             - Widgets.Top_Of (Pane.Content))))),
                others => <>),
-            Width  => Widgets.Width_Of (Held) - Offset,
-            Height => High,
+            Width  => Layouts.Length_Of (Widgets.Width_Of (Held) - Offset),
+            Height => Layouts.Length_Of (High),
             Unit   => Layouts.Device_Pixels);
       end;
       Widgets.Set_Visible (Pane.Ghost, True);

@@ -42,10 +42,10 @@ package body View.Writing.Rename is
    begin
       Layouts.Set_Layout
         (Field,
-         Position => (Left => Widgets.Left_Of (Box) - Widgets.Left_Of (Content),
-                      Top  => Widgets.Top_Of (Box) - Widgets.Top_Of (Content),
+         Position => (Left => Layouts.Length_Of (Widgets.Left_Of (Box) - Widgets.Left_Of (Content)),
+                      Top  => Layouts.Length_Of (Widgets.Top_Of (Box) - Widgets.Top_Of (Content)),
                       others => <>),
-         Width => Widgets.Width_Of (Box) - Pomarine.Boxes.Offset (Pixels),
+         Width => Layouts.Length_Of (Widgets.Width_Of (Box) - Pomarine.Boxes.Offset (Pixels)),
          Unit => Layouts.Device_Pixels);
       Widgets.Set_Visible (Field, True);
       Widgets.Request_Layout (Field);

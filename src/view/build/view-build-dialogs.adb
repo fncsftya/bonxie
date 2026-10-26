@@ -28,13 +28,15 @@ package body View.Build.Dialogs is
      (UI.Styled
         (UI.Row
            ([UI.Styled
-               (UI.Place (Heading), (Grow => 1.0, Width => 0.0, Height => Dialog_Bar_Height, others => <>)),
+               (UI.Place (Heading), (Grow => 1.0, Width => 0.0, Height => UI.Layouts.Length_Of (Dialog_Bar_Height),
+                                     others => <>)),
              UI.Styled
                (UI.Place (Close),
-                (Width => Dialog_Close_Size, Height => Dialog_Close_Size, Shrink => 0.0, others => <>))],
+                (Width => UI.Layouts.Length_Of (Dialog_Close_Size), Height => UI.Layouts.Length_Of (Dialog_Close_Size),
+                 Shrink => 0.0, others => <>))],
             Appearance => (Fill => Toolbar, others => <>)),
-         (Flow => Row, Align => Center, Height => Dialog_Bar_Height, Shrink => 0.0,
-          Padding => (Left | Right => Dialog_Bar_Pad, others => <>), others => <>)));
+         (Flow => Row, Align => Center, Height => UI.Layouts.Length_Of (Dialog_Bar_Height), Shrink => 0.0,
+          Padding => (Left | Right => UI.Layouts.Length_Of (Dialog_Bar_Pad), others => <>), others => <>)));
    --  The dark bar across the top of a dialog, as a window's: its title, white, and a small button to close
    --  it, at the right.
 
@@ -43,12 +45,13 @@ package body View.Build.Dialogs is
         ("Close", Icon => Pomarine.Icons.Shown (Pomarine.Icons.Close), Icon_Points => Dialog_Close_Icon,
          Focusable => True));
 
-   function Boxed (Inside : UI.Layout_Array; Width : Float; Height : Float := Unset) return UI.Layout is
+   function Boxed (Inside : UI.Layout_Array; Width : UI.Layouts.Length;
+                   Height : UI.Layouts.Length := UI.Unset) return UI.Layout is
      (UI.Styled
         (UI.Column
            (Inside,
             Appearance => (Fill => Themes.Border, Radius => Themes.Large_Radius, Framed => True, others => <>)),
-         (Flow => Column, Outlined => True, Width => Width, Height => Height, others => <>)));
+         (Flow => Column, Outlined => On, Width => Width, Height => Height, others => <>)));
    --  The outline round a dialog, of this size.
 
    function Over_All (Dialog : UI.Layout) return UI.Layout is
@@ -105,11 +108,11 @@ package body View.Build.Dialogs is
          Body_Layout : constant UI.Layout :=
            UI.Styled
              (UI.Column
-                ([UI.Styled (UI.Place (Message), (Height => Dialog_Line, others => <>)),
-                  UI.Styled (UI.Place (Note), (Height => Dialog_Line, others => <>)),
-                  UI.Styled (UI.Place (Offered), (Height => Dialog_Line, others => <>))],
+                ([UI.Styled (UI.Place (Message), (Height => UI.Layouts.Length_Of (Dialog_Line), others => <>)),
+                  UI.Styled (UI.Place (Note), (Height => UI.Layouts.Length_Of (Dialog_Line), others => <>)),
+                  UI.Styled (UI.Place (Offered), (Height => UI.Layouts.Length_Of (Dialog_Line), others => <>))],
                  Appearance => (Fill => Paper, others => <>)),
-              (Flow => Column, Padding => (others => Dialog_Pad), others => <>));
+              (Flow => Column, Padding => (others => UI.Layouts.Length_Of (Dialog_Pad)), others => <>));
 
          Rule : constant UI.Layout :=
            UI.Styled (UI.Spacer (Form, (Fill => Themes.Border, others => <>)), (Height => Hairline, others => <>));
@@ -118,15 +121,18 @@ package body View.Build.Dialogs is
            UI.Styled
              (UI.Row
                 ([UI.Styled
-                    (UI.Place (Cancel), (Height => Dialog_Button_Height, Width => Dialog_Button_Width, others => <>)),
+                    (UI.Place (Cancel), (Height => UI.Layouts.Length_Of (Dialog_Button_Height),
+                                         Width => UI.Layouts.Length_Of (Dialog_Button_Width), others => <>)),
                   UI.Styled
-                    (UI.Place (Delete), (Height => Dialog_Button_Height, Width => Dialog_Button_Width, others => <>))],
+                    (UI.Place (Delete), (Height => UI.Layouts.Length_Of (Dialog_Button_Height),
+                                         Width => UI.Layouts.Length_Of (Dialog_Button_Width), others => <>))],
                  Appearance => (Fill => Themes.Tint, others => <>)),
-              (Flow => Row, Spread => Finish, Padding => (others => Dialog_Foot_Pad), Gap => Row_Gap,
+              (Flow => Row, Spread => Finish, Padding => (others => UI.Layouts.Length_Of (Dialog_Foot_Pad)),
+               Gap => UI.Layouts.Length_Of (Row_Gap),
                others => <>));
 
          Border : constant UI.Layout :=
-           Boxed ([Bar (Heading, Close), Body_Layout, Rule, Foot], Dialog_Width);
+           Boxed ([Bar (Heading, Close), Body_Layout, Rule, Foot], UI.Layouts.Length_Of (Dialog_Width));
          Overlay : constant UI.Layout := Over_All (Border);
       begin
          Labels.Set_Style (UI.Widget_Of (Form, Heading).all, Pomarine.Line_Texts.Strong);
@@ -172,12 +178,14 @@ package body View.Build.Dialogs is
            UI.Styled
              (UI.Column
                 ([UI.Styled (UI.Place (Rows), (Grow => 1.0, Height => 0.0, others => <>)),
-                  UI.Styled (UI.Place (None), (Height => Title_Height, others => <>))],
+                  UI.Styled (UI.Place (None), (Height => UI.Layouts.Length_Of (Title_Height), others => <>))],
                  Appearance => (Fill => Paper, others => <>)),
-              (Flow => Column, Grow => 1.0, Height => 0.0, Padding => (others => Dialog_Pad), others => <>));
+              (Flow => Column, Grow => 1.0, Height => 0.0, Padding => (others => UI.Layouts.Length_Of (Dialog_Pad)),
+               others => <>));
 
          Border : constant UI.Layout :=
-           Boxed ([Bar (Heading, Close), Dialog], List_Width, List_Height);
+           Boxed ([Bar (Heading, Close), Dialog], UI.Layouts.Length_Of (List_Width),
+                  UI.Layouts.Length_Of (List_Height));
          Overlay : constant UI.Layout := Over_All (Border);
       begin
          Labels.Set_Style (UI.Widget_Of (Form, Heading).all, Pomarine.Line_Texts.Strong);

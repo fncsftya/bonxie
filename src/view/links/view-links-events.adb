@@ -69,7 +69,7 @@ package body View.Links.Events is
       for Which in 1 .. Item.Windows.Count loop
          for Side in Item_Links.Sides loop
             if Which /= Canvas_VM.Link_From (Model)
-              and then Widgets.Is_Shown (Item.Linking.Pins (Which) (Side))
+              and then Widgets.Is_Showing (Item.Linking.Pins (Which) (Side))
               and then Widgets.Is_Hovered (Item.Linking.Pins (Which) (Side))
             then
                To := Which;

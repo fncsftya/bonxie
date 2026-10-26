@@ -463,7 +463,7 @@ package body View.Canvas_Items is
       if Middle /= Item.Dock.Tray_Left then
          Item.Dock.Tray_Left := Middle;
          Pomarine.Widgets.Layouts.Set_Layout
-           (Tray_Panel (Item).all, Position => (Left => Middle, others => <>),
+           (Tray_Panel (Item).all, Position => (Left => Pomarine.Widgets.Layouts.Length_Of (Middle), others => <>),
             Unit => Pomarine.Widgets.Layouts.Device_Pixels);
       end if;
       Placement.Follow (Item);

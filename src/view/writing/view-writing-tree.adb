@@ -181,7 +181,7 @@ package body View.Writing.Tree is
       if Level /= Each.Indent then
          --  Shrinks the box, not only its text.
          Each.Indent := Level;
-         Layouts.Set_Layout (Each.Row, Margin => (Left => Level, others => <>));
+         Layouts.Set_Layout (Each.Row, Margin => (Left => Layouts.Length_Of (Level), others => <>));
       end if;
    end Show_Tree_Row;
 

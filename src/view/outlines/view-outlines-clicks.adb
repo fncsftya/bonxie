@@ -27,13 +27,13 @@ package body View.Outlines.Clicks is
       Set_Layout
         (Pane.Colour_Popout,
          Position =>
-           (Left => Float'Max (0.0, Float'Min
+           (Left => Pomarine.Widgets.Layouts.Length_Of (Float'Max (0.0, Float'Min
               ((Widgets.Left_Of (Source) - Widgets.Left_Of (Content_Panel (Item).all)) / Pixels,
-               Widgets.Width_Of (Content_Panel (Item).all) / Pixels - 264.0)),
-            Top => Float'Max (0.0, Float'Min
+               Widgets.Width_Of (Content_Panel (Item).all) / Pixels - 264.0))),
+            Top => Pomarine.Widgets.Layouts.Length_Of (Float'Max (0.0, Float'Min
               ((Widgets.Top_Of (Source) + Widgets.Height_Of (Source)
                 - Widgets.Top_Of (Content_Panel (Item).all)) / Pixels,
-               Widgets.Height_Of (Content_Panel (Item).all) / Pixels - 270.0)), others => <>));
+               Widgets.Height_Of (Content_Panel (Item).all) / Pixels - 270.0))), others => <>));
       Widgets.Set_Visible (Pane.Colour_Popout, True);
       Widgets.Raise_To_Front (Pane.Colour_Popout);
    end Colour_Clicked;

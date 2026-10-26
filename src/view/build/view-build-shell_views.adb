@@ -57,7 +57,7 @@ package body View.Build.Shell_Views is
            (Form, Item.Root.Window_Panel,
             UI.Styled
               (UI.Put_In (Form, Item.Root.Header_Panel, [UI.Put (Form, Item.Root.Header_Title)]),
-               (Height => Header_Size, others => <>)));
+               (Height => Layouts.Length_Of (Header_Size), others => <>)));
       end;
       Widgets.Set_Visible (Item.Root.Header_Panel, False);
    end Build_Header;
@@ -139,7 +139,8 @@ package body View.Build.Shell_Views is
               Homes.Button
                 (Buttons.Looks ("Delete", Buttons.Danger, Icon => Pomarine.Icons.Shown (Icon_Set.Delete),
                                 Focusable => True), Home_VM.Ask_Delete, Number);
-            Sized   : constant Layouts.Style := (Width => Card_Button, Height => Card_Button, others => <>);
+            Sized   : constant Layouts.Style := (Width => Layouts.Length_Of (Card_Button),
+                                                 Height => Layouts.Length_Of (Card_Button), others => <>);
 
             --  In place of the name and the buttons, while the project is renamed.
             Field   : constant UI.Field_Handle :=
@@ -151,17 +152,23 @@ package body View.Build.Shell_Views is
             Editing : constant UI.Layout :=
               UI.Styled
                 (UI.Row
-                   ([UI.Styled (UI.Place (Field), (Grow => 1.0, Width => 0.0, Height => Card_Button, others => <>)),
-                     UI.Styled (UI.Place (Ok), (Width => Ok_Width, Height => Card_Button, others => <>)),
-                     UI.Styled (UI.Place (Cancel), (Width => Cancel_Width, Height => Card_Button, others => <>))]),
-                 (Flow => Row, Align => Center, Grow => 1.0, Width => 0.0, Gap => Row_Gap, others => <>));
+                   ([UI.Styled (UI.Place (Field),
+                                (Grow => 1.0, Width => 0.0, Height => Layouts.Length_Of (Card_Button), others => <>)),
+                     UI.Styled (UI.Place (Ok),
+                                (Width => Layouts.Length_Of (Ok_Width), Height => Layouts.Length_Of (Card_Button),
+                                 others => <>)),
+                     UI.Styled (UI.Place (Cancel),
+                                (Width => Layouts.Length_Of (Cancel_Width), Height => Layouts.Length_Of (Card_Button),
+                                 others => <>))]),
+                 (Flow => Row, Align => Center, Grow => 1.0, Width => 0.0, Gap => Layouts.Length_Of (Row_Gap),
+                  others => <>));
 
             Naming : constant UI.Layout :=
               UI.Styled
                 (UI.Hold
                    (Name,
-                    [UI.Styled (UI.Place (Heading), (Height => Card_Title_Height, others => <>)),
-                     UI.Styled (UI.Place (Meta), (Height => Card_Meta_Height, others => <>))]),
+                    [UI.Styled (UI.Place (Heading), (Height => Layouts.Length_Of (Card_Title_Height), others => <>)),
+                     UI.Styled (UI.Place (Meta), (Height => Layouts.Length_Of (Card_Meta_Height), others => <>))]),
                  (Grow => 1.0, Width => 0.0, Flow => Column, Spread => Center, Align_Self => Stretch, others => <>));
 
             Info : constant UI.Layout :=
@@ -174,8 +181,8 @@ package body View.Build.Shell_Views is
                     Appearance =>
                       (Fill => Themes.Tint, Radius => Themes.Large_Radius, Round => Pomarine.Boxes.Bottom_Corners,
                        others => <>)),
-                 (Grow => 1.0, Flow => Row, Align => Center, Gap => Row_Gap,
-                  Padding => (Left | Right => Card_Pad, others => <>), others => <>));
+                 (Grow => 1.0, Flow => Row, Align => Center, Gap => Layouts.Length_Of (Row_Gap),
+                  Padding => (Left | Right => Layouts.Length_Of (Card_Pad), others => <>), others => <>));
 
             Whole : constant UI.Layout :=
               UI.Styled
@@ -186,13 +193,14 @@ package body View.Build.Shell_Views is
                            [UI.Styled
                               (UI.Place (Picture), (Grow => 1.0, Margin => (Bottom => Hairline, others => <>),
                                                     others => <>))]),
-                        (Height => Thumb_Height, Flow => Column, others => <>)),
+                        (Height => Layouts.Length_Of (Thumb_Height), Flow => Column, others => <>)),
                      Info],
                     Appearance =>
                       (Fill => Themes.Tint, Border => Themes.Border, Shadow => Themes.Shadow,
                        Radius => Themes.Large_Radius, Framed => True, others => <>)),
-                 (Flow => Column, Width => Card_Width, Height => Card_Height, Shrink => 0.0, Outlined => True,
-                  Shadowed => True, others => <>));
+                 (Flow => Column, Width => Layouts.Length_Of (Card_Width), Height => Layouts.Length_Of (Card_Height),
+                  Shrink => 0.0, Outlined => On,
+                  Shadowed => On, others => <>));
          begin
             Labels.Set_Style (UI.Widget_Of (Form, Heading).all, Pomarine.Line_Texts.Heading);
             Homes.Show_When (Whole, Listed_Flag.Property, Number);
@@ -229,12 +237,16 @@ package body View.Build.Shell_Views is
            UI.Styled
              (UI.Hold
                 (Starter,
-                 [UI.Styled (UI.Place (Plus), (Width => Plus_Size, Height => Plus_Size, others => <>)),
+                 [UI.Styled (UI.Place (Plus),
+                             (Width => Layouts.Length_Of (Plus_Size), Height => Layouts.Length_Of (Plus_Size),
+                              others => <>)),
                   UI.Styled
                     (UI.Place (Wording),
-                     (Width => Card_Width / 2.0, Height => Title_Height, Margin => (Top => Row_Gap, others => <>),
+                     (Width => Layouts.Length_Of (Card_Width / 2.0), Height => Layouts.Length_Of (Title_Height),
+                      Margin => (Top => Layouts.Length_Of (Row_Gap), others => <>),
                       others => <>))]),
-              (Width => Card_Width - Themes.Shadow_Offset, Height => Card_Height - Themes.Shadow_Offset,
+              (Width => Layouts.Length_Of (Card_Width - Themes.Shadow_Offset),
+               Height => Layouts.Length_Of (Card_Height - Themes.Shadow_Offset),
                Shrink => 0.0, Flow => Column, Spread => Center, Align => Center, others => <>));
 
          Card_Layouts : UI.Layout_Array (1 .. Front.Cards'Length + 1);
@@ -245,15 +257,17 @@ package body View.Build.Shell_Views is
              (UI.Column
                 ([UI.Styled
                     (UI.Row
-                       ([UI.Styled (UI.Place (Logo), (Grow => 1.0, Height => Logo_Height, others => <>))]),
-                     (Flow => Row, Align => Center, Height => Logo_Height,
-                      Margin => (Bottom => Logo_Gap, others => <>), others => <>)),
-                  UI.Styled (UI.Place (Starting), (Height => Action_Height, others => <>)),
+                       ([UI.Styled (UI.Place (Logo),
+                                    (Grow => 1.0, Height => Layouts.Length_Of (Logo_Height), others => <>))]),
+                     (Flow => Row, Align => Center, Height => Layouts.Length_Of (Logo_Height),
+                      Margin => (Bottom => Layouts.Length_Of (Logo_Gap), others => <>), others => <>)),
+                  UI.Styled (UI.Place (Starting), (Height => Layouts.Length_Of (Action_Height), others => <>)),
                   UI.Styled (UI.Spacer (Form), (Grow => 1.0, others => <>)),
-                  UI.Styled (UI.Place (Settings), (Height => Action_Height, others => <>))],
+                  UI.Styled (UI.Place (Settings), (Height => Layouts.Length_Of (Action_Height), others => <>))],
                  Appearance => (Fill => (if Item.Shell.Windowed then 0 else Mid_Panel), others => <>)),
-              (Flow => Column, Width => Home_Side_Width, Shrink => 0.0,
-               Padding => (Top => Side_Pad + Top, others => Side_Pad), others => <>));
+              (Flow => Column, Width => Layouts.Length_Of (Home_Side_Width), Shrink => 0.0,
+               Padding => (Top => Layouts.Length_Of (Side_Pad + Top), others => Layouts.Length_Of (Side_Pad)),
+                 others => <>));
       begin
          for Number in Front.Cards'Range loop
             Card_Layouts (Number) := Card_Of (Number);
@@ -268,8 +282,9 @@ package body View.Build.Shell_Views is
                    (Scroller,
                     [UI.Styled
                        (UI.Row (Card_Layouts),
-                        (Flow => Row, Wrap => True, Align => Start, Shrink => 0.0, Gap => Card_Gap,
-                         Padding => (Right => Home_Margin - Card_Gap, Bottom => Home_Margin, others => <>),
+                        (Flow => Row, Wrap => On, Align => Start, Shrink => 0.0, Gap => Layouts.Length_Of (Card_Gap),
+                         Padding => (Right => Layouts.Length_Of (Home_Margin - Card_Gap),
+                                     Bottom => Layouts.Length_Of (Home_Margin), others => <>),
                          others => <>))]),
                  (Grow => 1.0, Height => 0.0, others => <>));
             Projects_Column : constant UI.Layout :=
@@ -277,10 +292,12 @@ package body View.Build.Shell_Views is
                 (UI.Column
                    ([UI.Styled
                        (UI.Place (Recent),
-                        (Height => Logo_Height, Margin => (Bottom => Logo_Gap, others => <>), others => <>)),
+                        (Height => Layouts.Length_Of (Logo_Height),
+                         Margin => (Bottom => Layouts.Length_Of (Logo_Gap), others => <>), others => <>)),
                      Cards_Layout]),
                  (Flow => Column, Grow => 1.0, Width => 0.0,
-                  Padding => (Top => Side_Pad + Top, Left => Home_Margin, others => <>), others => <>));
+                  Padding => (Top => Layouts.Length_Of (Side_Pad + Top), Left => Layouts.Length_Of (Home_Margin),
+                              others => <>), others => <>));
 
             Home : constant UI.Layout :=
               UI.Styled
@@ -321,7 +338,7 @@ package body View.Build.Shell_Views is
       Bar : Toolbar_Parts renames Item.Toolbar;
 
       function Size (Wide, High : Float) return Layouts.Style is
-        (Width => Wide, Height => High, Shrink => 0.0, others => <>);
+        (Width => Layouts.Length_Of (Wide), Height => Layouts.Length_Of (High), Shrink => 0.0, others => <>);
 
       function Side (Along : Spread_Kind) return Layouts.Style is
         (Flow => Row, Align => Center, Spread => Along, Grow => 1.0, Width => 0.0, others => <>);
@@ -364,21 +381,23 @@ package body View.Build.Shell_Views is
          Bar_Rule : constant UI.Layout :=
            UI.Styled
              (UI.Spacer (Form, (Fill => Rule_Ink, others => <>)),
-              (Width => Hairline, Height => Bar_Rule_Height, Shrink => 0.0,
-               Margin => (Left | Right => Name_Gap, others => <>), others => <>));
+              (Width => Hairline, Height => Layouts.Length_Of (Bar_Rule_Height), Shrink => 0.0,
+               Margin => (Left | Right => Layouts.Length_Of (Name_Gap), others => <>), others => <>));
          Name_Area : constant UI.Layout :=
            UI.Styled
              (UI.Put_In
                 (Form, Bar.Title_Area,
-                 [UI.Styled (UI.Place (Caption), (Shrink => 0.0, Height => Tab_Height, others => <>))]),
-              (Flow => Row, Align => Center, Shrink => 0.0, Height => Tab_Height, others => <>));
+                 [UI.Styled (UI.Place (Caption),
+                             (Shrink => 0.0, Height => Layouts.Length_Of (Tab_Height), others => <>))]),
+              (Flow => Row, Align => Center, Shrink => 0.0, Height => Layouts.Length_Of (Tab_Height), others => <>));
          Left_Side : constant UI.Layout :=
            UI.Styled
              (UI.Row
                 ([UI.Styled (UI.Place (Back), Size (Back_Width, Tab_Height)),
                   Bar_Rule,
                   Name_Area,
-                  UI.Styled (UI.Place (Field), (Grow => 1.0, Width => 0.0, Height => Tab_Height, others => <>))]),
+                  UI.Styled (UI.Place (Field),
+                             (Grow => 1.0, Width => 0.0, Height => Layouts.Length_Of (Tab_Height), others => <>))]),
               Side (Start));
          Tabs : constant UI.Layout :=
            UI.Styled
@@ -387,14 +406,15 @@ package body View.Build.Shell_Views is
                   UI.Styled (UI.Place (Canvas), Size (Tab_Width, Tab_Height)),
                   UI.Styled (UI.Place (Write), Size (Tab_Width, Tab_Height)),
                   UI.Styled (UI.Place (Publish), Size (Tab_Width, Tab_Height))]),
-              (Flow => Row, Gap => Tab_Gap, others => <>));
+              (Flow => Row, Gap => Layouts.Length_Of (Tab_Gap), others => <>));
          Finish_Side : constant UI.Layout :=
            UI.Styled (UI.Row ([UI.Styled (UI.Place (Listing), Size (Items_Width, Tab_Height))]), Side (Finish));
          Toolbar_Row : constant UI.Layout :=
            UI.Styled
              (UI.Row ([Left_Side, Tabs, Finish_Side], Appearance => (Fill => Toolbar, others => <>)),
-              (Height => Toolbar_Size, Shrink => 0.0, Flow => Row, Align => Center,
-               Padding => (Left  => (if Item.Shell.Windowed then Header_Inset else Bar_Inset), Right => Bar_Inset,
+              (Height => Layouts.Length_Of (Toolbar_Size), Shrink => 0.0, Flow => Row, Align => Center,
+               Padding => (Left  => (Layouts.Length_Of (if Item.Shell.Windowed then Header_Inset else Bar_Inset)),
+                           Right => Layouts.Length_Of (Bar_Inset),
                            others => <>),
                others => <>));
          --  The pages are taller than it: the content takes what the bars leave. Under it, the dock of
@@ -412,11 +432,12 @@ package body View.Build.Shell_Views is
                        (Form, Item.Dock.Dock_Scroll,
                         [UI.Styled
                            (UI.Put_In (Form, Item.Dock.Dock_Content, []),
-                            (Flow => Row, Shrink => 0.0, Align => Center, Gap => Dock_Gap,
-                             Padding => (Left | Right => Dock_Inset, others => <>), others => <>))]),
+                            (Flow => Row, Shrink => 0.0, Align => Center, Gap => Layouts.Length_Of (Dock_Gap),
+                             Padding => (Left | Right => Layouts.Length_Of (Dock_Inset), others => <>),
+                               others => <>))]),
                      (Flow => Row, Grow => 1.0, Width => 0.0, others => <>))],
                  Flow => Layouts.Row),
-              (Height => Dock_Height, Shrink => 0.0, Flow => Row, others => <>));
+              (Height => Layouts.Length_Of (Dock_Height), Shrink => 0.0, Flow => Row, others => <>));
          Project : constant UI.Layout :=
            UI.Styled (UI.Column ([Toolbar_Row, Content, Dock_Row]), (Flow => Column, Grow => 1.0, others => <>));
       begin
@@ -482,12 +503,19 @@ package body View.Build.Shell_Views is
          Tools    : constant UI.Layout :=
            UI.Styled
              (UI.Row
-                ([UI.Styled (UI.Place (Document), (Width => Wide_Tool_Width, Height => Tool_Height, others => <>)),
-                  UI.Styled (UI.Place (Source), (Width => Tool_Width, Height => Tool_Height, others => <>))],
+                ([UI.Styled (UI.Place (Document),
+                             (Width => Layouts.Length_Of (Wide_Tool_Width), Height => Layouts.Length_Of (Tool_Height),
+                              others => <>)),
+                  UI.Styled (UI.Place (Source),
+                             (Width => Layouts.Length_Of (Tool_Width), Height => Layouts.Length_Of (Tool_Height),
+                              others => <>))],
                  Appearance => (Fill => Toolbar, Shadow => Themes.Shadow, others => <>)),
-              (Place => Absolute, Position => (Bottom => Tray_Foot - Themes.Shadow_Offset, others => <>),
-               Width => Tray_Width, Height => Tray_Height, Flow => Row, Align => Center,
-               Padding => (others => Tray_Pad), Shadowed => True, Gap => Tray_Gap, others => <>));
+              (Place => Absolute, Position => (Bottom => Layouts.Length_Of (Tray_Foot - Themes.Shadow_Offset),
+                                               others => <>),
+               Width => Layouts.Length_Of (Tray_Width), Height => Layouts.Length_Of (Tray_Height), Flow => Row,
+                 Align => Center,
+               Padding => (others => Layouts.Length_Of (Tray_Pad)), Shadowed => On,
+                 Gap => Layouts.Length_Of (Tray_Gap), others => <>));
       begin
          Tray.Tools := Tools;
          UI.Mount_Into (Form, Content_Panel (Item).all, Tools);
@@ -526,11 +554,13 @@ package body View.Build.Shell_Views is
                   Line (Pane.Divider,
                         (Height => Hairline, Shrink => 0.0, Margin => (Top => 12.0, Bottom => 12.0, others => <>),
                          others => <>)),
-                  UI.Styled (UI.Place (Export), (Height => Tab_Height, others => <>)),
+                  UI.Styled (UI.Place (Export), (Height => Layouts.Length_Of (Tab_Height), others => <>)),
                   UI.Styled (UI.Place (Copy),
-                             (Height => Tab_Height, Margin => (Top => 8.0, others => <>), others => <>))]),
-              (Flow => Column, Width => Item.Page_View.Sidebar_Wide, Shrink => 0.0,
-               Padding => (Top => Sidebar_Pad + Heading_Top, others => Sidebar_Pad), others => <>));
+                             (Height => Layouts.Length_Of (Tab_Height), Margin => (Top => 8.0, others => <>),
+                              others => <>))]),
+              (Flow => Column, Width => Layouts.Length_Of (Item.Page_View.Sidebar_Wide), Shrink => 0.0,
+               Padding => (Top => Layouts.Length_Of (Sidebar_Pad + Heading_Top),
+                           others => Layouts.Length_Of (Sidebar_Pad)), others => <>));
 
          --  The sheets: the Markdown (Source_Text) at the left of the page as it is rendered, which is shown
          --  only when Markdown is the format.
@@ -541,10 +571,13 @@ package body View.Build.Shell_Views is
                  [UI.Styled
                     (UI.Put_In
                        (Form, Pane.Source_Content,
-                        [Line (Pane.Source_Text, (Shrink => 0.0, Height => Page_Min_Height, Width => Page_Width,
+                        [Line (Pane.Source_Text,
+                               (Shrink => 0.0, Height => Layouts.Length_Of (Page_Min_Height),
+                                Width => Layouts.Length_Of (Page_Width),
                                                   others => <>))]),
                      (Flow => Column, Shrink => 0.0, Align => Start,
-                      Padding => (Left => Page_Inset, others => Page_Margin), others => <>))]),
+                      Padding => (Left => Layouts.Length_Of (Page_Inset), others => Layouts.Length_Of (Page_Margin)),
+                        others => <>))]),
               (Grow => 1.0, Width => 0.0, others => <>));
          Sheet : constant UI.Layout :=
            UI.Styled
@@ -553,10 +586,12 @@ package body View.Build.Shell_Views is
                  [UI.Styled
                     (UI.Put_In
                        (Form, Pane.Content,
-                        [Line (Pane.Text, (Shrink => 0.0, Height => Page_Min_Height, Width => Page_Width,
+                        [Line (Pane.Text, (Shrink => 0.0, Height => Layouts.Length_Of (Page_Min_Height),
+                                           Width => Layouts.Length_Of (Page_Width),
                                            others => <>))]),
                      (Flow => Column, Shrink => 0.0, Align => Start,
-                      Padding => (Left => Page_Inset, others => Page_Margin), others => <>))]),
+                      Padding => (Left => Layouts.Length_Of (Page_Inset), others => Layouts.Length_Of (Page_Margin)),
+                        others => <>))]),
               (Grow => 1.0, Width => 0.0, others => <>));
 
          Whole : constant UI.Layout :=
@@ -568,7 +603,8 @@ package body View.Build.Shell_Views is
                   Source_Sheet,
                   Line (Pane.Split_Rule, (Width => Hairline, Shrink => 0.0, others => <>)),
                   Sheet,
-                  UI.Styled (UI.Place (Format_Menu), (Place => Absolute, Width => Menu_Width, others => <>))],
+                  UI.Styled (UI.Place (Format_Menu),
+                             (Place => Absolute, Width => Layouts.Length_Of (Menu_Width), others => <>))],
                  Flow => Layouts.Row),
               (Flow => Row, Grow => 1.0, Height => 0.0, others => <>));
       begin

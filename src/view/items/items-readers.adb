@@ -115,7 +115,8 @@ package body Items.Readers is
          Bound : constant Reader_UI.Controls.Context'Class := Reader_UI.Controls.Bind (Screen, Item.Controls'Access);
 
          function Put (Part : in out Widgets.Widget'Class; Wide, High : Float) return UI.Layout is
-           (UI.Styled (UI.Put (Screen, Part), (Width => Wide, Height => High, others => <>)));
+           (UI.Styled (UI.Put (Screen, Part),
+                       (Width => Layouts.Length_Of (Wide), Height => Layouts.Length_Of (High), others => <>)));
 
          function Tool
            (Part : in out Buttons.Button; What : Reader_VM.Command; Caption : String; Icon : Pomarine.Icons.Optional)
@@ -131,7 +132,9 @@ package body Items.Readers is
                   when Reader_VM.Use_Eraser => Bound.Selected_When (Handle, Reader_UI.Eraser_Flag.Property);
                   when others => null;
                end case;
-               return UI.Styled (UI.Place (Handle), (Width => Button_Size, Height => Row_Height, others => <>));
+               return UI.Styled (UI.Place (Handle),
+                                 (Width => Layouts.Length_Of (Button_Size), Height => Layouts.Length_Of (Row_Height),
+                                  others => <>));
             end;
          end Tool;
 
@@ -142,8 +145,10 @@ package body Items.Readers is
          Eraser : constant UI.Layout :=
            Tool (Item.Eraser_Button, Reader_VM.Use_Eraser, "Rub", Pomarine.Icons.Shown (Icon_Set.Eraser));
          Tools  : constant UI.Layout := UI.Styled
-           (UI.Put_In (Screen, Item.Tools, [Cursor, Marker, Eraser], Flow => Layouts.Row, Gap => Button_Gap),
-            (Width => Tools_Width, Height => Row_Height, Gap => Button_Gap, others => <>));
+           (UI.Put_In (Screen, Item.Tools, [Cursor, Marker, Eraser], Flow => Layouts.Row,
+                       Gap => Layouts.Length_Of (Button_Gap)),
+            (Width => Layouts.Length_Of (Tools_Width), Height => Layouts.Length_Of (Row_Height),
+             Gap => Layouts.Length_Of (Button_Gap), others => <>));
          Content : constant UI.Layout := UI.Fragment
            (Screen, [UI.Styled (UI.Put (Screen, Item.Picture), (Grow => 1.0, Height => 0.0, others => <>)),
                      UI.Styled (UI.Put (Screen, Item.Pages), (Grow => 1.0, Height => 0.0, others => <>)),
@@ -155,15 +160,20 @@ package body Items.Readers is
          Status : constant UI.Layout := UI.Fragment
            (Screen, [Tools,
                      UI.Styled (UI.Place (Zoom_Control),
-                                (Width => Slider_Width, Height => Row_Height, others => <>)),
+                                (Width => Layouts.Length_Of (Slider_Width), Height => Layouts.Length_Of (Row_Height),
+                                 others => <>)),
                      Put (Item.Zoom_Label, Percent_Width, Label_Height),
                      UI.Styled (UI.Put (Screen, Item.Status),
-                                (Grow => 1.0, Width => 0.0, Height => Label_Height, others => <>)),
-                     UI.Styled (UI.Place (Visit_Control), (Width => Visit_Width, Height => Row_Height, others => <>))]);
+                                (Grow => 1.0, Width => 0.0, Height => Layouts.Length_Of (Label_Height), others => <>)),
+                     UI.Styled (UI.Place (Visit_Control),
+                                (Width => Layouts.Length_Of (Visit_Width), Height => Layouts.Length_Of (Row_Height),
+                                 others => <>))]);
          Pin_Control : constant UI.Button_Handle :=
            Bound.Borrow_Button (Item.Pin_Button, Reader_VM.Toggle_Pin, Reflect => False);
          Pin : constant UI.Layout :=
-           UI.Styled (UI.Place (Pin_Control), (Width => Button_Size, Height => Button_Size, others => <>));
+           UI.Styled (UI.Place (Pin_Control),
+                      (Width => Layouts.Length_Of (Button_Size), Height => Layouts.Length_Of (Button_Size),
+                       others => <>));
       begin
          Bound.On_Frame_Event (Item.Chrome, Widgets.Close, Reader_VM.Close_Reader);
          UI.Mount_Before (Screen, Frames.Title_End (Item.Chrome).all, Pin);

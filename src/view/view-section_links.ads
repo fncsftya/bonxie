@@ -22,7 +22,7 @@ private package View.Section_Links is
    --  The button of the page of this rank was pressed: its section menu is shown, or put away.
    --  Have the Section button of the page of the slot do what it is for.
 
-   function Is_Shown (Item : Session) return Boolean;
+   function Is_Showing (Item : Session) return Boolean;
    --  Whether the menu is shown.
 
    procedure Open (Item : in out Session; Which : Items.Slot; Page : Natural := 0)
@@ -55,7 +55,7 @@ private package View.Section_Links is
    --  and whether it is ticked (the item's own).
 
    procedure Choose (Item : in out Session; Row : Positive)
-     with Pre => Is_Shown (Item);
+     with Pre => Is_Showing (Item);
    --  As clicking the row does.
 
    procedure Update (Item : in out Session);

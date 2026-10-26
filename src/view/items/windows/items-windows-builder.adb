@@ -33,7 +33,7 @@ package body Items.Windows.Builder is
       --  In whole pixels, as the outline is.
 
       function Size (Wide, High : Float) return Layouts.Style is
-        (Width => Wide, Height => High, others => <>);
+        (Width => Layouts.Length_Of (Wide), Height => Layouts.Length_Of (High), others => <>);
    begin
       Item.Pixels := Pixels;
       Frames.Build
@@ -78,12 +78,12 @@ package body Items.Windows.Builder is
             Buttons.Looks ("From File", Icon => Pomarine.Icons.Shown (Icon_Set.Document), Captioned => True),
             Metrics.Wizard_Button_Width, Metrics.Wizard_Button_Height);
          Wizard : constant UI.Layout := UI.Styled
-           (UI.Put_In (Screen, Item.Wizard, [Link, File], Gap => Metrics.Wizard_Gap,
+           (UI.Put_In (Screen, Item.Wizard, [Link, File], Gap => Layouts.Length_Of (Metrics.Wizard_Gap),
                        Align => Layouts.Center, Spread => Layouts.Center),
             (Grow => 1.0, Height => 0.0, Align => Layouts.Center, Spread => Layouts.Center,
-             Gap => Metrics.Wizard_Gap, others => <>));
+             Gap => Layouts.Length_Of (Metrics.Wizard_Gap), others => <>));
          Text_Box : constant Layouts.Style :=
-           (Grow => 1.0, Height => 0.0, Margin => (Left | Right => -Edge, others => <>),
+           (Grow => 1.0, Height => 0.0, Margin => (Left | Right => Layouts.Length_Of (-Edge), others => <>),
             Unit => Layouts.Device_Pixels, others => <>);
          Body_Control : constant UI.Widget_Handle := Bound.Borrow_Widget (Item.Body_Text);
          Content : constant UI.Layout := UI.Fragment
@@ -100,7 +100,7 @@ package body Items.Windows.Builder is
             Buttons.Looks ("Next page", Icon => Pomarine.Icons.Shown (Icon_Set.Forward)),
             Metrics.Tool_Size, Metrics.Zoom_Row_Height);
          Pager : constant UI.Layout := UI.Put_In
-           (Screen, Item.Pager, [Previous, Next], Flow => Layouts.Row, Gap => Metrics.Button_Gap);
+           (Screen, Item.Pager, [Previous, Next], Flow => Layouts.Row, Gap => Layouts.Length_Of (Metrics.Button_Gap));
          Speech : constant UI.Layout := Button
            (Item.Speak_Button, Item_Window_VM.Speak,
             Buttons.Looks ("Dictate", Icon => Pomarine.Icons.Shown (Icon_Set.Microphone),
@@ -119,7 +119,8 @@ package body Items.Windows.Builder is
             Buttons.Looks ("Rub", Icon => Pomarine.Icons.Shown (Icon_Set.Eraser)),
             Metrics.Tool_Size, Metrics.Zoom_Row_Height);
          Tools : constant UI.Layout := UI.Put_In
-           (Screen, Item.Tools, [Cursor, Marker, Eraser], Flow => Layouts.Row, Gap => Metrics.Button_Gap);
+           (Screen, Item.Tools, [Cursor, Marker, Eraser], Flow => Layouts.Row,
+            Gap => Layouts.Length_Of (Metrics.Button_Gap));
          Outline : constant UI.Layout := Button
            (Item.Outline_Button, Item_Window_VM.Link_To_Outline,
             Buttons.Looks ("Section", Captioned => True, Shape => Buttons.Dropdown),
@@ -130,12 +131,13 @@ package body Items.Windows.Builder is
             Metrics.Zoom_Button_Width, Metrics.Zoom_Row_Height);
          Status : constant UI.Layout := UI.Fragment
            (Screen, [Pager, Speech,
-                     Put (Item.Status, (Grow => 1.0, Width => 0.0, Height => Metrics.Label_Height, others => <>)),
+                     Put (Item.Status, (Grow => 1.0, Width => 0.0, Height => Layouts.Length_Of (Metrics.Label_Height),
+                                        others => <>)),
                      Tools, Outline, Zoom]);
          Progress : constant UI.Layout := Put
            (Item.Progress, (Place => Layouts.Absolute,
                             Position => (Left | Right | Bottom => 0.0, others => <>),
-                            Height => Metrics.Progress_Height, others => <>));
+                            Height => Layouts.Length_Of (Metrics.Progress_Height), others => <>));
 
          function Zoom_Row (Row : Positive) return UI.Layout is
             First : constant Positive := (Row - 1) * 3 + 1;
@@ -153,7 +155,7 @@ package body Items.Windows.Builder is
             end loop;
             return UI.Styled
               (UI.Put_In (Screen, Item.Menu_Rows (Row), Children, Flow => Layouts.Row),
-               (Flow => Layouts.Row, Gap => Edge, Unit => Layouts.Device_Pixels, others => <>));
+               (Flow => Layouts.Row, Gap => Layouts.Length_Of (Edge), Unit => Layouts.Device_Pixels, others => <>));
          end Zoom_Row;
 
          Slider_Handle : constant UI.Widget_Handle :=
@@ -165,18 +167,20 @@ package body Items.Windows.Builder is
          Menu : constant UI.Layout := UI.Styled
            (UI.Put_In (Screen, Item.Zoom_Menu, [Slider, First_Row, Second_Row]),
             (Place => Layouts.Absolute,
-             Position => (Right => (Metrics.Corner_Size + Edge) * Pixels,
-                          Bottom => (Metrics.Status_Height + Edge) * Pixels, others => <>),
-             Flow => Layouts.Column, Padding => (others => Edge), Gap => Edge,
+             Position => (Right => Layouts.Length_Of ((Metrics.Corner_Size + Edge) * Pixels),
+                          Bottom => Layouts.Length_Of ((Metrics.Status_Height + Edge) * Pixels), others => <>),
+             Flow => Layouts.Column, Padding => (others => Layouts.Length_Of (Edge)), Gap => Layouts.Length_Of (Edge),
              Unit => Layouts.Device_Pixels, others => <>));
          Fetch : constant UI.Layout := Button
            (Item.Fetch_Button, Item_Window_VM.Capture,
             Buttons.Looks ("Add", Buttons.Primary),
             Metrics.Fetch_Width, Metrics.Fetch_Height);
          Fetch_Overlay : constant UI.Layout := UI.Styled
-           (Fetch, (Width => Metrics.Fetch_Width * Pixels, Height => Metrics.Fetch_Height * Pixels,
+           (Fetch, (Width => Layouts.Length_Of (Metrics.Fetch_Width * Pixels),
+                    Height => Layouts.Length_Of (Metrics.Fetch_Height * Pixels),
                     Place => Layouts.Absolute,
-                    Position => (Right => Edge + Pomarine.Boxes.Offset (Pixels) + Metrics.Fetch_Inset * Pixels,
+                    Position => (Right => Layouts.Length_Of
+                                          (Edge + Pomarine.Boxes.Offset (Pixels) + Metrics.Fetch_Inset * Pixels),
                                  others => <>),
                     Unit => Layouts.Device_Pixels, others => <>));
          Overlays : constant UI.Layout := UI.Fragment (Screen, [Menu, Fetch_Overlay]);

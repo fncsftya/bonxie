@@ -66,7 +66,7 @@ package body View.Search is
            (Part : in out Buttons.Button; Control : UI.Button_Handle; Look : Buttons.Settings) return UI.Layout is
          begin
             Buttons.Configure (Part, Look);
-            return UI.Styled (UI.Place (Control), (Width => Wide, others => <>));
+            return UI.Styled (UI.Place (Control), (Width => Layouts.Length_Of (Wide), others => <>));
          end Button;
 
          Field    : constant UI.Layout :=

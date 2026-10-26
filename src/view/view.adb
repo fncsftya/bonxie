@@ -57,7 +57,7 @@ package body View is
       declare
          Menu : Pomarine.Widgets.Menus.Menu renames Menu_Of (Self, What).all;
       begin
-         return Widgets.Is_Shown (Menu) and then Row in 1 .. Pomarine.Widgets.Menus.Row_Count (Menu)
+         return Widgets.Is_Showing (Menu) and then Row in 1 .. Pomarine.Widgets.Menus.Row_Count (Menu)
            and then Pomarine.Widgets.Menus.Is_Enabled (Menu, Row);
       end;
    end Allowed;

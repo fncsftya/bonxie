@@ -230,16 +230,19 @@ package body View.Writing.Layout is
 
                      procedure Put (Part : in out Widgets.Widget'Class; Top : Float) is
                      begin
-                        Layouts.Set_Layout (Part, Width => Wide);
+                        Layouts.Set_Layout (Part, Width => Layouts.Length_Of (Wide));
                         Layouts.Set_Layout
                           (Part,
-                           Position => (Left => Home_Left, Top => Home_Top + Top, others => <>),
+                           Position => (Left => Layouts.Length_Of (Home_Left),
+                                        Top => Layouts.Length_Of (Home_Top + Top), others => <>),
                            Unit => Layouts.Device_Pixels);
                      end Put;
                   begin
                      Layouts.Set_Layout
-                       (Parts.Tail, Width => Wide, Height => Float'Rounding (Y), Unit => Layouts.Points);
-                     Layouts.Set_Layout (Parts.Tail, Height => Float'Rounding (Y), Unit => Layouts.Device_Pixels);
+                       (Parts.Tail, Width => Layouts.Length_Of (Wide),
+                        Height => Layouts.Length_Of (Float'Rounding (Y)), Unit => Layouts.Points);
+                     Layouts.Set_Layout (Parts.Tail, Height => Layouts.Length_Of (Float'Rounding (Y)),
+                                         Unit => Layouts.Device_Pixels);
                      for Each in 1 .. Planned loop
                         declare
                            Now : Plan_Entry renames Plan (Each);
@@ -273,8 +276,9 @@ package body View.Writing.Layout is
                                     Shown_Notes (Now.Index) := True;
                                     Pomarine.Widgets.Panels.Set_Border
                                       (Note.Box, Style.Section_Ink (Outlines.Section_At (Item, Now.Index).Colour));
-                                    Layouts.Set_Layout (Note.Text, Height => Note.High);
-                                    Layouts.Set_Layout (Note.Box, Height => Notes_Box_Height (Now.Index));
+                                    Layouts.Set_Layout (Note.Text, Height => Layouts.Length_Of (Note.High));
+                                    Layouts.Set_Layout (Note.Box,
+                                                        Height => Layouts.Length_Of (Notes_Box_Height (Now.Index)));
                                     Put (Note.Box, Now.Top);
                                  end;
                               when Empty_Entry =>
@@ -335,17 +339,18 @@ package body View.Writing.Layout is
                begin
                   if Now_Left /= Left then
                      Layouts.Set_Layout
-                       (Content, Padding => (Left => Now_Left, others => Style.Page_Margin));
+                       (Content, Padding => (Left => Layouts.Length_Of (Now_Left),
+                                             others => Layouts.Length_Of (Style.Page_Margin)));
                      Left := Now_Left;
                      Changed := True;
                   end if;
                   if Now_Wide /= Wide then
-                     Layouts.Set_Layout (Sheet, Width => Now_Wide);
+                     Layouts.Set_Layout (Sheet, Width => Layouts.Length_Of (Now_Wide));
                      Wide := Now_Wide;
                      Changed := True;
                   end if;
                   if Now_High /= High then
-                     Layouts.Set_Layout (Sheet, Height => Now_High);
+                     Layouts.Set_Layout (Sheet, Height => Layouts.Length_Of (Now_High));
                      High := Now_High;
                      Changed := True;
                   end if;
@@ -385,7 +390,7 @@ package body View.Writing.Layout is
                                (Editors.Area (Each.Text).all)));
                   begin
                      if Wide /= Each.Wide then
-                        Layouts.Set_Layout (Each.Box, Width => Wide);
+                        Layouts.Set_Layout (Each.Box, Width => Layouts.Length_Of (Wide));
                         Editors.Set_Indent
                           (Each.Text,
                            Float'Max (Style.Page_Margin, (Wide - Style.Write_Text_Width) / 2.0)
@@ -394,7 +399,7 @@ package body View.Writing.Layout is
                         Changed := True;
                      end if;
                      if High /= Each.High then
-                        Layouts.Set_Layout (Each.Text, Height => High);
+                        Layouts.Set_Layout (Each.Text, Height => Layouts.Length_Of (High));
                         Each.High := High;
                         Changed := True;
                      end if;
@@ -435,8 +440,8 @@ package body View.Writing.Layout is
                Item.Page_View.Menu_Top := Place_Top;
                Layouts.Set_Layout
                  (Item.Page_View.Menu,
-                  Position => (Left => Float'Rounding (Place_Left * Pixels),
-                               Top  => Float'Rounding (Place_Top * Pixels),
+                  Position => (Left => Layouts.Length_Of (Float'Rounding (Place_Left * Pixels)),
+                               Top  => Layouts.Length_Of (Float'Rounding (Place_Top * Pixels)),
                                others => <>),
                   Unit => Layouts.Device_Pixels);
                Widgets.Layout (Item.Root.Widgets, Item.Host.Target);

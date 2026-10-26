@@ -103,7 +103,7 @@ package body View.Writing.Panes is
          begin
             Item.Page_View.Sidebar_Wide :=
               Float'Min (Most, Float'Max (Style.Sidebar_Least, Item.Page_View.Sidebar_Wide + Event.Across));
-            Layouts.Set_Layout (Item.Page_View.Sidebar, Width => Item.Page_View.Sidebar_Wide);
+            Layouts.Set_Layout (Item.Page_View.Sidebar, Width => Layouts.Length_Of (Item.Page_View.Sidebar_Wide));
          end;
       end if;
    end Sidebar_Dragged;
@@ -166,7 +166,7 @@ package body View.Writing.Panes is
             pragma Assert (Available >= 0.0 and then Minimum <= Maximum);
             --  Fix the space above the divider; Sources takes the remainder.
             --  Both lists must not shrink together, or the divider lags the pointer.
-            Layouts.Set_Layout (Pane.Docs_Scroll, Height => Wanted, Grow => 0.0, Shrink => 0.0);
+            Layouts.Set_Layout (Pane.Docs_Scroll, Height => Layouts.Length_Of (Wanted), Grow => 0.0, Shrink => 0.0);
             Layouts.Set_Layout (Pane.Sources_Scroll, Height => 0.0, Grow => 1.0, Shrink => 1.0);
          end;
       end if;
@@ -190,7 +190,7 @@ package body View.Writing.Panes is
             Item.Page_View.Pane_Wide :=
               Float'Min (Most, Float'Max (Style.Pane_Least,
                                           Item.Page_View.Pane_Wide - Event.Across));
-            Layouts.Set_Layout (Item.Page_View.Pane, Width => Item.Page_View.Pane_Wide);
+            Layouts.Set_Layout (Item.Page_View.Pane, Width => Layouts.Length_Of (Item.Page_View.Pane_Wide));
          end;
       end if;
    end Pane_Dragged;

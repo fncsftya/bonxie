@@ -48,7 +48,8 @@ package body View.Build.Outline_View is
            (Part, Buttons.Looks (Name, Of_Kind, Icon => Pomarine.Icons.Shown (Icon), Focusable => True));
          return UI.Styled
            (UI.Place (Outs.Borrow_Button (Part, What, Index)),
-            (Width => Outline_Button, Height => Outline_Button, Shrink => 0.0, others => <>));
+            (Width => Layouts.Length_Of (Outline_Button), Height => Layouts.Length_Of (Outline_Button), Shrink => 0.0,
+             others => <>));
       end Icon_Button;
 
       function Notes_Button return UI.Layout is
@@ -56,7 +57,8 @@ package body View.Build.Outline_View is
          Buttons.Configure (Block.Notes, Buttons.Looks ("Notes", Captioned => True, Focusable => True));
          return UI.Styled
            (UI.Place (Outs.Borrow_Button (Block.Notes, Outline_VM.Toggle_Notes, Index)),
-            (Width => Notes_Width, Height => Outline_Button, Shrink => 0.0, others => <>));
+            (Width => Layouts.Length_Of (Notes_Width), Height => Layouts.Length_Of (Outline_Button), Shrink => 0.0,
+             others => <>));
       end Notes_Button;
 
       Swatch : constant UI.Widget_Handle := Outs.Borrow_Widget (Block.Swatch);
@@ -67,35 +69,40 @@ package body View.Build.Outline_View is
           (UI.Put_In
              (Form, Block.Line,
               [UI.Styled
-                 (UI.Put (Form, Block.Handle), (Width => Outline_Handle, Height => Index_Height, Shrink => 0.0,
+                 (UI.Put (Form, Block.Handle),
+                  (Width => Layouts.Length_Of (Outline_Handle), Height => Layouts.Length_Of (Index_Height),
+                   Shrink => 0.0,
                                                 others => <>)),
                UI.Styled
                  (UI.Place (Swatch),
-                  (Width => Outline_Field_Height - 2.0, Height => Outline_Field_Height - 2.0, Shrink => 0.0,
+                  (Width => Layouts.Length_Of (Outline_Field_Height - 2.0),
+                   Height => Layouts.Length_Of (Outline_Field_Height - 2.0), Shrink => 0.0,
                    others => <>)),
                UI.Styled
-                 (UI.Place (Name), (Grow => 1.0, Width => 0.0, Height => Outline_Field_Height, others => <>)),
+                 (UI.Place (Name), (Grow => 1.0, Width => 0.0, Height => Layouts.Length_Of (Outline_Field_Height),
+                                    others => <>)),
                Notes_Button,
                Icon_Button (Block.Up, "Move up", Pomarine.Icons.Chevron_Up, Outline_VM.Move_Up),
                Icon_Button (Block.Down, "Move down", Pomarine.Icons.Chevron_Down, Outline_VM.Move_Down),
                Icon_Button
                  (Block.Remove, "Delete section", Icon_Set.Delete, Outline_VM.Remove_Section, Buttons.Danger)]),
-           (Shrink => 0.0, Flow => Row, Align => Center, Gap => Tool_Gap * Pixels,
-            Height => Outline_Block_Height * Pixels, Unit => Device_Pixels, others => <>));
+           (Shrink => 0.0, Flow => Row, Align => Center, Gap => Layouts.Length_Of (Tool_Gap * Pixels),
+            Height => Layouts.Length_Of (Outline_Block_Height * Pixels), Unit => Device_Pixels, others => <>));
 
       Sheet : constant UI.Layout :=
         UI.Styled
           (UI.Put_In
              (Form, Block.Notes_Sheet,
               [UI.Styled (UI.Put (Form, Block.Notes_Text), (Grow => 1.0, Height => 0.0, others => <>))]),
-           (Flow => Column, Height => Outline_Notes_Height, Shrink => 0.0,
-            Margin => (Bottom => Tool_Gap, others => <>), others => <>));
+           (Flow => Column, Height => Layouts.Length_Of (Outline_Notes_Height), Shrink => 0.0,
+            Margin => (Bottom => Layouts.Length_Of (Tool_Gap), others => <>), others => <>));
 
       Whole : constant UI.Layout :=
         UI.Styled
           (UI.Put_In (Form, Block.Row, [Line, Sheet]),
-           (Shrink => 0.0, Flow => Column, Padding => (Left | Right => Index_Pad * Pixels, others => <>),
-            Shadowed => True, Unit => Device_Pixels, others => <>));
+           (Shrink => 0.0, Flow => Column,
+            Padding => (Left | Right => Layouts.Length_Of (Index_Pad * Pixels), others => <>),
+            Shadowed => On, Unit => Device_Pixels, others => <>));
    begin
       Outs.On_Event (Swatch, Widgets.Click, Outline_VM.Choose_Colour, Index);
       Outs.On_Event (Name, Widgets.Submit, Outline_VM.End_Title);
@@ -159,32 +166,38 @@ package body View.Build.Outline_View is
            UI.Styled
              (UI.Put_In
                 (Form, Pane.Form,
-                 [Line (Pane.Name_Label, (Height => Heading_Height, Shrink => 0.0, others => <>)),
-                  Line (Pane.Name_Field, (Height => Title_Height, Shrink => 0.0, others => <>)),
+                 [Line (Pane.Name_Label, (Height => Layouts.Length_Of (Heading_Height), Shrink => 0.0, others => <>)),
+                  Line (Pane.Name_Field, (Height => Layouts.Length_Of (Title_Height), Shrink => 0.0, others => <>)),
                   Line (Pane.Desc_Label,
-                        (Height => Heading_Height, Shrink => 0.0, Margin => (Top => Tool_Gap, others => <>),
+                        (Height => Layouts.Length_Of (Heading_Height), Shrink => 0.0,
+                         Margin => (Top => Layouts.Length_Of (Tool_Gap), others => <>),
                          others => <>)),
                   UI.Styled
                     (UI.Put_In
                        (Form, Pane.Desc_Sheet, [Line (Pane.Desc_Text, (Grow => 1.0, Height => 0.0, others => <>))]),
-                     (Flow => Column, Height => Outline_Description_Height, Shrink => 0.0, others => <>))]),
-              (Flow => Column, Grow => 1.0, Width => 0.0, Gap => Tool_Gap, others => <>));
+                     (Flow => Column, Height => Layouts.Length_Of (Outline_Description_Height), Shrink => 0.0,
+                      others => <>))]),
+              (Flow => Column, Grow => 1.0, Width => 0.0, Gap => Layouts.Length_Of (Tool_Gap), others => <>));
 
          --  The ghost of the block dragged: its title, in a box of the same outline, a little clear.
          Blocks : constant UI.Layout :=
            UI.Styled
              (UI.Put_In
                 (Form, Pane.Content,
-                 [Line (Pane.None, (Height => Index_Height, others => <>)),
-                  Line (Pane.Drop_Line, (Place => Absolute, Height => Drop_Line_Height, others => <>)),
+                 [Line (Pane.None, (Height => Layouts.Length_Of (Index_Height), others => <>)),
+                  Line (Pane.Drop_Line,
+                        (Place => Absolute, Height => Layouts.Length_Of (Drop_Line_Height), others => <>)),
                   UI.Styled
                     (UI.Put_In
                        (Form, Pane.Ghost,
-                        [Line (Pane.Ghost_Title, (Grow => 1.0, Width => 0.0, Height => Index_Height, others => <>))]),
+                        [Line (Pane.Ghost_Title,
+                               (Grow => 1.0, Width => 0.0, Height => Layouts.Length_Of (Index_Height), others => <>))]),
                      (Place => Absolute, Flow => Row, Align => Center,
-                      Padding => (Left | Right => Index_Pad + Outline_Handle + Tool_Gap, others => <>),
+                      Padding => (Left | Right => Layouts.Length_Of (Index_Pad + Outline_Handle + Tool_Gap),
+                                  others => <>),
                       others => <>))]),
-              (Flow => Column, Shrink => 0.0, Gap => Index_Gap * Pixels - Offset, Unit => Device_Pixels,
+              (Flow => Column, Shrink => 0.0, Gap => Layouts.Length_Of (Index_Gap * Pixels - Offset),
+               Unit => Device_Pixels,
                others => <>));
 
          Sections_Column : constant UI.Layout :=
@@ -194,22 +207,26 @@ package body View.Build.Outline_View is
                  [UI.Styled
                     (UI.Put_In
                        (Form, Pane.Head,
-                        [Line (Pane.Heading, (Grow => 1.0, Width => 0.0, Height => Heading_Height, others => <>)),
+                        [Line (Pane.Heading, (Grow => 1.0, Width => 0.0, Height => Layouts.Length_Of (Heading_Height),
+                                              others => <>)),
                          UI.Styled
                            (UI.Place (Adding),
-                            (Width => Add_Section_Width, Height => Bar_Button_Height, Shrink => 0.0,
+                            (Width => Layouts.Length_Of (Add_Section_Width),
+                             Height => Layouts.Length_Of (Bar_Button_Height), Shrink => 0.0,
                              others => <>))],
                         Flow => Layouts.Row),
-                     (Flow => Row, Align => Center, Height => Title_Height, Shrink => 0.0, Gap => Tool_Gap / 2.0,
+                     (Flow => Row, Align => Center, Height => Layouts.Length_Of (Title_Height), Shrink => 0.0,
+                      Gap => Layouts.Length_Of (Tool_Gap / 2.0),
                       others => <>)),
                   UI.Styled
                     (UI.Put_In (Form, Pane.Scroll, [Blocks]), (Grow => 1.0, Height => 0.0, others => <>))]),
-              (Flow => Column, Grow => 1.0, Width => 0.0, Gap => Tool_Gap, others => <>));
+              (Flow => Column, Grow => 1.0, Width => 0.0, Gap => Layouts.Length_Of (Tool_Gap), others => <>));
 
          Whole : constant UI.Layout :=
            UI.Styled
              (UI.Put_In (Form, Pane.View, [Form_Column, Sections_Column], Flow => Layouts.Row),
-              (Flow => Row, Grow => 1.0, Height => 0.0, Gap => Outline_Gap, Padding => (others => Outline_Gap),
+              (Flow => Row, Grow => 1.0, Height => 0.0, Gap => Layouts.Length_Of (Outline_Gap),
+               Padding => (others => Layouts.Length_Of (Outline_Gap)),
                others => <>));
 
          --  The colour of a section is chosen in a box over the content.

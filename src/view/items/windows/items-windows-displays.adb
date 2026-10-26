@@ -68,9 +68,9 @@ package body Items.Windows.Displays is
       Frames.Set_Scale (Item.Chrome, Chrome);
       Layouts.Set_Layout
         (Item.Fetch_Button,
-         Position => (Top => Pomarine.Boxes.Edge (Metrics.Outline * Pixels)
+         Position => (Top => Layouts.Length_Of (Pomarine.Boxes.Edge (Metrics.Outline * Pixels)
                              + (Metrics.Bar_Height * Chrome + (Metrics.Url_Height - Metrics.Fetch_Height) / 2.0)
-                               * Pixels,
+                               * Pixels),
                       others => <>),
          Unit => Layouts.Device_Pixels);
       Show_Fetch (Item);
@@ -150,8 +150,8 @@ package body Items.Windows.Displays is
          Editors.Set_Placeholder (Item.Body_Text, "");
       end if;
       Layouts.Set_Layout
-        (Item.Body_Text, Grow => (if Of_Source then 0.0 else 1.0),
-         Height => (if Of_Source then Metrics.Url_Height else 0.0));
+        (Item.Body_Text, Grow => Layouts.Weight_Of (if Of_Source then 0.0 else 1.0),
+         Height => (Layouts.Length_Of (if Of_Source then Metrics.Url_Height else 0.0)));
       Widgets.Set_Visible (Item.Speak_Button, not Of_Source);
       Widgets.Set_Visible (Item.Outline_Button, not Of_Source);
       if not Of_Source then

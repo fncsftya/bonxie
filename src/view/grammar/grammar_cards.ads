@@ -28,7 +28,7 @@ package Grammar_Cards is
    overriding procedure Draw
      (Item : in out Card; Target : SDL3.Painters.Painter'Class; Colors : Pomarine.Themes.Theme);
    overriding procedure Handle (Item : in out Card; Event : Pomarine.Events.Event; Handled : out Boolean);
-   overriding function Accepts_Focus (Item : Card) return Boolean is (True);
+   overriding function Is_Focusable (Item : Card) return Boolean is (True);
    overriding procedure Focus_Changed (Item : in out Card; Focused : Boolean);
    overriding procedure Describe (Item : Card; Facts : in out Pomarine.Semantics.Description);
    overriding procedure Perform

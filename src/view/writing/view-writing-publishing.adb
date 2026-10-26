@@ -120,11 +120,11 @@ package body View.Writing.Publishing is
          Layouts.Set_Layout
            (Pane.Format_Menu,
             Position =>
-              (Left => Float'Rounding (Widgets.Left_Of (Pane.Format) - Widgets.Left_Of (Pane.View)),
-               Top => Float'Rounding
+              (Left => Layouts.Length_Of (Float'Rounding (Widgets.Left_Of (Pane.Format) - Widgets.Left_Of (Pane.View))),
+               Top => Layouts.Length_Of (Float'Rounding
                  (Widgets.Top_Of (Pane.Format) + Widgets.Height_Of (Pane.Format) - Widgets.Top_Of (Pane.View)
-                  + Style.Menu_Gap * Pixels), others => <>), Unit => Layouts.Device_Pixels);
-         Layouts.Set_Layout (Pane.Format_Menu, Width => Widgets.Width_Of (Pane.Format) / Pixels);
+                  + Style.Menu_Gap * Pixels)), others => <>), Unit => Layouts.Device_Pixels);
+         Layouts.Set_Layout (Pane.Format_Menu, Width => Layouts.Length_Of (Widgets.Width_Of (Pane.Format) / Pixels));
          Widgets.Raise_To_Front (Pane.Format_Menu);
       end if;
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);

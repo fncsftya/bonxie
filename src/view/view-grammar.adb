@@ -263,7 +263,8 @@ package body View.Grammar is
             Control : constant UI.Button_Handle := Bound.Borrow_Button (Part, Command);
          begin
             Buttons.Configure (Part, Buttons.Looks (Caption, Focusable => True));
-            Add (UI.Styled (UI.Place (Control), (Place => Absolute, Width => Wide, Height => 28.0, others => <>)));
+            Add (UI.Styled (UI.Place (Control),
+                            (Place => Absolute, Width => Layouts.Length_Of (Wide), Height => 28.0, others => <>)));
          end Add_Footer_Button;
       begin
          declare
@@ -312,8 +313,8 @@ package body View.Grammar is
             Popout : constant UI.Layout :=
               UI.Styled
                 (UI.Put_In (Form, State.Popout, [Heading, Scrolled]),
-                 (Place => Absolute, Width => 360.0, Height => 520.0, Flow => Column, Outlined => True,
-                  Shadowed => True, Padding => (others => 8.0), others => <>));
+                 (Place => Absolute, Width => 360.0, Height => 520.0, Flow => Column, Outlined => On,
+                  Shadowed => On, Padding => (others => 8.0), others => <>));
             Inline : constant UI.Layout :=
               Menu_Commands.Place (Item, Form, State.Inline_Menu, Menu_VM.Grammar_Menu,
                                    (Place => Absolute, Width => 200.0, others => <>));
@@ -335,8 +336,9 @@ package body View.Grammar is
                     [UI.Styled (UI.Place (Prompt), (Height => 22.0, Shrink => 0.0, others => <>)),
                      UI.Styled (UI.Place (Field), (Height => 36.0, Shrink => 0.0, others => <>)),
                      Buttons_Row]),
-                 (Place => Absolute, Width => Entry_Width, Height => 124.0, Flow => Column, Outlined => True,
-                  Shadowed => True, Padding => (others => 8.0), Gap => 6.0, others => <>));
+                 (Place => Absolute, Width => Layouts.Length_Of (Entry_Width), Height => 124.0, Flow => Column,
+                  Outlined => On,
+                  Shadowed => On, Padding => (others => 8.0), Gap => 6.0, others => <>));
          begin
             Buttons.Configure (State.Entry_Ok, Buttons.Looks ("Add rule", Buttons.Primary, Focusable => True));
             Buttons.Configure (State.Entry_Cancel, Buttons.Looks ("Cancel", Focusable => True));
@@ -555,8 +557,8 @@ package body View.Grammar is
             Top : constant Float := Float'Max (8.0,
               (if Below + High <= Parent_High - 8.0 then Below else Event.Mouse_Y - Parent_Top - High - 8.0));
          begin
-            Set_Layout (State.Inline_Menu, Width => Wide,
-                        Position => (Left => Left, Top => Top, others => <>));
+            Set_Layout (State.Inline_Menu, Width => Layouts.Length_Of (Wide),
+                        Position => (Left => Layouts.Length_Of (Left), Top => Layouts.Length_Of (Top), others => <>));
          end;
          State.Inline_Open := True;
          Widgets.Set_Visible (State.Inline_Menu, True);

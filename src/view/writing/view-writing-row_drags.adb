@@ -163,12 +163,12 @@ package body View.Writing.Row_Drags is
          Layouts.Set_Layout
            (Item.Docs.Drop_Line,
             Position =>
-              (Left => Widgets.Left_Of (Edge)
-                       - Widgets.Left_Of (Item.Page_View.Docs_Content) + Inset,
-               Top  => Float'Rounding
-                         (Mid - Thick / 2.0 - Widgets.Top_Of (Item.Page_View.Docs_Content)),
+              (Left => Layouts.Length_Of (Widgets.Left_Of (Edge)
+                       - Widgets.Left_Of (Item.Page_View.Docs_Content) + Inset),
+               Top  => Layouts.Length_Of (Float'Rounding
+                         (Mid - Thick / 2.0 - Widgets.Top_Of (Item.Page_View.Docs_Content))),
                others => <>),
-            Width => Widgets.Width_Of (Edge) - Offset - Inset,
+            Width => Layouts.Length_Of (Widgets.Width_Of (Edge) - Offset - Inset),
             Unit => Layouts.Device_Pixels);
       end;
       Widgets.Set_Visible (Item.Docs.Drop_Line, True);
@@ -204,16 +204,16 @@ package body View.Writing.Row_Drags is
          Layouts.Set_Layout
            (Item.Docs.Ghost,
             Position =>
-              (Left => Widgets.Left_Of (Held) - Widgets.Left_Of (Item.Page_View.Docs_Content)
-                       + Float'Rounding (Leeway * Pixels),
-               Top  => Float'Min
+              (Left => Layouts.Length_Of (Widgets.Left_Of (Held) - Widgets.Left_Of (Item.Page_View.Docs_Content)
+                       + Float'Rounding (Leeway * Pixels)),
+               Top  => Layouts.Length_Of (Float'Min
                          (Most, Float'Max
                                   (0.0, Float'Rounding
                                           (Y * Pixels - High / 2.0
-                                           - Widgets.Top_Of (Item.Page_View.Docs_Content)))),
+                                           - Widgets.Top_Of (Item.Page_View.Docs_Content))))),
                others => <>),
-            Width  => Widgets.Width_Of (Held) - Offset,
-            Height => High,
+            Width  => Layouts.Length_Of (Widgets.Width_Of (Held) - Offset),
+            Height => Layouts.Length_Of (High),
             Unit   => Layouts.Device_Pixels);
       end;
       Widgets.Set_Visible (Item.Docs.Ghost, True);

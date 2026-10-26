@@ -93,15 +93,16 @@ package body View.Grammar.Cards is
                         Grammar_Cards.Set_Diagnostic (State.Cards (Used), Mark.Lint,
                           Labels.Text (Item.Docs.Pages (Mark.Rank).Heading), Basics.Colors (Mark.Lint.Kind));
                         Grammar_Cards.Set_Expanded (State.Cards (Used), State.Expanded = Index);
-                        Set_Layout (State.Cards (Used), Width => Card_Wide, Height => Height,
-                                    Position => (Left => 4.0, Top => Row_Top, others => <>));
+                        Set_Layout (State.Cards (Used), Width => Layouts.Length_Of (Card_Wide),
+                                    Height => Layouts.Length_Of (Height),
+                                    Position => (Left => 4.0, Top => Layouts.Length_Of (Row_Top), others => <>));
                         Widgets.Set_Visible (State.Cards (Used), True);
                         if State.Expanded = Index then
                            for Number in 1 .. Mark.Lint.Suggestion_Count loop
                               Set_Layout (State.Actions (Number), Position =>
-                                (Left => Card_Wide - 64.0,
-                                 Top => Row_Top + Grammar_Cards.Action_Top
-                                   (State.Cards (Used), Number, Card_Wide), others => <>));
+                                (Left => Layouts.Length_Of (Card_Wide - 64.0),
+                                 Top => Layouts.Length_Of (Row_Top + Grammar_Cards.Action_Top
+                                   (State.Cards (Used), Number, Card_Wide)), others => <>));
                               Widgets.Set_Accessible_Name (State.Actions (Number), "Apply: " &
                                 (if Harper.Replacements.Length (Mark.Lint.Suggestions (Number).Text) = 0
                                  then "remove text"
@@ -115,10 +116,11 @@ package body View.Grammar.Cards is
                            begin
                               Buttons.Set_Label
                                 (State.Add_Rule, (if Mark.Lint.Custom then "Remove rule" else "Add rule"));
-                              Set_Layout (State.Add_Rule, Width => Wide_Rule,
-                                          Position => (Left => 16.0, Top => Foot, others => <>));
+                              Set_Layout (State.Add_Rule, Width => Layouts.Length_Of (Wide_Rule),
+                                          Position => (Left => 16.0, Top => Layouts.Length_Of (Foot), others => <>));
                               Set_Layout (State.Ignore_Text, Width => 60.0,
-                                          Position => (Left => 24.0 + Wide_Rule, Top => Foot, others => <>));
+                                          Position => (Left => Layouts.Length_Of (24.0 + Wide_Rule),
+                                                       Top => Layouts.Length_Of (Foot), others => <>));
                               Widgets.Set_Visible (State.Add_Rule, True);
                               Widgets.Set_Visible (State.Ignore_Text, True);
                            end;
@@ -136,15 +138,15 @@ package body View.Grammar.Cards is
       Buttons.Set_Label (Item.Page_View.Grammar_Count, Basics.Image (Fixable));
       Set_Layout
         (Item.Page_View.Grammar_Count,
-         Width => Float'Max (36.0, 12.0 + Float (Basics.Image (Fixable)'Length) * 8.0));
+         Width => Layouts.Length_Of (Float'Max (36.0, 12.0 + Float (Basics.Image (Fixable)'Length) * 8.0)));
       Buttons.Set_Kind (Item.Page_View.Grammar_Count, (if Fixable = 0 then Buttons.Normal else Buttons.Warning));
       Widgets.Set_Accessible_Name
         (Item.Page_View.Grammar_Count, "Fixable grammar suggestions: " & Basics.Image (Fixable));
       Labels.Set_Text (State.Heading, "Grammar Suggestions (" & Basics.Image (Total) & ")");
       Widgets.Set_Visible (State.Empty, Total = 0);
-      Set_Layout (State.Content, Height => Float'Max (40.0, Row_Top));
-      Set_Layout (State.Popout, Width => Wide, Height => High,
-                  Position => (Left => Left, Top => Top, others => <>));
+      Set_Layout (State.Content, Height => Layouts.Length_Of (Float'Max (40.0, Row_Top)));
+      Set_Layout (State.Popout, Width => Layouts.Length_Of (Wide), Height => Layouts.Length_Of (High),
+                  Position => (Left => Layouts.Length_Of (Left), Top => Layouts.Length_Of (Top), others => <>));
       State.Dirty := False;
       Widgets.Request_Layout (State.Popout);
       if State.Showing then
@@ -299,9 +301,12 @@ package body View.Grammar.Cards is
             (if Mark.Lint.Suggestion_Count > 0
              then Harper.Replacements.To_String (Mark.Lint.Suggestions (1).Text) else Marked));
          Pomarine.UI.Synchronize (Item.Forms (Grammar_Region).Screen.all);
-         Set_Layout (State.Entry_Panel, Width => Wide, Position =>
-           (Left => Float'Max (8.0, Float'Min (State.Pointer_X - Parent_Left - Wide / 2.0, Parent_Wide - Wide - 8.0)),
-            Top => Float'Max (8.0, Float'Min (State.Pointer_Y - Parent_Top + 12.0, Parent_High - 132.0)),
+         Set_Layout (State.Entry_Panel, Width => Layouts.Length_Of (Wide), Position =>
+           (Left => Layouts.Length_Of (Float'Max (8.0,
+                                                  Float'Min (State.Pointer_X - Parent_Left - Wide / 2.0,
+                                                             Parent_Wide - Wide - 8.0))),
+            Top => Layouts.Length_Of (Float'Max (8.0,
+                                                 Float'Min (State.Pointer_Y - Parent_Top + 12.0, Parent_High - 132.0))),
             others => <>));
          Widgets.Raise_To_Front (State.Entry_Panel);
          Widgets.Layout (Item.Root.Widgets, Item.Host.Target);

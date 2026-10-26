@@ -34,7 +34,7 @@ package body View.Section_Links is
    function Ink_Of (Item : Session; Section : Positive) return Pomarine.Themes.Slot is
      (Style.Section_Ink (Outlines.Section_At (Item, Section).Colour));
 
-   function Is_Shown (Item : Session) return Boolean is (Item.Section_Menu.Which /= 0);
+   function Is_Showing (Item : Session) return Boolean is (Item.Section_Menu.Which /= 0);
 
    function Changes (Item : Session) return Natural is (Item.Section_Menu.Changes);
 
@@ -99,9 +99,9 @@ package body View.Section_Links is
             Parts.Top := Float'Rounding (Top);
             Layouts.Set_Layout
               (Parts.Menu,
-               Position => (Left => Parts.Left, Top => Parts.Top, others => <>),
+               Position => (Left => Layouts.Length_Of (Parts.Left), Top => Layouts.Length_Of (Parts.Top), others => <>),
                Unit => Layouts.Device_Pixels);
-            Layouts.Set_Layout (Parts.Menu, Width => Menu_Wide);
+            Layouts.Set_Layout (Parts.Menu, Width => Layouts.Length_Of (Menu_Wide));
             Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
          end if;
       end;

@@ -302,7 +302,8 @@ package body View.Settings_View is
    begin
       if Wide /= Item.Prefs.Form_Wide then
          Item.Prefs.Form_Wide := Wide;
-         Pomarine.Widgets.Layouts.Set_Layout (Item.Prefs.Settings_Form, Width => Wide);
+         Pomarine.Widgets.Layouts.Set_Layout (Item.Prefs.Settings_Form,
+                                              Width => Pomarine.Widgets.Layouts.Length_Of (Wide));
       end if;
    end Fit;
 

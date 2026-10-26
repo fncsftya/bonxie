@@ -44,7 +44,7 @@ package body View.Outline_Screen is
       Section_Links.Open (Item, Which);
    end Open_Link_Menu;
 
-   function Link_Menu_Open (Item : Session) return Boolean is (Section_Links.Is_Shown (Item));
+   function Link_Menu_Open (Item : Session) return Boolean is (Section_Links.Is_Showing (Item));
 
    function Link_Menu_Rows (Item : Session) return Natural is (Section_Links.Row_Count (Item));
 

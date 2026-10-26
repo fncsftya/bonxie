@@ -144,7 +144,7 @@ package body View.Writing.Reader_Windows is
              (Item.Page_View.Pane_Wide,
               Style.Pane_Share * Widgets.Width_Of (Item.Page_View.Write_View)
               / Widgets.Density (Item.Root.Widgets)));
-      Layouts.Set_Layout (Item.Page_View.Pane, Width => Item.Page_View.Pane_Wide);
+      Layouts.Set_Layout (Item.Page_View.Pane, Width => Layouts.Length_Of (Item.Page_View.Pane_Wide));
    end Pin;
 
    procedure Toggle_Source (Item : in out Session; Which : Items.Slot) is

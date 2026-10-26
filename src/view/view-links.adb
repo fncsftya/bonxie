@@ -59,8 +59,10 @@ package body View.Links is
             Tools (Last) :=
               UI.Styled
                 (UI.Place (Bound.Borrow_Button (Part, What, Index, Reflect => False)),
-                 (Width => Style.Link_Button_Size, Height => Style.Link_Button_Size,
-                  Margin => (if Apart then (Left => Style.Link_Group_Gap, others => <>) else (others => <>)),
+                 (Width => Layouts.Length_Of (Style.Link_Button_Size),
+                  Height => Layouts.Length_Of (Style.Link_Button_Size),
+                  Margin => (if Apart then (Left => Layouts.Length_Of (Style.Link_Group_Gap),
+                                            others => <>) else (others => <>)),
                   others => <>));
          end Tool;
       begin
@@ -94,12 +96,15 @@ package body View.Links is
               UI.Styled
                 (UI.Put_In (Form, Item.Linking.Link_Bar, Tools, Flow => Layouts.Row),
                  (Place => Layouts.Absolute, Flow => Layouts.Row, Align => Layouts.Center,
-                  Padding => (others => Style.Link_Bar_Pad), Gap => Style.Link_Bar_Gap,
-                  Width => Style.Link_Bar_Width, Height => Style.Link_Bar_Height, others => <>));
+                  Padding => (others => Layouts.Length_Of (Style.Link_Bar_Pad)),
+                    Gap => Layouts.Length_Of (Style.Link_Bar_Gap),
+                  Width => Layouts.Length_Of (Style.Link_Bar_Width),
+                    Height => Layouts.Length_Of (Style.Link_Bar_Height), others => <>));
             Grabber : constant UI.Layout :=
               UI.Styled
                 (UI.Put (Form, Item.Linking.Link_Handle),
-                 (Place => Layouts.Absolute, Width => Pins.Diameter, Height => Pins.Diameter, others => <>));
+                 (Place => Layouts.Absolute, Width => Layouts.Length_Of (Pins.Diameter),
+                  Height => Layouts.Length_Of (Pins.Diameter), others => <>));
             Lines : constant UI.Widget_Handle := Bound.Borrow_Widget (Item.Canvas_View);
          begin
             Bound.On_Canvas_Event (Lines, Canvas_UI.Line_Selected, Canvas_VM.Pick_Link, Index_From_Event => True);
@@ -125,7 +130,8 @@ package body View.Links is
               (Item.Forms (Canvas_Region).Screen.all, Item.Canvas_View,
                UI.Styled
                  (UI.Put (Item.Forms (Canvas_Region).Screen.all, Pin),
-                  (Place => Layouts.Absolute, Width => Pins.Diameter, Height => Pins.Diameter, others => <>)));
+                  (Place => Layouts.Absolute, Width => Layouts.Length_Of (Pins.Diameter),
+                   Height => Layouts.Length_Of (Pins.Diameter), others => <>)));
             Widgets.Set_Visible (Pin, False);
             Widgets.Set_Tag (Pin, Widgets.No_Tag, Events.Pin_Number (Which, Side));
             Hooks.On (Pin, Press, Item'Unchecked_Access, Events.Pin_Pressed'Access);
@@ -186,7 +192,7 @@ package body View.Links is
    begin
       for Each of Item.Linking.Pins loop
          for Side in Item_Links.Sides loop
-            if Widgets.Is_Shown (Each (Side)) then
+            if Widgets.Is_Showing (Each (Side)) then
                Found := Found + 1;
             end if;
          end loop;

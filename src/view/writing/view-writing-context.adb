@@ -48,21 +48,21 @@ package body View.Writing.Context is
         (Item.Context.Context_Menu,
          Position =>
            (Left =>
-              Float'Rounding
+              Layouts.Length_Of (Float'Rounding
                 (Float'Max
                    (0.0,
                     Float'Min
                       (X - Widgets.Left_Of (Content_Panel (Item).all) / Pixels,
                        Widgets.Width_Of (Content_Panel (Item).all) / Pixels
-                       - Style.Context_Width)) * Pixels),
+                       - Style.Context_Width)) * Pixels)),
             Top =>
-              Float'Rounding
+              Layouts.Length_Of (Float'Rounding
                 (Float'Max
                    (0.0,
                     Float'Min
                       (Y - Widgets.Top_Of (Content_Panel (Item).all) / Pixels,
                        Widgets.Height_Of (Content_Panel (Item).all) / Pixels
-                       - Menus.Height_For (Item.Context.Context_Menu))) * Pixels),
+                       - Menus.Height_For (Item.Context.Context_Menu))) * Pixels)),
             others => <>),
          Unit => Layouts.Device_Pixels);
       Widgets.Set_Visible (Item.Context.Context_Menu, True);
