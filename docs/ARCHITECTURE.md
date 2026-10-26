@@ -26,8 +26,12 @@ Known and accepted:
   into it (`Show`, `Do_Command`): seven `View.*` units depend on each other in their bodies.
 - `View.Session` has one component per screen (`*_Parts`, `*_State`) and an `Owner : Session_Access` adapter for
   each view-model's effects.
-- `Pomarine.Widgets` holds the tree, the widget base, events, focus, commands, accessibility and animation in one
-  package, because they share the tree's private tables.
+- `Pomarine.Widgets` is one package because the tree's tables are private to it, but its body is only the table and
+  what a widget answers about itself (about 1,000 lines). The work is in private children under
+  `pomarine/ui/src/pomarine/tree/`, each one part of the tree's job (the list is at the top of the body):
+  `Nodes` (shared pixels, cold parts, table lookups), `Adding`, `Lifecycle`, `Queueing`, `Commanding`, `Focusing`,
+  `Dispatching`, `Drawing`, `Accessibility`, `Animations`. A public operation of the parent calls the child's
+  operation of another name (`Dispatch` calls `Dispatching.Dispatch_Event`), so a stack trace says which.
 
 ## Where things were found to be weak (see the review of 2026-10)
 
