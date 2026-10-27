@@ -31,6 +31,8 @@ package Grammar_VM is
    type Card_Engine is limited interface;
    function Inspect (Self : Card_Engine; What : Card_Command; Index : Natural) return Card_State is abstract;
    procedure Perform (Self : in out Card_Engine; What : Card_Command; Index : Natural) is abstract;
+   --  Only View_Model.Execute calls this: it checks Can_Execute first and bumps the version after. Do not call it
+   --  from anywhere else, or the cards change without the view being told.
 
    package Commands is new Parts.Command_Models (Command);
 
