@@ -43,4 +43,4 @@ Use growing storage for user content. Preserve item identity across slot reuse w
 Test rules and contracts without widgets, bindings through `Pomarine.Testing` by semantic name, and drawing
 through goldens. See TESTING.md for commands and the existing tiers.
 A screen of pomarine widgets that a view owns (components as functions, layouts as expressions, bindings declared with
-the controls) is `Pomarine.UI`: see `pomarine/UI.md`; the todo example is its model.
+the controls) is `Pomarine.UI`: see `pomarine/docs/ui.md`; the todo example is its model.

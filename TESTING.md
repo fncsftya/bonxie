@@ -306,8 +306,8 @@ Home-card Delete buttons declare `Home_VM.Ask_Delete`; the model cancels renamin
 confirmation model. Confirmation retains a project key across changes to the recent list. `home-vm-deleting`
 checks cancellation, unavailable rows, missing dialogs and deletion after reordering; `home-by-name` checks
 confirmation, Escape, rename cancellation and cards added after mounting.
-`pomarine/UI.md` describes grips, app-owned containers, indexed bindings, late mounting, observers and
-conditional focus. Their library checks live in `pomarine/examples/tests` (see `pomarine/TESTING.md`).
+`pomarine/docs/ui.md` describes grips, app-owned containers, indexed bindings, late mounting, observers and
+conditional focus. Their library checks live in `pomarine/examples/tests` (see `pomarine/docs/testing.md`).
 
 Item windows and readers in `src/items/` now declare their content, toolbars and overlays with `Pomarine.UI`.
 Pomarine's frame chrome is also composed through an embedded view. Their drawing and interactions remain
