@@ -58,21 +58,22 @@ package View_Parts.Home is
    end record;
    --  The view-model of the home screen, and what the widgets show of it.
 
-   type Confirm_Parts is limited record
-      Overlay          : Pomarine.UI.Layout;
-      --  Over both screens, to grey them out and hold the dialog, which is shown to confirm deleting
-      --  a project, a folder, a document, a source or the speech model's files.
-      Border           : Pomarine.UI.Layout;
-      --  The dialog itself: an outline round a dark bar across its top, as a window's (its title, and a
-      --  button to close it), a white body that says what is to be deleted, a line, and a tinted foot with
-      --  the buttons.
-      Dialog_Close     : Pomarine.UI.Button_Handle;
-      Delete_Documents : Pomarine.UI.Check_Handle;
-      Confirm_Cancel   : Pomarine.UI.Button_Handle;
-      Confirm_Delete   : Pomarine.UI.Button_Handle;
-      --  The controls are the view's (Pomarine.UI), bound to Confirm_Choices.Model (see View.Build.Dialogs).
-   end record;
-   --  The dialog, over both screens, to confirm deleting.
+   --  The parts of the dialogs that other files reach for, by the names they are Called in their screens
+   --  (Pomarine.UI.Named): the grey over the window that holds a dialog, the dialog's outline (a dark bar
+   --  across its top as a window's, a white body, a line, and a tinted foot with the buttons), and the
+   --  controls that are focused, clicked or measured.
+
+   Confirm_Overlay       : constant String := "confirm-overlay";
+   --  Over both screens, to grey them out and hold the dialog, which is shown to confirm deleting a project,
+   --  a folder, a document, a source or the speech model's files.
+   Confirm_Border        : constant String := "confirm-border";
+   Delete_Documents_Check : constant String := "confirm-delete-documents";
+   Confirm_Cancel_Button : constant String := "confirm-cancel";
+   Confirm_Delete_Button : constant String := "confirm-delete";
+   List_Overlay          : constant String := "list-overlay";
+   --  Over the project screen, to grey it out and hold the list of items, which is shown while Nav_VM says it
+   --  is up.
+   List_Border           : constant String := "list-border";
 
    type Confirm_Choices is limited record
       Model : aliased Confirm_VM.View_Model;

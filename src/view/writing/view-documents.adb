@@ -94,9 +94,9 @@ package body View.Documents is
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
       Form   : Pomarine.UI.View renames Item.Forms (Confirm_Region).Screen.all;
       Check  : Widgets.Widget'Class renames
-        Widgets.Widget'Class (Pomarine.UI.Widget_Of (Form, Item.Confirm.Delete_Documents).all);
+        Pomarine.UI.Named (Form, Delete_Documents_Check).all;
       Delete : Widgets.Widget'Class renames
-        Widgets.Widget'Class (Pomarine.UI.Widget_Of (Form, Item.Confirm.Confirm_Delete).all);
+        Pomarine.UI.Named (Form, Confirm_Delete_Button).all;
    begin
       Check_X := (Widgets.Left_Of (Check) + 10.0 * Pixels) / Pixels;
       Check_Y := (Widgets.Top_Of (Check) + Widgets.Height_Of (Check) / 2.0) / Pixels;

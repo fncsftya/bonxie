@@ -14,7 +14,7 @@ package body View.Deletion is
    use type Items.Kinds;
 
    function Dialog (Item : Session) return access Widgets.Widget'Class is
-     (UI.Panel_Of (Item.Forms (Confirm_Region).Screen.all, Item.Confirm.Overlay));
+     (UI.Named (Item.Forms (Confirm_Region).Screen.all, Confirm_Overlay));
    --  The grey that covers the window, and holds the dialog.
 
    --  Show the dialog over the rest: Tab goes round only its buttons, and Return, which a button has when it has
@@ -27,10 +27,10 @@ package body View.Deletion is
       Widgets.Set_Visible (Dialog (Item).all, True);
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
       if Confirm_VM.Subject (Item.Dialog_Model.Model) /= Confirm_VM.Model then
-         Widgets.Set_Focus_Scope (Item.Root.Widgets, UI.Panel_Of (Form, Item.Confirm.Border).all);
+         Widgets.Set_Focus_Scope (Item.Root.Widgets, UI.Named (Form, Confirm_Border).all);
          --  Its buttons are on now (see Revalidate), so that one can have the focus.
          Widgets.Revalidate (Item.Root.Widgets);
-         Widgets.Focus (UI.Widget_Of (Form, Item.Confirm.Confirm_Cancel).all);
+         Widgets.Focus (UI.Named (Form, Confirm_Cancel_Button).all);
       end if;
    end Raise_Dialog;
 

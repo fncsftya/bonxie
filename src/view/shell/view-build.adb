@@ -343,7 +343,7 @@ package body View.Build is
       Widgets.Set_Visible (Item.Page_View.Write_View, False);
       Widgets.Set_Visible (Item.Outline_View.View, False);
       Widgets.Set_Visible
-        (Pomarine.UI.Panel_Of (Item.Forms (Confirm_Region).Screen.all, Item.Confirm.Overlay).all, False);
+        (Pomarine.UI.Named (Item.Forms (Confirm_Region).Screen.all, Confirm_Overlay).all, False);
       Widgets.Set_Visible (Listing.Overlay (Item).all, False);
       Widgets.Set_Visible (Item.Dock.Dock_Panel, False);
       Recent.Refresh (Item);

@@ -77,7 +77,6 @@ package body View.Build.Dialogs is
    Offers_Flag : constant Confirm_UI.Flag_Property := Confirm_UI.Showing (Confirm_VM.Offers_Documents'Access);
 
    procedure Build_Modal (Item : in out Session) is
-      Ask : Confirm_Parts renames Item.Confirm;
    begin
       Open (Item.Forms (Confirm_Region), Item.Root.Widgets'Unchecked_Access, Confirm_Region);
       declare
@@ -106,7 +105,7 @@ package body View.Build.Dialogs is
              (UI.Column
                 ([UI.Place (Message, Height => Dialog_Line, Exact => True),
                   UI.Place (Note, Height => Dialog_Line, Exact => True),
-                  UI.Place (Offered, Height => Dialog_Line, Exact => True)],
+                  UI.Called (UI.Place (Offered, Height => Dialog_Line, Exact => True), Delete_Documents_Check)],
                  Appearance => (Fill => Paper, others => <>)),
               (Flow => Column, Padding => (others => Dialog_Pad), others => <>));
 
@@ -116,24 +115,22 @@ package body View.Build.Dialogs is
          Foot : constant UI.Layout :=
            UI.Styled
              (UI.Row
-                ([UI.Place (Cancel, Height => Dialog_Button_Height, Width => Dialog_Button_Width, Exact => True),
-                  UI.Place (Delete, Height => Dialog_Button_Height, Width => Dialog_Button_Width, Exact => True)],
+                ([UI.Called
+                    (UI.Place (Cancel, Height => Dialog_Button_Height, Width => Dialog_Button_Width, Exact => True),
+                     Confirm_Cancel_Button),
+                  UI.Called
+                    (UI.Place (Delete, Height => Dialog_Button_Height, Width => Dialog_Button_Width, Exact => True),
+                     Confirm_Delete_Button)],
                  Appearance => (Fill => Themes.Tint, others => <>)),
               (Flow => Row, Spread => Finish, Padding => (others => Dialog_Foot_Pad),
                Gap => Row_Gap,
                others => <>));
 
          Border : constant UI.Layout :=
-           Boxed ([Bar (Heading, Close), Body_Layout, Rule, Foot], Dialog_Width);
-         Overlay : constant UI.Layout := Over_All (Border);
+           UI.Called (Boxed ([Bar (Heading, Close), Body_Layout, Rule, Foot], Dialog_Width), Confirm_Border);
+         Overlay : constant UI.Layout := UI.Called (Over_All (Border), Confirm_Overlay);
       begin
          Bound.Show_When (UI.Any (Offered), Offers_Flag);
-         Ask.Overlay := Overlay;
-         Ask.Border := Border;
-         Ask.Dialog_Close := Close;
-         Ask.Delete_Documents := Offered;
-         Ask.Confirm_Cancel := Cancel;
-         Ask.Confirm_Delete := Delete;
          UI.Mount_Into (Form, Item.Root.Window_Panel, Overlay);
       end;
    end Build_Modal;
@@ -175,18 +172,14 @@ package body View.Build.Dialogs is
                others => <>));
 
          Border : constant UI.Layout :=
-           Boxed ([Bar (Heading, Close), Dialog], List_Width,
-                  List_Height);
-         Overlay : constant UI.Layout := Over_All (Border);
+           UI.Called (Boxed ([Bar (Heading, Close), Dialog], List_Width, List_Height), List_Border);
+         Overlay : constant UI.Layout := UI.Called (Over_All (Border), List_Overlay);
       begin
          Bound.On_Event (Rows, Widgets.Click, Item_List_VM.Reveal, Index_From_Event => True);
          Bound.On_Event (Rows, Widgets.Submit, Item_List_VM.Reveal, Index_From_Event => True);
          Bound.On_List_Actions (Rows, [Item_List_VM.Toggle_Shown, Item_List_VM.Remove]);
          Bound.Show_When (UI.Any (Rows), Filled_Flag);
          Bound.Show_When (UI.Any (None), Empty_Flag);
-         Parts.Overlay := Overlay;
-         Parts.Border := Border;
-         Parts.List_Close := Close;
          Parts.List_Rows.Owner := Item'Unchecked_Access;
          Pomarine.Widgets.Lists.Set_Model (Parts.List_View, Parts.List_Rows'Unchecked_Access);
          Pomarine.Widgets.Lists.Set_Row_Height (Parts.List_View, Row_Height);

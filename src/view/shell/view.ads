@@ -414,14 +414,6 @@ private
    --  by.
 
    type List_Parts is limited record
-      Overlay       : Pomarine.UI.Layout;
-      --  Over the project screen, to grey it out and hold the list of items, which is shown while Nav_VM
-      --  says it is up.
-      Border        : Pomarine.UI.Layout;
-      --  The dialog: a dark bar across its top, as a window's (its title, and a button to close it), and the
-      --  list under it.
-      List_Close    : Pomarine.UI.Button_Handle;
-      --  The dialog's controls are the view's (Pomarine.UI); the list is the application's, borrowed.
       List_View     : Pomarine.Widgets.Lists.List;
       --  A row for each item: its title, to show it, and buttons to show or hide it and to remove it.
       List_Rows     : aliased Item_Rows;
@@ -435,7 +427,6 @@ private
       Replies : aliased Responder;
       Root : Root_Parts;
       Home_View : Home_Parts;
-      Confirm : Confirm_Parts;
       Home_Model : Home_Choices;
       Menu_Target : aliased Menu_Router;
       Menu_Model : aliased Menu_VM.Model;
