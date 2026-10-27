@@ -1,6 +1,5 @@
+with "pomarine.gpr";
 with "config/ebook_config.gpr";
-with "coretext.gpr";
-with "pomarine_model.gpr";
 project Ebook is
 
    for Library_Name use "ebook_ada";

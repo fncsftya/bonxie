@@ -14,30 +14,18 @@ macos = true
 '...' = false
 
 [[depends-on]]
+pomarine = "*"
 bonxie = "*"
 pomarine_native = "*"
-pomarine_ui = "*"
-coretext = "*"
-sdl3 = "*"
-texts = "*"
-typeset = "*"
-yoga = "*"
 
 [[pins]]
+pomarine = { path = "../pomarine" }
 bonxie = { path = ".." }
 pomarine_native = { path = "../pomarine/native" }
-pomarine_ui = { path = "../pomarine/ui" }
-pomarine_vm = { path = "../pomarine/vm" }
-pomarine_model = { path = "../pomarine/model" }
-coretext = { path = "../pomarine/coretext" }
-sdl3 = { path = "../pomarine/sdl3" }
 speech = { path = "../speech" }
-texts = { path = "../pomarine/texts" }
-typeset = { path = "../pomarine/typeset" }
 vision = { path = "../vision" }
 ebook = { path = "../ebook" }
 webshot = { path = "../webshot" }
-yoga = { path = "../pomarine/yoga" }
 
 [build-switches]
 "*".ada_version = "Ada2022"

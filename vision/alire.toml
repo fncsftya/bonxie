@@ -12,17 +12,10 @@ macos = true
 '...' = false
 
 [[depends-on]]
-pomarine_ui = "*"
+pomarine = "*"
 
 [[pins]]
-pomarine_ui = { path = "../pomarine/ui" }
-pomarine_vm = { path = "../pomarine/vm" }
-pomarine_model = { path = "../pomarine/model" }
-coretext = { path = "../pomarine/coretext" }
-sdl3 = { path = "../pomarine/sdl3" }
-texts = { path = "../pomarine/texts" }
-typeset = { path = "../pomarine/typeset" }
-yoga = { path = "../pomarine/yoga" }
+pomarine = { path = "../pomarine" }
 
 [build-switches]
 "*".ada_version = "Ada2022"

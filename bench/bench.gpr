@@ -1,11 +1,6 @@
+with "pomarine.gpr";
 with "config/bench_config.gpr";
 with "bonxie.gpr";
-with "pomarine_ui.gpr";
-with "coretext.gpr";
-with "sdl3.gpr";
-with "texts.gpr";
-with "typeset.gpr";
-with "yoga.gpr";
 project Bench is
 
    for Source_Dirs use ("src/", "config/");

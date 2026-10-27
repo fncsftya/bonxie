@@ -1,6 +1,6 @@
+with "pomarine.gpr";
 with "config/ebook_tests_config.gpr";
 with "ebook.gpr";
-with "pomarine_ui.gpr";
 project Ebook_Tests is
 
    for Source_Dirs use ("src/", "config/");

@@ -1,9 +1,8 @@
+with "pomarine.gpr";
 with "config/bonxie_tests_config.gpr";
 with "bonxie.gpr";
 with "pomarine_goldens.gpr";
 with "pomarine_testing.gpr";
-with "pomarine_ui.gpr";
-with "texts.gpr";
 project Bonxie_Tests is
 
    for Source_Dirs use ("src/", "config/");

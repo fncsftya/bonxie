@@ -10,19 +10,12 @@ tags = []
 executables = ["ebook_test", "page_view"]
 
 [[depends-on]]
+pomarine = "*"
 ebook = "*"
-pomarine_ui = "*"
 
 [[pins]]
+pomarine = { path = "../../pomarine" }
 ebook = { path = ".." }
-pomarine_ui = { path = "../../pomarine/ui" }
-pomarine_vm = { path = "../../pomarine/vm" }
-pomarine_model = { path = "../../pomarine/model" }
-coretext = { path = "../../pomarine/coretext" }
-sdl3 = { path = "../../pomarine/sdl3" }
-texts = { path = "../../pomarine/texts" }
-typeset = { path = "../../pomarine/typeset" }
-yoga = { path = "../../pomarine/yoga" }
 
 [build-switches]
 "*".ada_version = "Ada2022"

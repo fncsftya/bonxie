@@ -10,37 +10,24 @@ tags = []
 executables = ["bonxie"]
 
 [[depends-on]]
-pomarine_model = "*"
+pomarine = "*"
 pomarine_native = "*"
-pomarine_ui = "*"
-coretext = "*"
 ebook = "*"
 harper = "*"
-sdl3 = "*"
 speech = "*"
-texts = "*"
-typeset = "*"
 vision = "*"
 webshot = "*"
-yoga = "*"
 json = "*"
 
 [[pins]]
+pomarine = { path = "pomarine" }
 pomarine_native = { path = "pomarine/native" }
 pomarine_testing = { path = "pomarine/testing" }
-pomarine_ui = { path = "pomarine/ui" }
-pomarine_vm = { path = "pomarine/vm" }
-pomarine_model = { path = "pomarine/model" }
-coretext = { path = "pomarine/coretext" }
 ebook = { path = "ebook" }
 harper = { path = "harper" }
-sdl3 = { path = "pomarine/sdl3" }
 speech = { path = "speech" }
-texts = { path = "pomarine/texts" }
-typeset = { path = "pomarine/typeset" }
 vision = { path = "vision" }
 webshot = { path = "webshot" }
-yoga = { path = "pomarine/yoga" }
 json = { path = "vendor/json-ada/json" }
 
 [build-switches]
