@@ -120,7 +120,7 @@ package body View.Grammar is
       if Grammar_VM.Can_Execute (Item.Grammar_Model.Model, Grammar_VM.Cancel_Entry) then
          Grammar_VM.Execute (Item.Grammar_Model.Model, Grammar_VM.Cancel_Entry);
       end if;
-      UI.Synchronize (Item.Forms (Grammar_Region).Screen.all);
+      Sync_Screen (Item, Grammar_Region);
    end Close_Entry;
 
    procedure Close (Item : in out Session) is
@@ -237,9 +237,9 @@ package body View.Grammar is
       Text_Fields.Set_Shared (State.Entry_Field, Item.Host.Doc_Resources'Unchecked_Access);
       Text_Fields.Configure (State.Entry_Field, Pomarine.Line_Texts.Interface_Font, View.Style.Edit_Size);
       Text_Fields.Attach (State.Entry_Field, State.Entry_Doc'Unchecked_Access);
-      Open (Item.Forms (Grammar_Region), Item.Root.Widgets'Unchecked_Access, Grammar_Region);
+      Open_Screen (Item, Grammar_Region);
       declare
-         Form : UI.View renames Item.Forms (Grammar_Region).Screen.all;
+         Form : UI.View renames Screen_Of (Item, Grammar_Region).all;
          Bound : constant Grammar_UI.Controls.Context'Class := Grammar_UI.Controls.Bind
            (Form, Item.Grammar_Model.Model'Access);
          Field : constant UI.Field_Handle := Bound.Borrow_Field
@@ -637,7 +637,7 @@ package body View.Grammar is
       State : Grammar_State renames Item.Grammar_Checks;
       On    : constant Boolean := Pomarine.Widgets.Switches.Is_On (Item.Page_View.Grammar_Switch);
    begin
-      UI.Synchronize (Item.Forms (Grammar_Region).Screen.all);
+      Sync_Screen (Item, Grammar_Region);
       if On /= State.Enabled then
          State.Enabled := On;
          Reset (Item);
@@ -883,7 +883,7 @@ package body View.Grammar is
          for Card in State.Bindings'Range loop
             if State.Bindings (Card) = Index then
                Grammar_VM.Execute (Item.Grammar_Model.Model, Grammar_VM.Expand_Card, Card);
-               UI.Synchronize (Item.Forms (Grammar_Region).Screen.all);
+               Sync_Screen (Item, Grammar_Region);
                Widgets.Revalidate (Item.Root.Widgets);
                return;
             end if;
@@ -922,7 +922,7 @@ package body View.Grammar is
             Grammar_VM.Set_Correction (Item.Grammar_Model.Model, To);
             if Grammar_VM.Can_Execute (Item.Grammar_Model.Model, Grammar_VM.Accept_Entry) then
                Grammar_VM.Execute (Item.Grammar_Model.Model, Grammar_VM.Accept_Entry);
-               UI.Synchronize (Item.Forms (Grammar_Region).Screen.all);
+               Sync_Screen (Item, Grammar_Region);
             end if;
          end if;
       end if;

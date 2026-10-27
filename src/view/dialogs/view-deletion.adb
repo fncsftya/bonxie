@@ -14,7 +14,7 @@ package body View.Deletion is
    use type Items.Kinds;
 
    function Dialog (Item : Session) return access Widgets.Widget'Class is
-     (UI.Named (Item.Forms (Confirm_Region).Screen.all, Confirm_Overlay));
+     (UI.Named (Screen_Of (Item, Confirm_Region).all, Confirm_Overlay));
    --  The grey that covers the window, and holds the dialog.
 
    --  Show the dialog over the rest: Tab goes round only its buttons, and Return, which a button has when it has
@@ -22,7 +22,7 @@ package body View.Deletion is
    procedure Raise_Dialog (Item : in out Session);
 
    procedure Raise_Dialog (Item : in out Session) is
-      Form : UI.View renames Item.Forms (Confirm_Region).Screen.all;
+      Form : UI.View renames Screen_Of (Item, Confirm_Region).all;
    begin
       Widgets.Set_Visible (Dialog (Item).all, True);
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
@@ -49,7 +49,7 @@ package body View.Deletion is
    begin
       --  What it says, and the box the person ticks, are the view's.
       if Pomarine.View_Models.Changed (Item.Dialog_Model.Seen, Confirm_VM.Version (Model)) then
-         UI.Synchronize (Item.Forms (Confirm_Region).Screen.all);
+         Sync_Screen (Item, Confirm_Region);
          Widgets.Revalidate (Item.Root.Widgets);
       end if;
       if Confirm_VM.Is_Asking (Model) and then not Widgets.Is_Visible (Dialog (Item).all) then

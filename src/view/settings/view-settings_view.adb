@@ -1,6 +1,5 @@
 with Backgrounds;
 with Pomarine.Themes;
-with Pomarine.UI;
 with Pomarine.Widgets;
 with Pomarine.Widgets.Panels;
 with Pomarine.Widgets.Scrollers;
@@ -98,7 +97,7 @@ package body View.Settings_View is
    begin
       Show_Backgrounds (Item);
       Item.Choices.Download_Seen := Settings_VM.Download_State (Item.Choices.Model);
-      Pomarine.UI.Synchronize (Item.Forms (Settings_Region).Screen.all);
+      Sync_Screen (Item, Settings_Region);
       --  The buttons the commands are on are turned on and off as the view-model says.
       Widgets.Revalidate (Item.Root.Widgets);
    end Draw;

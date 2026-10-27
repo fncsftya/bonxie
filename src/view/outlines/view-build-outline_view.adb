@@ -34,10 +34,10 @@ package body View.Build.Outline_View is
       Pane   : Outline_Parts renames Item.Outline_View;
       Block  : Section_Block renames Pane.Blocks (Index);
       Pixels : constant Float := Item.Shell.Density;
-      Form   : UI.View renames Item.Forms (Outline_Region).Screen.all;
+      Form   : UI.View renames Screen_Of (Item, Outline_Region).all;
 
       Outs : constant Outline_UI.Context'Class :=
-        Outline_UI.Bind (Form, Item.Outline_Model.Model'Unrestricted_Access);
+        Outline_UI.Bind (Form, Item.Outline_Model.Model);
 
       --  The buttons of the block do the commands of the outline for its row.
       function Icon_Button
@@ -131,7 +131,7 @@ package body View.Build.Outline_View is
       Offset : constant Float := Pomarine.Boxes.Offset (Pixels);
 
    begin
-      Open (Item.Forms (Outline_Region), Item.Root.Widgets'Unchecked_Access, Outline_Region);
+      Open_Screen (Item, Outline_Region);
       Buttons.Configure
         (Pane.Add_Button,
          Buttons.Looks ("Add Section", Icon => Pomarine.Icons.Shown (Icon_Set.Plus), Captioned => True,
@@ -141,13 +141,13 @@ package body View.Build.Outline_View is
       Pomarine.Widgets.Grips.Set_Wanted_Cursor
         (Pomarine.Widgets.Grips.Grip (Pane.Colour_Picker), SDL3.Cursors.Pointer);
       declare
-         Form : UI.View renames Item.Forms (Outline_Region).Screen.all;
+         Form : UI.View renames Screen_Of (Item, Outline_Region).all;
 
          function Line (Widget : in out Widgets.Widget'Class; Box : Layouts.Style) return UI.Layout is
            (UI.Styled (UI.Put (Form, Widget), Box));
 
          Outs : constant Outline_UI.Context'Class :=
-           Outline_UI.Bind (Form, Item.Outline_Model.Model'Unrestricted_Access);
+           Outline_UI.Bind (Form, Item.Outline_Model.Model);
          Adding : constant UI.Button_Handle := Outs.Borrow_Button (Pane.Add_Button, Outline_VM.Add_Section);
          Cancelling : constant UI.Button_Handle :=
            Outs.Borrow_Button (Pane.Colour_Cancel, Outline_VM.Cancel_Colour, Reflect => False);

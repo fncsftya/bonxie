@@ -60,12 +60,12 @@ package body View.Build.Settings_Form is
    procedure Build_Settings (Item : in out Session) is
       Prefs : Settings_Parts renames Item.Prefs;
    begin
-      Open (Item.Forms (Settings_Region), Item.Root.Widgets'Unchecked_Access, Settings_Region);
+      Open_Screen (Item, Settings_Region);
       declare
-         Form  : UI.View renames Item.Forms (Settings_Region).Screen.all;
+         Form  : UI.View renames Screen_Of (Item, Settings_Region).all;
          Bound : constant Settings_UI.Context'Class :=
-           Settings_UI.Bind (Form, Item.Choices.Model'Unrestricted_Access);
-         Navs  : constant Nav_UI.Context'Class := Nav_UI.Bind (Form, Item.Nav_Model.Model'Unrestricted_Access);
+           Settings_UI.Bind (Form, Item.Choices.Model);
+         Navs  : constant Nav_UI.Context'Class := Nav_UI.Bind (Form, Item.Nav_Model.Model);
 
          function Line
            (High : Float; Top : Layouts.Length := Unset) return Layouts.Style is

@@ -48,7 +48,7 @@ package body View.Build.Write_View is
    use Style;
    use Pomarine.Widgets.Layouts;
 
-   function Form_Of (Item : Session) return access UI.View is (Item.Forms (Writing_Region).Screen);
+   function Form_Of (Item : Session) return access UI.View is (Screen_Of (Item, Writing_Region));
    --  The view of this region's controls: everything here is put in a screen with the widgets the
    --  application keeps, borrowed, placed, and styled.
 
@@ -163,7 +163,7 @@ package body View.Build.Write_View is
    procedure Make_Page (Item : in out Session; Rank : Items.Slot) is
       Each : Doc_Page renames Item.Docs.Pages (Rank);
       Bound : constant Writing_Actions_UI.Context'Class :=
-        Writing_Actions_UI.Bind (Form_Of (Item).all, Item.Page_View.Actions'Unrestricted_Access);
+        Writing_Actions_UI.Bind (Form_Of (Item).all, Item.Page_View.Actions);
       function Command_Button
         (Part : in out Buttons.Button; Look : Buttons.Settings; What : Writing_VM.Actions.Command;
          Box : Layouts.Style) return UI.Layout is
@@ -283,7 +283,7 @@ package body View.Build.Write_View is
       Sections : Section_View_Parts renames Item.Section_View;
       Pane     : Page_Parts renames Item.Page_View;
       Bound : constant Nav_UI.Context'Class :=
-        Nav_UI.Bind (Form_Of (Item).all, Item.Nav_Model.Model'Unrestricted_Access);
+        Nav_UI.Bind (Form_Of (Item).all, Item.Nav_Model.Model);
 
       function Section_Button
         (Part : in out Buttons.Button; Look : Buttons.Settings; Box : Layouts.Style;
@@ -403,7 +403,7 @@ package body View.Build.Write_View is
          What : Nav_VM.Command) return UI.Layout
       is
          Bound : constant Nav_UI.Context'Class :=
-           Nav_UI.Bind (Form_Of (Item).all, Item.Nav_Model.Model'Unrestricted_Access);
+           Nav_UI.Bind (Form_Of (Item).all, Item.Nav_Model.Model);
       begin
          Buttons.Configure (Part, Look);
          return UI.Styled (Bound.Borrow_Button (Part, What), Box);
@@ -441,7 +441,7 @@ package body View.Build.Write_View is
          Margin : Layouts.Sides := (others => <>)) return UI.Layout
       is
          Bound : constant Sidebar_UI.Context'Class :=
-           Sidebar_UI.Bind (Form_Of (Item).all, Pane.Folding'Unrestricted_Access);
+           Sidebar_UI.Bind (Form_Of (Item).all, Pane.Folding);
       begin
          Labels.Set_Text (Head.Mark, " ");
          Labels.Set_Text (Head.Name, Name);
@@ -492,7 +492,7 @@ package body View.Build.Write_View is
             --  Over the rows of the tree, out of their layout: the line where a document dragged would go
             --  between two, the ghost of the row, and the field to rename a directory by.
             Actions : constant Writing_Actions_UI.Context'Class :=
-              Writing_Actions_UI.Bind (Form_Of (Item).all, Pane.Actions'Unrestricted_Access);
+              Writing_Actions_UI.Bind (Form_Of (Item).all, Pane.Actions);
             Dir_Control : constant UI.Widget_Handle := Actions.Borrow_Widget (Item.Naming.Dir_Field);
             Source_Control : constant UI.Widget_Handle := Actions.Borrow_Widget (Item.Naming.Source_Field);
             Docs_Over : constant UI.Layout_Array :=
@@ -644,7 +644,7 @@ package body View.Build.Write_View is
 
    begin
       Menu_Commands.Initialize (Item);
-      Open (Item.Forms (Writing_Region), Item.Root.Widgets'Unchecked_Access, Writing_Region);
+      Open_Screen (Item, Writing_Region);
       Assemble;
       Hook_Up;
       Writing.Fit_Sidebar (Item);

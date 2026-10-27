@@ -49,9 +49,9 @@ package body View.Build.Shell_Views is
       --  Not shown: the screens leave room for the window's own buttons
       --  (Header_Size above the home screen, Header_Inset at the left of
       --  the toolbar), and its title is the window's.
-      Open (Item.Forms (Header_Region), Item.Root.Widgets'Unchecked_Access, Header_Region);
+      Open_Screen (Item, Header_Region);
       declare
-         Form : UI.View renames Item.Forms (Header_Region).Screen.all;
+         Form : UI.View renames Screen_Of (Item, Header_Region).all;
       begin
          UI.Mount_Into
            (Form, Item.Root.Window_Panel,
@@ -97,11 +97,11 @@ package body View.Build.Shell_Views is
                                 then Header_Size else 0.0);
       --  Clear of the window's own buttons.
    begin
-      Open (Item.Forms (Home_Region), Item.Root.Widgets'Unchecked_Access, Home_Region);
+      Open_Screen (Item, Home_Region);
       declare
-         Form  : UI.View renames Item.Forms (Home_Region).Screen.all;
-         Navs  : constant Nav_UI.Context'Class := Nav_UI.Bind (Form, Item.Nav_Model.Model'Unrestricted_Access);
-         Homes : constant Home_UI.Context'Class := Home_UI.Bind (Form, Item.Home_Model.Model'Unrestricted_Access);
+         Form  : UI.View renames Screen_Of (Item, Home_Region).all;
+         Navs  : constant Nav_UI.Context'Class := Nav_UI.Bind (Form, Item.Nav_Model.Model);
+         Homes : constant Home_UI.Context'Class := Home_UI.Bind (Form, Item.Home_Model.Model);
 
          Logo     : constant UI.Label_Handle := Navs.Label ("bonxie", Style => Pomarine.Line_Texts.Display);
          Starting : constant UI.Button_Handle :=
@@ -340,10 +340,10 @@ package body View.Build.Shell_Views is
         (Bar.Title_Field, Pomarine.Line_Texts.Interface_Font,
          Pomarine.Line_Texts.Heading_Size);
       Text_Fields.Attach (Bar.Title_Field, Bar.Title_Doc'Unchecked_Access);
-      Open (Item.Forms (Project_Region), Item.Root.Widgets'Unchecked_Access, Project_Region);
+      Open_Screen (Item, Project_Region);
       declare
-         Form  : UI.View renames Item.Forms (Project_Region).Screen.all;
-         Navs  : constant Nav_UI.Context'Class := Nav_UI.Bind (Form, Item.Nav_Model.Model'Unrestricted_Access);
+         Form  : UI.View renames Screen_Of (Item, Project_Region).all;
+         Navs  : constant Nav_UI.Context'Class := Nav_UI.Bind (Form, Item.Nav_Model.Model);
 
          function Tab (Words : String; What : Nav_VM.Command) return UI.Button_Handle is
            (Navs.Button (Buttons.Looks (Words, Focusable => True), What));
@@ -455,7 +455,7 @@ package body View.Build.Shell_Views is
       Grips.Set_Hover_Outline (Bar.Title_Area, Themes.Rule);
       Grips.Set_Wanted_Cursor (Bar.Title_Area, SDL3.Cursors.Pointer);
 
-      Buttons.Set_Selected (UI.Widget_Of (Item.Forms (Project_Region).Screen.all, Bar.Canvas_Tab).all, True);
+      Buttons.Set_Selected (UI.Widget_Of (Screen_Of (Item, Project_Region).all, Bar.Canvas_Tab).all, True);
 
       --  The dock of minimised items, under the canvas, and the
       --  windows of the items: on the canvas, or as bars in the dock.
@@ -477,10 +477,10 @@ package body View.Build.Shell_Views is
    procedure Build_Tray (Item : in out Session) is
       Tray : Dock_Parts renames Item.Dock;
    begin
-      Open (Item.Forms (Tray_Region), Item.Root.Widgets'Unchecked_Access, Tray_Region);
+      Open_Screen (Item, Tray_Region);
       declare
-         Form  : UI.View renames Item.Forms (Tray_Region).Screen.all;
-         Navs  : constant Nav_UI.Context'Class := Nav_UI.Bind (Form, Item.Nav_Model.Model'Unrestricted_Access);
+         Form  : UI.View renames Screen_Of (Item, Tray_Region).all;
+         Navs  : constant Nav_UI.Context'Class := Nav_UI.Bind (Form, Item.Nav_Model.Model);
 
          Document : constant UI.Button_Handle :=
            Navs.Button
@@ -514,11 +514,11 @@ package body View.Build.Shell_Views is
       Pane : Publish_Parts renames Item.Publish_View;
    begin
       Buttons.Configure (Pane.Copy, Buttons.Looks ("Copy to Clipboard", Focusable => True));
-      Open (Item.Forms (Publish_Region), Item.Root.Widgets'Unchecked_Access, Publish_Region);
+      Open_Screen (Item, Publish_Region);
       declare
-         Form : UI.View renames Item.Forms (Publish_Region).Screen.all;
+         Form : UI.View renames Screen_Of (Item, Publish_Region).all;
          Bound : constant Publish_UI.Controls.Context'Class :=
-           Publish_UI.Controls.Bind (Form, Pane.Options'Unrestricted_Access);
+           Publish_UI.Controls.Bind (Form, Pane.Options);
          Format_Field : constant UI.Widget_Handle := Bound.Borrow_Widget (Pane.Format);
          Format_Menu : constant UI.Widget_Handle := Bound.Borrow_Widget (Pane.Format_Menu);
          Export : constant UI.Button_Handle := Bound.Button ("Export", Publish_VM.Export, Focusable => True);

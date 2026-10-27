@@ -78,11 +78,11 @@ package body View.Build.Dialogs is
 
    procedure Build_Modal (Item : in out Session) is
    begin
-      Open (Item.Forms (Confirm_Region), Item.Root.Widgets'Unchecked_Access, Confirm_Region);
+      Open_Screen (Item, Confirm_Region);
       declare
-         Form  : UI.View renames Item.Forms (Confirm_Region).Screen.all;
+         Form  : UI.View renames Screen_Of (Item, Confirm_Region).all;
          Bound : constant Confirm_UI.Context'Class :=
-           Confirm_UI.Bind (Form, Item.Dialog_Model.Model'Unrestricted_Access);
+           Confirm_UI.Bind (Form, Item.Dialog_Model.Model);
 
          Heading   : constant UI.Label_Handle :=
            Bound.Label (Title_Text, Style => Pomarine.Line_Texts.Strong, Ink => Themes.Bar_Ink);
@@ -149,12 +149,12 @@ package body View.Build.Dialogs is
    procedure Build_List (Item : in out Session) is
       Parts : List_Parts renames Item.Item_List;
    begin
-      Open (Item.Forms (List_Region), Item.Root.Widgets'Unchecked_Access, List_Region);
+      Open_Screen (Item, List_Region);
       declare
-         Form    : UI.View renames Item.Forms (List_Region).Screen.all;
-         Navs    : constant Nav_UI.Context'Class := Nav_UI.Bind (Form, Item.Nav_Model.Model'Unrestricted_Access);
+         Form    : UI.View renames Screen_Of (Item, List_Region).all;
+         Navs    : constant Nav_UI.Context'Class := Nav_UI.Bind (Form, Item.Nav_Model.Model);
          Bound   : constant Items_UI.Context'Class :=
-           Items_UI.Bind (Form, Item.Item_List.Model'Unrestricted_Access);
+           Items_UI.Bind (Form, Item.Item_List.Model);
 
          Heading : constant UI.Label_Handle :=
            Bound.Label ("Items", Style => Pomarine.Line_Texts.Strong, Ink => Themes.Bar_Ink);

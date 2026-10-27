@@ -482,25 +482,41 @@ private
       --  After all the widgets the forms are mounted into: they go first, with their panels out of those.
    end record;
 
+   function Has_Screen (Item : Session; Region : Form_Kinds) return Boolean is (Item.Forms (Region).Screen /= null);
+
+   function Screen_Of (Item : Session; Region : Form_Kinds) return not null access Pomarine.UI.View is
+     (Item.Forms (Region).Screen)
+     with Pre => Has_Screen (Item, Region);
+   --  The view of a region's controls.
+
+   procedure Open_Screen (Item : in out Session; Region : Form_Kinds)
+     with Pre => not Has_Screen (Item, Region), Post => Has_Screen (Item, Region);
+   --  Make the view of a region's controls, in the session's tree, with its tags from Tag_Base (before any
+   --  control is made).
+
+   procedure Sync_Screen (Item : Session; Region : Form_Kinds)
+     with Pre => Has_Screen (Item, Region);
+   --  Show what the models changed, in a region's controls (Pomarine.UI.Synchronize).
+
    function Project_Panel (Item : Session) return access Pomarine.Widgets.Widget'Class is
-     (Pomarine.UI.Panel_Of (Item.Forms (Project_Region).Screen.all, Item.Toolbar.Project_Layout));
+     (Pomarine.UI.Panel_Of (Screen_Of (Item, Project_Region).all, Item.Toolbar.Project_Layout));
    --  A column: the toolbar, the content area, and the dock.
 
    function Home_Panel (Item : Session) return access Pomarine.Widgets.Widget'Class is
-     (Pomarine.UI.Panel_Of (Item.Forms (Home_Region).Screen.all, Item.Home_View.Home_Layout));
+     (Pomarine.UI.Panel_Of (Screen_Of (Item, Home_Region).all, Item.Home_View.Home_Layout));
    --  A row: the sidebar of actions, and the recent projects.
 
    function Tab_Of
      (Item : Session; Which : Pomarine.UI.Button_Handle) return not null access Pomarine.Widgets.Buttons.Button is
-     (Pomarine.UI.Widget_Of (Item.Forms (Project_Region).Screen.all, Which));
+     (Pomarine.UI.Widget_Of (Screen_Of (Item, Project_Region).all, Which));
    --  A button of the project's toolbar.
 
    function Tray_Panel (Item : Session) return access Pomarine.Widgets.Widget'Class is
-     (Pomarine.UI.Panel_Of (Item.Forms (Tray_Region).Screen.all, Item.Dock.Tools));
+     (Pomarine.UI.Panel_Of (Screen_Of (Item, Tray_Region).all, Item.Dock.Tools));
    --  The tray of tools, over the canvas at the foot.
 
    function Content_Panel (Item : Session) return access Pomarine.Widgets.Widget'Class is
-     (Pomarine.UI.Panel_Of (Item.Forms (Project_Region).Screen.all, Item.Toolbar.Content_Layout));
+     (Pomarine.UI.Panel_Of (Screen_Of (Item, Project_Region).all, Item.Toolbar.Content_Layout));
    --  Where the views of a project are, and the tray and the menus over them.
 
 end View;

@@ -30,7 +30,7 @@ package body View.Listing is
    end Describe;
 
    function Overlay (Item : Session) return access Pomarine.Widgets.Widget'Class is
-     (Pomarine.UI.Named (Item.Forms (List_Region).Screen.all, List_Overlay));
+     (Pomarine.UI.Named (Screen_Of (Item, List_Region).all, List_Overlay));
 
    procedure Refresh (Item : in out Session) is
    begin
@@ -39,7 +39,7 @@ package body View.Listing is
          return;
       end if;
       --  The words that say there are none, or the list, are the view's.
-      Pomarine.UI.Synchronize (Item.Forms (List_Region).Screen.all);
+      Sync_Screen (Item, List_Region);
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
    end Refresh;
 
@@ -53,7 +53,7 @@ package body View.Listing is
       Lists.Select_Row (Item.Item_List.List_View, 0);
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
       Widgets.Set_Focus_Scope
-        (Item.Root.Widgets, Pomarine.UI.Named (Item.Forms (List_Region).Screen.all, List_Border).all);
+        (Item.Root.Widgets, Pomarine.UI.Named (Screen_Of (Item, List_Region).all, List_Border).all);
       if Item_List_VM.Count (Item.Item_List.Model) > 0 then
          Widgets.Focus (Item.Item_List.List_View);
       end if;

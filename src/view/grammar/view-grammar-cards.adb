@@ -1,6 +1,5 @@
 with Grammar_Rules;
 with Grammar_VM;
-with Pomarine.UI;
 with Harper;
 with Pomarine.Widgets.Text_Fields;
 with Grammar_Cards;
@@ -300,7 +299,7 @@ package body View.Grammar.Cards is
            (Item.Grammar_Model.Model, Marked, Grammar_Rules.Kind_Code (Mark.Lint.Kind),
             (if Mark.Lint.Suggestion_Count > 0
              then Harper.Replacements.To_String (Mark.Lint.Suggestions (1).Text) else Marked));
-         Pomarine.UI.Synchronize (Item.Forms (Grammar_Region).Screen.all);
+         Sync_Screen (Item, Grammar_Region);
          Set_Layout (State.Entry_Panel, Width => Layouts.Length_Of (Wide), Position =>
            (Left => Layouts.Length_Of (Float'Max (8.0,
                                                   Float'Min (State.Pointer_X - Parent_Left - Wide / 2.0,

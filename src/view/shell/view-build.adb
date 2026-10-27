@@ -88,7 +88,7 @@ package body View.Build is
       --  The plus in the card does what the card does: not a stop of its own,
       --  nor a button more to an assistive technology.
       Widgets.Hide_From_Accessibility
-        (Pomarine.UI.Widget_Of (Item.Forms (Home_Region).Screen.all, Item.Home_View.New_Card_Plus).all);
+        (Pomarine.UI.Widget_Of (Screen_Of (Item, Home_Region).all, Item.Home_View.New_Card_Plus).all);
    end Hide_Card_Plus;
 
    procedure Make_Slot (Item : in out Session; Which : Items.Slot) is
@@ -331,7 +331,7 @@ package body View.Build is
       for Card of Item.Home_View.Cards loop
          declare
             Field : Text_Fields.Text_Field renames
-              Pomarine.UI.Widget_Of (Item.Forms (Home_Region).Screen.all, Card.Field).all;
+              Pomarine.UI.Widget_Of (Screen_Of (Item, Home_Region).all, Card.Field).all;
          begin
             Text_Fields.Set_Shared (Field, Item.Host.Doc_Resources'Unchecked_Access);
             Text_Fields.Configure (Field, Pomarine.Line_Texts.Interface_Font, Edit_Size);
@@ -343,7 +343,7 @@ package body View.Build is
       Widgets.Set_Visible (Item.Page_View.Write_View, False);
       Widgets.Set_Visible (Item.Outline_View.View, False);
       Widgets.Set_Visible
-        (Pomarine.UI.Named (Item.Forms (Confirm_Region).Screen.all, Confirm_Overlay).all, False);
+        (Pomarine.UI.Named (Screen_Of (Item, Confirm_Region).all, Confirm_Overlay).all, False);
       Widgets.Set_Visible (Listing.Overlay (Item).all, False);
       Widgets.Set_Visible (Item.Dock.Dock_Panel, False);
       Recent.Refresh (Item);

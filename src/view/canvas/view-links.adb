@@ -44,11 +44,11 @@ package body View.Links is
       Tools : UI.Layout_Array (1 .. Buttons_Needed);
       Last  : Natural := 0;
    begin
-      Open (Item.Forms (Canvas_Region), Item.Root.Widgets'Unchecked_Access, Canvas_Region);
+      Open_Screen (Item, Canvas_Region);
       declare
-         Form : UI.View renames Item.Forms (Canvas_Region).Screen.all;
+         Form : UI.View renames Screen_Of (Item, Canvas_Region).all;
          Bound : constant Canvas_UI.Context'Class :=
-           Canvas_UI.Bind (Form, Item.Canvas_Model.Model'Unrestricted_Access);
+           Canvas_UI.Bind (Form, Item.Canvas_Model.Model);
 
          procedure Tool
            (Part : in out Buttons.Button; Apart : Boolean; Looks : Buttons.Settings; What : Canvas_VM.Command;
@@ -127,9 +127,9 @@ package body View.Links is
             Pin : Pins.Pin renames Item.Linking.Pins (Which) (Side);
          begin
             UI.Mount_Into
-              (Item.Forms (Canvas_Region).Screen.all, Item.Canvas_View,
+              (Screen_Of (Item, Canvas_Region).all, Item.Canvas_View,
                UI.Styled
-                 (UI.Put (Item.Forms (Canvas_Region).Screen.all, Pin),
+                 (UI.Put (Screen_Of (Item, Canvas_Region).all, Pin),
                   (Place => Layouts.Absolute, Width => Layouts.Length_Of (Pins.Diameter),
                    Height => Layouts.Length_Of (Pins.Diameter), others => <>)));
             Widgets.Set_Visible (Pin, False);

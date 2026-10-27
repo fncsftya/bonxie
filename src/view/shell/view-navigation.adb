@@ -1,5 +1,4 @@
 with Settings_VM;
-with Pomarine.UI;
 with Pomarine.View_Models;
 with View.Canvas_Items;
 with View.Listing;
@@ -65,8 +64,8 @@ package body View.Navigation is
       Model : Nav_VM.View_Model renames Item.Nav_Model.Model;
       Home  : constant Boolean := Nav_VM.Screen (Model) = Nav_VM.Home;
    begin
-      if Item.Forms (Project_Region).Screen /= null then
-         Pomarine.UI.Synchronize (Item.Forms (Project_Region).Screen.all);
+      if Has_Screen (Item, Project_Region) then
+         Sync_Screen (Item, Project_Region);
       end if;
       if Parts.Changed (Item.Nav_Model.Seen, Nav_VM.Version (Model)) then
          if Parts.Changed (Item.Nav_Model.Screens, Nav_VM.Screen_Version (Model)) then

@@ -92,7 +92,7 @@ package body View.Documents is
    procedure Deletion_Points (Item : Session; Check_X, Check_Y, Delete_X, Delete_Y : out Float) is
       package Widgets renames Pomarine.Widgets;
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
-      Form   : Pomarine.UI.View renames Item.Forms (Confirm_Region).Screen.all;
+      Form   : Pomarine.UI.View renames Screen_Of (Item, Confirm_Region).all;
       Check  : Widgets.Widget'Class renames
         Pomarine.UI.Named (Form, Delete_Documents_Check).all;
       Delete : Widgets.Widget'Class renames

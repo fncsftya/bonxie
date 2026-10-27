@@ -306,6 +306,16 @@ package body View is
       Responses.Perform (Self.Owner.all, Event);
    end Handle_Event;
 
+   procedure Open_Screen (Item : in out Session; Region : Form_Kinds) is
+   begin
+      Open (Item.Forms (Region), Item.Root.Widgets'Unchecked_Access, Region);
+   end Open_Screen;
+
+   procedure Sync_Screen (Item : Session; Region : Form_Kinds) is
+   begin
+      Pomarine.UI.Synchronize (Item.Forms (Region).Screen.all);
+   end Sync_Screen;
+
    function View_Mode (Item : Session) return Modes is (Modes (Nav_VM.Mode (Item.Nav_Model.Model)));
 
    function Open_Key (Item : Session) return Projects.Id is (Nav_VM.Project_Key (Item.Nav_Model.Model));

@@ -48,7 +48,7 @@ package body View.Recent is
          if I <= Home_VM.Count (Model) then
             --  The picture of its canvas has no words of its own.
             Widgets.Set_Accessible_Name
-              (UI.Widget_Of (Item.Forms (Home_Region).Screen.all, Item.Home_View.Cards (I).Peek).all,
+              (UI.Widget_Of (Screen_Of (Item, Home_Region).all, Item.Home_View.Cards (I).Peek).all,
                "Open " & Home_VM.Title (Model, I));
             Show_Picture (Item, I);
          end if;
@@ -63,7 +63,7 @@ package body View.Recent is
          if Pomarine.View_Models.Changed (Item.Home_Model.Listed, Home_VM.Listed_Version (Model)) then
             Show_Rows (Item);
          end if;
-         UI.Synchronize (Item.Forms (Home_Region).Screen.all);
+         Sync_Screen (Item, Home_Region);
          Widgets.Revalidate (Item.Root.Widgets);
          Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
       end if;

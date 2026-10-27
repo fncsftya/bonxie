@@ -41,14 +41,14 @@ package body View.Search is
          else (Flow => Row, Height => 44.0, Shrink => 0.0, Gap => 8.0, Padding => (others => 6.0), others => <>));
       Wide : constant Float := (if In_Window then 24.0 else 36.0);
    begin
-      if Item.Forms (Search_Region).Screen = null then
+      if not Has_Screen (Item, Search_Region) then
          Fields.Set_Shared (S.Field, Item.Host.Doc_Resources'Unchecked_Access);
          Fields.Configure (S.Field, Pomarine.Line_Texts.Interface_Font, View.Style.Edit_Size);
          Fields.Attach (S.Field, S.Doc'Unchecked_Access);
-         Open (Item.Forms (Search_Region), Item.Root.Widgets'Unchecked_Access, Search_Region);
+         Open_Screen (Item, Search_Region);
          declare
             Bound : constant Search_UI.Controls.Context'Class :=
-              Search_UI.Controls.Bind (Item.Forms (Search_Region).Screen.all, S.Model'Unrestricted_Access);
+              Search_UI.Controls.Bind (Screen_Of (Item, Search_Region).all, S.Model);
             Bar : constant UI.Widget_Handle := Bound.Borrow_Widget (S.Bar);
          begin
             S.Query_Control := Bound.Borrow_Field (S.Field, S.Doc, Search_UI.Query);
@@ -60,7 +60,7 @@ package body View.Search is
          end;
       end if;
       declare
-         Form : UI.View renames Item.Forms (Search_Region).Screen.all;
+         Form : UI.View renames Screen_Of (Item, Search_Region).all;
 
          function Button
            (Part : in out Buttons.Button; Control : UI.Button_Handle; Look : Buttons.Settings) return UI.Layout is
@@ -287,7 +287,7 @@ package body View.Search is
 
    procedure Sync (Item : in out Session) is
    begin
-      UI.Synchronize (Item.Forms (Search_Region).Screen.all);
+      Sync_Screen (Item, Search_Region);
    end Sync;
 
    procedure Close (Item : in out Session) is
