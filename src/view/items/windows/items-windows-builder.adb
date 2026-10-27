@@ -158,10 +158,9 @@ package body Items.Windows.Builder is
                (Flow => Layouts.Row, Gap => Layouts.Length_Of (Edge), Unit => Layouts.Device_Pixels, others => <>));
          end Zoom_Row;
 
-         Slider_Handle : constant UI.Widget_Handle :=
-           Bound.Borrow_Slider (Item.Zoom_Slider, Item_Window_UI.Zoom_Value);
          Slider : constant UI.Layout := UI.Styled
-           (UI.Place (Slider_Handle), Size (Metrics.Zoom_Slider_Width, Metrics.Zoom_Row_Height));
+           (Bound.Borrow_Slider (Item.Zoom_Slider, Item_Window_UI.Zoom_Value),
+            Size (Metrics.Zoom_Slider_Width, Metrics.Zoom_Row_Height));
          First_Row : constant UI.Layout := Zoom_Row (1);
          Second_Row : constant UI.Layout := Zoom_Row (2);
          Menu : constant UI.Layout := UI.Styled

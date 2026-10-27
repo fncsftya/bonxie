@@ -169,7 +169,7 @@ package body View.Build.Write_View is
          Box : Layouts.Style) return UI.Layout is
       begin
          Buttons.Configure (Part, Look);
-         return UI.Styled (UI.Place (Bound.Borrow_Button (Part, What, Rank)), Box);
+         return UI.Styled (Bound.Borrow_Button (Part, What, Rank), Box);
       end Command_Button;
    begin
       declare
@@ -290,7 +290,7 @@ package body View.Build.Write_View is
          What : Nav_VM.Command) return UI.Layout is
       begin
          Buttons.Configure (Part, Look);
-         return UI.Styled (UI.Place (Bound.Borrow_Button (Part, What, Index)), Box);
+         return UI.Styled (Bound.Borrow_Button (Part, What, Index), Box);
       end Section_Button;
    begin
       declare
@@ -406,7 +406,7 @@ package body View.Build.Write_View is
            Nav_UI.Bind (Form_Of (Item).all, Item.Nav_Model.Model'Unrestricted_Access);
       begin
          Buttons.Configure (Part, Look);
-         return UI.Styled (UI.Place (Bound.Borrow_Button (Part, What)), Box);
+         return UI.Styled (Bound.Borrow_Button (Part, What), Box);
       end Command_Button;
 
       --  A list of rows, as tall as its rows, if there is room; the second list follows the first. The scroll
@@ -442,9 +442,7 @@ package body View.Build.Write_View is
       is
          Bound : constant Sidebar_UI.Context'Class :=
            Sidebar_UI.Bind (Form_Of (Item).all, Pane.Folding'Unrestricted_Access);
-         Grip : constant UI.Widget_Handle := Bound.Borrow_Widget (Head.Bar);
       begin
-         Bound.On_Event (Grip, Widgets.Click, What);
          Labels.Set_Text (Head.Mark, " ");
          Labels.Set_Text (Head.Name, Name);
          Labels.Set_Style (Head.Name, Pomarine.Line_Texts.Caption);
@@ -452,12 +450,13 @@ package body View.Build.Write_View is
          Grips.Set_Hover_Fill (Head.Bar, Row_Hover);
          Grips.Set_Wanted_Cursor (Head.Bar, SDL3.Cursors.Pointer);
          Widgets.Set_Accessible_Name (Head.Bar, "Fold or unfold " & Name);
-         return UI.Styled (UI.Hold
-           (Grip,
+         return UI.Styled (Bound.Borrow_Holding
+           (Head.Bar,
             [Line (Item, Head.Mark,
                    (Width => 18.0, Height => Layouts.Length_Of (Heading_Height), Shrink => 0.0, others => <>)),
              Line (Item, Head.Name,
-                   (Grow => 1.0, Width => 0.0, Height => Layouts.Length_Of (Heading_Height), others => <>))]),
+                   (Grow => 1.0, Width => 0.0, Height => Layouts.Length_Of (Heading_Height), others => <>))],
+            Click => What),
             (Flow => Row, Align => Center, Height => Layouts.Length_Of (Heading_Height), Shrink => 0.0, Grow => Grow,
              Width => Width,
              Margin => Margin, others => <>));

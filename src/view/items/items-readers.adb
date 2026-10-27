@@ -152,24 +152,21 @@ package body Items.Readers is
            (Screen, [UI.Styled (UI.Put (Screen, Item.Picture), (Grow => 1.0, Height => 0.0, others => <>)),
                      UI.Styled (UI.Put (Screen, Item.Pages), (Grow => 1.0, Height => 0.0, others => <>)),
                      UI.Styled (UI.Put (Screen, Item.Text_View), (Grow => 1.0, Height => 0.0, others => <>))]);
-         Zoom_Control : constant UI.Widget_Handle :=
-           Bound.Borrow_Slider (Item.Zoom_Slider, Reader_UI.Zoom_Value);
-         Visit_Control : constant UI.Button_Handle :=
-           Bound.Borrow_Button (Item.Visit_Button, Reader_VM.Visit, Reflect => False);
          Status : constant UI.Layout := UI.Fragment
            (Screen, [Tools,
-                     UI.Place (Zoom_Control, Width => Layouts.Length_Of (Slider_Width),
+                     Bound.Borrow_Slider
+                       (Item.Zoom_Slider, Reader_UI.Zoom_Value, Width => Layouts.Length_Of (Slider_Width),
                         Height => Layouts.Length_Of (Row_Height), Exact => True),
                      Put (Item.Zoom_Label, Percent_Width, Label_Height),
                      UI.Styled (UI.Put (Screen, Item.Status),
                                 (Grow => 1.0, Width => 0.0, Height => Layouts.Length_Of (Label_Height), others => <>)),
-                     UI.Place (Visit_Control, Width => Layouts.Length_Of (Visit_Width),
+                     Bound.Borrow_Button
+                       (Item.Visit_Button, Reader_VM.Visit, Reflect => False, Width => Layouts.Length_Of (Visit_Width),
                         Height => Layouts.Length_Of (Row_Height), Exact => True)]);
-         Pin_Control : constant UI.Button_Handle :=
-           Bound.Borrow_Button (Item.Pin_Button, Reader_VM.Toggle_Pin, Reflect => False);
          Pin : constant UI.Layout :=
-           UI.Place (Pin_Control, Width => Layouts.Length_Of (Button_Size), Height => Layouts.Length_Of (Button_Size),
-              Exact => True);
+           Bound.Borrow_Button
+             (Item.Pin_Button, Reader_VM.Toggle_Pin, Reflect => False, Width => Layouts.Length_Of (Button_Size),
+              Height => Layouts.Length_Of (Button_Size), Exact => True);
       begin
          Bound.On_Frame_Event (Item.Chrome, Widgets.Close, Reader_VM.Close_Reader);
          UI.Mount_Before (Screen, Frames.Title_End (Item.Chrome).all, Pin);

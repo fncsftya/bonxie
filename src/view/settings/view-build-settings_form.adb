@@ -100,31 +100,27 @@ package body View.Build.Settings_Form is
             Pictured : constant Boolean := Mode in Preferences.Pictures;
             Words    : constant String := Background_Name_Of (Mode);
             Choice   : constant Natural := Preferences.Background_Modes'Pos (Mode);
-            Pick_Control : constant UI.Widget_Handle := Bound.Borrow_Widget (Card.Pick);
-            Peek_Control : constant UI.Widget_Handle := Bound.Borrow_Widget (Card.Peek);
 
             function New_Picture return UI.Layout is
             begin
                if not Pictured then
                   return UI.Nothing;
                end if;
-               declare
-                  Button : constant UI.Button_Handle := Bound.Borrow_Button
-                    (Card.Reseed, Settings_VM.New_Picture, Choice);
-               begin
-                  Buttons.Configure
-                    (Card.Reseed,
-                     Buttons.Looks ("New picture", Icon => Pomarine.Icons.Shown (Icon_Set.Refresh), Focusable => True));
-                  return UI.Place (Button, Width => Card_Button, Height => Card_Button, Shrink => 0.0, Exact => True);
-               end;
+               Buttons.Configure
+                 (Card.Reseed,
+                  Buttons.Looks ("New picture", Icon => Pomarine.Icons.Shown (Icon_Set.Refresh), Focusable => True));
+               return Bound.Borrow_Button
+                 (Card.Reseed, Settings_VM.New_Picture, Choice,
+                  Width => Card_Button, Height => Card_Button, Shrink => 0.0, Exact => True);
             end New_Picture;
 
             Naming : constant UI.Layout :=
               UI.Styled
-                (UI.Hold
-                   (Pick_Control,
+                (Bound.Borrow_Holding
+                   (Card.Pick,
                     [UI.Styled (UI.Put (Form, Card.Name),
-                                (Height => Card_Title_Height, others => <>))]),
+                                (Height => Card_Title_Height, others => <>))],
+                    Click => Settings_VM.Choose_Background, Index => Choice),
                  (Grow => 1.0, Width => 0.0, Flow => Column, Spread => Center, Align_Self => Stretch, others => <>));
             Reseeding : constant UI.Layout := New_Picture;
             Foot  : constant UI.Layout :=
@@ -135,11 +131,11 @@ package body View.Build.Settings_Form is
                   Padding => (Left | Right => Layouts.Length_Of (Card_Pad), others => <>), others => <>));
             Peek  : constant UI.Layout :=
               UI.Styled
-                (UI.Hold (Peek_Control, [UI.Styled (UI.Put (Form, Card.Sample), (Grow => 1.0, others => <>))]),
+                (Bound.Borrow_Holding
+                   (Card.Peek, [UI.Styled (UI.Put (Form, Card.Sample), (Grow => 1.0, others => <>))],
+                    Click => Settings_VM.Choose_Background, Index => Choice),
                  (Grow => 1.0, Flow => Column, others => <>));
          begin
-            Bound.On_Event (Pick_Control, Widgets.Click, Settings_VM.Choose_Background, Choice);
-            Bound.On_Event (Peek_Control, Widgets.Click, Settings_VM.Choose_Background, Choice);
             Panels.Set_Radius (Card.Whole, Themes.Large_Radius, Framed => True);
             Panels.Set_Fill (Card.Whole, Themes.Page);
             Panels.Set_Border (Card.Whole, Themes.Border);

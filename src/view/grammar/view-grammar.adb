@@ -242,11 +242,8 @@ package body View.Grammar is
          Form : UI.View renames Item.Forms (Grammar_Region).Screen.all;
          Bound : constant Grammar_UI.Controls.Context'Class := Grammar_UI.Controls.Bind
            (Form, Item.Grammar_Model.Model'Access);
-         Prompt : constant UI.Label_Handle := Bound.Borrow_Label (State.Entry_Prompt, Grammar_UI.Prompt);
          Field : constant UI.Field_Handle := Bound.Borrow_Field
            (State.Entry_Field, State.Entry_Doc, Grammar_UI.Correction);
-         Accept_Button : constant UI.Button_Handle := Bound.Borrow_Button (State.Entry_Ok, Grammar_VM.Accept_Entry);
-         Cancel_Button : constant UI.Button_Handle := Bound.Borrow_Button (State.Entry_Cancel, Grammar_VM.Cancel_Entry);
 
          Rows : UI.Layout_Array (1 .. 1 + State.Cards'Length + State.Actions'Length + 3);
          Last : Natural := 0;
@@ -260,10 +257,9 @@ package body View.Grammar is
          procedure Add_Footer_Button
            (Part : in out Buttons.Button; Caption : String; Wide : Float; Command : Grammar_VM.Card_Command)
          is
-            Control : constant UI.Button_Handle := Bound.Borrow_Button (Part, Command);
          begin
             Buttons.Configure (Part, Buttons.Looks (Caption, Focusable => True));
-            Add (UI.Styled (UI.Place (Control),
+            Add (UI.Styled (Bound.Borrow_Button (Part, Command),
                             (Place => Absolute, Width => Layouts.Length_Of (Wide), Height => 28.0, others => <>)));
          end Add_Footer_Button;
       begin
@@ -279,21 +275,15 @@ package body View.Grammar is
                  (Place => Absolute, Position => (Top | Left => 8.0, others => <>), Height => 24.0, Width => 300.0,
                   others => <>)));
          for Index in State.Cards'Range loop
-            declare
-               Card : constant UI.Widget_Handle := Bound.Borrow_Widget (State.Cards (Index));
-            begin
-               Bound.On_Event (Card, Widgets.Click, Grammar_VM.Expand_Card, Index);
-               Add (UI.Styled (UI.Place (Card), (Place => Absolute, Width => 320.0, Height => 40.0, others => <>)));
-            end;
+            Add (UI.Styled
+                   (Bound.Borrow_Widget (State.Cards (Index), Click => Grammar_VM.Expand_Card, Index => Index),
+                    (Place => Absolute, Width => 320.0, Height => 40.0, others => <>)));
          end loop;
          for Number in State.Actions'Range loop
-            declare
-               Action : constant UI.Button_Handle :=
-                 Bound.Borrow_Button (State.Actions (Number), Grammar_VM.Apply_Fix, Number);
-            begin
-               Buttons.Configure (State.Actions (Number), Buttons.Looks ("Apply", Buttons.Primary, Focusable => True));
-               Add (UI.Styled (UI.Place (Action), (Place => Absolute, Width => 56.0, Height => 28.0, others => <>)));
-            end;
+            Buttons.Configure (State.Actions (Number), Buttons.Looks ("Apply", Buttons.Primary, Focusable => True));
+            Add (UI.Styled
+                   (Bound.Borrow_Button (State.Actions (Number), Grammar_VM.Apply_Fix, Number),
+                    (Place => Absolute, Width => 56.0, Height => 28.0, others => <>)));
          end loop;
          Add_Footer_Button (State.Add_Rule, "Add rule", 76.0, Grammar_VM.Edit_Rule);
          Add_Footer_Button (State.Ignore_Text, "Ignore", 60.0, Grammar_VM.Ignore_Text);
@@ -323,15 +313,18 @@ package body View.Grammar is
               UI.Styled
                 (UI.Put_In
                    (Form, State.Entry_Row,
-                    [UI.Place (Accept_Button, Width => 76.0, Height => 28.0, Exact => True),
-                     UI.Place (Cancel_Button, Width => 64.0, Height => 28.0, Exact => True)],
+                    [Bound.Borrow_Button
+                       (State.Entry_Ok, Grammar_VM.Accept_Entry, Width => 76.0, Height => 28.0, Exact => True),
+                     Bound.Borrow_Button
+                       (State.Entry_Cancel, Grammar_VM.Cancel_Entry, Width => 64.0, Height => 28.0, Exact => True)],
                     Flow => Layouts.Row),
                  (Height => 28.0, Shrink => 0.0, Flow => Layouts.Row, Gap => 8.0, Spread => Between, others => <>));
             Entry_Box : constant UI.Layout :=
               UI.Styled
                 (UI.Put_In
                    (Form, State.Entry_Panel,
-                    [UI.Place (Prompt, Height => 22.0, Shrink => 0.0, Exact => True),
+                    [Bound.Borrow_Label
+                       (State.Entry_Prompt, Grammar_UI.Prompt, Height => 22.0, Shrink => 0.0, Exact => True),
                      UI.Place (Field, Height => 36.0, Shrink => 0.0, Exact => True),
                      Buttons_Row]),
                  (Place => Absolute, Width => Layouts.Length_Of (Entry_Width), Height => 124.0, Flow => Column,

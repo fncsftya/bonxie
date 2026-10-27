@@ -58,7 +58,7 @@ package body View.Links is
             Last := Last + 1;
             Tools (Last) :=
               UI.Styled
-                (UI.Place (Bound.Borrow_Button (Part, What, Index, Reflect => False)),
+                (Bound.Borrow_Button (Part, What, Index, Reflect => False),
                  (Width => Layouts.Length_Of (Style.Link_Button_Size),
                   Height => Layouts.Length_Of (Style.Link_Button_Size),
                   Margin => (if Apart then (Left => Layouts.Length_Of (Style.Link_Group_Gap),

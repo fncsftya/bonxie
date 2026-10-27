@@ -46,18 +46,18 @@ package body View.Build.Outline_View is
       begin
          Buttons.Configure
            (Part, Buttons.Looks (Name, Of_Kind, Icon => Pomarine.Icons.Shown (Icon), Focusable => True));
-         return UI.Place (Outs.Borrow_Button (Part, What, Index), Width => Outline_Button, Height => Outline_Button,
-            Shrink => 0.0, Exact => True);
+         return Outs.Borrow_Button
+           (Part, What, Index, Width => Outline_Button, Height => Outline_Button, Shrink => 0.0, Exact => True);
       end Icon_Button;
 
       function Notes_Button return UI.Layout is
       begin
          Buttons.Configure (Block.Notes, Buttons.Looks ("Notes", Captioned => True, Focusable => True));
-         return UI.Place (Outs.Borrow_Button (Block.Notes, Outline_VM.Toggle_Notes, Index), Width => Notes_Width,
-            Height => Outline_Button, Shrink => 0.0, Exact => True);
+         return Outs.Borrow_Button
+           (Block.Notes, Outline_VM.Toggle_Notes, Index, Width => Notes_Width, Height => Outline_Button,
+            Shrink => 0.0, Exact => True);
       end Notes_Button;
 
-      Swatch : constant UI.Widget_Handle := Outs.Borrow_Widget (Block.Swatch);
       Name   : constant UI.Widget_Handle := Outs.Borrow_Widget (Block.Field);
 
       Line : constant UI.Layout :=
@@ -69,7 +69,9 @@ package body View.Build.Outline_View is
                   (Width => Layouts.Length_Of (Outline_Handle), Height => Layouts.Length_Of (Index_Height),
                    Shrink => 0.0,
                                                 others => <>)),
-               UI.Place (Swatch, Width => Layouts.Length_Of (Outline_Field_Height - 2.0),
+               Outs.Borrow_Widget
+                 (Block.Swatch, Click => Outline_VM.Choose_Colour, Index => Index,
+                  Width => Layouts.Length_Of (Outline_Field_Height - 2.0),
                   Height => Layouts.Length_Of (Outline_Field_Height - 2.0), Shrink => 0.0, Exact => True),
                UI.Place (Name, Grow => 1.0, Width => 0.0, Height => Layouts.Length_Of (Outline_Field_Height),
                   Exact => True),
@@ -96,7 +98,6 @@ package body View.Build.Outline_View is
             Padding => (Left | Right => Layouts.Length_Of (Index_Pad * Pixels), others => <>),
             Shadowed => On, Unit => Device_Pixels, others => <>));
    begin
-      Outs.On_Event (Swatch, Widgets.Click, Outline_VM.Choose_Colour, Index);
       Outs.On_Event (Name, Widgets.Submit, Outline_VM.End_Title);
       UI.Mount_Before (Form, Pane.None, Whole);
       Grips.Set_Fill (Block.Row, Row_Fill);
