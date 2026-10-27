@@ -8,3 +8,4 @@ notes.txt
 .DS_Store
 evo/
 .als-alire
+tools/__pycache__/

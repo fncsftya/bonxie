@@ -89,3 +89,14 @@ Patches welcome!
 ![](docs/homepage.png)
 
 *Projects view*
+## macOS app bundle
+
+Run `tools/bundle-macos.py` on macOS to build a release executable and create
+`bin/Bonxie.app`. The script includes the application resources and dynamic
+libraries and signs the bundle locally with an ad-hoc signature. The resulting
+bundle is for local use; distribution to other Macs requires an Apple Developer
+signature and notarization. The icon is generated from `share/bonxie/logo.png`;
+a higher-resolution source will improve its appearance at larger sizes.
+
+Run `tools/dmg-macos.sh` to build the release app and create `bin/Bonxie.dmg`,
+with an Applications shortcut for drag-and-drop installation.
