@@ -313,26 +313,39 @@ package body Settings_VM_Tests is
    end Mentions;
 
    procedure No_Widgets is
-      Folder : constant String := "../src/view_models";
-      Search : Ada.Directories.Search_Type;
-      Entry_Found : Ada.Directories.Directory_Entry_Type;
-      Seen   : Natural := 0;
-      Clean  : Boolean := True;
+      Seen  : Natural := 0;
+      Clean : Boolean := True;
+
+      --  Every Ada file under Folder, in its subdirectories too.
+      procedure Scan (Folder : String) is
+         Search : Ada.Directories.Search_Type;
+         Entry_Found : Ada.Directories.Directory_Entry_Type;
+      begin
+         Ada.Directories.Start_Search
+           (Search, Folder, "", [Ada.Directories.Directory | Ada.Directories.Ordinary_File => True, others => False]);
+         while Ada.Directories.More_Entries (Search) loop
+            Ada.Directories.Get_Next_Entry (Search, Entry_Found);
+            declare
+               Path : constant String := Ada.Directories.Full_Name (Entry_Found);
+               Name : constant String := Ada.Directories.Simple_Name (Entry_Found);
+            begin
+               if Ada.Directories.Kind (Entry_Found) in Ada.Directories.Directory then
+                  if Name /= "." and then Name /= ".." then
+                     Scan (Path);
+                  end if;
+               elsif Ada.Directories.Extension (Name) in "ads" | "adb" then
+                  Seen := Seen + 1;
+                  if Mentions (Path, "Pomarine.Widgets") or else Mentions (Path, "SDL3") then
+                     Ada.Text_IO.Put_Line ("a view-model names a widget or SDL: " & Path);
+                     Clean := False;
+                  end if;
+               end if;
+            end;
+         end loop;
+         Ada.Directories.End_Search (Search);
+      end Scan;
    begin
-      Ada.Directories.Start_Search (Search, Folder, "*.ad?");
-      while Ada.Directories.More_Entries (Search) loop
-         Ada.Directories.Get_Next_Entry (Search, Entry_Found);
-         Seen := Seen + 1;
-         declare
-            Path : constant String := Ada.Directories.Full_Name (Entry_Found);
-         begin
-            if Mentions (Path, "Pomarine.Widgets") or else Mentions (Path, "SDL3") then
-               Ada.Text_IO.Put_Line ("a view-model names a widget or SDL: " & Path);
-               Clean := False;
-            end if;
-         end;
-      end loop;
-      Ada.Directories.End_Search (Search);
+      Scan ("../src/view_models");
       Check ("view-models-no-widgets", "TRUE", Image (Clean and then Seen > 0));
    end No_Widgets;
 

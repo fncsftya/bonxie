@@ -6,9 +6,11 @@ Dependencies point down. `tools/check_layers.py` checks the rules below (run it 
 that must be broken is added to `BASELINE` in the script, with the reason, and the list only shrinks.
 
 ```
-src/view            screens, canvas, writing, settings, grammar; view/items = the item windows and readers;
-                    view/widgets = application widgets (colour picker, word tools); view/build = declarative views
-src/view_models     screen state and rules, no widgets, no SDL3 (items-models.* is the item's view-model)
+src/view            screens, one directory each: shell (navigation, menus, style, painting), home, canvas (items, links),
+                    writing, outlines, settings, grammar, dialogs; items = the item windows and readers;
+                    widgets = application widgets (colour picker, word tools); parts = shared screen parts
+src/view_models     screen state and rules, no widgets, no SDL3, in the same groups: shell, home, canvas, items (items-models.*
+                    is the item's view-model), writing, outline, settings, grammar, dialogs
 src/items           the domain: records, links, marks, words, sources, directories, schema
 src/repository      SQLite tables         src/projects   projects, sections, rules, preferences
 src/support         containers, files, downloads (knows nothing of the application)
