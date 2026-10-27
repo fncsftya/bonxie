@@ -5,32 +5,35 @@ package body Grammar_Rules is
    use type Projects.Rules.Actions;
    use type Harper.Span;
 
-   function Flagged (Text : String; Item : Harper.Diagnostic) return String is
-     (if Item.Location.First < Item.Location.Last and then Item.Location.Last <= Text'Length
-      then Text (Item.Location.First + 1 .. Item.Location.Last) else "");
+   function Flagged (Text : String; Item : Harper.Diagnostic) return String
+   is (if Item.Location.First < Item.Location.Last and then Item.Location.Last <= Text'Length
+       then Text (Item.Location.First + 1 .. Item.Location.Last)
+       else "");
 
-   function Is_Word_Byte (C : Character) return Boolean is
-     (C in 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '_' or else Character'Pos (C) >= 16#80#);
+   function Is_Word_Byte (C : Character) return Boolean
+   is (C in 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '_' or else Character'Pos (C) >= 16#80#);
 
-   function Whole_Word (Text : String; First, Last : Positive) return Boolean is
-     ((First = Text'First or else not Is_Word_Byte (Text (First - 1)))
-      and then (Last = Text'Last or else not Is_Word_Byte (Text (Last + 1))));
+   function Whole_Word (Text : String; First, Last : Positive) return Boolean
+   is ((First = Text'First or else not Is_Word_Byte (Text (First - 1)))
+       and then (Last = Text'Last or else not Is_Word_Byte (Text (Last + 1))));
 
    function Message_For (Pattern, Replacement : String) return Harper.Messages.Bounded_String is
       Full : constant String := "Your rule: replace """ & Pattern & """ with """ & Replacement & """.";
    begin
       --  Never cut inside a character: a long one is said without the texts.
-      return Harper.Messages.To_Bounded_String
-        (if Full'Length <= Harper.Max_Message then Full else "Your rule: replace this text.");
+      return
+        Harper.Messages.To_Bounded_String
+          (if Full'Length <= Harper.Max_Message then Full else "Your rule: replace this text.");
    end Message_For;
 
-   function Later (A, B : Harper.Span) return Boolean is
-     (A.First > B.First or else (A.First = B.First and then A.Last > B.Last));
+   function Later (A, B : Harper.Span) return Boolean
+   is (A.First > B.First or else (A.First = B.First and then A.Last > B.Last));
 
-   function Usable (Rule : Projects.Rules.Rule) return Boolean is
-     (Rule.Action = Projects.Rules.Correct and then Long_Texts.Length (Rule.Pattern) > 0
-      and then Long_Texts.Length (Rule.Replacement) <= Harper.Max_Replacement
-      and then Long_Texts.To_String (Rule.Pattern) /= Long_Texts.To_String (Rule.Replacement));
+   function Usable (Rule : Projects.Rules.Rule) return Boolean
+   is (Rule.Action = Projects.Rules.Correct
+       and then Long_Texts.Length (Rule.Pattern) > 0
+       and then Long_Texts.Length (Rule.Replacement) <= Harper.Max_Replacement
+       and then Long_Texts.To_String (Rule.Pattern) /= Long_Texts.To_String (Rule.Replacement));
    --  A correction that changes something, and that fits a suggestion: a longer one is left out, not cut.
 
    procedure Offer (Item : in out Harper.Diagnostic; Pattern, Replacement : String) is
@@ -40,8 +43,7 @@ package body Grammar_Rules is
    begin
       Item.Suggestions (1) := (Item.Location, Harper.Replacements.To_Bounded_String (Replacement));
       for Each in 1 .. Count loop
-         if Old (Each).Location /= Item.Location
-           or else Harper.Replacements.To_String (Old (Each).Text) /= Replacement
+         if Old (Each).Location /= Item.Location or else Harper.Replacements.To_String (Old (Each).Text) /= Replacement
          then
             if Kept < Harper.Max_Suggestions then
                Kept := Kept + 1;
@@ -58,11 +60,7 @@ package body Grammar_Rules is
       Item.Custom := True;
    end Offer;
 
-   procedure Apply
-     (Rules  : Projects.Rules.Rule_List;
-      Text   : String;
-      Result : in out Harper.Check_Result)
-   is
+   procedure Apply (Rules : Projects.Rules.Rule_List; Text : String; Result : in out Harper.Check_Result) is
       Kept  : Natural := 0;
       Added : Boolean := False;
 
@@ -70,7 +68,8 @@ package body Grammar_Rules is
          Marked : constant String := Flagged (Text, Item);
       begin
          for Rule of Rules loop
-            if Rule.Action = Projects.Rules.Ignore and then Rule.Kind = Kind_Code (Item.Kind)
+            if Rule.Action = Projects.Rules.Ignore
+              and then Rule.Kind = Kind_Code (Item.Kind)
               and then Long_Texts.To_String (Rule.Pattern) = Marked
             then
                return True;
@@ -155,9 +154,7 @@ package body Grammar_Rules is
                Moving : constant Harper.Diagnostic := Result.Lints (Index);
                Slot   : Natural := Index - 1;
             begin
-               while Slot >= 1
-                 and then Later (Result.Lints (Slot).Location, Moving.Location)
-               loop
+               while Slot >= 1 and then Later (Result.Lints (Slot).Location, Moving.Location) loop
                   Result.Lints (Slot + 1) := Result.Lints (Slot);
                   Slot := Slot - 1;
                end loop;

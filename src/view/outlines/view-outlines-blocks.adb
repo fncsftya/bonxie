@@ -17,7 +17,8 @@ package body View.Outlines.Blocks is
    package Labels renames Pomarine.Widgets.Labels;
    package Docs renames Texts.Documents;
 
-   function Total (Item : Session) return Natural is (Outline_VM.Count (Item.Outline_Model.Model));
+   function Total (Item : Session) return Natural
+   is (Outline_VM.Count (Item.Outline_Model.Model));
    --  How many sections there are.
 
    Drag_Threshold : constant Float := 4.0;
@@ -109,21 +110,23 @@ package body View.Outlines.Blocks is
          Gap   : constant Float := Style.Index_Gap * Pixels - Offset;
          Mid   : constant Float :=
            (if Pane.Drop_Before > Total (Item)
-            then Widgets.Top_Of (Pane.Blocks (Total (Item)).Row)
-                 + Widgets.Height_Of (Pane.Blocks (Total (Item)).Row) + Gap / 2.0
+            then
+              Widgets.Top_Of (Pane.Blocks (Total (Item)).Row)
+              + Widgets.Height_Of (Pane.Blocks (Total (Item)).Row)
+              + Gap / 2.0
             else Widgets.Top_Of (Pane.Blocks (Pane.Drop_Before).Row) - Gap / 2.0);
          Thick : constant Float := Style.Drop_Line_Height * Pixels;
       begin
          Layouts.Set_Layout
            (Pane.Drop_Line,
             Position =>
-              (Left => Layouts.Length_Of (Widgets.Left_Of (First) - Widgets.Left_Of (Pane.Content)),
-               Top  => Layouts.Length_Of (Float'Max
-                         (0.0, Float'Rounding
-                                 (Mid - Thick / 2.0 - Widgets.Top_Of (Pane.Content)))),
+              (Left   => Layouts.Length_Of (Widgets.Left_Of (First) - Widgets.Left_Of (Pane.Content)),
+               Top    =>
+                 Layouts.Length_Of
+                   (Float'Max (0.0, Float'Rounding (Mid - Thick / 2.0 - Widgets.Top_Of (Pane.Content)))),
                others => <>),
-            Width => Layouts.Length_Of (Widgets.Width_Of (First) - Offset),
-            Unit => Layouts.Device_Pixels);
+            Width    => Layouts.Length_Of (Widgets.Width_Of (First) - Offset),
+            Unit     => Layouts.Device_Pixels);
       end;
       Widgets.Set_Visible (Pane.Drop_Line, True);
       Widgets.Request_Layout (Pane.Drop_Line);
@@ -135,20 +138,17 @@ package body View.Outlines.Blocks is
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
       Offset : constant Float := Pomarine.Boxes.Offset (Pixels);
    begin
-      if Pane.Drag_Block = 0 or else not Pane.Drag_Moved
-        or else Pane.Drag_Block > Total (Item)
-      then
+      if Pane.Drag_Block = 0 or else not Pane.Drag_Moved or else Pane.Drag_Block > Total (Item) then
          Widgets.Set_Visible (Pane.Ghost, False);
          return;
       end if;
       declare
-         Held  : Grips.Grip renames Pane.Blocks (Pane.Drag_Block).Row;
-         X, Y  : Float;
+         Held   : Grips.Grip renames Pane.Blocks (Pane.Drag_Block).Row;
+         X, Y   : Float;
          --  Of the block folded, whether or not its notes are open.
-         High  : constant Float := Widgets.Height_Of (Pane.Blocks (Pane.Drag_Block).Line) - Offset;
-         Least : constant Float := 0.0;
-         Most  : constant Float :=
-           Float'Max (Least, Widgets.Height_Of (Pane.Content) - High);
+         High   : constant Float := Widgets.Height_Of (Pane.Blocks (Pane.Drag_Block).Line) - Offset;
+         Least  : constant Float := 0.0;
+         Most   : constant Float := Float'Max (Least, Widgets.Height_Of (Pane.Content) - High);
          --  A little to the side, as far as the pointer is, so that what
          --  it is over is clear.
          Leeway : Float;
@@ -158,25 +158,25 @@ package body View.Outlines.Blocks is
          Layouts.Set_Layout
            (Pane.Ghost,
             Position =>
-              (Left => Layouts.Length_Of (Widgets.Left_Of (Held) - Widgets.Left_Of (Pane.Content)
-                       + Float'Rounding (Leeway * Pixels)),
-               Top  => Layouts.Length_Of (Float'Min
-                         (Most, Float'Max
-                                  (Least, Float'Rounding
-                                            (Y * Pixels - High / 2.0
-                                             - Widgets.Top_Of (Pane.Content))))),
+              (Left   =>
+                 Layouts.Length_Of
+                   (Widgets.Left_Of (Held) - Widgets.Left_Of (Pane.Content) + Float'Rounding (Leeway * Pixels)),
+               Top    =>
+                 Layouts.Length_Of
+                   (Float'Min
+                      (Most,
+                       Float'Max (Least, Float'Rounding (Y * Pixels - High / 2.0 - Widgets.Top_Of (Pane.Content))))),
                others => <>),
-            Width  => Layouts.Length_Of (Widgets.Width_Of (Held) - Offset),
-            Height => Layouts.Length_Of (High),
-            Unit   => Layouts.Device_Pixels);
+            Width    => Layouts.Length_Of (Widgets.Width_Of (Held) - Offset),
+            Height   => Layouts.Length_Of (High),
+            Unit     => Layouts.Device_Pixels);
       end;
       Widgets.Set_Visible (Pane.Ghost, True);
       Widgets.Request_Layout (Pane.Ghost);
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
    end Show_Ghost;
 
-   procedure Block_Dragged
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
+   procedure Block_Dragged (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
    is
       pragma Unreferenced (Source);
       Pane : Outline_Parts renames Item.Outline_View;
@@ -227,8 +227,7 @@ package body View.Outlines.Blocks is
       end if;
    end Block_Dragged;
 
-   procedure Block_Released
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
+   procedure Block_Released (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
    is
       pragma Unreferenced (Source);
       Pane : Outline_Parts renames Item.Outline_View;

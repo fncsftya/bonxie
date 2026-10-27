@@ -17,6 +17,7 @@ with View.Home_Screen;
 --  handling the pointer's move (which lays the item out again), and of
 --  drawing what it damaged. Reading the image back is in the drawing, so
 --  compare with a frame where nothing has changed.
+
 procedure Item_Bench is
    package Events renames Pomarine.Events;
    package Windows renames View.Canvas_Windows;
@@ -27,15 +28,12 @@ procedure Item_Bench is
    use Ada.Text_IO;
 
    Items  : constant Positive :=
-     (if Ada.Command_Line.Argument_Count > 0
-      then Positive'Value (Ada.Command_Line.Argument (1)) else 1);
+     (if Ada.Command_Line.Argument_Count > 0 then Positive'Value (Ada.Command_Line.Argument (1)) else 1);
    Frames : constant Positive :=
-     (if Ada.Command_Line.Argument_Count > 1
-      then Positive'Value (Ada.Command_Line.Argument (2)) else 200);
+     (if Ada.Command_Line.Argument_Count > 1 then Positive'Value (Ada.Command_Line.Argument (2)) else 200);
 
    Paragraphs : constant Natural :=
-     (if Ada.Command_Line.Argument_Count > 2
-      then Natural'Value (Ada.Command_Line.Argument (3)) else 0);
+     (if Ada.Command_Line.Argument_Count > 2 then Natural'Value (Ada.Command_Line.Argument (3)) else 0);
    --  Of text, besides a line, in each item.
 
    Session : View.Session;
@@ -45,24 +43,24 @@ procedure Item_Bench is
       Shown : String (1 .. 9);
       Other : String (1 .. 9);
    begin
-      Ada.Float_Text_IO.Put
-        (Shown, Float (Handling) * 1000.0 / Float (Frames),
-         Aft => 3, Exp => 0);
-      Ada.Float_Text_IO.Put
-        (Other, Float (Drawing) * 1000.0 / Float (Frames),
-         Aft => 3, Exp => 0);
-      Put_Line ("  " & What & (1 .. Integer'Max (1, 28 - What'Length) => ' ')
-                & "handle" & Shown & " ms   draw" & Other & " ms");
+      Ada.Float_Text_IO.Put (Shown, Float (Handling) * 1000.0 / Float (Frames), Aft => 3, Exp => 0);
+      Ada.Float_Text_IO.Put (Other, Float (Drawing) * 1000.0 / Float (Frames), Aft => 3, Exp => 0);
+      Put_Line
+        ("  "
+         & What
+         & (1 .. Integer'Max (1, 28 - What'Length) => ' ')
+         & "handle"
+         & Shown
+         & " ms   draw"
+         & Other
+         & " ms");
    end Report;
 
-   function Move (X, Y : Float; Held : Boolean) return Events.Event is
-     ((Kind => Events.Mouse_Move, Mouse_X => X, Mouse_Y => Y,
-       Left_Held => Held, others => <>));
+   function Move (X, Y : Float; Held : Boolean) return Events.Event
+   is ((Kind => Events.Mouse_Move, Mouse_X => X, Mouse_Y => Y, Left_Held => Held, others => <>));
 
-   function Button (Kind : Events.Event_Kind; X, Y : Float)
-      return Events.Event is
-     ((Kind => Kind, Button => 1, Clicks => 1, Mouse_X => X, Mouse_Y => Y,
-       others => <>));
+   function Button (Kind : Events.Event_Kind; X, Y : Float) return Events.Event
+   is ((Kind => Kind, Button => 1, Clicks => 1, Mouse_X => X, Mouse_Y => Y, others => <>));
 
    Windowed : Boolean := False;
    --  Drawing is on the GPU, in a hidden window, not offscreen in software.
@@ -77,13 +75,11 @@ procedure Item_Bench is
       end if;
    end Draw;
 
-   procedure Measure
-     (What : String; From_X, From_Y : Float; Step_X, Step_Y : Float)
-   is
-      Start : Time;
+   procedure Measure (What : String; From_X, From_Y : Float; Step_X, Step_Y : Float) is
+      Start             : Time;
       Handling, Drawing : Duration := 0.0;
-      X : Float := From_X;
-      Y : Float := From_Y;
+      X                 : Float := From_X;
+      Y                 : Float := From_Y;
    begin
       View.Handle (Session, Move (X, Y, False));
       View.Handle (Session, Button (Events.Mouse_Down, X, Y));
@@ -108,7 +104,7 @@ procedure Item_Bench is
    end Measure;
 
    procedure Idle is
-      Start : Time;
+      Start   : Time;
       Drawing : Duration := 0.0;
    begin
       for K in 1 .. Frames loop
@@ -119,7 +115,7 @@ procedure Item_Bench is
       Report ("nothing changed", 0.0, Drawing);
    end Idle;
    procedure Everything is
-      Start : Time;
+      Start   : Time;
       Drawing : Duration := 0.0;
    begin
       for K in 1 .. Frames loop
@@ -131,16 +127,11 @@ procedure Item_Bench is
       Report ("everything redrawn", 0.0, Drawing);
    end Everything;
 begin
-   Put_Line
-     (Items'Image & " items," & Frames'Image & " frames,"
-      & Paragraphs'Image & " paragraphs:");
-   Windowed := Ada.Command_Line.Argument_Count > 3
-     and then Ada.Command_Line.Argument (4) = "gpu";
+   Put_Line (Items'Image & " items," & Frames'Image & " frames," & Paragraphs'Image & " paragraphs:");
+   Windowed := Ada.Command_Line.Argument_Count > 3 and then Ada.Command_Line.Argument (4) = "gpu";
    if Windowed then
       SDL3.Initialize;
-      View.Open_Window
-        (Session, "", Hidden => True, Store => Projects.Memory,
-         VSync => False);
+      View.Open_Window (Session, "", Hidden => True, Store => Projects.Memory, VSync => False);
    else
       View.Open (Session, "", 720, 480, 2.0);
    end if;
@@ -157,14 +148,13 @@ begin
                   Last : Positive := Positive'Min (Text'Last, Next + 199);
                begin
                   --  Not in the middle of a character.
-                  while Last < Text'Last and then Last > Next
-                    and then Character'Pos (Text (Last + 1))
-                               in 16#80# .. 16#BF#
+                  while Last < Text'Last
+                    and then Last > Next
+                    and then Character'Pos (Text (Last + 1)) in 16#80# .. 16#BF#
                   loop
                      Last := Last - 1;
                   end loop;
-                  View.Handle
-                    (Session, Events.Text_Event (Text (Next .. Last)));
+                  View.Handle (Session, Events.Text_Event (Text (Next .. Last)));
                   Next := Last + 1;
                end;
             end loop;
@@ -189,10 +179,8 @@ begin
       Across : constant Float := (if Windowed then 140.0 else 0.0);
       Down   : constant Float := (if Windowed then 174.0 else 0.0);
    begin
-      Measure ("dragging by the title bar", 420.0 + Across, 125.0 + Down,
-               3.0, 2.0);
-      Measure ("sizing by the corner", 490.0 + Across, 296.0 + Down,
-               3.0, 2.0);
+      Measure ("dragging by the title bar", 420.0 + Across, 125.0 + Down, 3.0, 2.0);
+      Measure ("sizing by the corner", 490.0 + Across, 296.0 + Down, 3.0, 2.0);
    end;
    if Windowed then
       SDL3.Shutdown;

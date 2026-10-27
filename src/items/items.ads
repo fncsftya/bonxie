@@ -13,6 +13,7 @@ with Projects;
 --  Items.Marks (what is found and made on a source's picture),
 --  Items.Links (the lines between items) and Items.Directories (the
 --  writing view's tree). The SQL they are kept by is in the Repository.
+
 package Items is
 
    subtype Slot is Positive;
@@ -49,10 +50,8 @@ package Items is
    --  A source's window is wider, for the tools in the middle of its
    --  status line to be clear of the words and the zoom on either side.
 
-   function Sized (Where : Frame) return Frame is
-     (Where with delta
-        Width  => Float'Max (Min_Width, Where.Width),
-        Height => Float'Max (Min_Height, Where.Height));
+   function Sized (Where : Frame) return Frame
+   is (Where with delta Width => Float'Max (Min_Width, Where.Width), Height => Float'Max (Min_Height, Where.Height));
    --  Where, no smaller than an item may be.
 
    Min_Zoom : constant Float := 0.25;
@@ -62,18 +61,17 @@ package Items is
    subtype Zoom_Level is Float range Min_Zoom .. Max_Zoom;
 
    type Info is record
-      Key   : Id := 0;
-      Title : Projects.Titles.Text :=
-        Projects.Titles.Null_Text;
-      Where : Frame;
-      State : States := Open;
-      Kind  : Kinds := Note;
-      Captured_At : Projects.Seconds := 0;
+      Key           : Id := 0;
+      Title         : Projects.Titles.Text := Projects.Titles.Null_Text;
+      Where         : Frame;
+      State         : States := Open;
+      Kind          : Kinds := Note;
+      Captured_At   : Projects.Seconds := 0;
       --  Of a source: when its picture was taken; 0 if it has not been.
-      Zoom  : Zoom_Level := 1.0;
+      Zoom          : Zoom_Level := 1.0;
       --  Of a source: how wide its picture is shown, as a multiple of its
       --  window's width.
-      Scroll : Float := 0.0;
+      Scroll        : Float := 0.0;
       --  How far the window's content is scrolled: for a note, down its
       --  text in layout units; for a source, down its picture, from 0.0
       --  to 1.0 of its height.
@@ -84,10 +82,10 @@ package Items is
       --  Of a source: when the text in its picture was found and kept
       --  (see Save_Words); 0 if it has not been, or the picture was taken
       --  again since.
-      Origin : Origins := Remote;
-      Page : Natural := 0;
-      Page_Count : Natural := 0;
-      Document : Extensions.Text := Extensions.Null_Text;
+      Origin        : Origins := Remote;
+      Page          : Natural := 0;
+      Page_Count    : Natural := 0;
+      Document      : Extensions.Text := Extensions.Null_Text;
       --  Of a source that is a PDF or e-book, not a web page: its file's
       --  ending, and which of its Page_Count pages the picture is of
       --  (from 1). Page_Count is 0 for a web page, and Page too.

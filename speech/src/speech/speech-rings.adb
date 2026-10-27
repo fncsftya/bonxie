@@ -11,39 +11,31 @@ is
 
    procedure Offset_Is_Slot (Count : Counter) is
    begin
-      pragma Assert
-        (for all Where in Place => Slot (Count + Counter (Offset (Count, Where))) = Where);
+      pragma Assert (for all Where in Place => Slot (Count + Counter (Offset (Count, Where))) = Where);
    end Offset_Is_Slot;
 
-   procedure Write
-     (Into   : in out Store;
-      Head   : Counter;
-      Source : Raw_Samples;
-      Count  : Natural) is
+   procedure Write (Into : in out Store; Head : Counter; Source : Raw_Samples; Count : Natural) is
    begin
       for K in 0 .. Count - 1 loop
-         pragma Loop_Invariant
-           (for all Where in Place =>
-              (if Offset (Head, Where) < K
-               then Into (Where) = Source (Source'First + Offset (Head, Where))
-               else Into (Where) = Into'Loop_Entry (Where)));
+         pragma
+           Loop_Invariant
+             (for all Where in Place =>
+                (if Offset (Head, Where) < K
+                 then Into (Where) = Source (Source'First + Offset (Head, Where))
+                 else Into (Where) = Into'Loop_Entry (Where)));
          Slot_Is_Offset (Head, K);
          Offset_Is_Slot (Head);
          Into (Slot (Head + Counter (K))) := Source (Source'First + K);
       end loop;
    end Write;
 
-   procedure Read
-     (From  : Store;
-      Tail  : Counter;
-      Into  : in out Raw_Samples;
-      Count : Natural) is
+   procedure Read (From : Store; Tail : Counter; Into : in out Raw_Samples; Count : Natural) is
    begin
       for K in 0 .. Count - 1 loop
-         pragma Loop_Invariant
-           (for all J in 0 .. K - 1 => Into (Into'First + J) = From (Slot (Tail + Counter (J))));
-         pragma Loop_Invariant
-           (for all J in K .. Into'Length - 1 => Into (Into'First + J) = Into'Loop_Entry (Into'First + J));
+         pragma Loop_Invariant (for all J in 0 .. K - 1 => Into (Into'First + J) = From (Slot (Tail + Counter (J))));
+         pragma
+           Loop_Invariant
+             (for all J in K .. Into'Length - 1 => Into (Into'First + J) = Into'Loop_Entry (Into'First + J));
          Into (Into'First + K) := From (Slot (Tail + Counter (K)));
       end loop;
    end Read;

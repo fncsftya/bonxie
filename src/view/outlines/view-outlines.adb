@@ -22,23 +22,23 @@ package body View.Outlines is
    use type Projects.Id;
    use type Projects.Sections.Section_Id;
 
-   function Section_Count (Item : Session) return Natural is
-     (Outline_VM.Count (Item.Outline_Model.Model));
+   function Section_Count (Item : Session) return Natural
+   is (Outline_VM.Count (Item.Outline_Model.Model));
 
-   function Section_Title (Item : Session; Which : Positive) return String is
-     (Outline_VM.Title (Item.Outline_Model.Model, Which));
+   function Section_Title (Item : Session; Which : Positive) return String
+   is (Outline_VM.Title (Item.Outline_Model.Model, Which));
 
-   function Section_At (Item : Session; Which : Positive) return Projects.Sections.Section is
-     (Outline_VM.Section_At (Item.Outline_Model.Model, Which));
+   function Section_At (Item : Session; Which : Positive) return Projects.Sections.Section
+   is (Outline_VM.Section_At (Item.Outline_Model.Model, Which));
 
-   function Index_Of_Key (Item : Session; Key : Projects.Sections.Section_Id) return Natural is
-     (Outline_VM.Index_Of_Key (Item.Outline_Model.Model, Key));
+   function Index_Of_Key (Item : Session; Key : Projects.Sections.Section_Id) return Natural
+   is (Outline_VM.Index_Of_Key (Item.Outline_Model.Model, Key));
 
-   function Section_Of_Item (Item : Session; Key : Long_Integer) return Natural is
-     (Outline_VM.Section_Of_Item (Item.Outline_Model.Model, Key));
+   function Section_Of_Item (Item : Session; Key : Long_Integer) return Natural
+   is (Outline_VM.Section_Of_Item (Item.Outline_Model.Model, Key));
 
-   function Documents_In (Item : Session; Which : Positive) return Natural is
-     (Outline_VM.Documents_In (Item.Outline_Model.Model, Which));
+   function Documents_In (Item : Session; Which : Positive) return Natural
+   is (Outline_VM.Documents_In (Item.Outline_Model.Model, Which));
 
    procedure Sync (Item : in out Session) is
       Pane  : Outline_Parts renames Item.Outline_View;
@@ -175,9 +175,11 @@ package body View.Outlines is
       begin
          Scrollers.Scroll_To
            (Pane.Scroll,
-            Float'Max (0.0, (Widgets.Top_Of (Block.Row) + Widgets.Height_Of (Block.Row)
-                             - Widgets.Top_Of (Pane.Content)) / Pixels
-                            - Widgets.Height_Of (Pane.Scroll) / Pixels));
+            Float'Max
+              (0.0,
+               (Widgets.Top_Of (Block.Row) + Widgets.Height_Of (Block.Row) - Widgets.Top_Of (Pane.Content))
+               / Pixels
+               - Widgets.Height_Of (Pane.Scroll) / Pixels));
          Widgets.Focus (Block.Field);
          Pomarine.Text_Areas.Select_All (Text_Fields.Area (Block.Field).all);
       end;
@@ -187,23 +189,29 @@ package body View.Outlines is
       use all type Outline_VM.Command;
    begin
       case What is
-         when Add_Section =>
+         when Add_Section                          =>
             Show_Added (Item);
+
          when Move_Up | Move_Down | Remove_Section =>
             Blocks.Show_Blocks (Item);
             Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
-         when Toggle_Notes =>
+
+         when Toggle_Notes                         =>
             Show_Notes (Item, Index, Focus => View_Mode (Item) /= Write);
             if View_Mode (Item) = Write then
                Writing.Section_Notes_Changed (Item, Index);
             end if;
-         when Choose_Colour =>
+
+         when Choose_Colour                        =>
             Clicks.Colour_Clicked (Item, Index);
-         when Accept_Colour =>
+
+         when Accept_Colour                        =>
             Clicks.Colour_Accepted (Item);
-         when Cancel_Colour =>
+
+         when Cancel_Colour                        =>
             Clicks.Colour_Cancelled (Item);
-         when End_Title =>
+
+         when End_Title                            =>
             Clicks.Title_Submitted (Item);
       end case;
    end Done;
@@ -234,11 +242,11 @@ package body View.Outlines is
       Outline_VM.Execute (Item.Outline_Model.Model, Outline_VM.Toggle_Notes, Which);
    end Toggle_Notes;
 
-   function Section_Notes (Item : Session; Which : Positive) return String is
-     (Outline_VM.Notes (Item.Outline_Model.Model, Which));
+   function Section_Notes (Item : Session; Which : Positive) return String
+   is (Outline_VM.Notes (Item.Outline_Model.Model, Which));
 
-   function Notes_Shown (Item : Session; Which : Positive) return Boolean is
-     (Outline_VM.Is_Open (Item.Outline_Model.Model, Which));
+   function Notes_Shown (Item : Session; Which : Positive) return Boolean
+   is (Outline_VM.Is_Open (Item.Outline_Model.Model, Which));
 
    procedure Pressed (Item : in out Session; X, Y : Float) is
       Pane   : Outline_Parts renames Item.Outline_View;
@@ -268,10 +276,7 @@ package body View.Outlines is
       Block : Section_Block renames Item.Outline_View.Blocks (Index);
 
       procedure Hear
-        (Part    : in out Widgets.Widget'Class;
-         Kind    : Widgets.Event_Kind;
-         Do_This : Hooks.Handler;
-         Tag     : Natural := 0) is
+        (Part : in out Widgets.Widget'Class; Kind : Widgets.Event_Kind; Do_This : Hooks.Handler; Tag : Natural := 0) is
       begin
          if Tag /= 0 then
             Widgets.Set_Tag (Part, Widgets.No_Tag, Tag);

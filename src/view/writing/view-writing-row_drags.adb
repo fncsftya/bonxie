@@ -16,8 +16,7 @@ package body View.Writing.Row_Drags is
    Drag_Threshold : constant Float := 4.0;
    --  How far, in points, a press on a row has to go to be a drag.
 
-   function Target_At
-     (Item : Session; X, Y : Float) return Drop_Target;
+   function Target_At (Item : Session; X, Y : Float) return Drop_Target;
    --  Where the row being dragged, dropped at X, Y, in points of the
    --  window, would go. A document goes into a directory or the Overview
    --  (the middle of their rows), or between rows: before or after a
@@ -28,22 +27,19 @@ package body View.Writing.Row_Drags is
    --  return to Overview, or enter another folder outside its own subtree.
    --  Section rows themselves stay in outline order.
 
-   function Target_At
-     (Item : Session; X, Y : Float) return Drop_Target
-   is
+   function Target_At (Item : Session; X, Y : Float) return Drop_Target is
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
       Point  : constant Float := Y * Pixels;
       Moving : constant Tree_Entry := Trees.Element (Item.Docs.Ordering, Item.Dragging.Drag_Row);
       Row    : Natural := Trees.Count (Item.Docs.Ordering);
 
-      function Top (Of_Row : Positive) return Float is
-        (Widgets.Top_Of (Item.Docs.Doc_Rows (Of_Row).Row));
+      function Top (Of_Row : Positive) return Float
+      is (Widgets.Top_Of (Item.Docs.Doc_Rows (Of_Row).Row));
 
-      function Bottom (Of_Row : Positive) return Float is
-        (Top (Of_Row) + Widgets.Height_Of (Item.Docs.Doc_Rows (Of_Row).Row));
+      function Bottom (Of_Row : Positive) return Float
+      is (Top (Of_Row) + Widgets.Height_Of (Item.Docs.Doc_Rows (Of_Row).Row));
 
-      function Between (Index : Positive; Dir : Natural) return Drop_Target
-      is
+      function Between (Index : Positive; Dir : Natural) return Drop_Target is
          Held : constant Positive := Item.Dragging.Drag_Row;
       begin
          --  Where it already is: nowhere.
@@ -51,18 +47,14 @@ package body View.Writing.Row_Drags is
             if Index in Held .. Held + 1 and then Dir = Moving.Dir then
                return (others => <>);
             end if;
-         elsif Index in Held .. Support.Block_End (Item, Held) + 1
-           and then Dir = Support.Parent_Of (Item, Moving.Dir)
+         elsif Index in Held .. Support.Block_End (Item, Held) + 1 and then Dir = Support.Parent_Of (Item, Moving.Dir)
          then
             return (others => <>);
          end if;
-         return (Kind => View_Parts.Rows.Between, Row => 0, Index => Index,
-                 Dir => Dir);
+         return (Kind => View_Parts.Rows.Between, Row => 0, Index => Index, Dir => Dir);
       end Between;
    begin
-      if not Widgets.Contains (Item.Page_View.Docs_Scroll, X * Pixels,
-                               Point)
-      then
+      if not Widgets.Contains (Item.Page_View.Docs_Scroll, X * Pixels, Point) then
          return (others => <>);
       end if;
       for Each in 1 .. Trees.Count (Item.Docs.Ordering) loop
@@ -76,8 +68,7 @@ package body View.Writing.Row_Drags is
       end if;
       declare
          Node  : constant Tree_Entry := Trees.Element (Item.Docs.Ordering, Row);
-         Fract : constant Float :=
-           (Point - Top (Row)) / (Bottom (Row) - Top (Row));
+         Fract : constant Float := (Point - Top (Row)) / (Bottom (Row) - Top (Row));
       begin
          if Moving.Kind = Directory_Node then
             if Node.Kind = Overview_Node then
@@ -91,8 +82,7 @@ package body View.Writing.Row_Drags is
                elsif Fract < 0.25 then
                   return Between (Row, Support.Parent_Of (Item, Node.Dir));
                else
-                  return Between
-                    (Support.Block_End (Item, Row) + 1, Support.Parent_Of (Item, Node.Dir));
+                  return Between (Support.Block_End (Item, Row) + 1, Support.Parent_Of (Item, Node.Dir));
                end if;
             end if;
             if Node.Kind = Document_Leaf and then Support.Within (Item, Node.Dir, Moving.Dir) then
@@ -100,12 +90,12 @@ package body View.Writing.Row_Drags is
             end if;
             --  A folder can stand beside a document in the same parent,
             --  before or after that document rather than its whole folder.
-            return (if Fract < 0.5 then Between (Row, Node.Dir)
-                    else Between (Row + 1, Node.Dir));
+            return (if Fract < 0.5 then Between (Row, Node.Dir) else Between (Row + 1, Node.Dir));
          end if;
          case Node.Kind is
-            when Overview_Node =>
+            when Overview_Node  =>
                return (Kind => Into_Node, Row => Row, others => <>);
+
             when Directory_Node =>
                if Fract < 0.25 then
                   return Between (Row, Support.Parent_Of (Item, Node.Dir));
@@ -114,12 +104,11 @@ package body View.Writing.Row_Drags is
                else
                   return (Kind => Into_Node, Row => Row, others => <>);
                end if;
-            when Document_Leaf =>
+
+            when Document_Leaf  =>
                declare
                   Last : constant Boolean :=
-                    Node.Dir /= 0
-                    and then Support.Block_End (Item, Support.Dir_Row (Item, Node.Dir))
-                             = Row;
+                    Node.Dir /= 0 and then Support.Block_End (Item, Support.Dir_Row (Item, Node.Dir)) = Row;
                begin
                   if Fract < 0.5 then
                      return Between (Row, Node.Dir);
@@ -147,29 +136,26 @@ package body View.Writing.Row_Drags is
       declare
          --  Below the row before it, in the middle of the gap, and in as
          --  far as what is in a directory is.
-         Above : Grips.Grip
-            renames Item.Docs.Doc_Rows (Item.Docs.Drop.Index - 1).Row;
+         Above : Grips.Grip renames Item.Docs.Doc_Rows (Item.Docs.Drop.Index - 1).Row;
          Gap   : constant Float := Style.Index_Gap * Pixels - Offset;
-         Mid   : constant Float :=
-           Widgets.Top_Of (Above) + Widgets.Height_Of (Above) + Gap / 2.0;
+         Mid   : constant Float := Widgets.Top_Of (Above) + Widgets.Height_Of (Above) + Gap / 2.0;
          Thick : constant Float := Style.Drop_Line_Height * Pixels;
          Inset : constant Float :=
            (if Item.Docs.Drop.Dir /= 0
-            then Style.Tree_Indent * Pixels
-              * Float (Support.Depth (Item, Item.Docs.Drop.Dir) + 1)
+            then Style.Tree_Indent * Pixels * Float (Support.Depth (Item, Item.Docs.Drop.Dir) + 1)
             else 0.0);
          Edge  : Grips.Grip renames Item.Docs.Doc_Rows (1).Row;
       begin
          Layouts.Set_Layout
            (Item.Docs.Drop_Line,
             Position =>
-              (Left => Layouts.Length_Of (Widgets.Left_Of (Edge)
-                       - Widgets.Left_Of (Item.Page_View.Docs_Content) + Inset),
-               Top  => Layouts.Length_Of (Float'Rounding
-                         (Mid - Thick / 2.0 - Widgets.Top_Of (Item.Page_View.Docs_Content))),
+              (Left   =>
+                 Layouts.Length_Of (Widgets.Left_Of (Edge) - Widgets.Left_Of (Item.Page_View.Docs_Content) + Inset),
+               Top    =>
+                 Layouts.Length_Of (Float'Rounding (Mid - Thick / 2.0 - Widgets.Top_Of (Item.Page_View.Docs_Content))),
                others => <>),
-            Width => Layouts.Length_Of (Widgets.Width_Of (Edge) - Offset - Inset),
-            Unit => Layouts.Device_Pixels);
+            Width    => Layouts.Length_Of (Widgets.Width_Of (Edge) - Offset - Inset),
+            Unit     => Layouts.Device_Pixels);
       end;
       Widgets.Set_Visible (Item.Docs.Drop_Line, True);
       Widgets.Request_Layout (Item.Docs.Drop_Line);
@@ -189,11 +175,10 @@ package body View.Writing.Row_Drags is
          return;
       end if;
       declare
-         Held  : Grips.Grip renames Item.Docs.Doc_Rows (Row).Row;
-         X, Y  : Float;
-         High  : constant Float := Widgets.Height_Of (Held) - Offset;
-         Most  : constant Float :=
-           Float'Max (0.0, Widgets.Height_Of (Item.Page_View.Docs_Content) - High);
+         Held   : Grips.Grip renames Item.Docs.Doc_Rows (Row).Row;
+         X, Y   : Float;
+         High   : constant Float := Widgets.Height_Of (Held) - Offset;
+         Most   : constant Float := Float'Max (0.0, Widgets.Height_Of (Item.Page_View.Docs_Content) - High);
          --  A little to the side, as far as the pointer is, so that what
          --  it is over is clear.
          Leeway : Float;
@@ -204,17 +189,22 @@ package body View.Writing.Row_Drags is
          Layouts.Set_Layout
            (Item.Docs.Ghost,
             Position =>
-              (Left => Layouts.Length_Of (Widgets.Left_Of (Held) - Widgets.Left_Of (Item.Page_View.Docs_Content)
-                       + Float'Rounding (Leeway * Pixels)),
-               Top  => Layouts.Length_Of (Float'Min
-                         (Most, Float'Max
-                                  (0.0, Float'Rounding
-                                          (Y * Pixels - High / 2.0
-                                           - Widgets.Top_Of (Item.Page_View.Docs_Content))))),
+              (Left   =>
+                 Layouts.Length_Of
+                   (Widgets.Left_Of (Held)
+                    - Widgets.Left_Of (Item.Page_View.Docs_Content)
+                    + Float'Rounding (Leeway * Pixels)),
+               Top    =>
+                 Layouts.Length_Of
+                   (Float'Min
+                      (Most,
+                       Float'Max
+                         (0.0,
+                          Float'Rounding (Y * Pixels - High / 2.0 - Widgets.Top_Of (Item.Page_View.Docs_Content))))),
                others => <>),
-            Width  => Layouts.Length_Of (Widgets.Width_Of (Held) - Offset),
-            Height => Layouts.Length_Of (High),
-            Unit   => Layouts.Device_Pixels);
+            Width    => Layouts.Length_Of (Widgets.Width_Of (Held) - Offset),
+            Height   => Layouts.Length_Of (High),
+            Unit     => Layouts.Device_Pixels);
       end;
       Widgets.Set_Visible (Item.Docs.Ghost, True);
       Widgets.Request_Layout (Item.Docs.Ghost);
@@ -247,9 +237,7 @@ package body View.Writing.Row_Drags is
       end if;
    end Start_Drag;
 
-   procedure Row_Dragged
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
-   is
+   procedure Row_Dragged (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event) is
       pragma Unreferenced (Source);
       Row : constant Positive := Event.Index;
    begin
@@ -282,9 +270,7 @@ package body View.Writing.Row_Drags is
       end if;
    end Row_Dragged;
 
-   procedure Row_Released
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
-   is
+   procedure Row_Released (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event) is
       pragma Unreferenced (Source);
       Row : constant Positive := Event.Index;
    begin

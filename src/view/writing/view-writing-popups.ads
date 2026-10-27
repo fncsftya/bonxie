@@ -1,4 +1,5 @@
 --  The menu of a page's sources.
+
 private package View.Writing.Popups is
 
    Rows_Before : constant := 1;

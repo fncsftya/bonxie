@@ -2,6 +2,7 @@
 --  What each command can do and when, what is kept and what happens when it
 --  cannot be, and what is said of the speech model's download for each state
 --  it can be in. See Goldens.
+
 package Settings_VM_Tests is
 
    procedure Command_Rules;

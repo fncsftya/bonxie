@@ -7,7 +7,8 @@ package body Slot_Tables is
 
    First_Room : constant := 16;
 
-   function Count (Self : Table) return Natural is (Self.Made);
+   function Count (Self : Table) return Natural
+   is (Self.Made);
 
    procedure Grow (Self : in out Table; To : Natural) is
    begin
@@ -32,28 +33,31 @@ package body Slot_Tables is
       end loop;
    end Grow;
 
-   function Get (Self : aliased Table; Index : Positive) return Constant_Reference is
-     ((Item => Self.Data (Index)));
+   function Get (Self : aliased Table; Index : Positive) return Constant_Reference
+   is ((Item => Self.Data (Index)));
 
-   function Ref (Self : aliased in out Table; Index : Positive) return Reference is
-     ((Item => Self.Data (Index)));
+   function Ref (Self : aliased in out Table; Index : Positive) return Reference
+   is ((Item => Self.Data (Index)));
 
-   function Get (Self : aliased Table; Position : Cursor) return Constant_Reference is
-     ((Item => Self.Data (Position.Place)));
+   function Get (Self : aliased Table; Position : Cursor) return Constant_Reference
+   is ((Item => Self.Data (Position.Place)));
 
-   function Ref (Self : aliased in out Table; Position : Cursor) return Reference is
-     ((Item => Self.Data (Position.Place)));
+   function Ref (Self : aliased in out Table; Position : Cursor) return Reference
+   is ((Item => Self.Data (Position.Place)));
 
-   function Iterate (Self : Table) return Iterators.Forward_Iterator'Class is
-     (Walker'(Last => Self.Made));
+   function Iterate (Self : Table) return Iterators.Forward_Iterator'Class
+   is (Walker'(Last => Self.Made));
 
-   overriding function First (Self : Walker) return Cursor is
-     (if Self.Last = 0 then (Place => 0) else (Place => 1));
+   overriding
+   function First (Self : Walker) return Cursor
+   is (if Self.Last = 0 then (Place => 0) else (Place => 1));
 
-   overriding function Next (Self : Walker; Position : Cursor) return Cursor is
-     (if Position.Place >= Self.Last then (Place => 0) else (Place => Position.Place + 1));
+   overriding
+   function Next (Self : Walker; Position : Cursor) return Cursor
+   is (if Position.Place >= Self.Last then (Place => 0) else (Place => Position.Place + 1));
 
-   overriding procedure Finalize (Self : in out Table) is
+   overriding
+   procedure Finalize (Self : in out Table) is
    begin
       if Self.Data /= null then
          for Each in reverse 1 .. Self.Made loop

@@ -52,22 +52,15 @@ is
    --  Nothing known yet: the room is taken to be quiet.
 
    function Level (Of_Floor : Floor) return Float
-     with Global => null,
-          Post   => Level'Result in Floor_Least .. Floor_Most;
+   with Global => null, Post => Level'Result in Floor_Least .. Floor_Most;
    --  The room's level now, as an amplitude.
 
    procedure Observe (Of_Floor : in out Floor; Audio : Windows.Samples)
-     with Global => null,
-          Pre    => Audio'Last < Positive'Last;
+   with Global => null, Pre => Audio'Last < Positive'Last;
    --  Learn from sound that has come (all of it, in order).
 
-   procedure Apply
-     (Of_Floor : Floor;
-      Audio    : in out Windows.Samples;
-      Voiced   : out Boolean)
-     with Global => null,
-          Pre    => Audio'Last < Positive'Last
-                    and then Audio'Length <= Windows.Capacity;
+   procedure Apply (Of_Floor : Floor; Audio : in out Windows.Samples; Voiced : out Boolean)
+   with Global => null, Pre => Audio'Last < Positive'Last and then Audio'Length <= Windows.Capacity;
    --  Make silence of the sound in Audio that is not speech. Voiced
    --  says if any is. (The end, less than a frame, goes as the frame
    --  before it does, or is kept if it is all there is.)
@@ -81,13 +74,13 @@ private
       Seen      : Natural := 0;
       --  How many there are.
    end record
-     with Type_Invariant =>
-       Floor.Amplitude in Floor_Least .. Floor_Most
-       and then Floor.Sum >= 0.0
-       and then Floor.Seen < Frame;
+   with
+     Type_Invariant =>
+       Floor.Amplitude in Floor_Least .. Floor_Most and then Floor.Sum >= 0.0 and then Floor.Seen < Frame;
 
    Unknown : constant Floor := (others => <>);
 
-   function Level (Of_Floor : Floor) return Float is (Of_Floor.Amplitude);
+   function Level (Of_Floor : Floor) return Float
+   is (Of_Floor.Amplitude);
 
 end Speech.Gates;

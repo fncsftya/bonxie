@@ -21,36 +21,28 @@ is
    end Reset;
 
    procedure Decode
-     (Item     : in out Stream;
-      Is_Final : Boolean;
-      Ok       : out Boolean;
-      Message  : out String;
-      Last     : out Natural)
-     with Global => (Input => Parakeet.Model),
-          Pre    => Consistent (Item)
-                    and then Message'First = 1
-                    and then Message'Length < Positive'Last / 2,
-          Post   => Consistent (Item) and then Last <= Message'Length
-                    and then (if Ok and then Is_Final
-                              then Item.Settled_To = Windows.Next (Item.Held));
+     (Item : in out Stream; Is_Final : Boolean; Ok : out Boolean; Message : out String; Last : out Natural)
+   with
+     Global => (Input => Parakeet.Model),
+     Pre    => Consistent (Item) and then Message'First = 1 and then Message'Length < Positive'Last / 2,
+     Post   =>
+       Consistent (Item)
+       and then Last <= Message'Length
+       and then (if Ok and then Is_Final then Item.Settled_To = Windows.Next (Item.Held));
    --  Run the model over the window; keep as settled the words that are
    --  (all of them if Is_Final, or if the window is full), and slide the
    --  window past them. The rest are the tentative text.
 
    procedure Decode
-     (Item     : in out Stream;
-      Is_Final : Boolean;
-      Ok       : out Boolean;
-      Message  : out String;
-      Last     : out Natural)
+     (Item : in out Stream; Is_Final : Boolean; Ok : out Boolean; Message : out String; Last : out Natural)
    is
-      Heard : Parakeet.Heard;
-      Used  : constant Natural := Windows.Count (Item.Held);
+      Heard  : Parakeet.Heard;
+      Used   : constant Natural := Windows.Count (Item.Held);
       Voiced : Boolean := True;
       --  Whether any of what is held is speech.
-      Skip  : Natural;
+      Skip   : Natural;
       --  Words at the start that are settled already.
-      Done  : Natural;
+      Done   : Natural;
       --  The last word that is settled now.
    begin
       Message := [others => ' '];
@@ -64,14 +56,16 @@ is
          return;
       end if;
       declare
-         pragma Warnings
-           (GNATprove, Off, "initialization of ""Audio"" has no effect",
-            Reason => "Windows.Samples are floats: reading one unset is not allowed, so it is set");
+         pragma
+           Warnings
+             (GNATprove,
+              Off,
+              "initialization of ""Audio"" has no effect",
+              Reason => "Windows.Samples are floats: reading one unset is not allowed, so it is set");
          Audio : Windows.Samples (1 .. Used) := [others => 0.0];
       begin
          for Index in 1 .. Used loop
-            Audio (Index) :=
-              Windows.Sample (Item.Held, Windows.First (Item.Held) + Windows.Sample_Index (Index - 1));
+            Audio (Index) := Windows.Sample (Item.Held, Windows.First (Item.Held) + Windows.Sample_Index (Index - 1));
          end loop;
          if Item.Tuned.Gate then
             Gates.Apply (Item.Room, Audio, Voiced);
@@ -79,42 +73,42 @@ is
          if Voiced then
             Parakeet.Transcribe (Audio, Heard, Ok, Message, Last);
          end if;
-         --  (What is all room is not given to the model, which would make
-         --  words of it: nothing was said.)
+      --  (What is all room is not given to the model, which would make
+      --  words of it: nothing was said.)
       end;
       if not Ok then
          return;
       end if;
       Windows.Mark_Decoded (Item.Held);
-      Skip := Windows.Passed
-        (Heard.Sample_Starts (1 .. Heard.Count), Heard.Sample_Ends (1 .. Heard.Count),
-         (if Item.Settled_To > Windows.First (Item.Held)
-          then Natural (Item.Settled_To - Windows.First (Item.Held)) + Item.Tuned.Slack else 0));
+      Skip :=
+        Windows.Passed
+          (Heard.Sample_Starts (1 .. Heard.Count),
+           Heard.Sample_Ends (1 .. Heard.Count),
+           (if Item.Settled_To > Windows.First (Item.Held)
+            then Natural (Item.Settled_To - Windows.First (Item.Held)) + Item.Tuned.Slack
+            else 0));
       declare
-         Everything : constant Boolean :=
-           Is_Final or else Windows.Full (Item.Held, Item.Tuned.Hop);
+         Everything : constant Boolean := Is_Final or else Windows.Full (Item.Held, Item.Tuned.Hop);
       begin
-         Done := (if Everything then Heard.Count
-                  elsif Used >= Item.Tuned.Trigger
-                  then Windows.Settled
-                         (Heard.Sample_Ends (1 .. Heard.Count), Skip + 1, Used, Item.Tuned.Guard)
-                  else Skip);
+         Done :=
+           (if Everything
+            then Heard.Count
+            elsif Used >= Item.Tuned.Trigger
+            then Windows.Settled (Heard.Sample_Ends (1 .. Heard.Count), Skip + 1, Used, Item.Tuned.Guard)
+            else Skip);
          if Done > Skip then
             if Item.Settled.Length > 0 then
                Windows.Append_Text (Item.Settled, " ");
             end if;
             Windows.Append_Text
               (Item.Settled,
-               Heard.Text
-                 (Windows.Text_From (Heard.Text_Ends (1 .. Heard.Count), Skip + 1)
-                  .. Heard.Text_Ends (Done)));
+               Heard.Text (Windows.Text_From (Heard.Text_Ends (1 .. Heard.Count), Skip + 1) .. Heard.Text_Ends (Done)));
          end if;
          if Everything then
             Item.Settled_To := Windows.Next (Item.Held);
             Windows.Drop_Before (Item.Held, Windows.Next (Item.Held));
          elsif Done > Skip then
-            Item.Settled_To :=
-              Windows.Cut_Place (Item.Held, Heard.Sample_Ends (1 .. Heard.Count), Done);
+            Item.Settled_To := Windows.Cut_Place (Item.Held, Heard.Sample_Ends (1 .. Heard.Count), Done);
             Windows.Drop_Before
               (Item.Held,
                (if Item.Settled_To - Windows.First (Item.Held) > Windows.Sample_Index (Item.Tuned.Context)
@@ -125,9 +119,7 @@ is
       if Done < Heard.Count then
          Windows.Append_Text
            (Item.Tentative,
-            Heard.Text
-              (Windows.Text_From (Heard.Text_Ends (1 .. Heard.Count), Done + 1)
-               .. Heard.Text_Length));
+            Heard.Text (Windows.Text_From (Heard.Text_Ends (1 .. Heard.Count), Done + 1) .. Heard.Text_Length));
       end if;
    end Decode;
 
@@ -158,7 +150,8 @@ is
                return;
             end if;
             Windows.Make_Room (Item.Held, Item.Tuned.Hop);
-            --  Whatever the model made of it, the sound goes on being heard.
+         --  Whatever the model made of it, the sound goes on being heard.
+
          end if;
          if Windows.Next (Item.Held) > Windows.Max_Index - Windows.Capacity then
             --  (It does not come to this in this world: the places are
@@ -180,11 +173,7 @@ is
       end loop;
    end Feed;
 
-   procedure Finish
-     (Item    : in out Stream;
-      Ok      : out Boolean;
-      Message : out String;
-      Last    : out Natural) is
+   procedure Finish (Item : in out Stream; Ok : out Boolean; Message : out String; Last : out Natural) is
    begin
       Decode (Item, True, Ok, Message, Last);
    end Finish;

@@ -42,11 +42,12 @@ package body View.Writing.Rename is
    begin
       Layouts.Set_Layout
         (Field,
-         Position => (Left => Layouts.Length_Of (Widgets.Left_Of (Box) - Widgets.Left_Of (Content)),
-                      Top  => Layouts.Length_Of (Widgets.Top_Of (Box) - Widgets.Top_Of (Content)),
-                      others => <>),
-         Width => Layouts.Length_Of (Widgets.Width_Of (Box) - Pomarine.Boxes.Offset (Pixels)),
-         Unit => Layouts.Device_Pixels);
+         Position =>
+           (Left   => Layouts.Length_Of (Widgets.Left_Of (Box) - Widgets.Left_Of (Content)),
+            Top    => Layouts.Length_Of (Widgets.Top_Of (Box) - Widgets.Top_Of (Content)),
+            others => <>),
+         Width    => Layouts.Length_Of (Widgets.Width_Of (Box) - Pomarine.Boxes.Offset (Pixels)),
+         Unit     => Layouts.Device_Pixels);
       Widgets.Set_Visible (Field, True);
       Widgets.Request_Layout (Field);
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
@@ -60,15 +61,10 @@ package body View.Writing.Rename is
       if Row = 0 then
          return;
       end if;
-      Docs.Load
-        (Item.Naming.Dir_Doc,
-         Projects.Titles.To_String (Item.Docs.Dirs (Dir).Title));
-      Text_Fields.Attach (Item.Naming.Dir_Field,
-                          Item.Naming.Dir_Doc'Unchecked_Access);
+      Docs.Load (Item.Naming.Dir_Doc, Projects.Titles.To_String (Item.Docs.Dirs (Dir).Title));
+      Text_Fields.Attach (Item.Naming.Dir_Field, Item.Naming.Dir_Doc'Unchecked_Access);
       Naming_VM.Begin_Directory (Item.Naming.Names, Dir);
-      Put_Field
-        (Item, Item.Naming.Dir_Field, Item.Page_View.Docs_Content,
-         Item.Docs.Doc_Rows (Row).Row);
+      Put_Field (Item, Item.Naming.Dir_Field, Item.Page_View.Docs_Content, Item.Docs.Doc_Rows (Row).Row);
    end Begin_Rename_Dir;
 
    procedure End_Rename_Doc (Item : in out Session) is
@@ -84,28 +80,20 @@ package body View.Writing.Rename is
       if Row = 0 then
          return;
       end if;
-      Text_Fields.Attach
-        (Item.Naming.Dir_Field, Models.Title_Document (Item.Models (Which)));
+      Text_Fields.Attach (Item.Naming.Dir_Field, Models.Title_Document (Item.Models (Which)));
       Naming_VM.Begin_Document (Item.Naming.Names, Which);
-      Put_Field
-        (Item, Item.Naming.Dir_Field, Item.Page_View.Docs_Content,
-         Item.Docs.Doc_Rows (Row).Row);
+      Put_Field (Item, Item.Naming.Dir_Field, Item.Page_View.Docs_Content, Item.Docs.Doc_Rows (Row).Row);
    end Begin_Rename_Doc;
 
-   procedure Begin_Rename_Source (Item : in out Session; Which : Items.Slot)
-   is
+   procedure Begin_Rename_Source (Item : in out Session; Which : Items.Slot) is
       Row : constant Natural := Support.Row_Of (Item, Which);
    begin
       if Row = 0 then
          return;
       end if;
-      Text_Fields.Attach
-        (Item.Naming.Source_Field,
-         Models.Title_Document (Item.Models (Which)));
+      Text_Fields.Attach (Item.Naming.Source_Field, Models.Title_Document (Item.Models (Which)));
       Naming_VM.Begin_Source (Item.Naming.Names, Which);
-      Put_Field
-        (Item, Item.Naming.Source_Field, Item.Page_View.Sources_Content,
-         Item.Reading.Source_Rows (Row).Row);
+      Put_Field (Item, Item.Naming.Source_Field, Item.Page_View.Sources_Content, Item.Reading.Source_Rows (Row).Row);
    end Begin_Rename_Source;
 
    procedure End_Rename_Dir (Item : in out Session) is
@@ -136,14 +124,11 @@ package body View.Writing.Rename is
                   Projects.Sections.Rename (Item.Nav.Store, Key, Name);
                   Outlines.Reload (Item);
                   Item.Section_Menu.Changes := Item.Section_Menu.Changes + 1;
-                  Item.Docs.Dirs (Dir) :=
-                    (Item.Docs.Dirs (Dir) with delta Title => Projects.Titles.To_Text (Name));
+                  Item.Docs.Dirs (Dir) := (Item.Docs.Dirs (Dir) with delta Title => Projects.Titles.To_Text (Name));
                end;
             else
-               Items.Directories.Rename_Directory
-                 (Item.Nav.Store, Item.Docs.Dirs (Dir).Key, Name);
-               Item.Docs.Dirs (Dir) :=
-                 (Item.Docs.Dirs (Dir) with delta Title => Projects.Titles.To_Text (Name));
+               Items.Directories.Rename_Directory (Item.Nav.Store, Item.Docs.Dirs (Dir).Key, Name);
+               Item.Docs.Dirs (Dir) := (Item.Docs.Dirs (Dir) with delta Title => Projects.Titles.To_Text (Name));
             end if;
             Projects.Touch (Item.Nav.Store, Open_Key (Item));
          end;
@@ -164,21 +149,19 @@ package body View.Writing.Rename is
    end New_Directory;
 
    procedure New_Directory (Item : in out Session; Name : String; Parent : Natural) is
-      Key : constant Items.Id :=
-        Items.Directories.Create_Directory
-          (Item.Nav.Store, Open_Key (Item), Name);
+      Key : constant Items.Id := Items.Directories.Create_Directory (Item.Nav.Store, Open_Key (Item), Name);
 
    begin
-      Items.Directories.Set_Parent
-        (Item.Nav.Store, Key, (if Parent = 0 then 0 else Item.Docs.Dirs (Parent).Key));
+      Items.Directories.Set_Parent (Item.Nav.Store, Key, (if Parent = 0 then 0 else Item.Docs.Dirs (Parent).Key));
       Item.Docs.Dirs.Append
-        ((Key => Key, Title => Projects.Titles.To_Text (Name),
-          Parent => (if Parent = 0 then 0 else Item.Docs.Dirs (Parent).Key), others => <>));
+        ((Key    => Key,
+          Title  => Projects.Titles.To_Text (Name),
+          Parent => (if Parent = 0 then 0 else Item.Docs.Dirs (Parent).Key),
+          others => <>));
       Build.Reserve_Rows (Item);
       --  Last of all.
       Order.Insert_Row
-        (Item, Order.Last_Of (Item, Parent),
-         (Kind => Directory_Node, Dir => Item.Docs.Dirs.Count, Doc => 0));
+        (Item, Order.Last_Of (Item, Parent), (Kind => Directory_Node, Dir => Item.Docs.Dirs.Count, Doc => 0));
       Order.Keep_Order (Item);
       Tree.Refresh (Item);
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);

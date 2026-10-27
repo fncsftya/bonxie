@@ -80,8 +80,7 @@ begin
          declare
             Low  : constant Integer := Character'Pos (Raw (45 + 2 * (Index - 1)));
             High : constant Integer := Character'Pos (Raw (46 + 2 * (Index - 1)));
-            Word : constant Integer :=
-              (if High >= 128 then Low + 256 * (High - 256) else Low + 256 * High);
+            Word : constant Integer := (if High >= 128 then Low + 256 * (High - 256) else Low + 256 * High);
          begin
             Audio (Index) := Float (Word) / 32768.0;
          end;

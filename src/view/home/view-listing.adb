@@ -12,11 +12,7 @@ package body View.Listing is
    Remove       : constant := 2;
    --  Which button of a row is which.
 
-   procedure Describe
-     (Item    : Session;
-      Row     : Positive;
-      Content : out Pomarine.Models.Row_Content)
-   is
+   procedure Describe (Item : Session; Row : Positive; Content : out Pomarine.Models.Row_Content) is
       Closed : constant Boolean := Item_List_VM.Is_Closed (Item.Item_List.Model, Row);
    begin
       Content := (others => <>);
@@ -24,13 +20,12 @@ package body View.Listing is
       Content.Dimmed := Closed;
       --  What a click does: show it if it is closed.
       Models.Set_Action
-        (Content, Show_Or_Hide,
-         (if Closed then Icon_Set.Show else Icon_Set.Hide), (if Closed then "Show" else "Hide"));
+        (Content, Show_Or_Hide, (if Closed then Icon_Set.Show else Icon_Set.Hide), (if Closed then "Show" else "Hide"));
       Models.Set_Action (Content, Remove, Icon_Set.Delete, "Remove", Danger => True);
    end Describe;
 
-   function Overlay (Item : Session) return access Pomarine.Widgets.Widget'Class is
-     (Pomarine.UI.Named (Screen_Of (Item, List_Region).all, List_Overlay));
+   function Overlay (Item : Session) return access Pomarine.Widgets.Widget'Class
+   is (Pomarine.UI.Named (Screen_Of (Item, List_Region).all, List_Overlay));
 
    procedure Refresh (Item : in out Session) is
    begin

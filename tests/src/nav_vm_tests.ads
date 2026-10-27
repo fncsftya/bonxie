@@ -1,4 +1,5 @@
 --  Tests of the view-model of where the person is, alone: no window, no display, no event. See Goldens.
+
 package Nav_VM_Tests is
 
    procedure Opening;

@@ -18,7 +18,7 @@ package body Ebook is
       Title_Cap   : Interfaces.C.int;
       Message     : out Interfaces.C.char_array;
       Message_Cap : Interfaces.C.int) return Interfaces.C.int
-     with Import, Convention => C, External_Name => "eb_info";
+   with Import, Convention => C, External_Name => "eb_info";
 
    function EB_Render
      (Path        : Interfaces.C.char_array;
@@ -29,34 +29,32 @@ package body Ebook is
       Height      : out Interfaces.C.int;
       Message     : out Interfaces.C.char_array;
       Message_Cap : Interfaces.C.int) return Interfaces.C.int
-     with Import, Convention => C, External_Name => "eb_render";
+   with Import, Convention => C, External_Name => "eb_render";
 
    function EB_Page_Build
      (Path        : Interfaces.C.char_array;
       Page        : Interfaces.C.int;
       Message     : out Interfaces.C.char_array;
       Message_Cap : Interfaces.C.int) return System.Address
-     with Import, Convention => C, External_Name => "eb_page_build";
+   with Import, Convention => C, External_Name => "eb_page_build";
 
    procedure EB_Page_Sizes
-     (Handle  : System.Address;
+     (Handle                                          : System.Address;
       Ops, Points, Chars, Faces, Clips, Images, Bytes : out Interfaces.C.int;
-      Width, Height : out Interfaces.C.C_float)
-     with Import, Convention => C, External_Name => "eb_page_sizes";
+      Width, Height                                   : out Interfaces.C.C_float)
+   with Import, Convention => C, External_Name => "eb_page_sizes";
 
-   procedure EB_Page_Fill
-     (Handle : System.Address;
-      Ops, Points, Chars, Faces, Clips, Images, Pixels : System.Address)
-     with Import, Convention => C, External_Name => "eb_page_fill";
+   procedure EB_Page_Fill (Handle : System.Address; Ops, Points, Chars, Faces, Clips, Images, Pixels : System.Address)
+   with Import, Convention => C, External_Name => "eb_page_fill";
 
    procedure EB_Page_Words
-     (Handle      : System.Address;
-      Words       : System.Address;
-      Max_Words   : Interfaces.C.int;
-      Text        : System.Address;
-      Text_Cap    : Interfaces.C.int;
+     (Handle                             : System.Address;
+      Words                              : System.Address;
+      Max_Words                          : Interfaces.C.int;
+      Text                               : System.Address;
+      Text_Cap                           : Interfaces.C.int;
       Word_Count, Text_Length, Truncated : out Interfaces.C.int)
-     with Import, Convention => C, External_Name => "eb_page_words";
+   with Import, Convention => C, External_Name => "eb_page_words";
 
    function EB_Document_Sizes
      (Path        : Interfaces.C.char_array;
@@ -64,7 +62,7 @@ package body Ebook is
       Sizes       : System.Address;
       Message     : out Interfaces.C.char_array;
       Message_Cap : Interfaces.C.int) return Interfaces.C.int
-     with Import, Convention => C, External_Name => "eb_document_sizes";
+   with Import, Convention => C, External_Name => "eb_document_sizes";
 
    function EB_Page_Text
      (Path        : Interfaces.C.char_array;
@@ -73,15 +71,19 @@ package body Ebook is
       Text_Cap    : Interfaces.C.int;
       Message     : out Interfaces.C.char_array;
       Message_Cap : Interfaces.C.int) return Interfaces.C.int
-     with Import, Convention => C, External_Name => "eb_page_text";
+   with Import, Convention => C, External_Name => "eb_page_text";
 
    function Page_Text (File_Name : String; Page : Positive; Most : Positive := 8_000) return String is
       Buffer  : Interfaces.C.char_array (0 .. Interfaces.C.size_t (Most));
       Message : Interfaces.C.char_array (0 .. Max_Message);
       Found   : constant Interfaces.C.int :=
         EB_Page_Text
-          (Interfaces.C.To_C (File_Name), Interfaces.C.int (Page), Buffer, Interfaces.C.int (Most) + 1,
-           Message, Interfaces.C.int (Max_Message) + 1);
+          (Interfaces.C.To_C (File_Name),
+           Interfaces.C.int (Page),
+           Buffer,
+           Interfaces.C.int (Most) + 1,
+           Message,
+           Interfaces.C.int (Max_Message) + 1);
    begin
       if Found = 0 then
          return "";
@@ -94,7 +96,7 @@ package body Ebook is
    end Page_Text;
 
    procedure EB_Page_Free (Handle : System.Address)
-     with Import, Convention => C, External_Name => "eb_page_free";
+   with Import, Convention => C, External_Name => "eb_page_free";
 
    function Extension_Of (URL : String) return String is
       Stop : Natural := URL'Last;
@@ -114,8 +116,8 @@ package body Ebook is
       return "";
    end Extension_Of;
 
-   function Is_Document (URL : String) return Boolean is
-     (Extension_Of (URL) in "pdf" | "epub");
+   function Is_Document (URL : String) return Boolean
+   is (Extension_Of (URL) in "pdf" | "epub");
 
    function File_Extension (Path : String) return String is
    begin
@@ -128,20 +130,17 @@ package body Ebook is
       return "";
    end File_Extension;
 
-   function Is_Text (URL : String) return Boolean is
-     (Extension_Of (URL) in "txt" | "text" | "md" | "markdown");
+   function Is_Text (URL : String) return Boolean
+   is (Extension_Of (URL) in "txt" | "text" | "md" | "markdown");
 
-   function Extensions return String is
-     ("pdf;epub;txt;text;md;markdown");
+   function Extensions return String
+   is ("pdf;epub;txt;text;md;markdown");
 
-   procedure Say
-     (Text : Interfaces.C.char_array; Into : out String; Last : out Natural)
-   is
+   procedure Say (Text : Interfaces.C.char_array; Into : out String; Last : out Natural) is
       Said : constant String := Interfaces.C.To_Ada (Text);
       Used : constant Natural := Natural'Min (Said'Length, Into'Length);
    begin
-      Into (Into'First .. Into'First + Used - 1) :=
-        Said (Said'First .. Said'First + Used - 1);
+      Into (Into'First .. Into'First + Used - 1) := Said (Said'First .. Said'First + Used - 1);
       Last := Into'First + Used - 1;
    end Say;
 
@@ -151,15 +150,10 @@ package body Ebook is
       Last := Into'First + Text'Length - 1;
    end Explain;
 
-   function Is_Book (File_Name : String) return Boolean is
-     (File_Extension (File_Name) = "epub");
+   function Is_Book (File_Name : String) return Boolean
+   is (File_Extension (File_Name) = "epub");
 
-   procedure Open
-     (File_Name : String;
-      Found     : out Information;
-      Message   : out String;
-      Last      : out Natural)
-   is
+   procedure Open (File_Name : String; Found : out Information; Message : out String; Last : out Natural) is
       Pages : Interfaces.C.int;
       Title : Interfaces.C.char_array (0 .. Max_Title);
       Why   : Interfaces.C.char_array (0 .. Max_Message);
@@ -172,17 +166,13 @@ package body Ebook is
       end if;
       Title (0) := Interfaces.C.nul;
       Why (0) := Interfaces.C.nul;
-      if EB_Info
-           (Interfaces.C.To_C (File_Name), Pages, Title, Max_Title,
-            Why, Max_Message) = 1
-      then
+      if EB_Info (Interfaces.C.To_C (File_Name), Pages, Title, Max_Title, Why, Max_Message) = 1 then
          Found.Pages := Natural (Pages);
          declare
             Text : constant String := Interfaces.C.To_Ada (Title);
          begin
             Found.Last := Natural'Min (Text'Length, Max_Title);
-            Found.Title (1 .. Found.Last) :=
-              Text (Text'First .. Text'First + Found.Last - 1);
+            Found.Title (1 .. Found.Last) := Text (Text'First .. Text'First + Found.Last - 1);
          end;
       else
          Say (Why, Message, Last);
@@ -208,9 +198,15 @@ package body Ebook is
       end if;
       Why (0) := Interfaces.C.nul;
       if EB_Render
-           (Interfaces.C.To_C (File_Name), Interfaces.C.int (Page),
-            Interfaces.C.To_C (PNG_Name), Page_Width, Max_Height,
-            Tall, Why, Max_Message) = 1
+           (Interfaces.C.To_C (File_Name),
+            Interfaces.C.int (Page),
+            Interfaces.C.To_C (PNG_Name),
+            Page_Width,
+            Max_Height,
+            Tall,
+            Why,
+            Max_Message)
+        = 1
       then
          Height := Natural (Tall);
       else
@@ -236,37 +232,49 @@ package body Ebook is
          Books.Make_Page (File_Name, Page, Content, Found, Message, Last);
          return;
       end if;
-      Handle :=
-        EB_Page_Build
-          (Interfaces.C.To_C (File_Name), Interfaces.C.int (Page), Why, Max_Message);
+      Handle := EB_Page_Build (Interfaces.C.To_C (File_Name), Interfaces.C.int (Page), Why, Max_Message);
       if Handle = System.Null_Address then
          Say (Why, Message, Last);
          return;
       end if;
       declare
          Ops, Points, Chars, Faces, Clips, Images, Bytes : Interfaces.C.int;
-         Width, Height : Interfaces.C.C_float;
-         Words, Length, Cut : Interfaces.C.int;
+         Width, Height                                   : Interfaces.C.C_float;
+         Words, Length, Cut                              : Interfaces.C.int;
       begin
          EB_Page_Sizes (Handle, Ops, Points, Chars, Faces, Clips, Images, Bytes, Width, Height);
-         Content := new Pomarine.Pages.Page
-           (Operations => Natural (Ops), Points => Natural (Points),
-            Characters => Natural (Chars), Faces => Natural (Faces),
-            Clips => Natural (Clips), Images => Natural (Images),
-            Bytes => Natural (Bytes));
+         Content :=
+           new Pomarine.Pages.Page
+                 (Operations => Natural (Ops),
+                  Points => Natural (Points),
+                  Characters => Natural (Chars),
+                  Faces => Natural (Faces),
+                  Clips => Natural (Clips),
+                  Images => Natural (Images),
+                  Bytes => Natural (Bytes));
          Content.Width := Float (Width);
          Content.Height := Float (Height);
          EB_Page_Fill
            (Handle,
-            Content.Op'Address, Content.Corner'Address, Content.Letters'Address,
-            Content.Fonts'Address, Content.Clip'Address, Content.Pictures'Address,
+            Content.Op'Address,
+            Content.Corner'Address,
+            Content.Letters'Address,
+            Content.Fonts'Address,
+            Content.Clip'Address,
+            Content.Pictures'Address,
             Content.Pixels'Address);
          Pomarine.Words.Clear (Found);
          Pomarine.Words.Reserve (Found, First_Room_Words, First_Room_Bytes);
          loop
             EB_Page_Words
-              (Handle, Found.Words.all'Address, Interfaces.C.int (Found.Words'Length),
-               Found.Text.all'Address, Interfaces.C.int (Found.Text'Length), Words, Length, Cut);
+              (Handle,
+               Found.Words.all'Address,
+               Interfaces.C.int (Found.Words'Length),
+               Found.Text.all'Address,
+               Interfaces.C.int (Found.Text'Length),
+               Words,
+               Length,
+               Cut);
             --  If it was cut short for room, it is done again with more.
             exit when Cut = 0;
             Pomarine.Words.Reserve (Found, 2 * Found.Words'Length, 2 * Found.Text'Length);
@@ -300,8 +308,9 @@ package body Ebook is
                end if;
                Sizes := null;
             else
-               Sizes := new Pomarine.Pages.Size_Array'
-                 [1 .. Count => (Width => Books.Sheet_Width, Height => Books.Sheet_Height)];
+               Sizes :=
+                 new Pomarine.Pages.Size_Array'
+                   [1 .. Count => (Width => Books.Sheet_Width, Height => Books.Sheet_Height)];
             end if;
          end;
          return;
@@ -309,8 +318,8 @@ package body Ebook is
       Sizes := new Pomarine.Pages.Size_Array (1 .. Count);
       Why (0) := Interfaces.C.nul;
       if EB_Document_Sizes
-           (Interfaces.C.To_C (File_Name), Interfaces.C.int (Count),
-            Sizes.all'Address, Why, Max_Message) /= 1
+           (Interfaces.C.To_C (File_Name), Interfaces.C.int (Count), Sizes.all'Address, Why, Max_Message)
+        /= 1
       then
          Pomarine.Pages.Free (Sizes);
          Say (Why, Message, Last);

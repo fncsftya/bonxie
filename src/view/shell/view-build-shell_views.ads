@@ -1,4 +1,5 @@
 --  The home screen, the project screen's header, tray and publish view.
+
 private package View.Build.Shell_Views is
 
    procedure Build_Header (Item : in out Session);

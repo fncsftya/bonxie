@@ -33,28 +33,21 @@ is
    --  nothing about native state or the full-tasking runtime.
 
    protected Board is
-      procedure Begin_Job
-        (Which : Lane; Engine : Engines; Directory : String; Job : out Natural)
-        with Pre => Directory'Length <= Max_Path;
+      procedure Begin_Job (Which : Lane; Engine : Engines; Directory : String; Job : out Natural)
+      with Pre => Directory'Length <= Max_Path;
       --  Say it is Starting: Job tells this one from an earlier, reset one.
       procedure Job_Of
-        (Which     : Lane;
-         Job       : out Natural;
-         Engine    : out Engines;
-         Directory : in out Directory_Text;
-         Last      : out Natural)
-        with Post => Last <= Max_Path;
+        (Which : Lane; Job : out Natural; Engine : out Engines; Directory : in out Directory_Text; Last : out Natural)
+      with Post => Last <= Max_Path;
       --  What the slot is to do: the latest begun (Job is 0 if there is
       --  none, or it was reset); Directory (1 .. Last) is the model's.
-      procedure Begin_Waiting
-        (Which : Lane; Job : Natural; Stop_Now : out Boolean);
+      procedure Begin_Waiting (Which : Lane; Job : Natural; Stop_Now : out Boolean);
       --  The microphone is listening: Listening, unless it was to stop
       --  while it started, or was reset, when Stop_Now says not to wait.
       procedure Request_Stop (Which : Lane; Wake : out Boolean);
       --  Wake says the task is to be told to go on (it is waiting).
-      procedure End_Job
-        (Which : Lane; Job : Natural; Ok : Boolean; Why : String)
-        with Pre => Why'First >= 1 and then Why'Last < Positive'Last / 2;
+      procedure End_Job (Which : Lane; Job : Natural; Ok : Boolean; Why : String)
+      with Pre => Why'First >= 1 and then Why'Last < Positive'Last / 2;
       --  Ignored if the slot was reset since.
       procedure Forget (Which : Lane; Wake : out Boolean);
       function Stand (Which : Lane) return States;
@@ -62,7 +55,7 @@ is
       function Phase (Which : Lane; Job : Natural) return States;
       --  How the job stands, Idle if it was reset (or a later one began).
       function Said_Why (Which : Lane) return String
-        with Post => Said_Why'Result'Length <= Max_Message;
+      with Post => Said_Why'Result'Length <= Max_Message;
    private
       Current   : Job_Numbers := [others => 0];
       Counter   : Natural := 0;
@@ -77,8 +70,7 @@ is
 
    protected body Board is
 
-      procedure Begin_Job
-        (Which : Lane; Engine : Engines; Directory : String; Job : out Natural) is
+      procedure Begin_Job (Which : Lane; Engine : Engines; Directory : String; Job : out Natural) is
       begin
          Using (Which) := Engine;
          Counter := (if Counter = Natural'Last then 1 else Counter + 1);
@@ -92,11 +84,8 @@ is
       end Begin_Job;
 
       procedure Job_Of
-        (Which     : Lane;
-         Job       : out Natural;
-         Engine    : out Engines;
-         Directory : in out Directory_Text;
-         Last      : out Natural) is
+        (Which : Lane; Job : out Natural; Engine : out Engines; Directory : in out Directory_Text; Last : out Natural)
+      is
       begin
          Job := Current (Which);
          Engine := Using (Which);
@@ -104,8 +93,7 @@ is
          Directory (1 .. Last) := Dirs (Which) (1 .. Last);
       end Job_Of;
 
-      procedure Begin_Waiting
-        (Which : Lane; Job : Natural; Stop_Now : out Boolean) is
+      procedure Begin_Waiting (Which : Lane; Job : Natural; Stop_Now : out Boolean) is
       begin
          if Current (Which) /= Job then
             Stop_Now := True;
@@ -122,19 +110,20 @@ is
       begin
          Wake := False;
          case Stated (Which) is
-            when Starting =>
+            when Starting  =>
                Early (Which) := True;
                Stated (Which) := Finishing;
+
             when Listening =>
                Stated (Which) := Finishing;
                Wake := Using (Which) = System;
-            when others =>
+
+            when others    =>
                null;
          end case;
       end Request_Stop;
 
-      procedure End_Job
-        (Which : Lane; Job : Natural; Ok : Boolean; Why : String) is
+      procedure End_Job (Which : Lane; Job : Natural; Ok : Boolean; Why : String) is
       begin
          if Current (Which) /= Job then
             return;
@@ -144,8 +133,7 @@ is
          else
             Stated (Which) := Failed;
             Said_Last (Which) := Natural'Min (Why'Length, Max_Message);
-            Said (Which) (1 .. Said_Last (Which)) :=
-              Why (Why'First .. Why'First + Said_Last (Which) - 1);
+            Said (Which) (1 .. Said_Last (Which)) := Why (Why'First .. Why'First + Said_Last (Which) - 1);
          end if;
       end End_Job;
 
@@ -158,25 +146,27 @@ is
          Said_Last (Which) := 0;
       end Forget;
 
-      function Stand (Which : Lane) return States is (Stated (Which));
+      function Stand (Which : Lane) return States
+      is (Stated (Which));
 
-      function Engine_Of (Which : Lane) return Engines is (Using (Which));
+      function Engine_Of (Which : Lane) return Engines
+      is (Using (Which));
 
-      function Phase (Which : Lane; Job : Natural) return States is
-        (if Current (Which) = Job then Stated (Which) else Idle);
+      function Phase (Which : Lane; Job : Natural) return States
+      is (if Current (Which) = Job then Stated (Which) else Idle);
 
-      function Said_Why (Which : Lane) return String is
-        (Said (Which) (1 .. Said_Last (Which)));
+      function Said_Why (Which : Lane) return String
+      is (Said (Which) (1 .. Said_Last (Which)));
 
    end Board;
 
    protected Live is
       procedure Put (Which : Lane; Words : String; Cut : Boolean; Settled : Natural := 0)
-        with Pre => Words'First >= 1 and then Words'Last < Positive'Last;
+      with Pre => Words'First >= 1 and then Words'Last < Positive'Last;
       --  What is heard so far, the first Settled bytes of it settled, for the caller's polling.
       procedure Get (Which : Lane; Into : out Transcript);
       procedure Put_Final (Which : Lane; Words : String; Cut : Boolean)
-        with Pre => Words'First >= 1 and then Words'Last < Positive'Last;
+      with Pre => Words'First >= 1 and then Words'Last < Positive'Last;
       --  What was heard in all, for the caller to take once it is Done.
       procedure Get_Final (Which : Lane; Into : out Transcript);
    private
@@ -194,8 +184,7 @@ is
          Texts (Which).Length := Used;
          Texts (Which).Settled := Natural'Min (Settled, Used);
          Texts (Which).Truncated := Cut or else Used < Words'Length;
-         Texts (Which).Text (1 .. Used) :=
-           Words (Words'First .. Words'First + Used - 1);
+         Texts (Which).Text (1 .. Used) := Words (Words'First .. Words'First + Used - 1);
       end Put;
 
       procedure Get (Which : Lane; Into : out Transcript) is
@@ -210,8 +199,7 @@ is
          Finals (Which).Length := Used;
          Finals (Which).Settled := Used;
          Finals (Which).Truncated := Cut or else Used < Words'Length;
-         Finals (Which).Text (1 .. Used) :=
-           Words (Words'First .. Words'First + Used - 1);
+         Finals (Which).Text (1 .. Used) := Words (Words'First .. Words'First + Used - 1);
       end Put_Final;
 
       procedure Get_Final (Which : Lane; Into : out Transcript) is
@@ -259,24 +247,24 @@ is
    Stop_Gates : array (Lane) of Gate;
 
    function Trimmed (Words : String) return String
-     with Pre  => Words'First >= 1 and then Words'Last >= 0 and then Words'Last < Positive'Last,
-          Post => Trimmed'Result'Length <= Words'Length
-                  and then Trimmed'Result'First >= 1
-                  and then Trimmed'Result'Last < Positive'Last;
+   with
+     Pre  => Words'First >= 1 and then Words'Last >= 0 and then Words'Last < Positive'Last,
+     Post =>
+       Trimmed'Result'Length <= Words'Length
+       and then Trimmed'Result'First >= 1
+       and then Trimmed'Result'Last < Positive'Last;
 
    function Trimmed (Words : String) return String is
       First : Positive := Words'First;
       Last  : Natural := Words'Last;
    begin
-      while First <= Last and then Words (First) in ' ' | ASCII.HT | ASCII.LF
-      loop
+      while First <= Last and then Words (First) in ' ' | ASCII.HT | ASCII.LF loop
          pragma Loop_Invariant (First in Words'First .. Words'Last + 1);
          pragma Loop_Invariant (First <= Last);
          pragma Loop_Variant (Increases => First);
          First := First + 1;
       end loop;
-      while Last >= First and then Words (Last) in ' ' | ASCII.HT | ASCII.LF
-      loop
+      while Last >= First and then Words (Last) in ' ' | ASCII.HT | ASCII.LF loop
          pragma Loop_Invariant (Last in First - 1 .. Words'Last);
          pragma Loop_Variant (Decreases => Last);
          Last := Last - 1;
@@ -285,7 +273,7 @@ is
    end Trimmed;
 
    procedure Run_Model (Which : Lane; Job : Natural; Path : String)
-     with Pre => Path'First = 1 and then Path'Length <= Max_Path;
+   with Pre => Path'First = 1 and then Path'Length <= Max_Path;
    --  Hear the microphone and make it text with the model, until the job
    --  is told to stop (or is reset); then the rest. In the slot's task.
 
@@ -317,9 +305,7 @@ is
             Lead  : constant Natural := Words'First - 1;
             --  What Trimmed took from the front: Settled counts from there.
          begin
-            Live.Put
-              (Which, Words, Said.Truncated,
-               (if Said.Settled > Lead then Said.Settled - Lead else 0));
+            Live.Put (Which, Words, Said.Truncated, (if Said.Settled > Lead then Said.Settled - Lead else 0));
          end;
       end Show;
 
@@ -378,9 +364,12 @@ is
          end if;
          if not Any then
             Next := Next + Pause;
-            pragma Annotate
-              (GNATprove, Intentional, "range check might fail",
-               "the clock does not run out: it counts in nanoseconds, for centuries");
+            pragma
+              Annotate
+                (GNATprove,
+                 Intentional,
+                 "range check might fail",
+                 "the clock does not run out: it counts in nanoseconds, for centuries");
             delay until Next;
          end if;
          Phase := Board.Phase (Which, Job);
@@ -423,9 +412,12 @@ is
       Stop_Now : Boolean;
       Quit     : Boolean;
       Said     : Transcript;
-      pragma Warnings
-        (GNATprove, Off, "is set by ""Pass"" but not used",
-         Reason => "if the program is ending, the listening is ended all the same");
+      pragma
+        Warnings
+          (GNATprove,
+           Off,
+           "is set by ""Pass"" but not used",
+           Reason => "if the program is ending, the listening is ended all the same");
    begin
       Begin_Listening (Which, Ok, Why, Last);
       if not Ok then
@@ -435,7 +427,8 @@ is
       Board.Begin_Waiting (Which, Job, Stop_Now);
       if not Stop_Now then
          Stop_Gates (Which).Pass (Quit);
-         --  (If the program is ending, what was heard is of no use.)
+      --  (If the program is ending, what was heard is of no use.)
+
       end if;
       End_Listening (Which, Said, Ok, Why, Last);
       if Ok then
@@ -456,6 +449,7 @@ is
       Board.Job_Of (Which, Job, Engine, Directory, Last);
       if Job = 0 then
          return;  --  it was reset before the task came to it
+
       end if;
       if Engine = Model then
          Run_Model (Which, Job, Directory (1 .. Last));
@@ -479,15 +473,12 @@ is
       end Next;
    end Numbers;
 
-   task type Worker
-     with Storage_Size => 8 * 1024 * 1024;
+   task type Worker with Storage_Size => 8 * 1024 * 1024;
    --  A slot's task. Its stack holds what it hears with, which is more
    --  than most tasks' (the stack is address space, not memory, until it
    --  is used).
 
-   pragma Annotate
-     (GNATprove, Intentional, "might terminate",
-      "a task ends only when the program does: see Shutdown");
+   pragma Annotate (GNATprove, Intentional, "might terminate", "a task ends only when the program does: see Shutdown");
 
    task body Worker is
       Mine : Lane;
@@ -505,15 +496,14 @@ is
    --  One to a slot, from the start, so that starting a job never waits
    --  for another's (and nothing is made while the program runs).
 
-   procedure Start_Job
-     (Which           : Lane;
-      Engine          : Engines := System;
-      Model_Directory : String  := "")
-   is
+   procedure Start_Job (Which : Lane; Engine : Engines := System; Model_Directory : String := "") is
       Job : Natural;
-      pragma Warnings
-        (GNATprove, Off, "is set by ""Begin_Job"" but not used",
-         Reason => "the task finds which job it is to do (Job_Of), when it comes to it");
+      pragma
+        Warnings
+          (GNATprove,
+           Off,
+           "is set by ""Begin_Job"" but not used",
+           Reason => "the task finds which job it is to do (Job_Of), when it comes to it");
    begin
       Board.Begin_Job (Which, Engine, Model_Directory, Job);
       Run_Gates (Which).Release;
@@ -528,7 +518,8 @@ is
       end if;
    end Stop_Job;
 
-   function Job_State (Which : Lane) return States is (Board.Stand (Which));
+   function Job_State (Which : Lane) return States
+   is (Board.Stand (Which));
 
    function Job_Loudness (Which : Lane) return Float is
       Standing : constant States := Board.Stand (Which);
@@ -560,13 +551,17 @@ is
       end if;
    end Words_So_Far;
 
-   function Job_Message (Which : Lane) return String is (Board.Said_Why (Which));
+   function Job_Message (Which : Lane) return String
+   is (Board.Said_Why (Which));
 
    procedure Take_Words (Which : Lane; Into : out Transcript) is
       Wake : Boolean;
-      pragma Warnings
-        (GNATprove, Off, "is set by ""Forget"" but not used",
-         Reason => "a job that is Done is not listening, so there is no one to wake");
+      pragma
+        Warnings
+          (GNATprove,
+           Off,
+           "is set by ""Forget"" but not used",
+           Reason => "a job that is Done is not listening, so there is no one to wake");
    begin
       Live.Get_Final (Which, Into);
       Board.Forget (Which, Wake);

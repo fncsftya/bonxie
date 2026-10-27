@@ -19,8 +19,10 @@ package body Outline_VM_Fakes is
    procedure Put (Self : in out Kept; Title : String; Notes : String := "") is
    begin
       Self.Table.Append
-        ((Key => Self.Next, Title => Sections.Title_Texts.To_Text (Title),
-          Notes => Sections.Note_Texts.To_Text (Notes), others => <>));
+        ((Key    => Self.Next,
+          Title  => Sections.Title_Texts.To_Text (Title),
+          Notes  => Sections.Note_Texts.To_Text (Notes),
+          others => <>));
       Self.Next := Self.Next + 1;
    end Put;
 
@@ -41,9 +43,9 @@ package body Outline_VM_Fakes is
       return Ada.Strings.Unbounded.To_String (Said);
    end Titles;
 
-   overriding procedure Project_Words
-     (Self : in out Kept; Owner : Projects.Id; Found : out Boolean;
-      Title, Description : out Projects.Titles.Text)
+   overriding
+   procedure Project_Words
+     (Self : in out Kept; Owner : Projects.Id; Found : out Boolean; Title, Description : out Projects.Titles.Text)
    is
       pragma Unreferenced (Owner);
    begin
@@ -52,23 +54,25 @@ package body Outline_VM_Fakes is
       Description := Self.Words;
    end Project_Words;
 
-   overriding procedure Rename_Project (Self : in out Kept; Owner : Projects.Id; Title : String) is
+   overriding
+   procedure Rename_Project (Self : in out Kept; Owner : Projects.Id; Title : String) is
       pragma Unreferenced (Owner);
    begin
       Self.Title := Projects.Titles.To_Text (Title);
       Self.Writes := Self.Writes + 1;
    end Rename_Project;
 
-   overriding procedure Keep_Description (Self : in out Kept; Owner : Projects.Id; Stored : String) is
+   overriding
+   procedure Keep_Description (Self : in out Kept; Owner : Projects.Id; Stored : String) is
       pragma Unreferenced (Owner);
    begin
       Self.Words := Projects.Titles.To_Text (Stored);
       Self.Writes := Self.Writes + 1;
    end Keep_Description;
 
-   overriding procedure Load
-     (Self : in out Kept; Owner : Projects.Id;
-      Order : out Sections.Section_List; Links : out Sections.Link_List)
+   overriding
+   procedure Load
+     (Self : in out Kept; Owner : Projects.Id; Order : out Sections.Section_List; Links : out Sections.Link_List)
    is
       pragma Unreferenced (Owner);
    begin
@@ -76,17 +80,15 @@ package body Outline_VM_Fakes is
       Links := Self.Links;
    end Load;
 
-   overriding procedure Load_Links
-     (Self : in out Kept; Owner : Projects.Id; Links : out Sections.Link_List)
-   is
+   overriding
+   procedure Load_Links (Self : in out Kept; Owner : Projects.Id; Links : out Sections.Link_List) is
       pragma Unreferenced (Owner);
    begin
       Links := Self.Links;
    end Load_Links;
 
-   overriding function Add
-     (Self : in out Kept; Owner : Projects.Id; Title : String) return Sections.Section_Id
-   is
+   overriding
+   function Add (Self : in out Kept; Owner : Projects.Id; Title : String) return Sections.Section_Id is
       pragma Unreferenced (Owner);
    begin
       Put (Self, Title);
@@ -94,7 +96,8 @@ package body Outline_VM_Fakes is
       return Self.Next - 1;
    end Add;
 
-   overriding procedure Rename (Self : in out Kept; Key : Sections.Section_Id; Title : String) is
+   overriding
+   procedure Rename (Self : in out Kept; Key : Sections.Section_Id; Title : String) is
    begin
       declare
          Section : Sections.Section renames Self.Table (Place (Self, Key));
@@ -104,7 +107,8 @@ package body Outline_VM_Fakes is
       Self.Writes := Self.Writes + 1;
    end Rename;
 
-   overriding procedure Delete (Self : in out Kept; Key : Sections.Section_Id) is
+   overriding
+   procedure Delete (Self : in out Kept; Key : Sections.Section_Id) is
       Kept_Links : Sections.Link_List;
    begin
       Self.Table.Delete (Place (Self, Key));
@@ -117,9 +121,8 @@ package body Outline_VM_Fakes is
       Self.Writes := Self.Writes + 1;
    end Delete;
 
-   overriding procedure Set_Order
-     (Self : in out Kept; Owner : Projects.Id; Order : Sections.Key_Array)
-   is
+   overriding
+   procedure Set_Order (Self : in out Kept; Owner : Projects.Id; Order : Sections.Key_Array) is
       pragma Unreferenced (Owner);
       Old : constant Sections.Section_List := Self.Table;
    begin
@@ -133,10 +136,12 @@ package body Outline_VM_Fakes is
       Self.Writes := Self.Writes + 1;
    end Set_Order;
 
-   overriding function Stored_Notes (Self : in out Kept; Key : Sections.Section_Id) return String is
-     ("<" & Sections.Note_Texts.To_String (Self.Table (Place (Self, Key)).Notes) & ">");
+   overriding
+   function Stored_Notes (Self : in out Kept; Key : Sections.Section_Id) return String
+   is ("<" & Sections.Note_Texts.To_String (Self.Table (Place (Self, Key)).Notes) & ">");
 
-   overriding procedure Keep_Notes (Self : in out Kept; Key : Sections.Section_Id; Stored : String) is
+   overriding
+   procedure Keep_Notes (Self : in out Kept; Key : Sections.Section_Id; Stored : String) is
    begin
       declare
          Section : Sections.Section renames Self.Table (Place (Self, Key));
@@ -146,8 +151,8 @@ package body Outline_VM_Fakes is
       Self.Writes := Self.Writes + 1;
    end Keep_Notes;
 
-   overriding procedure Set_Colour
-     (Self : in out Kept; Key : Sections.Section_Id; Colour : Sections.Colour_Value) is
+   overriding
+   procedure Set_Colour (Self : in out Kept; Key : Sections.Section_Id; Colour : Sections.Colour_Value) is
    begin
       declare
          Section : Sections.Section renames Self.Table (Place (Self, Key));

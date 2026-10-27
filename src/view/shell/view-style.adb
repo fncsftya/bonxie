@@ -29,25 +29,48 @@ package body View.Style is
       Shift      : constant Float := Lightness - Chroma / 2.0;
       R, G, B    : Float;
 
-      function Byte (Value : Float) return SDL3.Windows.Renderers.Color_Component is
-        (SDL3.Windows.Renderers.Color_Component
-           (Float'Rounding (Float'Min (1.0, Float'Max (0.0, Value + Shift)) * 255.0)));
+      function Byte (Value : Float) return SDL3.Windows.Renderers.Color_Component
+      is (SDL3.Windows.Renderers.Color_Component
+            (Float'Rounding (Float'Min (1.0, Float'Max (0.0, Value + Shift)) * 255.0)));
    begin
       case Integer (Float'Floor (Sector)) is
-         when 0      => R := Chroma; G := Second; B := 0.0;
-         when 1      => R := Second; G := Chroma; B := 0.0;
-         when 2      => R := 0.0;    G := Chroma; B := Second;
-         when 3      => R := 0.0;    G := Second; B := Chroma;
-         when 4      => R := Second; G := 0.0;    B := Chroma;
-         when others => R := Chroma; G := 0.0;    B := Second;
+         when 0      =>
+            R := Chroma;
+            G := Second;
+            B := 0.0;
+
+         when 1      =>
+            R := Second;
+            G := Chroma;
+            B := 0.0;
+
+         when 2      =>
+            R := 0.0;
+            G := Chroma;
+            B := Second;
+
+         when 3      =>
+            R := 0.0;
+            G := Second;
+            B := Chroma;
+
+         when 4      =>
+            R := Second;
+            G := 0.0;
+            B := Chroma;
+
+         when others =>
+            R := Chroma;
+            G := 0.0;
+            B := Second;
       end case;
       return (Byte (R), Byte (G), Byte (B), 255);
    end Pastel;
 
    function Section_Ink (Colour : Projects.Sections.Colour_Value) return Themes.Slot is
       subtype Byte is SDL3.Windows.Renderers.Color_Component;
-      RGB : constant Natural := (if Colour >= Projects.Sections.Palette_Size
-                                 then Colour - Projects.Sections.Palette_Size else 0);
+      RGB : constant Natural :=
+        (if Colour >= Projects.Sections.Palette_Size then Colour - Projects.Sections.Palette_Size else 0);
    begin
       if Colour < Projects.Sections.Palette_Size then
          return Section_Inks (Colour);
@@ -58,17 +81,19 @@ package body View.Style is
    type Tints is (Own, Painted);
 
    function Slotted
-     (Base : Themes.Theme; Dark : Boolean; Tint : Tints; Hue : Adaptive_Themes.Hues;
+     (Base     : Themes.Theme;
+      Dark     : Boolean;
+      Tint     : Tints;
+      Hue      : Adaptive_Themes.Hues;
       Strength : Adaptive_Themes.Strengths) return Themes.Theme;
    --  Base, with the slots of the application set from it; its greys, with Painted, in Hue.
 
-   function Make (Dark : Boolean) return Themes.Theme is
-     (Slotted ((if Dark then Themes.Dark else Themes.Light), Dark, Own, 0.0, 0.0));
+   function Make (Dark : Boolean) return Themes.Theme
+   is (Slotted ((if Dark then Themes.Dark else Themes.Light), Dark, Own, 0.0, 0.0));
 
    function Make
-     (Dark : Boolean; Hue : Adaptive_Themes.Hues; Strength : Adaptive_Themes.Strengths := 1.0)
-      return Themes.Theme is
-     (Slotted (Themes.Make (Adaptive_Themes.Palette_For (Dark, Hue, Strength)), Dark, Painted, Hue, Strength));
+     (Dark : Boolean; Hue : Adaptive_Themes.Hues; Strength : Adaptive_Themes.Strengths := 1.0) return Themes.Theme
+   is (Slotted (Themes.Make (Adaptive_Themes.Palette_For (Dark, Hue, Strength)), Dark, Painted, Hue, Strength));
 
    procedure Soften (Item : in out Themes.Theme; Tone : Themes.Tone) is
    begin
@@ -79,30 +104,31 @@ package body View.Style is
    end Soften;
 
    function Slotted
-     (Base : Themes.Theme; Dark : Boolean; Tint : Tints; Hue : Adaptive_Themes.Hues;
+     (Base     : Themes.Theme;
+      Dark     : Boolean;
+      Tint     : Tints;
+      Hue      : Adaptive_Themes.Hues;
       Strength : Adaptive_Themes.Strengths) return Themes.Theme
    is
-      function Grey (Value : Themes.Color) return Themes.Color is
-        (if Tint = Painted then Adaptive_Themes.Grey (Value, Dark, Hue, Strength) else Value);
+      function Grey (Value : Themes.Color) return Themes.Color
+      is (if Tint = Painted then Adaptive_Themes.Grey (Value, Dark, Hue, Strength) else Value);
 
       Back : constant Themes.Color := Base (Themes.Background);
    begin
       return Result : Themes.Theme := Base do
          Themes.Set_Custom
            (Result, 0, Grey (if Dark then (16#24#, 16#2B#, 16#28#, 255) else (16#C9#, 16#D1#, 16#CC#, 255)));
-         Themes.Set_Custom
-           (Result, 1, Grey (if Dark then Base (Themes.Bar) else (16#C9#, 16#D1#, 16#CC#, 255)));
+         Themes.Set_Custom (Result, 1, Grey (if Dark then Base (Themes.Bar) else (16#C9#, 16#D1#, 16#CC#, 255)));
          Themes.Set_Custom
            (Result, 2, Grey (if Dark then (16#38#, 16#44#, 16#40#, 255) else (16#B7#, 16#BF#, 16#BA#, 255)));
          Themes.Set_Custom (Result, 3, Themes.Mix (Base (Themes.Foreground), Back, 0.55));
-         Themes.Set_Custom
-           (Result, 4, Themes.Mix (Base (Themes.Primary), Base (Themes.Foreground), 0.25));
+         Themes.Set_Custom (Result, 4, Themes.Mix (Base (Themes.Primary), Base (Themes.Foreground), 0.25));
          if Tint = Painted then
             --  Some of what is drawn is on the painting itself, not on a panel: a count, a hint, the
             --  dashed edge of the card to add a project. The painting is neither the panel's colour
             --  nor even, so these keep close to the text's colour, which reads on all of it.
             Result.Slots (Themes.Muted) := Themes.Mix (Base (Themes.Foreground), Back, 0.08);
-            Result.Slots (Themes.Hint)  := Themes.Mix (Base (Themes.Foreground), Back, 0.12);
+            Result.Slots (Themes.Hint) := Themes.Mix (Base (Themes.Foreground), Back, 0.12);
             --  Borders and rules, over the painting or the boxes on it, are the text's colour thinned, so that they
             --  are as light over a dark patch as over a pale one.
             Result.Slots (Themes.Border) := (Base (Themes.Foreground) with delta Alpha => 70);
@@ -110,23 +136,25 @@ package body View.Style is
             Soften (Result, Themes.Normal_Tone);
             Soften (Result, Themes.Quiet_Tone);
             Themes.Set_Custom
-              (Result, Section_First + Projects.Sections.Colour_Index'Last + 2,
+              (Result,
+               Section_First + Projects.Sections.Colour_Index'Last + 2,
                Themes.Mix (Base (Themes.Border), Base (Themes.Foreground), 0.65));
             Themes.Set_Custom (Result, 3, Themes.Mix (Base (Themes.Foreground), Back, 0.2));
-            Themes.Set_Custom
-              (Result, 4, Themes.Mix (Base (Themes.Primary), Base (Themes.Foreground), 0.6));
+            Themes.Set_Custom (Result, 4, Themes.Mix (Base (Themes.Primary), Base (Themes.Foreground), 0.6));
          end if;
          --  The level meter on a status line: the title bar's colour over a painting, which has the
          --  painting's tint, and otherwise the text's, thinned to the strip's.
          Themes.Set_Custom
-           (Result, Items.Windows.Meter_Offset,
-            (if Tint = Painted then Base (Themes.Bar)
+           (Result,
+            Items.Windows.Meter_Offset,
+            (if Tint = Painted
+             then Base (Themes.Bar)
              else Themes.Mix (Base (Themes.Strip), Base (Themes.Foreground), 0.9)));
          Themes.Set_Custom
-           (Result, Section_First + Projects.Sections.Colour_Index'Last + 1,
+           (Result,
+            Section_First + Projects.Sections.Colour_Index'Last + 1,
             (if Dark then Themes.White else (0, 0, 0, 255)));
-         Themes.Set_Custom
-           (Result, Section_First + Projects.Sections.Colour_Index'Last + 2, Base (Themes.Border));
+         Themes.Set_Custom (Result, Section_First + Projects.Sections.Colour_Index'Last + 2, Base (Themes.Border));
          Themes.Set_Custom (Result, Source_First, (if Dark then Source_Blue_Dark else Source_Blue_Light));
          for K in Other_Sources'Range loop
             Themes.Set_Custom (Result, Source_First + K - 1, Other_Sources (K));
@@ -137,16 +165,19 @@ package body View.Style is
       end return;
    end Slotted;
 
-   Active : Themes.Theme := Make (Dark => False);
-   Dark_In_Use : Boolean := False;
+   Active          : Themes.Theme := Make (Dark => False);
+   Dark_In_Use     : Boolean := False;
    Adaptive_In_Use : Boolean := False;
    --  The theme of the window shown.
 
-   function Is_Dark return Boolean is (Dark_In_Use);
+   function Is_Dark return Boolean
+   is (Dark_In_Use);
 
-   function Is_Adaptive return Boolean is (Adaptive_In_Use);
+   function Is_Adaptive return Boolean
+   is (Adaptive_In_Use);
 
-   function Colors return Themes.Theme is (Active);
+   function Colors return Themes.Theme
+   is (Active);
 
    procedure Use_Dark (Dark : Boolean) is
    begin
@@ -155,8 +186,7 @@ package body View.Style is
       Adaptive_In_Use := False;
    end Use_Dark;
 
-   procedure Use_Adaptive
-     (Dark : Boolean; Hue : Adaptive_Themes.Hues; Strength : Adaptive_Themes.Strengths := 1.0) is
+   procedure Use_Adaptive (Dark : Boolean; Hue : Adaptive_Themes.Hues; Strength : Adaptive_Themes.Strengths := 1.0) is
    begin
       Active := Make (Dark, Hue, Strength);
       Dark_In_Use := Dark;

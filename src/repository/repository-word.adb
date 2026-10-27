@@ -52,8 +52,7 @@ package body Repository.Word is
             Ada_Sqlite3.Bind_Int64 (Insert, ":item", Long_Integer (Key));
             Ada_Sqlite3.Bind_Int (Insert, ":seq", Number);
             Ada_Sqlite3.Bind_Int (Insert, ":line", Each.Line);
-            Ada_Sqlite3.Bind_Text
-              (Insert, ":word", Vision.Image (Each, Found));
+            Ada_Sqlite3.Bind_Text (Insert, ":word", Vision.Image (Each, Found));
             Ada_Sqlite3.Bind_Double (Insert, ":x", Each.Left);
             Ada_Sqlite3.Bind_Double (Insert, ":y", Each.Top);
             Ada_Sqlite3.Bind_Double (Insert, ":w", Each.Width);
@@ -65,14 +64,10 @@ package body Repository.Word is
       Ada_Sqlite3.Execute (DB (Store).all, "COMMIT");
    end Replace;
 
-   procedure Load
-     (Store : Projects.Store; Key : Items.Id; Into : in out Vision.Result)
-   is
+   procedure Load (Store : Projects.Store; Key : Items.Id; Into : in out Vision.Result) is
       Query : Ada_Sqlite3.Statement :=
         Ada_Sqlite3.Prepare
-          (DB (Store).all,
-           "SELECT line, word, x, y, w, h FROM item_words "
-           & "WHERE item_id = :id ORDER BY seq");
+          (DB (Store).all, "SELECT line, word, x, y, w, h FROM item_words " & "WHERE item_id = :id ORDER BY seq");
    begin
       Pomarine.Words.Clear (Into);
       Ada_Sqlite3.Bind_Int64 (Query, ":id", Long_Integer (Key));

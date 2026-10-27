@@ -4,7 +4,8 @@ package body Items.Vector_Pages is
 
    use type Pomarine.Pages.Page_Access;
 
-   overriding procedure Build
+   overriding
+   procedure Build
      (Item    : in out File_Source;
       Index   : Positive;
       Content : out Pomarine.Pages.Page_Access;
@@ -18,11 +19,9 @@ package body Items.Vector_Pages is
       Ok := Content /= null;
    end Build;
 
-   overriding procedure Measure
-     (Item  : in out File_Source;
-      Count : Positive;
-      Sizes : out Pomarine.Pages.Size_Array_Access;
-      Ok    : out Boolean)
+   overriding
+   procedure Measure
+     (Item : in out File_Source; Count : Positive; Sizes : out Pomarine.Pages.Size_Array_Access; Ok : out Boolean)
    is
       Message : String (1 .. Ebook.Max_Message);
       Last    : Natural;
@@ -56,8 +55,7 @@ package body Items.Vector_Pages is
    end Open;
 
    procedure Close
-     (Shown : in out Pomarine.Widgets.Page_Views.Page_View;
-      Sizes : in out Pomarine.Pages.Size_Array_Access) is
+     (Shown : in out Pomarine.Widgets.Page_Views.Page_View; Sizes : in out Pomarine.Pages.Size_Array_Access) is
    begin
       Pomarine.Widgets.Page_Views.Clear_Document (Shown);
       Pomarine.Pages.Free (Sizes);

@@ -1,11 +1,11 @@
 --  The sidebar's tree of documents, shown and selected from.
+
 private package View.Writing.Tree is
 
    procedure Choose_Row (Row : in out Index_Row; Chosen : Boolean);
    --  Show the row as the one chosen, white and casting a shadow, or not.
 
-   function Linked_Sources
-     (Item : Session; Which : Items.Slot) return Natural;
+   function Linked_Sources (Item : Session; Which : Items.Slot) return Natural;
    --  How many sources the document is linked to on the canvas.
 
    procedure Refresh (Item : in out Session);
@@ -16,7 +16,7 @@ private package View.Writing.Tree is
    --  Scroll the pages to the Rankth.
 
    procedure Show_Directory (Item : in out Session; Directory : Natural)
-     with Pre => Directory <= Item.Docs.Dirs.Count;
+   with Pre => Directory <= Item.Docs.Dirs.Count;
    --  Show only the pages of the directory (all, if 0).
 
    procedure Show_Page (Item : in out Session; Which : Items.Slot);

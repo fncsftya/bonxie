@@ -4,14 +4,16 @@ package body Grammar_VM_Fakes is
 
    use type Projects.Rules.Rule_Id;
 
-   overriding procedure Load (Self : in out Kept; Owner : Projects.Id; Result : out Projects.Rules.Rule_List) is
+   overriding
+   procedure Load (Self : in out Kept; Owner : Projects.Id; Result : out Projects.Rules.Rule_List) is
    begin
       Self.Owner := Owner;
       Self.Reads := Self.Reads + 1;
       Result := Self.Table;
    end Load;
 
-   overriding function Add
+   overriding
+   function Add
      (Self        : in out Kept;
       Owner       : Projects.Id;
       Action      : Projects.Rules.Actions;
@@ -22,14 +24,18 @@ package body Grammar_VM_Fakes is
       pragma Unreferenced (Owner);
    begin
       Self.Table.Append
-        ((Key => Self.Next, Action => Action, Kind => Kind, Pattern => Long_Texts.To_Text (Pattern),
+        ((Key         => Self.Next,
+          Action      => Action,
+          Kind        => Kind,
+          Pattern     => Long_Texts.To_Text (Pattern),
           Replacement => Long_Texts.To_Text (Replacement)));
       Self.Next := Self.Next + 1;
       Self.Writes := Self.Writes + 1;
       return Self.Next - 1;
    end Add;
 
-   overriding procedure Remove (Self : in out Kept; Key : Projects.Rules.Rule_Id) is
+   overriding
+   procedure Remove (Self : in out Kept; Key : Projects.Rules.Rule_Id) is
    begin
       for Each in 1 .. Self.Table.Count loop
          if Self.Table (Each).Key = Key then
@@ -40,22 +46,23 @@ package body Grammar_VM_Fakes is
       Self.Writes := Self.Writes + 1;
    end Remove;
 
-   overriding function Inspect
-     (Self : Engine; What : Grammar_VM.Card_Command; Index : Natural) return Grammar_VM.Card_State
-   is
+   overriding
+   function Inspect (Self : Engine; What : Grammar_VM.Card_Command; Index : Natural) return Grammar_VM.Card_State is
       pragma Unreferenced (What, Index);
    begin
       return Self.State;
    end Inspect;
 
-   overriding procedure Perform (Self : in out Engine; What : Grammar_VM.Card_Command; Index : Natural) is
+   overriding
+   procedure Perform (Self : in out Engine; What : Grammar_VM.Card_Command; Index : Natural) is
    begin
       Self.Calls := Self.Calls + 1;
       Self.Last := What;
       Self.Index := Index;
    end Perform;
 
-   overriding procedure Entry_Ended (Self : in out Reactions; Accepted : Boolean) is
+   overriding
+   procedure Entry_Ended (Self : in out Reactions; Accepted : Boolean) is
    begin
       if Accepted then
          Self.Accepted := Self.Accepted + 1;

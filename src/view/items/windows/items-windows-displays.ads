@@ -1,5 +1,6 @@
 --  Showing what a window's model says: its title, words, link, pager and zoom, by the kind it is, and how a source's
 --  picture stands.
+
 private package Items.Windows.Displays is
 
    procedure Show_Fetch (Item : in out Window);

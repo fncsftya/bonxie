@@ -3,29 +3,38 @@ package body Grammar_VM is
    use type Rules.Actions;
    use type Parts.Version_Number;
 
-   function Owner_Of (Self : View_Model) return Projects.Id is (Self.Owner);
+   function Owner_Of (Self : View_Model) return Projects.Id
+   is (Self.Owner);
 
-   function Current (Self : aliased View_Model) return access constant Rules.Rule_List is (Self.Known'Access);
+   function Current (Self : aliased View_Model) return access constant Rules.Rule_List
+   is (Self.Known'Access);
 
-   function Count (Self : View_Model) return Natural is (Self.Known.Count);
+   function Count (Self : View_Model) return Natural
+   is (Self.Known.Count);
 
-   function Rules_Version (Self : View_Model) return Parts.Version_Number is (Parts.Value (Self.Lists));
+   function Rules_Version (Self : View_Model) return Parts.Version_Number
+   is (Parts.Value (Self.Lists));
 
-   function Is_Entering (Self : View_Model) return Boolean is (Self.Entering);
+   function Is_Entering (Self : View_Model) return Boolean
+   is (Self.Entering);
 
-   function Entry_Text (Self : View_Model) return String is (Projects.Titles.To_String (Self.Text));
+   function Entry_Text (Self : View_Model) return String
+   is (Projects.Titles.To_String (Self.Text));
 
-   function Prompt (Self : View_Model) return String is ("Always correct """ & Entry_Text (Self) & """ to:");
+   function Prompt (Self : View_Model) return String
+   is ("Always correct """ & Entry_Text (Self) & """ to:");
 
-   function Correction (Self : View_Model) return String is (Parts.Get (Self.Typed));
+   function Correction (Self : View_Model) return String
+   is (Parts.Get (Self.Typed));
 
    procedure Set_Correction (Self : in out View_Model; Text : String) is
    begin
       Parts.Set (Self.Typed, Text);
    end Set_Correction;
 
-   overriding function Version (Self : View_Model) return Parts.Version_Number is
-     (Parts.Value (Self.Changes) + Parts.Value (Self.Lists) + Parts.Version (Self.Typed));
+   overriding
+   function Version (Self : View_Model) return Parts.Version_Number
+   is (Parts.Value (Self.Changes) + Parts.Value (Self.Lists) + Parts.Version (Self.Typed));
 
    procedure Initialize (Self : in out View_Model; Kept : not null access Library'Class) is
    begin
@@ -106,7 +115,8 @@ package body Grammar_VM is
       Parts.Bump (Self.Changes);
    end Begin_Entry;
 
-   overriding function Can_Execute (Self : View_Model; What : Command; Index : Natural := 0) return Boolean is
+   overriding
+   function Can_Execute (Self : View_Model; What : Command; Index : Natural := 0) return Boolean is
    begin
       if What in Card_Command then
          if Self.Engine = null then
@@ -120,24 +130,33 @@ package body Grammar_VM is
             end if;
             return
               (case Card_Command (What) is
-                  when Toggle_Cards => Index = 0,
-                  when Expand_Card => Index > 0 and then State.Showing and then State.Current,
-                  when Apply_Fix => State.Showing and then State.Current and then State.Editable
-                    and then Index in 1 .. State.Suggestions,
-                  when Edit_Rule | Ignore_Text => Index = 0 and then State.Showing and then State.Current
-                    and then State.Has_Text and then Self.Owner /= 0);
+                 when Toggle_Cards            => Index = 0,
+                 when Expand_Card             => Index > 0 and then State.Showing and then State.Current,
+                 when Apply_Fix               =>
+                   State.Showing
+                   and then State.Current
+                   and then State.Editable
+                   and then Index in 1 .. State.Suggestions,
+                 when Edit_Rule | Ignore_Text =>
+                   Index = 0
+                   and then State.Showing
+                   and then State.Current
+                   and then State.Has_Text
+                   and then Self.Owner /= 0);
          end;
       end if;
       return
         (case What is
-            when Cancel_Entry => Self.Entering,
-            when Accept_Entry =>
-               Self.Entering and then Correction (Self) /= Entry_Text (Self)
-               and then Correction (Self)'Length <= Longest_Correction,
-            when Card_Command => False);
+           when Cancel_Entry => Self.Entering,
+           when Accept_Entry =>
+             Self.Entering
+             and then Correction (Self) /= Entry_Text (Self)
+             and then Correction (Self)'Length <= Longest_Correction,
+           when Card_Command => False);
    end Can_Execute;
 
-   overriding procedure Execute (Self : in out View_Model; What : Command; Index : Natural := 0) is
+   overriding
+   procedure Execute (Self : in out View_Model; What : Command; Index : Natural := 0) is
    begin
       if What in Card_Command then
          Perform (Self.Engine.all, What, Index);

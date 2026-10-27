@@ -1,16 +1,16 @@
 --  The order of the documents: the tree, the pages and the directories, and keeping them.
+
 private package View.Writing.Order is
 
-   procedure Insert_Row
-     (Item : in out Session; Index : Positive; Node : Tree_Entry)
-     with Pre => Index in 2 .. Trees.Count (Item.Docs.Ordering) + 1;
+   procedure Insert_Row (Item : in out Session; Index : Positive; Node : Tree_Entry)
+   with Pre => Index in 2 .. Trees.Count (Item.Docs.Ordering) + 1;
    --  Put the row before the Indexth.
 
    procedure Delete_Row (Item : in out Session; Index : Positive)
-     with Pre => Index in 2 .. Trees.Count (Item.Docs.Ordering);
+   with Pre => Index in 2 .. Trees.Count (Item.Docs.Ordering);
 
    procedure Relocate (Item : in out Session; Row, Index : Positive; Dir : Natural)
-     with Pre => Trees.Can_Execute (Item.Docs.Ordering, Item.Docs.Dirs, Row, Index, Dir);
+   with Pre => Trees.Can_Execute (Item.Docs.Ordering, Item.Docs.Dirs, Row, Index, Dir);
 
    procedure Build_Order (Item : in out Session);
    --  Find the documents, in the order kept, and the sources.

@@ -8,18 +8,24 @@ package body Search_VM is
       Self.Engine := Finder_Access (Engine);
    end Initialize;
 
-   function Term (Self : View_Model) return String is (Parts.Get (Self.Typed));
-   function Is_Showing (Self : View_Model) return Boolean is (Self.Showing);
-   function Location (Self : View_Model) return Context is (Self.Where);
-   function Found (Self : View_Model) return Result is (Self.Matches);
-   overriding function Version (Self : View_Model) return Parts.Version_Number is
-     (Parts.Value (Self.Changes) + Parts.Version (Self.Typed));
+   function Term (Self : View_Model) return String
+   is (Parts.Get (Self.Typed));
+   function Is_Showing (Self : View_Model) return Boolean
+   is (Self.Showing);
+   function Location (Self : View_Model) return Context
+   is (Self.Where);
+   function Found (Self : View_Model) return Result
+   is (Self.Matches);
+   overriding
+   function Version (Self : View_Model) return Parts.Version_Number
+   is (Parts.Value (Self.Changes) + Parts.Version (Self.Typed));
 
    function Summary (Self : View_Model) return String is
-      function Image (N : Natural) return String is (Ada.Strings.Fixed.Trim (N'Image, Ada.Strings.Both));
+      function Image (N : Natural) return String
+      is (Ada.Strings.Fixed.Trim (N'Image, Ada.Strings.Both));
    begin
-      return Image (Self.Matches.Current) & " / " & Image (Self.Matches.Total)
-        & (if Self.Matches.Busy then " ..." else "");
+      return
+        Image (Self.Matches.Current) & " / " & Image (Self.Matches.Total) & (if Self.Matches.Busy then " ..." else "");
    end Summary;
 
    procedure Set_Term (Self : in out View_Model; Text : String) is
@@ -57,21 +63,24 @@ package body Search_VM is
       end if;
    end Open;
 
-   overriding function Can_Execute (Self : View_Model; What : Command; Index : Natural := 0) return Boolean is
+   overriding
+   function Can_Execute (Self : View_Model; What : Command; Index : Natural := 0) return Boolean is
       pragma Unreferenced (Index);
    begin
       return Self.Showing and then (What = Close or else Self.Matches.Total > 0);
    end Can_Execute;
 
-   overriding procedure Execute (Self : in out View_Model; What : Command; Index : Natural := 0) is
+   overriding
+   procedure Execute (Self : in out View_Model; What : Command; Index : Natural := 0) is
       pragma Unreferenced (Index);
    begin
       case What is
-         when Close =>
+         when Close           =>
             Clear (Self.Engine.all, Self.Where);
             Self.Showing := False;
             Self.Matches := (others => <>);
             Parts.Bump (Self.Changes);
+
          when Previous | Next =>
             if Valid (Self.Engine.all, Self.Where) then
                Advance (Self.Engine.all, Self.Where, What = Previous);

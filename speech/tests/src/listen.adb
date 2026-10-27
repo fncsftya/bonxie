@@ -10,18 +10,18 @@ procedure Listen is
 
    Which : constant Speech.Jobs.Slot := 1;
    Heard : Speech.Transcript;
-   Ticks : constant Natural :=
-     Natural'Value (Ada.Command_Line.Argument (2)) * 5;
+   Ticks : constant Natural := Natural'Value (Ada.Command_Line.Argument (2)) * 5;
 begin
-   Speech.Jobs.Start
-     (Which, Speech.Jobs.Model, Ada.Command_Line.Argument (1));
+   Speech.Jobs.Start (Which, Speech.Jobs.Model, Ada.Command_Line.Argument (1));
    for Tick in 1 .. Ticks loop
       delay 0.2;
       Speech.Jobs.Heard_So_Far (Which, Heard);
       if Tick mod 5 = 0 then
          Put_Line
            (Speech.Jobs.States'Image (Speech.Jobs.State (Which))
-            & " level" & Speech.Jobs.Loudness (Which)'Image & " : "
+            & " level"
+            & Speech.Jobs.Loudness (Which)'Image
+            & " : "
             & Speech.Image (Heard));
       end if;
    end loop;
@@ -33,8 +33,7 @@ begin
       Speech.Jobs.Take (Which, Heard);
       Put_Line ("FINAL: " & Speech.Image (Heard));
    else
-      Put_Line (Speech.Jobs.States'Image (Speech.Jobs.State (Which)) & ": "
-                & Speech.Jobs.Message (Which));
+      Put_Line (Speech.Jobs.States'Image (Speech.Jobs.State (Which)) & ": " & Speech.Jobs.Message (Which));
    end if;
    Speech.Jobs.Shutdown;
 end Listen;

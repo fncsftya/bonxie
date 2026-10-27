@@ -1,4 +1,5 @@
 --  The blocks of the sections: shown, dragged to another place, and their order kept.
+
 private package View.Outlines.Blocks is
 
    package Widgets renames Pomarine.Widgets;
@@ -17,10 +18,8 @@ private package View.Outlines.Blocks is
    procedure Show_Ghost (Item : in out Session);
    --  Put the ghost of the block dragged under the pointer, or hide it.
 
-   procedure Block_Dragged
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
+   procedure Block_Dragged (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
 
-   procedure Block_Released
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
+   procedure Block_Released (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
 
 end View.Outlines.Blocks;

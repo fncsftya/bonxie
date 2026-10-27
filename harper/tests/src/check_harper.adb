@@ -14,8 +14,11 @@ procedure Check_Harper is
    Ready  : Boolean;
 
    procedure Start
-     (Item : in out Checker; Text : String; Revision : Request_Id := 1;
-      Language : Dialect := British; Format : Text_Format := Plain_Text)
+     (Item     : in out Checker;
+      Text     : String;
+      Revision : Request_Id := 1;
+      Language : Dialect := British;
+      Format   : Text_Format := Plain_Text)
    is
       Accepted : Boolean;
       Deadline : constant Ada.Real_Time.Time := Ada.Real_Time.Clock + Ada.Real_Time.Seconds (60);
@@ -41,12 +44,13 @@ procedure Check_Harper is
       pragma Assert (Result.Status = Success);
    end Await;
 
-   function Has_Kind (Result : Check_Result; Kind : Lint_Kind) return Boolean is
-     (for some Index in 1 .. Result.Count => Result.Lints (Index).Kind = Kind);
+   function Has_Kind (Result : Check_Result; Kind : Lint_Kind) return Boolean
+   is (for some Index in 1 .. Result.Count => Result.Lints (Index).Kind = Kind);
 
 begin
    declare
-      procedure Check_ABI with Import, Convention => C, External_Name => "check_harper_abi";
+      procedure Check_ABI
+      with Import, Convention => C, External_Name => "check_harper_abi";
       task ABI_Check;
       task body ABI_Check is
       begin
@@ -79,8 +83,7 @@ begin
 
    --  UTF-8 byte spans must account for a four-byte character before the error.
    declare
-      Text  : constant String :=
-        Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Encode ("🙂 This is a speling mistake.");
+      Text  : constant String := Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Encode ("🙂 This is a speling mistake.");
       First : constant Natural := Ada.Strings.Fixed.Index (Text, "speling") - 1;
       Found : Boolean := False;
    begin
@@ -96,9 +99,10 @@ begin
                Found := True;
                pragma Assert (Lint.Suggestion_Count > 0);
                pragma Assert (Messages.Length (Lint.Message) > 0);
-               pragma Assert
-                 (for some Each in 1 .. Lint.Suggestion_Count =>
-                    Replacements.To_String (Lint.Suggestions (Each).Text) = "spelling");
+               pragma
+                 Assert
+                   (for some Each in 1 .. Lint.Suggestion_Count =>
+                      Replacements.To_String (Lint.Suggestions (Each).Text) = "spelling");
             end if;
          end;
       end loop;

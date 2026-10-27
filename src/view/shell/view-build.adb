@@ -60,8 +60,7 @@ package body View.Build is
 
       function Program_Folder return String is
       begin
-         return Ada.Directories.Containing_Directory
-                  (Ada.Command_Line.Command_Name);
+         return Ada.Directories.Containing_Directory (Ada.Command_Line.Command_Name);
       exception
          when Ada.Directories.Use_Error | Ada.Directories.Name_Error =>
             return ".";
@@ -168,12 +167,7 @@ package body View.Build is
       end loop;
    end Reserve_Rows;
 
-   procedure Set_Up
-     (Item       : in out Session;
-      Source     : String;
-      File_Name  : String;
-      Store_Path : String)
-   is
+   procedure Set_Up (Item : in out Session; Source : String; File_Name : String; Store_Path : String) is
    begin
       Projects.Open (Item.Nav.Store, Store_Path);
       Items.Schema.Prepare (Item.Nav.Store);
@@ -204,18 +198,21 @@ package body View.Build is
                Kept : constant Natural := Preferences.Load_Sidebar_Width (Config);
             begin
                if Kept /= 0 then
-                  Item.Page_View.Sidebar_Wide :=
-                    Float'Max (Sidebar_Least, Float'Min (Sidebar_Most, Float (Kept)));
+                  Item.Page_View.Sidebar_Wide := Float'Max (Sidebar_Least, Float'Min (Sidebar_Most, Float (Kept)));
                end if;
             end;
             Sidebar_VM.Disk.Open (Item.Page_View.Folds_Kept, Config);
             Settings_VM.Disk.Open (Choices.Files, Config);
             Settings_VM.Initialize
-              (Choices.Model, Choices.Voice'Unchecked_Access, Choices.Files'Unchecked_Access, Config,
-               Kept_Speech => Preferences.Load_Speech_Model (Config),
-               Kept_Theme => Preferences.Load_Theme (Config),
+              (Choices.Model,
+               Choices.Voice'Unchecked_Access,
+               Choices.Files'Unchecked_Access,
+               Config,
+               Kept_Speech     => Preferences.Load_Speech_Model (Config),
+               Kept_Theme      => Preferences.Load_Theme (Config),
                Kept_Background => Preferences.Load_Background (Config),
-               Kept_VSync => Preferences.Load_VSync (Config), Reactions => Item.Settings_Reactions'Access);
+               Kept_VSync      => Preferences.Load_VSync (Config),
+               Reactions       => Item.Settings_Reactions'Access);
             --  The system may have let go of the compiled model: have it
             --  ready, in the background, before it is wanted.
             if Preferences."=" (Settings_VM.Speech_Model (Choices.Model), Preferences.Parakeet) then
@@ -224,31 +221,47 @@ package body View.Build is
          else
             --  Offscreen, the light theme, whatever the system's is.
             Settings_VM.Initialize
-              (Choices.Model, Choices.Voice'Unchecked_Access, null, Config,
-               Kept_Theme => Preferences.Light, Kept_Background => Preferences.Fixed,
-               Reactions => Item.Settings_Reactions'Access);
+              (Choices.Model,
+               Choices.Voice'Unchecked_Access,
+               null,
+               Config,
+               Kept_Theme      => Preferences.Light,
+               Kept_Background => Preferences.Fixed,
+               Reactions       => Item.Settings_Reactions'Access);
          end if;
       end;
       Nav_VM.Stored.Open (Item.Nav_Model.Library, Item.Nav.Store'Unchecked_Access);
       Nav_VM.Initialize
-        (Item.Nav_Model.Model, Item.Nav_Model.Library'Unchecked_Access, Item.Home_Model.Model'Unchecked_Access,
-         Item.Outline_Model.Model'Unchecked_Access, Item.Choices.Model'Unchecked_Access,
+        (Item.Nav_Model.Model,
+         Item.Nav_Model.Library'Unchecked_Access,
+         Item.Home_Model.Model'Unchecked_Access,
+         Item.Outline_Model.Model'Unchecked_Access,
+         Item.Choices.Model'Unchecked_Access,
          Item.Dialog_Model.Model'Unchecked_Access);
       Sidebar_VM.Initialize
-        (Item.Page_View.Folding, Item.Nav_Model.Model'Access,
+        (Item.Page_View.Folding,
+         Item.Nav_Model.Model'Access,
          (if Settings_VM.Persists (Item.Choices.Model) then Item.Page_View.Folds_Kept'Access else null));
       Item.Source_Platform.Owner := Item'Unchecked_Access;
       Writing_Sources_VM.Initialize
-        (Item.Reading.Sources, Item.Nav_Model.Model'Access, Item.Models'Unrestricted_Access,
+        (Item.Reading.Sources,
+         Item.Nav_Model.Model'Access,
+         Item.Models'Unrestricted_Access,
          Item.Source_Platform'Access);
       Item.Writing_Platform.Owner := Item'Unchecked_Access;
       Writing_VM.Actions.Initialize
-        (Item.Page_View.Actions, Item.Nav_Model.Model'Access, Item.Docs.Ordering'Unrestricted_Access,
-         Item.Models'Unrestricted_Access, Item.Naming.Names'Unrestricted_Access, Item.Writing_Platform'Access);
+        (Item.Page_View.Actions,
+         Item.Nav_Model.Model'Access,
+         Item.Docs.Ordering'Unrestricted_Access,
+         Item.Models'Unrestricted_Access,
+         Item.Naming.Names'Unrestricted_Access,
+         Item.Writing_Platform'Access);
       Item.Publishing_Platform.Owner := Item'Unchecked_Access;
       Publish_VM.Initialize
-        (Item.Publish_View.Options, Item.Nav_Model.Model'Access,
-         Item.Publishing_Platform'Access, Item.Publish_View.Files'Access);
+        (Item.Publish_View.Options,
+         Item.Nav_Model.Model'Access,
+         Item.Publishing_Platform'Access,
+         Item.Publish_View.Files'Access);
       Item.Publish_Watcher.Owner := Item'Unchecked_Access;
       Pomarine.View_Models.See (Item.Publish_Watcher.Seen, Publish_VM.Version (Item.Publish_View.Options));
       Item.Sidebar_Watcher.Owner := Item'Unchecked_Access;
@@ -264,14 +277,19 @@ package body View.Build is
       Canvas_VM.Stored.Open (Item.Canvas_Model.Library, Item.Nav.Store'Unchecked_Access);
       Item.Room.Owner := Item'Unchecked_Access;
       Canvas_VM.Initialize
-        (Item.Canvas_Model.Model, Item.Canvas_Model.Library'Unchecked_Access, Item.Room'Unchecked_Access,
+        (Item.Canvas_Model.Model,
+         Item.Canvas_Model.Library'Unchecked_Access,
+         Item.Room'Unchecked_Access,
          Item.Models'Unrestricted_Access);
       Item.Nav_Reactions.Owner := Item'Unchecked_Access;
       Nav_VM.Observe (Item.Nav_Model.Model, Item.Nav_Reactions'Access);
       Item.Item_List.View.Owner := Item'Unchecked_Access;
       Item_List_VM.Initialize
-        (Item.Item_List.Model, Item.Canvas_Model.Model'Unchecked_Access,
-         Item.Models'Unrestricted_Access, Item.Item_List.View'Unchecked_Access, Item.Nav_Model.Model'Access);
+        (Item.Item_List.Model,
+         Item.Canvas_Model.Model'Unchecked_Access,
+         Item.Models'Unrestricted_Access,
+         Item.Item_List.View'Unchecked_Access,
+         Item.Nav_Model.Model'Access);
       Item.Judge.Owner := Item'Unchecked_Access;
       Widgets.Set_Validator (Item.Root.Widgets, Item.Judge'Unchecked_Access);
       Widgets.Set_Density (Item.Root.Widgets, Item.Shell.Density);
@@ -290,14 +308,13 @@ package body View.Build is
       if Item.Shell.Windowed then
          --  Whether it is shown, and the colours to go with it, are for Apply_Theme.
          declare
-            Config : constant String := Settings_VM.Config_Directory (Item.Choices.Model);
+            Config  : constant String := Settings_VM.Config_Directory (Item.Choices.Model);
             Persist : constant Boolean := Settings_VM.Persists (Item.Choices.Model);
-            Saved  : constant Boolean := Persist and then Preferences.Has_Seed (Config);
-            Seed   : constant Backgrounds.Seed_Numbers :=
+            Saved   : constant Boolean := Persist and then Preferences.Has_Seed (Config);
+            Seed    : constant Backgrounds.Seed_Numbers :=
               (if Saved then Preferences.Load_Seed (Config) else Backgrounds.New_Seed);
          begin
-            Backgrounds.Set_Shader
-              (Item.Host.Background, Share_Directory ("shaders") & "/backgrounds.metal", Seed);
+            Backgrounds.Set_Shader (Item.Host.Background, Share_Directory ("shaders") & "/backgrounds.metal", Seed);
             --  The first picture is kept, so that it is this one next time.
             if Persist and then not Saved then
                Preferences.Save_Seed (Config, Seed);
@@ -342,8 +359,7 @@ package body View.Build is
       Widgets.Set_Visible (Project_Panel (Item).all, False);
       Widgets.Set_Visible (Item.Page_View.Write_View, False);
       Widgets.Set_Visible (Item.Outline_View.View, False);
-      Widgets.Set_Visible
-        (Pomarine.UI.Named (Screen_Of (Item, Confirm_Region).all, Confirm_Overlay).all, False);
+      Widgets.Set_Visible (Pomarine.UI.Named (Screen_Of (Item, Confirm_Region).all, Confirm_Overlay).all, False);
       Widgets.Set_Visible (Listing.Overlay (Item).all, False);
       Widgets.Set_Visible (Item.Dock.Dock_Panel, False);
       Recent.Refresh (Item);

@@ -5,6 +5,7 @@ with Pomarine.Widgets;
 with Pomarine.Widgets.Pins;
 
 --  Where the pins and windows are, and which are open, shared by the links' parts.
+
 private package View.Links.Support is
 
    package Boxes renames Pomarine.Boxes;
@@ -21,15 +22,14 @@ private package View.Links.Support is
    function Slot_Of (Item : Session; Key : Items.Id) return Natural;
    --  The window of the item, if it is open; 0 if not.
 
-   function Middle
-     (Where : Items.Frame; Side : Item_Links.Sides) return Point;
+   function Middle (Where : Items.Frame; Side : Item_Links.Sides) return Point;
    --  The middle of the side of the window, in canvas units.
 
    function Pixels_Of (Item : Session; Spot : Point) return Point;
    --  A place on the canvas, in pixels from its top left.
 
    function Dragger (Item : Session) return access Pins.Pin
-     with Pre => Canvas_VM.Link_From (Item.Canvas_Model.Model) /= 0;
+   with Pre => Canvas_VM.Link_From (Item.Canvas_Model.Model) /= 0;
    --  The pin that is held while a line is dragged.
 
 end View.Links.Support;

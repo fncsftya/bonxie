@@ -3,31 +3,49 @@ with Ada.Strings.Bounded;
 --  UTF-8 spelling and grammar checking. Each Checker owns one Ada task.
 --  Submit and Poll only copy bounded data; every call into Rust is made
 --  by that task, including dictionary initialization and cleanup.
+
 package Harper is
 
-   Max_Text         : constant := 65_536;
-   Max_Lints        : constant := 128;
-   Max_Suggestions  : constant := 4;
-   Max_Message      : constant := 512;
-   Max_Replacement  : constant := 256;
+   Max_Text        : constant := 65_536;
+   Max_Lints       : constant := 128;
+   Max_Suggestions : constant := 4;
+   Max_Message     : constant := 512;
+   Max_Replacement : constant := 256;
 
    type Dialect is (American, Canadian, Australian, British, Indian);
    type Text_Format is (Plain_Text, Markdown);
-   type Request_Id is mod 2 ** 64;
+   type Request_Id is mod 2**64;
    type Check_Status is (Success, Invalid_UTF8, Invalid_Argument, Internal_Error);
 
    type Lint_Kind is
-     (Agreement, Boundary_Error, Capitalization, Eggcorn, Enhancement,
-      Formatting, Grammar, Malapropism, Miscellaneous, Nonstandard,
-      Punctuation, Readability, Redundancy, Regionalism, Repetition,
-      Spelling, Style, Typo, Usage, Word_Choice, Word_Order);
+     (Agreement,
+      Boundary_Error,
+      Capitalization,
+      Eggcorn,
+      Enhancement,
+      Formatting,
+      Grammar,
+      Malapropism,
+      Miscellaneous,
+      Nonstandard,
+      Punctuation,
+      Readability,
+      Redundancy,
+      Regionalism,
+      Repetition,
+      Spelling,
+      Style,
+      Typo,
+      Usage,
+      Word_Choice,
+      Word_Order);
 
    subtype Byte_Offset is Natural range 0 .. Max_Text;
    type Span is record
       First : Byte_Offset := 0;
       Last  : Byte_Offset := 0;
    end record
-     with Dynamic_Predicate => Span.First <= Span.Last;
+   with Dynamic_Predicate => Span.First <= Span.Last;
    --  Zero based UTF-8 byte offsets [First, Last) into the original text.
    --  First = Last denotes an insertion. These are not Ada String indices.
 
@@ -76,7 +94,7 @@ package Harper is
       Accepted : out Boolean;
       Language : Dialect := British;
       Format   : Text_Format := Plain_Text)
-     with Pre => Text'Length <= Max_Text;
+   with Pre => Text'Length <= Max_Text;
    --  Nonblocking conditional rendezvous. Accepted means Text was copied.
    --  Otherwise retry later: the task may be starting, checking, or holding
    --  an uncollected result. There is one request at a time per Checker.

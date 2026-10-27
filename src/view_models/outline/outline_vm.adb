@@ -3,28 +3,35 @@ package body Outline_VM is
    use type Sections.Section_Id;
    use type Projects.Id;
 
-   function Count (Self : View_Model) return Natural is (Self.Order.Count);
+   function Count (Self : View_Model) return Natural
+   is (Self.Order.Count);
 
-   function Section_At (Self : View_Model; Row : Positive) return Sections.Section is (Self.Order (Row));
+   function Section_At (Self : View_Model; Row : Positive) return Sections.Section
+   is (Self.Order (Row));
 
-   function Title (Self : View_Model; Row : Positive) return String is
-     (Sections.Title_Texts.To_String (Self.Order (Row).Title));
+   function Title (Self : View_Model; Row : Positive) return String
+   is (Sections.Title_Texts.To_String (Self.Order (Row).Title));
 
-   function Notes (Self : View_Model; Row : Positive) return String is
-     (Sections.Note_Texts.To_String (Self.Order (Row).Notes));
+   function Notes (Self : View_Model; Row : Positive) return String
+   is (Sections.Note_Texts.To_String (Self.Order (Row).Notes));
 
-   function Stored_Notes (Self : in out View_Model; Row : Positive) return String is
-     (Stored_Notes (Self.Kept.all, Self.Order (Row).Key));
+   function Stored_Notes (Self : in out View_Model; Row : Positive) return String
+   is (Stored_Notes (Self.Kept.all, Self.Order (Row).Key));
 
-   function Is_Open (Self : View_Model; Row : Positive) return Boolean is (Self.Order (Row).Open);
+   function Is_Open (Self : View_Model; Row : Positive) return Boolean
+   is (Self.Order (Row).Open);
 
-   function Is_Entered (Self : View_Model) return Boolean is (Self.Owner /= 0);
+   function Is_Entered (Self : View_Model) return Boolean
+   is (Self.Owner /= 0);
 
-   function Project_Title (Self : View_Model) return String is (Projects.Titles.To_String (Self.Title));
+   function Project_Title (Self : View_Model) return String
+   is (Projects.Titles.To_String (Self.Title));
 
-   function Title_Version (Self : View_Model) return Parts.Version_Number is (Parts.Value (Self.Names));
+   function Title_Version (Self : View_Model) return Parts.Version_Number
+   is (Parts.Value (Self.Names));
 
-   function Project_Description (Self : View_Model) return String is (Projects.Titles.To_String (Self.Words));
+   function Project_Description (Self : View_Model) return String
+   is (Projects.Titles.To_String (Self.Words));
 
    function Trimmed (Text : String) return String is
       First : Positive := Text'First;
@@ -76,12 +83,15 @@ package body Outline_VM is
       return 0;
    end Section_Of_Item;
 
-   function Can_Move_Up (Self : View_Model; Row : Positive) return Boolean is
-     (Row > 1 and then Row <= Self.Order.Count);
+   function Can_Move_Up (Self : View_Model; Row : Positive) return Boolean
+   is (Row > 1 and then Row <= Self.Order.Count);
 
-   function Can_Move_Down (Self : View_Model; Row : Positive) return Boolean is (Row < Self.Order.Count);
+   function Can_Move_Down (Self : View_Model; Row : Positive) return Boolean
+   is (Row < Self.Order.Count);
 
-   overriding function Version (Self : View_Model) return Parts.Version_Number is (Parts.Value (Self.Changes));
+   overriding
+   function Version (Self : View_Model) return Parts.Version_Number
+   is (Parts.Value (Self.Changes));
 
    --  Read the sections, and which are open: the ones with notes, and the ones that were.
    procedure Read (Self : in out View_Model) is
@@ -218,20 +228,18 @@ package body Outline_VM is
       Parts.Bump (Self.Changes);
    end Move;
 
-   overriding function Can_Execute (Self : View_Model; What : Command; Index : Natural := 0) return Boolean is
-     (case What is
-         when Add_Section =>
-            Is_Entered (Self),
-         when Move_Up =>
-            (if Index = 0 then Self.Order.Count > 1 else Index in 2 .. Self.Order.Count),
-         when Move_Down =>
-            (if Index = 0 then Self.Order.Count > 1 else Index in 1 .. Self.Order.Count - 1),
-         when Remove_Section | Toggle_Notes =>
-            (if Index = 0 then Self.Order.Count > 0 else Index <= Self.Order.Count),
-         when Choose_Colour =>
-            Index in 1 .. Self.Order.Count,
-         when Accept_Colour | Cancel_Colour | End_Title =>
-            Index = 0);
+   overriding
+   function Can_Execute (Self : View_Model; What : Command; Index : Natural := 0) return Boolean
+   is (case What is
+         when Add_Section                               => Is_Entered (Self),
+         when Move_Up                                   =>
+           (if Index = 0 then Self.Order.Count > 1 else Index in 2 .. Self.Order.Count),
+         when Move_Down                                 =>
+           (if Index = 0 then Self.Order.Count > 1 else Index in 1 .. Self.Order.Count - 1),
+         when Remove_Section | Toggle_Notes             =>
+           (if Index = 0 then Self.Order.Count > 0 else Index <= Self.Order.Count),
+         when Choose_Colour                             => Index in 1 .. Self.Order.Count,
+         when Accept_Colour | Cancel_Colour | End_Title => Index = 0);
 
    procedure Observe (Self : in out View_Model; Reactions : access Effects'Class) is
    begin
@@ -240,7 +248,8 @@ package body Outline_VM is
 
    procedure Run (Self : in out View_Model; What : Command; Index : Natural);
 
-   overriding procedure Execute (Self : in out View_Model; What : Command; Index : Natural := 0) is
+   overriding
+   procedure Execute (Self : in out View_Model; What : Command; Index : Natural := 0) is
    begin
       if Self.Reactions /= null then
          Outline_Going (Self.Reactions.all, What, Index);
@@ -259,27 +268,32 @@ package body Outline_VM is
          raise Constraint_Error with "no such section" & Index'Image;
       end if;
       case What is
-         when Add_Section =>
+         when Add_Section                                               =>
             declare
                Key : constant Sections.Section_Id := Add (Self.Kept.all, Self.Owner, Untitled_Section);
                pragma Unreferenced (Key);
             begin
                Read (Self);
             end;
-         when Move_Up =>
+
+         when Move_Up                                                   =>
             Move (Self, Index, Index - 1);
-         when Move_Down =>
+
+         when Move_Down                                                 =>
             Move (Self, Index, Index + 1);
-         when Remove_Section =>
+
+         when Remove_Section                                            =>
             Delete (Self.Kept.all, Self.Order (Index).Key);
             Load_Links (Self.Kept.all, Self.Owner, Self.Links);
             Self.Order.Delete (Index);
-         when Toggle_Notes =>
+
+         when Toggle_Notes                                              =>
             declare
                Section : Sections.Section renames Self.Order (Index);
             begin
                Section.Open := not Section.Open;
             end;
+
          when Choose_Colour | Accept_Colour | Cancel_Colour | End_Title =>
             null;
       end case;

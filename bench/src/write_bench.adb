@@ -23,31 +23,24 @@ procedure Write_Bench is
    use Ada.Text_IO;
 
    Items_Count : constant Positive :=
-     (if Ada.Command_Line.Argument_Count > 0
-      then Positive'Value (Ada.Command_Line.Argument (1)) else 3);
+     (if Ada.Command_Line.Argument_Count > 0 then Positive'Value (Ada.Command_Line.Argument (1)) else 3);
 
-   Paragraphs  : constant Natural :=
-     (if Ada.Command_Line.Argument_Count > 1
-      then Natural'Value (Ada.Command_Line.Argument (2)) else 2);
+   Paragraphs : constant Natural :=
+     (if Ada.Command_Line.Argument_Count > 1 then Natural'Value (Ada.Command_Line.Argument (2)) else 2);
 
-   Runs        : constant Positive :=
-     (if Ada.Command_Line.Argument_Count > 2
-      then Positive'Value (Ada.Command_Line.Argument (3)) else 3);
+   Runs : constant Positive :=
+     (if Ada.Command_Line.Argument_Count > 2 then Positive'Value (Ada.Command_Line.Argument (3)) else 3);
 
-   Use_GPU     : constant Boolean :=
-     Ada.Command_Line.Argument_Count > 3
-     and then Ada.Command_Line.Argument (4) = "gpu";
+   Use_GPU : constant Boolean := Ada.Command_Line.Argument_Count > 3 and then Ada.Command_Line.Argument (4) = "gpu";
 
-   Session     : View.Session;
-   Drawn       : Images.Image;
+   Session : View.Session;
+   Drawn   : Images.Image;
 
    procedure Print_Ms (Label : String; D : Duration) is
       Buf : String (1 .. 10);
    begin
       Ada.Float_Text_IO.Put (Buf, Float (D) * 1000.0, Aft => 3, Exp => 0);
-      Put_Line
-        ("  " & Label
-         & (1 .. Integer'Max (1, 35 - Label'Length) => ' ') & Buf & " ms");
+      Put_Line ("  " & Label & (1 .. Integer'Max (1, 35 - Label'Length) => ' ') & Buf & " ms");
    end Print_Ms;
 
    procedure Draw is
@@ -60,9 +53,9 @@ procedure Write_Bench is
    end Draw;
 
    procedure Run_Once (Iteration : Positive) is
-      T0, T1 : Time;
+      T0, T1                                             : Time;
       D_Switch_1, D_Paint_1, D_Paint_Idle, D_Switch_Back : Duration;
-      D_Paint_Canvas, D_Switch_2, D_Paint_2 : Duration;
+      D_Paint_Canvas, D_Switch_2, D_Paint_2              : Duration;
    begin
       Put_Line ("--- Run" & Iteration'Image & " ---");
 
@@ -128,9 +121,7 @@ begin
 
    if Use_GPU then
       SDL3.Initialize;
-      View.Open_Window
-        (Session, "", Hidden => True, Store => Projects.Memory,
-         VSync => False);
+      View.Open_Window (Session, "", Hidden => True, Store => Projects.Memory, VSync => False);
    else
       View.Open (Session, "", 720, 480, 2.0);
    end if;
@@ -148,15 +139,13 @@ begin
                declare
                   Last : Positive := Positive'Min (Text'Last, Next + 199);
                begin
-                  while Last < Text'Last and then Last > Next
-                    and then Character'Pos (Text (Last + 1))
-                               in 16#80# .. 16#BF#
+                  while Last < Text'Last
+                    and then Last > Next
+                    and then Character'Pos (Text (Last + 1)) in 16#80# .. 16#BF#
                   loop
                      Last := Last - 1;
                   end loop;
-                  View.Handle
-                    (Session,
-                     Events.Text_Event (Text (Next .. Last)));
+                  View.Handle (Session, Events.Text_Event (Text (Next .. Last)));
                   Next := Last + 1;
                end;
             end loop;

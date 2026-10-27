@@ -1,4 +1,5 @@
 --  Tests of the canvas's view-model alone: no window, no display, no event. See Goldens.
+
 package Canvas_VM_Tests is
 
    procedure Entering;

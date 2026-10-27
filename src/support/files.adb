@@ -30,8 +30,7 @@ package body Files is
       GNAT.OS_Lib.Rename_File (Beside, File_Name, Placed);
       if not Placed then
          GNAT.OS_Lib.Delete_File (Beside, Placed);
-         raise Ada.Streams.Stream_IO.Use_Error
-           with "cannot replace " & File_Name;
+         raise Ada.Streams.Stream_IO.Use_Error with "cannot replace " & File_Name;
       end if;
    end Write;
 

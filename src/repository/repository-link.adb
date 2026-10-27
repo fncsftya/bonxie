@@ -18,20 +18,23 @@ package body Repository.Link is
      & "color INTEGER NOT NULL DEFAULT 1, "
      & "CHECK (from_id <> to_id))";
 
-   function Side_Of (Code : Integer) return Items.Links.Sides is
-     (if Code in 0 .. Items.Links.Sides'Pos (Items.Links.Sides'Last)
-      then Items.Links.Sides'Val (Code) else Items.Links.Top);
+   function Side_Of (Code : Integer) return Items.Links.Sides
+   is (if Code in 0 .. Items.Links.Sides'Pos (Items.Links.Sides'Last)
+       then Items.Links.Sides'Val (Code)
+       else Items.Links.Top);
 
-   function Stroke_Of (Code : Integer) return Items.Links.Strokes is
-     (if Code in 0 .. Items.Links.Strokes'Pos (Items.Links.Strokes'Last)
-      then Items.Links.Strokes'Val (Code) else Items.Links.Solid);
+   function Stroke_Of (Code : Integer) return Items.Links.Strokes
+   is (if Code in 0 .. Items.Links.Strokes'Pos (Items.Links.Strokes'Last)
+       then Items.Links.Strokes'Val (Code)
+       else Items.Links.Solid);
 
-   function Ending_Of (Code : Integer) return Items.Links.Endings is
-     (if Code in 0 .. Items.Links.Endings'Pos (Items.Links.Endings'Last)
-      then Items.Links.Endings'Val (Code) else Items.Links.Plain);
+   function Ending_Of (Code : Integer) return Items.Links.Endings
+   is (if Code in 0 .. Items.Links.Endings'Pos (Items.Links.Endings'Last)
+       then Items.Links.Endings'Val (Code)
+       else Items.Links.Plain);
 
-   function Color_Of (Code : Integer) return Items.Links.Link_Colors is
-     (if Code in Items.Links.Link_Colors then Code else 1);
+   function Color_Of (Code : Integer) return Items.Links.Link_Colors
+   is (if Code in Items.Links.Link_Colors then Code else 1);
 
    procedure Prepare (Store : in out Projects.Store) is
    begin
@@ -41,9 +44,7 @@ package body Repository.Link is
       Add_Column (Store, "item_links", "color", "INTEGER NOT NULL DEFAULT 1");
    end Prepare;
 
-   function Exists
-     (Store : Projects.Store; A, B : Items.Id) return Boolean
-   is
+   function Exists (Store : Projects.Store; A, B : Items.Id) return Boolean is
       Query : Ada_Sqlite3.Statement :=
         Ada_Sqlite3.Prepare
           (DB (Store).all,
@@ -53,8 +54,7 @@ package body Repository.Link is
    begin
       Ada_Sqlite3.Bind_Int64 (Query, ":a", Long_Integer (A));
       Ada_Sqlite3.Bind_Int64 (Query, ":b", Long_Integer (B));
-      return Ada_Sqlite3.Step (Query) = Ada_Sqlite3.ROW
-        and then Ada_Sqlite3.Column_Int (Query, 0) > 0;
+      return Ada_Sqlite3.Step (Query) = Ada_Sqlite3.ROW and then Ada_Sqlite3.Column_Int (Query, 0) > 0;
    end Exists;
 
    procedure Insert (Store : in out Projects.Store; Made : Items.Links.Link) is
@@ -91,8 +91,7 @@ package body Repository.Link is
       Update : Ada_Sqlite3.Statement :=
         Ada_Sqlite3.Prepare
           (DB (Store).all,
-           "UPDATE item_links SET stroke = :stroke, ending = :ending, "
-           & "color = :color WHERE id = :id");
+           "UPDATE item_links SET stroke = :stroke, ending = :ending, " & "color = :color WHERE id = :id");
    begin
       Ada_Sqlite3.Bind_Int (Update, ":stroke", Items.Links.Strokes'Pos (Stroke));
       Ada_Sqlite3.Bind_Int (Update, ":ending", Items.Links.Endings'Pos (Ending));
@@ -102,11 +101,7 @@ package body Repository.Link is
    end Set_Style;
 
    procedure Move
-     (Store : in out Projects.Store;
-      Key   : Items.Id;
-      To    : Items.Id;
-      Side  : Items.Links.Sides;
-      Moved : out Boolean)
+     (Store : in out Projects.Store; Key : Items.Id; To : Items.Id; Side : Items.Links.Sides; Moved : out Boolean)
    is
       Joined : Ada_Sqlite3.Statement :=
         Ada_Sqlite3.Prepare
@@ -117,14 +112,11 @@ package body Repository.Link is
            & "OR (b.to_id = a.from_id AND b.from_id = :to))");
       Update : Ada_Sqlite3.Statement :=
         Ada_Sqlite3.Prepare
-          (DB (Store).all,
-           "UPDATE item_links SET to_id = :to, to_side = :side "
-           & "WHERE id = :id AND from_id <> :to");
+          (DB (Store).all, "UPDATE item_links SET to_id = :to, to_side = :side " & "WHERE id = :id AND from_id <> :to");
    begin
       Ada_Sqlite3.Bind_Int64 (Joined, ":id", Long_Integer (Key));
       Ada_Sqlite3.Bind_Int64 (Joined, ":to", Long_Integer (To));
-      Moved := Ada_Sqlite3.Step (Joined) = Ada_Sqlite3.ROW
-        and then Ada_Sqlite3.Column_Int (Joined, 0) = 0;
+      Moved := Ada_Sqlite3.Step (Joined) = Ada_Sqlite3.ROW and then Ada_Sqlite3.Column_Int (Joined, 0) = 0;
       if Moved then
          Ada_Sqlite3.Bind_Int64 (Update, ":to", Long_Integer (To));
          Ada_Sqlite3.Bind_Int (Update, ":side", Items.Links.Sides'Pos (Side));
@@ -133,11 +125,7 @@ package body Repository.Link is
       end if;
    end Move;
 
-   procedure Load
-     (Store   : Projects.Store;
-      Project : Projects.Id;
-      Result  : out Items.Links.Link_List)
-   is
+   procedure Load (Store : Projects.Store; Project : Projects.Id; Result : out Items.Links.Link_List) is
       Query : Ada_Sqlite3.Statement :=
         Ada_Sqlite3.Prepare
           (DB (Store).all,
@@ -151,13 +139,13 @@ package body Repository.Link is
       while Ada_Sqlite3.Step (Query) = Ada_Sqlite3.ROW loop
          Result.Append
            ((From      => Items.Id (Ada_Sqlite3.Column_Int64 (Query, 0)),
-            To        => Items.Id (Ada_Sqlite3.Column_Int64 (Query, 1)),
-            From_Side => Side_Of (Ada_Sqlite3.Column_Int (Query, 2)),
-            To_Side   => Side_Of (Ada_Sqlite3.Column_Int (Query, 3)),
-            Key       => Items.Id (Ada_Sqlite3.Column_Int64 (Query, 4)),
-            Stroke    => Stroke_Of (Ada_Sqlite3.Column_Int (Query, 5)),
-            Ending    => Ending_Of (Ada_Sqlite3.Column_Int (Query, 6)),
-            Color     => Color_Of (Ada_Sqlite3.Column_Int (Query, 7))));
+             To        => Items.Id (Ada_Sqlite3.Column_Int64 (Query, 1)),
+             From_Side => Side_Of (Ada_Sqlite3.Column_Int (Query, 2)),
+             To_Side   => Side_Of (Ada_Sqlite3.Column_Int (Query, 3)),
+             Key       => Items.Id (Ada_Sqlite3.Column_Int64 (Query, 4)),
+             Stroke    => Stroke_Of (Ada_Sqlite3.Column_Int (Query, 5)),
+             Ending    => Ending_Of (Ada_Sqlite3.Column_Int (Query, 6)),
+             Color     => Color_Of (Ada_Sqlite3.Column_Int (Query, 7))));
       end loop;
    end Load;
 

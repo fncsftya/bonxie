@@ -20,16 +20,17 @@ package body Home_VM_Fakes is
             Said (Used + 1) := ',';
             Used := Used + 1;
          end if;
-         Said (Used + 1 .. Used + Self.Table (Each).Length) :=
-           Self.Table (Each).Title (1 .. Self.Table (Each).Length);
+         Said (Used + 1 .. Used + Self.Table (Each).Length) := Self.Table (Each).Title (1 .. Self.Table (Each).Length);
          Used := Used + Self.Table (Each).Length;
       end loop;
       return Said (1 .. Used);
    end Titles;
 
-   function Looked (Self : Few) return Natural is (Self.Listed);
+   function Looked (Self : Few) return Natural
+   is (Self.Listed);
 
-   overriding procedure Recent (Self : in out Few; Into : out Projects.Recent_List) is
+   overriding
+   procedure Recent (Self : in out Few; Into : out Projects.Recent_List) is
    begin
       Self.Listed := Self.Listed + 1;
       Into := (others => <>);
@@ -42,7 +43,8 @@ package body Home_VM_Fakes is
       end loop;
    end Recent;
 
-   overriding procedure Count_Items (Self : in out Few; Key : Projects.Id; Documents, Sources : out Natural) is
+   overriding
+   procedure Count_Items (Self : in out Few; Key : Projects.Id; Documents, Sources : out Natural) is
    begin
       Documents := 0;
       Sources := 0;
@@ -54,7 +56,8 @@ package body Home_VM_Fakes is
       end loop;
    end Count_Items;
 
-   overriding procedure Delete (Self : in out Few; Key : Projects.Id) is
+   overriding
+   procedure Delete (Self : in out Few; Key : Projects.Id) is
    begin
       for Each in 1 .. Self.Last loop
          if Self.Table (Each).Key = Key then
@@ -65,7 +68,8 @@ package body Home_VM_Fakes is
       end loop;
    end Delete;
 
-   overriding procedure Rename (Self : in out Few; Key : Projects.Id; Title : String) is
+   overriding
+   procedure Rename (Self : in out Few; Key : Projects.Id; Title : String) is
    begin
       for Each in 1 .. Self.Last loop
          if Self.Table (Each).Key = Key then

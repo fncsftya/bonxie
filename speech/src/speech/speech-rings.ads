@@ -23,10 +23,10 @@ is
 
    use type Interfaces.Unsigned_32;
 
-   Capacity : constant := 2 ** 21;
+   Capacity : constant := 2**21;
    --  A little over two minutes of sound at 16 kHz.
 
-   type Counter is mod 2 ** 64;
+   type Counter is mod 2**64;
    --  How many samples there have been (written, or read) since the
    --  first: it does not come round in this world.
 
@@ -38,85 +38,73 @@ is
 
    type Raw_Samples is array (Positive range <>) of Interfaces.Unsigned_32;
 
-   function Slot (Count : Counter) return Place is (Place (Count mod Capacity))
-     with Global => null;
+   function Slot (Count : Counter) return Place
+   is (Place (Count mod Capacity))
+   with Global => null;
    --  Where the sample that is the Count'th goes.
 
-   function Available (Head, Tail : Counter) return Natural is
-     (if Head - Tail > Capacity then 0 else Natural (Head - Tail))
-     with Global => null;
+   function Available (Head, Tail : Counter) return Natural
+   is (if Head - Tail > Capacity then 0 else Natural (Head - Tail))
+   with Global => null;
    --  How much there is to read, when Head have been written, and Tail
    --  read. (None if it is not as it can be, which is that more has been
    --  read than written, or more is unread than the ring holds.)
 
-   function Room (Head, Tail : Counter) return Natural is
-     (if Head - Tail > Capacity then 0 else Capacity - Natural (Head - Tail))
-     with Global => null,
-          Post   => Room'Result <= Capacity
-                    and then (if Head - Tail <= Capacity
-                              then Room'Result + Available (Head, Tail) = Capacity);
+   function Room (Head, Tail : Counter) return Natural
+   is (if Head - Tail > Capacity then 0 else Capacity - Natural (Head - Tail))
+   with
+     Global => null,
+     Post   =>
+       Room'Result <= Capacity
+       and then (if Head - Tail <= Capacity then Room'Result + Available (Head, Tail) = Capacity);
    --  How much there is room for, when Head have been written, and Tail
    --  read.
 
-   function Offset (Count : Counter; Where : Place) return Natural is
-     (Natural ((Counter (Where) - Count) mod Capacity))
-     with Global => null,
-          Post   => Offset'Result < Capacity;
+   function Offset (Count : Counter; Where : Place) return Natural
+   is (Natural ((Counter (Where) - Count) mod Capacity))
+   with Global => null, Post => Offset'Result < Capacity;
    --  How far on from the Count'th sample's place Where is, going round.
 
    procedure Slot_Is_Offset (Count : Counter; By : Natural)
-     with Ghost,
-          Global => null,
-          Pre    => By < Capacity,
-          Post   => Offset (Count, Slot (Count + Counter (By))) = By;
+   with Ghost, Global => null, Pre => By < Capacity, Post => Offset (Count, Slot (Count + Counter (By))) = By;
    --  The samples Count, Count + 1, ... Count + Capacity - 1 each go
    --  somewhere of their own.
 
    procedure Offset_Is_Slot (Count : Counter)
-     with Ghost,
-          Global => null,
-          Post   => (for all Where in Place => Slot (Count + Counter (Offset (Count, Where))) = Where);
+   with
+     Ghost,
+     Global => null,
+     Post   => (for all Where in Place => Slot (Count + Counter (Offset (Count, Where))) = Where);
    --  And a place is only that far on from the Count'th sample's.
 
-   procedure Write
-     (Into   : in out Store;
-      Head   : Counter;
-      Source : Raw_Samples;
-      Count  : Natural)
-     with Global => null,
-          Pre    => Count <= Source'Length
-                    and then Count <= Capacity
-                    and then Source'Last < Positive'Last,
-          Post   => (for all Where in Place =>
-                       (if Offset (Head, Where) < Count
-                        then Into (Where) = Source (Source'First + Offset (Head, Where))
-                        else Into (Where) = Into'Old (Where)));
+   procedure Write (Into : in out Store; Head : Counter; Source : Raw_Samples; Count : Natural)
+   with
+     Global => null,
+     Pre    => Count <= Source'Length and then Count <= Capacity and then Source'Last < Positive'Last,
+     Post   =>
+       (for all Where in Place =>
+          (if Offset (Head, Where) < Count
+           then Into (Where) = Source (Source'First + Offset (Head, Where))
+           else Into (Where) = Into'Old (Where)));
    --  Put the first Count samples of Source in the ring, as the Head'th,
    --  Head + 1'th, ...: and nothing else is changed.
 
-   procedure Read
-     (From  : Store;
-      Tail  : Counter;
-      Into  : in out Raw_Samples;
-      Count : Natural)
-     with Global => null,
-          Pre    => Count <= Into'Length
-                    and then Count <= Capacity
-                    and then Into'Last < Positive'Last,
-          Post   => (for all K in 0 .. Count - 1 =>
-                       Into (Into'First + K) = From (Slot (Tail + Counter (K))))
-                    and then
-                      (for all K in Count .. Into'Length - 1 =>
-                         Into (Into'First + K) = Into'Old (Into'First + K));
+   procedure Read (From : Store; Tail : Counter; Into : in out Raw_Samples; Count : Natural)
+   with
+     Global => null,
+     Pre    => Count <= Into'Length and then Count <= Capacity and then Into'Last < Positive'Last,
+     Post   =>
+       (for all K in 0 .. Count - 1 => Into (Into'First + K) = From (Slot (Tail + Counter (K))))
+       and then (for all K in Count .. Into'Length - 1 => Into (Into'First + K) = Into'Old (Into'First + K));
    --  Take Count samples from the ring, the Tail'th, Tail + 1'th, ...,
    --  into the first of Into.
 
    ---------------------------------------------------------------------
    --  A sample that is not a number is not heard.
 
-   function Finite_Bits (Bits : Interfaces.Unsigned_32) return Boolean is
-     (Interfaces.Shift_Right (Bits, 23) mod 256 /= 255)
-     with Global => null;
+   function Finite_Bits (Bits : Interfaces.Unsigned_32) return Boolean
+   is (Interfaces.Shift_Right (Bits, 23) mod 256 /= 255)
+   with Global => null;
    --  Whether the bits are those of a 32-bit float that is a number (that
    --  is not, by its exponent, an infinity or a NaN).
 

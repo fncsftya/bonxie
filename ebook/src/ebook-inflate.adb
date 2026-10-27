@@ -41,26 +41,75 @@ package body Ebook.Inflate is
       end loop;
    end Build;
 
-   Length_Base : constant array (0 .. 28) of Natural :=
-     [3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115,
-      131, 163, 195, 227, 258];
-   Length_Extra : constant array (0 .. 28) of Natural :=
+   Length_Base    : constant array (0 .. 28) of Natural :=
+     [3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      13,
+      15,
+      17,
+      19,
+      23,
+      27,
+      31,
+      35,
+      43,
+      51,
+      59,
+      67,
+      83,
+      99,
+      115,
+      131,
+      163,
+      195,
+      227,
+      258];
+   Length_Extra   : constant array (0 .. 28) of Natural :=
      [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0];
-   Distance_Base : constant array (0 .. 29) of Natural :=
-     [1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193, 257, 385, 513, 769, 1025, 1537,
-      2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577];
+   Distance_Base  : constant array (0 .. 29) of Natural :=
+     [1,
+      2,
+      3,
+      4,
+      5,
+      7,
+      9,
+      13,
+      17,
+      25,
+      33,
+      49,
+      65,
+      97,
+      129,
+      193,
+      257,
+      385,
+      513,
+      769,
+      1025,
+      1537,
+      2049,
+      3073,
+      4097,
+      6145,
+      8193,
+      12289,
+      16385,
+      24577];
    Distance_Extra : constant array (0 .. 29) of Natural :=
-     [0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12,
-      13, 13];
-   Order : constant array (0 .. 18) of Natural :=
+     [0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13];
+   Order          : constant array (0 .. 18) of Natural :=
      [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15];
 
-   procedure Run
-     (Packed : String;
-      Size   : Natural;
-      Result : out String;
-      Ok     : out Boolean)
-   is
+   procedure Run (Packed : String; Size : Natural; Result : out String; Ok : out Boolean) is
       Next   : Natural := Packed'First;   --  the next byte to read
       Buffer : Natural := 0;
       Held   : Natural := 0;              --  bits in Buffer
@@ -74,20 +123,20 @@ package body Ebook.Inflate is
             if Next > Packed'Last then
                raise Bad;
             end if;
-            Buffer := Buffer + Character'Pos (Packed (Next)) * 2 ** Held;
+            Buffer := Buffer + Character'Pos (Packed (Next)) * 2**Held;
             Next := Next + 1;
             Held := Held + 8;
          end loop;
-         Value := Buffer mod 2 ** Count;
-         Buffer := Buffer / 2 ** Count;
+         Value := Buffer mod 2**Count;
+         Buffer := Buffer / 2**Count;
          Held := Held - Count;
          return Value;
       end Bits;
 
       function Decode (Using : Code) return Natural is
-         First  : Integer := 0;
-         Index  : Integer := 0;
-         Value  : Integer := 0;
+         First : Integer := 0;
+         Index : Integer := 0;
+         Value : Integer := 0;
       begin
          for Length in 1 .. Max_Bits loop
             Value := Value + Bits (1);
@@ -134,7 +183,8 @@ package body Ebook.Inflate is
                         raise Bad;
                      end if;
                      Length := Length_Base (Index) + Bits (Length_Extra (Index));
-                     Index_Check : declare
+                     Index_Check :
+                     declare
                         Slot : constant Natural := Decode (Distances);
                      begin
                         if Slot > 29 then
@@ -164,8 +214,7 @@ package body Ebook.Inflate is
          Done    : Boolean;
       begin
          for Index in Lengths'Range loop
-            Lengths (Index) :=
-              (if Index < 144 then 8 elsif Index < 256 then 9 elsif Index < 280 then 7 else 8);
+            Lengths (Index) := (if Index < 144 then 8 elsif Index < 256 then 9 elsif Index < 280 then 7 else 8);
          end loop;
          Build (Fixed_Literals, Lengths, Done);
          Build (Fixed_Distances, Short, Done);
@@ -250,13 +299,10 @@ package body Ebook.Inflate is
          Length := Character'Pos (Packed (Next)) + 256 * Character'Pos (Packed (Next + 1));
          Inverse := Character'Pos (Packed (Next + 2)) + 256 * Character'Pos (Packed (Next + 3));
          Next := Next + 4;
-         if Length + Inverse /= 65_535 or else Next + Length - 1 > Packed'Last
-           or else Used + Length > Size
-         then
+         if Length + Inverse /= 65_535 or else Next + Length - 1 > Packed'Last or else Used + Length > Size then
             raise Bad;
          end if;
-         Result (Result'First + Used .. Result'First + Used + Length - 1) :=
-           Packed (Next .. Next + Length - 1);
+         Result (Result'First + Used .. Result'First + Used + Length - 1) := Packed (Next .. Next + Length - 1);
          Used := Used + Length;
          Next := Next + Length;
       end Stored;
@@ -267,10 +313,17 @@ package body Ebook.Inflate is
       loop
          Last_Block := Bits (1) = 1;
          case Bits (2) is
-            when 0 => Stored;
-            when 1 => Fixed;
-            when 2 => Dynamic;
-            when others => raise Bad;
+            when 0      =>
+               Stored;
+
+            when 1      =>
+               Fixed;
+
+            when 2      =>
+               Dynamic;
+
+            when others =>
+               raise Bad;
          end case;
          exit when Last_Block;
       end loop;

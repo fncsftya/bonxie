@@ -8,13 +8,11 @@ is
    use type Interfaces.C.int;
 
    function PK_Present (Directory : System.Address) return Interfaces.C.int
-     with Import, Convention => C, External_Name => "pk_present";
+   with Import, Convention => C, External_Name => "pk_present";
 
    function PK_Load
-     (Directory    : System.Address;
-      Message      : System.Address;
-      Message_Room : Interfaces.C.int) return Interfaces.C.int
-     with Import, Convention => C, External_Name => "pk_load";
+     (Directory : System.Address; Message : System.Address; Message_Room : Interfaces.C.int) return Interfaces.C.int
+   with Import, Convention => C, External_Name => "pk_load";
 
    function PK_Transcribe
      (Samples      : System.Address;
@@ -29,28 +27,20 @@ is
       Ends         : System.Address;
       Message      : System.Address;
       Message_Room : Interfaces.C.int) return Interfaces.C.int
-     with Import, Convention => C, External_Name => "pk_transcribe";
+   with Import, Convention => C, External_Name => "pk_transcribe";
 
    procedure PK_Unload
-     with Import, Convention => C, External_Name => "pk_unload";
+   with Import, Convention => C, External_Name => "pk_unload";
 
-   procedure Say
-     (Raw     : Interfaces.C.char_array;
-      Message : in out String;
-      Last    : out Natural);
+   procedure Say (Raw : Interfaces.C.char_array; Message : in out String; Last : out Natural);
    --  Copy what the library said, as much as Message holds.
 
-   procedure Say
-     (Raw     : Interfaces.C.char_array;
-      Message : in out String;
-      Last    : out Natural)
-   is
+   procedure Say (Raw : Interfaces.C.char_array; Message : in out String; Last : out Natural) is
       Said : constant String := Interfaces.C.To_Ada (Raw);
       Used : constant Natural := Natural'Min (Said'Length, Message'Length);
    begin
       Message := [others => ' '];
-      Message (Message'First .. Message'First + Used - 1) :=
-        Said (Said'First .. Said'First + Used - 1);
+      Message (Message'First .. Message'First + Used - 1) := Said (Said'First .. Said'First + Used - 1);
       Last := Used;
    end Say;
 
@@ -60,12 +50,7 @@ is
       return Directory /= "" and then PK_Present (Where'Address) = 1;
    end Models_Present;
 
-   procedure Load_Models
-     (Directory : String;
-      Ok        : out Boolean;
-      Message   : in out String;
-      Last      : out Natural)
-   is
+   procedure Load_Models (Directory : String; Ok : out Boolean; Message : in out String; Last : out Natural) is
       Where : aliased constant Interfaces.C.char_array := Interfaces.C.To_C (Directory);
       Raw   : aliased Interfaces.C.char_array (0 .. 255) := [others => Interfaces.C.nul];
       Done  : constant Interfaces.C.int := PK_Load (Where'Address, Raw'Address, Raw'Length);
@@ -102,20 +87,26 @@ is
    begin
       Token_Text_Length := 0;
       Token_Count := 0;
-      Done := PK_Transcribe
-        (Audio'Address, Interfaces.C.int (Audio'Length),
-         Token_Text'Address, Interfaces.C.int (Token_Text'Length), Length,
-         Interfaces.C.int (Token_Ends'Length), Found,
-         Token_Ends'Address, Token_Starts'Address, Token_Stops'Address,
-         Raw'Address, Raw'Length);
+      Done :=
+        PK_Transcribe
+          (Audio'Address,
+           Interfaces.C.int (Audio'Length),
+           Token_Text'Address,
+           Interfaces.C.int (Token_Text'Length),
+           Length,
+           Interfaces.C.int (Token_Ends'Length),
+           Found,
+           Token_Ends'Address,
+           Token_Starts'Address,
+           Token_Stops'Address,
+           Raw'Address,
+           Raw'Length);
       Ok := Done = 1;
       Message := [others => ' '];
       Last := 0;
       if Ok then
-         Token_Text_Length :=
-           Natural (Interfaces.C.int'Max (0, Interfaces.C.int'Min (Length, Token_Text'Length)));
-         Token_Count :=
-           Natural (Interfaces.C.int'Max (0, Interfaces.C.int'Min (Found, Token_Ends'Length)));
+         Token_Text_Length := Natural (Interfaces.C.int'Max (0, Interfaces.C.int'Min (Length, Token_Text'Length)));
+         Token_Count := Natural (Interfaces.C.int'Max (0, Interfaces.C.int'Min (Found, Token_Ends'Length)));
       else
          Say (Raw, Message, Last);
       end if;

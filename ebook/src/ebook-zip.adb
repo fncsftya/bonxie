@@ -17,7 +17,8 @@ package body Ebook.Zip is
    Max_Archive : constant := 512 * 1024 * 1024;
    Max_File    : constant := 256 * 1024 * 1024;
 
-   function Is_Open (Item : Archive) return Boolean is (Item.Data /= null);
+   function Is_Open (Item : Archive) return Boolean
+   is (Item.Data /= null);
 
    procedure Say (Text : String; Message : out String; Last : out Natural) is
    begin
@@ -31,20 +32,17 @@ package body Ebook.Zip is
       Item.Entries.Clear;
    end Close;
 
-   function Lower (Text : String) return String is (Ada.Characters.Handling.To_Lower (Text));
+   function Lower (Text : String) return String
+   is (Ada.Characters.Handling.To_Lower (Text));
 
-   procedure Open
-     (Item : in out Archive; Path : String; Ok : out Boolean; Message : out String; Last : out Natural)
-   is
+   procedure Open (Item : in out Archive; Path : String; Ok : out Boolean; Message : out String; Last : out Natural) is
       use Ada.Streams;
       File : Stream_IO.File_Type;
    begin
       Close (Item);
       Ok := False;
       Last := Message'First - 1;
-      if not Ada.Directories.Exists (Path)
-        or else Ada.Directories.Kind (Path) /= Ada.Directories.Ordinary_File
-      then
+      if not Ada.Directories.Exists (Path) or else Ada.Directories.Kind (Path) /= Ada.Directories.Ordinary_File then
          Say ("the file cannot be read", Message, Last);
          return;
       end if;
@@ -59,7 +57,7 @@ package body Ebook.Zip is
          Item.Data := new String (1 .. Natural (Size));
          declare
             Bytes : Stream_Element_Array (1 .. Stream_Element_Offset (Size))
-              with Import, Address => Item.Data.all'Address;
+            with Import, Address => Item.Data.all'Address;
             Done  : Stream_Element_Offset;
          begin
             Stream_IO.Read (File, Bytes, Done);
@@ -71,8 +69,12 @@ package body Ebook.Zip is
             end if;
          end;
       exception
-         when Ada.IO_Exceptions.Name_Error | Ada.IO_Exceptions.Use_Error
-            | Ada.IO_Exceptions.Device_Error | Ada.IO_Exceptions.End_Error =>
+         when
+           Ada.IO_Exceptions.Name_Error
+           | Ada.IO_Exceptions.Use_Error
+           | Ada.IO_Exceptions.Device_Error
+           | Ada.IO_Exceptions.End_Error
+         =>
             if Stream_IO.Is_Open (File) then
                Stream_IO.Close (File);
             end if;
@@ -84,16 +86,16 @@ package body Ebook.Zip is
       declare
          Data : String renames Item.Data.all;
 
-         function U16 (At_Index : Natural) return Natural is
-           (Character'Pos (Data (At_Index + 1)) + 256 * Character'Pos (Data (At_Index + 2)));
+         function U16 (At_Index : Natural) return Natural
+         is (Character'Pos (Data (At_Index + 1)) + 256 * Character'Pos (Data (At_Index + 2)));
          --  At_Index counts from 0, as the format does.
 
-         function U32 (At_Index : Natural) return Natural is
-           (U16 (At_Index) + 65_536 * U16 (At_Index + 2));
+         function U32 (At_Index : Natural) return Natural
+         is (U16 (At_Index) + 65_536 * U16 (At_Index + 2));
 
-         End_At  : Integer := -1;
-         Count   : Natural;
-         Cursor  : Natural;
+         End_At : Integer := -1;
+         Count  : Natural;
+         Cursor : Natural;
       begin
          --  The end record is the last 22 bytes, or before a comment.
          for Start in reverse Natural'Max (0, Data'Length - 22 - 65_535) .. Data'Length - 22 loop
@@ -126,11 +128,12 @@ package body Ebook.Zip is
                   return;
                end if;
                Item.Entries.Append
-                 (Entry_Record'(Name   => To_Unbounded_String (Data (Cursor + 47 .. Cursor + 46 + Name_Length)),
-                   Method => U16 (Cursor + 10),
-                   Packed => U32 (Cursor + 20),
-                   Size   => U32 (Cursor + 24),
-                   Local  => U32 (Cursor + 42)));
+                 (Entry_Record'
+                    (Name   => To_Unbounded_String (Data (Cursor + 47 .. Cursor + 46 + Name_Length)),
+                     Method => U16 (Cursor + 10),
+                     Packed => U32 (Cursor + 20),
+                     Size   => U32 (Cursor + 24),
+                     Local  => U32 (Cursor + 42)));
                Cursor := Cursor + 46 + Name_Length + Extra + Comment;
             end;
          end loop;
@@ -149,16 +152,19 @@ package body Ebook.Zip is
       return 0;
    end Find;
 
-   function Contains (Item : Archive; Name : String) return Boolean is (Find (Item, Name) /= 0);
+   function Contains (Item : Archive; Name : String) return Boolean
+   is (Find (Item, Name) /= 0);
 
    function Read (Item : Archive; Name : String) return String is
       Data  : String renames Item.Data.all;
       Found : constant Entry_Record := Item.Entries (Find (Item, Name));
-      function U16 (At_Index : Natural) return Natural is
-        (Character'Pos (Data (At_Index + 1)) + 256 * Character'Pos (Data (At_Index + 2)));
+      function U16 (At_Index : Natural) return Natural
+      is (Character'Pos (Data (At_Index + 1)) + 256 * Character'Pos (Data (At_Index + 2)));
    begin
-      if Found.Size > Max_File or else Found.Local + 30 > Data'Length
-        or else U16 (Found.Local) /= 16#4B50# or else U16 (Found.Local + 2) /= 16#0403#
+      if Found.Size > Max_File
+        or else Found.Local + 30 > Data'Length
+        or else U16 (Found.Local) /= 16#4B50#
+        or else U16 (Found.Local + 2) /= 16#0403#
       then
          raise Damaged;
       end if;
@@ -169,12 +175,13 @@ package body Ebook.Zip is
             raise Damaged;
          end if;
          case Found.Method is
-            when 0 =>
+            when 0      =>
                if Found.Packed /= Found.Size then
                   raise Damaged;
                end if;
                return Data (Start + 1 .. Start + Found.Size);
-            when 8 =>
+
+            when 8      =>
                return Result : String (1 .. Found.Size) do
                   declare
                      Ok : Boolean;
@@ -185,6 +192,7 @@ package body Ebook.Zip is
                      end if;
                   end;
                end return;
+
             when others =>
                raise Damaged;
          end case;

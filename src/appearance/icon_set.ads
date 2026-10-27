@@ -4,15 +4,41 @@ with Pomarine.Icons.Sets;
 --  its icon in lower case, with ".svg". The library has no pictures of its
 --  own; the widgets' own (check, close, minimize, the chevrons) have theirs
 --  in Pomarine.Icons, and files of the same names here.
+
 package Icon_Set is
 
    package Names is
       type Name is
-        (Edit, Delete, Window, Restore, List, Show,
-         Hide, Link, Cursor, Eraser, Stroke_Solid, Stroke_Dots,
-         Stroke_Dashed, End_Plain, End_Arrow, Microphone, Stop, Pin,
-         Plus, Back, Document, Settings, Highlighter, Folder, Forward, Refresh,
-         Dedent, Indent, List_Bullet, Numbered_List);
+        (Edit,
+         Delete,
+         Window,
+         Restore,
+         List,
+         Show,
+         Hide,
+         Link,
+         Cursor,
+         Eraser,
+         Stroke_Solid,
+         Stroke_Dots,
+         Stroke_Dashed,
+         End_Plain,
+         End_Arrow,
+         Microphone,
+         Stop,
+         Pin,
+         Plus,
+         Back,
+         Document,
+         Settings,
+         Highlighter,
+         Folder,
+         Forward,
+         Refresh,
+         Dedent,
+         Indent,
+         List_Bullet,
+         Numbered_List);
    end Names;
 
    package Sets is new Pomarine.Icons.Sets (Names.Name);

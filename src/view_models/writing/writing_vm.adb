@@ -1,7 +1,8 @@
 package body Writing_VM is
    use type Items.Id;
 
-   function Version (Self : View_Model) return Parts.Version_Number is (Parts.Value (Self.Changes));
+   function Version (Self : View_Model) return Parts.Version_Number
+   is (Parts.Value (Self.Changes));
 
    function Shown (Self : View_Model; Dirs : Directories) return Natural is
    begin
@@ -51,7 +52,7 @@ package body Writing_VM is
 
    function Depth (Dirs : Directories; Dir : Natural) return Natural is
       At_Dir : Natural := Dir;
-      Total : Natural := 0;
+      Total  : Natural := 0;
    begin
       while Parent_Of (Dirs, At_Dir) /= 0 loop
          At_Dir := Parent_Of (Dirs, At_Dir);
@@ -84,6 +85,6 @@ package body Writing_VM is
       return False;
    end Within;
 
-   function In_View (Self : View_Model; Dirs : Directories; Directory : Natural) return Boolean is
-     (Within (Dirs, Directory, Shown (Self, Dirs)));
+   function In_View (Self : View_Model; Dirs : Directories; Directory : Natural) return Boolean
+   is (Within (Dirs, Directory, Shown (Self, Dirs)));
 end Writing_VM;

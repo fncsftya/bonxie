@@ -13,7 +13,7 @@ package body Vision.Layout is
    --  How wide, likewise, is a gap within a line that makes it two.
 
    type Run is record
-      First, Last : Positive;
+      First, Last              : Positive;
       --  Its words, in the order they were found.
       Left, Top, Right, Bottom : Float;
       --  Its box, in the units of the picture's width.
@@ -24,24 +24,26 @@ package body Vision.Layout is
    type Height_Array is array (Positive range <>) of Float;
 
    procedure Reading_Order (Item : in out Result; Aspect : Float) is
-      Runs   : Run_Array (1 .. Item.Count);
-      Order  : Index_Array (1 .. Item.Count);
-      Count  : Natural := 0;
-      Usual  : Float := 0.0;
+      Runs  : Run_Array (1 .. Item.Count);
+      Order : Index_Array (1 .. Item.Count);
+      Count : Natural := 0;
+      Usual : Float := 0.0;
 
-      function Left_Of (Index : Positive) return Float is
-        (Item.Words (Index).Left);
+      function Left_Of (Index : Positive) return Float
+      is (Item.Words (Index).Left);
 
-      function Right_Of (Index : Positive) return Float is
-        (Item.Words (Index).Left + Item.Words (Index).Width);
+      function Right_Of (Index : Positive) return Float
+      is (Item.Words (Index).Left + Item.Words (Index).Width);
 
-      function High_Of (Index : Positive) return Float is
-        (Item.Words (Index).Height * Aspect);
+      function High_Of (Index : Positive) return Float
+      is (Item.Words (Index).Height * Aspect);
 
       procedure Find_Usual_Height is
-         procedure Sort is new Ada.Containers.Generic_Array_Sort
-           (Index_Type => Positive, Element_Type => Float,
-            Array_Type => Height_Array);
+         procedure Sort is new
+           Ada.Containers.Generic_Array_Sort
+             (Index_Type   => Positive,
+              Element_Type => Float,
+              Array_Type   => Height_Array);
          Heights : Height_Array (1 .. Item.Count);
       begin
          for Index in Heights'Range loop
@@ -56,19 +58,13 @@ package body Vision.Layout is
 
          procedure Close (Last : Positive) is
             Made : Run :=
-              (First => First, Last => Last,
-               Left => Float'Last, Top => Float'Last,
-               Right => 0.0, Bottom => 0.0);
+              (First => First, Last => Last, Left => Float'Last, Top => Float'Last, Right => 0.0, Bottom => 0.0);
          begin
             for Index in First .. Last loop
                Made.Left := Float'Min (Made.Left, Left_Of (Index));
                Made.Right := Float'Max (Made.Right, Right_Of (Index));
-               Made.Top :=
-                 Float'Min (Made.Top, Item.Words (Index).Top * Aspect);
-               Made.Bottom :=
-                 Float'Max
-                   (Made.Bottom,
-                    Item.Words (Index).Top * Aspect + High_Of (Index));
+               Made.Top := Float'Min (Made.Top, Item.Words (Index).Top * Aspect);
+               Made.Bottom := Float'Max (Made.Bottom, Item.Words (Index).Top * Aspect + High_Of (Index));
             end loop;
             Count := Count + 1;
             Runs (Count) := Made;
@@ -78,31 +74,32 @@ package body Vision.Layout is
          for Index in 1 .. Item.Count loop
             if Index = Item.Count
               or else Item.Words (Index + 1).Line /= Item.Words (Index).Line
-              or else Left_Of (Index + 1) - Right_Of (Index)
-                      > Min_Split * Usual
+              or else Left_Of (Index + 1) - Right_Of (Index) > Min_Split * Usual
             then
                Close (Index);
             end if;
          end loop;
       end Make_Runs;
 
-      function By_Left (A, B : Positive) return Boolean is
-        (Runs (A).Left < Runs (B).Left
-         or else (Runs (A).Left = Runs (B).Left
-                  and then Runs (A).Top < Runs (B).Top));
+      function By_Left (A, B : Positive) return Boolean
+      is (Runs (A).Left < Runs (B).Left or else (Runs (A).Left = Runs (B).Left and then Runs (A).Top < Runs (B).Top));
 
-      function By_Top (A, B : Positive) return Boolean is
-        (Runs (A).Top < Runs (B).Top
-         or else (Runs (A).Top = Runs (B).Top
-                  and then Runs (A).Left < Runs (B).Left));
+      function By_Top (A, B : Positive) return Boolean
+      is (Runs (A).Top < Runs (B).Top or else (Runs (A).Top = Runs (B).Top and then Runs (A).Left < Runs (B).Left));
 
-      procedure Sort_By_Left is new Ada.Containers.Generic_Array_Sort
-        (Index_Type => Positive, Element_Type => Positive,
-         Array_Type => Index_Array, "<" => By_Left);
+      procedure Sort_By_Left is new
+        Ada.Containers.Generic_Array_Sort
+          (Index_Type   => Positive,
+           Element_Type => Positive,
+           Array_Type   => Index_Array,
+           "<"          => By_Left);
 
-      procedure Sort_By_Top is new Ada.Containers.Generic_Array_Sort
-        (Index_Type => Positive, Element_Type => Positive,
-         Array_Type => Index_Array, "<" => By_Top);
+      procedure Sort_By_Top is new
+        Ada.Containers.Generic_Array_Sort
+          (Index_Type   => Positive,
+           Element_Type => Positive,
+           Array_Type   => Index_Array,
+           "<"          => By_Top);
 
       procedure Cut (Lo, Hi : Natural) is
          Across, Down       : Float := 0.0;
@@ -146,7 +143,7 @@ package body Vision.Layout is
             Cut (Lo, Down_At);
             Cut (Down_At + 1, Hi);
          end if;
-         --  Otherwise they are left sorted from top to bottom.
+      --  Otherwise they are left sorted from top to bottom.
       end Cut;
 
    begin

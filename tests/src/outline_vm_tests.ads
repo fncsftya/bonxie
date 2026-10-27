@@ -1,4 +1,5 @@
 --  Tests of the outline's view-model alone: no window, no display, no event. See Goldens.
+
 package Outline_VM_Tests is
 
    procedure Entering;

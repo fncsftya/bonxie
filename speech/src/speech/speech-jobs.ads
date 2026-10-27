@@ -11,6 +11,7 @@
 --  and feeds it to the model as it comes, so that Heard_So_Far has the
 --  words as they are worked out; the model is loaded meanwhile, so what is
 --  said while it loads is not lost, only late.
+
 package Speech.Jobs is
    --  This is the public API shell. Its preconditions and postconditions
    --  describe allowed state transitions, but State is shared and volatile,
@@ -47,20 +48,19 @@ package Speech.Jobs is
    Max_Path    : constant := 1024;
    --  Of the folder the model is kept in.
 
-   procedure Start
-     (Which           : Slot;
-      Engine          : Engines := System;
-      Model_Directory : String  := "")
-     with Pre  => State (Which) in Idle | Done | Failed
-                  and then Model_Directory'Length <= Max_Path
-                  and then (Engine = System or else Model_Directory /= ""),
-          Post => State (Which) in Starting | Listening | Failed;
+   procedure Start (Which : Slot; Engine : Engines := System; Model_Directory : String := "")
+   with
+     Pre  =>
+       State (Which) in Idle | Done | Failed
+       and then Model_Directory'Length <= Max_Path
+       and then (Engine = System or else Model_Directory /= ""),
+     Post => State (Which) in Starting | Listening | Failed;
    --  Begin to listen, with the engine; Model_Directory is where the
    --  model is kept (see Speech.Models), for Model. If a job that was reset
    --  is still running in the slot, the new one begins when that is over.
 
    procedure Stop (Which : Slot)
-     with Pre => State (Which) in Open;
+   with Pre => State (Which) in Open;
    --  Stop listening, and make what was heard into text. It does not
    --  wait: the state is Finishing (if the microphone has not begun, it
    --  goes straight on to finish when it does).
@@ -68,7 +68,7 @@ package Speech.Jobs is
    function State (Which : Slot) return States;
 
    function Loudness (Which : Slot) return Float
-     with Post => Loudness'Result in 0.0 .. 1.0;
+   with Post => Loudness'Result in 0.0 .. 1.0;
    --  How loud what is heard is, while Listening (see Speech.Level).
 
    procedure Heard_So_Far (Which : Slot; Into : in out Transcript);
@@ -76,15 +76,14 @@ package Speech.Jobs is
    --  Into is empty at any other time.
 
    function Message (Which : Slot) return String
-     with Pre  => State (Which) = Failed,
-          Post => Message'Result'Length <= Max_Message;
+   with Pre => State (Which) = Failed, Post => Message'Result'Length <= Max_Message;
 
    procedure Take (Which : Slot; Into : in out Transcript)
-     with Pre => State (Which) = Done;
+   with Pre => State (Which) = Done;
    --  Copy the text out of the slot, which is then Idle.
 
    procedure Reset (Which : Slot)
-     with Post => State (Which) = Idle;
+   with Post => State (Which) = Idle;
    --  Forget the job, if any, and how it ended. One still running is
    --  stopped, and what it heard is thrown away.
 

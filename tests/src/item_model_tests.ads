@@ -1,4 +1,5 @@
 --  Tests of what an item is, alone: no window, no display, no event. See Goldens.
+
 package Item_Model_Tests is
 
    procedure Notes;

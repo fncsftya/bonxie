@@ -1,4 +1,5 @@
 --  What is done in the background, looked at once a frame: pictures taken, words found, speech heard.
+
 private package View.Canvas_Items.Polling is
 
    procedure Poll_Dictation (Item : in out Session);

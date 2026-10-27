@@ -21,8 +21,13 @@ begin
       Webshot.Pump (50);
       Waited := Waited + 50;
    end loop;
-   Put_Line ("state " & Webshot.State (1)'Image & " after" & Natural'Image (Waited / 1000) & " s"
-             & (if Webshot.State (1) = Webshot.Failed then ": " & Webshot.Message (1) else ""));
+   Put_Line
+     ("state "
+      & Webshot.State (1)'Image
+      & " after"
+      & Natural'Image (Waited / 1000)
+      & " s"
+      & (if Webshot.State (1) = Webshot.Failed then ": " & Webshot.Message (1) else ""));
    if Ada.Directories.Exists ("/tmp/fetch-probe.pdf") then
       Ada.Streams.Stream_IO.Open (File, Ada.Streams.Stream_IO.In_File, "/tmp/fetch-probe.pdf");
       for Each in Head'Range loop

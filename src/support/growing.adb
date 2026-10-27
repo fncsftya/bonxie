@@ -6,26 +6,28 @@ package body Growing is
 
    First_Room : constant := 8;
 
-   function Get (Self : aliased List; Index : Positive) return Constant_Reference is
-     ((Item => Self.Data (Index)'Access));
+   function Get (Self : aliased List; Index : Positive) return Constant_Reference
+   is ((Item => Self.Data (Index)'Access));
 
-   function Ref (Self : aliased in out List; Index : Positive) return Reference is
-     ((Item => Self.Data (Index)'Access));
+   function Ref (Self : aliased in out List; Index : Positive) return Reference
+   is ((Item => Self.Data (Index)'Access));
 
-   function Get (Self : aliased List; Position : Cursor) return Constant_Reference is
-     ((Item => Self.Data (Position.Place)'Access));
+   function Get (Self : aliased List; Position : Cursor) return Constant_Reference
+   is ((Item => Self.Data (Position.Place)'Access));
 
-   function Ref (Self : aliased in out List; Position : Cursor) return Reference is
-     ((Item => Self.Data (Position.Place)'Access));
+   function Ref (Self : aliased in out List; Position : Cursor) return Reference
+   is ((Item => Self.Data (Position.Place)'Access));
 
-   function Iterate (Self : List) return Iterators.Forward_Iterator'Class is
-     (Walker'(Last => Self.Count));
+   function Iterate (Self : List) return Iterators.Forward_Iterator'Class
+   is (Walker'(Last => Self.Count));
 
-   overriding function First (Self : Walker) return Cursor is
-     (if Self.Last = 0 then (Place => 0) else (Place => 1));
+   overriding
+   function First (Self : Walker) return Cursor
+   is (if Self.Last = 0 then (Place => 0) else (Place => 1));
 
-   overriding function Next (Self : Walker; Position : Cursor) return Cursor is
-     (if Position.Place >= Self.Last then (Place => 0) else (Place => Position.Place + 1));
+   overriding
+   function Next (Self : Walker; Position : Cursor) return Cursor
+   is (if Position.Place >= Self.Last then (Place => 0) else (Place => Position.Place + 1));
 
    procedure Clear (Self : in out List) is
    begin
@@ -76,14 +78,16 @@ package body Growing is
       Self.Count := Self.Count - 1;
    end Delete;
 
-   overriding procedure Adjust (Self : in out List) is
+   overriding
+   procedure Adjust (Self : in out List) is
    begin
       if Self.Data /= null then
          Self.Data := new Element_Array'(Self.Data.all);
       end if;
    end Adjust;
 
-   overriding procedure Finalize (Self : in out List) is
+   overriding
+   procedure Finalize (Self : in out List) is
    begin
       Free (Self.Data);
    end Finalize;

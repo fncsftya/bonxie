@@ -1,6 +1,5 @@
 private package View.Grammar is
-   function Inspect
-     (Item : Session; What : Grammar_VM.Card_Command; Index : Natural) return Grammar_VM.Card_State;
+   function Inspect (Item : Session; What : Grammar_VM.Card_Command; Index : Natural) return Grammar_VM.Card_State;
    procedure Perform (Item : in out Session; What : Grammar_VM.Card_Command; Index : Natural);
 
    procedure Choose_Inline (Item : in out Session; Row : Positive);

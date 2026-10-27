@@ -14,27 +14,21 @@ package body Repository.Project is
      & "created_at INTEGER NOT NULL, "
      & "updated_at INTEGER NOT NULL)";
 
-   Index : constant String :=
-     "CREATE INDEX IF NOT EXISTS projects_updated "
-     & "ON projects (updated_at DESC, id DESC)";
+   Index : constant String := "CREATE INDEX IF NOT EXISTS projects_updated " & "ON projects (updated_at DESC, id DESC)";
 
    Clock : constant String :=
-     "COALESCE(nullif(:time, " & Projects.Now'Image
-     & "), CAST(strftime('%s', 'now') AS INTEGER))";
+     "COALESCE(nullif(:time, " & Projects.Now'Image & "), CAST(strftime('%s', 'now') AS INTEGER))";
    --  A time bound to :time, or the current one if it is Now.
 
-   Columns : constant String :=
-     "id, title, description, created_at, updated_at";
+   Columns : constant String := "id, title, description, created_at, updated_at";
    --  What a project is read from.
 
-   function Row (Query : Ada_Sqlite3.Statement) return Projects.Project is
-     (Key         => Projects.Id (Ada_Sqlite3.Column_Int64 (Query, 0)),
-      Title       => Projects.Titles.To_Text
-        (Ada_Sqlite3.Column_Text (Query, 1)),
-      Description => Projects.Descriptions.To_Text
-        (Texts.Documents.Plain_Stored (Ada_Sqlite3.Column_Text (Query, 2))),
-      Created_At  => Ada_Sqlite3.Column_Int64 (Query, 3),
-      Updated_At  => Ada_Sqlite3.Column_Int64 (Query, 4));
+   function Row (Query : Ada_Sqlite3.Statement) return Projects.Project
+   is (Key         => Projects.Id (Ada_Sqlite3.Column_Int64 (Query, 0)),
+       Title       => Projects.Titles.To_Text (Ada_Sqlite3.Column_Text (Query, 1)),
+       Description => Projects.Descriptions.To_Text (Texts.Documents.Plain_Stored (Ada_Sqlite3.Column_Text (Query, 2))),
+       Created_At  => Ada_Sqlite3.Column_Int64 (Query, 3),
+       Updated_At  => Ada_Sqlite3.Column_Int64 (Query, 4));
 
    procedure Prepare (Store : in out Projects.Store) is
    begin
@@ -50,8 +44,8 @@ package body Repository.Project is
    end Prepare;
 
    function Stored_Description (Store : Projects.Store; Key : Projects.Id) return String is
-      Query : Ada_Sqlite3.Statement := Ada_Sqlite3.Prepare
-        (DB (Store).all, "SELECT description FROM projects WHERE id = :id");
+      Query : Ada_Sqlite3.Statement :=
+        Ada_Sqlite3.Prepare (DB (Store).all, "SELECT description FROM projects WHERE id = :id");
    begin
       Ada_Sqlite3.Bind_Int64 (Query, ":id", Long_Integer (Key));
       if Ada_Sqlite3.Step (Query) = Ada_Sqlite3.ROW then
@@ -60,46 +54,36 @@ package body Repository.Project is
       return "";
    end Stored_Description;
 
-   procedure Set_Description
-     (Store       : in out Projects.Store;
-      Key         : Projects.Id;
-      Description : String)
-   is
+   procedure Set_Description (Store : in out Projects.Store; Key : Projects.Id; Description : String) is
    begin
       Set_Text (Store, "projects", "description", Long_Integer (Key), Description);
    end Set_Description;
 
-   procedure Set_Tab
-     (Store : in out Projects.Store; Key : Projects.Id; To : Natural)
-   is
+   procedure Set_Tab (Store : in out Projects.Store; Key : Projects.Id; To : Natural) is
    begin
       Set_Int (Store, "projects", "tab", Long_Integer (Key), To);
    end Set_Tab;
 
-   function Tab
-     (Store : Projects.Store; Key : Projects.Id) return Natural
-   is
-      Query : Ada_Sqlite3.Statement :=
-        Ada_Sqlite3.Prepare
-          (DB (Store).all, "SELECT tab FROM projects WHERE id = :id");
+   function Tab (Store : Projects.Store; Key : Projects.Id) return Natural is
+      Query : Ada_Sqlite3.Statement := Ada_Sqlite3.Prepare (DB (Store).all, "SELECT tab FROM projects WHERE id = :id");
    begin
       Ada_Sqlite3.Bind_Int64 (Query, ":id", Long_Integer (Key));
-      return (if Ada_Sqlite3.Step (Query) = Ada_Sqlite3.ROW
-              then Natural'Max (0, Ada_Sqlite3.Column_Int (Query, 0))
-              else 0);
+      return
+        (if Ada_Sqlite3.Step (Query) = Ada_Sqlite3.ROW then Natural'Max (0, Ada_Sqlite3.Column_Int (Query, 0)) else 0);
    end Tab;
 
    function Insert
-     (Store       : in out Projects.Store;
-      Title       : String;
-      Description : String;
-      Time        : Projects.Seconds) return Projects.Id
+     (Store : in out Projects.Store; Title : String; Description : String; Time : Projects.Seconds) return Projects.Id
    is
       Query : Ada_Sqlite3.Statement :=
         Ada_Sqlite3.Prepare
           (DB (Store).all,
            "INSERT INTO projects (title, description, created_at, updated_at)"
-           & " VALUES (:title, :description, " & Clock & ", " & Clock & ")");
+           & " VALUES (:title, :description, "
+           & Clock
+           & ", "
+           & Clock
+           & ")");
    begin
       Ada_Sqlite3.Bind_Text (Query, ":title", Title);
       Ada_Sqlite3.Bind_Text (Query, ":description", Description);
@@ -108,32 +92,19 @@ package body Repository.Project is
       return Projects.Id (Ada_Sqlite3.Last_Insert_Row_ID (DB (Store).all));
    end Insert;
 
-   procedure Touch
-     (Store : in out Projects.Store;
-      Key   : Projects.Id;
-      Time  : Projects.Seconds)
-   is
+   procedure Touch (Store : in out Projects.Store; Key : Projects.Id; Time : Projects.Seconds) is
       Update : Ada_Sqlite3.Statement :=
-        Ada_Sqlite3.Prepare
-          (DB (Store).all,
-           "UPDATE projects SET updated_at = " & Clock & " WHERE id = :id");
+        Ada_Sqlite3.Prepare (DB (Store).all, "UPDATE projects SET updated_at = " & Clock & " WHERE id = :id");
    begin
       Ada_Sqlite3.Bind_Int64 (Update, ":time", Time);
       Ada_Sqlite3.Bind_Int64 (Update, ":id", Long_Integer (Key));
       Ada_Sqlite3.Step (Update);
    end Touch;
 
-   procedure Rename
-     (Store : in out Projects.Store;
-      Key   : Projects.Id;
-      Title : String;
-      Time  : Projects.Seconds)
-   is
+   procedure Rename (Store : in out Projects.Store; Key : Projects.Id; Title : String; Time : Projects.Seconds) is
       Update : Ada_Sqlite3.Statement :=
         Ada_Sqlite3.Prepare
-          (DB (Store).all,
-           "UPDATE projects SET title = :title, updated_at = " & Clock
-           & " WHERE id = :id");
+          (DB (Store).all, "UPDATE projects SET title = :title, updated_at = " & Clock & " WHERE id = :id");
    begin
       Ada_Sqlite3.Bind_Text (Update, ":title", Title);
       Ada_Sqlite3.Bind_Int64 (Update, ":time", Time);
@@ -141,16 +112,11 @@ package body Repository.Project is
       Ada_Sqlite3.Step (Update);
    end Rename;
 
-   procedure Set_View
-     (Store : in out Projects.Store;
-      Key   : Projects.Id;
-      Zoom, Centre_X, Centre_Y : Float)
-   is
+   procedure Set_View (Store : in out Projects.Store; Key : Projects.Id; Zoom, Centre_X, Centre_Y : Float) is
       Update : Ada_Sqlite3.Statement :=
         Ada_Sqlite3.Prepare
           (DB (Store).all,
-           "UPDATE projects SET view_saved = 1, view_zoom = :zoom, "
-           & "view_x = :x, view_y = :y WHERE id = :id");
+           "UPDATE projects SET view_saved = 1, view_zoom = :zoom, " & "view_x = :x, view_y = :y WHERE id = :id");
    begin
       Ada_Sqlite3.Bind_Double (Update, ":zoom", Zoom);
       Ada_Sqlite3.Bind_Double (Update, ":x", Centre_X);
@@ -160,25 +126,18 @@ package body Repository.Project is
    end Set_View;
 
    procedure Get_View
-     (Store  : Projects.Store;
-      Key    : Projects.Id;
-      Found  : out Boolean;
-      Zoom, Centre_X, Centre_Y : out Float)
+     (Store : Projects.Store; Key : Projects.Id; Found : out Boolean; Zoom, Centre_X, Centre_Y : out Float)
    is
       Query : Ada_Sqlite3.Statement :=
         Ada_Sqlite3.Prepare
-          (DB (Store).all,
-           "SELECT view_saved, view_zoom, view_x, view_y FROM projects "
-           & "WHERE id = :id");
+          (DB (Store).all, "SELECT view_saved, view_zoom, view_x, view_y FROM projects " & "WHERE id = :id");
    begin
       Found := False;
       Zoom := 1.0;
       Centre_X := 0.0;
       Centre_Y := 0.0;
       Ada_Sqlite3.Bind_Int64 (Query, ":id", Long_Integer (Key));
-      if Ada_Sqlite3.Step (Query) = Ada_Sqlite3.ROW
-        and then Ada_Sqlite3.Column_Int (Query, 0) = 1
-      then
+      if Ada_Sqlite3.Step (Query) = Ada_Sqlite3.ROW and then Ada_Sqlite3.Column_Int (Query, 0) = 1 then
          Found := True;
          Zoom := Ada_Sqlite3.Column_Double (Query, 1);
          Centre_X := Ada_Sqlite3.Column_Double (Query, 2);
@@ -186,16 +145,9 @@ package body Repository.Project is
       end if;
    end Get_View;
 
-   procedure Find
-     (Store  : Projects.Store;
-      Key    : Projects.Id;
-      Found  : out Boolean;
-      Result : out Projects.Project)
-   is
+   procedure Find (Store : Projects.Store; Key : Projects.Id; Found : out Boolean; Result : out Projects.Project) is
       Query : Ada_Sqlite3.Statement :=
-        Ada_Sqlite3.Prepare
-          (DB (Store).all,
-           "SELECT " & Columns & " FROM projects WHERE id = :id");
+        Ada_Sqlite3.Prepare (DB (Store).all, "SELECT " & Columns & " FROM projects WHERE id = :id");
    begin
       Ada_Sqlite3.Bind_Int64 (Query, ":id", Long_Integer (Key));
       Found := Ada_Sqlite3.Step (Query) = Ada_Sqlite3.ROW;
@@ -209,14 +161,10 @@ package body Repository.Project is
       Delete_Where (Store, "projects", "id", Long_Integer (Key));
    end Delete;
 
-   procedure Recent
-     (Store : Projects.Store; Result : out Projects.Recent_List)
-   is
+   procedure Recent (Store : Projects.Store; Result : out Projects.Recent_List) is
       Query : Ada_Sqlite3.Statement :=
         Ada_Sqlite3.Prepare
-          (DB (Store).all,
-           "SELECT " & Columns & " FROM projects "
-           & "ORDER BY updated_at DESC, id DESC LIMIT :limit");
+          (DB (Store).all, "SELECT " & Columns & " FROM projects " & "ORDER BY updated_at DESC, id DESC LIMIT :limit");
    begin
       Result.Count := 0;
       Ada_Sqlite3.Bind_Int (Query, ":limit", Projects.Recent_Count);

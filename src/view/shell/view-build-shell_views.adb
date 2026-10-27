@@ -54,7 +54,8 @@ package body View.Build.Shell_Views is
          Form : UI.View renames Screen_Of (Item, Header_Region).all;
       begin
          UI.Mount_Into
-           (Form, Item.Root.Window_Panel,
+           (Form,
+            Item.Root.Window_Panel,
             UI.Styled
               (UI.Put_In (Form, Item.Root.Header_Panel, [UI.Put (Form, Item.Root.Header_Title)]),
                (Height => Layouts.Length_Of (Header_Size), others => <>)));
@@ -64,17 +65,17 @@ package body View.Build.Shell_Views is
 
    --  The cards of the recent projects: what each says is the view-model's, for its row.
 
-   function Title_Of (Item : Home_VM.View_Model; Row : Positive) return String is
-     (if Row <= Home_VM.Count (Item) then Home_VM.Title (Item, Row) else "");
-   function Meta_Of (Item : Home_VM.View_Model; Row : Positive) return String is
-     (if Row <= Home_VM.Count (Item) then Home_VM.Meta (Item, Row) else "");
-   function Is_Listed (Item : Home_VM.View_Model; Row : Positive) return Boolean is
-     (Row <= Home_VM.Count (Item));
+   function Title_Of (Item : Home_VM.View_Model; Row : Positive) return String
+   is (if Row <= Home_VM.Count (Item) then Home_VM.Title (Item, Row) else "");
+   function Meta_Of (Item : Home_VM.View_Model; Row : Positive) return String
+   is (if Row <= Home_VM.Count (Item) then Home_VM.Meta (Item, Row) else "");
+   function Is_Listed (Item : Home_VM.View_Model; Row : Positive) return Boolean
+   is (Row <= Home_VM.Count (Item));
 
-   function Is_Editing_Row (Item : Home_VM.View_Model; Row : Positive) return Boolean is
-     (Home_VM.Editing (Item) = Row);
-   function Is_Not_Editing_Row (Item : Home_VM.View_Model; Row : Positive) return Boolean is
-     (Home_VM.Editing (Item) /= Row);
+   function Is_Editing_Row (Item : Home_VM.View_Model; Row : Positive) return Boolean
+   is (Home_VM.Editing (Item) = Row);
+   function Is_Not_Editing_Row (Item : Home_VM.View_Model; Row : Positive) return Boolean
+   is (Home_VM.Editing (Item) /= Row);
 
    procedure Set_Draft_Of_Row (Item : in out Home_VM.View_Model; Words : String) is
    begin
@@ -85,16 +86,15 @@ package body View.Build.Shell_Views is
    end Set_Draft_Of_Row;
 
    Editing_Flag : constant Home_UI.Flag_Property := Home_UI.Showing (Is_Editing_Row'Access);
-   Name_Flag : constant Home_UI.Flag_Property := Home_UI.Showing (Is_Not_Editing_Row'Access);
-   Draft_Text : constant Home_UI.Text_Property := Home_UI.Editing (Home_VM.Draft'Access, Set_Draft_Of_Row'Access);
-   Title_Text : constant Home_UI.Text_Property := Home_UI.Showing (Title_Of'Access);
-   Meta_Text : constant Home_UI.Text_Property := Home_UI.Showing (Meta_Of'Access);
-   Listed_Flag : constant Home_UI.Flag_Property := Home_UI.Showing (Is_Listed'Access);
+   Name_Flag    : constant Home_UI.Flag_Property := Home_UI.Showing (Is_Not_Editing_Row'Access);
+   Draft_Text   : constant Home_UI.Text_Property := Home_UI.Editing (Home_VM.Draft'Access, Set_Draft_Of_Row'Access);
+   Title_Text   : constant Home_UI.Text_Property := Home_UI.Showing (Title_Of'Access);
+   Meta_Text    : constant Home_UI.Text_Property := Home_UI.Showing (Meta_Of'Access);
+   Listed_Flag  : constant Home_UI.Flag_Property := Home_UI.Showing (Is_Listed'Access);
 
    procedure Build_Home (Item : in out Session) is
       Front : Home_Parts renames Item.Home_View;
-      Top  : constant Float := (if Item.Shell.Windowed
-                                then Header_Size else 0.0);
+      Top   : constant Float := (if Item.Shell.Windowed then Header_Size else 0.0);
       --  Clear of the window's own buttons.
    begin
       Open_Screen (Item, Home_Region);
@@ -106,14 +106,20 @@ package body View.Build.Shell_Views is
          Logo     : constant UI.Label_Handle := Navs.Label ("bonxie", Style => Pomarine.Line_Texts.Display);
          Starting : constant UI.Button_Handle :=
            Navs.Button
-             (Buttons.Looks ("New project", Buttons.Primary, Icon => Pomarine.Icons.Shown (Icon_Set.Plus),
-                             Captioned => True, Focusable => True),
-              Nav_VM.Start_Project, Reflect => False);
+             (Buttons.Looks
+                ("New project",
+                 Buttons.Primary,
+                 Icon      => Pomarine.Icons.Shown (Icon_Set.Plus),
+                 Captioned => True,
+                 Focusable => True),
+              Nav_VM.Start_Project,
+              Reflect => False);
          Settings : constant UI.Button_Handle :=
            Navs.Button
-             (Buttons.Looks ("Settings", Icon => Pomarine.Icons.Shown (Icon_Set.Settings), Captioned => True,
-                             Focusable => True),
-              Nav_VM.Open_Settings, Reflect => False);
+             (Buttons.Looks
+                ("Settings", Icon => Pomarine.Icons.Shown (Icon_Set.Settings), Captioned => True, Focusable => True),
+              Nav_VM.Open_Settings,
+              Reflect => False);
          Recent   : constant UI.Label_Handle := Navs.Label ("Recent projects", Style => Pomarine.Line_Texts.Display);
          Scroller : constant UI.Widget_Handle := Navs.Borrow_Widget (Front.Cards_Scroll);
 
@@ -123,29 +129,35 @@ package body View.Build.Shell_Views is
             Card    : Project_Card renames Front.Cards (Number);
             Peek    : constant UI.Grip_Handle :=
               Navs.Grip
-                ((Fill => Themes.Border, Radius => Themes.Large_Radius, Round => Pomarine.Boxes.Top_Corners,
-                  Pointer => True, Focusable => True, others => <>),
-                 Nav_VM.Open_Project, Number);
+                ((Fill      => Themes.Border,
+                  Radius    => Themes.Large_Radius,
+                  Round     => Pomarine.Boxes.Top_Corners,
+                  Pointer   => True,
+                  Focusable => True,
+                  others    => <>),
+                 Nav_VM.Open_Project,
+                 Number);
             Picture : constant UI.Widget_Handle := Navs.Borrow_Widget (Card.Picture);
             Name    : constant UI.Grip_Handle :=
               Navs.Grip ((Pointer => True, others => <>), Nav_VM.Open_Project, Number);
-            Heading : constant UI.Label_Handle := Homes.Label (Title_Text, Number,
-               Style => Pomarine.Line_Texts.Heading);
+            Heading : constant UI.Label_Handle :=
+              Homes.Label (Title_Text, Number, Style => Pomarine.Line_Texts.Heading);
             Meta    : constant UI.Label_Handle := Homes.Label (Meta_Text, Number);
             Rename  : constant UI.Button_Handle :=
               Homes.Button
                 (Buttons.Looks ("Rename", Icon => Pomarine.Icons.Shown (Icon_Set.Edit), Focusable => True),
-                 Home_VM.Begin_Rename, Number);
+                 Home_VM.Begin_Rename,
+                 Number);
             Delete  : constant UI.Button_Handle :=
               Homes.Button
-                (Buttons.Looks ("Delete", Buttons.Danger, Icon => Pomarine.Icons.Shown (Icon_Set.Delete),
-                                Focusable => True), Home_VM.Ask_Delete, Number);
-            Sized   : constant Layouts.Style := (Width => Card_Button,
-                                                 Height => Card_Button, others => <>);
+                (Buttons.Looks
+                   ("Delete", Buttons.Danger, Icon => Pomarine.Icons.Shown (Icon_Set.Delete), Focusable => True),
+                 Home_VM.Ask_Delete,
+                 Number);
+            Sized   : constant Layouts.Style := (Width => Card_Button, Height => Card_Button, others => <>);
 
             --  In place of the name and the buttons, while the project is renamed.
-            Field   : constant UI.Field_Handle :=
-              Homes.Text_Field (Draft_Text, Home_VM.Accept_Rename);
+            Field   : constant UI.Field_Handle := Homes.Text_Field (Draft_Text, Home_VM.Accept_Rename);
             Ok      : constant UI.Button_Handle :=
               Homes.Button (Buttons.Looks ("OK", Buttons.Primary, Focusable => True), Home_VM.Accept_Rename);
             Cancel  : constant UI.Button_Handle :=
@@ -156,8 +168,7 @@ package body View.Build.Shell_Views is
                    ([UI.Place (Field, Grow => 1.0, Width => 0.0, Height => Card_Button, Exact => True),
                      UI.Place (Ok, Width => Ok_Width, Height => Card_Button, Exact => True),
                      UI.Place (Cancel, Width => Cancel_Width, Height => Card_Button, Exact => True)]),
-                 (Flow => Row, Align => Center, Grow => 1.0, Width => 0.0, Gap => Row_Gap,
-                  others => <>));
+                 (Flow => Row, Align => Center, Grow => 1.0, Width => 0.0, Gap => Row_Gap, others => <>));
 
             Naming : constant UI.Layout :=
               UI.Styled
@@ -170,15 +181,18 @@ package body View.Build.Shell_Views is
             Info : constant UI.Layout :=
               UI.Styled
                 (UI.Row
-                   ([Naming,
-                     UI.Styled (UI.Place (Rename), Sized),
-                     UI.Styled (UI.Place (Delete), Sized),
-                     Editing],
+                   ([Naming, UI.Styled (UI.Place (Rename), Sized), UI.Styled (UI.Place (Delete), Sized), Editing],
                     Appearance =>
-                      (Fill => Themes.Tint, Radius => Themes.Large_Radius, Round => Pomarine.Boxes.Bottom_Corners,
+                      (Fill   => Themes.Tint,
+                       Radius => Themes.Large_Radius,
+                       Round  => Pomarine.Boxes.Bottom_Corners,
                        others => <>)),
-                 (Grow => 1.0, Flow => Row, Align => Center, Gap => Row_Gap,
-                  Padding => (Left | Right => Layouts.Length_Of (Card_Pad), others => <>), others => <>));
+                 (Grow    => 1.0,
+                  Flow    => Row,
+                  Align   => Center,
+                  Gap     => Row_Gap,
+                  Padding => (Left | Right => Layouts.Length_Of (Card_Pad), others => <>),
+                  others  => <>));
 
             Whole : constant UI.Layout :=
               UI.Styled
@@ -187,16 +201,24 @@ package body View.Build.Shell_Views is
                        (UI.Hold
                           (Peek,
                            [UI.Styled
-                              (UI.Place (Picture), (Grow => 1.0, Margin => (Bottom => Hairline, others => <>),
-                                                    others => <>))]),
+                              (UI.Place (Picture),
+                               (Grow => 1.0, Margin => (Bottom => Hairline, others => <>), others => <>))]),
                         (Height => Thumb_Height, Flow => Column, others => <>)),
                      Info],
                     Appearance =>
-                      (Fill => Themes.Tint, Border => Themes.Border, Shadow => Themes.Shadow,
-                       Radius => Themes.Large_Radius, Framed => True, others => <>)),
-                 (Flow => Column, Width => Layouts.Length_Of (Card_Width), Height => Layouts.Length_Of (Card_Height),
-                  Shrink => 0.0, Outlined => On,
-                  Shadowed => On, others => <>));
+                      (Fill   => Themes.Tint,
+                       Border => Themes.Border,
+                       Shadow => Themes.Shadow,
+                       Radius => Themes.Large_Radius,
+                       Framed => True,
+                       others => <>)),
+                 (Flow     => Column,
+                  Width    => Layouts.Length_Of (Card_Width),
+                  Height   => Layouts.Length_Of (Card_Height),
+                  Shrink   => 0.0,
+                  Outlined => On,
+                  Shadowed => On,
+                  others   => <>));
          begin
             Homes.Show_When (Whole, Listed_Flag, Number);
             Homes.Show_When (Naming, Name_Flag, Number);
@@ -218,17 +240,23 @@ package body View.Build.Shell_Views is
          end Card_Of;
 
          --  The outline of a card, to make a project.
-         Plus     : constant UI.Button_Handle :=
+         Plus          : constant UI.Button_Handle :=
            Navs.Button
              (Buttons.Looks ("New", Buttons.Primary, Icon => Pomarine.Icons.Shown (Icon_Set.Plus)),
-              Nav_VM.Start_Project, Reflect => False);
-         Wording  : constant UI.Label_Handle := Navs.Label
-             ("New project", Style => Pomarine.Line_Texts.Strong, Ink => Style.New_Project_Ink);
-         Starter  : constant UI.Grip_Handle :=
+              Nav_VM.Start_Project,
+              Reflect => False);
+         Wording       : constant UI.Label_Handle :=
+           Navs.Label ("New project", Style => Pomarine.Line_Texts.Strong, Ink => Style.New_Project_Ink);
+         Starter       : constant UI.Grip_Handle :=
            Navs.Grip
-             ((Border => Style.Dashed_Edge, Dashed => True, Radius => Themes.Large_Radius, Pointer => True,
-               Focusable => True, others => <>),
-              Nav_VM.Start_Project, Name => "New project");
+             ((Border    => Style.Dashed_Edge,
+               Dashed    => True,
+               Radius    => Themes.Large_Radius,
+               Pointer   => True,
+               Focusable => True,
+               others    => <>),
+              Nav_VM.Start_Project,
+              Name => "New project");
          Starting_Card : constant UI.Layout :=
            UI.Styled
              (UI.Hold
@@ -236,12 +264,17 @@ package body View.Build.Shell_Views is
                  [UI.Place (Plus, Width => Plus_Size, Height => Plus_Size, Exact => True),
                   UI.Styled
                     (UI.Place (Wording),
-                     (Width => Layouts.Length_Of (Card_Width / 2.0), Height => Title_Height,
+                     (Width  => Layouts.Length_Of (Card_Width / 2.0),
+                      Height => Title_Height,
                       Margin => (Top => Row_Gap, others => <>),
                       others => <>))]),
-              (Width => Layouts.Length_Of (Card_Width - Themes.Shadow_Offset),
+              (Width  => Layouts.Length_Of (Card_Width - Themes.Shadow_Offset),
                Height => Layouts.Length_Of (Card_Height - Themes.Shadow_Offset),
-               Shrink => 0.0, Flow => Column, Spread => Center, Align => Center, others => <>));
+               Shrink => 0.0,
+               Flow   => Column,
+               Spread => Center,
+               Align  => Center,
+               others => <>));
 
          Card_Layouts : UI.Layout_Array (1 .. Front.Cards'Length + 1);
 
@@ -250,17 +283,21 @@ package body View.Build.Shell_Views is
            UI.Styled
              (UI.Column
                 ([UI.Styled
-                    (UI.Row
-                       ([UI.Place (Logo, Grow => 1.0, Height => Logo_Height, Exact => True)]),
-                     (Flow => Row, Align => Center, Height => Logo_Height,
-                      Margin => (Bottom => Logo_Gap, others => <>), others => <>)),
+                    (UI.Row ([UI.Place (Logo, Grow => 1.0, Height => Logo_Height, Exact => True)]),
+                     (Flow   => Row,
+                      Align  => Center,
+                      Height => Logo_Height,
+                      Margin => (Bottom => Logo_Gap, others => <>),
+                      others => <>)),
                   UI.Place (Starting, Height => Action_Height, Exact => True),
                   UI.Styled (UI.Spacer (Form), (Grow => 1.0, others => <>)),
                   UI.Place (Settings, Height => Action_Height, Exact => True)],
                  Appearance => (Fill => (if Item.Shell.Windowed then 0 else Mid_Panel), others => <>)),
-              (Flow => Column, Width => Home_Side_Width, Shrink => 0.0,
+              (Flow    => Column,
+               Width   => Home_Side_Width,
+               Shrink  => 0.0,
                Padding => (Top => Layouts.Length_Of (Side_Pad + Top), others => Layouts.Length_Of (Side_Pad)),
-                 others => <>));
+               others  => <>));
       begin
          for Number in Front.Cards'Range loop
             Card_Layouts (Number) := Card_Of (Number);
@@ -269,28 +306,36 @@ package body View.Build.Shell_Views is
          declare
             --  The cards, in rows that wrap, scrolled; the projects after them, in a column of the title and
             --  them: the title is on the line of the name, as the same height from the same top.
-            Cards_Layout : constant UI.Layout :=
+            Cards_Layout    : constant UI.Layout :=
               UI.Styled
                 (UI.Hold
                    (Scroller,
                     [UI.Styled
                        (UI.Row (Card_Layouts),
-                        (Flow => Row, Wrap => On, Align => Start, Shrink => 0.0, Gap => Layouts.Length_Of (Card_Gap),
-                         Padding => (Right => Layouts.Length_Of (Home_Margin - Card_Gap),
-                                     Bottom => Layouts.Length_Of (Home_Margin), others => <>),
-                         others => <>))]),
+                        (Flow    => Row,
+                         Wrap    => On,
+                         Align   => Start,
+                         Shrink  => 0.0,
+                         Gap     => Layouts.Length_Of (Card_Gap),
+                         Padding =>
+                           (Right  => Layouts.Length_Of (Home_Margin - Card_Gap),
+                            Bottom => Layouts.Length_Of (Home_Margin),
+                            others => <>),
+                         others  => <>))]),
                  (Grow => 1.0, Height => 0.0, others => <>));
             Projects_Column : constant UI.Layout :=
               UI.Styled
                 (UI.Column
                    ([UI.Styled
                        (UI.Place (Recent),
-                        (Height => Logo_Height,
-                         Margin => (Bottom => Logo_Gap, others => <>), others => <>)),
+                        (Height => Logo_Height, Margin => (Bottom => Logo_Gap, others => <>), others => <>)),
                      Cards_Layout]),
-                 (Flow => Column, Grow => 1.0, Width => 0.0,
-                  Padding => (Top => Layouts.Length_Of (Side_Pad + Top), Left => Layouts.Length_Of (Home_Margin),
-                              others => <>), others => <>));
+                 (Flow    => Column,
+                  Grow    => 1.0,
+                  Width   => 0.0,
+                  Padding =>
+                    (Top => Layouts.Length_Of (Side_Pad + Top), Left => Layouts.Length_Of (Home_Margin), others => <>),
+                  others  => <>));
 
             Home : constant UI.Layout :=
               UI.Styled
@@ -315,43 +360,45 @@ package body View.Build.Shell_Views is
       end loop;
    end Build_Home;
 
-   function Not_Renaming (Model : Nav_VM.View_Model) return Boolean is
-     (not Nav_VM.Is_Renaming (Model));
+   function Not_Renaming (Model : Nav_VM.View_Model) return Boolean
+   is (not Nav_VM.Is_Renaming (Model));
 
-   Project_Name : constant Nav_UI.Text_Property :=
+   Project_Name  : constant Nav_UI.Text_Property :=
 
-     Nav_UI.Showing (Nav_VM.Name'Access, Changes => Nav_VM.Name_Version'Access);
+       Nav_UI
+       .Showing (Nav_VM.Name'Access, Changes => Nav_VM.Name_Version'Access);
    Project_Draft : constant Nav_UI.Text_Property := Nav_UI.Editing (Nav_VM.Draft'Access, Nav_VM.Set_Draft'Access);
-   Renaming : constant Nav_UI.Flag_Property := Nav_UI.Showing (Nav_VM.Is_Renaming'Access);
-   Named : constant Nav_UI.Flag_Property := Nav_UI.Showing (Not_Renaming'Access);
+   Renaming      : constant Nav_UI.Flag_Property := Nav_UI.Showing (Nav_VM.Is_Renaming'Access);
+   Named         : constant Nav_UI.Flag_Property := Nav_UI.Showing (Not_Renaming'Access);
 
    procedure Build_Project (Item : in out Session) is
       Bar : Toolbar_Parts renames Item.Toolbar;
 
-      function Size (Wide, High : Float) return Layouts.Style is
-        (Width => Layouts.Length_Of (Wide), Height => Layouts.Length_Of (High), Shrink => 0.0, others => <>);
+      function Size (Wide, High : Float) return Layouts.Style
+      is (Width => Layouts.Length_Of (Wide), Height => Layouts.Length_Of (High), Shrink => 0.0, others => <>);
 
-      function Side (Along : Spread_Kind) return Layouts.Style is
-        (Flow => Row, Align => Center, Spread => Along, Grow => 1.0, Width => 0.0, others => <>);
+      function Side (Along : Spread_Kind) return Layouts.Style
+      is (Flow => Row, Align => Center, Spread => Along, Grow => 1.0, Width => 0.0, others => <>);
    begin
-      Text_Fields.Set_Shared
-        (Bar.Title_Field, Item.Host.Doc_Resources'Unchecked_Access);
-      Text_Fields.Configure
-        (Bar.Title_Field, Pomarine.Line_Texts.Interface_Font,
-         Pomarine.Line_Texts.Heading_Size);
+      Text_Fields.Set_Shared (Bar.Title_Field, Item.Host.Doc_Resources'Unchecked_Access);
+      Text_Fields.Configure (Bar.Title_Field, Pomarine.Line_Texts.Interface_Font, Pomarine.Line_Texts.Heading_Size);
       Text_Fields.Attach (Bar.Title_Field, Bar.Title_Doc'Unchecked_Access);
       Open_Screen (Item, Project_Region);
       declare
-         Form  : UI.View renames Screen_Of (Item, Project_Region).all;
-         Navs  : constant Nav_UI.Context'Class := Nav_UI.Bind (Form, Item.Nav_Model.Model);
+         Form : UI.View renames Screen_Of (Item, Project_Region).all;
+         Navs : constant Nav_UI.Context'Class := Nav_UI.Bind (Form, Item.Nav_Model.Model);
 
-         function Tab (Words : String; What : Nav_VM.Command) return UI.Button_Handle is
-           (Navs.Button (Buttons.Looks (Words, Focusable => True), What));
+         function Tab (Words : String; What : Nav_VM.Command) return UI.Button_Handle
+         is (Navs.Button (Buttons.Looks (Words, Focusable => True), What));
 
          Back    : constant UI.Button_Handle :=
            Navs.Button
-             (Buttons.Looks ("Projects", Buttons.Quiet, Icon => Pomarine.Icons.Shown (Icon_Set.Back),
-                             Captioned => True, Focusable => True),
+             (Buttons.Looks
+                ("Projects",
+                 Buttons.Quiet,
+                 Icon      => Pomarine.Icons.Shown (Icon_Set.Back),
+                 Captioned => True,
+                 Focusable => True),
               Nav_VM.Leave_Project);
          Outline : constant UI.Button_Handle := Tab ("Outline", Nav_VM.Show_Outline);
          Canvas  : constant UI.Button_Handle := Tab ("Canvas", Nav_VM.Show_Canvas);
@@ -359,37 +406,40 @@ package body View.Build.Shell_Views is
          Publish : constant UI.Button_Handle := Tab ("Publish", Nav_VM.Show_Publish);
          Listing : constant UI.Button_Handle :=
            Navs.Button
-             (Buttons.Looks ("Items", Icon => Pomarine.Icons.Shown (Icon_Set.List), Captioned => True,
-                             Focusable => True),
+             (Buttons.Looks
+                ("Items", Icon => Pomarine.Icons.Shown (Icon_Set.List), Captioned => True, Focusable => True),
               Nav_VM.Open_List);
          Caption : constant UI.Label_Handle := Navs.Borrow_Label (Bar.Project_Title, Project_Name);
          Area    : constant UI.Widget_Handle := Navs.Borrow_Widget (Bar.Title_Area);
-         Field   : constant UI.Field_Handle :=
-           Navs.Borrow_Field (Bar.Title_Field, Bar.Title_Doc, Project_Draft);
+         Field   : constant UI.Field_Handle := Navs.Borrow_Field (Bar.Title_Field, Bar.Title_Doc, Project_Draft);
 
          --  The bar across the top: the way back and the project's name at the left, the tabs in the
          --  middle (the sides take equal shares), the list of items at the right.
-         Bar_Rule : constant UI.Layout :=
+         Bar_Rule    : constant UI.Layout :=
            UI.Styled
              (UI.Spacer (Form, (Fill => Rule_Ink, others => <>)),
-              (Width => Hairline, Height => Bar_Rule_Height, Shrink => 0.0,
-               Margin => (Left | Right => Name_Gap, others => <>), others => <>));
-         Name_Area : constant UI.Layout :=
+              (Width  => Hairline,
+               Height => Bar_Rule_Height,
+               Shrink => 0.0,
+               Margin => (Left | Right => Name_Gap, others => <>),
+               others => <>));
+         Name_Area   : constant UI.Layout :=
            UI.Styled
              (UI.Put_In
-                (Form, Bar.Title_Area,
+                (Form,
+                 Bar.Title_Area,
                  [UI.Place (Caption, Shrink => 0.0, Height => Layouts.Length_Of (Tab_Height), Exact => True)]),
               (Flow => Row, Align => Center, Shrink => 0.0, Height => Layouts.Length_Of (Tab_Height), others => <>));
-         Left_Side : constant UI.Layout :=
+         Left_Side   : constant UI.Layout :=
            UI.Styled
              (UI.Row
                 ([UI.Styled (UI.Place (Back), Size (Back_Width, Tab_Height)),
                   Bar_Rule,
                   Name_Area,
-                  UI.Place (Field, Grow => 1.0, Width => 0.0, Height => Layouts.Length_Of (Tab_Height),
-                     Exact => True)]),
+                  UI.Place
+                    (Field, Grow => 1.0, Width => 0.0, Height => Layouts.Length_Of (Tab_Height), Exact => True)]),
               Side (Start));
-         Tabs : constant UI.Layout :=
+         Tabs        : constant UI.Layout :=
            UI.Styled
              (UI.Row
                 ([UI.Styled (UI.Place (Outline), Size (Tab_Width, Tab_Height)),
@@ -402,33 +452,42 @@ package body View.Build.Shell_Views is
          Toolbar_Row : constant UI.Layout :=
            UI.Styled
              (UI.Row ([Left_Side, Tabs, Finish_Side], Appearance => (Fill => Toolbar, others => <>)),
-              (Height => Layouts.Length_Of (Toolbar_Size), Shrink => 0.0, Flow => Row, Align => Center,
-               Padding => (Left  => (Layouts.Length_Of (if Item.Shell.Windowed then Header_Inset else Bar_Inset)),
-                           Right => Layouts.Length_Of (Bar_Inset),
-                           others => <>),
-               others => <>));
+              (Height  => Layouts.Length_Of (Toolbar_Size),
+               Shrink  => 0.0,
+               Flow    => Row,
+               Align   => Center,
+               Padding =>
+                 (Left   => (Layouts.Length_Of (if Item.Shell.Windowed then Header_Inset else Bar_Inset)),
+                  Right  => Layouts.Length_Of (Bar_Inset),
+                  others => <>),
+               others  => <>));
          --  The pages are taller than it: the content takes what the bars leave. Under it, the dock of
          --  minimised items, a row of bars that scrolls across when they are wider than the window.
-         Content : constant UI.Layout :=
+         Content     : constant UI.Layout :=
            UI.Styled
              (UI.Column ([UI.Styled (UI.Put (Form, Item.Canvas_View), (Grow => 1.0, others => <>))]),
               (Grow => 1.0, Flow => Column, Height => 0.0, others => <>));
-         Dock_Row : constant UI.Layout :=
+         Dock_Row    : constant UI.Layout :=
            UI.Styled
              (UI.Put_In
-                (Form, Item.Dock.Dock_Panel,
+                (Form,
+                 Item.Dock.Dock_Panel,
                  [UI.Styled
                     (UI.Put_In
-                       (Form, Item.Dock.Dock_Scroll,
+                       (Form,
+                        Item.Dock.Dock_Scroll,
                         [UI.Styled
                            (UI.Put_In (Form, Item.Dock.Dock_Content, []),
-                            (Flow => Row, Shrink => 0.0, Align => Center, Gap => Dock_Gap,
+                            (Flow    => Row,
+                             Shrink  => 0.0,
+                             Align   => Center,
+                             Gap     => Dock_Gap,
                              Padding => (Left | Right => Dock_Inset, others => <>),
-                               others => <>))]),
+                             others  => <>))]),
                      (Flow => Row, Grow => 1.0, Width => 0.0, others => <>))],
                  Flow => Layouts.Row),
               (Height => Dock_Height, Shrink => 0.0, Flow => Row, others => <>));
-         Project : constant UI.Layout :=
+         Project     : constant UI.Layout :=
            UI.Styled (UI.Column ([Toolbar_Row, Content, Dock_Row]), (Flow => Column, Grow => 1.0, others => <>));
       begin
          Widgets.Set_Accessible_Name (Bar.Title_Field, "Project name");
@@ -466,11 +525,14 @@ package body View.Build.Shell_Views is
 
    procedure Make_Window (Item : in out Session; Which : Items.Slot) is
    begin
-      Items.Windows.Set_Shared
-        (Item.Windows (Which), Item.Host.Doc_Resources'Unchecked_Access);
+      Items.Windows.Set_Shared (Item.Windows (Which), Item.Host.Doc_Resources'Unchecked_Access);
       Items.Windows.Build
-        (Item.Windows (Which), Item.Models (Which).Item, Canvas_VM.Shown_Camera (Item.Canvas_Model.Model),
-         Item.Canvas_View, Item.Dock.Dock_Content, Toolbar,
+        (Item.Windows (Which),
+         Item.Models (Which).Item,
+         Canvas_VM.Shown_Camera (Item.Canvas_Model.Model),
+         Item.Canvas_View,
+         Item.Dock.Dock_Content,
+         Toolbar,
          Item.Shell.Density);
    end Make_Window;
 
@@ -479,31 +541,50 @@ package body View.Build.Shell_Views is
    begin
       Open_Screen (Item, Tray_Region);
       declare
-         Form  : UI.View renames Screen_Of (Item, Tray_Region).all;
-         Navs  : constant Nav_UI.Context'Class := Nav_UI.Bind (Form, Item.Nav_Model.Model);
+         Form : UI.View renames Screen_Of (Item, Tray_Region).all;
+         Navs : constant Nav_UI.Context'Class := Nav_UI.Bind (Form, Item.Nav_Model.Model);
 
          Document : constant UI.Button_Handle :=
            Navs.Button
-             (Buttons.Looks ("Add document", Icon => Pomarine.Icons.Shown (Icon_Set.Document), Captioned => True,
-                             Focusable => True), Nav_VM.Add_Document);
+             (Buttons.Looks
+                ("Add document",
+                 Icon      => Pomarine.Icons.Shown (Icon_Set.Document),
+                 Captioned => True,
+                 Focusable => True),
+              Nav_VM.Add_Document);
          Source   : constant UI.Button_Handle :=
            Navs.Button
-             (Buttons.Looks ("Add source", Buttons.Primary, Icon => Pomarine.Icons.Shown (Icon_Set.Link),
-                             Captioned => True, Focusable => True), Nav_VM.Add_Source);
+             (Buttons.Looks
+                ("Add source",
+                 Buttons.Primary,
+                 Icon      => Pomarine.Icons.Shown (Icon_Set.Link),
+                 Captioned => True,
+                 Focusable => True),
+              Nav_VM.Add_Source);
          Tools    : constant UI.Layout :=
            UI.Styled
              (UI.Row
-                ([UI.Place (Document, Width => Layouts.Length_Of (Wide_Tool_Width),
-                   Height => Layouts.Length_Of (Tool_Height), Exact => True),
-                  UI.Place (Source, Width => Layouts.Length_Of (Tool_Width),
-                     Height => Layouts.Length_Of (Tool_Height), Exact => True)],
+                ([UI.Place
+                    (Document,
+                     Width  => Layouts.Length_Of (Wide_Tool_Width),
+                     Height => Layouts.Length_Of (Tool_Height),
+                     Exact  => True),
+                  UI.Place
+                    (Source,
+                     Width  => Layouts.Length_Of (Tool_Width),
+                     Height => Layouts.Length_Of (Tool_Height),
+                     Exact  => True)],
                  Appearance => (Fill => Toolbar, Shadow => Themes.Shadow, others => <>)),
-              (Place => Absolute, Position => (Bottom => Layouts.Length_Of (Tray_Foot - Themes.Shadow_Offset),
-                                               others => <>),
-               Width => Layouts.Length_Of (Tray_Width), Height => Tray_Height, Flow => Row,
-                 Align => Center,
-               Padding => (others => Layouts.Length_Of (Tray_Pad)), Shadowed => On,
-                 Gap => Layouts.Length_Of (Tray_Gap), others => <>));
+              (Place    => Absolute,
+               Position => (Bottom => Layouts.Length_Of (Tray_Foot - Themes.Shadow_Offset), others => <>),
+               Width    => Layouts.Length_Of (Tray_Width),
+               Height   => Tray_Height,
+               Flow     => Row,
+               Align    => Center,
+               Padding  => (others => Layouts.Length_Of (Tray_Pad)),
+               Shadowed => On,
+               Gap      => Layouts.Length_Of (Tray_Gap),
+               others   => <>));
       begin
          Tray.Tools := Tools;
          UI.Mount_Into (Form, Content_Panel (Item).all, Tools);
@@ -516,83 +597,104 @@ package body View.Build.Shell_Views is
       Buttons.Configure (Pane.Copy, Buttons.Looks ("Copy to Clipboard", Focusable => True));
       Open_Screen (Item, Publish_Region);
       declare
-         Form : UI.View renames Screen_Of (Item, Publish_Region).all;
-         Bound : constant Publish_UI.Controls.Context'Class :=
-           Publish_UI.Controls.Bind (Form, Pane.Options);
+         Form         : UI.View renames Screen_Of (Item, Publish_Region).all;
+         Bound        : constant Publish_UI.Controls.Context'Class := Publish_UI.Controls.Bind (Form, Pane.Options);
          Format_Field : constant UI.Widget_Handle := Bound.Borrow_Widget (Pane.Format);
-         Format_Menu : constant UI.Widget_Handle := Bound.Borrow_Widget (Pane.Format_Menu);
-         Export : constant UI.Button_Handle := Bound.Button ("Export", Publish_VM.Export, Focusable => True);
-         Copy : constant UI.Button_Handle := Bound.Borrow_Button (Pane.Copy, Publish_VM.Copy);
-         Sections : constant UI.Switch_Handle := Bound.Switch
-           ("Include section headings", Publish_UI.Sections, Publish_VM.Toggle_Section_Headings);
-         Documents : constant UI.Switch_Handle := Bound.Switch
-           ("Include document headings", Publish_UI.Documents, Publish_VM.Toggle_Document_Headings);
+         Format_Menu  : constant UI.Widget_Handle := Bound.Borrow_Widget (Pane.Format_Menu);
+         Export       : constant UI.Button_Handle := Bound.Button ("Export", Publish_VM.Export, Focusable => True);
+         Copy         : constant UI.Button_Handle := Bound.Borrow_Button (Pane.Copy, Publish_VM.Copy);
+         Sections     : constant UI.Switch_Handle :=
+           Bound.Switch ("Include section headings", Publish_UI.Sections, Publish_VM.Toggle_Section_Headings);
+         Documents    : constant UI.Switch_Handle :=
+           Bound.Switch ("Include document headings", Publish_UI.Documents, Publish_VM.Toggle_Document_Headings);
 
-         function Line (Widget : in out Widgets.Widget'Class; Box : Layouts.Style) return UI.Layout is
-           (UI.Styled (UI.Put (Form, Widget), Box));
+         function Line (Widget : in out Widgets.Widget'Class; Box : Layouts.Style) return UI.Layout
+         is (UI.Styled (UI.Put (Form, Widget), Box));
 
          Sidebar : constant UI.Layout :=
            UI.Styled
              (UI.Put_In
-                (Form, Pane.Sidebar,
-                 [UI.Styled (UI.Place (Format_Field),
-                             (Height => 32.0, Margin => (Bottom => 8.0, others => <>), others => <>)),
+                (Form,
+                 Pane.Sidebar,
+                 [UI.Styled
+                    (UI.Place (Format_Field), (Height => 32.0, Margin => (Bottom => 8.0, others => <>), others => <>)),
                   UI.Place (Sections, Height => 32.0, Exact => True),
                   UI.Place (Documents, Height => 32.0, Exact => True),
-                  Line (Pane.Divider,
-                        (Height => Hairline, Shrink => 0.0, Margin => (Top => 12.0, Bottom => 12.0, others => <>),
-                         others => <>)),
+                  Line
+                    (Pane.Divider,
+                     (Height => Hairline,
+                      Shrink => 0.0,
+                      Margin => (Top => 12.0, Bottom => 12.0, others => <>),
+                      others => <>)),
                   UI.Place (Export, Height => Layouts.Length_Of (Tab_Height), Exact => True),
-                  UI.Styled (UI.Place (Copy),
-                             (Height => Layouts.Length_Of (Tab_Height), Margin => (Top => 8.0, others => <>),
-                              others => <>))]),
-              (Flow => Column, Width => Layouts.Length_Of (Item.Page_View.Sidebar_Wide), Shrink => 0.0,
-               Padding => (Top => Layouts.Length_Of (Sidebar_Pad + Heading_Top),
-                           others => Layouts.Length_Of (Sidebar_Pad)), others => <>));
+                  UI.Styled
+                    (UI.Place (Copy),
+                     (Height => Layouts.Length_Of (Tab_Height), Margin => (Top => 8.0, others => <>), others => <>))]),
+              (Flow    => Column,
+               Width   => Layouts.Length_Of (Item.Page_View.Sidebar_Wide),
+               Shrink  => 0.0,
+               Padding =>
+                 (Top => Layouts.Length_Of (Sidebar_Pad + Heading_Top), others => Layouts.Length_Of (Sidebar_Pad)),
+               others  => <>));
 
          --  The sheets: the Markdown (Source_Text) at the left of the page as it is rendered, which is shown
          --  only when Markdown is the format.
          Source_Sheet : constant UI.Layout :=
            UI.Styled
              (UI.Put_In
-                (Form, Pane.Source_Scroll,
+                (Form,
+                 Pane.Source_Scroll,
                  [UI.Styled
                     (UI.Put_In
-                       (Form, Pane.Source_Content,
-                        [Line (Pane.Source_Text,
-                               (Shrink => 0.0, Height => Layouts.Length_Of (Page_Min_Height),
-                                Width => Layouts.Length_Of (Page_Width),
-                                                  others => <>))]),
-                     (Flow => Column, Shrink => 0.0, Align => Start,
+                       (Form,
+                        Pane.Source_Content,
+                        [Line
+                           (Pane.Source_Text,
+                            (Shrink => 0.0,
+                             Height => Layouts.Length_Of (Page_Min_Height),
+                             Width  => Layouts.Length_Of (Page_Width),
+                             others => <>))]),
+                     (Flow    => Column,
+                      Shrink  => 0.0,
+                      Align   => Start,
                       Padding => (Left => Layouts.Length_Of (Page_Inset), others => Layouts.Length_Of (Page_Margin)),
-                        others => <>))]),
+                      others  => <>))]),
               (Grow => 1.0, Width => 0.0, others => <>));
-         Sheet : constant UI.Layout :=
+         Sheet        : constant UI.Layout :=
            UI.Styled
              (UI.Put_In
-                (Form, Pane.Scroll,
+                (Form,
+                 Pane.Scroll,
                  [UI.Styled
                     (UI.Put_In
-                       (Form, Pane.Content,
-                        [Line (Pane.Text, (Shrink => 0.0, Height => Layouts.Length_Of (Page_Min_Height),
-                                           Width => Layouts.Length_Of (Page_Width),
-                                           others => <>))]),
-                     (Flow => Column, Shrink => 0.0, Align => Start,
+                       (Form,
+                        Pane.Content,
+                        [Line
+                           (Pane.Text,
+                            (Shrink => 0.0,
+                             Height => Layouts.Length_Of (Page_Min_Height),
+                             Width  => Layouts.Length_Of (Page_Width),
+                             others => <>))]),
+                     (Flow    => Column,
+                      Shrink  => 0.0,
+                      Align   => Start,
                       Padding => (Left => Layouts.Length_Of (Page_Inset), others => Layouts.Length_Of (Page_Margin)),
-                        others => <>))]),
+                      others  => <>))]),
               (Grow => 1.0, Width => 0.0, others => <>));
 
          Whole : constant UI.Layout :=
            UI.Styled
              (UI.Put_In
-                (Form, Pane.View,
+                (Form,
+                 Pane.View,
                  [Sidebar,
                   Line (Pane.Rule, (Width => Hairline, Shrink => 0.0, others => <>)),
                   Source_Sheet,
                   Line (Pane.Split_Rule, (Width => Hairline, Shrink => 0.0, others => <>)),
                   Sheet,
-                  UI.Styled (UI.Place (Format_Menu),
-                             (Place => Absolute, Width => Layouts.Length_Of (Menu_Width), others => <>))],
+                  UI.Styled
+                    (UI.Place (Format_Menu),
+                     (Place => Absolute, Width => Layouts.Length_Of (Menu_Width), others => <>))],
                  Flow => Layouts.Row),
               (Flow => Row, Grow => 1.0, Height => 0.0, others => <>));
       begin
@@ -629,8 +731,7 @@ package body View.Build.Shell_Views is
       Widgets.Set_Visible (Pane.Split_Rule, False);
       Editors.Set_Shared (Pane.Text, Item.Host.Doc_Resources'Unchecked_Access);
       Editors.Configure
-        (Pane.Text, Pomarine.Line_Texts.Serif, Page_Text_Size, 2000.0,
-         Spacing => 0.35 * Page_Text_Size);
+        (Pane.Text, Pomarine.Line_Texts.Serif, Page_Text_Size, 2000.0, Spacing => 0.35 * Page_Text_Size);
       Editors.Set_Paper (Pane.Text, Paper);
       Editors.Set_Borderless (Pane.Text, True);
       Editors.Set_Indent (Pane.Text, Page_Margin - Page_Text_Inset - Page_Border);

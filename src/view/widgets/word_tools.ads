@@ -4,6 +4,7 @@ with Pomarine.Widgets.Editors;
 --  The tools bonxie adds to the toolbar of a rich text editor, for what is
 --  selected in its text: Fade (Cmd+D) and Reword (Cmd+R). Add also gives the
 --  editing buttons their icons.
+
 package Word_Tools is
 
    Fade   : constant := 1;
@@ -11,8 +12,9 @@ package Word_Tools is
    --  Their numbers, in the order Add gives them.
 
    procedure Add (Item : in out Pomarine.Widgets.Editors.Editor)
-     with Pre => Pomarine.Widgets.Editors.Tool_Count (Item) = 0,
-          Post => Pomarine.Widgets.Editors.Tool_Count (Item) = Reword;
+   with
+     Pre  => Pomarine.Widgets.Editors.Tool_Count (Item) = 0,
+     Post => Pomarine.Widgets.Editors.Tool_Count (Item) = Reword;
 
    procedure Use_Tool (Source : in out Pomarine.Widgets.Widget'Class; Tool : Natural);
    --  Do what the tool of this number, used in Source (see Editors.Callbacks.On_Tool), is

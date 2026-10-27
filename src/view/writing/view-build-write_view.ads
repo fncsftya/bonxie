@@ -1,4 +1,5 @@
 --  The writing view: the sidebar, the pages and the pane of the pinned source.
+
 private package View.Build.Write_View is
 
    procedure Build_Write (Item : in out Session);

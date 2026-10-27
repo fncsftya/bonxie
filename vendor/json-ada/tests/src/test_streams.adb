@@ -36,10 +36,8 @@ package body Test_Streams is
    function Suite return AUnit.Test_Suites.Access_Test_Suite is
       Name : constant String := "(Streams) ";
    begin
-      Test_Suite.Add_Test (Caller.Create
-        (Name & "Parse float_number.txt", Test_Stream_IO'Access));
-      Test_Suite.Add_Test (Caller.Create
-        (Name & "Detect end of stream", Test_At_End'Access));
+      Test_Suite.Add_Test (Caller.Create (Name & "Parse float_number.txt", Test_Stream_IO'Access));
+      Test_Suite.Add_Test (Caller.Create (Name & "Detect end of stream", Test_At_End'Access));
 
       return Test_Suite'Access;
    end Suite;

@@ -18,7 +18,7 @@ procedure Windows_Test is
       16#40E0_0000#,   --  7.0
       16#BE80_0000#];  --  -0.25
    Heard : constant Samples (1 .. 6)
-     with Import, Address => Raw'Address;
+   with Import, Address => Raw'Address;
 
    Held   : Window;
    Taken  : Natural;

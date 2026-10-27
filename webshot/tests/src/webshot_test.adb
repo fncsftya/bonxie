@@ -63,8 +63,11 @@ procedure Webshot_Test is
    begin
       Webshot.Reset (Which);
       Webshot.Start
-        (Which, "file://" & Folder & "/" & Name & ".html", Folder & "/" & Name & ".png",
-         Look_File => Folder & "/" & Name & ".look.png", Dismiss_Banners => False);
+        (Which,
+         "file://" & Folder & "/" & Name & ".html",
+         Folder & "/" & Name & ".png",
+         Look_File       => Folder & "/" & Name & ".look.png",
+         Dismiss_Banners => False);
       while Webshot.State (Which) = Webshot.Working and then Waited < 60_000 loop
          Webshot.Pump (50);
          Waited := Waited + 50;
@@ -98,8 +101,9 @@ begin
    begin
       Check (Title = "tall", "tall: its title, " & Title);
       if Webshot.State (Which) = Webshot.Done then
-         Check (Webshot.Height (Which) in 16_000 .. Webshot.Max_Pixels,
-                "tall: all of it is in a picture that fits, " & Webshot.Height (Which)'Image & " pixels");
+         Check
+           (Webshot.Height (Which) in 16_000 .. Webshot.Max_Pixels,
+            "tall: all of it is in a picture that fits, " & Webshot.Height (Which)'Image & " pixels");
       end if;
    end;
 
@@ -117,11 +121,12 @@ begin
       end loop;
       Check (Webshot.State (Which) = Webshot.Done, "tiled: the picture was taken");
       if Webshot.State (Which) = Webshot.Done then
-         Check (Webshot.Tile_Count (Which) = Webshot.Max_Tiles,
-                "tiled: four screens," & Webshot.Tile_Count (Which)'Image);
+         Check
+           (Webshot.Tile_Count (Which) = Webshot.Max_Tiles, "tiled: four screens," & Webshot.Tile_Count (Which)'Image);
          for Tile in 1 .. Webshot.Max_Tiles loop
-            Check (Ada.Directories.Exists (Folder & "/tiled-tile-" & Tile'Image (2 .. 2) & ".png"),
-                   "tiled: the screen" & Tile'Image & " is there");
+            Check
+              (Ada.Directories.Exists (Folder & "/tiled-tile-" & Tile'Image (2 .. 2) & ".png"),
+               "tiled: the screen" & Tile'Image & " is there");
          end loop;
          Check (not Ada.Directories.Exists (Folder & "/tiled-tile-5.png"), "tiled: and no more");
       end if;
@@ -137,14 +142,16 @@ begin
          Webshot.Pump (50);
          Waited := Waited + 50;
       end loop;
-      Check (Webshot.State (Which) = Webshot.Done and then Webshot.Tile_Count (Which) = 1,
-             "short: one screen is enough");
+      Check
+        (Webshot.State (Which) = Webshot.Done and then Webshot.Tile_Count (Which) = 1, "short: one screen is enough");
    end;
 
    --  A banner with a button to accept: pressed.
    Write_Page
      ("accept",
-      "<title>waiting</title><div id=b style='" & Banner_Style & "'>We use cookies to improve your experience."
+      "<title>waiting</title><div id=b style='"
+      & Banner_Style
+      & "'>We use cookies to improve your experience."
       & "<button onclick=""document.title='accepted';b.remove()"">Accept all</button>"
       & "<button>Manage preferences</button></div>");
    Check (Take ("accept") = "accepted", "accept: the banner's button was pressed");
@@ -152,7 +159,9 @@ begin
    --  One that offers to reject too: cookies are accepted, which is what the page is read for.
    Write_Page
      ("reject",
-      "<title>waiting</title><div id=b role=dialog style='" & Banner_Style & "'>Your privacy: we and our partners"
+      "<title>waiting</title><div id=b role=dialog style='"
+      & Banner_Style
+      & "'>Your privacy: we and our partners"
       & " use cookies."
       & "<button onclick=""document.title='rejected';b.remove()"">Reject all</button>"
       & "<button onclick=""document.title='accepted';b.remove()"">Accept all cookies</button></div>");
@@ -161,7 +170,9 @@ begin
    --  The reject button is pressed if there is no other: and not one that is a purchase.
    Write_Page
      ("rejectonly",
-      "<title>waiting</title><div id=b role=dialog style='" & Banner_Style & "'>We use cookies on this site."
+      "<title>waiting</title><div id=b role=dialog style='"
+      & Banner_Style
+      & "'>We use cookies on this site."
       & "<button onclick=""document.title='rejected';b.remove()"">Reject all</button></div>");
    Check (Take ("rejectonly") = "rejected", "rejectonly: with nothing to accept, the one that rejects");
 
@@ -170,7 +181,9 @@ begin
      ("second",
       "<title>waiting</title><script>function more () { b.innerHTML = 'Cookie settings saved <button id=two>OK"
       & "</button>'; two.onclick = function () { document.title = 'second'; b.remove (); }; }</script>"
-      & "<div id=b style='" & Banner_Style & "'>This site uses cookies."
+      & "<div id=b style='"
+      & Banner_Style
+      & "'>This site uses cookies."
       & "<button onclick='more ()'>Accept</button></div>");
    Check (Take ("second") = "second", "second: a second notice is pressed too");
 
@@ -179,7 +192,9 @@ begin
      ("shadow",
       "<title>waiting</title><div id=host></div><script>"
       & "var root = host.attachShadow({mode:'open'});"
-      & "root.innerHTML = ""<div style='" & Banner_Style & "'>Cookie consent for this site"
+      & "root.innerHTML = ""<div style='"
+      & Banner_Style
+      & "'>Cookie consent for this site"
       & "<button id=ok>Accept all</button></div>"";"
       & "root.getElementById('ok').onclick = function () { document.title = 'accepted'; };</script>");
    Check (Take ("shadow") = "accepted", "shadow: a banner in a shadow root");
@@ -204,7 +219,9 @@ begin
    --  made, while the page is kept open for what is said to be pressed.
    Write_Page
      ("choice",
-      "<title>waiting</title><div id=b style='" & Banner_Style & "'>We use cookies to improve your experience."
+      "<title>waiting</title><div id=b style='"
+      & Banner_Style
+      & "'>We use cookies to improve your experience."
       & "<button onclick=""document.title='accepted';b.remove()"">Accept all cookies</button>"
       & "<button onclick=""document.title='rejected';b.remove()"">Reject all</button>"
       & "<button onclick=""document.title='settings'"">Manage preferences</button></div>");
@@ -234,7 +251,9 @@ begin
    --  (a notice of this kind has "Reject all and subscribe" for a price).
    Write_Page
      ("purchase",
-      "<title>waiting</title><div id=b role=dialog style='" & Banner_Style & "'>Personalised advertising: cookies."
+      "<title>waiting</title><div id=b role=dialog style='"
+      & Banner_Style
+      & "'>Personalised advertising: cookies."
       & "<button onclick=""document.title='accepted';b.remove()"">Accept all</button>"
       & "<button onclick=""document.title='bought'"">Reject all and subscribe for &pound;5 per month</button></div>");
    if Look ("purchase") then
@@ -248,7 +267,9 @@ begin
    --  A button whose words are only part of what is read.
    Write_Page
      ("part",
-      "<title>waiting</title><div id=b style='" & Banner_Style & "'>This site uses cookies."
+      "<title>waiting</title><div id=b style='"
+      & Banner_Style
+      & "'>This site uses cookies."
       & "<a href=# onclick=""document.title='closed';b.remove()"">No thanks, continue without accepting</a></div>");
    if Look ("part") then
       Check (Press ("continue without accepting"), "part: a button is found by part of its words");
@@ -257,11 +278,11 @@ begin
 
    --  A page that says which PDF it is the page of.
    Write_Page
-     ("front",
-      "<title>front</title><meta name=citation_pdf_url content='paper.pdf'><p>Abstract of a paper.</p>");
+     ("front", "<title>front</title><meta name=citation_pdf_url content='paper.pdf'><p>Abstract of a paper.</p>");
    if Look ("front") then
-      Check (Webshot.Document_Link (Which) = "file://" & Folder & "/paper.pdf",
-             "front: its PDF is " & Webshot.Document_Link (Which));
+      Check
+        (Webshot.Document_Link (Which) = "file://" & Folder & "/paper.pdf",
+         "front: its PDF is " & Webshot.Document_Link (Which));
    end if;
 
    --  A page with no meta tag, but a button for its PDF (as the front of a paper has, twice, one
@@ -271,14 +292,14 @@ begin
       "<title>front2</title><a href='doc/epdf/10.1/x'>PDF/eReader</a><p>Abstract.</p>"
       & "<a href='doc/pdf/10.1/x?download=true'>Download PDF</a>");
    if Look ("front2") then
-      Check (Webshot.Document_Link (Which) = "file://" & Folder & "/doc/pdf/10.1/x?download=true",
-             "front2: its PDF is found by its buttons, " & Webshot.Document_Link (Which));
+      Check
+        (Webshot.Document_Link (Which) = "file://" & Folder & "/doc/pdf/10.1/x?download=true",
+         "front2: its PDF is found by its buttons, " & Webshot.Document_Link (Which));
    end if;
 
    --  A page that lists many PDFs is no front of one, nor are words that are no PDF's link.
    Write_Page
-     ("listing",
-      "<title>listing</title><a href='a.pdf'>PDF</a> <a href='b.pdf'>PDF</a> <a href='c.pdf'>[PDF]</a>");
+     ("listing", "<title>listing</title><a href='a.pdf'>PDF</a> <a href='b.pdf'>PDF</a> <a href='c.pdf'>[PDF]</a>");
    if Look ("listing") then
       Check (Webshot.Document_Link (Which) = "", "listing: many PDFs are no front's");
    end if;
@@ -328,9 +349,9 @@ begin
 
    --  A file is fetched as a browser would download it: a PDF is saved as it is; a page is no file.
    declare
-      Paper : constant String := Folder & "/paper.pdf";
+      Paper  : constant String := Folder & "/paper.pdf";
       Waited : Natural := 0;
-      File  : File_Type;
+      File   : File_Type;
    begin
       Create (File, Out_File, Paper);
       Put_Line (File, "%PDF-1.4");
@@ -347,13 +368,15 @@ begin
          Webshot.Pump (50);
          Waited := Waited + 50;
       end loop;
-      Check (Webshot.State (Which) = Webshot.Done,
-             "fetch: a PDF is fetched" & (if Webshot.State (Which) = Webshot.Failed
-                                          then ", " & Webshot.Message (Which) else ""));
+      Check
+        (Webshot.State (Which) = Webshot.Done,
+         "fetch: a PDF is fetched"
+         & (if Webshot.State (Which) = Webshot.Failed then ", " & Webshot.Message (Which) else ""));
       Check (Ada.Directories.Exists (Folder & "/fetched.pdf"), "fetch: and its file is there");
       if Ada.Directories.Exists (Folder & "/fetched.pdf") then
-         Check (Ada.Directories.Size (Folder & "/fetched.pdf") = Ada.Directories.Size (Paper),
-                "fetch: all of it, as it is");
+         Check
+           (Ada.Directories.Size (Folder & "/fetched.pdf") = Ada.Directories.Size (Paper),
+            "fetch: all of it, as it is");
       end if;
 
       Waited := 0;

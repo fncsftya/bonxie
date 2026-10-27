@@ -149,7 +149,9 @@ package body View.Writing is
          Directory :=
            (if Item.Section_View.Pending in 1 .. Outlines.Section_Count (Item)
             then Support.Dir_Of_Section (Item, Item.Section_View.Pending)
-            elsif View_Mode (Item) = Write then Writing_VM.Shown (Item.Docs.Navigation, Item.Docs.Dirs) else 0);
+            elsif View_Mode (Item) = Write
+            then Writing_VM.Shown (Item.Docs.Navigation, Item.Docs.Dirs)
+            else 0);
          Order.Insert_Row
            (Item, Order.Last_Of (Item, Directory), (Kind => Document_Leaf, Dir => Directory, Doc => Which));
          if Trees.Directory_Of (Item.Docs.Ordering, Which) /= 0 then
@@ -203,12 +205,9 @@ package body View.Writing is
 
       procedure Show (Shown : in out Readers.Reader; Sync : out Sync_State) is
       begin
-         Readers.Set_Document
-           (Shown, Items.Extensions.To_String (Details.Document), Details.Page, Details.Page_Count);
-         Readers.Set_Picture
-           (Shown, Reader_Windows.Picture_Of (Item, Which), Details.Captured_At);
-         Sync := (Own  => Readers.Marks_Version (Shown),
-                  Peer => Windows.Marks_Version (Item.Windows (Which)));
+         Readers.Set_Document (Shown, Items.Extensions.To_String (Details.Document), Details.Page, Details.Page_Count);
+         Readers.Set_Picture (Shown, Reader_Windows.Picture_Of (Item, Which), Details.Captured_At);
+         Sync := (Own => Readers.Marks_Version (Shown), Peer => Windows.Marks_Version (Item.Windows (Which)));
       end Show;
    begin
       if Readers.Is_Assigned (Item.Reading.Readers (Which)) then
@@ -224,20 +223,20 @@ package body View.Writing is
    begin
       if Readers.Is_Assigned (Item.Reading.Readers (Which)) then
          Readers.Set_Document
-           (Item.Reading.Readers (Which), Items.Extensions.To_String (Details.Document),
-            Details.Page, Details.Page_Count);
+           (Item.Reading.Readers (Which),
+            Items.Extensions.To_String (Details.Document),
+            Details.Page,
+            Details.Page_Count);
          Readers.Go_To_Page (Item.Reading.Readers (Which), Details.Page);
       end if;
       if Item.Reading.Pinned_Slot = Which then
          Readers.Set_Document
-           (Item.Reading.Pane_Reader, Items.Extensions.To_String (Details.Document),
-            Details.Page, Details.Page_Count);
+           (Item.Reading.Pane_Reader, Items.Extensions.To_String (Details.Document), Details.Page, Details.Page_Count);
          Readers.Go_To_Page (Item.Reading.Pane_Reader, Details.Page);
       end if;
    end Page_Turned;
 
-   procedure Words_Found
-     (Item : in out Session; Which : Items.Slot; Found : Vision.Result) is
+   procedure Words_Found (Item : in out Session; Which : Items.Slot; Found : Vision.Result) is
    begin
       if Readers.Is_Assigned (Item.Reading.Readers (Which)) then
          Readers.Set_Recognized (Item.Reading.Readers (Which), Found);
@@ -250,10 +249,7 @@ package body View.Writing is
    procedure Listen (Item : in out Session) is
       use all type Widgets.Event_Kind;
 
-      procedure Hear
-        (Part    : in out Widgets.Widget'Class;
-         Kind    : Widgets.Event_Kind;
-         Do_This : Hooks.Handler) is
+      procedure Hear (Part : in out Widgets.Widget'Class; Kind : Widgets.Event_Kind; Do_This : Hooks.Handler) is
       begin
          Hooks.On (Part, Kind, Item'Unchecked_Access, Do_This);
       end Hear;
@@ -304,9 +300,7 @@ package body View.Writing is
    end Add_Folder;
 
    procedure Source_Chosen
-     (Item   : in out Session;
-      Source : in out Pomarine.Widgets.Widget'Class;
-      Event  : Pomarine.Widgets.Widget_Event)
+     (Item : in out Session; Source : in out Pomarine.Widgets.Widget'Class; Event : Pomarine.Widgets.Widget_Event)
    is
       pragma Unreferenced (Source);
       Row : constant Natural := Event.Row;
@@ -315,8 +309,7 @@ package body View.Writing is
          if Row = Popups.Add_Row (Item) then
             --  On the canvas, where its address can be typed.
             declare
-               Document : constant Items.Slot :=
-                 Trees.Page_At (Item.Docs.Ordering, Item.Page_View.Menu_Page);
+               Document : constant Items.Slot := Trees.Page_At (Item.Docs.Ordering, Item.Page_View.Menu_Page);
             begin
                Popups.Close_Menu (Item);
                Navigation.Show (Item, Canvas);
@@ -325,8 +318,7 @@ package body View.Writing is
          elsif Row - Popups.Rows_Before in 1 .. Item.Page_View.Menu_Count then
             --  Ticked, it is pinned; ticked again, it is let go.
             declare
-               Which : constant Items.Slot :=
-                 Item.Page_View.Menu_Slots (Row - Popups.Rows_Before);
+               Which : constant Items.Slot := Item.Page_View.Menu_Slots (Row - Popups.Rows_Before);
             begin
                if Item.Reading.Pinned_Slot = Which then
                   Reader_Windows.Unpin (Item, Reopen => False);
@@ -341,9 +333,7 @@ package body View.Writing is
    end Source_Chosen;
 
    procedure Context_Chosen
-     (Item   : in out Session;
-      Source : in out Pomarine.Widgets.Widget'Class;
-      Event  : Pomarine.Widgets.Widget_Event)
+     (Item : in out Session; Source : in out Pomarine.Widgets.Widget'Class; Event : Pomarine.Widgets.Widget_Event)
    is
       pragma Unreferenced (Source);
    begin
@@ -420,9 +410,7 @@ package body View.Writing is
 
       procedure Away (Shown : in out Readers.Reader) is
       begin
-         if Readers.Is_Assigned (Shown)
-           and then Readers.Tool (Shown) /= Pictures.Pointer
-         then
+         if Readers.Is_Assigned (Shown) and then Readers.Tool (Shown) /= Pictures.Pointer then
             declare
                Box : constant Items.Frame := Readers.Box (Shown);
             begin
@@ -448,17 +436,14 @@ package body View.Writing is
             if (X * Pixels not in Menu.Left .. Menu.Left + Menu.Width
                 or else Y * Pixels not in Menu.Top .. Menu.Top + Menu.Height)
               and then not Widgets.Contains
-                             (Item.Docs.Pages
-                                (Item.Page_View.Menu_Page).Sources_Button,
-                              X * Pixels, Y * Pixels)
+                             (Item.Docs.Pages (Item.Page_View.Menu_Page).Sources_Button, X * Pixels, Y * Pixels)
             then
                Popups.Close_Menu (Item);
             end if;
          end;
       end if;
       if Item.Context.Context_Kind /= No_Context
-        and then not Widgets.Contains
-                       (Item.Context.Context_Menu, X * Pixels, Y * Pixels)
+        and then not Widgets.Contains (Item.Context.Context_Menu, X * Pixels, Y * Pixels)
       then
          Popups.Close_Context (Item);
       end if;
@@ -468,11 +453,13 @@ package body View.Writing is
       Away (Item.Reading.Pane_Reader);
    end Pressed;
 
-   function Until_Copy_Ends (Item : Session) return Integer is (Publish_VM.Copy_Remaining (Item.Publish_View.Options));
+   function Until_Copy_Ends (Item : Session) return Integer
+   is (Publish_VM.Copy_Remaining (Item.Publish_View.Options));
 
    procedure Update (Item : in out Session) is
    begin
-      if Support.In_Writing (Item) and then Section_Links.Changes (Item) /= Item.Section_Menu.Seen
+      if Support.In_Writing (Item)
+        and then Section_Links.Changes (Item) /= Item.Section_Menu.Seen
         and then Item.Dragging.Drag_Row = 0
       then
          --  A document was made one of a section's, or let go, or a
@@ -501,35 +488,23 @@ package body View.Writing is
                    then Item.Docs.Pages (Rank).Text'Unrestricted_Access
                    else null));
                Models.Hold_Typing
-                 (Item.Models (Which),
-                  Rank > 0
-                  and then Widgets.Has_Focus (Item.Docs.Pages (Rank).Text));
+                 (Item.Models (Which), Rank > 0 and then Widgets.Has_Focus (Item.Docs.Pages (Rank).Text));
                if Rank > 0 then
                   declare
                      Busy : constant Boolean :=
-                       Models.Dictation (Item.Models (Which))
-                       in Models.Preparing | Models.Listening;
-                     Mic  : Buttons.Button renames
-                       Item.Docs.Pages (Rank).Mic_Button;
+                       Models.Dictation (Item.Models (Which)) in Models.Preparing | Models.Listening;
+                     Mic  : Buttons.Button renames Item.Docs.Pages (Rank).Mic_Button;
                   begin
                      if Busy /= (Buttons.Label (Mic) = "Stop") then
-                        Buttons.Set_Label
-                          (Mic, (if Busy then "Stop" else "Mic"));
-                        Buttons.Set_Icon
-                          (Mic,
-                           (if Busy then Icon_Set.Stop
-                            else Icon_Set.Microphone));
+                        Buttons.Set_Label (Mic, (if Busy then "Stop" else "Mic"));
+                        Buttons.Set_Icon (Mic, (if Busy then Icon_Set.Stop else Icon_Set.Microphone));
                      end if;
                   end;
                   declare
-                     Hearing : constant Boolean :=
-                       Models.Dictation (Item.Models (Which)) = Models.Listening;
-                     Level   : Progress_Bars.Progress_Bar renames
-                       Item.Docs.Pages (Rank).Level;
+                     Hearing : constant Boolean := Models.Dictation (Item.Models (Which)) = Models.Listening;
+                     Level   : Progress_Bars.Progress_Bar renames Item.Docs.Pages (Rank).Level;
                      Loud    : constant Float :=
-                       (if Hearing
-                        then Float'Rounding (Speech.Jobs.Loudness (Which) * 20.0) / 20.0
-                        else 0.0);
+                       (if Hearing then Float'Rounding (Speech.Jobs.Loudness (Which) * 20.0) / 20.0 else 0.0);
                   begin
                      if Widgets.Is_Visible (Level) /= Hearing then
                         Widgets.Set_Visible (Level, Hearing);
@@ -539,85 +514,61 @@ package body View.Writing is
                      end if;
                   end;
                   declare
-                     Words : constant Natural :=
-                       Models.Words (Item.Models (Which));
+                     Words : constant Natural := Models.Words (Item.Models (Which));
                   begin
                      Labels.Set_Text
                        (Item.Docs.Pages (Rank).Words,
-                        Support.Count_Image (Words)
-                        & (if Words = 1 then " word" else " words"));
+                        Support.Count_Image (Words) & (if Words = 1 then " word" else " words"));
                   end;
-                  Buttons.Set_Badge
-                    (Item.Docs.Pages (Rank).Sources_Button,
-                     Tree.Linked_Sources (Item, Which));
-                  Labels.Set_Text
-                    (Item.Docs.Pages (Rank).Heading,
-                     Support.Title_Of (Item, Which));
+                  Buttons.Set_Badge (Item.Docs.Pages (Rank).Sources_Button, Tree.Linked_Sources (Item, Which));
+                  Labels.Set_Text (Item.Docs.Pages (Rank).Heading, Support.Title_Of (Item, Which));
                   declare
                      Row : constant Natural := Support.Leaf_Row (Item, Which);
                   begin
                      if Row > 0 then
                         Labels.Set_Text
-                          (Item.Docs.Doc_Rows (Row).Count,
-                           Support.Count_Image (Models.Words (Item.Models (Which))));
-                        Labels.Set_Text
-                          (Item.Docs.Doc_Rows (Row).Caption,
-                           Support.Title_Of (Item, Which));
+                          (Item.Docs.Doc_Rows (Row).Count, Support.Count_Image (Models.Words (Item.Models (Which))));
+                        Labels.Set_Text (Item.Docs.Doc_Rows (Row).Caption, Support.Title_Of (Item, Which));
                         if Item.Dragging.Drag_Row = 0 then
-                           Tree.Choose_Row
-                             (Item.Docs.Doc_Rows (Row),
-                              Widgets.Has_Focus (Item.Docs.Pages (Rank).Text));
+                           Tree.Choose_Row (Item.Docs.Doc_Rows (Row), Widgets.Has_Focus (Item.Docs.Pages (Rank).Text));
                         end if;
                      end if;
                   end;
                end if;
             end;
-         elsif Support.Is_Source (Item, Which)
-           and then Readers.Is_Assigned (Item.Reading.Readers (Which))
-         then
+         elsif Support.Is_Source (Item, Which) and then Readers.Is_Assigned (Item.Reading.Readers (Which)) then
             Reader_Windows.Keep_Title (Item, Which, Item.Reading.Readers (Which));
-            Readers.Set_Tag
-              (Item.Reading.Readers (Which), Canvas_Items.Source_Ink (Item,
-                 Which));
+            Readers.Set_Tag (Item.Reading.Readers (Which), Canvas_Items.Source_Ink (Item, Which));
             Readers.Follow_Page (Item.Reading.Readers (Which));
-            Reader_Windows.Keep_Marks
-              (Item, Which, Item.Reading.Readers (Which),
-               Item.Reading.Reader_Sync (Which));
+            Reader_Windows.Keep_Marks (Item, Which, Item.Reading.Readers (Which), Item.Reading.Reader_Sync (Which));
             declare
                Row : constant Natural := Support.Row_Of (Item, Which);
             begin
                if Row > 0 then
                   Widgets.Set_Accessible_Name
                     (Item.Reading.Source_Rows (Row).Row, "Source " & Support.Title_Of (Item, Which));
-                  Labels.Set_Text
-                    (Item.Reading.Source_Rows (Row).Caption,
-                     Support.Title_Of (Item, Which));
+                  Labels.Set_Text (Item.Reading.Source_Rows (Row).Caption, Support.Title_Of (Item, Which));
                end if;
             end;
          end if;
       end loop;
       if Item.Reading.Pinned_Slot /= 0 then
          Reader_Windows.Keep_Title (Item, Item.Reading.Pinned_Slot, Item.Reading.Pane_Reader);
-         Readers.Set_Tag
-           (Item.Reading.Pane_Reader,
-            Canvas_Items.Source_Ink (Item, Item.Reading.Pinned_Slot));
+         Readers.Set_Tag (Item.Reading.Pane_Reader, Canvas_Items.Source_Ink (Item, Item.Reading.Pinned_Slot));
          Readers.Follow_Page (Item.Reading.Pane_Reader);
-         Reader_Windows.Keep_Marks
-           (Item, Item.Reading.Pinned_Slot, Item.Reading.Pane_Reader,
-            Item.Reading.Pane_Sync);
+         Reader_Windows.Keep_Marks (Item, Item.Reading.Pinned_Slot, Item.Reading.Pane_Reader, Item.Reading.Pane_Sync);
       end if;
    end Update;
 
    procedure Move (Item : in out Session; From, To : Positive) renames Moves.Move_Page;
 
-   procedure Move_To_Directory
-     (Item : in out Session; Rank : Positive; Directory : Natural) renames Moves.Move_Page_To_Directory;
+   procedure Move_To_Directory (Item : in out Session; Rank : Positive; Directory : Natural)
+   renames Moves.Move_Page_To_Directory;
 
-   procedure Open_Context
-     (Item : in out Session; X, Y : Float; Opened : out Boolean) renames Context.Open_At;
+   procedure Open_Context (Item : in out Session; X, Y : Float; Opened : out Boolean) renames Context.Open_At;
 
-   procedure Delete_Node
-     (Item : in out Session; Node : Tree_Entry; Delete_Documents : Boolean := False) renames Context.Delete_Tree_Node;
+   procedure Delete_Node (Item : in out Session; Node : Tree_Entry; Delete_Documents : Boolean := False)
+   renames Context.Delete_Tree_Node;
 
    procedure Make_Directory (Item : in out Session; Name : String) renames Rename.New_Directory;
 

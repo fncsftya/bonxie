@@ -1,5 +1,6 @@
 with Items.Readers;
 --  The windows of the sources here: made, pinned, opened, and their highlights kept.
+
 private package View.Writing.Reader_Windows is
 
    package Readers renames Items.Readers;
@@ -20,15 +21,11 @@ private package View.Writing.Reader_Windows is
    --  A source's row was clicked: open its window, or close it.
 
    procedure Keep_Marks
-     (Item  : in out Session;
-      Which : Items.Slot;
-      Shown : in out Readers.Reader;
-      Sync  : in out Sync_State);
+     (Item : in out Session; Which : Items.Slot; Shown : in out Readers.Reader; Sync : in out Sync_State);
    --  Make the highlights of the source's window here and on the canvas
    --  the same, whichever was marked.
 
-   procedure Keep_Title
-     (Item : Session; Which : Items.Slot; Shown : in out Readers.Reader);
+   procedure Keep_Title (Item : Session; Which : Items.Slot; Shown : in out Readers.Reader);
    --  Make the window's title that of the source.
 
 end View.Writing.Reader_Windows;

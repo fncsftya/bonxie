@@ -2,6 +2,7 @@ with Ada.Strings.Unbounded;
 
 --  Text a person types or chooses (a title, a note, a path), kept whole: it
 --  has no length it is cut at.
+
 package Long_Texts is
 
    subtype Text is Ada.Strings.Unbounded.Unbounded_String;

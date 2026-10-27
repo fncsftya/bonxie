@@ -10,14 +10,14 @@ package body Home_VM.Stored is
       Self.Store := Store.all'Unrestricted_Access;
    end Open;
 
-   overriding procedure Recent (Self : in out Projects_Kept; Into : out Projects.Recent_List) is
+   overriding
+   procedure Recent (Self : in out Projects_Kept; Into : out Projects.Recent_List) is
    begin
       Projects.Recent (Self.Store.all, Into);
    end Recent;
 
-   overriding procedure Count_Items
-     (Self : in out Projects_Kept; Key : Projects.Id; Documents, Sources : out Natural)
-   is
+   overriding
+   procedure Count_Items (Self : in out Projects_Kept; Key : Projects.Id; Documents, Sources : out Natural) is
       Found : Items.Info_List;
    begin
       Documents := 0;
@@ -32,12 +32,14 @@ package body Home_VM.Stored is
       end loop;
    end Count_Items;
 
-   overriding procedure Rename (Self : in out Projects_Kept; Key : Projects.Id; Words : String) is
+   overriding
+   procedure Rename (Self : in out Projects_Kept; Key : Projects.Id; Words : String) is
    begin
       Projects.Rename (Self.Store.all, Key, Words);
    end Rename;
 
-   overriding procedure Delete (Self : in out Projects_Kept; Key : Projects.Id) is
+   overriding
+   procedure Delete (Self : in out Projects_Kept; Key : Projects.Id) is
    begin
       Projects.Delete (Self.Store.all, Key);
    end Delete;

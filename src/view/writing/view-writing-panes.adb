@@ -28,8 +28,10 @@ package body View.Writing.Panes is
       Moved : constant Boolean := Item.Dragging.Dropped_Moved;
    begin
       Item.Dragging.Dropped_Moved := False;
-      if not Support.In_Writing (Item) or else Row > Trees.Count (Item.Docs.Ordering)
-        or else Moved or else Item.Dragging.Drag_Row /= 0
+      if not Support.In_Writing (Item)
+        or else Row > Trees.Count (Item.Docs.Ordering)
+        or else Moved
+        or else Item.Dragging.Drag_Row /= 0
       then
          return;
       end if;
@@ -37,13 +39,15 @@ package body View.Writing.Panes is
          Node : constant Tree_Entry := Trees.Element (Item.Docs.Ordering, Row);
       begin
          case Node.Kind is
-            when Overview_Node =>
+            when Overview_Node  =>
                Tree.Show_Directory (Item, 0);
+
             when Directory_Node =>
                if Naming_VM.Directory (Item.Naming.Names) /= Node.Dir then
                   Tree.Show_Directory (Item, Node.Dir);
                end if;
-            when Document_Leaf =>
+
+            when Document_Leaf  =>
                Tree.Show_Page (Item, Node.Doc);
          end case;
       end;
@@ -84,8 +88,7 @@ package body View.Writing.Panes is
       end if;
    end Source_Field_Ended;
 
-   procedure Sidebar_Dragged
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
+   procedure Sidebar_Dragged (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
    is
       pragma Unreferenced (Source);
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
@@ -97,9 +100,11 @@ package body View.Writing.Panes is
                 (Style.Sidebar_Least,
                  Float'Min
                    (Style.Sidebar_Most,
-                    Widgets.Width_Of (Item.Page_View.Write_View) / Pixels
+                    Widgets.Width_Of (Item.Page_View.Write_View)
+                    / Pixels
                     - (if Item.Reading.Pinned_Slot /= 0 then Item.Page_View.Pane_Wide else 0.0)
-                    - Style.Page_Min_Width - 2.0 * Style.Page_Margin));
+                    - Style.Page_Min_Width
+                    - 2.0 * Style.Page_Margin));
          begin
             Item.Page_View.Sidebar_Wide :=
               Float'Min (Most, Float'Max (Style.Sidebar_Least, Item.Page_View.Sidebar_Wide + Event.Across));
@@ -144,7 +149,8 @@ package body View.Writing.Panes is
       Widgets.Set_Visible (Pane.Sources_Scroll, Sidebar_VM.Is_Open (Pane.Folding, Sidebar_VM.Sources));
       --  The divider is between two lists that are both there.
       Widgets.Set_Visible
-        (Pane.Sources_Edge, Sidebar_VM.Is_Open (Pane.Folding, Sidebar_VM.Documents)
+        (Pane.Sources_Edge,
+         Sidebar_VM.Is_Open (Pane.Folding, Sidebar_VM.Documents)
          and then Sidebar_VM.Is_Open (Pane.Folding, Sidebar_VM.Sources));
    end Fit_Sections;
 
@@ -157,11 +163,11 @@ package body View.Writing.Panes is
    begin
       if Support.In_Writing (Item) and then Event.Down /= 0.0 then
          declare
-            Current : constant Float := Widgets.Height_Of (Pane.Docs_Scroll) / Pixels;
+            Current   : constant Float := Widgets.Height_Of (Pane.Docs_Scroll) / Pixels;
             Available : constant Float := Current + Widgets.Height_Of (Pane.Sources_Scroll) / Pixels;
-            Minimum : constant Float := Float'Min (2.0 * Style.Index_Pitch, Available / 2.0);
-            Maximum : constant Float := Available - Minimum;
-            Wanted : constant Float := Float'Max (Minimum, Float'Min (Maximum, Current + Event.Down));
+            Minimum   : constant Float := Float'Min (2.0 * Style.Index_Pitch, Available / 2.0);
+            Maximum   : constant Float := Available - Minimum;
+            Wanted    : constant Float := Float'Max (Minimum, Float'Min (Maximum, Current + Event.Down));
          begin
             pragma Assert (Available >= 0.0 and then Minimum <= Maximum);
             --  Fix the space above the divider; Sources takes the remainder.
@@ -172,9 +178,7 @@ package body View.Writing.Panes is
       end if;
    end Sources_Edge_Dragged;
 
-   procedure Pane_Dragged
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
-   is
+   procedure Pane_Dragged (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event) is
       pragma Unreferenced (Source);
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
    begin
@@ -183,13 +187,14 @@ package body View.Writing.Panes is
             Most : constant Float :=
               Float'Max
                 (Style.Pane_Least,
-                 Widgets.Width_Of (Item.Page_View.Write_View) / Pixels
-                 - Item.Page_View.Sidebar_Wide - 2.0 * Style.Sidebar_Margin
+                 Widgets.Width_Of (Item.Page_View.Write_View)
+                 / Pixels
+                 - Item.Page_View.Sidebar_Wide
+                 - 2.0 * Style.Sidebar_Margin
                  - Style.Page_Min_Width);
          begin
             Item.Page_View.Pane_Wide :=
-              Float'Min (Most, Float'Max (Style.Pane_Least,
-                                          Item.Page_View.Pane_Wide - Event.Across));
+              Float'Min (Most, Float'Max (Style.Pane_Least, Item.Page_View.Pane_Wide - Event.Across));
             Layouts.Set_Layout (Item.Page_View.Pane, Width => Layouts.Length_Of (Item.Page_View.Pane_Wide));
          end;
       end if;
@@ -198,12 +203,9 @@ package body View.Writing.Panes is
    procedure Page_Title_Double_Clicked (Item : in out Session; Rank : Positive) is
       Each : Doc_Page renames Item.Docs.Pages (Rank);
    begin
-      if Support.In_Writing (Item) and then not Naming_VM.Is_Titling (Item.Naming.Names, Rank)
-        and then Each.Bound /= 0
+      if Support.In_Writing (Item) and then not Naming_VM.Is_Titling (Item.Naming.Names, Rank) and then Each.Bound /= 0
       then
-         Text_Fields.Attach
-           (Each.Title_Field,
-            Models.Title_Document (Item.Models (Each.Bound)));
+         Text_Fields.Attach (Each.Title_Field, Models.Title_Document (Item.Models (Each.Bound)));
          Naming_VM.Begin_Title (Item.Naming.Names, Rank);
          Widgets.Set_Visible (Each.Heading_Area, False);
          --  The press that began it is not let go on what is hidden.
@@ -224,10 +226,7 @@ package body View.Writing.Panes is
       end if;
    end Page_Title_Ended;
 
-   procedure Reader_Asked
-     (Item   : in out Session;
-      Which  : Natural;
-      Action : Readers.Actions) is
+   procedure Reader_Asked (Item : in out Session; Which : Natural; Action : Readers.Actions) is
    begin
       if not Support.In_Writing (Item) then
          return;
@@ -236,10 +235,12 @@ package body View.Writing.Panes is
          case Action is
             when Readers.None | Readers.Visit =>
                null;
-            when Readers.Close =>
+
+            when Readers.Close                =>
                Readers.Set_State (Item.Reading.Readers (Which), Items.Closed);
                Tree.Refresh (Item);
-            when Readers.Toggle_Pin =>
+
+            when Readers.Toggle_Pin           =>
                Reader_Windows.Pin (Item, Which);
                Tree.Refresh (Item);
          end case;
@@ -247,10 +248,12 @@ package body View.Writing.Panes is
          case Action is
             when Readers.None | Readers.Visit =>
                null;
-            when Readers.Close =>
+
+            when Readers.Close                =>
                Reader_Windows.Unpin (Item, Reopen => False);
                Tree.Refresh (Item);
-            when Readers.Toggle_Pin =>
+
+            when Readers.Toggle_Pin           =>
                Reader_Windows.Unpin (Item, Reopen => True);
                Tree.Refresh (Item);
          end case;

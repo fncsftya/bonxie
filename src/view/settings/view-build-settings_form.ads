@@ -1,4 +1,5 @@
 --  The settings.
+
 private package View.Build.Settings_Form is
 
    procedure Build_Settings (Item : in out Session);

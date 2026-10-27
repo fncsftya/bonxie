@@ -22,8 +22,7 @@ package body View.Writing.Popups is
    procedure Close_Menu (Item : in out Session) is
    begin
       if Item.Page_View.Menu_Page /= 0 then
-         Buttons.Set_Selected
-           (Item.Docs.Pages (Item.Page_View.Menu_Page).Sources_Button, False);
+         Buttons.Set_Selected (Item.Docs.Pages (Item.Page_View.Menu_Page).Sources_Button, False);
       end if;
       Item.Page_View.Menu_Page := 0;
       Widgets.Set_Visible (Item.Page_View.Menu, False);
@@ -51,13 +50,12 @@ package body View.Writing.Popups is
       return Heading_Words & Shown;
    end Heading_For;
 
-   function Add_Row (Item : Session) return Positive is
-     (Rows_Before + Natural'Max (1, Item.Page_View.Menu_Count) + 2);
+   function Add_Row (Item : Session) return Positive
+   is (Rows_Before + Natural'Max (1, Item.Page_View.Menu_Count) + 2);
 
    procedure Open_Menu (Item : in out Session; Rank : Positive) is
       Which_Doc : constant Items.Slot := Trees.Page_At (Item.Docs.Ordering, Rank);
-      Key : constant Items.Id :=
-        Models.Details (Item.Models (Which_Doc)).Key;
+      Key       : constant Items.Id := Models.Details (Item.Models (Which_Doc)).Key;
    begin
       if Item.Page_View.Menu_Page = Rank then
          Close_Menu (Item);
@@ -65,24 +63,22 @@ package body View.Writing.Popups is
       end if;
       Close_Menu (Item);
       declare
-         Content : Rows.Content :=
-           [Rows.Row (Menus.Heading, Heading_For (Support.Title_Of (Item, Which_Doc)))];
+         Content : Rows.Content := [Rows.Row (Menus.Heading, Heading_For (Support.Title_Of (Item, Which_Doc)))];
       begin
          Item.Page_View.Menu_Count := 0;
          for Row in 1 .. Writing_Sources_VM.Count (Item.Reading.Sources) loop
             declare
                Which : constant Items.Slot := Writing_Sources_VM.Slot_At (Item.Reading.Sources, Row);
             begin
-               if Items.Links.Is_Linked
-                    (Item.Nav.Store, Key,
-                     Models.Details (Item.Models (Which)).Key)
-               then
+               if Items.Links.Is_Linked (Item.Nav.Store, Key, Models.Details (Item.Models (Which)).Key) then
                   Item.Page_View.Menu_Count := Item.Page_View.Menu_Count + 1;
                   Item.Page_View.Menu_Slots (Item.Page_View.Menu_Count) := Which;
                   Content.Append
-                    (Rows.Row (Menus.Check, Support.Title_Of (Item, Which),
-                               Checked => Item.Reading.Pinned_Slot = Which,
-                               Swatch => Canvas_Items.Source_Ink (Item, Which)));
+                    (Rows.Row
+                       (Menus.Check,
+                        Support.Title_Of (Item, Which),
+                        Checked => Item.Reading.Pinned_Slot = Which,
+                        Swatch  => Canvas_Items.Source_Ink (Item, Which)));
                end if;
             end;
          end loop;

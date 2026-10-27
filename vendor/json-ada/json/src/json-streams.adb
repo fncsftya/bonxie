@@ -24,10 +24,10 @@ package body JSON.Streams is
    use type AS.Stream_Element_Offset;
 
    function Has_Buffered_Character (Object : Stream) return Boolean
-     is (Object.Next_Character /= Ada.Characters.Latin_1.NUL);
+   is (Object.Next_Character /= Ada.Characters.Latin_1.NUL);
 
-   function At_End (Object : Stream) return Boolean is
-     (not Object.Has_Buffered_Character and then Object.Index > Object.Bytes'Last);
+   function At_End (Object : Stream) return Boolean
+   is (not Object.Has_Buffered_Character and then Object.Index > Object.Bytes'Last);
 
    procedure Read_Character (Object : in out Stream; Result : out Character) is
    begin
@@ -43,11 +43,7 @@ package body JSON.Streams is
       end if;
    end Read_Character;
 
-   procedure Read_Character
-     (Object : in out Stream;
-      Index  : out AS.Stream_Element_Offset;
-      Result : out Character)
-   is
+   procedure Read_Character (Object : in out Stream; Index : out AS.Stream_Element_Offset; Result : out Character) is
    begin
       Index := Object.Index;
       if Object.Has_Buffered_Character then
@@ -62,10 +58,7 @@ package body JSON.Streams is
       end if;
    end Read_Character;
 
-   procedure Read_String_Span
-     (Object : in out Stream;
-      Length : out AS.Stream_Element_Offset)
-   is
+   procedure Read_String_Span (Object : in out Stream; Length : out AS.Stream_Element_Offset) is
       Bytes : constant not null Stream_Element_Array_Access := Object.Bytes;
       First : constant AS.Stream_Element_Offset := Object.Index;
       Index : AS.Stream_Element_Offset := First;
@@ -89,44 +82,33 @@ package body JSON.Streams is
       Object.Next_Character := Next;
    end Write_Character;
 
-   function Is_Equal_String
-     (Object : Stream;
-      Offset, Length : AS.Stream_Element_Offset;
-      Value : String) return Boolean
+   function Is_Equal_String (Object : Stream; Offset, Length : AS.Stream_Element_Offset; Value : String) return Boolean
    is
       subtype Constrained_String is String (1 .. Integer (Length));
 
-      function Convert is new Ada.Unchecked_Conversion
-        (Source => AS.Stream_Element_Array, Target => Constrained_String);
+      function Convert is new
+        Ada.Unchecked_Conversion (Source => AS.Stream_Element_Array, Target => Constrained_String);
    begin
       return Value = Convert (Object.Bytes (Offset .. Offset + Length - 1));
    end Is_Equal_String;
 
-   function Get_String
-     (Object : Stream;
-      Offset, Length : AS.Stream_Element_Offset) return String
-   is
+   function Get_String (Object : Stream; Offset, Length : AS.Stream_Element_Offset) return String is
       subtype Constrained_String is String (1 .. Integer (Length));
 
-      function Convert is new Ada.Unchecked_Conversion
-        (Source => AS.Stream_Element_Array, Target => Constrained_String);
+      function Convert is new
+        Ada.Unchecked_Conversion (Source => AS.Stream_Element_Array, Target => Constrained_String);
    begin
       return Convert (Object.Bytes (Offset .. Offset + Length - 1));
    end Get_String;
 
-   function Create_Stream
-     (Bytes : not null Stream_Element_Array_Access) return Stream is
+   function Create_Stream (Bytes : not null Stream_Element_Array_Access) return Stream is
    begin
-      return (Bytes          => Bytes,
-              Next_Character => Ada.Characters.Latin_1.NUL,
-              Index          => Bytes'First);
+      return (Bytes => Bytes, Next_Character => Ada.Characters.Latin_1.NUL, Index => Bytes'First);
    end Create_Stream;
 
    -----------------------------------------------------------------------------
 
-   function From_File
-     (File_Name : String) return Stream_Element_Array_Access
-   is
+   function From_File (File_Name : String) return Stream_Element_Array_Access is
       package IO renames AS.Stream_IO;
 
       File : IO.File_Type;
@@ -135,8 +117,7 @@ package body JSON.Streams is
 
       begin
          declare
-            subtype Byte_Array is AS.Stream_Element_Array
-              (1 .. AS.Stream_Element_Offset (IO.Size (File)));
+            subtype Byte_Array is AS.Stream_Element_Array (1 .. AS.Stream_Element_Offset (IO.Size (File)));
             Content : constant not null Stream_Element_Array_Access := new Byte_Array;
          begin
             Byte_Array'Read (IO.Stream (File), Content.all);
@@ -150,13 +131,10 @@ package body JSON.Streams is
       end;
    end From_File;
 
-   function From_Text
-     (Text : String) return Stream_Element_Array_Access
-   is
+   function From_Text (Text : String) return Stream_Element_Array_Access is
       subtype Constrained_SEA is AS.Stream_Element_Array (1 .. Text'Length);
 
-      function Convert is new Ada.Unchecked_Conversion
-        (Source => String, Target => Constrained_SEA);
+      function Convert is new Ada.Unchecked_Conversion (Source => String, Target => Constrained_SEA);
 
       Content : constant Stream_Element_Array_Access := new Constrained_SEA'(Convert (Text));
    begin

@@ -27,25 +27,25 @@ package body View.Settings_View is
 
    package Model_Parts renames Settings_VM.Parts;
 
-   function Downloading (Item : Session) return Boolean is
-     (Settings_VM.Is_Showing (Item.Choices.Model)
-      and then Settings_VM.Download_State (Item.Choices.Model) = Speech.Models.Running);
+   function Downloading (Item : Session) return Boolean
+   is (Settings_VM.Is_Showing (Item.Choices.Model)
+       and then Settings_VM.Download_State (Item.Choices.Model) = Speech.Models.Running);
 
-   function Choice_Of (Mode : Preferences.Background_Modes) return Natural is
-     (Preferences.Background_Modes'Pos (Mode));
+   function Choice_Of (Mode : Preferences.Background_Modes) return Natural
+   is (Preferences.Background_Modes'Pos (Mode));
 
-   function Style_Of (Mode : Preferences.Pictures) return Backgrounds.Styles is
-     (Backgrounds.Styles'Val (Preferences.Background_Modes'Pos (Mode) - 1));
+   function Style_Of (Mode : Preferences.Pictures) return Backgrounds.Styles
+   is (Backgrounds.Styles'Val (Preferences.Background_Modes'Pos (Mode) - 1));
 
    --  How much of the picture's hue the greys take: the style's, and as bold as the seed's colours.
-   function Tint_Of (Item : Session; Picture : Backgrounds.Styles) return Float is
-     (Backgrounds.Tint_Strength (Picture, Backgrounds.Mood (Item.Host.Background)));
+   function Tint_Of (Item : Session; Picture : Backgrounds.Styles) return Float
+   is (Backgrounds.Tint_Strength (Picture, Backgrounds.Mood (Item.Host.Background)));
 
    --  The cards of backgrounds: each a picture of a window drawn the way it would be, the chosen one
    --  outlined in the accent, with a shadow.
    procedure Show_Backgrounds (Item : in out Session) is
-      Prefs : Settings_Parts renames Item.Prefs;
-      Dark  : constant Boolean := Item.Choices.Dark_Shown;
+      Prefs  : Settings_Parts renames Item.Prefs;
+      Dark   : constant Boolean := Item.Choices.Dark_Shown;
       Picked : constant Preferences.Background_Modes := Settings_VM.Background (Item.Choices.Model);
    begin
       for Mode in Preferences.Background_Modes loop
@@ -65,9 +65,9 @@ package body View.Settings_View is
                   Card.Sample.Painting := Item.Host.Background'Unchecked_Access;
                   Card.Sample.Style := Picture;
                   Backgrounds.Set_Look
-                    (Card.Sample, Dark,
-                     View.Style.Make
-                       (Dark, Backgrounds.Hue (Item.Host.Background, Picture), Tint_Of (Item, Picture)));
+                    (Card.Sample,
+                     Dark,
+                     View.Style.Make (Dark, Backgrounds.Hue (Item.Host.Background, Picture), Tint_Of (Item, Picture)));
                end;
             end if;
          end;
@@ -79,12 +79,12 @@ package body View.Settings_View is
    procedure Reveal_Background (Item : in out Session) is
       Prefs : Settings_Parts renames Item.Prefs;
       Pitch : constant Float := View.Style.Background_Card_Width + View.Style.Gap;
-      Left  : constant Float :=
-        Float (Choice_Of (Settings_VM.Background (Item.Choices.Model))) * Pitch;
+      Left  : constant Float := Float (Choice_Of (Settings_VM.Background (Item.Choices.Model))) * Pitch;
       Room  : constant Float := Widgets.Width_Of (Prefs.Background_Scroll) / Widgets.Density (Prefs.Background_Scroll);
       Moved : constant Float := Scrollers.Offset (Prefs.Background_Scroll);
    begin
-      if Widgets.Is_Attached (Prefs.Background_Scroll) and then Room > 0.0
+      if Widgets.Is_Attached (Prefs.Background_Scroll)
+        and then Room > 0.0
         and then (Left < Moved or else Left + View.Style.Background_Card_Width > Moved + Room)
       then
          Scrollers.Scroll_To (Prefs.Background_Scroll, Float'Max (0.0, Left - View.Style.Gap));
@@ -108,7 +108,8 @@ package body View.Settings_View is
       Draw (Item);
    end Refresh;
 
-   function Showing (Item : Session) return Boolean is (Settings_VM.Is_Showing (Item.Choices.Model));
+   function Showing (Item : Session) return Boolean
+   is (Settings_VM.Is_Showing (Item.Choices.Model));
 
    procedure Show_Form (Item : in out Session) is
    begin
@@ -140,15 +141,12 @@ package body View.Settings_View is
 
    --  The view-model does what is chosen and, as Settings_VM.Effects, says Done: what the world does is there.
 
-   procedure Choose
-     (Item : in out Session; To : Preferences.Speech_Models) is
+   procedure Choose (Item : in out Session; To : Preferences.Speech_Models) is
    begin
-      Settings_VM.Execute
-        (Item.Choices.Model, Settings_VM.Choose_Speech_Model, Preferences.Speech_Models'Pos (To));
+      Settings_VM.Execute (Item.Choices.Model, Settings_VM.Choose_Speech_Model, Preferences.Speech_Models'Pos (To));
    end Choose;
 
-   procedure Choose_Appearance
-     (Item : in out Session; To : Preferences.Theme_Choices) is
+   procedure Choose_Appearance (Item : in out Session; To : Preferences.Theme_Choices) is
    begin
       Settings_VM.Execute (Item.Choices.Model, Settings_VM.Choose_Theme, Preferences.Theme_Choices'Pos (To));
    end Choose_Appearance;
@@ -160,8 +158,7 @@ package body View.Settings_View is
       end if;
    end Choose_VSync;
 
-   procedure Choose_Background
-     (Item : in out Session; To : Preferences.Background_Modes) is
+   procedure Choose_Background (Item : in out Session; To : Preferences.Background_Modes) is
    begin
       Settings_VM.Execute (Item.Choices.Model, Settings_VM.Choose_Background, Choice_Of (To));
    end Choose_Background;
@@ -173,23 +170,23 @@ package body View.Settings_View is
    end New_Picture_Seed;
 
    procedure Apply_Theme (Item : in out Session) is
-      Dark : constant Boolean :=
+      Dark     : constant Boolean :=
         (case Settings_VM.Theme (Item.Choices.Model) is
-            when Preferences.Light  => False,
-            when Preferences.Dark   => True,
-            when Preferences.System => Pomarine.Events.System_Is_Dark);
-      Mode : constant Preferences.Background_Modes := Settings_VM.Background (Item.Choices.Model);
+           when Preferences.Light  => False,
+           when Preferences.Dark   => True,
+           when Preferences.System => Pomarine.Events.System_Is_Dark);
+      Mode     : constant Preferences.Background_Modes := Settings_VM.Background (Item.Choices.Model);
       --  Only a window has a painting to go with; offscreen, it is the theme's own colours.
       Adaptive : constant Boolean :=
-        Mode in Preferences.Pictures and then Item.Shell.Windowed
+        Mode in Preferences.Pictures
+        and then Item.Shell.Windowed
         and then Backgrounds.Available (Item.Host.Background, Style_Of (Mode));
    begin
       if Adaptive then
          declare
             Picture : constant Backgrounds.Styles := Style_Of (Mode);
          begin
-            View.Style.Use_Adaptive
-              (Dark, Backgrounds.Hue (Item.Host.Background, Picture), Tint_Of (Item, Picture));
+            View.Style.Use_Adaptive (Dark, Backgrounds.Hue (Item.Host.Background, Picture), Tint_Of (Item, Picture));
             Item.Root.Window_Panel.Style := Picture;
          end;
          Item.Root.Window_Panel.Painting := Item.Host.Background'Unchecked_Access;
@@ -198,7 +195,8 @@ package body View.Settings_View is
          Item.Root.Window_Panel.Painting := null;
       end if;
       Item.Canvas_View.Transparent := Adaptive;
-      if Dark /= Item.Choices.Dark_Shown or else Adaptive /= Item.Choices.Adaptive_Shown
+      if Dark /= Item.Choices.Dark_Shown
+        or else Adaptive /= Item.Choices.Adaptive_Shown
         or else Mode /= Item.Choices.Mode_Shown
       then
          Item.Choices.Dark_Shown := Dark;
@@ -228,30 +226,34 @@ package body View.Settings_View is
    procedure Done (Item : in out Session; What : Settings_VM.Command) is
    begin
       case What is
-         when Settings_VM.Choose_Theme =>
+         when Settings_VM.Choose_Theme                                                                =>
             Apply_Theme (Item);
             if Showing (Item) then
                Refresh (Item);
             end if;
-         when Settings_VM.Choose_Background =>
+
+         when Settings_VM.Choose_Background                                                           =>
             Apply_Theme (Item);
             if Showing (Item) then
                Refresh (Item);
                Reveal_Background (Item);
             end if;
+
          when Settings_VM.Choose_Speech_Model | Settings_VM.Download_Model | Settings_VM.Delete_Model =>
             if Showing (Item) then
                Refresh (Item);
                Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
             end if;
-         when Settings_VM.Toggle_VSync =>
+
+         when Settings_VM.Toggle_VSync                                                                =>
             if Item.Shell.Windowed then
                SDL3.Windows.Renderers.Set_VSync (Item.Host.Target, Settings_VM.VSync (Item.Choices.Model));
             end if;
             if Showing (Item) then
                Refresh (Item);
             end if;
-         when Settings_VM.Reseed | Settings_VM.New_Picture =>
+
+         when Settings_VM.Reseed | Settings_VM.New_Picture                                            =>
             Apply_Theme (Item);
             Widgets.Invalidate_All (Item.Root.Widgets);
             if Showing (Item) then
@@ -260,15 +262,15 @@ package body View.Settings_View is
                   Reveal_Background (Item);
                end if;
             end if;
-         when others =>
+
+         when others                                                                                  =>
             null;
       end case;
    end Done;
 
    procedure Confirm_Delete (Item : in out Session; Size : String) is
    begin
-      Deletion.Confirm_Model
-        (Item, "Its " & Size & " of files go; they can be downloaded again.");
+      Deletion.Confirm_Model (Item, "Its " & Size & " of files go; they can be downloaded again.");
    end Confirm_Delete;
 
    procedure Delete_Files (Item : in out Session) is
@@ -293,16 +295,13 @@ package body View.Settings_View is
 
    procedure Fit (Item : in out Session) is
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
-      Room   : constant Float :=
-        Widgets.Width_Of (Item.Prefs.Settings_Content) / Pixels
-        - 2.0 * Style.Page_Margin;
-      Wide   : constant Float :=
-        Float'Max (Style.Page_Min_Width, Float'Min (Style.Page_Width, Room));
+      Room   : constant Float := Widgets.Width_Of (Item.Prefs.Settings_Content) / Pixels - 2.0 * Style.Page_Margin;
+      Wide   : constant Float := Float'Max (Style.Page_Min_Width, Float'Min (Style.Page_Width, Room));
    begin
       if Wide /= Item.Prefs.Form_Wide then
          Item.Prefs.Form_Wide := Wide;
-         Pomarine.Widgets.Layouts.Set_Layout (Item.Prefs.Settings_Form,
-                                              Width => Pomarine.Widgets.Layouts.Length_Of (Wide));
+         Pomarine.Widgets.Layouts.Set_Layout
+           (Item.Prefs.Settings_Form, Width => Pomarine.Widgets.Layouts.Length_Of (Wide));
       end if;
    end Fit;
 

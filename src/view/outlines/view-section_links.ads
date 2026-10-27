@@ -7,15 +7,16 @@ with View.Outlines;
 --  canvas, and in a document's bar in the writing view, opens a menu of
 --  the sections: each has a colour, shown where the item is, and is faint
 --  if another item has it. What is chosen is kept in the database.
+
 private package View.Section_Links is
 
    function Section_Of (Item : Session; Which : Items.Slot) return Natural
-     with Pre => Items.Windows.Is_Assigned (Item.Windows (Which));
+   with Pre => Items.Windows.Is_Assigned (Item.Windows (Which));
    --  The place in the outline, from 1, of the section the item of the
    --  window is the own of; 0 if it is of none.
 
    function Ink_Of (Item : Session; Section : Positive) return Pomarine.Themes.Slot
-     with Pre => Section <= Outlines.Section_Count (Item);
+   with Pre => Section <= Outlines.Section_Count (Item);
    --  The colour of the section, in the theme.
 
    procedure Open_Page_Menu (Item : in out Session; Rank : Positive);
@@ -26,19 +27,18 @@ private package View.Section_Links is
    --  Whether the menu is shown.
 
    procedure Open (Item : in out Session; Which : Items.Slot; Page : Natural := 0)
-     with Pre => Items.Windows.Is_Assigned (Item.Windows (Which));
+   with Pre => Items.Windows.Is_Assigned (Item.Windows (Which));
    --  Show the menu for the item, by its button: that of the window on the
    --  canvas, or, with Page (from 1), that of the page of the writing view.
    --  If it is shown for the item already, put it away.
 
    procedure Link_To (Item : in out Session; Which : Items.Slot; Section : Positive)
-     with Pre => Items.Windows.Is_Assigned (Item.Windows (Which))
-                 and then Section <= Outlines.Section_Count (Item);
+   with Pre => Items.Windows.Is_Assigned (Item.Windows (Which)) and then Section <= Outlines.Section_Count (Item);
    --  Make the item one of the section's, as choosing it in the menu
    --  does: it is called as the section if it has no name of its own.
 
    procedure Joined (Item : in out Session; Which : Items.Slot)
-     with Pre => Items.Windows.Is_Assigned (Item.Windows (Which));
+   with Pre => Items.Windows.Is_Assigned (Item.Windows (Which));
    --  The item has been put in a section's folder: read what is kept, and
    --  call it as the section if it has no name of its own.
 
@@ -48,14 +48,14 @@ private package View.Section_Links is
    --  The rows of the menu: the heading, a box for each section, and so on.
 
    function Row_Enabled (Item : Session; Row : Positive) return Boolean
-     with Pre => Row <= Row_Count (Item);
+   with Pre => Row <= Row_Count (Item);
    function Row_Checked (Item : Session; Row : Positive) return Boolean
-     with Pre => Row <= Row_Count (Item);
+   with Pre => Row <= Row_Count (Item);
    --  Whether a row can be chosen (a section that another item has cannot),
    --  and whether it is ticked (the item's own).
 
    procedure Choose (Item : in out Session; Row : Positive)
-     with Pre => Is_Showing (Item);
+   with Pre => Is_Showing (Item);
    --  As clicking the row does.
 
    procedure Update (Item : in out Session);

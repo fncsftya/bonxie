@@ -1,4 +1,5 @@
 --  Finding the words of a source's picture, and showing a page of its document.
+
 private package View.Canvas_Items.Recognition is
 
    procedure Start_Recognition (Item : in out Session; Which : Items.Slot);
@@ -15,16 +16,11 @@ private package View.Canvas_Items.Recognition is
    --  there are none (it was made before they were kept, or the program
    --  stopped before they were found), find them.
 
-   procedure Name_From_Page
-     (Item : in out Session; Which : Items.Slot; Heading : String);
+   procedure Name_From_Page (Item : in out Session; Which : Items.Slot; Heading : String);
    --  Give a source still called Untitled_Source the title of its page,
    --  or of its document.
 
-   procedure Show_Page
-     (Item  : in out Session;
-      Which : Items.Slot;
-      Page  : Positive;
-      Heading : String := "");
+   procedure Show_Page (Item : in out Session; Which : Items.Slot; Page : Positive; Heading : String := "");
    --  Draw the page of the window's source's document, as its picture,
    --  and find the words in it.
 

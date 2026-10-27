@@ -12,7 +12,8 @@ package body Harper is
       Last               : C.unsigned;
       Replacement_Length : C.unsigned;
       Replacement        : C.char_array (0 .. Max_Replacement - 1);
-   end record with Convention => C;
+   end record
+   with Convention => C;
    type C_Edits is array (1 .. Max_Suggestions) of C_Edit with Convention => C;
 
    type C_Lint is record
@@ -26,25 +27,24 @@ package body Harper is
       Suggestion_Count      : C.unsigned;
       Suggestions_Truncated : C.unsigned;
       Suggestions           : C_Edits;
-   end record with Convention => C;
+   end record
+   with Convention => C;
    type C_Lints is array (1 .. Max_Lints) of C_Lint with Convention => C;
 
    type C_Result is record
       Count     : C.unsigned;
       Truncated : C.unsigned;
       Lints     : C_Lints;
-   end record with Convention => C;
+   end record
+   with Convention => C;
 
    function Check
-     (Text     : System.Address;
-      Length   : C.unsigned;
-      Language : C.unsigned;
-      Format   : C.unsigned;
-      Value    : System.Address) return C.unsigned
-     with Import, Convention => C, External_Name => "bonxie_harper_check";
+     (Text : System.Address; Length : C.unsigned; Language : C.unsigned; Format : C.unsigned; Value : System.Address)
+      return C.unsigned
+   with Import, Convention => C, External_Name => "bonxie_harper_check";
 
    function Words (Text : C.char_array; Length : C.unsigned) return String
-     with Pre => Length <= C.unsigned (Text'Length);
+   with Pre => Length <= C.unsigned (Text'Length);
 
    function Words (Text : C.char_array; Length : C.unsigned) return String is
    begin
@@ -54,12 +54,7 @@ package body Harper is
       return C.To_Ada (Text (0 .. C.size_t (Length) - 1), Trim_Nul => False);
    end Words;
 
-   procedure Perform
-     (Text     : String;
-      Language : Dialect;
-      Format   : Text_Format;
-      Value    : in out Check_Result)
-   is
+   procedure Perform (Text : String; Language : Dialect; Format : Text_Format; Value : in out Check_Result) is
       Raw    : aliased C_Result;
       Status : C.unsigned;
    begin
@@ -67,9 +62,13 @@ package body Harper is
       pragma Assert (C_Edit'Size = (12 + Max_Replacement) * 8);
       pragma Assert (C_Lint'Size = (32 + Max_Message + Max_Suggestions * (12 + Max_Replacement)) * 8);
       pragma Assert (C_Result'Size = 64 + Max_Lints * C_Lint'Size);
-      Status := Check
-        (Text'Address, C.unsigned (Text'Length), C.unsigned (Dialect'Pos (Language)),
-         C.unsigned (Text_Format'Pos (Format)), Raw'Address);
+      Status :=
+        Check
+          (Text'Address,
+           C.unsigned (Text'Length),
+           C.unsigned (Dialect'Pos (Language)),
+           C.unsigned (Text_Format'Pos (Format)),
+           Raw'Address);
       if Status > C.unsigned (Check_Status'Pos (Check_Status'Last)) then
          Value.Status := Internal_Error;
          return;
@@ -101,7 +100,7 @@ package body Harper is
                   pragma Assert (Edit.First <= Edit.Last and then Edit.Last <= C.unsigned (Text'Length));
                   Target.Suggestions (Each) :=
                     (Location => (Natural (Edit.First), Natural (Edit.Last)),
-                     Text => Replacements.To_Bounded_String (Words (Edit.Replacement, Edit.Replacement_Length)));
+                     Text     => Replacements.To_Bounded_String (Words (Edit.Replacement, Edit.Replacement_Length)));
                end;
             end loop;
          end;
@@ -109,11 +108,11 @@ package body Harper is
    end Perform;
 
    task body Worker is
-      Text_Buffer : String (1 .. Max_Text);
-      Length      : Natural range 0 .. Max_Text;
+      Text_Buffer       : String (1 .. Max_Text);
+      Length            : Natural range 0 .. Max_Text;
       Selected_Language : Dialect;
       Selected_Format   : Text_Format;
-      Result      : Check_Result;
+      Result            : Check_Result;
    begin
       loop
          select
@@ -151,8 +150,7 @@ package body Harper is
       Revision : Request_Id;
       Accepted : out Boolean;
       Language : Dialect := British;
-      Format   : Text_Format := Plain_Text)
-   is
+      Format   : Text_Format := Plain_Text) is
    begin
       select
          Item.Engine.Begin_Check (Text, Revision, Language, Format);

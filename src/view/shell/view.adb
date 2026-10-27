@@ -38,18 +38,25 @@ package body View is
    package Widgets renames Pomarine.Widgets;
    package Labels renames Pomarine.Widgets.Labels;
 
-   function Menu_Of (Self : Menu_Router; What : Menu_VM.Command)
-      return access Pomarine.Widgets.Menus.Menu is
+   function Menu_Of (Self : Menu_Router; What : Menu_VM.Command) return access Pomarine.Widgets.Menus.Menu is
    begin
       case What is
-         when Menu_VM.Source_Menu => return Self.Owner.Page_View.Menu'Unrestricted_Access;
-         when Menu_VM.Context_Menu => return Self.Owner.Context.Context_Menu'Unrestricted_Access;
-         when Menu_VM.Section_Menu => return Self.Owner.Section_Menu.Menu'Unrestricted_Access;
-         when Menu_VM.Grammar_Menu => return Self.Owner.Grammar_Checks.Inline_Menu'Unrestricted_Access;
+         when Menu_VM.Source_Menu  =>
+            return Self.Owner.Page_View.Menu'Unrestricted_Access;
+
+         when Menu_VM.Context_Menu =>
+            return Self.Owner.Context.Context_Menu'Unrestricted_Access;
+
+         when Menu_VM.Section_Menu =>
+            return Self.Owner.Section_Menu.Menu'Unrestricted_Access;
+
+         when Menu_VM.Grammar_Menu =>
+            return Self.Owner.Grammar_Checks.Inline_Menu'Unrestricted_Access;
       end case;
    end Menu_Of;
 
-   overriding function Allowed (Self : Menu_Router; What : Menu_VM.Command; Row : Natural) return Boolean is
+   overriding
+   function Allowed (Self : Menu_Router; What : Menu_VM.Command; Row : Natural) return Boolean is
    begin
       if Self.Owner = null then
          return False;
@@ -57,20 +64,30 @@ package body View is
       declare
          Menu : Pomarine.Widgets.Menus.Menu renames Menu_Of (Self, What).all;
       begin
-         return Widgets.Is_Showing (Menu) and then Row in 1 .. Pomarine.Widgets.Menus.Row_Count (Menu)
+         return
+           Widgets.Is_Showing (Menu)
+           and then Row in 1 .. Pomarine.Widgets.Menus.Row_Count (Menu)
            and then Pomarine.Widgets.Menus.Is_Enabled (Menu, Row);
       end;
    end Allowed;
 
-   overriding procedure Choose (Self : in out Menu_Router; What : Menu_VM.Command; Row : Positive) is
-      Item : Session renames Self.Owner.all;
+   overriding
+   procedure Choose (Self : in out Menu_Router; What : Menu_VM.Command; Row : Positive) is
+      Item  : Session renames Self.Owner.all;
       Event : constant Widgets.Widget_Event := (Kind => Widgets.Choose, Row => Row, others => <>);
    begin
       case What is
-         when Menu_VM.Source_Menu => Writing.Source_Chosen (Item, Item.Page_View.Menu, Event);
-         when Menu_VM.Context_Menu => Writing.Context_Chosen (Item, Item.Context.Context_Menu, Event);
-         when Menu_VM.Section_Menu => Section_Links.Choose (Item, Row);
-         when Menu_VM.Grammar_Menu => Grammar.Choose_Inline (Item, Row);
+         when Menu_VM.Source_Menu  =>
+            Writing.Source_Chosen (Item, Item.Page_View.Menu, Event);
+
+         when Menu_VM.Context_Menu =>
+            Writing.Context_Chosen (Item, Item.Context.Context_Menu, Event);
+
+         when Menu_VM.Section_Menu =>
+            Section_Links.Choose (Item, Row);
+
+         when Menu_VM.Grammar_Menu =>
+            Grammar.Choose_Inline (Item, Row);
       end case;
    end Choose;
 
@@ -84,27 +101,31 @@ package body View is
 
    package Redraws is new SDL3.Events.Redraws (Session, Painting.Draw);
 
-   overriding function Validate
-     (Self : Command_Judge; Tag : Integer; Index : Natural) return Pomarine.Widgets.Command_State is
-     (Menus.Validate (Self.Owner.all, Tag, Index));
+   overriding
+   function Validate (Self : Command_Judge; Tag : Integer; Index : Natural) return Pomarine.Widgets.Command_State
+   is (Menus.Validate (Self.Owner.all, Tag, Index));
 
-   overriding procedure Outline_Going (Self : in out Outline_Effects; What : Outline_VM.Command; Index : Natural) is
+   overriding
+   procedure Outline_Going (Self : in out Outline_Effects; What : Outline_VM.Command; Index : Natural) is
       pragma Unreferenced (Index);
    begin
       Outlines.Going (Self.Owner.all, What);
    end Outline_Going;
 
-   overriding procedure Outline_Done (Self : in out Outline_Effects; What : Outline_VM.Command; Index : Natural) is
+   overriding
+   procedure Outline_Done (Self : in out Outline_Effects; What : Outline_VM.Command; Index : Natural) is
    begin
       Outlines.Done (Self.Owner.all, What, Index);
    end Outline_Done;
 
-   overriding procedure Turned (Self : in out Layout_Watch) is
+   overriding
+   procedure Turned (Self : in out Layout_Watch) is
    begin
       Widgets.Layout (Self.Owner.Root.Widgets, Self.Owner.Host.Target);
    end Turned;
 
-   overriding procedure Turned (Self : in out Sidebar_Watch) is
+   overriding
+   procedure Turned (Self : in out Sidebar_Watch) is
    begin
       if Pomarine.View_Models.Changed (Self.Seen, Sidebar_VM.Version (Self.Owner.Page_View.Folding)) then
          Writing.Fit_Sidebar (Self.Owner.all);
@@ -112,118 +133,140 @@ package body View is
       end if;
    end Turned;
 
-   overriding procedure Toggle_Source (Self : in out Source_Effects; Slot : Items.Slot) is
+   overriding
+   procedure Toggle_Source (Self : in out Source_Effects; Slot : Items.Slot) is
    begin
       Writing.Apply_Source_Command (Self.Owner.all, Slot);
    end Toggle_Source;
 
-   overriding procedure Open_Sources (Self : in out Writing_Effects; Rank : Positive) is
+   overriding
+   procedure Open_Sources (Self : in out Writing_Effects; Rank : Positive) is
    begin
       Writing.Open_Sources (Self.Owner.all, Rank);
    end Open_Sources;
 
-   overriding procedure Toggle_Dictation (Self : in out Writing_Effects; Slot : Items.Slot) is
+   overriding
+   procedure Toggle_Dictation (Self : in out Writing_Effects; Slot : Items.Slot) is
    begin
       Canvas_Items.Toggle_Dictation (Self.Owner.all, Slot);
    end Toggle_Dictation;
 
-   overriding procedure Use_Tool (Self : in out Writing_Effects; Rank : Positive; Tool : Positive) is
+   overriding
+   procedure Use_Tool (Self : in out Writing_Effects; Rank : Positive; Tool : Positive) is
    begin
       Writing.Tool_Used (Self.Owner.all, Rank, Tool);
    end Use_Tool;
 
-   overriding procedure Follow_Link (Self : in out Writing_Effects; Rank : Positive) is
+   overriding
+   procedure Follow_Link (Self : in out Writing_Effects; Rank : Positive) is
    begin
       Writing.Link_Followed (Self.Owner.all, Rank);
    end Follow_Link;
 
-   overriding procedure Ask_Link (Self : in out Writing_Effects; Rank : Positive) is
+   overriding
+   procedure Ask_Link (Self : in out Writing_Effects; Rank : Positive) is
    begin
       Writing.Link_Asked (Self.Owner.all, Rank);
    end Ask_Link;
 
-   overriding procedure Begin_Page_Title (Self : in out Writing_Effects; Rank : Positive) is
+   overriding
+   procedure Begin_Page_Title (Self : in out Writing_Effects; Rank : Positive) is
    begin
       Writing.Begin_Page_Title (Self.Owner.all, Rank);
    end Begin_Page_Title;
 
-   overriding procedure End_Page_Title (Self : in out Writing_Effects; Rank : Positive) is
+   overriding
+   procedure End_Page_Title (Self : in out Writing_Effects; Rank : Positive) is
    begin
       Writing.End_Page_Title (Self.Owner.all, Rank);
    end End_Page_Title;
 
-   overriding procedure Open_Section_Menu (Self : in out Writing_Effects; Rank : Positive) is
+   overriding
+   procedure Open_Section_Menu (Self : in out Writing_Effects; Rank : Positive) is
    begin
       Section_Links.Open_Page_Menu (Self.Owner.all, Rank);
    end Open_Section_Menu;
 
-   overriding procedure Select_Row (Self : in out Writing_Effects; Row : Positive) is
+   overriding
+   procedure Select_Row (Self : in out Writing_Effects; Row : Positive) is
    begin
       Writing.Select_Row (Self.Owner.all, Row);
    end Select_Row;
 
-   overriding procedure Rename_Row (Self : in out Writing_Effects; Row : Positive) is
+   overriding
+   procedure Rename_Row (Self : in out Writing_Effects; Row : Positive) is
    begin
       Writing.Rename_Row (Self.Owner.all, Row);
    end Rename_Row;
 
-   overriding procedure End_Name_Edit (Self : in out Writing_Effects) is
+   overriding
+   procedure End_Name_Edit (Self : in out Writing_Effects) is
    begin
       Writing.End_Name_Edit (Self.Owner.all);
    end End_Name_Edit;
 
-   overriding procedure End_Source_Name_Edit (Self : in out Writing_Effects) is
+   overriding
+   procedure End_Source_Name_Edit (Self : in out Writing_Effects) is
    begin
       Writing.End_Source_Name_Edit (Self.Owner.all);
    end End_Source_Name_Edit;
 
-   overriding function Export_Available (Self : Publishing_Effects) return Boolean is
+   overriding
+   function Export_Available (Self : Publishing_Effects) return Boolean is
       use type SDL3.Dialogs.States;
    begin
       return SDL3.Windows.Is_Open (Self.Owner.Host.Win) and then SDL3.Dialogs.State /= SDL3.Dialogs.Waiting;
    end Export_Available;
 
-   overriding function Copy_Available (Self : Publishing_Effects) return Boolean is
+   overriding
+   function Copy_Available (Self : Publishing_Effects) return Boolean is
       use type Widgets.Clipboard_Access;
    begin
       return Widgets.Clipboard (Self.Owner.Publish_View.Copy) /= null;
    end Copy_Available;
 
-   overriding function Markdown_Text (Self : Publishing_Effects) return String is
-     (Texts.Documents.Whole (Self.Owner.Publish_View.Source_Doc));
+   overriding
+   function Markdown_Text (Self : Publishing_Effects) return String
+   is (Texts.Documents.Whole (Self.Owner.Publish_View.Source_Doc));
 
-   overriding function Clock (Self : Publishing_Effects) return Pomarine.Events.Milliseconds is
+   overriding
+   function Clock (Self : Publishing_Effects) return Pomarine.Events.Milliseconds is
       pragma Unreferenced (Self);
    begin
       return Pomarine.Events.Ticks;
    end Clock;
 
-   overriding procedure Ask_Export (Self : in out Publishing_Effects) is
+   overriding
+   procedure Ask_Export (Self : in out Publishing_Effects) is
    begin
       SDL3.Dialogs.Reset;
       SDL3.Dialogs.Save_File (Self.Owner.Host.Win, "Markdown", "md", "Export.md");
    end Ask_Export;
 
-   overriding procedure Export_Result
+   overriding
+   procedure Export_Result
      (Self : in out Publishing_Effects; State : out Publish_VM.Export_States; Path : out Long_Texts.Text)
    is
       pragma Unreferenced (Self);
    begin
       Path := Long_Texts.Null_Text;
       case SDL3.Dialogs.State is
-         when SDL3.Dialogs.Waiting =>
+         when SDL3.Dialogs.Waiting                                             =>
             State := Publish_VM.Waiting;
-         when SDL3.Dialogs.Chosen =>
+
+         when SDL3.Dialogs.Chosen                                              =>
             State := Publish_VM.Chosen;
             Path := Long_Texts.To_Text (SDL3.Dialogs.Path);
             SDL3.Dialogs.Reset;
+
          when SDL3.Dialogs.Idle | SDL3.Dialogs.Cancelled | SDL3.Dialogs.Failed =>
             State := Publish_VM.Cancelled;
             SDL3.Dialogs.Reset;
       end case;
    end Export_Result;
 
-   overriding procedure Copy_Text (Self : in out Publishing_Effects; Words : String; Succeeded : out Boolean) is
+   overriding
+   procedure Copy_Text (Self : in out Publishing_Effects; Words : String; Succeeded : out Boolean) is
       use type Widgets.Clipboard_Access;
       Board : constant Widgets.Clipboard_Access := Widgets.Clipboard (Self.Owner.Publish_View.Copy);
    begin
@@ -234,72 +277,83 @@ package body View is
       end if;
    end Copy_Text;
 
-   overriding procedure Turned (Self : in out Publish_Watch) is
+   overriding
+   procedure Turned (Self : in out Publish_Watch) is
    begin
       if Pomarine.View_Models.Changed (Self.Seen, Publish_VM.Version (Self.Owner.Publish_View.Options)) then
          Writing.Synchronize_Publish (Self.Owner.all);
       end if;
    end Turned;
 
-   overriding procedure Home_Changed (Self : in out Home_Effects) is
+   overriding
+   procedure Home_Changed (Self : in out Home_Effects) is
    begin
       Recent.Sync (Self.Owner.all);
    end Home_Changed;
 
-   overriding function Inspect
-     (Self : Grammar_Effects; What : Grammar_VM.Card_Command; Index : Natural) return Grammar_VM.Card_State is
-     (Grammar.Inspect (Self.Owner.all, What, Index));
+   overriding
+   function Inspect
+     (Self : Grammar_Effects; What : Grammar_VM.Card_Command; Index : Natural) return Grammar_VM.Card_State
+   is (Grammar.Inspect (Self.Owner.all, What, Index));
 
-   overriding procedure Perform (Self : in out Grammar_Effects; What : Grammar_VM.Card_Command; Index : Natural) is
+   overriding
+   procedure Perform (Self : in out Grammar_Effects; What : Grammar_VM.Card_Command; Index : Natural) is
    begin
       Grammar.Perform (Self.Owner.all, What, Index);
    end Perform;
 
-   overriding procedure Entry_Ended (Self : in out Grammar_Effects; Accepted : Boolean) is
+   overriding
+   procedure Entry_Ended (Self : in out Grammar_Effects; Accepted : Boolean) is
    begin
       Grammar.Entry_Ended (Self.Owner.all, Accepted);
    end Entry_Ended;
 
-   overriding procedure Dialog_Changed (Self : in out Confirm_Effects) is
+   overriding
+   procedure Dialog_Changed (Self : in out Confirm_Effects) is
    begin
       Deletion.Sync (Self.Owner.all);
    end Dialog_Changed;
 
-   overriding procedure Answered (Self : in out Confirm_Effects; Said : Confirm_VM.Answer) is
+   overriding
+   procedure Answered (Self : in out Confirm_Effects; Said : Confirm_VM.Answer) is
    begin
       Deletion.Answered (Self.Owner.all, Said);
    end Answered;
 
-   overriding procedure Going_To_Execute (Self : in out Nav_Effects; What : Nav_VM.Command; Index : Natural) is
+   overriding
+   procedure Going_To_Execute (Self : in out Nav_Effects; What : Nav_VM.Command; Index : Natural) is
       pragma Unreferenced (Index);
    begin
       Navigation.Going_To_Execute (Self.Owner.all, What);
    end Going_To_Execute;
 
-   overriding procedure Executed (Self : in out Nav_Effects; What : Nav_VM.Command; Index : Natural) is
+   overriding
+   procedure Executed (Self : in out Nav_Effects; What : Nav_VM.Command; Index : Natural) is
    begin
       Navigation.Executed (Self.Owner.all, What, Index);
    end Executed;
 
-   overriding procedure Done (Self : in out Settings_Effects; What : Settings_VM.Command) is
+   overriding
+   procedure Done (Self : in out Settings_Effects; What : Settings_VM.Command) is
    begin
       Settings_View.Done (Self.Owner.all, What);
    end Done;
 
-   overriding function New_Picture_Seed (Self : in out Settings_Effects) return Natural is
+   overriding
+   function New_Picture_Seed (Self : in out Settings_Effects) return Natural is
    begin
       return Settings_View.New_Picture_Seed (Self.Owner.all);
    end New_Picture_Seed;
 
-   overriding procedure Ask_To_Delete (Self : in out Settings_Effects; Size : String) is
+   overriding
+   procedure Ask_To_Delete (Self : in out Settings_Effects; Size : String) is
    begin
       Settings_View.Confirm_Delete (Self.Owner.all, Size);
    end Ask_To_Delete;
 
-   overriding procedure Handle_Event
-     (Self   : in out Responder;
-      Source : in out Pomarine.Widgets.Widget'Class;
-      Event  : Pomarine.Widgets.Widget_Event)
+   overriding
+   procedure Handle_Event
+     (Self : in out Responder; Source : in out Pomarine.Widgets.Widget'Class; Event : Pomarine.Widgets.Widget_Event)
    is
       pragma Unreferenced (Source);
    begin
@@ -316,78 +370,98 @@ package body View is
       Pomarine.UI.Synchronize (Item.Forms (Region).Screen.all);
    end Sync_Screen;
 
-   function View_Mode (Item : Session) return Modes is (Modes (Nav_VM.Mode (Item.Nav_Model.Model)));
+   function View_Mode (Item : Session) return Modes
+   is (Modes (Nav_VM.Mode (Item.Nav_Model.Model)));
 
-   function Open_Key (Item : Session) return Projects.Id is (Nav_VM.Project_Key (Item.Nav_Model.Model));
+   function Open_Key (Item : Session) return Projects.Id
+   is (Nav_VM.Project_Key (Item.Nav_Model.Model));
 
-   function Items_Listed (Item : Session) return Boolean is (Nav_VM.Is_Listing (Item.Nav_Model.Model));
+   function Items_Listed (Item : Session) return Boolean
+   is (Nav_VM.Is_Listing (Item.Nav_Model.Model));
 
-   function Takes_Gestures (Item : Session) return Boolean is (Nav_VM.Takes_Gestures (Item.Nav_Model.Model));
+   function Takes_Gestures (Item : Session) return Boolean
+   is (Nav_VM.Takes_Gestures (Item.Nav_Model.Model));
 
-   overriding procedure Make_Room (Self : in out Room_Maker; Slots : Positive) is
+   overriding
+   procedure Make_Room (Self : in out Room_Maker; Slots : Positive) is
    begin
       Build.Reserve_Items (Self.Owner.all, Slots);
    end Make_Room;
 
-   overriding procedure Apply (Self : in out List_Surface; What : Canvas_VM.Command; Slot : Items.Slot) is
+   overriding
+   procedure Apply (Self : in out List_Surface; What : Canvas_VM.Command; Slot : Items.Slot) is
    begin
       case What is
-         when Canvas_VM.Show_Item => Canvas_Items.Reveal (Self.Owner.all, Slot);
-         when Canvas_VM.Open_Item => Canvas_Items.Set_State (Self.Owner.all, Slot, Items.Open);
-         when Canvas_VM.Close_Item => Canvas_Items.Set_State (Self.Owner.all, Slot, Items.Closed);
-         when Canvas_VM.Remove_Item => Canvas_Items.Remove (Self.Owner.all, Slot);
-         when others => raise Program_Error;
+         when Canvas_VM.Show_Item   =>
+            Canvas_Items.Reveal (Self.Owner.all, Slot);
+
+         when Canvas_VM.Open_Item   =>
+            Canvas_Items.Set_State (Self.Owner.all, Slot, Items.Open);
+
+         when Canvas_VM.Close_Item  =>
+            Canvas_Items.Set_State (Self.Owner.all, Slot, Items.Closed);
+
+         when Canvas_VM.Remove_Item =>
+            Canvas_Items.Remove (Self.Owner.all, Slot);
+
+         when others                =>
+            raise Program_Error;
       end case;
    end Apply;
 
-   overriding function Valid (Self : Search_Finder; Where : Search_VM.Context) return Boolean is
-     (Search.Valid (Self.Owner.all, Where));
+   overriding
+   function Valid (Self : Search_Finder; Where : Search_VM.Context) return Boolean
+   is (Search.Valid (Self.Owner.all, Where));
 
-   overriding procedure Refresh
+   overriding
+   procedure Refresh
      (Self : in out Search_Finder; Where : Search_VM.Context; Term : String; Found : out Search_VM.Result) is
    begin
       Search.Refresh_Engine (Self.Owner.all, Where, Term, Found);
    end Refresh;
 
-   overriding procedure Advance (Self : in out Search_Finder; Where : Search_VM.Context; Backwards : Boolean) is
+   overriding
+   procedure Advance (Self : in out Search_Finder; Where : Search_VM.Context; Backwards : Boolean) is
    begin
       Search.Step_Engine (Self.Owner.all, Where, Backwards);
    end Advance;
 
-   overriding procedure Clear (Self : in out Search_Finder; Where : Search_VM.Context) is
+   overriding
+   procedure Clear (Self : in out Search_Finder; Where : Search_VM.Context) is
    begin
       Search.Clear_Engine (Self.Owner.all, Where);
    end Clear;
 
    --  What the list of items shows
 
-   overriding function Count (Self : Item_Rows) return Natural is (Item_List_VM.Count (Self.Owner.Item_List.Model));
+   overriding
+   function Count (Self : Item_Rows) return Natural
+   is (Item_List_VM.Count (Self.Owner.Item_List.Model));
 
-   overriding function Version (Self : Item_Rows) return Natural is
-     (Natural (Item_List_VM.Version (Self.Owner.Item_List.Model) mod 2 ** 31));
+   overriding
+   function Version (Self : Item_Rows) return Natural
+   is (Natural (Item_List_VM.Version (Self.Owner.Item_List.Model) mod 2**31));
 
-   overriding function Row_Id (Self : Item_Rows; Row : Positive) return Positive is
-     (Item_List_VM.Row_Id (Self.Owner.Item_List.Model, Row));
+   overriding
+   function Row_Id (Self : Item_Rows; Row : Positive) return Positive
+   is (Item_List_VM.Row_Id (Self.Owner.Item_List.Model, Row));
    --  Selection follows the item across row movement and is not inherited by a slot's replacement.
 
-   overriding procedure Describe_Row
-     (Self    : Item_Rows;
-      Row     : Positive;
-      Content : out Pomarine.Models.Row_Content) is
+   overriding
+   procedure Describe_Row (Self : Item_Rows; Row : Positive; Content : out Pomarine.Models.Row_Content) is
    begin
       Listing.Describe (Self.Owner.all, Row, Content);
    end Describe_Row;
 
    --  Events
 
-   function Cursor (Item : Session) return SDL3.Cursors.Kind is
-     (if Item.Grammar_Checks.Over_Diagnostic then SDL3.Cursors.Pointer
-      else Widgets.Wanted_Cursor (Item.Root.Widgets));
+   function Cursor (Item : Session) return SDL3.Cursors.Kind
+   is (if Item.Grammar_Checks.Over_Diagnostic then SDL3.Cursors.Pointer else Widgets.Wanted_Cursor (Item.Root.Widgets));
 
-   function Title_Strip_Height (Item : Session) return Float is
-     (if Screen (Item) = Project or else Settings_VM.Is_Showing (Item.Choices.Model)
-      then Style.Toolbar_Size
-      else Style.Header_Size);
+   function Title_Strip_Height (Item : Session) return Float
+   is (if Screen (Item) = Project or else Settings_VM.Is_Showing (Item.Choices.Model)
+       then Style.Toolbar_Size
+       else Style.Header_Size);
    --  How tall the bar across the top is, on this screen.
 
    procedure Show_Cursor (Item : in out Session);
@@ -404,41 +478,33 @@ package body View is
 
    --  Moving the window
 
-   function In_Title_Strip (Item : Session; Y : Float) return Boolean is
-     (Y >= 0.0
-      and then Y < Title_Strip_Height (Item));
+   function In_Title_Strip (Item : Session; Y : Float) return Boolean
+   is (Y >= 0.0 and then Y < Title_Strip_Height (Item));
    --  Whether a point is in the bar across the top, or over the home
    --  screen, where the window is moved from. The window has no native
    --  title bar drag (see Open_Window), so this is what moves it.
 
-   procedure Track_Window
-     (Item  : in out Session;
-      Event : Pomarine.Events.Event;
-      Taken : Boolean)
-   is
+   procedure Track_Window (Item : in out Session; Event : Pomarine.Events.Event; Taken : Boolean) is
       Width, Height : Integer;
       Found         : Boolean;
    begin
       case Event.Kind is
          when Pomarine.Events.Mouse_Down =>
             --  A press on a button is for the button, not for a drag.
-            if Event.Button = 1 and then not Taken
-              and then In_Title_Strip (Item, Event.Mouse_Y)
-            then
+            if Event.Button = 1 and then not Taken and then In_Title_Strip (Item, Event.Mouse_Y) then
                if Event.Clicks >= 2 then
                   SDL3.Windows.Zoom (Item.Host.Win);  --  as a title bar does
+
                else
                   SDL3.Windows.Get_Geometry
-                    (Item.Host.Win, Item.Shell.Grab_Left, Item.Shell.Grab_Top,
-                     Width, Height,
-                     Found);
+                    (Item.Host.Win, Item.Shell.Grab_Left, Item.Shell.Grab_Top, Width, Height, Found);
                   if Found then
-                     SDL3.Windows.Global_Pointer (Item.Shell.Grab_X,
-                        Item.Shell.Grab_Y);
+                     SDL3.Windows.Global_Pointer (Item.Shell.Grab_X, Item.Shell.Grab_Y);
                      Item.Shell.Moving := True;
                   end if;
                end if;
             end if;
+
          when Pomarine.Events.Mouse_Move =>
             if Item.Shell.Moving then
                declare
@@ -447,17 +513,17 @@ package body View is
                   SDL3.Windows.Global_Pointer (X, Y);
                   SDL3.Windows.Set_Position
                     (Item.Host.Win,
-                     Item.Shell.Grab_Left
-                     + Integer (Float'Rounding (X - Item.Shell.Grab_X)),
-                     Item.Shell.Grab_Top
-                     + Integer (Float'Rounding (Y - Item.Shell.Grab_Y)));
+                     Item.Shell.Grab_Left + Integer (Float'Rounding (X - Item.Shell.Grab_X)),
+                     Item.Shell.Grab_Top + Integer (Float'Rounding (Y - Item.Shell.Grab_Y)));
                end;
             end if;
-         when Pomarine.Events.Mouse_Up =>
+
+         when Pomarine.Events.Mouse_Up   =>
             if Event.Button = 1 then
                Item.Shell.Moving := False;
             end if;
-         when others =>
+
+         when others                     =>
             null;
       end case;
    end Track_Window;
@@ -488,24 +554,25 @@ package body View is
          return;
       end if;
       case Event.Kind is
-         when Pomarine.Events.Quit =>
+         when Pomarine.Events.Quit          =>
             if Screen (Item) = Project then
                Canvas_Items.Save_All (Item);
             end if;
             Item.Shell.Done := True;
-         when Pomarine.Events.Redraw =>
+
+         when Pomarine.Events.Redraw        =>
             Widgets.Invalidate_All (Item.Root.Widgets);
+
          when Pomarine.Events.Theme_Changed =>
             --  Only the system's appearance can change by itself.
             if Settings_VM.Theme (Item.Choices.Model) = Preferences.System then
                Settings_View.Apply_Theme (Item);
             end if;
-         when others =>
+
+         when others                        =>
             if Nav_VM.Is_Over (Item.Nav_Model.Model) then
                --  What is over the screen is all that takes events; Escape puts it away.
-               if Event.Kind = Pomarine.Events.Key_Down
-                 and then Event.Key = Pomarine.Events.Key_Escape
-               then
+               if Event.Kind = Pomarine.Events.Key_Down and then Event.Key = Pomarine.Events.Key_Escape then
                   Navigation.Do_Command (Item, Nav_VM.Dismiss);
                   Deletion.Sync (Item);
                   return;
@@ -513,23 +580,21 @@ package body View is
             --  The text is saved only from a project.
             elsif Screen (Item) = Project
               and then Event.Kind = Pomarine.Events.Key_Down
-              and then Event.Command and then Event.Key = Pomarine.Events.Key_S
+              and then Event.Command
+              and then Event.Key = Pomarine.Events.Key_S
             then
                Save (Item);
                Handled := True;
             end if;
             if not Handled then
                Grammar.Before_Event (Item, Event);
-               if Screen (Item) = Project
-                 and then Event.Kind = Pomarine.Events.Mouse_Down
-               then
+               if Screen (Item) = Project and then Event.Kind = Pomarine.Events.Mouse_Down then
                   Canvas_Items.Pressed (Item, Event.Mouse_X, Event.Mouse_Y);
                   Writing.Pressed (Item, Event.Mouse_X, Event.Mouse_Y);
                   Section_Links.Pressed (Item, Event.Mouse_X, Event.Mouse_Y);
                   Outlines.Pressed (Item, Event.Mouse_X, Event.Mouse_Y);
                   if Event.Button = 3 and then not Nav_VM.Is_Over (Item.Nav_Model.Model) then
-                     Writing.Open_Context
-                       (Item, Event.Mouse_X, Event.Mouse_Y, Handled);
+                     Writing.Open_Context (Item, Event.Mouse_X, Event.Mouse_Y, Handled);
                   end if;
                end if;
                if not Handled then
@@ -552,12 +617,13 @@ package body View is
       end case;
    end Handle;
 
-   function Screen (Item : Session) return Screens is (Screens (Nav_VM.Screen (Item.Nav_Model.Model)));
+   function Screen (Item : Session) return Screens
+   is (Screens (Nav_VM.Screen (Item.Nav_Model.Model)));
 
    --  The file
 
-   function Title (Item : Session) return String is
-     (case Screen (Item) is
+   function Title (Item : Session) return String
+   is (case Screen (Item) is
          when Home    => "bonxie",
          when Project =>
            (if Nav_VM.Name (Item.Nav_Model.Model) /= ""
@@ -574,7 +640,9 @@ package body View is
          --  Keep the text, to save another time.
          Ada.Text_IO.Put_Line
            (Ada.Text_IO.Standard_Error,
-            "Could not save " & Scripts.File_Name (Item.Host.Script) & ": "
+            "Could not save "
+            & Scripts.File_Name (Item.Host.Script)
+            & ": "
             & Ada.Exceptions.Exception_Message (Problem));
    end Save;
 
@@ -603,8 +671,13 @@ package body View is
    begin
       Item.Shell.Windowed := True;
       SDL3.Windows.Create
-        (Item.Host.Win, "bonxie", Style.Window_Width, Style.Window_Height,
-         Resizable => True, High_Density => True, Hidden => Hidden);
+        (Item.Host.Win,
+         "bonxie",
+         Style.Window_Width,
+         Style.Window_Height,
+         Resizable    => True,
+         High_Density => True,
+         Hidden       => Hidden);
       Item.Shell.Density := SDL3.Windows.Pixel_Density (Item.Host.Win);
       SDL3.Windows.Extend_Into_Title_Bar (Item.Host.Win);
       --  The bar is dragged by the program (see Track_Window), not by the
@@ -633,7 +706,8 @@ package body View is
       procedure Wake_In (Milliseconds : Integer) is
       begin
          Timeout :=
-           (if Timeout < 0 then Integer'Max (0, Milliseconds)
+           (if Timeout < 0
+            then Integer'Max (0, Milliseconds)
             else Integer'Min (Timeout, Integer'Max (0, Milliseconds)));
       end Wake_In;
    begin
@@ -676,8 +750,8 @@ package body View is
 
    --  Without a window
 
-   function Pixels (Points : Positive; Density : Float) return Positive is
-     (Positive (Float (Points) * Density));
+   function Pixels (Points : Positive; Density : Float) return Positive
+   is (Positive (Float (Points) * Density));
 
    procedure Open
      (Item      : in out Session;
@@ -688,23 +762,22 @@ package body View is
       File_Name : String := "") is
    begin
       Item.Shell.Density := Density;
-      Create_Offscreen
-        (Item.Host.Target, Pixels (Width, Density), Pixels (Height, Density));
+      Create_Offscreen (Item.Host.Target, Pixels (Width, Density), Pixels (Height, Density));
       Build.Set_Up (Item, Source, File_Name, Projects.Memory);
       Settings_View.Apply_Theme (Item);
    end Open;
 
-   function Is_Open (Item : Session) return Boolean is
-     (Widgets.Has_Root (Item.Root.Widgets));
+   function Is_Open (Item : Session) return Boolean
+   is (Widgets.Has_Root (Item.Root.Widgets));
 
-   function Text (Item : Session) return String is
-     (Scripts.Text (Item.Host.Script));
+   function Text (Item : Session) return String
+   is (Scripts.Text (Item.Host.Script));
 
-   function Widget_Tree (Item : aliased in out Session) return access Pomarine.Widgets.Tree is
-     (Item.Root.Widgets'Unchecked_Access);
+   function Widget_Tree (Item : aliased in out Session) return access Pomarine.Widgets.Tree
+   is (Item.Root.Widgets'Unchecked_Access);
 
-   function Clipboard_Text (Item : Session) return String is
-     (Widgets.Clipboard (Item.Publish_View.Copy).Text);
+   function Clipboard_Text (Item : Session) return String
+   is (Widgets.Clipboard (Item.Publish_View.Copy).Text);
 
    procedure Tick (Item : in out Session; Now : Pomarine.Events.Milliseconds) is
    begin
@@ -734,17 +807,13 @@ package body View is
    begin
       Grammar.Close_Inline (Item);
       SDL3.Windows.Renderers.Resize
-        (Item.Host.Target,
-         Pixels (Width, Item.Shell.Density), Pixels (Height,
-            Item.Shell.Density));
+        (Item.Host.Target, Pixels (Width, Item.Shell.Density), Pixels (Height, Item.Shell.Density));
       --  Which loses what was drawn.
       Widgets.Invalidate_All (Item.Root.Widgets);
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
    end Resize;
 
-   procedure Render
-     (Item   : in out Session;
-      Result : in out SDL3.Windows.Renderers.Images.Image) is
+   procedure Render (Item : in out Session; Result : in out SDL3.Windows.Renderers.Images.Image) is
    begin
       --  Offscreen there is nothing to present to.
       Painting.Paint (Item);
@@ -753,9 +822,8 @@ package body View is
 
    --  Where the window was left
 
-   function Geometry_Path return String is
-     (Ada.Directories.Containing_Directory (Projects.Default_Path)
-      & "/window");
+   function Geometry_Path return String
+   is (Ada.Directories.Containing_Directory (Projects.Default_Path) & "/window");
 
    procedure Restore_Geometry (Item : in out Session) is
       Value : array (1 .. 4) of Integer;
@@ -792,9 +860,7 @@ package body View is
    begin
       SDL3.Windows.Get_Geometry (Item.Host.Win, X, Y, W, H, Found);
       if Found then
-         Files.Write
-           (Geometry_Path,
-            X'Image & Y'Image & W'Image & H'Image);
+         Files.Write (Geometry_Path, X'Image & Y'Image & W'Image & H'Image);
       end if;
    exception
       when others =>
@@ -806,10 +872,12 @@ package body View is
       Watcher : Redraws.Watch;  --  ends before Item does
    begin
       Open_Window
-        (Item, Source, File_Name,
-         VSync => Ada.Environment_Variables.Exists ("BONXIE_VSYNC")
-                  and then Ada.Environment_Variables.Value
-                             ("BONXIE_VSYNC") = "1");
+        (Item,
+         Source,
+         File_Name,
+         VSync =>
+           Ada.Environment_Variables.Exists ("BONXIE_VSYNC")
+           and then Ada.Environment_Variables.Value ("BONXIE_VSYNC") = "1");
       Restore_Geometry (Item);
       if Settings_VM.VSync (Item.Choices.Model) then
          SDL3.Windows.Renderers.Set_VSync (Item.Host.Target, True);
@@ -831,8 +899,7 @@ package body View is
          Menus.Update (Item);
          --  The person's setting for less movement is theirs to change at any
          --  time.
-         Widgets.Set_Reduced_Motion
-           (Item.Root.Widgets, Pomarine.System_Settings.Reduce_Motion);
+         Widgets.Set_Reduced_Motion (Item.Root.Widgets, Pomarine.System_Settings.Reduce_Motion);
          --  What an assistive technology asks, and what it is told.
          if Pomarine.Accessibility.Is_Attached (Item.Host.Assistive) then
             Pomarine.Accessibility.Update (Item.Host.Assistive, Item.Root.Widgets);

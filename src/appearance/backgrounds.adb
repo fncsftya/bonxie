@@ -11,50 +11,54 @@ package body Backgrounds is
    package Textures renames SDL3.Windows.Renderers.Textures;
 
    function Time_Seed return Interfaces.C.C_float
-     with Import, Convention => C, External_Name => "bonxie_background_seed";
+   with Import, Convention => C, External_Name => "bonxie_background_seed";
 
    function Hue_Of (Style : Interfaces.C.int; Seed : Interfaces.C.C_float) return Interfaces.C.C_float
-     with Import, Convention => C, External_Name => "bonxie_background_hue";
+   with Import, Convention => C, External_Name => "bonxie_background_hue";
 
    function Mood_Of (Seed : Interfaces.C.C_float) return Interfaces.C.int
-     with Import, Convention => C, External_Name => "bonxie_background_mood";
+   with Import, Convention => C, External_Name => "bonxie_background_mood";
 
    function Create (Source : Interfaces.C.char_array) return System.Address
-     with Import, Convention => C, External_Name => "bonxie_background_create";
+   with Import, Convention => C, External_Name => "bonxie_background_create";
 
    function Render
-     (Native : System.Address;
-      Style : Interfaces.C.int;
-      Seed : Interfaces.C.C_float;
+     (Native        : System.Address;
+      Style         : Interfaces.C.int;
+      Seed          : Interfaces.C.C_float;
       Width, Height : Interfaces.C.int;
-      Dark : Interfaces.C.int) return System.Address
-     with Import, Convention => C, External_Name => "bonxie_background_render";
+      Dark          : Interfaces.C.int) return System.Address
+   with Import, Convention => C, External_Name => "bonxie_background_render";
 
    procedure Release (Native : System.Address)
-     with Import, Convention => C, External_Name => "bonxie_background_release";
+   with Import, Convention => C, External_Name => "bonxie_background_release";
 
    Per_Unit : constant := 65536.0;
 
-   function As_Float (Seed : Seed_Numbers) return Interfaces.C.C_float is
-     (Interfaces.C.C_float (Float (Seed) / Per_Unit));
+   function As_Float (Seed : Seed_Numbers) return Interfaces.C.C_float
+   is (Interfaces.C.C_float (Float (Seed) / Per_Unit));
 
-   function New_Seed return Seed_Numbers is
-     (Seed_Numbers (Integer (Float'Rounding (Float (Time_Seed) * Per_Unit)) mod (Seed_Numbers'Last + 1)));
+   function New_Seed return Seed_Numbers
+   is (Seed_Numbers (Integer (Float'Rounding (Float (Time_Seed) * Per_Unit)) mod (Seed_Numbers'Last + 1)));
 
    function Style_Strength (Style : Styles) return Float;
    --  What the style's own colours would have the greys take, of a pastel.
 
-   function Mood (Item : Cache) return Moods is (Moods'Val (Mood_Of (As_Float (Item.Seed))));
+   function Mood (Item : Cache) return Moods
+   is (Moods'Val (Mood_Of (As_Float (Item.Seed))));
 
-   function Tint_Strength (Style : Styles; Boldness : Moods := Pastel) return Float is
-     (Float'Min (1.0, Style_Strength (Style) * (case Boldness is
-         when Pastel => 1.0,
-         when Vivid  => 1.3,
-         when Rich   => 1.15,
-         when Muted  => 0.6)));
+   function Tint_Strength (Style : Styles; Boldness : Moods := Pastel) return Float
+   is (Float'Min
+         (1.0,
+          Style_Strength (Style)
+          * (case Boldness is
+               when Pastel => 1.0,
+               when Vivid  => 1.3,
+               when Rich   => 1.15,
+               when Muted  => 0.6)));
 
-   function Style_Strength (Style : Styles) return Float is
-     (case Style is
+   function Style_Strength (Style : Styles) return Float
+   is (case Style is
          when Watercolour => 1.0,
          when Paper       => 0.60,
          when Ink_Wash    => 0.35,
@@ -65,13 +69,14 @@ package body Backgrounds is
          when Contours    => 0.55,
          when Bauhaus     => 0.45);
 
-   function Available (Item : Cache; Style : Styles) return Boolean is
-     (not Item.Failed and then Item.Native /= System.Null_Address and then not Item.Broken (Style));
+   function Available (Item : Cache; Style : Styles) return Boolean
+   is (not Item.Failed and then Item.Native /= System.Null_Address and then not Item.Broken (Style));
 
-   function Seed_Number (Item : Cache) return Seed_Numbers is (Item.Seed);
+   function Seed_Number (Item : Cache) return Seed_Numbers
+   is (Item.Seed);
 
-   function Hue (Item : Cache; Style : Styles) return Float is
-     (Float (Hue_Of (Interfaces.C.int (Styles'Pos (Style)), As_Float (Item.Seed))));
+   function Hue (Item : Cache; Style : Styles) return Float
+   is (Float (Hue_Of (Interfaces.C.int (Styles'Pos (Style)), As_Float (Item.Seed))));
 
    procedure Reseed (Item : in out Cache) is
       Was : constant Seed_Numbers := Item.Seed;
@@ -81,7 +86,8 @@ package body Backgrounds is
       end loop;
    end Reseed;
 
-   overriding procedure Finalize (Item : in out Cache) is
+   overriding
+   procedure Finalize (Item : in out Cache) is
    begin
       Release (Item.Native);
       Item.Native := System.Null_Address;
@@ -110,27 +116,35 @@ package body Backgrounds is
    end Set_Shader;
 
    procedure Ensure
-     (Saved  : in out Cache;
-      Which  : in out Layer;
-      Style  : Styles;
-      Device : SDL3.Painters.Device_Access;
+     (Saved      : in out Cache;
+      Which      : in out Layer;
+      Style      : Styles;
+      Device     : SDL3.Painters.Device_Access;
       Wide, High : Positive;
-      Dark   : Boolean;
-      Ready  : out Boolean) is
+      Dark       : Boolean;
+      Ready      : out Boolean) is
    begin
       Ready := False;
       if not Available (Saved, Style) or else Device = null then
          return;
       end if;
-      if Wide /= Which.Wide or else High /= Which.High or else Dark /= Which.Dark_Drawn
-        or else Saved.Seed /= Which.Seed_Drawn or else Style /= Which.Style_Drawn
+      if Wide /= Which.Wide
+        or else High /= Which.High
+        or else Dark /= Which.Dark_Drawn
+        or else Saved.Seed /= Which.Seed_Drawn
+        or else Style /= Which.Style_Drawn
       then
          declare
             --  Metal owns the full-size staging buffer; no image-sized
             --  allocation on the Ada stack and no internal resolution cap.
-            Pixels : constant System.Address := Render
-              (Saved.Native, Interfaces.C.int (Styles'Pos (Style)), As_Float (Saved.Seed),
-               Interfaces.C.int (Wide), Interfaces.C.int (High), (if Dark then 1 else 0));
+            Pixels : constant System.Address :=
+              Render
+                (Saved.Native,
+                 Interfaces.C.int (Styles'Pos (Style)),
+                 As_Float (Saved.Seed),
+                 Interfaces.C.int (Wide),
+                 Interfaces.C.int (High),
+                 (if Dark then 1 else 0));
          begin
             if Pixels = System.Null_Address then
                Saved.Broken (Style) := True;
@@ -151,14 +165,11 @@ package body Backgrounds is
       Ready := True;
    end Ensure;
 
-   overriding procedure Draw
-     (Item   : in out Panel;
-      Target : SDL3.Painters.Painter'Class;
-      Colors : Pomarine.Themes.Theme)
-   is
+   overriding
+   procedure Draw (Item : in out Panel; Target : SDL3.Painters.Painter'Class; Colors : Pomarine.Themes.Theme) is
       use Pomarine.Widgets;
       Wide, High : Natural;
-      Ready : Boolean;
+      Ready      : Boolean;
    begin
       Pomarine.Widgets.Panels.Panel (Item).Draw (Target, Colors);
       if Item.Painting = null then
@@ -175,8 +186,7 @@ package body Backgrounds is
       end if;
    end Draw;
 
-   procedure Set_Look
-     (Item : in out Sample; Dark : Boolean; Look : Pomarine.Themes.Theme) is
+   procedure Set_Look (Item : in out Sample; Dark : Boolean; Look : Pomarine.Themes.Theme) is
    begin
       Item.Dark := Dark;
       Item.Look := Look;
@@ -188,11 +198,11 @@ package body Backgrounds is
    --  An image over a box, its top corners (those in Round) cut by a circle of Radius pixels, a row at a time,
    --  as the painter has only rectangles to clip with.
    procedure Draw_Cut
-     (Target : SDL3.Painters.Painter'Class;
-      Image  : Textures.Texture;
+     (Target                : SDL3.Painters.Painter'Class;
+      Image                 : Textures.Texture;
       Left, Top, Wide, High : Float;
-      Radius : Float;
-      Round  : Pomarine.Boxes.Corner_Flags)
+      Radius                : Float;
+      Round                 : Pomarine.Boxes.Corner_Flags)
    is
       Saved : constant SDL3.Painters.Clip := Target.Current_Clip;
       Rows  : constant Natural := Natural (Radius);
@@ -223,21 +233,18 @@ package body Backgrounds is
       Target.Restore_Clip (Saved);
    end Draw_Cut;
 
-   overriding procedure Draw
-     (Item   : in out Sample;
-      Target : SDL3.Painters.Painter'Class;
-      Colors : Pomarine.Themes.Theme)
-   is
+   overriding
+   procedure Draw (Item : in out Sample; Target : SDL3.Painters.Painter'Class; Colors : Pomarine.Themes.Theme) is
       pragma Unreferenced (Colors);
       use Pomarine.Widgets;
       use all type SDL3.Painters.Painter;
       package Themes renames Pomarine.Themes;
-      Left : constant Float := Left_Of (Item);
-      Top  : constant Float := Top_Of (Item);
-      Wide : constant Float := Width_Of (Item);
-      High : constant Float := Height_Of (Item);
-      Line : constant Float := Float'Max (1.0, Float'Rounding (Density (Item)));
-      Look : Themes.Theme renames Item.Look;
+      Left  : constant Float := Left_Of (Item);
+      Top   : constant Float := Top_Of (Item);
+      Wide  : constant Float := Width_Of (Item);
+      High  : constant Float := Height_Of (Item);
+      Line  : constant Float := Float'Max (1.0, Float'Rounding (Density (Item)));
+      Look  : Themes.Theme renames Item.Look;
       Ready : Boolean := False;
 
       --  A box at fractions of the sample's width and height, with an outline a point wide.
@@ -255,21 +262,45 @@ package body Backgrounds is
          Ink : constant Themes.Color := Themes.Mix (Look (Themes.Foreground), Look (Themes.Page), 0.55);
       begin
          Fill_Rect
-           (Target, Ink, Float'Rounding (Left + Across * Wide), Float'Rounding (Top + Down * High),
-            Float'Rounding (By * Wide), Line * 2.0);
+           (Target,
+            Ink,
+            Float'Rounding (Left + Across * Wide),
+            Float'Rounding (Top + Down * High),
+            Float'Rounding (By * Wide),
+            Line * 2.0);
       end Text;
    begin
       if Item.Painting /= null and then Wide >= 1.0 and then High >= 1.0 then
-         Ensure (Item.Painting.all, Item.Painting.Thumbs (Item.Style), Item.Style, Target.Device,
-                 Positive (Float'Rounding (Wide)), Positive (Float'Rounding (High)), Item.Dark, Ready);
+         Ensure
+           (Item.Painting.all,
+            Item.Painting.Thumbs (Item.Style),
+            Item.Style,
+            Target.Device,
+            Positive (Float'Rounding (Wide)),
+            Positive (Float'Rounding (High)),
+            Item.Dark,
+            Ready);
       end if;
       if Ready then
-         Draw_Cut (Target, Item.Painting.Thumbs (Item.Style).Image, Left, Top, Wide, High,
-                   Pomarine.Boxes.Corner (Item.Radius, Density (Item)), Item.Round);
+         Draw_Cut
+           (Target,
+            Item.Painting.Thumbs (Item.Style).Image,
+            Left,
+            Top,
+            Wide,
+            High,
+            Pomarine.Boxes.Corner (Item.Radius, Density (Item)),
+            Item.Round);
       else
          Pomarine.Boxes.Fill_Round
-           (Target, Look (Themes.Background), Left, Top, Wide, High,
-            Pomarine.Boxes.Corner (Item.Radius, Density (Item)), Item.Round);
+           (Target,
+            Look (Themes.Background),
+            Left,
+            Top,
+            Wide,
+            High,
+            Pomarine.Boxes.Corner (Item.Radius, Density (Item)),
+            Item.Round);
       end if;
       Box (0.05, 0.10, 0.17, 0.80, Look (Themes.Tint), Look (Themes.Border));
       Box (0.075, 0.18, 0.12, 0.12, Look (Themes.Primary), Look (Themes.Primary));
@@ -286,11 +317,8 @@ package body Backgrounds is
       Box (0.28, 0.70, 0.17, 0.20, Look (Themes.Face), Look (Themes.Border));
    end Draw;
 
-   overriding procedure Draw
-     (Item   : in out Canvas;
-      Target : SDL3.Painters.Painter'Class;
-      Colors : Pomarine.Themes.Theme)
-   is
+   overriding
+   procedure Draw (Item : in out Canvas; Target : SDL3.Painters.Painter'Class; Colors : Pomarine.Themes.Theme) is
       Palette : Pomarine.Themes.Theme := Colors;
    begin
       if Item.Transparent then

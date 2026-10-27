@@ -18,11 +18,8 @@ private package View.Listing is
    procedure Refresh (Item : in out Session);
    --  Make the rows those of the items there are now.
 
-   procedure Describe
-     (Item    : Session;
-      Row     : Positive;
-      Content : out Pomarine.Models.Row_Content)
-     with Pre => Row <= Item_List_VM.Count (Item.Item_List.Model);
+   procedure Describe (Item : Session; Row : Positive; Content : out Pomarine.Models.Row_Content)
+   with Pre => Row <= Item_List_VM.Count (Item.Item_List.Model);
    --  What the list shows for its Rowth item.
 
 end View.Listing;

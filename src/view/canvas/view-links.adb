@@ -35,23 +35,30 @@ package body View.Links is
    --  Give the widgets of the links the procedures they call.
 
    procedure Build (Item : in out Session) is
-      function Pictured (Name : String; Icon : Pomarine.Icons.Icon) return Buttons.Settings is
-        (Buttons.Looks (Name, Icon => Pomarine.Icons.Shown (Icon)));
+      function Pictured (Name : String; Icon : Pomarine.Icons.Icon) return Buttons.Settings
+      is (Buttons.Looks (Name, Icon => Pomarine.Icons.Shown (Icon)));
 
       Buttons_Needed : constant Natural :=
-        Item_Links.Strokes'Pos (Item_Links.Strokes'Last) + 1 + Item_Links.Endings'Pos (Item_Links.Endings'Last) + 1
-        + Item_Links.Link_Colors'Pos (Item_Links.Link_Colors'Last) + 1 + 1;
-      Tools : UI.Layout_Array (1 .. Buttons_Needed);
-      Last  : Natural := 0;
+        Item_Links.Strokes'Pos (Item_Links.Strokes'Last)
+        + 1
+        + Item_Links.Endings'Pos (Item_Links.Endings'Last)
+        + 1
+        + Item_Links.Link_Colors'Pos (Item_Links.Link_Colors'Last)
+        + 1
+        + 1;
+      Tools          : UI.Layout_Array (1 .. Buttons_Needed);
+      Last           : Natural := 0;
    begin
       Open_Screen (Item, Canvas_Region);
       declare
-         Form : UI.View renames Screen_Of (Item, Canvas_Region).all;
-         Bound : constant Canvas_UI.Context'Class :=
-           Canvas_UI.Bind (Form, Item.Canvas_Model.Model);
+         Form  : UI.View renames Screen_Of (Item, Canvas_Region).all;
+         Bound : constant Canvas_UI.Context'Class := Canvas_UI.Bind (Form, Item.Canvas_Model.Model);
 
          procedure Tool
-           (Part : in out Buttons.Button; Apart : Boolean; Looks : Buttons.Settings; What : Canvas_VM.Command;
+           (Part  : in out Buttons.Button;
+            Apart : Boolean;
+            Looks : Buttons.Settings;
+            What  : Canvas_VM.Command;
             Index : Natural := 0) is
          begin
             Buttons.Configure (Part, Looks);
@@ -59,53 +66,73 @@ package body View.Links is
             Tools (Last) :=
               UI.Styled
                 (Bound.Borrow_Button (Part, What, Index, Reflect => False),
-                 (Width => Layouts.Length_Of (Style.Link_Button_Size),
+                 (Width  => Layouts.Length_Of (Style.Link_Button_Size),
                   Height => Layouts.Length_Of (Style.Link_Button_Size),
-                  Margin => (if Apart then (Left => Layouts.Length_Of (Style.Link_Group_Gap),
-                                            others => <>) else (others => <>)),
+                  Margin =>
+                    (if Apart
+                     then (Left => Layouts.Length_Of (Style.Link_Group_Gap), others => <>)
+                     else (others => <>)),
                   others => <>));
          end Tool;
       begin
          for Each in Item_Links.Strokes loop
-            Tool (Item.Linking.Stroke_Buttons (Each), Apart => Each = Item_Links.Solid,
-                  Looks => (case Each is
-                               when Item_Links.Solid  => Pictured ("Solid", Icon_Set.Stroke_Solid),
-                               when Item_Links.Dots   => Pictured ("Dots", Icon_Set.Stroke_Dots),
-                               when Item_Links.Dashed => Pictured ("Dash", Icon_Set.Stroke_Dashed)),
-                  What => Canvas_VM.Set_Stroke, Index => Item_Links.Strokes'Pos (Each) + 1);
+            Tool
+              (Item.Linking.Stroke_Buttons (Each),
+               Apart => Each = Item_Links.Solid,
+               Looks =>
+                 (case Each is
+                    when Item_Links.Solid  => Pictured ("Solid", Icon_Set.Stroke_Solid),
+                    when Item_Links.Dots   => Pictured ("Dots", Icon_Set.Stroke_Dots),
+                    when Item_Links.Dashed => Pictured ("Dash", Icon_Set.Stroke_Dashed)),
+               What  => Canvas_VM.Set_Stroke,
+               Index => Item_Links.Strokes'Pos (Each) + 1);
          end loop;
          for Each in Item_Links.Endings loop
-            Tool (Item.Linking.End_Buttons (Each), Apart => Each = Item_Links.Plain,
-                  Looks => (case Each is
-                               when Item_Links.Plain => Pictured ("Plain", Icon_Set.End_Plain),
-                               when Item_Links.Arrow => Pictured ("Arrow", Icon_Set.End_Arrow)),
-                  What => Canvas_VM.Set_Ending, Index => Item_Links.Endings'Pos (Each) + 1);
+            Tool
+              (Item.Linking.End_Buttons (Each),
+               Apart => Each = Item_Links.Plain,
+               Looks =>
+                 (case Each is
+                    when Item_Links.Plain => Pictured ("Plain", Icon_Set.End_Plain),
+                    when Item_Links.Arrow => Pictured ("Arrow", Icon_Set.End_Arrow)),
+               What  => Canvas_VM.Set_Ending,
+               Index => Item_Links.Endings'Pos (Each) + 1);
          end loop;
          for Each in Item_Links.Link_Colors loop
-            Tool (Item.Linking.Color_Buttons (Each), Apart => Each = 1, Looks => Buttons.Looks ("Ink"),
-                  What => Canvas_VM.Set_Color, Index => Each);
-            Buttons.Set_Swatch (Item.Linking.Color_Buttons (Each),
-                                Style.Link_Inks (Each));
+            Tool
+              (Item.Linking.Color_Buttons (Each),
+               Apart => Each = 1,
+               Looks => Buttons.Looks ("Ink"),
+               What  => Canvas_VM.Set_Color,
+               Index => Each);
+            Buttons.Set_Swatch (Item.Linking.Color_Buttons (Each), Style.Link_Inks (Each));
          end loop;
-         Tool (Item.Linking.Delete_Link, Apart => True,
-               Looks => Buttons.Looks ("Del", Buttons.Danger, Icon => Pomarine.Icons.Shown (Icon_Set.Delete)),
-               What => Canvas_VM.Delete_Link);
+         Tool
+           (Item.Linking.Delete_Link,
+            Apart => True,
+            Looks => Buttons.Looks ("Del", Buttons.Danger, Icon => Pomarine.Icons.Shown (Icon_Set.Delete)),
+            What  => Canvas_VM.Delete_Link);
 
          declare
-            Bar    : constant UI.Layout :=
+            Bar     : constant UI.Layout :=
               UI.Styled
                 (UI.Put_In (Form, Item.Linking.Link_Bar, Tools, Flow => Layouts.Row),
-                 (Place => Layouts.Absolute, Flow => Layouts.Row, Align => Layouts.Center,
+                 (Place   => Layouts.Absolute,
+                  Flow    => Layouts.Row,
+                  Align   => Layouts.Center,
                   Padding => (others => Layouts.Length_Of (Style.Link_Bar_Pad)),
-                    Gap => Layouts.Length_Of (Style.Link_Bar_Gap),
-                  Width => Layouts.Length_Of (Style.Link_Bar_Width),
-                    Height => Layouts.Length_Of (Style.Link_Bar_Height), others => <>));
+                  Gap     => Layouts.Length_Of (Style.Link_Bar_Gap),
+                  Width   => Layouts.Length_Of (Style.Link_Bar_Width),
+                  Height  => Layouts.Length_Of (Style.Link_Bar_Height),
+                  others  => <>));
             Grabber : constant UI.Layout :=
               UI.Styled
                 (UI.Put (Form, Item.Linking.Link_Handle),
-                 (Place => Layouts.Absolute, Width => Layouts.Length_Of (Pins.Diameter),
-                  Height => Layouts.Length_Of (Pins.Diameter), others => <>));
-            Lines : constant UI.Widget_Handle := Bound.Borrow_Widget (Item.Canvas_View);
+                 (Place  => Layouts.Absolute,
+                  Width  => Layouts.Length_Of (Pins.Diameter),
+                  Height => Layouts.Length_Of (Pins.Diameter),
+                  others => <>));
+            Lines   : constant UI.Widget_Handle := Bound.Borrow_Widget (Item.Canvas_View);
          begin
             Bound.On_Canvas_Event (Lines, Canvas_UI.Line_Selected, Canvas_VM.Pick_Link, Index_From_Event => True);
             Bound.On_Canvas_Event (Lines, Canvas_UI.Line_Deleted, Canvas_VM.Delete_Link);
@@ -127,11 +154,14 @@ package body View.Links is
             Pin : Pins.Pin renames Item.Linking.Pins (Which) (Side);
          begin
             UI.Mount_Into
-              (Screen_Of (Item, Canvas_Region).all, Item.Canvas_View,
+              (Screen_Of (Item, Canvas_Region).all,
+               Item.Canvas_View,
                UI.Styled
                  (UI.Put (Screen_Of (Item, Canvas_Region).all, Pin),
-                  (Place => Layouts.Absolute, Width => Layouts.Length_Of (Pins.Diameter),
-                   Height => Layouts.Length_Of (Pins.Diameter), others => <>)));
+                  (Place  => Layouts.Absolute,
+                   Width  => Layouts.Length_Of (Pins.Diameter),
+                   Height => Layouts.Length_Of (Pins.Diameter),
+                   others => <>)));
             Widgets.Set_Visible (Pin, False);
             Widgets.Set_Tag (Pin, Widgets.No_Tag, Events.Pin_Number (Which, Side));
             Hooks.On (Pin, Press, Item'Unchecked_Access, Events.Pin_Pressed'Access);
@@ -172,10 +202,8 @@ package body View.Links is
       use all type Widgets.Event_Kind;
 
       procedure Hear
-        (Part    : in out Widgets.Widget'Class;
-         Kind    : Widgets.Event_Kind;
-         Do_This : Hooks.Handler;
-         Index   : Natural := 0) is
+        (Part : in out Widgets.Widget'Class; Kind : Widgets.Event_Kind; Do_This : Hooks.Handler; Index : Natural := 0)
+      is
       begin
          if Index /= 0 then
             Widgets.Set_Tag (Part, Widgets.No_Tag, Index);

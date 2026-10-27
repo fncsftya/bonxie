@@ -13,8 +13,8 @@ package body View.Deletion is
    use type Confirm_VM.Subjects;
    use type Items.Kinds;
 
-   function Dialog (Item : Session) return access Widgets.Widget'Class is
-     (UI.Named (Screen_Of (Item, Confirm_Region).all, Confirm_Overlay));
+   function Dialog (Item : Session) return access Widgets.Widget'Class
+   is (UI.Named (Screen_Of (Item, Confirm_Region).all, Confirm_Overlay));
    --  The grey that covers the window, and holds the dialog.
 
    --  Show the dialog over the rest: Tab goes round only its buttons, and Return, which a button has when it has
@@ -61,8 +61,10 @@ package body View.Deletion is
 
    procedure Confirm_Node (Item : in out Session; Node : Tree_Entry) is
       Kind : constant Confirm_VM.Nodes :=
-        (if Node.Kind = Directory_Node then Confirm_VM.Folder
-         elsif Items.Models.Details (Item.Models (Node.Doc)).Kind = Items.Source then Confirm_VM.Source
+        (if Node.Kind = Directory_Node
+         then Confirm_VM.Folder
+         elsif Items.Models.Details (Item.Models (Node.Doc)).Kind = Items.Source
+         then Confirm_VM.Source
          else Confirm_VM.Document);
       Name : constant String :=
         (if Node.Kind = Directory_Node
@@ -90,18 +92,21 @@ package body View.Deletion is
    procedure Answered (Item : in out Session; Said : Confirm_VM.Answer) is
    begin
       case Said.Subject is
-         when Confirm_VM.Nothing =>
+         when Confirm_VM.Nothing                      =>
             null;
-         when Confirm_VM.Project =>
+
+         when Confirm_VM.Project                      =>
             Home_VM.Delete_Confirmed (Item.Home_Model.Model, Said.Project_Key);
             Recent.Sync (Item);
-         when Confirm_VM.Folder =>
-            Writing.Delete_Node
-              (Item, (Kind => Directory_Node, Dir => Said.Dir, Doc => 0), Said.Delete_Documents);
+
+         when Confirm_VM.Folder                       =>
+            Writing.Delete_Node (Item, (Kind => Directory_Node, Dir => Said.Dir, Doc => 0), Said.Delete_Documents);
+
          when Confirm_VM.Document | Confirm_VM.Source =>
             Writing.Delete_Node
               (Item, (Kind => Document_Leaf, Dir => Said.Dir, Doc => Said.Doc), Said.Delete_Documents);
-         when Confirm_VM.Model =>
+
+         when Confirm_VM.Model                        =>
             Settings_View.Delete_Files (Item);
       end case;
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);

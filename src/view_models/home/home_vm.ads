@@ -5,6 +5,7 @@ with Projects;
 --  The view-model of the home screen: the recent projects, how many documents and
 --  sources each has, renaming one in place, and deleting one (the dialog that asks
 --  first is Confirm_VM). It names no widget, so the tests run it without a window.
+
 package Home_VM is
 
    package Parts renames Pomarine.View_Models;
@@ -20,7 +21,7 @@ package Home_VM is
       --  Give the project being renamed the draft, unless it is nothing but spaces.
       Cancel_Rename,
       Ask_Delete);
-      --  Index: a listed row. Stop renaming and ask before deleting it, retaining its stable key.
+   --  Index: a listed row. Stop renaming and ask before deleting it, retaining its stable key.
 
    package Commands is new Parts.Command_Models (Command);
 
@@ -47,28 +48,26 @@ package Home_VM is
    --  Tell Reactions, from now on, after every command that is done.
 
    procedure Initialize
-     (Self : in out View_Model; Kept : not null access Library'Class;
-      Dialog : access Confirm_VM.View_Model := null);
+     (Self : in out View_Model; Kept : not null access Library'Class; Dialog : access Confirm_VM.View_Model := null);
    --  Kept and an optional confirmation model must outlive Self. The projects are listed.
 
    procedure Delete_Confirmed (Self : in out View_Model; Key : Projects.Id)
-     with Pre => Key /= 0,
-          Post => Editing (Self) = 0;
+   with Pre => Key /= 0, Post => Editing (Self) = 0;
    --  Delete the confirmed identity, even if the recent-project list has since moved or omitted its row.
 
    --  The rows
 
    function Count (Self : View_Model) return Natural
-     with Post => Count'Result <= Projects.Recent_Count;
+   with Post => Count'Result <= Projects.Recent_Count;
 
    function Key_Of (Self : View_Model; Row : Positive) return Projects.Id
-     with Pre => Row <= Count (Self);
+   with Pre => Row <= Count (Self);
 
    function Title (Self : View_Model; Row : Positive) return String
-     with Pre => Row <= Count (Self);
+   with Pre => Row <= Count (Self);
 
    function Meta (Self : View_Model; Row : Positive) return String
-     with Pre => Row <= Count (Self);
+   with Pre => Row <= Count (Self);
    --  "2 documents · 1 source".
 
    function Listed_Version (Self : View_Model) return Parts.Version_Number;
@@ -82,20 +81,25 @@ package Home_VM is
    function Draft (Self : View_Model) return String;
 
    procedure Set_Draft (Self : in out View_Model; Text : String)
-     with Post => Draft (Self) = Text;
+   with Post => Draft (Self) = Text;
    --  What has been typed over the title.
 
-   overriding function Version (Self : View_Model) return Parts.Version_Number;
+   overriding
+   function Version (Self : View_Model) return Parts.Version_Number;
 
-   overriding function Can_Execute (Self : View_Model; What : Command; Index : Natural := 0) return Boolean;
+   overriding
+   function Can_Execute (Self : View_Model; What : Command; Index : Natural := 0) return Boolean;
    --  Refresh: always. Begin_Rename: the project of the row (Index; 0 for any) is listed.
    --  Ask_Delete: a positive listed row and an injected confirmation model that is not already asking.
    --  Cancel_Rename: one is being renamed. Accept_Rename: one is, and the draft is something besides spaces.
 
-   overriding procedure Execute (Self : in out View_Model; What : Command; Index : Natural := 0)
-     with Post => (case What is
-                      when Begin_Rename => Editing (Self) = Index,
-                      when Accept_Rename | Cancel_Rename | Refresh | Ask_Delete => Editing (Self) = 0);
+   overriding
+   procedure Execute (Self : in out View_Model; What : Command; Index : Natural := 0)
+   with
+     Post =>
+       (case What is
+          when Begin_Rename                                         => Editing (Self) = Index,
+          when Accept_Rename | Cancel_Rename | Refresh | Ask_Delete => Editing (Self) = 0);
    --  A row that is not listed is refused by the precondition.
 
 private
@@ -113,16 +117,16 @@ private
 
    type View_Model is limited new Commands.Model with record
       Reactions : Effects_Access;
-      Dialog : Dialog_Access;
-      Kept    : Library_Access;
-      Listed  : Projects.Recent_List;
-      Numbers : Count_Array;
-      Row     : Natural := 0;
+      Dialog    : Dialog_Access;
+      Kept      : Library_Access;
+      Listed    : Projects.Recent_List;
+      Numbers   : Count_Array;
+      Row       : Natural := 0;
       --  Being renamed.
-      Typed   : Parts.Text_Property;
-      Changes : Parts.Change_Counter;
+      Typed     : Parts.Text_Property;
+      Changes   : Parts.Change_Counter;
       --  Of the list, and the row.
-      Lists   : Parts.Change_Counter;
+      Lists     : Parts.Change_Counter;
       --  Of the list.
    end record;
 

@@ -44,7 +44,7 @@ is
    type Stream is limited private;
 
    function Consistent (Item : Stream) return Boolean
-     with Global => null;
+   with Global => null;
    --  What holds of a stream between calls: the place up to which words
    --  are settled is within the window, not before it nor past the sound
    --  that is heard.
@@ -62,14 +62,11 @@ is
    --  The constants above, which are what a stream starts with.
 
    procedure Configure (Item : in out Stream; With_Tuning : Tuning)
-     with Global => null,
-          Pre    => Consistent (Item),
-          Post   => Consistent (Item);
+   with Global => null, Pre => Consistent (Item), Post => Consistent (Item);
    --  Use other values than the constants (for finding better ones).
 
    procedure Reset (Item : in out Stream)
-     with Global => null,
-          Post   => Consistent (Item);
+   with Global => null, Post => Consistent (Item);
    --  Forget all that was heard.
 
    procedure Feed
@@ -79,35 +76,31 @@ is
       Ok      : out Boolean;
       Message : out String;
       Last    : out Natural)
-     with Global => (Input => Parakeet.Model),
-          Pre    => Consistent (Item)
-                    and then Message'First = 1
-                    and then Message'Length < Positive'Last / 2
-                    and then Audio'First >= 1
-                    and then Audio'Last < Positive'Last,
-          Post   => Consistent (Item) and then Last <= Message'Length;
+   with
+     Global => (Input => Parakeet.Model),
+     Pre    =>
+       Consistent (Item)
+       and then Message'First = 1
+       and then Message'Length < Positive'Last / 2
+       and then Audio'First >= 1
+       and then Audio'Last < Positive'Last,
+     Post   => Consistent (Item) and then Last <= Message'Length;
    --  Give the stream more audio. Changed says the model was run, so the
    --  text may not be as it was.
 
-   procedure Finish
-     (Item    : in out Stream;
-      Ok      : out Boolean;
-      Message : out String;
-      Last    : out Natural)
-     with Global => (Input => Parakeet.Model),
-          Pre    => Consistent (Item)
-                    and then Message'First = 1
-                    and then Message'Length < Positive'Last / 2,
-          Post   => Consistent (Item) and then Last <= Message'Length;
+   procedure Finish (Item : in out Stream; Ok : out Boolean; Message : out String; Last : out Natural)
+   with
+     Global => (Input => Parakeet.Model),
+     Pre    => Consistent (Item) and then Message'First = 1 and then Message'Length < Positive'Last / 2,
+     Post   => Consistent (Item) and then Last <= Message'Length;
    --  There is no more audio: the text is all settled.
 
    function Room_Level (Item : Stream) return Float
-     with Global => null,
-          Post   => Room_Level'Result in 0.0 .. 1.0;
+   with Global => null, Post => Room_Level'Result in 0.0 .. 1.0;
    --  How loud the room is, as an amplitude (see Speech.Gates).
 
    procedure Text (Item : Stream; Into : in out Transcript)
-     with Global => null;
+   with Global => null;
    --  What has been heard: the settled words, then those that may yet
    --  change.
 
@@ -124,10 +117,10 @@ private
       Tentative  : Transcript;
    end record;
 
-   function Room_Level (Item : Stream) return Float is (Gates.Level (Item.Room));
+   function Room_Level (Item : Stream) return Float
+   is (Gates.Level (Item.Room));
 
-   function Consistent (Item : Stream) return Boolean is
-     (Windows.First (Item.Held) <= Item.Settled_To
-      and then Item.Settled_To <= Windows.Next (Item.Held));
+   function Consistent (Item : Stream) return Boolean
+   is (Windows.First (Item.Held) <= Item.Settled_To and then Item.Settled_To <= Windows.Next (Item.Held));
 
 end Speech.Streams;

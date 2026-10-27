@@ -31,9 +31,7 @@ package body View.Recent is
          end if;
          if Each.State = Items.Open and then Drawn < Shown'Last then
             Drawn := Drawn + 1;
-            Shown (Drawn) :=
-              (Where => Each.Where, Kind => Each.Kind,
-               Ink   => Style.Source_Ink (Sources));
+            Shown (Drawn) := (Where => Each.Where, Kind => Each.Kind, Ink => Style.Source_Ink (Sources));
          end if;
       end loop;
       Previews.Set_Cards (Item.Home_View.Cards (Row).Picture, Shown (1 .. Drawn));
@@ -53,7 +51,7 @@ package body View.Recent is
             Show_Picture (Item, I);
          end if;
       end loop;
-      --  What the cards say, and which are there, are the view's.
+   --  What the cards say, and which are there, are the view's.
    end Show_Rows;
 
    procedure Sync (Item : in out Session) is

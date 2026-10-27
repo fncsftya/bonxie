@@ -1,5 +1,6 @@
 with Items.Readers;
 --  What the sidebar, the edges, the page titles and the readers say.
+
 private package View.Writing.Panes is
 
    package Widgets renames Pomarine.Widgets;
@@ -32,8 +33,7 @@ private package View.Writing.Panes is
      (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
    --  The edge above the sources list was dragged: size the list.
 
-   procedure Pane_Dragged
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
+   procedure Pane_Dragged (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event);
    --  The edge of the pane was dragged: size it.
 
    procedure Page_Title_Double_Clicked (Item : in out Session; Rank : Positive);
@@ -42,10 +42,7 @@ private package View.Writing.Panes is
    procedure Page_Title_Ended (Item : in out Session; Rank : Positive);
    --  Return in the page's title field, or it lost the focus.
 
-   procedure Reader_Asked
-     (Item   : in out Session;
-      Which  : Natural;
-      Action : Readers.Actions);
+   procedure Reader_Asked (Item : in out Session; Which : Natural; Action : Readers.Actions);
    --  What a button of a source's window here, or of the pane, asked for:
    --  Which is 0 for the pane's.
 

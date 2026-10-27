@@ -4,6 +4,7 @@ with Long_Texts;
 --  The rules a project keeps for its spelling and grammar checks, each in a
 --  row of a table of its own: a flagged text to leave alone, or to correct
 --  to the text the writer chose.
+
 package Projects.Rules is
 
    type Rule_Id is new Long_Integer;
@@ -28,20 +29,15 @@ package Projects.Rules is
    --  The earliest made first.
 
    procedure Load (Item : Store; Owner : Id; Result : out Rule_List)
-     with Pre => Is_Open (Item);
+   with Pre => Is_Open (Item);
 
    function Add
-     (Item        : in out Store;
-      Owner       : Id;
-      Action      : Actions;
-      Kind        : Kind_Code;
-      Pattern     : String;
-      Replacement : String := "") return Rule_Id
-     with Pre => Is_Open (Item) and then Pattern'Length > 0
-                 and then (Action = Correct or else Replacement'Length = 0);
+     (Item : in out Store; Owner : Id; Action : Actions; Kind : Kind_Code; Pattern : String; Replacement : String := "")
+      return Rule_Id
+   with Pre => Is_Open (Item) and then Pattern'Length > 0 and then (Action = Correct or else Replacement'Length = 0);
    --  A rule for a pattern and an action that the project has already is changed rather than repeated.
 
    procedure Remove (Item : in out Store; Key : Rule_Id)
-     with Pre => Is_Open (Item);
+   with Pre => Is_Open (Item);
 
 end Projects.Rules;

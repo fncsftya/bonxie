@@ -4,16 +4,16 @@ package body Speech.Gates
   with SPARK_Mode
 is
 
-   Fall  : constant Float := 0.1;
+   Fall   : constant Float := 0.1;
    --  To a quieter moment: quickly.
    Settle : constant Float := 0.01;
    --  To a louder one that is not speech: a few seconds.
-   Creep : constant Float := 0.0002;
+   Creep  : constant Float := 0.0002;
    --  To one that is: so slowly that speech does not carry it up, but
    --  a noise that has come to stay is in time not mistaken for speech.
 
-   function Root_Mean_Square (Sum : Float) return Float is
-     (Ada.Numerics.Elementary_Functions.Sqrt (Float'Max (0.0, Sum) / Float (Frame)));
+   function Root_Mean_Square (Sum : Float) return Float
+   is (Ada.Numerics.Elementary_Functions.Sqrt (Float'Max (0.0, Sum) / Float (Frame)));
 
    procedure Observe (Of_Floor : in out Floor; Audio : Windows.Samples) is
    begin
@@ -31,9 +31,7 @@ is
                   Loud : constant Float := Root_Mean_Square (Of_Floor.Sum);
                   Now  : Float renames Of_Floor.Amplitude;
                   Rate : constant Float :=
-                    (if Loud < Now then Fall
-                     elsif Loud < Now * Open_Margin then Settle
-                     else Creep);
+                    (if Loud < Now then Fall elsif Loud < Now * Open_Margin then Settle else Creep);
                begin
                   Now := Float'Max (Floor_Least, Float'Min (Floor_Most, Now + (Loud - Now) * Rate));
                end;
@@ -44,11 +42,7 @@ is
       end loop;
    end Observe;
 
-   procedure Apply
-     (Of_Floor : Floor;
-      Audio    : in out Windows.Samples;
-      Voiced   : out Boolean)
-   is
+   procedure Apply (Of_Floor : Floor; Audio : in out Windows.Samples; Voiced : out Boolean) is
       Frames : constant Natural := Audio'Length / Frame;
       Open   : constant Float := Float'Max (Open_Least, Of_Floor.Amplitude * Open_Margin);
       Close  : constant Float := Of_Floor.Amplitude * Close_Margin;

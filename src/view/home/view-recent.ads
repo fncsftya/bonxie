@@ -1,5 +1,6 @@
 --  The home screen's list of recent projects, and renaming one in place: the cards and the field set
 --  from Home_VM, which has the rules.
+
 private package View.Recent is
 
    procedure Refresh (Item : in out Session);

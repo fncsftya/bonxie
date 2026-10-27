@@ -3,13 +3,30 @@ with Pomarine.View_Models;
 
 --  Commands of an item's canvas window. Content and persistence stay in Items.Models; effects that
 --  need the application (capture, dictation, file selection and outline menus) are injected.
+
 package Item_Window_VM is
 
    package Parts renames Pomarine.View_Models;
    type Command is
-     (Capture, Choose_Link, Choose_File, Previous_Page, Next_Page, Speak, Link_To_Outline,
-      Use_Pointer, Use_Marker, Use_Eraser, Toggle_Zoom, Zoom_Preset,
-      Begin_Title_Edit, Accept_Title, Minimize_Window, Restore_Window, Close_Window, Use_Tool, Follow_Link);
+     (Capture,
+      Choose_Link,
+      Choose_File,
+      Previous_Page,
+      Next_Page,
+      Speak,
+      Link_To_Outline,
+      Use_Pointer,
+      Use_Marker,
+      Use_Eraser,
+      Toggle_Zoom,
+      Zoom_Preset,
+      Begin_Title_Edit,
+      Accept_Title,
+      Minimize_Window,
+      Restore_Window,
+      Close_Window,
+      Use_Tool,
+      Follow_Link);
    --  Use_Tool and Follow_Link are of the body's text: the tool, from 1, of its toolbar is the Index; a link was
    --  Command-clicked.
    package Commands is new Parts.Command_Models (Command);
@@ -28,16 +45,21 @@ package Item_Window_VM is
 
    procedure Poll (Self : in out Model);
    --  Observe changes from outside the commands; unchanged state keeps its version.
-   overriding function Version (Self : Model) return Parts.Version_Number;
-   overriding function Can_Execute (Self : Model; What : Command; Index : Natural := 0) return Boolean;
-   overriding procedure Execute (Self : in out Model; What : Command; Index : Natural := 0);
+   overriding
+   function Version (Self : Model) return Parts.Version_Number;
+   overriding
+   function Can_Execute (Self : Model; What : Command; Index : Natural := 0) return Boolean;
+   overriding
+   procedure Execute (Self : in out Model; What : Command; Index : Natural := 0);
 
    function Zoom_Fraction (Self : Model) return Float;
    procedure Set_Zoom_Fraction (Self : in out Model; Value : Float)
-     with Pre => Value in 0.0 .. 1.0;
+   with Pre => Value in 0.0 .. 1.0;
 
-   function Previous_Allowed (Self : Model) return Boolean is (Can_Execute (Self, Previous_Page));
-   function Next_Allowed (Self : Model) return Boolean is (Can_Execute (Self, Next_Page));
+   function Previous_Allowed (Self : Model) return Boolean
+   is (Can_Execute (Self, Previous_Page));
+   function Next_Allowed (Self : Model) return Boolean
+   is (Can_Execute (Self, Next_Page));
 
    function Pointer_Selected (Self : Model) return Boolean;
    function Marker_Selected (Self : Model) return Boolean;
@@ -48,20 +70,20 @@ private
    type Item_Access is access all Items.Models.Item;
    type Effects_Access is access all Effects'Class;
    type Snapshot is record
-      Assigned : Boolean := False;
-      Key : Items.Id := 0;
-      Kind : Items.Kinds := Items.Note;
-      State : Items.States := Items.Closed;
-      Origin : Items.Origins := Items.Unchosen;
+      Assigned    : Boolean := False;
+      Key         : Items.Id := 0;
+      Kind        : Items.Kinds := Items.Note;
+      State       : Items.States := Items.Closed;
+      Origin      : Items.Origins := Items.Unchosen;
       Page, Count : Natural := 0;
-      Zoom : Float := 1.0;
-      Tool : Items.Models.Tools := Items.Models.Pointer;
+      Zoom        : Float := 1.0;
+      Tool        : Items.Models.Tools := Items.Models.Pointer;
    end record;
 
    type Model is limited new Commands.Model with record
-      Data : Item_Access;
-      View : Effects_Access;
-      Seen : Snapshot;
+      Data    : Item_Access;
+      View    : Effects_Access;
+      Seen    : Snapshot;
       Changes : Parts.Change_Counter;
    end record;
 

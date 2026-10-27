@@ -2,6 +2,7 @@
 --  technology is told of them and clicked by what they are called, not where
 --  they are: the choices, what the form shows for each, and what the choices
 --  make the windows do. See Goldens.
+
 package Settings_Tests is
 
    procedure By_Name;

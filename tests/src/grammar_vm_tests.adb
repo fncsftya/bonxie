@@ -18,9 +18,11 @@ package body Grammar_VM_Tests is
 
    procedure Check (Name : String; Expected, Actual : String) renames Goldens.Check_Text;
 
-   function Image (Value : Boolean) return String is (Value'Image);
+   function Image (Value : Boolean) return String
+   is (Value'Image);
 
-   function Number (Value : Integer) return String is (Value'Image (2 .. Value'Image'Last));
+   function Number (Value : Integer) return String
+   is (Value'Image (2 .. Value'Image'Last));
 
    function Long_Texts_Image (Text : Long_Texts.Text) return String renames Long_Texts.To_String;
 
@@ -31,8 +33,14 @@ package body Grammar_VM_Tests is
       Done  : Boolean;
    begin
       Grammar_VM.Initialize (Model, Kept'Access);
-      Check ("grammar-vm-first", "0 0 0", Number (Grammar_VM.Count (Model)) & " "
-             & Number (Integer (Grammar_VM.Owner_Of (Model))) & " " & Number (Kept.Reads));
+      Check
+        ("grammar-vm-first",
+         "0 0 0",
+         Number (Grammar_VM.Count (Model))
+         & " "
+         & Number (Integer (Grammar_VM.Owner_Of (Model)))
+         & " "
+         & Number (Kept.Reads));
 
       --  A project's rules are read once, for as long as it is the one.
       Grammar_VM.Open (Model, 7);
@@ -47,54 +55,98 @@ package body Grammar_VM_Tests is
       --  Ignoring a text is a rule, and is a change of the rules.
       Seen := Grammar_VM.Rules_Version (Model);
       Grammar_VM.Ignore (Model, 4, "speling");
-      Check ("grammar-vm-ignored", "1 TRUE IGNORE 4 speling",
-             Number (Grammar_VM.Count (Model)) & " " & Image (Grammar_VM.Rules_Version (Model) /= Seen) & " "
-             & Grammar_VM.Current (Model).all (1).Action'Image & Grammar_VM.Current (Model).all (1).Kind'Image & " "
-             & Long_Texts_Image (Grammar_VM.Current (Model).all (1).Pattern));
+      Check
+        ("grammar-vm-ignored",
+         "1 TRUE IGNORE 4 speling",
+         Number (Grammar_VM.Count (Model))
+         & " "
+         & Image (Grammar_VM.Rules_Version (Model) /= Seen)
+         & " "
+         & Grammar_VM.Current (Model).all (1).Action'Image
+         & Grammar_VM.Current (Model).all (1).Kind'Image
+         & " "
+         & Long_Texts_Image (Grammar_VM.Current (Model).all (1).Pattern));
       Check ("grammar-vm-ignore-not-correction", "FALSE", Image (Grammar_VM.Corrects (Model, "speling")));
 
       --  A text corrected is a rule that corrects it, which can be taken away, once.
       Grammar_VM.Begin_Entry (Model, "teh", 0, "the");
       Grammar_VM.Execute (Model, Accept_Entry);
-      Check ("grammar-vm-corrects", "2 TRUE", Number (Grammar_VM.Count (Model)) & " "
-             & Image (Grammar_VM.Corrects (Model, "teh")));
+      Check
+        ("grammar-vm-corrects",
+         "2 TRUE",
+         Number (Grammar_VM.Count (Model)) & " " & Image (Grammar_VM.Corrects (Model, "teh")));
       Seen := Grammar_VM.Rules_Version (Model);
       Grammar_VM.Remove_Correction (Model, "speling", Done);
-      Check ("grammar-vm-remove-ignore", "FALSE 2 FALSE", Image (Done) & " " & Number (Grammar_VM.Count (Model)) & " "
-             & Image (Grammar_VM.Rules_Version (Model) /= Seen));
+      Check
+        ("grammar-vm-remove-ignore",
+         "FALSE 2 FALSE",
+         Image (Done)
+         & " "
+         & Number (Grammar_VM.Count (Model))
+         & " "
+         & Image (Grammar_VM.Rules_Version (Model) /= Seen));
       Grammar_VM.Remove_Correction (Model, "teh", Done);
-      Check ("grammar-vm-removed", "TRUE 1 FALSE TRUE", Image (Done) & " " & Number (Grammar_VM.Count (Model)) & " "
-             & Image (Grammar_VM.Corrects (Model, "teh")) & " " & Image (Grammar_VM.Rules_Version (Model) /= Seen));
+      Check
+        ("grammar-vm-removed",
+         "TRUE 1 FALSE TRUE",
+         Image (Done)
+         & " "
+         & Number (Grammar_VM.Count (Model))
+         & " "
+         & Image (Grammar_VM.Corrects (Model, "teh"))
+         & " "
+         & Image (Grammar_VM.Rules_Version (Model) /= Seen));
       Grammar_VM.Remove_Correction (Model, "teh", Done);
       Check ("grammar-vm-removed-again", "FALSE", Image (Done));
    end Rule_List;
 
    procedure Entry_Form is
-      Kept  : aliased Fakes.Kept;
-      Model : aliased Grammar_VM.View_Model;
+      Kept      : aliased Fakes.Kept;
+      Model     : aliased Grammar_VM.View_Model;
       Reactions : aliased Fakes.Reactions (Model'Access);
-      Seen  : Parts.Version_Number;
+      Seen      : Parts.Version_Number;
    begin
       Grammar_VM.Initialize (Model, Kept'Access);
       Grammar_VM.Observe (Model, Reactions'Access);
       Grammar_VM.Open (Model, 1);
-      Check ("grammar-vm-entry-off", "FALSE FALSE FALSE", Image (Grammar_VM.Is_Entering (Model)) & " "
-             & Image (Grammar_VM.Can_Execute (Model, Accept_Entry)) & " "
-             & Image (Grammar_VM.Can_Execute (Model, Cancel_Entry)));
+      Check
+        ("grammar-vm-entry-off",
+         "FALSE FALSE FALSE",
+         Image (Grammar_VM.Is_Entering (Model))
+         & " "
+         & Image (Grammar_VM.Can_Execute (Model, Accept_Entry))
+         & " "
+         & Image (Grammar_VM.Can_Execute (Model, Cancel_Entry)));
 
       Grammar_VM.Begin_Entry (Model, "speling", 3, "spelling");
-      Check ("grammar-vm-entry", "TRUE speling spelling Always correct ""speling"" to:",
-             Image (Grammar_VM.Is_Entering (Model)) & " " & Grammar_VM.Entry_Text (Model) & " "
-             & Grammar_VM.Correction (Model) & " " & Grammar_VM.Prompt (Model));
-      Check ("grammar-vm-entry-can", "TRUE TRUE", Image (Grammar_VM.Can_Execute (Model, Accept_Entry)) & " "
-             & Image (Grammar_VM.Can_Execute (Model, Cancel_Entry)));
+      Check
+        ("grammar-vm-entry",
+         "TRUE speling spelling Always correct ""speling"" to:",
+         Image (Grammar_VM.Is_Entering (Model))
+         & " "
+         & Grammar_VM.Entry_Text (Model)
+         & " "
+         & Grammar_VM.Correction (Model)
+         & " "
+         & Grammar_VM.Prompt (Model));
+      Check
+        ("grammar-vm-entry-can",
+         "TRUE TRUE",
+         Image (Grammar_VM.Can_Execute (Model, Accept_Entry))
+         & " "
+         & Image (Grammar_VM.Can_Execute (Model, Cancel_Entry)));
 
       --  A correction that changes nothing is no rule.
       Seen := Grammar_VM.Version (Model);
       Grammar_VM.Set_Correction (Model, "speling");
-      Check ("grammar-vm-entry-same", "TRUE FALSE TRUE", Image (Grammar_VM.Version (Model) /= Seen) & " "
-             & Image (Grammar_VM.Can_Execute (Model, Accept_Entry)) & " "
-             & Image (Grammar_VM.Can_Execute (Model, Cancel_Entry)));
+      Check
+        ("grammar-vm-entry-same",
+         "TRUE FALSE TRUE",
+         Image (Grammar_VM.Version (Model) /= Seen)
+         & " "
+         & Image (Grammar_VM.Can_Execute (Model, Accept_Entry))
+         & " "
+         & Image (Grammar_VM.Can_Execute (Model, Cancel_Entry)));
       Grammar_VM.Set_Correction (Model, "");
       Check ("grammar-vm-entry-empty", "TRUE", Image (Grammar_VM.Can_Execute (Model, Accept_Entry)));
 
@@ -115,22 +167,49 @@ package body Grammar_VM_Tests is
       --  Accepted: the rule is the text's, of the kind of the diagnostic, and the form is put away.
       Grammar_VM.Set_Correction (Model, "spelling!");
       Grammar_VM.Execute (Model, Accept_Entry);
-      Check ("grammar-vm-entry-made", "FALSE 1 CORRECT 3 speling spelling!",
-             Image (Grammar_VM.Is_Entering (Model)) & " " & Number (Grammar_VM.Count (Model)) & " "
-             & Kept.Table (1).Action'Image & Kept.Table (1).Kind'Image & " "
-             & Long_Texts_Image (Kept.Table (1).Pattern) & " " & Long_Texts_Image (Kept.Table (1).Replacement));
+      Check
+        ("grammar-vm-entry-made",
+         "FALSE 1 CORRECT 3 speling spelling!",
+         Image (Grammar_VM.Is_Entering (Model))
+         & " "
+         & Number (Grammar_VM.Count (Model))
+         & " "
+         & Kept.Table (1).Action'Image
+         & Kept.Table (1).Kind'Image
+         & " "
+         & Long_Texts_Image (Kept.Table (1).Pattern)
+         & " "
+         & Long_Texts_Image (Kept.Table (1).Replacement));
 
-      Check ("grammar-vm-entry-accepted-effect", "1 0 TRUE 1", Number (Reactions.Accepted) & " "
-             & Number (Reactions.Cancelled) & " " & Image (Reactions.Closed) & " " & Number (Reactions.Rules));
+      Check
+        ("grammar-vm-entry-accepted-effect",
+         "1 0 TRUE 1",
+         Number (Reactions.Accepted)
+         & " "
+         & Number (Reactions.Cancelled)
+         & " "
+         & Image (Reactions.Closed)
+         & " "
+         & Number (Reactions.Rules));
 
       --  Cancelled: nothing is made.
       Grammar_VM.Begin_Entry (Model, "teh", 0, "the");
       Grammar_VM.Execute (Model, Cancel_Entry);
-      Check ("grammar-vm-entry-cancelled", "FALSE 1 1", Image (Grammar_VM.Is_Entering (Model)) & " "
-             & Number (Grammar_VM.Count (Model)) & " " & Number (Kept.Writes));
+      Check
+        ("grammar-vm-entry-cancelled",
+         "FALSE 1 1",
+         Image (Grammar_VM.Is_Entering (Model)) & " " & Number (Grammar_VM.Count (Model)) & " " & Number (Kept.Writes));
 
-      Check ("grammar-vm-entry-cancelled-effect", "1 1 TRUE 1", Number (Reactions.Accepted) & " "
-             & Number (Reactions.Cancelled) & " " & Image (Reactions.Closed) & " " & Number (Reactions.Rules));
+      Check
+        ("grammar-vm-entry-cancelled-effect",
+         "1 1 TRUE 1",
+         Number (Reactions.Accepted)
+         & " "
+         & Number (Reactions.Cancelled)
+         & " "
+         & Image (Reactions.Closed)
+         & " "
+         & Number (Reactions.Rules));
       Grammar_VM.Observe (Model, null);
       Grammar_VM.Begin_Entry (Model, "teh", 0, "the");
       Grammar_VM.Execute (Model, Cancel_Entry);
@@ -143,66 +222,92 @@ package body Grammar_VM_Tests is
    end Entry_Form;
 
    procedure Card_Actions is
-      Kept : aliased Fakes.Kept;
-      Engine : aliased Fakes.Engine;
-      Model : Grammar_VM.View_Model;
-      Seen : Parts.Version_Number;
+      Kept     : aliased Fakes.Kept;
+      Engine   : aliased Fakes.Engine;
+      Model    : Grammar_VM.View_Model;
+      Seen     : Parts.Version_Number;
       Rejected : Boolean := False;
    begin
       Grammar_VM.Initialize (Model, Kept'Access);
       Check ("grammar-vm-cards-no-engine", "FALSE", Image (Grammar_VM.Can_Execute (Model, Toggle_Cards)));
       Grammar_VM.Attach_Cards (Model, Engine'Access);
       Grammar_VM.Open (Model, 1);
-      Engine.State := (Writing => True, Showing => True, Current => True, Editable => True,
-                       Has_Text => True, Suggestions => 2);
+      Engine.State :=
+        (Writing => True, Showing => True, Current => True, Editable => True, Has_Text => True, Suggestions => 2);
       Seen := Grammar_VM.Version (Model);
-      Check ("grammar-vm-cards-allowed", "TRUE", Image
-        (Grammar_VM.Can_Execute (Model, Toggle_Cards)
-         and then Grammar_VM.Can_Execute (Model, Expand_Card, 1)
-         and then Grammar_VM.Can_Execute (Model, Apply_Fix, 2)
-         and then Grammar_VM.Can_Execute (Model, Edit_Rule)
-         and then Grammar_VM.Can_Execute (Model, Ignore_Text)));
-      Check ("grammar-vm-cards-indices", "TRUE", Image
-        (not Grammar_VM.Can_Execute (Model, Toggle_Cards, 1)
-         and then not Grammar_VM.Can_Execute (Model, Expand_Card)
-         and then not Grammar_VM.Can_Execute (Model, Apply_Fix)
-         and then not Grammar_VM.Can_Execute (Model, Apply_Fix, 3)
-         and then not Grammar_VM.Can_Execute (Model, Edit_Rule, 1)
-         and then not Grammar_VM.Can_Execute (Model, Ignore_Text, 1)));
+      Check
+        ("grammar-vm-cards-allowed",
+         "TRUE",
+         Image
+           (Grammar_VM.Can_Execute (Model, Toggle_Cards)
+            and then Grammar_VM.Can_Execute (Model, Expand_Card, 1)
+            and then Grammar_VM.Can_Execute (Model, Apply_Fix, 2)
+            and then Grammar_VM.Can_Execute (Model, Edit_Rule)
+            and then Grammar_VM.Can_Execute (Model, Ignore_Text)));
+      Check
+        ("grammar-vm-cards-indices",
+         "TRUE",
+         Image
+           (not Grammar_VM.Can_Execute (Model, Toggle_Cards, 1)
+            and then not Grammar_VM.Can_Execute (Model, Expand_Card)
+            and then not Grammar_VM.Can_Execute (Model, Apply_Fix)
+            and then not Grammar_VM.Can_Execute (Model, Apply_Fix, 3)
+            and then not Grammar_VM.Can_Execute (Model, Edit_Rule, 1)
+            and then not Grammar_VM.Can_Execute (Model, Ignore_Text, 1)));
       Check ("grammar-vm-cards-query-version", "TRUE", Image (Grammar_VM.Version (Model) = Seen));
       Grammar_VM.Execute (Model, Apply_Fix, 2);
-      Check ("grammar-vm-cards-route", "TRUE", Image
-        (Engine.Calls = 1 and then Engine.Last = Apply_Fix and then Engine.Index = 2
-         and then Grammar_VM.Version (Model) /= Seen));
+      Check
+        ("grammar-vm-cards-route",
+         "TRUE",
+         Image
+           (Engine.Calls = 1
+            and then Engine.Last = Apply_Fix
+            and then Engine.Index = 2
+            and then Grammar_VM.Version (Model) /= Seen));
       Engine.State.Editable := False;
       Check ("grammar-vm-cards-read-only", "FALSE", Image (Grammar_VM.Can_Execute (Model, Apply_Fix, 1)));
       Engine.State.Has_Text := False;
-      Check ("grammar-vm-cards-empty", "TRUE", Image
-        (not Grammar_VM.Can_Execute (Model, Edit_Rule) and then not Grammar_VM.Can_Execute (Model, Ignore_Text)));
+      Check
+        ("grammar-vm-cards-empty",
+         "TRUE",
+         Image
+           (not Grammar_VM.Can_Execute (Model, Edit_Rule) and then not Grammar_VM.Can_Execute (Model, Ignore_Text)));
       Engine.State.Current := False;
-      Check ("grammar-vm-cards-stale", "TRUE", Image
-        (not Grammar_VM.Can_Execute (Model, Expand_Card, 1)
-         and then not Grammar_VM.Can_Execute (Model, Apply_Fix, 1)));
+      Check
+        ("grammar-vm-cards-stale",
+         "TRUE",
+         Image
+           (not Grammar_VM.Can_Execute (Model, Expand_Card, 1)
+            and then not Grammar_VM.Can_Execute (Model, Apply_Fix, 1)));
       Seen := Grammar_VM.Version (Model);
       begin
          Grammar_VM.Execute (Model, Expand_Card, 1);
       exception
-         when Ada.Assertions.Assertion_Error => Rejected := True;
+         when Ada.Assertions.Assertion_Error =>
+            Rejected := True;
       end;
-      Check ("grammar-vm-cards-stale-contract", "TRUE", Image
-        (Rejected and then Engine.Calls = 1 and then Grammar_VM.Version (Model) = Seen));
+      Check
+        ("grammar-vm-cards-stale-contract",
+         "TRUE",
+         Image (Rejected and then Engine.Calls = 1 and then Grammar_VM.Version (Model) = Seen));
       Engine.State := (Writing => True, others => <>);
-      Check ("grammar-vm-cards-hidden", "TRUE", Image
-        (Grammar_VM.Can_Execute (Model, Toggle_Cards)
-         and then not Grammar_VM.Can_Execute (Model, Expand_Card, 1)
-         and then not Grammar_VM.Can_Execute (Model, Edit_Rule)));
+      Check
+        ("grammar-vm-cards-hidden",
+         "TRUE",
+         Image
+           (Grammar_VM.Can_Execute (Model, Toggle_Cards)
+            and then not Grammar_VM.Can_Execute (Model, Expand_Card, 1)
+            and then not Grammar_VM.Can_Execute (Model, Edit_Rule)));
       Engine.State.Writing := False;
       Check ("grammar-vm-cards-other-view", "FALSE", Image (Grammar_VM.Can_Execute (Model, Toggle_Cards)));
-      Engine.State := (Writing => True, Showing => True, Current => True, Editable => True,
-                       Has_Text => True, Suggestions => 2);
+      Engine.State :=
+        (Writing => True, Showing => True, Current => True, Editable => True, Has_Text => True, Suggestions => 2);
       Grammar_VM.Forget (Model);
-      Check ("grammar-vm-cards-no-project", "TRUE", Image
-        (not Grammar_VM.Can_Execute (Model, Edit_Rule) and then not Grammar_VM.Can_Execute (Model, Ignore_Text)));
+      Check
+        ("grammar-vm-cards-no-project",
+         "TRUE",
+         Image
+           (not Grammar_VM.Can_Execute (Model, Edit_Rule) and then not Grammar_VM.Can_Execute (Model, Ignore_Text)));
    end Card_Actions;
 
    procedure Stored is
@@ -227,11 +332,15 @@ package body Grammar_VM_Tests is
       --  What was made is the project's, and found by another reading.
       Grammar_VM.Initialize (Again, Kept'Access);
       Grammar_VM.Open (Again, Mine);
-      Check ("grammar-vm-stored-kept", "2 TRUE", Number (Grammar_VM.Count (Again)) & " "
-             & Image (Grammar_VM.Corrects (Again, "speling")));
+      Check
+        ("grammar-vm-stored-kept",
+         "2 TRUE",
+         Number (Grammar_VM.Count (Again)) & " " & Image (Grammar_VM.Corrects (Again, "speling")));
       Grammar_VM.Open (Again, Yours);
-      Check ("grammar-vm-stored-others", "0 FALSE", Number (Grammar_VM.Count (Again)) & " "
-             & Image (Grammar_VM.Corrects (Again, "speling")));
+      Check
+        ("grammar-vm-stored-others",
+         "0 FALSE",
+         Number (Grammar_VM.Count (Again)) & " " & Image (Grammar_VM.Corrects (Again, "speling")));
       Grammar_VM.Open (Model, Mine);
       Grammar_VM.Open (Again, Mine);
       declare

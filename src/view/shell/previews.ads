@@ -8,6 +8,7 @@ with Pomarine.Widgets;
 --  as white cards on a ground of dots, each with a line for its title (a
 --  source's after a square of its colour) and a few for its text. It takes
 --  no events, and fits all of them in its box.
+
 package Previews is
 
    Max_Shown : constant := 12;
@@ -25,30 +26,27 @@ package Previews is
    type Card_Array is array (Positive range <>) of Card;
 
    procedure Set_Cards (Item : in out Preview; To : Card_Array)
-     with Pre => To'Length <= Max_Shown;
+   with Pre => To'Length <= Max_Shown;
    --  Show these, in place of any before.
 
-   procedure Set_Corners
-     (Item : in out Preview; Radius : Float; Round : Pomarine.Boxes.Corner_Flags)
-     with Pre => Radius >= 0.0;
+   procedure Set_Corners (Item : in out Preview; Radius : Float; Round : Pomarine.Boxes.Corner_Flags)
+   with Pre => Radius >= 0.0;
    --  Cut the corners in Round of its ground by a circle of Radius points, as the corners of the box
    --  it is in are: a square one would show beyond the box's rounded outline.
 
    procedure Clear (Item : in out Preview);
    --  Show none: the ground only.
 
-   overriding procedure Draw
-     (Item   : in out Preview;
-      Target : SDL3.Painters.Painter'Class;
-      Colors : Pomarine.Themes.Theme);
+   overriding
+   procedure Draw (Item : in out Preview; Target : SDL3.Painters.Painter'Class; Colors : Pomarine.Themes.Theme);
 
 private
 
    type Preview is new Pomarine.Widgets.Widget with record
       Radius : Float := 0.0;
-      Round : Pomarine.Boxes.Corner_Flags := Pomarine.Boxes.All_Corners;
-      Count : Natural range 0 .. Max_Shown := 0;
-      Cards : Card_Array (1 .. Max_Shown);
+      Round  : Pomarine.Boxes.Corner_Flags := Pomarine.Boxes.All_Corners;
+      Count  : Natural range 0 .. Max_Shown := 0;
+      Cards  : Card_Array (1 .. Max_Shown);
    end record;
 
 end Previews;

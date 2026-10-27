@@ -14,6 +14,7 @@ with Ebook;
 --  Usage: page_view FILE OUT.bmp WIDTH HEIGHT ZOOM [DOWN]. Draws the PDF as
 --  a Page_View does, offscreen, into a WIDTH x HEIGHT points window,
 --  scrolled DOWN (0.0 .. 1.0) of the way, to look at.
+
 procedure Page_View is
    package Widgets renames Pomarine.Widgets;
    package Renderers renames SDL3.Windows.Renderers;
@@ -30,7 +31,8 @@ procedure Page_View is
 
    type From_File is limited new Pomarine.Pages.Source with null record;
 
-   overriding procedure Build
+   overriding
+   procedure Build
      (Item    : in out From_File;
       Index   : Positive;
       Content : out Pomarine.Pages.Page_Access;
@@ -69,8 +71,7 @@ begin
       Ada.Text_IO.Put_Line ("no sizes: " & Message (1 .. Last));
       return;
    end if;
-   Renderers.Create_Offscreen
-     (Target, Positive (Float (Width) * Density), Positive (Float (Height) * Density));
+   Renderers.Create_Offscreen (Target, Positive (Float (Width) * Density), Positive (Float (Height) * Density));
    Widgets.Set_Density (Tree, Density);
    Widgets.Set_Clipboard (Tree, Board);
    Widgets.Set_Line_Texts (Tree, Lines);
@@ -89,6 +90,10 @@ begin
    end loop;
    Renderers.Save_BMP (Target, Out_BMP);
    Ada.Text_IO.Put_Line
-     ("pages" & Views.Page_Count (Shown)'Image & " current" & Views.Current_Page (Shown)'Image
-      & " words" & Views.Word_Count (Shown)'Image);
+     ("pages"
+      & Views.Page_Count (Shown)'Image
+      & " current"
+      & Views.Current_Page (Shown)'Image
+      & " words"
+      & Views.Word_Count (Shown)'Image);
 end Page_View;

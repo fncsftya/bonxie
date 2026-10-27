@@ -14,11 +14,8 @@ procedure Capture_Test is
    use type Interfaces.C.int;
 
    procedure Push
-     (Number  : Interfaces.C.int;
-      Samples : System.Address;
-      Count   : Interfaces.C.int;
-      Loud    : Interfaces.Unsigned_32)
-     with Import, Convention => C, External_Name => "sp_ring_push";
+     (Number : Interfaces.C.int; Samples : System.Address; Count : Interfaces.C.int; Loud : Interfaces.Unsigned_32)
+   with Import, Convention => C, External_Name => "sp_ring_push";
 
    Which  : constant Speech.Session := 1;
    Failed : Natural := 0;
@@ -31,10 +28,11 @@ procedure Capture_Test is
       end if;
    end Check;
 
-   Period : constant := 2 ** 20;
+   Period : constant := 2**20;
    --  Samples are numbered, in their size: sample N is N mod Period / Period.
 
-   function Value_Of (N : Natural) return Float is (Float (N mod Period) / Float (Period));
+   function Value_Of (N : Natural) return Float
+   is (Float (N mod Period) / Float (Period));
 
    Total : constant := 20_000_000;
 
@@ -51,7 +49,8 @@ procedure Capture_Test is
          Count_Taken := Count_Taken + Count;
       end Took;
 
-      function Taken return Natural is (Count_Taken);
+      function Taken return Natural
+      is (Count_Taken);
    end Progress;
 
    task Producer;
@@ -145,9 +144,9 @@ begin
          end loop;
          Got := Got + (Last - Big'First + 1);
       end loop;
-      Check ("only what fits is kept", Got = 2 ** 21);
+      Check ("only what fits is kept", Got = 2**21);
       Check ("what is kept is the oldest, in order", Right);
-      Check ("the rest is counted", Speech.Capture.Dropped (Which) = Count * 1000 - 2 ** 21);
+      Check ("the rest is counted", Speech.Capture.Dropped (Which) = Count * 1000 - 2**21);
       Push (Interfaces.C.int (Which), Many'Address, Many'Length, 0);
       Speech.Capture.Read (Which, Big, Last);
       Check ("it goes on after", Last = Big'First + 999 and then Big (Big'First) = Value_Of (0));

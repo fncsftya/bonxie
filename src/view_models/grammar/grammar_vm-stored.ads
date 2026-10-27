@@ -1,4 +1,5 @@
 --  The grammar rules as the database keeps them.
+
 package Grammar_VM.Stored is
 
    type Rules_Kept is limited new Library with private;
@@ -6,9 +7,11 @@ package Grammar_VM.Stored is
    procedure Open (Self : in out Rules_Kept; Store : not null access Projects.Store);
    --  The rules in Store, which must be there as long as this is.
 
-   overriding procedure Load (Self : in out Rules_Kept; Owner : Projects.Id; Result : out Rules.Rule_List);
+   overriding
+   procedure Load (Self : in out Rules_Kept; Owner : Projects.Id; Result : out Rules.Rule_List);
 
-   overriding function Add
+   overriding
+   function Add
      (Self        : in out Rules_Kept;
       Owner       : Projects.Id;
       Action      : Rules.Actions;
@@ -16,7 +19,8 @@ package Grammar_VM.Stored is
       Pattern     : String;
       Replacement : String) return Rules.Rule_Id;
 
-   overriding procedure Remove (Self : in out Rules_Kept; Key : Rules.Rule_Id);
+   overriding
+   procedure Remove (Self : in out Rules_Kept; Key : Rules.Rule_Id);
 
 private
 

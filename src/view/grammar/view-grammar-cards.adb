@@ -28,29 +28,39 @@ package body View.Grammar.Cards is
    use type Grammar_VM.Command;
 
    procedure Refresh (Item : in out Session) is
-      State : Grammar_State renames Item.Grammar_Checks;
-      Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
-      Parent_Left : constant Float := Widgets.Left_Of (Content_Panel (Item).all) / Pixels;
-      Parent_Top : constant Float := Widgets.Top_Of (Content_Panel (Item).all) / Pixels;
-      Parent_Wide : constant Float := Widgets.Width_Of (Content_Panel (Item).all) / Pixels;
-      Parent_High : constant Float := Widgets.Height_Of (Content_Panel (Item).all) / Pixels;
-      Wide : constant Float := Float'Max (144.0, Float'Min (360.0, Parent_Wide - 16.0));
-      Left : constant Float := Float'Max (8.0, Float'Min (Parent_Wide - Wide - 8.0,
-        (Widgets.Left_Of (Item.Page_View.Grammar_Count) + Widgets.Width_Of (Item.Page_View.Grammar_Count))
-        / Pixels - Parent_Left + 8.0));
-      Top : constant Float := Float'Max (8.0,
-        Widgets.Top_Of (Item.Page_View.Grammar_Count) / Pixels - Parent_Top);
-      High : constant Float := Float'Max (80.0, Float'Min (520.0, Parent_High - Top - 8.0));
-      Card_Wide : constant Float := Wide - 24.0;
+      State          : Grammar_State renames Item.Grammar_Checks;
+      Pixels         : constant Float := Widgets.Density (Item.Root.Widgets);
+      Parent_Left    : constant Float := Widgets.Left_Of (Content_Panel (Item).all) / Pixels;
+      Parent_Top     : constant Float := Widgets.Top_Of (Content_Panel (Item).all) / Pixels;
+      Parent_Wide    : constant Float := Widgets.Width_Of (Content_Panel (Item).all) / Pixels;
+      Parent_High    : constant Float := Widgets.Height_Of (Content_Panel (Item).all) / Pixels;
+      Wide           : constant Float := Float'Max (144.0, Float'Min (360.0, Parent_Wide - 16.0));
+      Left           : constant Float :=
+        Float'Max
+          (8.0,
+           Float'Min
+             (Parent_Wide - Wide - 8.0,
+              (Widgets.Left_Of (Item.Page_View.Grammar_Count) + Widgets.Width_Of (Item.Page_View.Grammar_Count))
+              / Pixels
+              - Parent_Left
+              + 8.0));
+      Top            : constant Float :=
+        Float'Max (8.0, Widgets.Top_Of (Item.Page_View.Grammar_Count) / Pixels - Parent_Top);
+      High           : constant Float := Float'Max (80.0, Float'Min (520.0, Parent_High - Top - 8.0));
+      Card_Wide      : constant Float := Wide - 24.0;
       Fixable, Total : Natural := 0;
-      Row_Top : Float := 4.0;
-      Used : Natural := 0;
-      Offset : constant Float := Pomarine.Widgets.Scrollers.Offset (State.Scroll);
+      Row_Top        : Float := 4.0;
+      Used           : Natural := 0;
+      Offset         : constant Float := Pomarine.Widgets.Scrollers.Offset (State.Scroll);
       use Layouts;
    begin
-      if not State.Dirty and then (not State.Showing or else
-        (State.Left = Left and then State.Top = Top and then State.Width = Wide and then State.Height = High
-         and then State.Offset = Offset))
+      if not State.Dirty
+        and then (not State.Showing
+                  or else (State.Left = Left
+                           and then State.Top = Top
+                           and then State.Width = Wide
+                           and then State.Height = High
+                           and then State.Offset = Offset))
       then
          return;
       end if;
@@ -80,8 +90,11 @@ package body View.Grammar.Cards is
                      Height : Float := 40.0;
                   begin
                      if State.Expanded = Index then
-                        Grammar_Cards.Set_Diagnostic (State.Measure_Card, Mark.Lint,
-                          Labels.Text (Item.Docs.Pages (Mark.Rank).Heading), Basics.Colors (Mark.Lint.Kind));
+                        Grammar_Cards.Set_Diagnostic
+                          (State.Measure_Card,
+                           Mark.Lint,
+                           Labels.Text (Item.Docs.Pages (Mark.Rank).Heading),
+                           Basics.Colors (Mark.Lint.Kind));
                         Grammar_Cards.Set_Expanded (State.Measure_Card, True);
                         Height := Grammar_Cards.Height_For (State.Measure_Card, Card_Wide);
                      end if;
@@ -89,37 +102,54 @@ package body View.Grammar.Cards is
                         pragma Assert (Used < State.Cards'Length);
                         Used := Used + 1;
                         State.Bindings (Used) := Index;
-                        Grammar_Cards.Set_Diagnostic (State.Cards (Used), Mark.Lint,
-                          Labels.Text (Item.Docs.Pages (Mark.Rank).Heading), Basics.Colors (Mark.Lint.Kind));
+                        Grammar_Cards.Set_Diagnostic
+                          (State.Cards (Used),
+                           Mark.Lint,
+                           Labels.Text (Item.Docs.Pages (Mark.Rank).Heading),
+                           Basics.Colors (Mark.Lint.Kind));
                         Grammar_Cards.Set_Expanded (State.Cards (Used), State.Expanded = Index);
-                        Set_Layout (State.Cards (Used), Width => Layouts.Length_Of (Card_Wide),
-                                    Height => Layouts.Length_Of (Height),
-                                    Position => (Left => 4.0, Top => Layouts.Length_Of (Row_Top), others => <>));
+                        Set_Layout
+                          (State.Cards (Used),
+                           Width    => Layouts.Length_Of (Card_Wide),
+                           Height   => Layouts.Length_Of (Height),
+                           Position => (Left => 4.0, Top => Layouts.Length_Of (Row_Top), others => <>));
                         Widgets.Set_Visible (State.Cards (Used), True);
                         if State.Expanded = Index then
                            for Number in 1 .. Mark.Lint.Suggestion_Count loop
-                              Set_Layout (State.Actions (Number), Position =>
-                                (Left => Layouts.Length_Of (Card_Wide - 64.0),
-                                 Top => Layouts.Length_Of (Row_Top + Grammar_Cards.Action_Top
-                                   (State.Cards (Used), Number, Card_Wide)), others => <>));
-                              Widgets.Set_Accessible_Name (State.Actions (Number), "Apply: " &
-                                (if Harper.Replacements.Length (Mark.Lint.Suggestions (Number).Text) = 0
-                                 then "remove text"
-                                 else Harper.Replacements.To_String (Mark.Lint.Suggestions (Number).Text)));
+                              Set_Layout
+                                (State.Actions (Number),
+                                 Position =>
+                                   (Left   => Layouts.Length_Of (Card_Wide - 64.0),
+                                    Top    =>
+                                      Layouts.Length_Of
+                                        (Row_Top + Grammar_Cards.Action_Top (State.Cards (Used), Number, Card_Wide)),
+                                    others => <>));
+                              Widgets.Set_Accessible_Name
+                                (State.Actions (Number),
+                                 "Apply: "
+                                 & (if Harper.Replacements.Length (Mark.Lint.Suggestions (Number).Text) = 0
+                                    then "remove text"
+                                    else Harper.Replacements.To_String (Mark.Lint.Suggestions (Number).Text)));
                               Widgets.Set_Visible (State.Actions (Number), True);
                            end loop;
                            declare
-                              Foot : constant Float :=
+                              Foot      : constant Float :=
                                 Row_Top + Grammar_Cards.Footer_Top (State.Cards (Used), Card_Wide) + 8.0;
                               Wide_Rule : constant Float := (if Mark.Lint.Custom then 92.0 else 76.0);
                            begin
                               Buttons.Set_Label
                                 (State.Add_Rule, (if Mark.Lint.Custom then "Remove rule" else "Add rule"));
-                              Set_Layout (State.Add_Rule, Width => Layouts.Length_Of (Wide_Rule),
-                                          Position => (Left => 16.0, Top => Layouts.Length_Of (Foot), others => <>));
-                              Set_Layout (State.Ignore_Text, Width => 60.0,
-                                          Position => (Left => Layouts.Length_Of (24.0 + Wide_Rule),
-                                                       Top => Layouts.Length_Of (Foot), others => <>));
+                              Set_Layout
+                                (State.Add_Rule,
+                                 Width    => Layouts.Length_Of (Wide_Rule),
+                                 Position => (Left => 16.0, Top => Layouts.Length_Of (Foot), others => <>));
+                              Set_Layout
+                                (State.Ignore_Text,
+                                 Width    => 60.0,
+                                 Position =>
+                                   (Left   => Layouts.Length_Of (24.0 + Wide_Rule),
+                                    Top    => Layouts.Length_Of (Foot),
+                                    others => <>));
                               Widgets.Set_Visible (State.Add_Rule, True);
                               Widgets.Set_Visible (State.Ignore_Text, True);
                            end;
@@ -144,8 +174,11 @@ package body View.Grammar.Cards is
       Labels.Set_Text (State.Heading, "Grammar Suggestions (" & Basics.Image (Total) & ")");
       Widgets.Set_Visible (State.Empty, Total = 0);
       Set_Layout (State.Content, Height => Layouts.Length_Of (Float'Max (40.0, Row_Top)));
-      Set_Layout (State.Popout, Width => Layouts.Length_Of (Wide), Height => Layouts.Length_Of (High),
-                  Position => (Left => Layouts.Length_Of (Left), Top => Layouts.Length_Of (Top), others => <>));
+      Set_Layout
+        (State.Popout,
+         Width    => Layouts.Length_Of (Wide),
+         Height   => Layouts.Length_Of (High),
+         Position => (Left => Layouts.Length_Of (Left), Top => Layouts.Length_Of (Top), others => <>));
       State.Dirty := False;
       Widgets.Request_Layout (State.Popout);
       if State.Showing then
@@ -201,19 +234,20 @@ package body View.Grammar.Cards is
          return;
       end if;
       declare
-         Row : Grammar_Row renames State.Rows (Index);
-         Lint : Harper.Diagnostic renames Row.Lint;
+         Row    : Grammar_Row renames State.Rows (Index);
+         Lint   : Harper.Diagnostic renames Row.Lint;
          Editor : Editors.Editor renames Item.Docs.Pages (Row.Rank).Text;
-         Area : Areas.Text_Area renames Editors.Area (Editor).all;
-         Doc : Docs.Document renames Areas.Document (Area).all;
+         Area   : Areas.Text_Area renames Editors.Area (Editor).all;
+         Doc    : Docs.Document renames Areas.Document (Area).all;
       begin
-         if Number in 1 .. Lint.Suggestion_Count and then not Areas.Is_Composing (Area)
+         if Number in 1 .. Lint.Suggestion_Count
+           and then not Areas.Is_Composing (Area)
            and then not Areas.Is_Read_Only (Area)
          then
             declare
-               Fix : Harper.Suggestion renames Lint.Suggestions (Number);
-               From : constant Texts.Position := Basics.Advance (Doc, Row.First, Fix.Location.First);
-               To : constant Texts.Position := Basics.Advance (Doc, Row.First, Fix.Location.Last);
+               Fix         : Harper.Suggestion renames Lint.Suggestions (Number);
+               From        : constant Texts.Position := Basics.Advance (Doc, Row.First, Fix.Location.First);
+               To          : constant Texts.Position := Basics.Advance (Doc, Row.First, Fix.Location.Last);
                Replacement : constant String := Harper.Replacements.To_String (Fix.Text);
             begin
                Areas.Replace_Range (Area, From, To, Replacement);
@@ -257,7 +291,8 @@ package body View.Grammar.Cards is
    procedure Remove_Row_Rule (Item : in out Session; Index : Natural) is
       State : Grammar_State renames Item.Grammar_Checks;
    begin
-      if Index in 1 .. State.Rows.Count and then Basics.Valid (Item, State.Rows (Index))
+      if Index in 1 .. State.Rows.Count
+        and then Basics.Valid (Item, State.Rows (Index))
         and then State.Rows (Index).Lint.Custom
       then
          declare
@@ -274,10 +309,10 @@ package body View.Grammar.Cards is
    end Remove_Row_Rule;
 
    procedure Begin_Entry (Item : in out Session; Index : Natural) is
-      State : Grammar_State renames Item.Grammar_Checks;
-      Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
+      State       : Grammar_State renames Item.Grammar_Checks;
+      Pixels      : constant Float := Widgets.Density (Item.Root.Widgets);
       Parent_Left : constant Float := Widgets.Left_Of (Content_Panel (Item).all) / Pixels;
-      Parent_Top : constant Float := Widgets.Top_Of (Content_Panel (Item).all) / Pixels;
+      Parent_Top  : constant Float := Widgets.Top_Of (Content_Panel (Item).all) / Pixels;
       Parent_Wide : constant Float := Widgets.Width_Of (Content_Panel (Item).all) / Pixels;
       Parent_High : constant Float := Widgets.Height_Of (Content_Panel (Item).all) / Pixels;
       use Layouts;
@@ -296,17 +331,24 @@ package body View.Grammar.Cards is
          Close_Inline (Item);
          --  Begin with the first fix Harper has, which is often what is wanted.
          Grammar_VM.Begin_Entry
-           (Item.Grammar_Model.Model, Marked, Grammar_Rules.Kind_Code (Mark.Lint.Kind),
+           (Item.Grammar_Model.Model,
+            Marked,
+            Grammar_Rules.Kind_Code (Mark.Lint.Kind),
             (if Mark.Lint.Suggestion_Count > 0
-             then Harper.Replacements.To_String (Mark.Lint.Suggestions (1).Text) else Marked));
+             then Harper.Replacements.To_String (Mark.Lint.Suggestions (1).Text)
+             else Marked));
          Sync_Screen (Item, Grammar_Region);
-         Set_Layout (State.Entry_Panel, Width => Layouts.Length_Of (Wide), Position =>
-           (Left => Layouts.Length_Of (Float'Max (8.0,
-                                                  Float'Min (State.Pointer_X - Parent_Left - Wide / 2.0,
-                                                             Parent_Wide - Wide - 8.0))),
-            Top => Layouts.Length_Of (Float'Max (8.0,
-                                                 Float'Min (State.Pointer_Y - Parent_Top + 12.0, Parent_High - 132.0))),
-            others => <>));
+         Set_Layout
+           (State.Entry_Panel,
+            Width    => Layouts.Length_Of (Wide),
+            Position =>
+              (Left   =>
+                 Layouts.Length_Of
+                   (Float'Max (8.0, Float'Min (State.Pointer_X - Parent_Left - Wide / 2.0, Parent_Wide - Wide - 8.0))),
+               Top    =>
+                 Layouts.Length_Of
+                   (Float'Max (8.0, Float'Min (State.Pointer_Y - Parent_Top + 12.0, Parent_High - 132.0))),
+               others => <>));
          Widgets.Raise_To_Front (State.Entry_Panel);
          Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
          Pomarine.Text_Areas.Select_All (Text_Fields.Area (State.Entry_Field).all);
@@ -326,14 +368,11 @@ package body View.Grammar.Cards is
       end if;
    end Edit_Rule;
 
-   function State_Of
-     (Item : Session; What : Grammar_VM.Card_Command; Index : Natural) return Grammar_VM.Card_State
-   is
-      State : Grammar_State renames Item.Grammar_Checks;
-      Row : Natural := State.Expanded;
+   function State_Of (Item : Session; What : Grammar_VM.Card_Command; Index : Natural) return Grammar_VM.Card_State is
+      State  : Grammar_State renames Item.Grammar_Checks;
+      Row    : Natural := State.Expanded;
       Result : Grammar_VM.Card_State :=
-        (Writing => Screen (Item) = Project and then View_Mode (Item) = Write,
-         Showing => State.Showing, others => <>);
+        (Writing => Screen (Item) = Project and then View_Mode (Item) = Write, Showing => State.Showing, others => <>);
    begin
       if What = Grammar_VM.Expand_Card then
          Row := (if Index in State.Bindings'Range then State.Bindings (Index) else 0);
@@ -354,11 +393,20 @@ package body View.Grammar.Cards is
    procedure Run (Item : in out Session; What : Grammar_VM.Card_Command; Index : Natural) is
    begin
       case What is
-         when Grammar_VM.Toggle_Cards => Toggle (Item);
-         when Grammar_VM.Expand_Card => Expand (Item, Index);
-         when Grammar_VM.Apply_Fix => Apply_Fix (Item, Item.Grammar_Checks.Expanded, Index, Inline => False);
-         when Grammar_VM.Edit_Rule => Edit_Rule (Item);
-         when Grammar_VM.Ignore_Text => Ignore_Row (Item, Item.Grammar_Checks.Expanded);
+         when Grammar_VM.Toggle_Cards =>
+            Toggle (Item);
+
+         when Grammar_VM.Expand_Card  =>
+            Expand (Item, Index);
+
+         when Grammar_VM.Apply_Fix    =>
+            Apply_Fix (Item, Item.Grammar_Checks.Expanded, Index, Inline => False);
+
+         when Grammar_VM.Edit_Rule    =>
+            Edit_Rule (Item);
+
+         when Grammar_VM.Ignore_Text  =>
+            Ignore_Row (Item, Item.Grammar_Checks.Expanded);
       end case;
    end Run;
 
@@ -372,14 +420,22 @@ package body View.Grammar.Cards is
             Close_Inline (Item);
             if Choice.Row /= 0 and then Choice.Token = State.Rows (Choice.Row).Token then
                case Choice.Command is
-                  when Nothing => null;
+                  when Nothing          =>
+                     null;
+
                   when Apply_Suggestion =>
                      if Choice.Suggestion /= 0 then
                         Apply_Fix (Item, Choice.Row, Choice.Suggestion, Inline => True);
                      end if;
-                  when Add_Rule => Begin_Entry (Item, Choice.Row);
-                  when Ignore_Text => Ignore_Row (Item, Choice.Row);
-                  when Remove_Rule => Remove_Row_Rule (Item, Choice.Row);
+
+                  when Add_Rule         =>
+                     Begin_Entry (Item, Choice.Row);
+
+                  when Ignore_Text      =>
+                     Ignore_Row (Item, Choice.Row);
+
+                  when Remove_Rule      =>
+                     Remove_Row_Rule (Item, Choice.Row);
                end case;
             end if;
          end;

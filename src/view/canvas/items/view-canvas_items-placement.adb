@@ -37,10 +37,8 @@ package body View.Canvas_Items.Placement is
    begin
       Canvases.Pan_By
         (Pane,
-         Widgets.Width_Of (Pane) / Pixels / 2.0
-           - (Canvases.Origin_X (Pane) + X * Zoom),
-         Widgets.Height_Of (Pane) / Pixels / 2.0
-           - (Canvases.Origin_Y (Pane) + Y * Zoom));
+         Widgets.Width_Of (Pane) / Pixels / 2.0 - (Canvases.Origin_X (Pane) + X * Zoom),
+         Widgets.Height_Of (Pane) / Pixels / 2.0 - (Canvases.Origin_Y (Pane) + Y * Zoom));
    end Centre_On;
 
    procedure Follow (Item : in out Session) is

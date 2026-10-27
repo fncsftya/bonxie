@@ -16,11 +16,7 @@ package body Items.Readers.Callbacks is
       To_Handler (Proc) (To_Context (Self).all, Which, Action);
    end Run;
 
-   procedure On
-     (Item    : in out Reader;
-      Which   : Natural;
-      Self    : not null access Context;
-      Do_This : not null Handler) is
+   procedure On (Item : in out Reader; Which : Natural; Self : not null access Context; Do_This : not null Handler) is
    begin
       Item.Said := Run'Unrestricted_Access;
       Item.Said_Self := Self.all'Address;

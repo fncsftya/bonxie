@@ -23,14 +23,14 @@ package body Vision.Jobs is
 
    package Slot_Vectors is new Ada.Containers.Vectors (Positive, Slot_Data);
 
-   function Place (Which : Slot) return Positive is (Which + Lane_Count);
+   function Place (Which : Slot) return Positive
+   is (Which + Lane_Count);
    --  Where the slot is kept.
 
    protected Board is
       procedure Begin_Job (Which : Slot; Job : out Natural; Into : out Result_Pointer);
       --  Say it is Working: Job tells this one from an earlier, reset one.
-      procedure End_Job
-        (Which : Slot; Job : Natural; Ok : Boolean; Why : String);
+      procedure End_Job (Which : Slot; Job : Natural; Ok : Boolean; Why : String);
       --  Ignored if the slot was reset since.
       procedure Forget (Which : Slot);
       function Stand (Which : Slot) return States;
@@ -64,9 +64,7 @@ package body Vision.Jobs is
          Job := Counter;
       end Begin_Job;
 
-      procedure End_Job
-        (Which : Slot; Job : Natural; Ok : Boolean; Why : String)
-      is
+      procedure End_Job (Which : Slot; Job : Natural; Ok : Boolean; Why : String) is
          Mine : Slot_Data := Slots (Place (Which));
       begin
          if Mine.Current /= Job then
@@ -96,16 +94,16 @@ package body Vision.Jobs is
          end if;
       end Forget;
 
-      function Stand (Which : Slot) return States is
-        (if Natural (Slots.Length) >= Place (Which) then Slots (Place (Which)).Stated else Idle);
+      function Stand (Which : Slot) return States
+      is (if Natural (Slots.Length) >= Place (Which) then Slots (Place (Which)).Stated else Idle);
 
-      function Said_Why (Which : Slot) return String is
-        (if Natural (Slots.Length) >= Place (Which)
-         then Slots (Place (Which)).Said (1 .. Slots (Place (Which)).Said_Last)
-         else "");
+      function Said_Why (Which : Slot) return String
+      is (if Natural (Slots.Length) >= Place (Which)
+          then Slots (Place (Which)).Said (1 .. Slots (Place (Which)).Said_Last)
+          else "");
 
-      function Result_Of (Which : Slot) return Result_Pointer is
-        (Slots (Place (Which)).Found);
+      function Result_Of (Which : Slot) return Result_Pointer
+      is (Slots (Place (Which)).Found);
 
    end Board;
 
@@ -113,9 +111,7 @@ package body Vision.Jobs is
    --  What the application runs when told a job has ended: the waking up
    --  is all that is wanted, to look at the states.
 
-   task type Worker
-     with Storage_Size => 4 * 1024 * 1024
-   is
+   task type Worker with Storage_Size => 4 * 1024 * 1024 is
       entry Run (Which : Slot; Job : Natural; To : Result_Pointer; File : String);
    end Worker;
 
@@ -182,9 +178,11 @@ package body Vision.Jobs is
       Workers (Place (Which)).Run (Which, Job, Into, File_Name);
    end Start;
 
-   function State (Which : Slot) return States is (Board.Stand (Which));
+   function State (Which : Slot) return States
+   is (Board.Stand (Which));
 
-   function Message (Which : Slot) return String is (Board.Said_Why (Which));
+   function Message (Which : Slot) return String
+   is (Board.Said_Why (Which));
 
    procedure Take (Which : Slot; Into : in out Result) is
    begin

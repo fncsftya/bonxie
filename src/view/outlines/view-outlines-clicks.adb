@@ -11,7 +11,7 @@ package body View.Outlines.Clicks is
    package Widgets renames Pomarine.Widgets;
 
    procedure Colour_Clicked (Item : in out Session; Index : Positive) is
-      Pane : Outline_Parts renames Item.Outline_View;
+      Pane   : Outline_Parts renames Item.Outline_View;
       Source : Widgets.Widget'Class renames Pane.Blocks (Index).Swatch;
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
       use Pomarine.Widgets.Layouts;
@@ -27,13 +27,24 @@ package body View.Outlines.Clicks is
       Set_Layout
         (Pane.Colour_Popout,
          Position =>
-           (Left => Pomarine.Widgets.Layouts.Length_Of (Float'Max (0.0, Float'Min
-              ((Widgets.Left_Of (Source) - Widgets.Left_Of (Content_Panel (Item).all)) / Pixels,
-               Widgets.Width_Of (Content_Panel (Item).all) / Pixels - 264.0))),
-            Top => Pomarine.Widgets.Layouts.Length_Of (Float'Max (0.0, Float'Min
-              ((Widgets.Top_Of (Source) + Widgets.Height_Of (Source)
-                - Widgets.Top_Of (Content_Panel (Item).all)) / Pixels,
-               Widgets.Height_Of (Content_Panel (Item).all) / Pixels - 270.0))), others => <>));
+           (Left   =>
+              Pomarine.Widgets.Layouts.Length_Of
+                (Float'Max
+                   (0.0,
+                    Float'Min
+                      ((Widgets.Left_Of (Source) - Widgets.Left_Of (Content_Panel (Item).all)) / Pixels,
+                       Widgets.Width_Of (Content_Panel (Item).all) / Pixels - 264.0))),
+            Top    =>
+              Pomarine.Widgets.Layouts.Length_Of
+                (Float'Max
+                   (0.0,
+                    Float'Min
+                      ((Widgets.Top_Of (Source)
+                        + Widgets.Height_Of (Source)
+                        - Widgets.Top_Of (Content_Panel (Item).all))
+                       / Pixels,
+                       Widgets.Height_Of (Content_Panel (Item).all) / Pixels - 270.0))),
+            others => <>));
       Widgets.Set_Visible (Pane.Colour_Popout, True);
       Widgets.Raise_To_Front (Pane.Colour_Popout);
    end Colour_Clicked;
@@ -46,11 +57,9 @@ package body View.Outlines.Clicks is
 
    procedure Colour_Accepted (Item : in out Session) is
       Pane : Outline_Parts renames Item.Outline_View;
-      Row : constant Natural := Index_Of_Key (Item, Pane.Colour_Key);
+      Row  : constant Natural := Index_Of_Key (Item, Pane.Colour_Key);
    begin
-      if Support.In_Outline (Item) and then Row /= 0
-        and then Section_Colour_Pickers.Changed (Pane.Colour_Picker)
-      then
+      if Support.In_Outline (Item) and then Row /= 0 and then Section_Colour_Pickers.Changed (Pane.Colour_Picker) then
          Outline_VM.Set_Colour (Item.Outline_Model.Model, Row, Section_Colour_Pickers.Colour (Pane.Colour_Picker));
          Item.Section_Menu.Changes := @ + 1;
          Blocks.Show_Blocks (Item);

@@ -27,8 +27,7 @@ package body Outline_Tests is
    package Outline renames View.Outline_Screen;
    package Pictures renames Goldens.Images;
 
-   procedure Check (Name : String; Expected, Actual : String)
-     renames Goldens.Check_Text;
+   procedure Check (Name : String; Expected, Actual : String) renames Goldens.Check_Text;
 
    Width  : constant := 720;
    Height : constant := 480;
@@ -117,8 +116,8 @@ package body Outline_Tests is
    end Starting;
 
    procedure Colours is
-      Session : View.Session;
-      Saved : Natural;
+      Session       : View.Session;
+      Saved         : Natural;
       Before_Slider : Natural;
 
       procedure Click (X, Y : Float) is
@@ -130,20 +129,22 @@ package body Outline_Tests is
       end Click;
    begin
       declare
-         Picker : Section_Colour_Pickers.Picker;
-         Theme : constant Pomarine.Themes.Theme := Pomarine.Themes.Light;
+         Picker  : Section_Colour_Pickers.Picker;
+         Theme   : constant Pomarine.Themes.Theme := Pomarine.Themes.Light;
          type Colour_Array is array (Positive range <>) of Pomarine.Themes.Color;
          Samples : constant Colour_Array := [(0, 0, 0, 255), (255, 255, 255, 255), (17, 139, 203, 255)];
          use type Pomarine.Themes.Color;
       begin
          for Sample of Samples loop
             Section_Colour_Pickers.Set_Colour (Picker, Sample);
-            Check ("outline-colour-exact-rgb",
-                   Natural'Image (12 + Natural (Sample.Red) * 65536
-                     + Natural (Sample.Green) * 256 + Natural (Sample.Blue)),
-                   Section_Colour_Pickers.Colour (Picker)'Image);
-            Check ("outline-colour-fixed-roundtrip", "TRUE",
-                   Boolean'Image (Theme (Pomarine.Themes.Fixed (Sample)) = Sample));
+            Check
+              ("outline-colour-exact-rgb",
+               Natural'Image (12 + Natural (Sample.Red) * 65536 + Natural (Sample.Green) * 256 + Natural (Sample.Blue)),
+               Section_Colour_Pickers.Colour (Picker)'Image);
+            Check
+              ("outline-colour-fixed-roundtrip",
+               "TRUE",
+               Boolean'Image (Theme (Pomarine.Themes.Fixed (Sample)) = Sample));
          end loop;
       end;
       Start (Session);
@@ -173,8 +174,7 @@ package body Outline_Tests is
       Click (414.0, 122.0);
       Click (640.0, 180.0);
       Click (590.0, 390.0);
-      Check ("outline-colour-slider", "TRUE",
-             Boolean'Image (Outline.Section_Colour (Session, 1) /= Before_Slider));
+      Check ("outline-colour-slider", "TRUE", Boolean'Image (Outline.Section_Colour (Session, 1) /= Before_Slider));
       Snap (Session, "outline-colour-kept");
    end Colours;
 
@@ -242,8 +242,10 @@ package body Outline_Tests is
       Check ("outline-many", Natural'Image (Many), Natural'Image (Outline.Section_Count (Session)));
       Reopen (Session);
       Check ("outline-many-kept", Natural'Image (Many), Natural'Image (Outline.Section_Count (Session)));
-      Check ("outline-long-title", Natural'Image (Long'Length),
-             Natural'Image (Outline.Section_Title (Session, Many)'Length));
+      Check
+        ("outline-long-title",
+         Natural'Image (Long'Length),
+         Natural'Image (Outline.Section_Title (Session, Many)'Length));
    end Many_Sections;
 
    procedure Form is
@@ -300,14 +302,17 @@ package body Outline_Tests is
          for Row in 2 .. Outline.Link_Menu_Rows (Session) loop
             Last := Last + 1;
             Result (Last) :=
-              (if Outline.Link_Menu_Row_Checked (Session, Row) then 'x'
-               elsif Outline.Link_Menu_Row_Enabled (Session, Row) then '.'
+              (if Outline.Link_Menu_Row_Checked (Session, Row)
+               then 'x'
+               elsif Outline.Link_Menu_Row_Enabled (Session, Row)
+               then '.'
                else '-');
          end loop;
          return Result (1 .. Last);
       end Rows;
 
-      function Owners return String is (Owners_Of (Session));
+      function Owners return String
+      is (Owners_Of (Session));
    begin
       Start (Session);
       Outline.Add_Section (Session);
@@ -320,9 +325,12 @@ package body Outline_Tests is
       Type_In (Session, "End");
       Settle (Session);
       --  Each is given a colour of its own.
-      Check ("link-colours", " 0 1 2",
-             Outline.Section_Colour (Session, 1)'Image & Outline.Section_Colour (Session, 2)'Image
-             & Outline.Section_Colour (Session, 3)'Image);
+      Check
+        ("link-colours",
+         " 0 1 2",
+         Outline.Section_Colour (Session, 1)'Image
+         & Outline.Section_Colour (Session, 2)'Image
+         & Outline.Section_Colour (Session, 3)'Image);
       Snap (Session, "outline-unlinked");
 
       Proj.Set_Mode (Session, View.Canvas);
@@ -512,11 +520,23 @@ package body Outline_Tests is
       begin
          Move_To (Session, 100.0, Y);
          View.Handle
-           (Session, Events.Event'(Kind => Events.Mouse_Down, Button => Button, Clicks => Clicks,
-                                   Mouse_X => 100.0, Mouse_Y => Y, others => <>));
+           (Session,
+            Events.Event'
+              (Kind    => Events.Mouse_Down,
+               Button  => Button,
+               Clicks  => Clicks,
+               Mouse_X => 100.0,
+               Mouse_Y => Y,
+               others  => <>));
          View.Handle
-           (Session, Events.Event'(Kind => Events.Mouse_Up, Button => Button, Clicks => Clicks,
-                                   Mouse_X => 100.0, Mouse_Y => Y, others => <>));
+           (Session,
+            Events.Event'
+              (Kind    => Events.Mouse_Up,
+               Button  => Button,
+               Clicks  => Clicks,
+               Mouse_X => 100.0,
+               Mouse_Y => Y,
+               others  => <>));
       end Click_Row;
    begin
       Start (Session);
@@ -585,8 +605,9 @@ package body Outline_Tests is
 
       --  A section with no documents shows them above its button.
       View.Handle
-        (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_Y => -400.0, Mouse_X => 500.0,
-                                Mouse_Y => 300.0, others => <>));
+        (Session,
+         Events.Event'
+           (Kind => Events.Mouse_Wheel, Wheel_Y => -400.0, Mouse_X => 500.0, Mouse_Y => 300.0, others => <>));
       Settle (Session);
       Click_Notes (2);
       Type_In (Session, "Wrap up");
@@ -599,8 +620,8 @@ package body Outline_Tests is
       Check ("write-notes-kept-second", "Wrap up", Outline.Section_Notes (Session, 2));
       --  Not being typed in, the notes have no outline of their own.
       View.Handle
-        (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_Y => 600.0, Mouse_X => 500.0,
-                                Mouse_Y => 300.0, others => <>));
+        (Session,
+         Events.Event'(Kind => Events.Mouse_Wheel, Wheel_Y => 600.0, Mouse_X => 500.0, Mouse_Y => 300.0, others => <>));
       Snap (Session, "write-notes-reopened");
    end Write_Notes;
 
@@ -651,13 +672,14 @@ package body Outline_Tests is
       Release (Session, 600.0, 400.0);
       for Step in 1 .. 4 loop
          View.Handle
-           (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_Y => -17.0, Mouse_X => 500.0,
-                                   Mouse_Y => 300.0, others => <>));
+           (Session,
+            Events.Event'
+              (Kind => Events.Mouse_Wheel, Wheel_Y => -17.0, Mouse_X => 500.0, Mouse_Y => 300.0, others => <>));
          Snap (Session, "write-sections-down-" & Character'Val (Character'Pos ('0') + Step));
       end loop;
       View.Handle
-        (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_Y => 200.0, Mouse_X => 500.0,
-                                Mouse_Y => 300.0, others => <>));
+        (Session,
+         Events.Event'(Kind => Events.Mouse_Wheel, Wheel_Y => 200.0, Mouse_X => 500.0, Mouse_Y => 300.0, others => <>));
 
       --  Order is the documents' own: moving one changes where the
       --  documents that are of none come, but not which section is first.
@@ -668,18 +690,17 @@ package body Outline_Tests is
       --  The button of a section with none writes one, of it.
       Docs.Add_For_Section (Session, 2);
       Check ("write-section-added", "5", Docs.Document_Count (Session)'Image (2 .. 2));
-      Check ("write-section-owners", "Notes one,Notes two,|Middle,|Last words,|",
-             Owners_Of (Session));
+      Check ("write-section-owners", "Notes one,Notes two,|Middle,|Last words,|", Owners_Of (Session));
       Snap (Session, "write-sections-added");
 
       --  The button by the count of a section's documents writes another,
       --  last among them; a section with none has no such button.
       View.Handle
-        (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_Y => 400.0, Mouse_X => 500.0,
-                                Mouse_Y => 300.0, others => <>));
+        (Session,
+         Events.Event'(Kind => Events.Mouse_Wheel, Wheel_Y => 400.0, Mouse_X => 500.0, Mouse_Y => 300.0, others => <>));
       View.Handle
-        (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_Y => -17.0, Mouse_X => 500.0,
-                                Mouse_Y => 300.0, others => <>));
+        (Session,
+         Events.Event'(Kind => Events.Mouse_Wheel, Wheel_Y => -17.0, Mouse_X => 500.0, Mouse_Y => 300.0, others => <>));
       Settle (Session);
       Move_To (Session, 664.0, 65.0);
       Press (Session, 664.0, 65.0);
@@ -692,8 +713,8 @@ package body Outline_Tests is
    procedure Section_Folders is
       Session : View.Session;
 
-      function Y (Row : Positive) return Float is
-        (200.5 + Float (Row - 1) * 38.0);
+      function Y (Row : Positive) return Float
+      is (200.5 + Float (Row - 1) * 38.0);
 
       procedure Drag (From, Into : Positive) is
       begin
@@ -708,31 +729,43 @@ package body Outline_Tests is
       procedure Context_Folder (Row : Positive; Offset : Float) is
       begin
          View.Handle
-           (Session, Events.Event'(Kind => Events.Mouse_Down, Button => 3, Clicks => 1,
-                                   Mouse_X => 100.0, Mouse_Y => Y (Row), others => <>));
+           (Session,
+            Events.Event'
+              (Kind    => Events.Mouse_Down,
+               Button  => 3,
+               Clicks  => 1,
+               Mouse_X => 100.0,
+               Mouse_Y => Y (Row),
+               others  => <>));
          View.Handle
-           (Session, Events.Event'(Kind => Events.Mouse_Up, Button => 3, Clicks => 1,
-                                   Mouse_X => 100.0, Mouse_Y => Y (Row), others => <>));
+           (Session,
+            Events.Event'
+              (Kind => Events.Mouse_Up, Button => 3, Clicks => 1, Mouse_X => 100.0, Mouse_Y => Y (Row), others => <>));
          Settle (Session);
          if Offset = 43.0 then
             Snap (Session, (if Row = 1 then "write-overview-folder-menu" else "write-folder-menu"));
          end if;
          Check ("folder-context-open", "TRUE", Docs.Context_Open (Session)'Image);
-         View.Handle
-           (Session, Events.Event'(Kind => Events.Key_Down, Key => Events.Key_Escape, others => <>));
+         View.Handle (Session, Events.Event'(Kind => Events.Key_Down, Key => Events.Key_Escape, others => <>));
          Check ("folder-context-escape", "FALSE", Docs.Context_Open (Session)'Image);
          View.Handle
-           (Session, Events.Event'(Kind => Events.Mouse_Down, Button => 3, Clicks => 1,
-                                   Mouse_X => 100.0, Mouse_Y => Y (Row), others => <>));
+           (Session,
+            Events.Event'
+              (Kind    => Events.Mouse_Down,
+               Button  => 3,
+               Clicks  => 1,
+               Mouse_X => 100.0,
+               Mouse_Y => Y (Row),
+               others  => <>));
          View.Handle
-           (Session, Events.Event'(Kind => Events.Mouse_Up, Button => 3, Clicks => 1,
-                                   Mouse_X => 100.0, Mouse_Y => Y (Row), others => <>));
+           (Session,
+            Events.Event'
+              (Kind => Events.Mouse_Up, Button => 3, Clicks => 1, Mouse_X => 100.0, Mouse_Y => Y (Row), others => <>));
          Settle (Session);
          Press (Session, 140.0, Y (Row) + Offset);
          Release (Session, 140.0, Y (Row) + Offset);
          if Offset = 43.0 then
-            View.Handle
-              (Session, Events.Event'(Kind => Events.Key_Down, Key => Events.Key_Return, others => <>));
+            View.Handle (Session, Events.Event'(Kind => Events.Key_Down, Key => Events.Key_Return, others => <>));
          end if;
          Settle (Session);
       end Context_Folder;
@@ -740,8 +773,7 @@ package body Outline_Tests is
       procedure Folder (Name : String) is
       begin
          Docs.Add_Directory (Session, Name);
-         View.Handle
-           (Session, Events.Event'(Kind => Events.Key_Down, Key => Events.Key_Return, others => <>));
+         View.Handle (Session, Events.Event'(Kind => Events.Key_Down, Key => Events.Key_Return, others => <>));
          Settle (Session);
       end Folder;
    begin
@@ -762,8 +794,7 @@ package body Outline_Tests is
       Check ("folder-section-links", "Draft,|", Owners_Of (Session));
       Reopen (Session);
       Check ("folder-parent-kept", " 1", Docs.Directory_Parent (Session, 2)'Image);
-      Check ("folder-document-kept", "Research",
-             Docs.Directory_Title (Session, Docs.Document_Directory (Session, 1)));
+      Check ("folder-document-kept", "Research", Docs.Directory_Title (Session, Docs.Document_Directory (Session, 1)));
       Docs.Show_Directory (Session, 1);
       Folder ("Created inside");
       Check ("folder-created-in-section", " 1", Docs.Directory_Parent (Session, 4)'Image);
@@ -804,11 +835,11 @@ package body Outline_Tests is
    end Section_Folders;
 
    procedure Folder_Operations is
-      Session : View.Session;
+      Session                              : View.Session;
       Check_X, Check_Y, Delete_X, Delete_Y : Float;
 
-      function Y (Row : Positive) return Float is
-        (200.5 + Float (Row - 1) * 38.0);
+      function Y (Row : Positive) return Float
+      is (200.5 + Float (Row - 1) * 38.0);
 
       procedure Drag (From, Into : Positive; Offset : Float := 0.0) is
       begin
@@ -831,8 +862,7 @@ package body Outline_Tests is
       procedure Folder (Name : String) is
       begin
          Docs.Add_Directory (Session, Name);
-         View.Handle
-           (Session, Events.Event'(Kind => Events.Key_Down, Key => Events.Key_Return, others => <>));
+         View.Handle (Session, Events.Event'(Kind => Events.Key_Down, Key => Events.Key_Return, others => <>));
          Settle (Session);
       end Folder;
 
@@ -889,8 +919,7 @@ package body Outline_Tests is
       Snap (Session, "write-delete-folder-default");
       Click (Check_X, Check_Y);
       Check ("folder-delete-checkbox", "TRUE", Docs.Delete_Documents_Checked (Session)'Image);
-      View.Handle
-        (Session, Events.Event'(Kind => Events.Key_Down, Key => Events.Key_Escape, others => <>));
+      View.Handle (Session, Events.Event'(Kind => Events.Key_Down, Key => Events.Key_Escape, others => <>));
       Check ("folder-delete-cancel-subtree", " 3", Docs.Directory_Count (Session)'Image);
       Check ("folder-delete-cancel-documents", " 3", Docs.Document_Count (Session)'Image);
       Ask (1);
@@ -983,8 +1012,8 @@ package body Outline_Tests is
       Outline.Open_Link_Menu (Session, 1);
       Snap (Session, "link-menu-long-up");
       View.Handle
-        (Session, Events.Event'(Kind => Events.Mouse_Wheel, Wheel_Y => -3.0, Mouse_X => 400.0,
-                                Mouse_Y => 100.0, others => <>));
+        (Session,
+         Events.Event'(Kind => Events.Mouse_Wheel, Wheel_Y => -3.0, Mouse_X => 400.0, Mouse_Y => 100.0, others => <>));
       Snap (Session, "link-menu-scrolled");
       Outline.Open_Link_Menu (Session, 1);
 

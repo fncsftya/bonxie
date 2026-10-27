@@ -14,8 +14,7 @@ package body Downloads is
    use type GNAT.OS_Lib.String_Access;
 
    package Paths is new Ada.Strings.Bounded.Generic_Bounded_Length (Max_Path);
-   package Messages is
-     new Ada.Strings.Bounded.Generic_Bounded_Length (Max_Message);
+   package Messages is new Ada.Strings.Bounded.Generic_Bounded_Length (Max_Message);
 
    subtype Count is Long_Long_Integer range 0 .. Long_Long_Integer'Last;
 
@@ -24,8 +23,7 @@ package body Downloads is
       procedure Begin_Job (From, To : Paths.Bounded_String);
       procedure Finish (To : States; Why : String := "");
       procedure Set_Total (To : Count);
-      procedure Set_Process
-        (Pid : GNAT.OS_Lib.Process_Id; Stop : out Boolean);
+      procedure Set_Process (Pid : GNAT.OS_Lib.Process_Id; Stop : out Boolean);
       --  Stop: it was cancelled before it began, so is to be killed.
       procedure Cancel (Pid : out GNAT.OS_Lib.Process_Id);
       --  The process to kill, Invalid_Pid if none.
@@ -62,8 +60,7 @@ package body Downloads is
       begin
          Now := To;
          Process := GNAT.OS_Lib.Invalid_Pid;
-         Reason :=
-           Messages.To_Bounded_String (Why, Ada.Strings.Right);
+         Reason := Messages.To_Bounded_String (Why, Ada.Strings.Right);
       end Finish;
 
       procedure Set_Total (To : Count) is
@@ -71,8 +68,7 @@ package body Downloads is
          Size := To;
       end Set_Total;
 
-      procedure Set_Process
-        (Pid : GNAT.OS_Lib.Process_Id; Stop : out Boolean) is
+      procedure Set_Process (Pid : GNAT.OS_Lib.Process_Id; Stop : out Boolean) is
       begin
          Process := Pid;
          Stop := Cancelled;
@@ -91,11 +87,16 @@ package body Downloads is
          Size := 0;
       end Forget;
 
-      function Current return States is (Now);
-      function Total return Count is (Size);
-      function Source_URL return Paths.Bounded_String is (Source);
-      function Target_File return Paths.Bounded_String is (Target);
-      function Message return Messages.Bounded_String is (Reason);
+      function Current return States
+      is (Now);
+      function Total return Count
+      is (Size);
+      function Source_URL return Paths.Bounded_String
+      is (Source);
+      function Target_File return Paths.Bounded_String
+      is (Target);
+      function Message return Messages.Bounded_String
+      is (Reason);
 
    end Job;
 
@@ -111,8 +112,7 @@ package body Downloads is
    begin
       loop
          declare
-            At_Name : constant Natural :=
-              Ada.Strings.Fixed.Index (Lower, Name, From);
+            At_Name : constant Natural := Ada.Strings.Fixed.Index (Lower, Name, From);
             First   : Natural;
             Last    : Natural;
          begin
@@ -122,14 +122,10 @@ package body Downloads is
                First := First + 1;
             end loop;
             Last := First - 1;
-            while Last < Lower'Last and then Lower (Last + 1) in '0' .. '9'
-              and then Last - First < 17
-            loop
+            while Last < Lower'Last and then Lower (Last + 1) in '0' .. '9' and then Last - First < 17 loop
                Last := Last + 1;
             end loop;
-            Found :=
-              (if Last >= First then Count'Value (Lower (First .. Last))
-               else 0);
+            Found := (if Last >= First then Count'Value (Lower (First .. Last)) else 0);
             From := Natural'Max (Last + 1, At_Name + 1);
          end;
       end loop;
@@ -146,8 +142,8 @@ package body Downloads is
       end loop;
    end Free_All;
 
-   function Argument (Text : String) return GNAT.OS_Lib.String_Access is
-     (new String'(Text));
+   function Argument (Text : String) return GNAT.OS_Lib.String_Access
+   is (new String'(Text));
 
    procedure Delete_If_There (File_Name : String);
 
@@ -162,10 +158,8 @@ package body Downloads is
    end Delete_If_There;
 
    function Wait_For
-     (Pid    : Interfaces.C.int;
-      Status : out Interfaces.C.int;
-      Flags  : Interfaces.C.int) return Interfaces.C.int
-     with Import, Convention => C, External_Name => "waitpid";
+     (Pid : Interfaces.C.int; Status : out Interfaces.C.int; Flags : Interfaces.C.int) return Interfaces.C.int
+   with Import, Convention => C, External_Name => "waitpid";
    --  Wait for that process, and no other (GNAT.OS_Lib.Wait_Process takes
    --  any child, which is not curl if something else has reaped it).
 
@@ -176,12 +170,9 @@ package body Downloads is
    --  How curl ended: with status 0, with another, or it is not known
    --  (the process was reaped by something else).
 
-   procedure Await
-     (Pid : GNAT.OS_Lib.Process_Id; How : out Endings; Code : out Natural);
+   procedure Await (Pid : GNAT.OS_Lib.Process_Id; How : out Endings; Code : out Natural);
 
-   procedure Await
-     (Pid : GNAT.OS_Lib.Process_Id; How : out Endings; Code : out Natural)
-   is
+   procedure Await (Pid : GNAT.OS_Lib.Process_Id; How : out Endings; Code : out Natural) is
       Status : Interfaces.C.int := 0;
       Result : Interfaces.C.int;
    begin
@@ -212,8 +203,7 @@ package body Downloads is
       Target : constant String := Paths.To_String (Job.Target_File);
       Part   : constant String := Target & ".part";
       Head   : constant String := Target & ".head";
-      Curl   : GNAT.OS_Lib.String_Access :=
-        GNAT.OS_Lib.Locate_Exec_On_Path ("curl");
+      Curl   : GNAT.OS_Lib.String_Access := GNAT.OS_Lib.Locate_Exec_On_Path ("curl");
       Ok     : Boolean;
       How    : Endings := Lost;
       Code   : Natural := 0;
@@ -222,16 +212,19 @@ package body Downloads is
          Job.Finish (Failed, "curl was not found");
          return;
       end if;
-      Ada.Directories.Create_Path
-        (Ada.Directories.Containing_Directory (Target));
+      Ada.Directories.Create_Path (Ada.Directories.Containing_Directory (Target));
       Delete_If_There (Part);
       Delete_If_There (Head);
 
       --  How long it is, for the caller to say how far on it is.
       declare
          Args : GNAT.OS_Lib.Argument_List :=
-           [Argument ("-fsIL"), Argument ("-o"), Argument ("/dev/null"),
-            Argument ("-D"), Argument (Head), Argument (URL)];
+           [Argument ("-fsIL"),
+            Argument ("-o"),
+            Argument ("/dev/null"),
+            Argument ("-D"),
+            Argument (Head),
+            Argument (URL)];
       begin
          GNAT.OS_Lib.Spawn (Curl.all, Args, Ok);
          Free_All (Args);
@@ -243,9 +236,7 @@ package body Downloads is
 
       --  The file, to the side until it is whole.
       declare
-         Args : GNAT.OS_Lib.Argument_List :=
-           [Argument ("-fsL"), Argument ("-o"), Argument (Part),
-            Argument (URL)];
+         Args : GNAT.OS_Lib.Argument_List := [Argument ("-fsL"), Argument ("-o"), Argument (Part), Argument (URL)];
          Pid  : GNAT.OS_Lib.Process_Id;
          Stop : Boolean;
       begin
@@ -269,8 +260,7 @@ package body Downloads is
       --  all that was said it would be.
       if (Ok or else (How = Lost and then Job.Total > 0))
         and then Ada.Directories.Exists (Part)
-        and then (Job.Total = 0
-                  or else Count (Ada.Directories.Size (Part)) = Job.Total)
+        and then (Job.Total = 0 or else Count (Ada.Directories.Size (Part)) = Job.Total)
       then
          Delete_If_There (Target);
          --  (Rename does not replace a file that is there.)
@@ -281,20 +271,17 @@ package body Downloads is
          Job.Finish
            (Failed,
             (if Messages.Length (Job.Message) = 0
-             then (if How = Exited_Badly
-                   then "the transfer failed (curl exit"
-                        & Code'Image & ")"
-                   else "the transfer did not finish")
+             then
+               (if How = Exited_Badly
+                then "the transfer failed (curl exit" & Code'Image & ")"
+                else "the transfer did not finish")
              else ""));
       end if;
    exception
       when Problem : others =>
          Delete_If_There (Part);
          Delete_If_There (Head);
-         Job.Finish
-           (Failed,
-            "could not save the file ("
-            & Ada.Exceptions.Exception_Message (Problem) & ")");
+         Job.Finish (Failed, "could not save the file (" & Ada.Exceptions.Exception_Message (Problem) & ")");
    end Fetch;
 
    task Worker is
@@ -315,31 +302,31 @@ package body Downloads is
 
    procedure Start (URL, File_Name : String) is
    begin
-      Job.Begin_Job
-        (Paths.To_Bounded_String (URL), Paths.To_Bounded_String (File_Name));
+      Job.Begin_Job (Paths.To_Bounded_String (URL), Paths.To_Bounded_String (File_Name));
       Worker.Go;
    end Start;
 
-   function State return States is (Job.Current);
+   function State return States
+   is (Job.Current);
 
    function Fraction return Float is
       Total : constant Count := Job.Total;
    begin
       case Job.Current is
-         when Done =>
+         when Done          =>
             return 1.0;
+
          when Idle | Failed =>
             return 0.0;
-         when Running =>
+
+         when Running       =>
             if Total = 0 then
                return 0.0;
             end if;
             declare
-               Part : constant String :=
-                 Paths.To_String (Job.Target_File) & ".part";
+               Part : constant String := Paths.To_String (Job.Target_File) & ".part";
                Have : constant Count :=
-                 (if Ada.Directories.Exists (Part)
-                  then Count (Ada.Directories.Size (Part)) else 0);
+                 (if Ada.Directories.Exists (Part) then Count (Ada.Directories.Size (Part)) else 0);
             begin
                return Float'Min (1.0, Float (Have) / Float (Total));
             end;
@@ -350,8 +337,8 @@ package body Downloads is
          return 0.0;
    end Fraction;
 
-   function Message return String is
-     (Messages.To_String (Job.Message));
+   function Message return String
+   is (Messages.To_String (Job.Message));
 
    procedure Reset is
    begin

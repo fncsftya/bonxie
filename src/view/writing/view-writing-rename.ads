@@ -1,4 +1,5 @@
 --  Renaming the rows of the tree and the sources, and making a directory.
+
 private package View.Writing.Rename is
 
    procedure Begin_Rename_Dir (Item : in out Session; Dir : Positive);

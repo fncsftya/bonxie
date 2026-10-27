@@ -5,15 +5,14 @@ package body Gestures is
    procedure Move_To (Session : in out View.Session; X, Y : Float; Held : Boolean := False) is
    begin
       View.Handle
-        (Session, Events.Event'(Kind => Events.Mouse_Move, Mouse_X => X, Mouse_Y => Y, Left_Held => Held,
-                                others => <>));
+        (Session,
+         Events.Event'(Kind => Events.Mouse_Move, Mouse_X => X, Mouse_Y => Y, Left_Held => Held, others => <>));
    end Move_To;
 
    procedure Button (Session : in out View.Session; Kind : Events.Event_Kind; Clicks : Positive; X, Y : Float) is
    begin
       View.Handle
-        (Session, Events.Event'(Kind => Kind, Button => 1, Clicks => Clicks, Mouse_X => X, Mouse_Y => Y,
-                                others => <>));
+        (Session, Events.Event'(Kind => Kind, Button => 1, Clicks => Clicks, Mouse_X => X, Mouse_Y => Y, others => <>));
    end Button;
 
    procedure Press (Session : in out View.Session; X, Y : Float) is

@@ -2,11 +2,11 @@ with Ada.Characters.Handling;
 
 package body Ebook.Markup is
 
-   function Is_Space (C : Character) return Boolean is
-     (C in ' ' | ASCII.HT | ASCII.LF | ASCII.CR | ASCII.FF);
+   function Is_Space (C : Character) return Boolean
+   is (C in ' ' | ASCII.HT | ASCII.LF | ASCII.CR | ASCII.FF);
 
-   function Is_Name_Character (C : Character) return Boolean is
-     (C in 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '-' | '_' | ':' | '.');
+   function Is_Name_Character (C : Character) return Boolean
+   is (C in 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '-' | '_' | ':' | '.');
 
    function Local (Name : String) return String is
    begin
@@ -70,8 +70,7 @@ package body Ebook.Markup is
                Cursor := Cursor + 1;
             end loop;
             Cursor := Cursor + 1;
-         elsif Cursor < Source'Last
-           and then (Is_Name_Character (Source (Cursor + 1)) or else Source (Cursor + 1) = '/')
+         elsif Cursor < Source'Last and then (Is_Name_Character (Source (Cursor + 1)) or else Source (Cursor + 1) = '/')
          then
             declare
                Closing : constant Boolean := Source (Cursor + 1) = '/';
@@ -83,8 +82,7 @@ package body Ebook.Markup is
                   Stop := Stop + 1;
                end loop;
                declare
-                  Name : constant String :=
-                    Ada.Characters.Handling.To_Lower (Local (Source (Name_At .. Stop - 1)));
+                  Name : constant String := Ada.Characters.Handling.To_Lower (Local (Source (Name_At .. Stop - 1)));
                   Used : constant Natural := Natural'Min (Name'Length, Max_Name);
                begin
                   Item.Kind := (if Closing then End_Tag else Start_Tag);
@@ -106,8 +104,7 @@ package body Ebook.Markup is
                   Stop := Stop + 1;
                end loop;
                Item.Last := Stop - 1;
-               Item.Self_Closing := Item.Kind = Start_Tag and then Stop > Item.First
-                 and then Source (Stop - 1) = '/';
+               Item.Self_Closing := Item.Kind = Start_Tag and then Stop > Item.First and then Source (Stop - 1) = '/';
                Cursor := Stop + 1;
                return;
             end;
@@ -126,9 +123,7 @@ package body Ebook.Markup is
    end Next;
 
    --  The attribute's value as written, and whether it is there.
-   procedure Locate
-     (Source : String; Item : Token; Name : String; Found : out Boolean; First, Last : out Natural)
-   is
+   procedure Locate (Source : String; Item : Token; Name : String; Found : out Boolean; First, Last : out Natural) is
       At_Index : Natural := Item.First;
    begin
       Found := False;
@@ -147,9 +142,10 @@ package body Ebook.Markup is
             end loop;
             if At_Index = Name_At then
                At_Index := At_Index + 1;   --  not a name: skip it
+
             else
                declare
-                  Mine : constant String :=
+                  Mine    : constant String :=
                     Ada.Characters.Handling.To_Lower (Local (Source (Name_At .. At_Index - 1)));
                   V_First : Natural := 1;
                   V_Last  : Natural := 0;
@@ -217,11 +213,16 @@ package body Ebook.Markup is
       elsif Code < 16#800# then
          return [Character'Val (16#C0# + Code / 64), Character'Val (16#80# + Code mod 64)];
       elsif Code < 16#10000# then
-         return [Character'Val (16#E0# + Code / 4096), Character'Val (16#80# + (Code / 64) mod 64),
-                 Character'Val (16#80# + Code mod 64)];
+         return
+           [Character'Val (16#E0# + Code / 4096),
+            Character'Val (16#80# + (Code / 64) mod 64),
+            Character'Val (16#80# + Code mod 64)];
       elsif Code < 16#110000# then
-         return [Character'Val (16#F0# + Code / 262_144), Character'Val (16#80# + (Code / 4096) mod 64),
-                 Character'Val (16#80# + (Code / 64) mod 64), Character'Val (16#80# + Code mod 64)];
+         return
+           [Character'Val (16#F0# + Code / 262_144),
+            Character'Val (16#80# + (Code / 4096) mod 64),
+            Character'Val (16#80# + (Code / 64) mod 64),
+            Character'Val (16#80# + Code mod 64)];
       else
          return "?";
       end if;
@@ -317,8 +318,11 @@ package body Ebook.Markup is
                Stop : Natural := I + 1;
                Code : Natural := 0;
             begin
-               while Stop <= Raw'Last and then Stop - I <= 10 and then Raw (Stop) /= ';'
-                 and then Raw (Stop) /= '&' and then not Is_Space (Raw (Stop))
+               while Stop <= Raw'Last
+                 and then Stop - I <= 10
+                 and then Raw (Stop) /= ';'
+                 and then Raw (Stop) /= '&'
+                 and then not Is_Space (Raw (Stop))
                loop
                   Stop := Stop + 1;
                end loop;
@@ -328,7 +332,7 @@ package body Ebook.Markup is
                   begin
                      if Name (Name'First) = '#' and then Name'Length > 1 then
                         declare
-                           Hex : constant Boolean := Name (Name'First + 1) in 'x' | 'X';
+                           Hex       : constant Boolean := Name (Name'First + 1) in 'x' | 'X';
                            Digits_At : constant Positive := Name'First + (if Hex then 2 else 1);
                         begin
                            Code := 0;

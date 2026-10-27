@@ -1,12 +1,17 @@
 package body Writing_VM.Trees is
    use type Items.Id;
 
-   function Version (Self : Tree_Model) return Parts.Version_Number is (Parts.Value (Self.Changes));
-   function Count (Self : Tree_Model) return Natural is (Self.Rows.Count);
-   function Element (Self : Tree_Model; Row : Positive) return Tree_Entry is (Self.Rows (Row));
+   function Version (Self : Tree_Model) return Parts.Version_Number
+   is (Parts.Value (Self.Changes));
+   function Count (Self : Tree_Model) return Natural
+   is (Self.Rows.Count);
+   function Element (Self : Tree_Model; Row : Positive) return Tree_Entry
+   is (Self.Rows (Row));
 
-   function Page_Count (Self : Tree_Model) return Natural is (Self.Pages.Count);
-   function Page_At (Self : Tree_Model; Rank : Positive) return Items.Slot is (Self.Pages (Rank));
+   function Page_Count (Self : Tree_Model) return Natural
+   is (Self.Pages.Count);
+   function Page_At (Self : Tree_Model; Rank : Positive) return Items.Slot
+   is (Self.Pages (Rank));
 
    function Rank_Of (Self : Tree_Model; Doc : Items.Slot) return Natural is
    begin
@@ -65,8 +70,8 @@ package body Writing_VM.Trees is
 
    procedure Arrange (Self : in out Tree_Model; Dirs : Directories; Docs : Documents) is
       Fresh : Tree_Entry_Array;
-      function Placed (Position : Natural) return Natural is
-        (if Position = 0 then Natural'Last else Position);
+      function Placed (Position : Natural) return Natural
+      is (if Position = 0 then Natural'Last else Position);
       procedure Children (Parent : Natural; Level : Natural) is
          Next_Doc, Next_Dir : Positive := 1;
       begin
@@ -123,8 +128,8 @@ package body Writing_VM.Trees is
       return 0;
    end Leaf_Row;
 
-   function Directory_Of (Self : Tree_Model; Doc : Items.Slot) return Natural is
-     (if Doc > Self.Membership.Count then 0 else Self.Membership (Doc));
+   function Directory_Of (Self : Tree_Model; Doc : Items.Slot) return Natural
+   is (if Doc > Self.Membership.Count then 0 else Self.Membership (Doc));
 
    function Dir_Row (Self : Tree_Model; Dir : Positive) return Natural is
    begin
@@ -150,15 +155,12 @@ package body Writing_VM.Trees is
       return Last;
    end Block_End;
 
-   function Last_Of (Self : Tree_Model; Dirs : Directories; Dir : Natural) return Positive is
-     (if Dir = 0 then Count (Self) + 1 else Block_End (Self, Dirs, Dir_Row (Self, Dir)) + 1);
+   function Last_Of (Self : Tree_Model; Dirs : Directories; Dir : Natural) return Positive
+   is (if Dir = 0 then Count (Self) + 1 else Block_End (Self, Dirs, Dir_Row (Self, Dir)) + 1);
 
-   function Can_Execute
-     (Self : Tree_Model; Dirs : Directories; Row, Index, Dir : Natural) return Boolean is
+   function Can_Execute (Self : Tree_Model; Dirs : Directories; Row, Index, Dir : Natural) return Boolean is
    begin
-      if Row not in 2 .. Count (Self) or else Index not in 2 .. Count (Self) + 1
-        or else Dir > Dirs.Count
-      then
+      if Row not in 2 .. Count (Self) or else Index not in 2 .. Count (Self) + 1 or else Dir > Dirs.Count then
          return False;
       end if;
       if Dir /= 0 and then Dir_Row (Self, Dir) = 0 then
@@ -170,7 +172,7 @@ package body Writing_VM.Trees is
          end if;
          declare
             Next_Node : constant Tree_Entry := Self.Rows (Index);
-            Parent : constant Natural :=
+            Parent    : constant Natural :=
               (if Next_Node.Kind = Directory_Node then Parent_Of (Dirs, Next_Node.Dir) else Next_Node.Dir);
          begin
             if Parent /= Dir then
@@ -179,7 +181,8 @@ package body Writing_VM.Trees is
          end;
       end if;
       if Self.Rows (Row).Kind = Directory_Node then
-         return Dirs (Self.Rows (Row).Dir).Section = 0
+         return
+           Dirs (Self.Rows (Row).Dir).Section = 0
            and then not Within (Dirs, Dir, Self.Rows (Row).Dir)
            and then Index not in Row + 1 .. Block_End (Self, Dirs, Row);
       end if;
@@ -204,18 +207,21 @@ package body Writing_VM.Trees is
    end Keep;
 
    procedure Relocate
-     (Self : in out Tree_Model; Dirs : in out Directories; Store : in out Library'Class;
-      Row, Index : Positive; Dir : Natural) is
-      Last : constant Positive := Block_End (Self, Dirs, Row);
-      Length : constant Positive := Last - Row + 1;
-      Node : constant Tree_Entry := Self.Rows (Row);
+     (Self       : in out Tree_Model;
+      Dirs       : in out Directories;
+      Store      : in out Library'Class;
+      Row, Index : Positive;
+      Dir        : Natural)
+   is
+      Last       : constant Positive := Block_End (Self, Dirs, Row);
+      Length     : constant Positive := Last - Row + 1;
+      Node       : constant Tree_Entry := Self.Rows (Row);
       Parent_Key : constant Items.Id := (if Dir = 0 then 0 else Dirs (Dir).Key);
-      Place : Positive := Index;
-      Moved : Tree_Entry_Array;
-      Reorder : constant Boolean := Index not in Row .. Last + 1;
-      Changed : constant Boolean :=
-        Reorder or else (if Node.Kind = Document_Leaf then Node.Dir /= Dir
-                        else Dirs (Node.Dir).Parent /= Parent_Key);
+      Place      : Positive := Index;
+      Moved      : Tree_Entry_Array;
+      Reorder    : constant Boolean := Index not in Row .. Last + 1;
+      Changed    : constant Boolean :=
+        Reorder or else (if Node.Kind = Document_Leaf then Node.Dir /= Dir else Dirs (Node.Dir).Parent /= Parent_Key);
    begin
       if not Changed then
          return;

@@ -23,14 +23,14 @@ procedure Gates_Test is
 
    --  A tone of the given amplitude, from sample From to To of Audio; the rest is
    --  a hiss of 0.001.
-   function Sound (Length : Positive; Speech_From, Speech_To : Natural; Loud : Float;
-                   Fade_To : Natural := 0) return Samples is
+   function Sound
+     (Length : Positive; Speech_From, Speech_To : Natural; Loud : Float; Fade_To : Natural := 0) return Samples
+   is
       Result : Samples (1 .. Length);
    begin
       for I in Result'Range loop
          declare
-            Wave : constant Float :=
-              Ada.Numerics.Elementary_Functions.Sin (Float (I) * 0.3);
+            Wave : constant Float := Ada.Numerics.Elementary_Functions.Sin (Float (I) * 0.3);
             Amp  : Float := 0.001;
          begin
             if I in Speech_From .. Speech_To then
@@ -66,15 +66,15 @@ begin
       Check ("speech is voiced", Voiced);
       Check ("speech kept", (for all I in 2 * Second + 1 .. 3 * Second => Audio (I) = Copy (I)));
       Check ("start is not cut", (for all I in 2 * Second - 100 .. 2 * Second => Audio (I) = Copy (I)));
-      Check ("trailing off kept",
-             (for all I in 3 * Second + 1 .. 3 * Second + Second / 2 - 400 => Audio (I) = Copy (I)));
+      Check
+        ("trailing off kept", (for all I in 3 * Second + 1 .. 3 * Second + Second / 2 - 400 => Audio (I) = Copy (I)));
       Check ("before is silent", (for all I in 1 .. Second => Audio (I) = 0.0));
       Check ("long after is silent", (for all I in 4 * Second + Second / 4 .. 5 * Second => Audio (I) = 0.0));
    end;
 
    --  A noise that stays (a fan turned on) is, in time, the room.
    declare
-      Fan : constant Samples := Sound (30 * Second, 1, 30 * Second, 0.008);
+      Fan    : constant Samples := Sound (30 * Second, 1, 30 * Second, 0.008);
       Before : constant Float := Speech.Gates.Level (Room);
    begin
       for Round in 1 .. 3 loop

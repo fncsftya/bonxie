@@ -13,45 +13,53 @@ package body Canvas_VM.Stored is
       Self.Current := Which;
    end Set_Project;
 
-   function Project (Self : Project_Kept) return Projects.Id is (Self.Current);
+   function Project (Self : Project_Kept) return Projects.Id
+   is (Self.Current);
 
-   overriding procedure Load (Self : in out Project_Kept; Into : out Items.Info_List) is
+   overriding
+   procedure Load (Self : in out Project_Kept; Into : out Items.Info_List) is
    begin
       Items.Records.Load (Self.Store.all, Self.Current, Into);
    end Load;
 
-   overriding function Create
-     (Self : in out Project_Kept; Name : String; Where : Items.Frame; Kind : Items.Kinds) return Items.Id is
-     (Items.Records.Create (Self.Store.all, Self.Current, Name, Where, Kind => Kind));
+   overriding
+   function Create (Self : in out Project_Kept; Name : String; Where : Items.Frame; Kind : Items.Kinds) return Items.Id
+   is (Items.Records.Create (Self.Store.all, Self.Current, Name, Where, Kind => Kind));
 
-   overriding function Stored_Content (Self : in out Project_Kept; Key : Items.Id) return String is
-     (Items.Records.Stored_Content (Self.Store.all, Key));
+   overriding
+   function Stored_Content (Self : in out Project_Kept; Key : Items.Id) return String
+   is (Items.Records.Stored_Content (Self.Store.all, Key));
 
-   overriding function Shown_File (Self : in out Project_Kept; Of_Item : Items.Info) return String is
-     (Items.Sources.Shown_File (Self.Store.all, Self.Current, Of_Item));
+   overriding
+   function Shown_File (Self : in out Project_Kept; Of_Item : Items.Info) return String
+   is (Items.Sources.Shown_File (Self.Store.all, Self.Current, Of_Item));
 
-   overriding procedure Load_Marks
-     (Self : in out Project_Kept; Key : Items.Id; Into : out Items.Marks.Mark_List) is
+   overriding
+   procedure Load_Marks (Self : in out Project_Kept; Key : Items.Id; Into : out Items.Marks.Mark_List) is
    begin
       Items.Marks.Load_Marks (Self.Store.all, Key, Into);
    end Load_Marks;
 
-   overriding procedure Keep_State (Self : in out Project_Kept; Key : Items.Id; To : Items.States) is
+   overriding
+   procedure Keep_State (Self : in out Project_Kept; Key : Items.Id; To : Items.States) is
    begin
       Items.Records.Set_State (Self.Store.all, Key, To);
    end Keep_State;
 
-   overriding procedure Keep_Origin (Self : in out Project_Kept; Key : Items.Id; To : Items.Origins) is
+   overriding
+   procedure Keep_Origin (Self : in out Project_Kept; Key : Items.Id; To : Items.Origins) is
    begin
       Items.Sources.Set_Origin (Self.Store.all, Key, To);
    end Keep_Origin;
 
-   overriding procedure Delete (Self : in out Project_Kept; Key : Items.Id) is
+   overriding
+   procedure Delete (Self : in out Project_Kept; Key : Items.Id) is
    begin
       Items.Records.Delete (Self.Store.all, Key);
    end Delete;
 
-   overriding procedure Flush
+   overriding
+   procedure Flush
      (Self  : in out Project_Kept;
       Model : in out Items.Models.Item;
       Now   : Pomarine.Events.Milliseconds;
@@ -61,44 +69,51 @@ package body Canvas_VM.Stored is
       Items.Models.Flush (Model, Self.Store.all, Now, Force, Wrote);
    end Flush;
 
-   overriding procedure Touch (Self : in out Project_Kept) is
+   overriding
+   procedure Touch (Self : in out Project_Kept) is
    begin
       Projects.Touch (Self.Store.all, Self.Current);
    end Touch;
 
-   overriding procedure Get_View
-     (Self : in out Project_Kept; Found : out Boolean; Zoom, Centre_X, Centre_Y : out Float) is
+   overriding
+   procedure Get_View (Self : in out Project_Kept; Found : out Boolean; Zoom, Centre_X, Centre_Y : out Float) is
    begin
       Projects.Get_View (Self.Store.all, Self.Current, Found, Zoom, Centre_X, Centre_Y);
    end Get_View;
 
-   overriding procedure Set_View (Self : in out Project_Kept; Zoom, Centre_X, Centre_Y : Float) is
+   overriding
+   procedure Set_View (Self : in out Project_Kept; Zoom, Centre_X, Centre_Y : Float) is
    begin
       Projects.Set_View (Self.Store.all, Self.Current, Zoom, Centre_X, Centre_Y);
    end Set_View;
 
-   overriding procedure Load_Links (Self : in out Project_Kept; Into : out Items.Links.Link_List) is
+   overriding
+   procedure Load_Links (Self : in out Project_Kept; Into : out Items.Links.Link_List) is
    begin
       Items.Links.Load_Links (Self.Store.all, Self.Current, Into);
    end Load_Links;
 
-   overriding procedure Add_Link (Self : in out Project_Kept; Fresh : Items.Links.Link; Added : out Boolean) is
+   overriding
+   procedure Add_Link (Self : in out Project_Kept; Fresh : Items.Links.Link; Added : out Boolean) is
    begin
       Items.Links.Add_Link (Self.Store.all, Fresh, Added);
    end Add_Link;
 
-   overriding procedure Move_Link
+   overriding
+   procedure Move_Link
      (Self : in out Project_Kept; Key : Items.Id; To : Items.Id; Side : Items.Links.Sides; Moved : out Boolean) is
    begin
       Items.Links.Move_Link (Self.Store.all, Key, To, Side, Moved);
    end Move_Link;
 
-   overriding procedure Delete_Link (Self : in out Project_Kept; Key : Items.Id) is
+   overriding
+   procedure Delete_Link (Self : in out Project_Kept; Key : Items.Id) is
    begin
       Items.Links.Delete_Link (Self.Store.all, Key);
    end Delete_Link;
 
-   overriding procedure Set_Link_Style
+   overriding
+   procedure Set_Link_Style
      (Self   : in out Project_Kept;
       Key    : Items.Id;
       Stroke : Items.Links.Strokes;

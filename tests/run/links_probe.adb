@@ -11,7 +11,10 @@ procedure Links_Probe is
    Waited : Natural := 0;
 begin
    Webshot.Start
-     (1, Ada.Command_Line.Argument (1), "/tmp/links-probe.png", Look_File => "/tmp/links-probe-look.png",
+     (1,
+      Ada.Command_Line.Argument (1),
+      "/tmp/links-probe.png",
+      Look_File       => "/tmp/links-probe-look.png",
       Dismiss_Banners => False);
    while Webshot.State (1) = Webshot.Working and then Waited < 90_000 loop
       Webshot.Pump (50);

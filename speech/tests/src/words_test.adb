@@ -5,21 +5,21 @@ with Speech.Windows;
 with Speech.Words;
 
 procedure Words_Test is
-   Mark   : constant String := Character'Val (16#E2#) & Character'Val (16#96#) & Character'Val (16#81#);
-   function Token_Of (Which : Positive) return String is
-     (case Which is
-         when 1 => Mark & "And",
-         when 2 => Mark & "so",
-         when 3 => ",",
-         when 4 => Mark & "form",
-         when 5 => Mark,
-         when 6 => "3",
-         when 7 => "5",
-         when 8 => " years",
+   Mark        : constant String := Character'Val (16#E2#) & Character'Val (16#96#) & Character'Val (16#81#);
+   function Token_Of (Which : Positive) return String
+   is (case Which is
+         when 1      => Mark & "And",
+         when 2      => Mark & "so",
+         when 3      => ",",
+         when 4      => Mark & "form",
+         when 5      => Mark,
+         when 6      => "3",
+         when 7      => "5",
+         when 8      => " years",
          when others => "!");
    Token_Count : constant := 9;
    use type Speech.Windows.Offsets;
-   Failed : Natural := 0;
+   Failed      : Natural := 0;
 
    procedure Check (Name : String; Holds : Boolean) is
    begin

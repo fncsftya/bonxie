@@ -17,8 +17,11 @@ procedure Page_Probe is
    Look    : constant Boolean := Ada.Command_Line.Argument_Count > 1;
 begin
    Webshot.Start
-     (1, Ada.Command_Line.Argument (1), "/tmp/probe.png",
-      Look_File => (if Look then "/tmp/probe-look.png" else ""), Dismiss_Banners => False);
+     (1,
+      Ada.Command_Line.Argument (1),
+      "/tmp/probe.png",
+      Look_File       => (if Look then "/tmp/probe-look.png" else ""),
+      Dismiss_Banners => False);
    while Webshot.State (1) = Webshot.Working and then Waited < 90_000 loop
       Webshot.Pump (50);
       Waited := Waited + 50;

@@ -3,17 +3,16 @@ private with Ada.Strings.Unbounded;
 
 --  A script, as bonxie edits it: its text, which views show and edit,
 --  the file it is kept in, and whether it is as saved there.
+
 package Scripts is
 
    type Script is limited private;
 
-   procedure Load
-     (Item : in out Script; Content : String; Kept_In : String := "");
+   procedure Load (Item : in out Script; Content : String; Kept_In : String := "");
    --  Load versioned Content (or legacy plain text), kept in file
    --  Kept_In ("" for none yet), and as saved.
 
-   function Document
-     (Item : aliased in out Script) return Texts.Documents.Document_Access;
+   function Document (Item : aliased in out Script) return Texts.Documents.Document_Access;
    --  Its text, for views to show: they must not outlive Item.
 
    function Text (Item : Script) return String;
@@ -29,7 +28,7 @@ package Scripts is
    --  For a window: the file's name, and whether it has been edited.
 
    procedure Save (Item : in out Script)
-     with Pre => File_Name (Item) /= "";
+   with Pre => File_Name (Item) /= "";
    --  Write the versioned text and its formatting to the file.
 
 private

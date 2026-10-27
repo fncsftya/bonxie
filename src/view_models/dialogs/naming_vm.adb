@@ -1,10 +1,13 @@
 package body Naming_VM is
 
-   function Directory (Self : Model) return Natural is (Self.Folder);
+   function Directory (Self : Model) return Natural
+   is (Self.Folder);
 
-   function Document (Self : Model) return Natural is (Self.Doc);
+   function Document (Self : Model) return Natural
+   is (Self.Doc);
 
-   function Source (Self : Model) return Natural is (Self.Origin);
+   function Source (Self : Model) return Natural
+   is (Self.Origin);
 
    procedure Begin_Directory (Self : in out Model; Which : Positive) is
    begin
@@ -36,8 +39,8 @@ package body Naming_VM is
       Self.Origin := 0;
    end End_Source;
 
-   function Is_Titling (Self : Model; Rank : Positive) return Boolean is
-     (Rank <= Self.Titles.Count and then Self.Titles (Rank));
+   function Is_Titling (Self : Model; Rank : Positive) return Boolean
+   is (Rank <= Self.Titles.Count and then Self.Titles (Rank));
 
    procedure Begin_Title (Self : in out Model; Rank : Positive) is
    begin

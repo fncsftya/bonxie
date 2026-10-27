@@ -12,11 +12,8 @@ package body Preferences is
    begin
       if Store_Path = Projects.Memory then
          return
-           (if Ada.Environment_Variables.Exists ("TMPDIR")
-              and then Ada.Environment_Variables.Value ("TMPDIR") /= ""
-            then Ada.Strings.Fixed.Trim
-                   (Ada.Environment_Variables.Value ("TMPDIR"),
-                    Ada.Strings.Right)
+           (if Ada.Environment_Variables.Exists ("TMPDIR") and then Ada.Environment_Variables.Value ("TMPDIR") /= ""
+            then Ada.Strings.Fixed.Trim (Ada.Environment_Variables.Value ("TMPDIR"), Ada.Strings.Right)
             else "/tmp")
            & "/bonxie-memory";
       else
@@ -24,11 +21,11 @@ package body Preferences is
       end if;
    end Config_Directory;
 
-   function Speech_Model_Directory (Config : String) return String is
-     (Config & "/speech/parakeet-tdt-0.6b-v3");
+   function Speech_Model_Directory (Config : String) return String
+   is (Config & "/speech/parakeet-tdt-0.6b-v3");
 
-   function Settings_File (Config : String) return String is
-     (Config & "/settings");
+   function Settings_File (Config : String) return String
+   is (Config & "/settings");
 
    function Settings_Text (Config : String) return String is
    begin
@@ -48,16 +45,13 @@ package body Preferences is
       while Start <= Text'Last loop
          declare
             Stop : constant Natural :=
-              (if Ada.Strings.Fixed.Index (Text (Start .. Text'Last),
-                                           [ASCII.LF]) = 0
+              (if Ada.Strings.Fixed.Index (Text (Start .. Text'Last), [ASCII.LF]) = 0
                then Text'Last + 1
-               else Ada.Strings.Fixed.Index (Text (Start .. Text'Last),
-                                             [ASCII.LF]));
-            Line  : constant String := Text (Start .. Stop - 1);
+               else Ada.Strings.Fixed.Index (Text (Start .. Text'Last), [ASCII.LF]));
+            Line : constant String := Text (Start .. Stop - 1);
          begin
             if Line'Length > Name'Length
-              and then Line (Line'First .. Line'First + Name'Length - 1)
-                       = Name
+              and then Line (Line'First .. Line'First + Name'Length - 1) = Name
               and then Line (Line'First + Name'Length) = '='
             then
                return Line (Line'First + Name'Length + 1 .. Line'Last);
@@ -79,18 +73,14 @@ package body Preferences is
       while Start <= Text'Last loop
          declare
             Stop : constant Natural :=
-              (if Ada.Strings.Fixed.Index (Text (Start .. Text'Last),
-                                           [ASCII.LF]) = 0
+              (if Ada.Strings.Fixed.Index (Text (Start .. Text'Last), [ASCII.LF]) = 0
                then Text'Last + 1
-               else Ada.Strings.Fixed.Index (Text (Start .. Text'Last),
-                                             [ASCII.LF]));
-            Line  : constant String := Text (Start .. Stop - 1);
+               else Ada.Strings.Fixed.Index (Text (Start .. Text'Last), [ASCII.LF]));
+            Line : constant String := Text (Start .. Stop - 1);
          begin
             if Line'Length > 0
               and then not (Line'Length > Name'Length
-                            and then Line (Line'First ..
-                                           Line'First + Name'Length - 1)
-                                     = Name
+                            and then Line (Line'First .. Line'First + Name'Length - 1) = Name
                             and then Line (Line'First + Name'Length) = '=')
             then
                Ada.Strings.Unbounded.Append (Kept, Line & ASCII.LF);
@@ -99,27 +89,19 @@ package body Preferences is
          end;
       end loop;
       Ada.Directories.Create_Path (Config);
-      Files.Write
-        (Settings_File (Config),
-         Ada.Strings.Unbounded.To_String (Kept)
-         & Name & "=" & Value & ASCII.LF);
+      Files.Write (Settings_File (Config), Ada.Strings.Unbounded.To_String (Kept) & Name & "=" & Value & ASCII.LF);
    end Put_Setting;
 
-   function Load_Speech_Model (Config : String) return Speech_Models is
-     (if Ada.Characters.Handling.To_Lower (Setting (Config, "speech_model"))
-         = "parakeet"
-      then Parakeet else MacOS);
+   function Load_Speech_Model (Config : String) return Speech_Models
+   is (if Ada.Characters.Handling.To_Lower (Setting (Config, "speech_model")) = "parakeet" then Parakeet else MacOS);
 
    procedure Save_Speech_Model (Config : String; To : Speech_Models) is
    begin
-      Put_Setting
-        (Config, "speech_model",
-         Ada.Characters.Handling.To_Lower (Speech_Models'Image (To)));
+      Put_Setting (Config, "speech_model", Ada.Characters.Handling.To_Lower (Speech_Models'Image (To)));
    end Save_Speech_Model;
 
    function Load_Theme (Config : String) return Theme_Choices is
-      Saved : constant String :=
-        Ada.Characters.Handling.To_Lower (Setting (Config, "theme"));
+      Saved : constant String := Ada.Characters.Handling.To_Lower (Setting (Config, "theme"));
    begin
       if Saved = "light" then
          return Light;
@@ -132,9 +114,7 @@ package body Preferences is
 
    procedure Save_Theme (Config : String; To : Theme_Choices) is
    begin
-      Put_Setting
-        (Config, "theme",
-         Ada.Characters.Handling.To_Lower (Theme_Choices'Image (To)));
+      Put_Setting (Config, "theme", Ada.Characters.Handling.To_Lower (Theme_Choices'Image (To)));
    end Save_Theme;
 
    function Named (Text : String) return Background_Modes is
@@ -147,20 +127,18 @@ package body Preferences is
       return Watercolour;
    end Named;
 
-   function Load_Background (Config : String) return Background_Modes is
-     (Named (Ada.Characters.Handling.To_Lower (Setting (Config, "background"))));
+   function Load_Background (Config : String) return Background_Modes
+   is (Named (Ada.Characters.Handling.To_Lower (Setting (Config, "background"))));
 
    --  "adaptive", which the watercolour was once called, is it still.
 
    procedure Save_Background (Config : String; To : Background_Modes) is
    begin
-      Put_Setting
-        (Config, "background",
-         Ada.Characters.Handling.To_Lower (Background_Modes'Image (To)));
+      Put_Setting (Config, "background", Ada.Characters.Handling.To_Lower (Background_Modes'Image (To)));
    end Save_Background;
 
-   function Load_VSync (Config : String) return Boolean is
-     (Ada.Characters.Handling.To_Lower (Setting (Config, "vsync")) = "true");
+   function Load_VSync (Config : String) return Boolean
+   is (Ada.Characters.Handling.To_Lower (Setting (Config, "vsync")) = "true");
 
    procedure Save_VSync (Config : String; To : Boolean) is
    begin
@@ -173,10 +151,11 @@ package body Preferences is
       return (if Text'Length in 1 .. 8 and then (for all C of Text => C in '0' .. '9') then Text else "");
    end Digits_Of;
 
-   function Has_Seed (Config : String) return Boolean is (Digits_Of (Config) /= "");
+   function Has_Seed (Config : String) return Boolean
+   is (Digits_Of (Config) /= "");
 
-   function Load_Seed (Config : String) return Natural is
-     (Natural'Value (Digits_Of (Config)) mod Seed_Limit);
+   function Load_Seed (Config : String) return Natural
+   is (Natural'Value (Digits_Of (Config)) mod Seed_Limit);
 
    procedure Save_Seed (Config : String; To : Natural) is
    begin
@@ -197,8 +176,8 @@ package body Preferences is
       Put_Setting (Config, "sidebar", Ada.Strings.Fixed.Trim (To'Image, Ada.Strings.Left));
    end Save_Sidebar_Width;
 
-   function Load_Section_Open (Config : String; Name : String) return Boolean is
-     (Setting (Config, "open_" & Name) /= "no");
+   function Load_Section_Open (Config : String; Name : String) return Boolean
+   is (Setting (Config, "open_" & Name) /= "no");
 
    procedure Save_Section_Open (Config : String; Name : String; To : Boolean) is
    begin

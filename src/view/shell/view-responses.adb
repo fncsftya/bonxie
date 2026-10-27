@@ -8,9 +8,7 @@ package body View.Responses is
 
    --  What the menu bar and the keys ask
 
-   procedure Perform
-     (Item  : in out Session;
-      Event : Widgets.Widget_Event) is
+   procedure Perform (Item : in out Session; Event : Widgets.Widget_Event) is
    begin
       if Is_Nav_Tag (Event.Tag) then
          if Event.Kind in Widgets.Click | Widgets.Submit then

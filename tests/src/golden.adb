@@ -49,6 +49,7 @@ with Grammar_Tests;
 --  Draws the viewer, and a text area by itself, in various setups and
 --  compares what they draw with golden images: golden [part of a test's
 --  name]. See Goldens.
+
 procedure Golden is
 
    package Events renames Pomarine.Events;
@@ -58,16 +59,12 @@ procedure Golden is
    package Settings renames View.Settings;
    package Images renames Goldens.Images;
 
-   Filter : constant String :=
-     (if Ada.Command_Line.Argument_Count > 0
-      then Ada.Command_Line.Argument (1) else "");
+   Filter : constant String := (if Ada.Command_Line.Argument_Count > 0 then Ada.Command_Line.Argument (1) else "");
 
    --  Events
 
-   function Key
-     (Code : Events.Key_Code; Command : Boolean := False) return Events.Event
-   is ((Kind => Events.Key_Down, Key => Code, Command => Command,
-        others => <>));
+   function Key (Code : Events.Key_Code; Command : Boolean := False) return Events.Event
+   is ((Kind => Events.Key_Down, Key => Code, Command => Command, others => <>));
 
    --  Shorthands
 
@@ -83,43 +80,37 @@ procedure Golden is
    --  In points: the middle of Add Document, in the tray over the foot of
    --  the canvas.
 
-   function Wheel
-     (Across, Down : Float; X, Y : Float; Command : Boolean := False)
-      return Events.Event
-   is ((Kind => Events.Mouse_Wheel, Wheel_X => Across, Wheel_Y => Down,
-        Mouse_X => X, Mouse_Y => Y, Command => Command, others => <>));
+   function Wheel (Across, Down : Float; X, Y : Float; Command : Boolean := False) return Events.Event
+   is ((Kind    => Events.Mouse_Wheel,
+        Wheel_X => Across,
+        Wheel_Y => Down,
+        Mouse_X => X,
+        Mouse_Y => Y,
+        Command => Command,
+        others  => <>));
 
-   function Click (X, Y : Float) return Events.Event is
-     ((Kind => Events.Mouse_Down, Button => 1, Clicks => 1,
-       Mouse_X => X, Mouse_Y => Y, others => <>));
+   function Click (X, Y : Float) return Events.Event
+   is ((Kind => Events.Mouse_Down, Button => 1, Clicks => 1, Mouse_X => X, Mouse_Y => Y, others => <>));
    --  At X, Y points.
 
-   function Pointer_At (X, Y : Float; Held : Boolean := False)
-      return Events.Event
-   is ((Kind => Events.Mouse_Move, Mouse_X => X, Mouse_Y => Y,
-        Left_Held => Held, others => <>));
+   function Pointer_At (X, Y : Float; Held : Boolean := False) return Events.Event
+   is ((Kind => Events.Mouse_Move, Mouse_X => X, Mouse_Y => Y, Left_Held => Held, others => <>));
 
    function Press_Button (Which : Natural; X, Y : Float) return Events.Event
-   is ((Kind => Events.Mouse_Down, Button => Which, Clicks => 1,
-        Mouse_X => X, Mouse_Y => Y, others => <>));
+   is ((Kind => Events.Mouse_Down, Button => Which, Clicks => 1, Mouse_X => X, Mouse_Y => Y, others => <>));
 
-   function Release_Button (Which : Natural; X, Y : Float)
-      return Events.Event
-   is ((Kind => Events.Mouse_Up, Button => Which, Clicks => 1,
-        Mouse_X => X, Mouse_Y => Y, others => <>));
+   function Release_Button (Which : Natural; X, Y : Float) return Events.Event
+   is ((Kind => Events.Mouse_Up, Button => Which, Clicks => 1, Mouse_X => X, Mouse_Y => Y, others => <>));
 
-   function Whole (Value : Float) return String is
-     (Integer'Image (Integer (Float'Rounding (Value))));
+   function Whole (Value : Float) return String
+   is (Integer'Image (Integer (Float'Rounding (Value))));
    --  To the nearest whole number, to compare as text.
 
-   function Percent (Value : Float) return String is
-     (Whole (Value * 100.0));
+   function Percent (Value : Float) return String
+   is (Whole (Value * 100.0));
 
    procedure Press
-     (Item  : in out View.Session;
-      Code  : Events.Key_Code;
-      Times : Positive := 1;
-      Command : Boolean := False) is
+     (Item : in out View.Session; Code : Events.Key_Code; Times : Positive := 1; Command : Boolean := False) is
    begin
       for K in 1 .. Times loop
          View.Handle (Item, Key (Code, Command));
@@ -139,10 +130,7 @@ procedure Golden is
    --  A project, at its canvas.
 
    procedure Show
-     (Name    : String;
-      Width   : Positive := Default_Width;
-      Height  : Positive := Default_Height;
-      Density : Float := 2.0)
+     (Name : String; Width : Positive := Default_Width; Height : Positive := Default_Height; Density : Float := 2.0)
    is
       Session : View.Session;
       Drawn   : Images.Image;
@@ -156,20 +144,18 @@ procedure Golden is
 
    procedure Canvas_Starts is
       Session : View.Session;
-      Drawn : Images.Image;
+      Drawn   : Images.Image;
    begin
       Start (Session);
       View.Render (Session, Drawn);
       Goldens.Check ("canvas", Drawn);
-      Goldens.Check_Text
-        ("canvas-mode", "CANVAS", View.Modes'Image (Proj.Mode (Session)));
+      Goldens.Check_Text ("canvas-mode", "CANVAS", View.Modes'Image (Proj.Mode (Session)));
       --  The origin in the middle, at a zoom of 1.
       Goldens.Check_Text
-        ("canvas-origin", " 360 218",
-         Whole (Camera.Canvas_Origin_X (Session))
-         & Whole (Camera.Canvas_Origin_Y (Session)));
-      Goldens.Check_Text
-        ("canvas-first-zoom", " 100", Percent (Camera.Canvas_Zoom (Session)));
+        ("canvas-origin",
+         " 360 218",
+         Whole (Camera.Canvas_Origin_X (Session)) & Whole (Camera.Canvas_Origin_Y (Session)));
+      Goldens.Check_Text ("canvas-first-zoom", " 100", Percent (Camera.Canvas_Zoom (Session)));
    end Canvas_Starts;
 
    procedure Canvas_Low_Density is
@@ -202,11 +188,10 @@ procedure Golden is
       Start (Session);
       View.Handle (Session, Wheel (-1.0, 2.0, 400.0, 300.0));
       Goldens.Check_Text
-        ("canvas-panned-origin", " 384 266",
-         Whole (Camera.Canvas_Origin_X (Session))
-         & Whole (Camera.Canvas_Origin_Y (Session)));
-      Goldens.Check_Text
-        ("canvas-panned-zoom", " 100", Percent (Camera.Canvas_Zoom (Session)));
+        ("canvas-panned-origin",
+         " 384 266",
+         Whole (Camera.Canvas_Origin_X (Session)) & Whole (Camera.Canvas_Origin_Y (Session)));
+      Goldens.Check_Text ("canvas-panned-zoom", " 100", Percent (Camera.Canvas_Zoom (Session)));
       View.Render (Session, Drawn);
       Goldens.Check ("canvas-panned", Drawn);
 
@@ -220,29 +205,23 @@ procedure Golden is
       Session : View.Session;
       Drawn   : Images.Image;
 
-      function Under_Pointer return String is
-        (Whole ((500.0 - Camera.Canvas_Origin_X (Session))
-                / Camera.Canvas_Zoom (Session))
-         & Whole ((300.0 - Canvas_Top - Camera.Canvas_Origin_Y (Session))
-                  / Camera.Canvas_Zoom (Session)));
+      function Under_Pointer return String
+      is (Whole ((500.0 - Camera.Canvas_Origin_X (Session)) / Camera.Canvas_Zoom (Session))
+          & Whole ((300.0 - Canvas_Top - Camera.Canvas_Origin_Y (Session)) / Camera.Canvas_Zoom (Session)));
    begin
       Start (Session);
       Goldens.Check_Text ("canvas-zoom-before", " 140 38", Under_Pointer);
 
       --  Command with the wheel zooms about the pointer, which keeps what
       --  is under it.
-      View.Handle
-        (Session, Wheel (0.0, 3.0, 500.0, 300.0, Command => True));
-      Goldens.Check_Text
-        ("canvas-zoom-in", " 133", Percent (Camera.Canvas_Zoom (Session)));
+      View.Handle (Session, Wheel (0.0, 3.0, 500.0, 300.0, Command => True));
+      Goldens.Check_Text ("canvas-zoom-in", " 133", Percent (Camera.Canvas_Zoom (Session)));
       Goldens.Check_Text ("canvas-zoom-kept", " 140 38", Under_Pointer);
       View.Render (Session, Drawn);
       Goldens.Check ("canvas-zoomed-in", Drawn);
 
-      View.Handle
-        (Session, Wheel (0.0, -8.0, 500.0, 300.0, Command => True));
-      Goldens.Check_Text
-        ("canvas-zoom-out", " 62", Percent (Camera.Canvas_Zoom (Session)));
+      View.Handle (Session, Wheel (0.0, -8.0, 500.0, 300.0, Command => True));
+      Goldens.Check_Text ("canvas-zoom-out", " 62", Percent (Camera.Canvas_Zoom (Session)));
       Goldens.Check_Text ("canvas-zoom-out-kept", " 140 38", Under_Pointer);
       View.Render (Session, Drawn);
       Goldens.Check ("canvas-zoomed-out", Drawn);
@@ -253,53 +232,40 @@ procedure Golden is
    begin
       Start (Session);
       Press (Session, Events.Key_Equals, Times => 2, Command => True);
-      Goldens.Check_Text
-        ("canvas-keys-in", " 121", Percent (Camera.Canvas_Zoom (Session)));
+      Goldens.Check_Text ("canvas-keys-in", " 121", Percent (Camera.Canvas_Zoom (Session)));
       Press (Session, Events.Key_Minus, Times => 4, Command => True);
-      Goldens.Check_Text
-        ("canvas-keys-out", " 83", Percent (Camera.Canvas_Zoom (Session)));
+      Goldens.Check_Text ("canvas-keys-out", " 83", Percent (Camera.Canvas_Zoom (Session)));
       Press (Session, Events.Key_0, Command => True);
-      Goldens.Check_Text
-        ("canvas-keys-reset", " 100", Percent (Camera.Canvas_Zoom (Session)));
+      Goldens.Check_Text ("canvas-keys-reset", " 100", Percent (Camera.Canvas_Zoom (Session)));
       --  About the middle.
       Goldens.Check_Text
-        ("canvas-keys-origin", " 360 218",
-         Whole (Camera.Canvas_Origin_X (Session))
-         & Whole (Camera.Canvas_Origin_Y (Session)));
+        ("canvas-keys-origin",
+         " 360 218",
+         Whole (Camera.Canvas_Origin_X (Session)) & Whole (Camera.Canvas_Origin_Y (Session)));
 
       --  Within limits.
       Press (Session, Events.Key_Equals, Times => 100, Command => True);
-      Goldens.Check_Text
-        ("canvas-keys-most", " 800", Percent (Camera.Canvas_Zoom (Session)));
+      Goldens.Check_Text ("canvas-keys-most", " 800", Percent (Camera.Canvas_Zoom (Session)));
       Press (Session, Events.Key_Minus, Times => 200, Command => True);
-      Goldens.Check_Text
-        ("canvas-keys-least", " 10", Percent (Camera.Canvas_Zoom (Session)));
+      Goldens.Check_Text ("canvas-keys-least", " 10", Percent (Camera.Canvas_Zoom (Session)));
    end Canvas_Zoom_Keys;
 
    procedure Canvas_Pinched is
       Session : View.Session;
    begin
       Start (Session);
-      View.Handle
-        (Session,
-         (Kind => Events.Pinch, Scale => 1.5, Mouse_X => 360.0,
-          Mouse_Y => 208.0, others => <>));
-      Goldens.Check_Text
-        ("canvas-pinch-in", " 150", Percent (Camera.Canvas_Zoom (Session)));
-      View.Handle
-        (Session,
-         (Kind => Events.Pinch, Scale => 0.5, Mouse_X => 360.0,
-          Mouse_Y => 208.0, others => <>));
-      Goldens.Check_Text
-        ("canvas-pinch-out", " 75", Percent (Camera.Canvas_Zoom (Session)));
+      View.Handle (Session, (Kind => Events.Pinch, Scale => 1.5, Mouse_X => 360.0, Mouse_Y => 208.0, others => <>));
+      Goldens.Check_Text ("canvas-pinch-in", " 150", Percent (Camera.Canvas_Zoom (Session)));
+      View.Handle (Session, (Kind => Events.Pinch, Scale => 0.5, Mouse_X => 360.0, Mouse_Y => 208.0, others => <>));
+      Goldens.Check_Text ("canvas-pinch-out", " 75", Percent (Camera.Canvas_Zoom (Session)));
    end Canvas_Pinched;
 
    procedure Canvas_Dragged is
       Session : View.Session;
       Drawn   : Images.Image;
 
-      function Cursor return String is
-        (SDL3.Cursors.Kind'Image (View.Cursor (Session)));
+      function Cursor return String
+      is (SDL3.Cursors.Kind'Image (View.Cursor (Session)));
    begin
       Start (Session);
       View.Handle (Session, Pointer_At (300.0, 200.0));
@@ -310,9 +276,9 @@ procedure Golden is
       View.Handle (Session, Pointer_At (340.0, 230.0, Held => True));
       View.Handle (Session, Release_Button (1, 340.0, 230.0));
       Goldens.Check_Text
-        ("canvas-left-drag", " 360 218",
-         Whole (Camera.Canvas_Origin_X (Session))
-         & Whole (Camera.Canvas_Origin_Y (Session)));
+        ("canvas-left-drag",
+         " 360 218",
+         Whole (Camera.Canvas_Origin_X (Session)) & Whole (Camera.Canvas_Origin_Y (Session)));
 
       --  The middle button does, with the move cursor while it does.
       View.Handle (Session, Press_Button (2, 300.0, 200.0));
@@ -320,9 +286,9 @@ procedure Golden is
       View.Handle (Session, Pointer_At (340.0, 230.0));
       View.Handle (Session, Pointer_At (350.0, 210.0));
       Goldens.Check_Text
-        ("canvas-middle-drag", " 410 228",
-         Whole (Camera.Canvas_Origin_X (Session))
-         & Whole (Camera.Canvas_Origin_Y (Session)));
+        ("canvas-middle-drag",
+         " 410 228",
+         Whole (Camera.Canvas_Origin_X (Session)) & Whole (Camera.Canvas_Origin_Y (Session)));
       Goldens.Check_Text ("canvas-cursor-still-panning", "MOVE", Cursor);
       View.Render (Session, Drawn);
       Goldens.Check ("canvas-middle-dragged", Drawn);
@@ -332,9 +298,9 @@ procedure Golden is
       --  Let go, it follows the pointer no more.
       View.Handle (Session, Pointer_At (400.0, 300.0));
       Goldens.Check_Text
-        ("canvas-after-drag", " 410 228",
-         Whole (Camera.Canvas_Origin_X (Session))
-         & Whole (Camera.Canvas_Origin_Y (Session)));
+        ("canvas-after-drag",
+         " 410 228",
+         Whole (Camera.Canvas_Origin_X (Session)) & Whole (Camera.Canvas_Origin_Y (Session)));
    end Canvas_Dragged;
 
    --  The tools bar
@@ -356,14 +322,9 @@ procedure Golden is
       Start (Session);
       View.Handle (Session, Pointer_At (Tools_Item_X, Tools_Item_Y));
       View.Handle (Session, Click (Tools_Item_X, Tools_Item_Y));
-      View.Handle
-        (Session, Release_Button (1, Tools_Item_X, Tools_Item_Y));
-      Goldens.Check_Text
-        ("tools-item-clicked", "PROJECT",
-         View.Screens'Image (View.Screen (Session)));
-      Goldens.Check_Text
-        ("tools-item-cursor", "POINTER",
-         SDL3.Cursors.Kind'Image (View.Cursor (Session)));
+      View.Handle (Session, Release_Button (1, Tools_Item_X, Tools_Item_Y));
+      Goldens.Check_Text ("tools-item-clicked", "PROJECT", View.Screens'Image (View.Screen (Session)));
+      Goldens.Check_Text ("tools-item-cursor", "POINTER", SDL3.Cursors.Kind'Image (View.Cursor (Session)));
    end Tools_Item_Click;
 
    --  The screens
@@ -376,8 +337,7 @@ procedure Golden is
    begin
       for I in 1 .. Item.Count loop
          declare
-            Name : constant String :=
-              Projects.Titles.To_String (Item.Items (I).Title) & ",";
+            Name : constant String := Projects.Titles.To_String (Item.Items (I).Title) & ",";
          begin
             Result (Last + 1 .. Last + Name'Length) := Name;
             Last := Last + Name'Length;
@@ -393,45 +353,46 @@ procedure Golden is
 
    --  Where the buttons are, in points: in the sidebar at the left of the
    --  home screen, and at the left of the toolbar of a project.
-   Actions_X : constant Float := 109.0;
-   New_Y     : constant Float := 103.0;
+   Actions_X  : constant Float := 109.0;
+   New_Y      : constant Float := 103.0;
    Settings_Y : constant Float := Float (Home_Height) - 37.0;
-   Close_X   : constant Float := 58.0;
-   Close_Y   : constant Float := 22.0;
+   Close_X    : constant Float := 58.0;
+   Close_Y    : constant Float := 22.0;
 
-   function Card_Left (Row : Positive) return Float is
-     (263.0 + Float ((Row - 1) mod 2) * 352.0);
-   function Card_Top (Row : Positive) return Float is
-     (85.0 + Float ((Row - 1) / 2) * 234.0);
+   function Card_Left (Row : Positive) return Float
+   is (263.0 + Float ((Row - 1) mod 2) * 352.0);
+   function Card_Top (Row : Positive) return Float
+   is (85.0 + Float ((Row - 1) / 2) * 234.0);
    --  Of a project's card, in points: two to a row, below the title.
 
-   function Open_X (Row : Positive) return Float is (Card_Left (Row) + 165.0);
-   function Open_Y (Row : Positive) return Float is (Card_Top (Row) + 70.0);
+   function Open_X (Row : Positive) return Float
+   is (Card_Left (Row) + 165.0);
+   function Open_Y (Row : Positive) return Float
+   is (Card_Top (Row) + 70.0);
    --  The middle of the picture of its canvas, which opens it.
 
-   function Info_Y (Row : Positive) return Float is (Card_Top (Row) + 173.5);
-   function Rename_X (Row : Positive) return Float is
-     (Card_Left (Row) + 257.5);
-   function Delete_X (Row : Positive) return Float is
-     (Card_Left (Row) + 296.5);
-   function Ok_X (Row : Positive) return Float is (Card_Left (Row) + 216.0);
-   function Cancel_X (Row : Positive) return Float is
-     (Card_Left (Row) + 280.0);
+   function Info_Y (Row : Positive) return Float
+   is (Card_Top (Row) + 173.5);
+   function Rename_X (Row : Positive) return Float
+   is (Card_Left (Row) + 257.5);
+   function Delete_X (Row : Positive) return Float
+   is (Card_Left (Row) + 296.5);
+   function Ok_X (Row : Positive) return Float
+   is (Card_Left (Row) + 216.0);
+   function Cancel_X (Row : Positive) return Float
+   is (Card_Left (Row) + 280.0);
    --  Of the buttons below the picture, and of the field's in their place.
 
    procedure Move_Away (Item : in out View.Session) is
    begin
-      View.Handle (Item, Events.Event'(Kind => Events.Mouse_Move,
-                                         Mouse_X => 1.0, Mouse_Y => 1.0,
-                                         others => <>));
+      View.Handle (Item, Events.Event'(Kind => Events.Mouse_Move, Mouse_X => 1.0, Mouse_Y => 1.0, others => <>));
    end Move_Away;
 
    procedure With_Three (Session : in out View.Session) is
    begin
       View.Open (Session, "", Home_Width, Home_Height);
       for I in 1 .. 3 loop
-         Home.Add_Project
-           (Session, "Episode" & Natural'Image (I), Hour * Long_Integer (I));
+         Home.Add_Project (Session, "Episode" & Natural'Image (I), Hour * Long_Integer (I));
       end loop;
    end With_Three;
 
@@ -441,9 +402,7 @@ procedure Golden is
    begin
       With_Three (Session);
       Click_On (Session, Rename_X (2), Info_Y (2));
-      Goldens.Check_Text
-        ("rename-started", "TRUE",
-         Boolean'Image (Home.Is_Renaming (Session)));
+      Goldens.Check_Text ("rename-started", "TRUE", Boolean'Image (Home.Is_Renaming (Session)));
       View.Render (Session, Drawn);
       Goldens.Check ("rename-field", Drawn);
 
@@ -452,24 +411,17 @@ procedure Golden is
       View.Render (Session, Drawn);
       Goldens.Check ("rename-typed", Drawn);
       Click_On (Session, Ok_X (2), Info_Y (2));
-      Goldens.Check_Text
-        ("rename-done", "FALSE",
-         Boolean'Image (Home.Is_Renaming (Session)));
-      Goldens.Check_Text ("rename-first", "Renamed",
-                          Home.Row_Title (Session, 1));
-      Goldens.Check_Text ("rename-second", "Episode 3",
-                          Home.Row_Title (Session, 2));
-      Goldens.Check_Text ("rename-third", "Episode 1",
-                          Home.Row_Title (Session, 3));
+      Goldens.Check_Text ("rename-done", "FALSE", Boolean'Image (Home.Is_Renaming (Session)));
+      Goldens.Check_Text ("rename-first", "Renamed", Home.Row_Title (Session, 1));
+      Goldens.Check_Text ("rename-second", "Episode 3", Home.Row_Title (Session, 2));
+      Goldens.Check_Text ("rename-third", "Episode 1", Home.Row_Title (Session, 3));
       Move_Away (Session);
       View.Render (Session, Drawn);
       Goldens.Check ("rename-list", Drawn);
 
       --  Clicking the project's button opens that project.
       Click_On (Session, Open_X (1), Open_Y (1));
-      Goldens.Check_Text
-        ("rename-opened", "PROJECT",
-         View.Screens'Image (View.Screen (Session)));
+      Goldens.Check_Text ("rename-opened", "PROJECT", View.Screens'Image (View.Screen (Session)));
       --  Its title is on the toolbar.
       View.Render (Session, Drawn);
       Goldens.Check ("project-title", Drawn);
@@ -477,8 +429,8 @@ procedure Golden is
 
    --  The dialog to confirm a deletion, in a window Home_Width wide and
    --  Home_Height high: in the middle.
-   Dialog_Delete_X : constant Float := 584.0;
-   Dialog_Cancel_X : constant Float := 480.0;
+   Dialog_Delete_X  : constant Float := 584.0;
+   Dialog_Cancel_X  : constant Float := 480.0;
    Dialog_Buttons_Y : constant Float := 452.5;
 
    procedure Deleting is
@@ -487,29 +439,20 @@ procedure Golden is
    begin
       With_Three (Session);
       Click_On (Session, Delete_X (2), Info_Y (2));
-      Goldens.Check_Text
-        ("delete-asks", "TRUE",
-         Boolean'Image (Home.Is_Confirming (Session)));
+      Goldens.Check_Text ("delete-asks", "TRUE", Boolean'Image (Home.Is_Confirming (Session)));
       View.Render (Session, Drawn);
       Goldens.Check ("delete-dialog", Drawn);
 
       --  The screen behind takes no clicks, nor keys.
       Click_On (Session, Open_X (1), Open_Y (1));
-      Goldens.Check_Text
-        ("delete-modal-screen", "HOME",
-         View.Screens'Image (View.Screen (Session)));
+      Goldens.Check_Text ("delete-modal-screen", "HOME", View.Screens'Image (View.Screen (Session)));
       Click_On (Session, Delete_X (3), Info_Y (3));
-      Goldens.Check_Text
-        ("delete-modal-same", "TRUE",
-         Boolean'Image (Home.Is_Confirming (Session)));
+      Goldens.Check_Text ("delete-modal-same", "TRUE", Boolean'Image (Home.Is_Confirming (Session)));
 
       --  Cancel keeps it.
       Click_On (Session, Dialog_Cancel_X, Dialog_Buttons_Y);
-      Goldens.Check_Text
-        ("delete-cancelled", "FALSE",
-         Boolean'Image (Home.Is_Confirming (Session)));
-      Goldens.Check_Text ("delete-cancelled-title", "Episode 2",
-                          Home.Row_Title (Session, 2));
+      Goldens.Check_Text ("delete-cancelled", "FALSE", Boolean'Image (Home.Is_Confirming (Session)));
+      Goldens.Check_Text ("delete-cancelled-title", "Episode 2", Home.Row_Title (Session, 2));
       Move_Away (Session);
       View.Render (Session, Drawn);
       Goldens.Check ("delete-after-cancel", Drawn);
@@ -517,22 +460,15 @@ procedure Golden is
       --  So does Escape.
       Click_On (Session, Delete_X (2), Info_Y (2));
       View.Handle (Session, Key (Events.Key_Escape));
-      Goldens.Check_Text
-        ("delete-escaped", "FALSE",
-         Boolean'Image (Home.Is_Confirming (Session)));
-      Goldens.Check_Text ("delete-escaped-title", "Episode 2",
-                          Home.Row_Title (Session, 2));
+      Goldens.Check_Text ("delete-escaped", "FALSE", Boolean'Image (Home.Is_Confirming (Session)));
+      Goldens.Check_Text ("delete-escaped-title", "Episode 2", Home.Row_Title (Session, 2));
 
       --  Delete removes it.
       Click_On (Session, Delete_X (2), Info_Y (2));
       Click_On (Session, Dialog_Delete_X, Dialog_Buttons_Y);
-      Goldens.Check_Text
-        ("delete-done", "FALSE",
-         Boolean'Image (Home.Is_Confirming (Session)));
-      Goldens.Check_Text ("delete-first", "Episode 3",
-                          Home.Row_Title (Session, 1));
-      Goldens.Check_Text ("delete-second", "Episode 1",
-                          Home.Row_Title (Session, 2));
+      Goldens.Check_Text ("delete-done", "FALSE", Boolean'Image (Home.Is_Confirming (Session)));
+      Goldens.Check_Text ("delete-first", "Episode 3", Home.Row_Title (Session, 1));
+      Goldens.Check_Text ("delete-second", "Episode 1", Home.Row_Title (Session, 2));
       Goldens.Check_Text ("delete-third", "", Home.Row_Title (Session, 3));
       Move_Away (Session);
       View.Render (Session, Drawn);
@@ -540,7 +476,7 @@ procedure Golden is
    end Deleting;
 
    procedure Rename_Cancelled is
-      Session : View.Session;
+      Session       : View.Session;
       Before, After : Images.Image;
    begin
       With_Three (Session);
@@ -549,11 +485,8 @@ procedure Golden is
       Click_On (Session, Rename_X (1), Info_Y (1));
       View.Handle (Session, Events.Text_Event ("Nope"));
       Click_On (Session, Cancel_X (1), Info_Y (1));
-      Goldens.Check_Text
-        ("cancel-renaming", "FALSE",
-         Boolean'Image (Home.Is_Renaming (Session)));
-      Goldens.Check_Text ("cancel-title", "Episode 3",
-                          Home.Row_Title (Session, 1));
+      Goldens.Check_Text ("cancel-renaming", "FALSE", Boolean'Image (Home.Is_Renaming (Session)));
+      Goldens.Check_Text ("cancel-title", "Episode 3", Home.Row_Title (Session, 1));
       Move_Away (Session);
       View.Render (Session, After);
       Goldens.Check_Same ("cancel-same", Before, After);
@@ -561,9 +494,7 @@ procedure Golden is
       --  Another renamed after, and the first is not.
       Click_On (Session, Rename_X (1), Info_Y (1));
       Click_On (Session, Rename_X (3), Info_Y (3));
-      Goldens.Check_Text
-        ("cancel-other", "TRUE",
-         Boolean'Image (Home.Is_Renaming (Session)));
+      Goldens.Check_Text ("cancel-other", "TRUE", Boolean'Image (Home.Is_Renaming (Session)));
       View.Render (Session, After);
       Goldens.Check ("rename-other-row", After);
    end Rename_Cancelled;
@@ -576,25 +507,20 @@ procedure Golden is
       Click_On (Session, Rename_X (3), Info_Y (3));
       View.Handle (Session, Events.Text_Event ("  Pilot  "));
       View.Handle (Session, Key (Events.Key_Return));
-      Goldens.Check_Text ("enter-renaming", "FALSE",
-                          Boolean'Image (Home.Is_Renaming (Session)));
-      Goldens.Check_Text ("enter-title", "Pilot",
-                          Home.Row_Title (Session, 1));
+      Goldens.Check_Text ("enter-renaming", "FALSE", Boolean'Image (Home.Is_Renaming (Session)));
+      Goldens.Check_Text ("enter-title", "Pilot", Home.Row_Title (Session, 1));
 
       --  Nothing is not a title.
       Click_On (Session, Rename_X (1), Info_Y (1));
       View.Handle (Session, Key (Events.Key_Backspace));
       Click_On (Session, Ok_X (1), Info_Y (1));
-      Goldens.Check_Text ("empty-renaming", "TRUE",
-                          Boolean'Image (Home.Is_Renaming (Session)));
-      Goldens.Check_Text ("empty-title", "Pilot",
-                          Home.Row_Title (Session, 1));
+      Goldens.Check_Text ("empty-renaming", "TRUE", Boolean'Image (Home.Is_Renaming (Session)));
+      Goldens.Check_Text ("empty-title", "Pilot", Home.Row_Title (Session, 1));
 
       --  Opening another project, or leaving, stops it.
       Click_On (Session, Actions_X, New_Y);
       Click_On (Session, Close_X, Close_Y);
-      Goldens.Check_Text ("left-renaming", "FALSE",
-                          Boolean'Image (Home.Is_Renaming (Session)));
+      Goldens.Check_Text ("left-renaming", "FALSE", Boolean'Image (Home.Is_Renaming (Session)));
    end Rename_Entered;
 
    procedure Home_Empty is
@@ -602,9 +528,7 @@ procedure Golden is
       Drawn   : Images.Image;
    begin
       View.Open (Session, "", Home_Width, Home_Height);
-      Goldens.Check_Text
-        ("home-is-first", "HOME",
-         View.Screens'Image (View.Screen (Session)));
+      Goldens.Check_Text ("home-is-first", "HOME", View.Screens'Image (View.Screen (Session)));
       Goldens.Check_Text ("home-title", "bonxie", View.Title (Session));
       View.Render (Session, Drawn);
       Goldens.Check ("home-empty", Drawn);
@@ -617,8 +541,7 @@ procedure Golden is
       --  The five latest, the latest first.
       View.Open (Session, "", Home_Width, Home_Height);
       for I in 1 .. 7 loop
-         Home.Add_Project
-           (Session, "Episode" & Natural'Image (I), Hour * Long_Integer (I));
+         Home.Add_Project (Session, "Episode" & Natural'Image (I), Hour * Long_Integer (I));
       end loop;
       View.Render (Session, Drawn);
       Goldens.Check ("home-recent", Drawn);
@@ -655,12 +578,8 @@ procedure Golden is
    begin
       View.Open (Session, "", Home_Width, Home_Height);
       Click_On (Session, Actions_X, Settings_Y);
-      Goldens.Check_Text
-        ("settings-open", "TRUE",
-         Boolean'Image (Settings.Is_Settings_Open (Session)));
-      Goldens.Check_Text
-        ("settings-stays-home", "HOME",
-         View.Screens'Image (View.Screen (Session)));
+      Goldens.Check_Text ("settings-open", "TRUE", Boolean'Image (Settings.Is_Settings_Open (Session)));
+      Goldens.Check_Text ("settings-stays-home", "HOME", View.Screens'Image (View.Screen (Session)));
       View.Render (Session, Drawn);
       Goldens.Check ("settings-macos", Drawn);
 
@@ -668,49 +587,51 @@ procedure Golden is
       --  back to it.
       Click_On (Session, Model_X, Dark_Y);
       Goldens.Check_Text
-        ("settings-dark-chosen", "TRUE",
-         Boolean'Image (Settings.Theme_Choice (Session) = Preferences.Dark
-                        and then Settings.Is_Dark (Session)));
+        ("settings-dark-chosen",
+         "TRUE",
+         Boolean'Image (Settings.Theme_Choice (Session) = Preferences.Dark and then Settings.Is_Dark (Session)));
       View.Render (Session, Drawn);
       Goldens.Check ("settings-dark", Drawn);
 
       Click_On (Session, Model_X, Light_Y);
       Goldens.Check_Text
-        ("settings-light-chosen", "TRUE",
-         Boolean'Image (Settings.Theme_Choice (Session) = Preferences.Light
-                        and then not Settings.Is_Dark (Session)));
+        ("settings-light-chosen",
+         "TRUE",
+         Boolean'Image (Settings.Theme_Choice (Session) = Preferences.Light and then not Settings.Is_Dark (Session)));
 
       --  System follows the machine, which is not drawn here: Light again.
       Click_On (Session, Model_X, System_Y);
       Goldens.Check_Text
-        ("settings-system-chosen", "TRUE",
-         Boolean'Image (Settings.Theme_Choice (Session) = Preferences.System));
+        ("settings-system-chosen", "TRUE", Boolean'Image (Settings.Theme_Choice (Session) = Preferences.System));
       Click_On (Session, Model_X, Light_Y);
 
       --  The watercolour is for a window, which has a painting to go with it: offscreen, it is chosen
       --  and kept, and the theme's own colours are drawn all the same. Its card is clicked in its
       --  picture or in its foot.
       Goldens.Check_Text
-        ("settings-background-default", "FIXED",
+        ("settings-background-default",
+         "FIXED",
          Preferences.Background_Modes'Image (Settings.Background_Choice (Session)));
       Click_On (Session, Water_Card_X, Card_Y);
       Goldens.Check_Text
-        ("settings-watercolour-chosen", "TRUE",
-         Boolean'Image (Settings.Background_Choice (Session) = Preferences.Watercolour
-                        and then not Settings.Is_Adaptive (Session)));
+        ("settings-watercolour-chosen",
+         "TRUE",
+         Boolean'Image
+           (Settings.Background_Choice (Session) = Preferences.Watercolour
+            and then not Settings.Is_Adaptive (Session)));
       View.Render (Session, Drawn);
       Goldens.Check ("settings-watercolour-chosen-offscreen", Drawn);
       Click_On (Session, Fixed_Card_X, Card_Y);
       Goldens.Check_Text
-        ("settings-fixed-chosen", "TRUE",
-         Boolean'Image (Settings.Background_Choice (Session) = Preferences.Fixed));
+        ("settings-fixed-chosen", "TRUE", Boolean'Image (Settings.Background_Choice (Session) = Preferences.Fixed));
 
       --  The others are in the row, past its end: each is chosen by name, and the row is scrolled to it.
       for Mode in Preferences.Background_Modes loop
          Settings.Choose_Background (Session, Mode);
          Goldens.Check_Text
            ("settings-chose-" & Ada.Characters.Handling.To_Lower (Preferences.Background_Modes'Image (Mode)),
-            "TRUE", Boolean'Image (Settings.Background_Choice (Session) = Mode));
+            "TRUE",
+            Boolean'Image (Settings.Background_Choice (Session) = Mode));
       end loop;
       Settings.Choose_Background (Session, Preferences.Bauhaus);
       View.Render (Session, Drawn);
@@ -723,27 +644,20 @@ procedure Golden is
       --  Parakeet's file is to be fetched, if it is not there.
       Click_On (Session, Model_X, Parakeet_Y);
       Goldens.Check_Text
-        ("settings-parakeet-chosen", "TRUE",
-         Boolean'Image
-           (Settings.Speech_Model (Session) = Preferences.Parakeet));
+        ("settings-parakeet-chosen", "TRUE", Boolean'Image (Settings.Speech_Model (Session) = Preferences.Parakeet));
       View.Render (Session, Drawn);
       Goldens.Check ("settings-parakeet", Drawn);
 
       Click_On (Session, Model_X, Native_Y);
       Goldens.Check_Text
-        ("settings-macos-chosen", "TRUE",
-         Boolean'Image (Settings.Speech_Model (Session) = Preferences.MacOS));
+        ("settings-macos-chosen", "TRUE", Boolean'Image (Settings.Speech_Model (Session) = Preferences.MacOS));
 
       --  Escape and Close both leave.
       View.Handle (Session, Key (Events.Key_Escape));
-      Goldens.Check_Text
-        ("settings-escaped", "FALSE",
-         Boolean'Image (Settings.Is_Settings_Open (Session)));
+      Goldens.Check_Text ("settings-escaped", "FALSE", Boolean'Image (Settings.Is_Settings_Open (Session)));
       Click_On (Session, Actions_X, Settings_Y);
       Click_On (Session, Settings_Close_X, Settings_Close_Y);
-      Goldens.Check_Text
-        ("settings-closed", "FALSE",
-         Boolean'Image (Settings.Is_Settings_Open (Session)));
+      Goldens.Check_Text ("settings-closed", "FALSE", Boolean'Image (Settings.Is_Settings_Open (Session)));
    end Home_Settings;
 
    --  The button on the watercolour's card paints another, and chooses it. Which is the clock's, so
@@ -759,14 +673,18 @@ procedure Golden is
       begin
          Click_On (Session, Reseed_X, Reseed_Y);
          Goldens.Check_Text
-           ("settings-reseeded", "TRUE",
-            Boolean'Image (Settings.Watercolour_Seed (Session) /= Before
-                           and then Settings.Background_Choice (Session) = Preferences.Watercolour));
+           ("settings-reseeded",
+            "TRUE",
+            Boolean'Image
+              (Settings.Watercolour_Seed (Session) /= Before
+               and then Settings.Background_Choice (Session) = Preferences.Watercolour));
          Click_On (Session, Fixed_Card_X, Card_Y);
          Goldens.Check_Text
-           ("settings-fixed-again", "TRUE",
-            Boolean'Image (Settings.Background_Choice (Session) = Preferences.Fixed
-                           and then Settings.Watercolour_Seed (Session) /= Before));
+           ("settings-fixed-again",
+            "TRUE",
+            Boolean'Image
+              (Settings.Background_Choice (Session) = Preferences.Fixed
+               and then Settings.Watercolour_Seed (Session) /= Before));
          for Mode in Preferences.Pictures loop
             declare
                Seed : constant Natural := Settings.Watercolour_Seed (Session);
@@ -775,8 +693,8 @@ procedure Golden is
                Goldens.Check_Text
                  ("settings-reseeded-" & Ada.Characters.Handling.To_Lower (Preferences.Background_Modes'Image (Mode)),
                   "TRUE",
-                  Boolean'Image (Settings.Background_Choice (Session) = Mode
-                                 and then Settings.Watercolour_Seed (Session) /= Seed));
+                  Boolean'Image
+                    (Settings.Background_Choice (Session) = Mode and then Settings.Watercolour_Seed (Session) /= Seed));
             end;
          end loop;
       end;
@@ -803,44 +721,29 @@ procedure Golden is
       Ada.Directories.Create_Path (Folder);
       declare
          File : Ada.Streams.Stream_IO.File_Type;
-         Data : constant Ada.Streams.Stream_Element_Array (1 .. Bytes) :=
-           [others => 7];
+         Data : constant Ada.Streams.Stream_Element_Array (1 .. Bytes) := [others => 7];
       begin
-         Ada.Streams.Stream_IO.Create
-           (File, Ada.Streams.Stream_IO.Out_File, Source);
+         Ada.Streams.Stream_IO.Create (File, Ada.Streams.Stream_IO.Out_File, Source);
          Ada.Streams.Stream_IO.Write (File, Data);
          Ada.Streams.Stream_IO.Close (File);
       end;
 
-      Goldens.Check_Text
-        ("downloads-idle", "IDLE", Downloads.States'Image (Downloads.State));
+      Goldens.Check_Text ("downloads-idle", "IDLE", Downloads.States'Image (Downloads.State));
       Downloads.Start ("file://" & Source, Target);
-      Goldens.Check_Text
-        ("downloads-started", "TRUE",
-         Boolean'Image (Downloads.State = Downloads.Running));
+      Goldens.Check_Text ("downloads-started", "TRUE", Boolean'Image (Downloads.State = Downloads.Running));
       Wait;
+      Goldens.Check_Text ("downloads-done", "DONE", Downloads.States'Image (Downloads.State));
+      Goldens.Check_Text ("downloads-fraction", "TRUE", Boolean'Image (Downloads.Fraction = 1.0));
       Goldens.Check_Text
-        ("downloads-done", "DONE",
-         Downloads.States'Image (Downloads.State));
-      Goldens.Check_Text
-        ("downloads-fraction", "TRUE",
-         Boolean'Image (Downloads.Fraction = 1.0));
-      Goldens.Check_Text
-        ("downloads-size", Integer'Image (Bytes),
-         Ada.Directories.File_Size'Image (Ada.Directories.Size (Target)));
-      Goldens.Check_Text
-        ("downloads-no-part", "FALSE",
-         Boolean'Image (Ada.Directories.Exists (Target & ".part")));
+        ("downloads-size", Integer'Image (Bytes), Ada.Directories.File_Size'Image (Ada.Directories.Size (Target)));
+      Goldens.Check_Text ("downloads-no-part", "FALSE", Boolean'Image (Ada.Directories.Exists (Target & ".part")));
 
       Downloads.Reset;
       Downloads.Start ("file://" & Folder & "/nothing.bin", Target & "2");
       Wait;
+      Goldens.Check_Text ("downloads-failed", "FAILED", Downloads.States'Image (Downloads.State));
       Goldens.Check_Text
-        ("downloads-failed", "FAILED",
-         Downloads.States'Image (Downloads.State));
-      Goldens.Check_Text
-        ("downloads-failed-leaves-nothing", "FALSE",
-         Boolean'Image (Ada.Directories.Exists (Target & "2")));
+        ("downloads-failed-leaves-nothing", "FALSE", Boolean'Image (Ada.Directories.Exists (Target & "2")));
       Downloads.Reset;
       Ada.Directories.Delete_Tree (Folder);
    end Fetching;
@@ -873,62 +776,72 @@ procedure Golden is
          Ada.Directories.Delete_Tree (Config);
       end if;
       Goldens.Check_Text
-        ("preferences-none", "SYSTEM",
-         Preferences.Theme_Choices'Image (Preferences.Load_Theme (Config)));
+        ("preferences-none", "SYSTEM", Preferences.Theme_Choices'Image (Preferences.Load_Theme (Config)));
 
       Preferences.Save_Speech_Model (Config, Preferences.Parakeet);
       Preferences.Save_Theme (Config, Preferences.Dark);
       Goldens.Check_Text
-        ("preferences-dark-kept", "TRUE",
-         Boolean'Image (Preferences.Load_Theme (Config) = Preferences.Dark
-                        and then Preferences.Load_Speech_Model (Config)
-                                 = Preferences.Parakeet));
+        ("preferences-dark-kept",
+         "TRUE",
+         Boolean'Image
+           (Preferences.Load_Theme (Config) = Preferences.Dark
+            and then Preferences.Load_Speech_Model (Config) = Preferences.Parakeet));
 
       Preferences.Save_Speech_Model (Config, Preferences.MacOS);
       Goldens.Check_Text
-        ("preferences-speech-kept", "TRUE",
-         Boolean'Image (Preferences.Load_Theme (Config) = Preferences.Dark
-                        and then Preferences.Load_Speech_Model (Config)
-                                 = Preferences.MacOS));
+        ("preferences-speech-kept",
+         "TRUE",
+         Boolean'Image
+           (Preferences.Load_Theme (Config) = Preferences.Dark
+            and then Preferences.Load_Speech_Model (Config) = Preferences.MacOS));
 
       Preferences.Save_Theme (Config, Preferences.System);
       Goldens.Check_Text
-        ("preferences-system-kept", "TRUE",
-         Boolean'Image (Preferences.Load_Theme (Config) = Preferences.System
-                        and then Preferences.Load_Speech_Model (Config)
-                                 = Preferences.MacOS));
+        ("preferences-system-kept",
+         "TRUE",
+         Boolean'Image
+           (Preferences.Load_Theme (Config) = Preferences.System
+            and then Preferences.Load_Speech_Model (Config) = Preferences.MacOS));
 
       --  The background is its own choice: Adaptive when none was made, and saving it keeps the theme.
       Goldens.Check_Text
-        ("preferences-background-none", "WATERCOLOUR",
+        ("preferences-background-none",
+         "WATERCOLOUR",
          Preferences.Background_Modes'Image (Preferences.Load_Background (Config)));
       for Mode in Preferences.Background_Modes loop
          Preferences.Save_Background (Config, Mode);
          Goldens.Check_Text
            ("preferences-" & Ada.Characters.Handling.To_Lower (Preferences.Background_Modes'Image (Mode)) & "-kept",
-            "TRUE", Boolean'Image (Preferences.Load_Background (Config) = Mode));
+            "TRUE",
+            Boolean'Image (Preferences.Load_Background (Config) = Mode));
       end loop;
       Preferences.Save_Background (Config, Preferences.Fixed);
       Goldens.Check_Text
-        ("preferences-fixed-kept", "TRUE",
-         Boolean'Image (Preferences.Load_Background (Config) = Preferences.Fixed
-                        and then Preferences.Load_Theme (Config) = Preferences.System));
+        ("preferences-fixed-kept",
+         "TRUE",
+         Boolean'Image
+           (Preferences.Load_Background (Config) = Preferences.Fixed
+            and then Preferences.Load_Theme (Config) = Preferences.System));
       Preferences.Save_Background (Config, Preferences.Watercolour);
       Goldens.Check_Text
-        ("preferences-watercolour-kept", "TRUE",
-         Boolean'Image (Preferences.Load_Background (Config) = Preferences.Watercolour
-                        and then Preferences.Load_Theme (Config) = Preferences.System));
+        ("preferences-watercolour-kept",
+         "TRUE",
+         Boolean'Image
+           (Preferences.Load_Background (Config) = Preferences.Watercolour
+            and then Preferences.Load_Theme (Config) = Preferences.System));
 
       --  VSync is off when none was chosen, and is kept beside the others.
       Goldens.Check_Text ("preferences-vsync-none", "FALSE", Boolean'Image (Preferences.Load_VSync (Config)));
       Preferences.Save_VSync (Config, True);
       Goldens.Check_Text
-        ("preferences-vsync-on-kept", "TRUE",
-         Boolean'Image (Preferences.Load_VSync (Config) and then Preferences.Load_Theme (Config) = Preferences.System
-                        and then Preferences.Load_Background (Config) = Preferences.Watercolour));
+        ("preferences-vsync-on-kept",
+         "TRUE",
+         Boolean'Image
+           (Preferences.Load_VSync (Config)
+            and then Preferences.Load_Theme (Config) = Preferences.System
+            and then Preferences.Load_Background (Config) = Preferences.Watercolour));
       Preferences.Save_VSync (Config, False);
-      Goldens.Check_Text
-        ("preferences-vsync-off-kept", "FALSE", Boolean'Image (Preferences.Load_VSync (Config)));
+      Goldens.Check_Text ("preferences-vsync-off-kept", "FALSE", Boolean'Image (Preferences.Load_VSync (Config)));
 
       --  Which watercolour is kept too, whole: it is the same picture on every run. A word that is not a
       --  number is no seed.
@@ -936,20 +849,24 @@ procedure Golden is
       Preferences.Save_Seed (Config, 14_591_295);
       Preferences.Save_Seed (Config, Preferences.Seed_Limit - 1);
       Goldens.Check_Text
-        ("preferences-seed-kept", "TRUE",
-         Boolean'Image (Preferences.Has_Seed (Config)
-                        and then Preferences.Load_Seed (Config) = Preferences.Seed_Limit - 1
-                        and then Preferences.Load_Background (Config) = Preferences.Watercolour
-                        and then Preferences.Load_Theme (Config) = Preferences.System));
+        ("preferences-seed-kept",
+         "TRUE",
+         Boolean'Image
+           (Preferences.Has_Seed (Config)
+            and then Preferences.Load_Seed (Config) = Preferences.Seed_Limit - 1
+            and then Preferences.Load_Background (Config) = Preferences.Watercolour
+            and then Preferences.Load_Theme (Config) = Preferences.System));
       Preferences.Save_Seed (Config, 0);
       Goldens.Check_Text
-        ("preferences-seed-zero", "TRUE",
+        ("preferences-seed-zero",
+         "TRUE",
          Boolean'Image (Preferences.Has_Seed (Config) and then Preferences.Load_Seed (Config) = 0));
       Files.Write (Config & "/settings", "watercolour_seed=twelve" & ASCII.LF);
       Goldens.Check_Text ("preferences-seed-garbled", "FALSE", Boolean'Image (Preferences.Has_Seed (Config)));
       Files.Write (Config & "/settings", "background=adaptive" & ASCII.LF);
       Goldens.Check_Text
-        ("preferences-adaptive-is-watercolour", "WATERCOLOUR",
+        ("preferences-adaptive-is-watercolour",
+         "WATERCOLOUR",
          Preferences.Background_Modes'Image (Preferences.Load_Background (Config)));
       Ada.Directories.Delete_Tree (Config);
    end Preferences_Kept;
@@ -986,8 +903,12 @@ procedure Golden is
          Read (Made.Foreground, Made.Tint, Base.Foreground, Base.Tint);
          Read (Themes.Soft_White, Made.Bar, Themes.Soft_White, Base.Bar);
          Read (Bar (Themes.Bar_Ink), Bar (Themes.Bar), Themes.Soft_White, Base.Bar);
-         Stayed := Stayed and then Made.Primary = Base.Primary and then Made.Danger = Base.Danger
-           and then Made.Accent = Base.Accent and then Made.Focus = Base.Focus
+         Stayed :=
+           Stayed
+           and then Made.Primary = Base.Primary
+           and then Made.Danger = Base.Danger
+           and then Made.Accent = Base.Accent
+           and then Made.Focus = Base.Focus
            and then Made.Dark = Dark;
       end Check_Against;
    begin
@@ -1005,7 +926,8 @@ procedure Golden is
                   end;
                end loop;
             end loop;
-            Moved := Moved
+            Moved :=
+              Moved
               and then Adaptive_Themes.Palette_For (Dark, 0.0).Background
                        /= Adaptive_Themes.Palette_For (Dark, 0.5).Background;
             --  A grey of a hue is not grey: its channels differ.
@@ -1040,7 +962,8 @@ procedure Golden is
                declare
                   Soft : constant Float := Backgrounds.Tint_Strength (Style, Backgrounds.Pastel);
                begin
-                  Ordered := Ordered
+                  Ordered :=
+                    Ordered
                     and then Backgrounds.Tint_Strength (Style, Backgrounds.Vivid) >= Soft
                     and then Backgrounds.Tint_Strength (Style, Backgrounds.Rich) >= Soft
                     and then Backgrounds.Tint_Strength (Style, Backgrounds.Muted) < Soft
@@ -1055,9 +978,9 @@ procedure Golden is
       Goldens.Check_Text ("adaptive-meanings-stay", "TRUE", Boolean'Image (Stayed));
       --  Each hue is where the wheel says: red, yellow, green, cyan, blue and magenta, at mid grey.
       declare
-         Grey : constant Themes.Color := (16#80#, 16#80#, 16#80#, 255);
-         function At_Hue (Sixth : Natural) return Themes.Color is
-           (Adaptive_Themes.Retint (Grey, Float (Sixth) / 6.0, 0.9));
+         Grey    : constant Themes.Color := (16#80#, 16#80#, 16#80#, 255);
+         function At_Hue (Sixth : Natural) return Themes.Color
+         is (Adaptive_Themes.Retint (Grey, Float (Sixth) / 6.0, 0.9));
          Red     : constant Themes.Color := At_Hue (0);
          Yellow  : constant Themes.Color := At_Hue (1);
          Green   : constant Themes.Color := At_Hue (2);
@@ -1066,27 +989,38 @@ procedure Golden is
          Magenta : constant Themes.Color := At_Hue (5);
       begin
          Goldens.Check_Text
-           ("adaptive-hue-on-the-wheel", "TRUE",
+           ("adaptive-hue-on-the-wheel",
+            "TRUE",
             Boolean'Image
-              (Red.Red > Red.Green and then Red.Red > Red.Blue
-               and then Yellow.Blue < Yellow.Red and then Yellow.Blue < Yellow.Green
+              (Red.Red > Red.Green
+               and then Red.Red > Red.Blue
+               and then Yellow.Blue < Yellow.Red
+               and then Yellow.Blue < Yellow.Green
                and then abs (Integer (Yellow.Red) - Integer (Yellow.Green)) < 8
-               and then Green.Green > Green.Red and then Green.Green > Green.Blue
-               and then Cyan.Red < Cyan.Green and then Cyan.Red < Cyan.Blue
+               and then Green.Green > Green.Red
+               and then Green.Green > Green.Blue
+               and then Cyan.Red < Cyan.Green
+               and then Cyan.Red < Cyan.Blue
                and then abs (Integer (Cyan.Green) - Integer (Cyan.Blue)) < 8
-               and then Blue.Blue > Blue.Red and then Blue.Blue > Blue.Green
-               and then Magenta.Green < Magenta.Red and then Magenta.Green < Magenta.Blue
+               and then Blue.Blue > Blue.Red
+               and then Blue.Blue > Blue.Green
+               and then Magenta.Green < Magenta.Red
+               and then Magenta.Green < Magenta.Blue
                and then abs (Integer (Magenta.Red) - Integer (Magenta.Blue)) < 8));
       end;
       Goldens.Check_Text
-        ("adaptive-retint-keeps-brightness", "TRUE",
+        ("adaptive-retint-keeps-brightness",
+         "TRUE",
          Boolean'Image
            (abs (Adaptive_Themes.Luminance (Adaptive_Themes.Retint ((16#A9#, 16#B1#, 16#AD#, 255), 0.15, 0.3))
-                 - Adaptive_Themes.Luminance ((16#A9#, 16#B1#, 16#AD#, 255))) < 0.01));
+                 - Adaptive_Themes.Luminance ((16#A9#, 16#B1#, 16#AD#, 255)))
+            < 0.01));
       Goldens.Check_Text
-        ("adaptive-contrast-extremes", "TRUE",
-         Boolean'Image (abs (Adaptive_Themes.Contrast ((0, 0, 0, 255), (255, 255, 255, 255)) - 21.0) < 0.01
-                        and then Adaptive_Themes.Contrast ((9, 9, 9, 255), (9, 9, 9, 255)) = 1.0));
+        ("adaptive-contrast-extremes",
+         "TRUE",
+         Boolean'Image
+           (abs (Adaptive_Themes.Contrast ((0, 0, 0, 255), (255, 255, 255, 255)) - 21.0) < 0.01
+            and then Adaptive_Themes.Contrast ((9, 9, 9, 255), (9, 9, 9, 255)) = 1.0));
    end Adaptive_Palettes;
 
    procedure New_And_Close is
@@ -1096,16 +1030,12 @@ procedure Golden is
       View.Open (Session, "Bonxie", Home_Width, Home_Height);
       Home.Add_Project (Session, "Episode 1", Hour);
       Click_On (Session, Actions_X, New_Y);
-      Goldens.Check_Text
-        ("new-project-screen", "PROJECT",
-         View.Screens'Image (View.Screen (Session)));
+      Goldens.Check_Text ("new-project-screen", "PROJECT", View.Screens'Image (View.Screen (Session)));
       View.Render (Session, Drawn);
       Goldens.Check ("project-screen", Drawn);
 
       Click_On (Session, Close_X, Close_Y);
-      Goldens.Check_Text
-        ("close-project-screen", "HOME",
-         View.Screens'Image (View.Screen (Session)));
+      Goldens.Check_Text ("close-project-screen", "HOME", View.Screens'Image (View.Screen (Session)));
       View.Render (Session, Drawn);
       Goldens.Check ("home-after-close", Drawn);
    end New_And_Close;
@@ -1119,15 +1049,15 @@ procedure Golden is
       --  The dialog that asks before deleting has the focus on Cancel, so
       --  that Return keeps the project.
       Click_On (Session, Delete_X (3), Info_Y (3));
-      Goldens.Check_Text
-        ("keys-delete-asks", "TRUE", Boolean'Image (Home.Is_Confirming (Session)));
+      Goldens.Check_Text ("keys-delete-asks", "TRUE", Boolean'Image (Home.Is_Confirming (Session)));
       --  A click gave it no ring, a key does.
       Press (Session, Events.Key_Tab, Times => 3);
       View.Render (Session, Drawn);
       Goldens.Check ("keys-dialog-ring", Drawn);
       Press (Session, Events.Key_Return);
       Goldens.Check_Text
-        ("keys-delete-return-keeps", "FALSE Episode 1",
+        ("keys-delete-return-keeps",
+         "FALSE Episode 1",
          Boolean'Image (Home.Is_Confirming (Session)) & " " & Home.Row_Title (Session, 3));
 
       --  Tab goes round the dialog only: Cancel, Delete, and the button to
@@ -1137,17 +1067,18 @@ procedure Golden is
       Press (Session, Events.Key_Tab, Times => 3);
       Press (Session, Events.Key_Return);
       Goldens.Check_Text
-        ("keys-delete-tab-round", "FALSE Episode 1",
+        ("keys-delete-tab-round",
+         "FALSE Episode 1",
          Boolean'Image (Home.Is_Confirming (Session)) & " " & Home.Row_Title (Session, 3));
-      Goldens.Check_Text
-        ("keys-delete-still-home", "HOME", View.Screens'Image (View.Screen (Session)));
+      Goldens.Check_Text ("keys-delete-still-home", "HOME", View.Screens'Image (View.Screen (Session)));
 
       --  One Tab on from Cancel is Delete, which Return does.
       Click_On (Session, Delete_X (3), Info_Y (3));
       Press (Session, Events.Key_Tab);
       Press (Session, Events.Key_Return);
       Goldens.Check_Text
-        ("keys-delete-done", "FALSE Episode 2",
+        ("keys-delete-done",
+         "FALSE Episode 2",
          Boolean'Image (Home.Is_Confirming (Session)) & " " & Home.Row_Title (Session, 2));
 
       --  Tab reaches the first of the screen's buttons, New Project, and
@@ -1157,22 +1088,14 @@ procedure Golden is
       View.Render (Session, Drawn);
       Goldens.Check ("keys-home-ring", Drawn);
       Press (Session, Events.Key_Return);
-      Goldens.Check_Text
-        ("keys-new-project", "PROJECT", View.Screens'Image (View.Screen (Session)));
+      Goldens.Check_Text ("keys-new-project", "PROJECT", View.Screens'Image (View.Screen (Session)));
       Press (Session, Events.Key_Tab);
       Press (Session, Events.Key_Return);
-      Goldens.Check_Text
-        ("keys-back-home", "HOME", View.Screens'Image (View.Screen (Session)));
+      Goldens.Check_Text ("keys-back-home", "HOME", View.Screens'Image (View.Screen (Session)));
    end Keyboard_Only;
 
-   procedure Add
-     (Store       : in out Projects.Store;
-      Title       : String;
-      Description : String := "";
-      Time        : Projects.Seconds)
-   is
-      Ignored : constant Projects.Id :=
-        Projects.Create (Store, Title, Description, Time);
+   procedure Add (Store : in out Projects.Store; Title : String; Description : String := ""; Time : Projects.Seconds) is
+      Ignored : constant Projects.Id := Projects.Create (Store, Title, Description, Time);
       pragma Unreferenced (Ignored);
    begin
       null;
@@ -1184,26 +1107,23 @@ procedure Golden is
       --  A click on a listed project opens it: the second latest here.
       View.Open (Session, "", Home_Width, Home_Height);
       for I in 1 .. 3 loop
-         Home.Add_Project
-           (Session, "Episode" & Natural'Image (I), Hour * Long_Integer (I));
+         Home.Add_Project (Session, "Episode" & Natural'Image (I), Hour * Long_Integer (I));
       end loop;
       Click_On (Session, Open_X (2), Open_Y (2));
+      Goldens.Check_Text ("listed-screen", "PROJECT", View.Screens'Image (View.Screen (Session)));
       Goldens.Check_Text
-        ("listed-screen", "PROJECT",
-         View.Screens'Image (View.Screen (Session)));
-      Goldens.Check_Text
-        ("listed-project", "2",
+        ("listed-project",
+         "2",
          Projects.Id'Image (Proj.Current_Project (Session))
            (2 .. Projects.Id'Image (Proj.Current_Project (Session))'Last));
 
       Click_On (Session, Close_X, Close_Y);
-      Goldens.Check_Text
-        ("listed-closed", "HOME",
-         View.Screens'Image (View.Screen (Session)));
+      Goldens.Check_Text ("listed-closed", "HOME", View.Screens'Image (View.Screen (Session)));
       --  A new project is a project of its own.
       Click_On (Session, Actions_X, New_Y);
       Goldens.Check_Text
-        ("listed-new-project", "4",
+        ("listed-new-project",
+         "4",
          Projects.Id'Image (Proj.Current_Project (Session))
            (2 .. Projects.Id'Image (Proj.Current_Project (Session))'Last));
    end Open_Listed;
@@ -1222,45 +1142,32 @@ procedure Golden is
       Add (Store, "Same time", Time => 300);
       Add (Store, "Middle", Time => 200);
       Projects.Recent (Store, Recent);
+      Goldens.Check_Text ("projects-order", "Same time,Same time, later,Middle,Old,", Titles (Recent));
       Goldens.Check_Text
-        ("projects-order", "Same time,Same time, later,Middle,Old,",
-         Titles (Recent));
+        ("projects-description", "first", Projects.Descriptions.To_String (Recent.Items (4).Description));
       Goldens.Check_Text
-        ("projects-description", "first",
-         Projects.Descriptions.To_String (Recent.Items (4).Description));
-      Goldens.Check_Text
-        ("projects-times", " 100 100",
-         Recent.Items (4).Created_At'Image
-        & Recent.Items (4).Updated_At'Image);
+        ("projects-times", " 100 100", Recent.Items (4).Created_At'Image & Recent.Items (4).Updated_At'Image);
 
       --  Updating one puts it first.
       Projects.Touch (Store, Recent.Items (4).Key, 400);
       Projects.Recent (Store, Recent);
-      Goldens.Check_Text
-        ("projects-touched", "Old,Same time,Same time, later,Middle,",
-         Titles (Recent));
+      Goldens.Check_Text ("projects-touched", "Old,Same time,Same time, later,Middle,", Titles (Recent));
 
       Projects.Rename (Store, Recent.Items (1).Key, "Renamed", 450);
       Projects.Recent (Store, Recent);
-      Goldens.Check_Text
-        ("projects-renamed", "Renamed,Same time,Same time, later,Middle,",
-         Titles (Recent));
+      Goldens.Check_Text ("projects-renamed", "Renamed,Same time,Same time, later,Middle,", Titles (Recent));
       Projects.Rename (Store, Recent.Items (1).Key, "Old", 400);
 
       --  Only five are listed.
       Add (Store, "Five", Time => 500);
       Add (Store, "Six", Time => 600);
       Projects.Recent (Store, Recent);
-      Goldens.Check_Text
-        ("projects-limit", "Six,Five,Old,Same time,Same time, later,",
-         Titles (Recent));
+      Goldens.Check_Text ("projects-limit", "Six,Five,Old,Same time,Same time, later,", Titles (Recent));
 
       --  Deleted, one is gone, and the next takes its place.
       Projects.Delete (Store, Recent.Items (1).Key);
       Projects.Recent (Store, Recent);
-      Goldens.Check_Text
-        ("projects-deleted",
-         "Five,Old,Same time,Same time, later,Middle,", Titles (Recent));
+      Goldens.Check_Text ("projects-deleted", "Five,Old,Same time,Same time, later,Middle,", Titles (Recent));
       Projects.Delete (Store, 9999);  --  none such
    end Stored;
 
@@ -1376,10 +1283,8 @@ begin
    Run ("write-directories", Write_Tests.Directories'Access);
    Run ("write-many-directories", Write_Tests.Many_Directories'Access);
    Run ("write-context-menus", Write_Tests.Context_Menus'Access);
-   Run ("write-context-elsewhere",
-        Write_Tests.Context_Menus_Elsewhere'Access);
-   Run ("write-context-on-canvas",
-        Write_Tests.Context_Menus_On_Canvas'Access);
+   Run ("write-context-elsewhere", Write_Tests.Context_Menus_Elsewhere'Access);
+   Run ("write-context-on-canvas", Write_Tests.Context_Menus_On_Canvas'Access);
    Run ("write-adding", Write_Tests.Adding'Access);
    Run ("write-linked-sources", Write_Tests.Linked_Sources'Access);
    Run ("write-typing", Write_Tests.Typing'Access);
@@ -1477,8 +1382,12 @@ begin
    Run ("projects-kept", Kept'Access);
 
    Ada.Text_IO.Put_Line
-     (Ran'Image & " tests:" & Natural'Image (Goldens.Passed)
-      & " checks passed," & Natural'Image (Goldens.Failed) & " failed");
+     (Ran'Image
+      & " tests:"
+      & Natural'Image (Goldens.Passed)
+      & " checks passed,"
+      & Natural'Image (Goldens.Failed)
+      & " failed");
    if Ran = 0 or else Goldens.Failed > 0 then
       Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
    end if;

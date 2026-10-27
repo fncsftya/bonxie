@@ -17,6 +17,7 @@ with Texts.Documents;
 --    sizes, families, fading  none: the words are kept as they are.
 --  Characters that Markdown would take for its own are escaped with a backslash. Space at the
 --  edge of a styled run is put outside its marks, where they would not otherwise apply.
+
 package Markdown_Export is
 
    type Writer is limited private;
@@ -31,7 +32,7 @@ package Markdown_Export is
    --  The paragraphs of Item; empty ones are left out.
 
    function Text (From : Writer) return String
-     with Post => Text'Result'Length = 0 or else Text'Result (Text'Result'Last) = ASCII.LF;
+   with Post => Text'Result'Length = 0 or else Text'Result (Text'Result'Last) = ASCII.LF;
    --  All that was added: lines each ended by a line feed, blocks apart by a blank line.
 
    function Of_Document (Item : Texts.Documents.Document) return String;

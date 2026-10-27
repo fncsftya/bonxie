@@ -25,16 +25,12 @@ procedure Pretty_Print is
    package ACL renames Ada.Command_Line;
    package TIO renames Ada.Text_IO;
 
-   package Types   is new JSON.Types (Long_Integer, Long_Float);
+   package Types is new JSON.Types (Long_Integer, Long_Float);
    package Parsers is new JSON.Parsers (Types);
 
    type Indent_Type is range 2 .. 8;
 
-   procedure Print
-     (Value  : Types.JSON_Value;
-      Indent : Indent_Type := 4;
-      Level  : Positive    := 1)
-   is
+   procedure Print (Value : Types.JSON_Value; Indent : Indent_Type := 4; Level : Positive := 1) is
       use all type Types.Value_Kind;
       use Ada.Strings.Fixed;
 
@@ -63,7 +59,8 @@ procedure Pretty_Print is
             else
                Ada.Text_IO.Put ("{}");
             end if;
-         when Array_Kind =>
+
+         when Array_Kind  =>
             if Value.Length > 0 then
                Ada.Text_IO.Put_Line ("[");
 
@@ -84,7 +81,8 @@ procedure Pretty_Print is
             else
                Ada.Text_IO.Put ("[]");
             end if;
-         when others =>
+
+         when others      =>
             Ada.Text_IO.Put (Value.Image);
       end case;
    end Print;

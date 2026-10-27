@@ -1,4 +1,5 @@
 --  The outline view: the form of the title and description, and the blocks of its sections.
+
 private package View.Build.Outline_View is
 
    procedure Build_Outline (Item : in out Session);

@@ -1,4 +1,5 @@
 --  The publish view's headings, format and export.
+
 private package View.Writing.Publishing is
 
    procedure Refresh_Publish (Item : in out Session);

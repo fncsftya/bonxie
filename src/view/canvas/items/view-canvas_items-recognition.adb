@@ -19,20 +19,15 @@ package body View.Canvas_Items.Recognition is
    --  Of a title made from the words of a picture: what is more is left out.
 
    procedure Start_Recognition (Item : in out Session; Which : Items.Slot) is
-      Key : constant Items.Id :=
-        Models.Details (Item.Models (Which)).Key;
+      Key : constant Items.Id := Models.Details (Item.Models (Which)).Key;
    begin
       Vision.Jobs.Reset (Which);
-      Vision.Jobs.Start
-        (Which,
-         Items.Sources.Image_File
-           (Item.Nav.Store, Open_Key (Item), Key));
+      Vision.Jobs.Start (Which, Items.Sources.Image_File (Item.Nav.Store, Open_Key (Item), Key));
    end Start_Recognition;
 
    procedure Keep_Recognition (Item : in out Session; Which : Items.Slot) is
       Found : Vision.Result;
-      Key   : constant Items.Id :=
-        Models.Details (Item.Models (Which)).Key;
+      Key   : constant Items.Id := Models.Details (Item.Models (Which)).Key;
    begin
       Vision.Jobs.Take (Which, Found);
       Items.Words.Save_Words (Item.Nav.Store, Key, Found, Basics.Epoch_Now (Item));
@@ -41,12 +36,9 @@ package body View.Canvas_Items.Recognition is
    end Keep_Recognition;
 
    procedure Recognize_Kept (Item : in out Session; Which : Items.Slot) is
-      Key : constant Items.Id :=
-        Models.Details (Item.Models (Which)).Key;
+      Key : constant Items.Id := Models.Details (Item.Models (Which)).Key;
    begin
-      if not Basics.Is_Source (Item, Which)
-        or else Models.Details (Item.Models (Which)).Captured_At = 0
-      then
+      if not Basics.Is_Source (Item, Which) or else Models.Details (Item.Models (Which)).Captured_At = 0 then
          return;
       end if;
       if Models.Is_Paged (Item.Models (Which)) then
@@ -58,17 +50,12 @@ package body View.Canvas_Items.Recognition is
             Items.Words.Load_Words (Item.Nav.Store, Key, Found);
             Models.Set_Recognized (Item.Models (Which), Found);
          end;
-      elsif Ada.Directories.Exists
-              (Items.Sources.Image_File
-                 (Item.Nav.Store, Open_Key (Item), Key))
-      then
+      elsif Ada.Directories.Exists (Items.Sources.Image_File (Item.Nav.Store, Open_Key (Item), Key)) then
          Start_Recognition (Item, Which);
       end if;
    end Recognize_Kept;
 
-   procedure Name_From_Page
-     (Item : in out Session; Which : Items.Slot; Heading : String)
-   is
+   procedure Name_From_Page (Item : in out Session; Which : Items.Slot; Heading : String) is
       Raw  : String := Heading;
       Last : Natural := 0;
    begin
@@ -78,34 +65,24 @@ package body View.Canvas_Items.Recognition is
          end if;
       end loop;
       declare
-         Page : constant String :=
-           Ada.Strings.Fixed.Trim (Raw, Ada.Strings.Both);
+         Page : constant String := Ada.Strings.Fixed.Trim (Raw, Ada.Strings.Both);
       begin
          Last := Natural'Min (Page'Length, Longest_Title);
          --  Not in the middle of a UTF-8 character.
-         while Last > 0 and then Last < Page'Length
-           and then Character'Pos (Page (Page'First + Last))
-                    in 16#80# .. 16#BF#
+         while Last > 0
+           and then Last < Page'Length
+           and then Character'Pos (Page (Page'First + Last)) in 16#80# .. 16#BF#
          loop
             Last := Last - 1;
          end loop;
-         if Last > 0
-           and then Projects.Titles.To_String
-                      (Models.Details (Item.Models (Which)).Title)
-                    = Untitled_Source
+         if Last > 0 and then Projects.Titles.To_String (Models.Details (Item.Models (Which)).Title) = Untitled_Source
          then
-            Models.Set_Title_Text (Item.Models (Which),
-               Page (Page'First .. Page'First + Last - 1));
+            Models.Set_Title_Text (Item.Models (Which), Page (Page'First .. Page'First + Last - 1));
          end if;
       end;
    end Name_From_Page;
 
-   procedure Show_Page
-     (Item  : in out Session;
-      Which : Items.Slot;
-      Page  : Positive;
-      Heading : String := "")
-   is
+   procedure Show_Page (Item : in out Session; Which : Items.Slot; Page : Positive; Heading : String := "") is
       Details : constant Items.Info := Models.Details (Item.Models (Which));
       Ending  : constant String := Items.Extensions.To_String (Details.Document);
       Time    : constant Projects.Seconds := Basics.Epoch_Now (Item);
@@ -115,12 +92,14 @@ package body View.Canvas_Items.Recognition is
          Name_From_Page (Item, Which, Heading);
       end if;
       Models.Set_Pages (Item.Models (Which), Ending, Page, Details.Page_Count);
-      Models.Set_Capture (Item.Models (Which), Models.Ready,
-         Items.Sources.Document_File
-           (Item.Nav.Store, Open_Key (Item), Details.Key, Ending),
+      Models.Set_Capture
+        (Item.Models (Which),
+         Models.Ready,
+         Items.Sources.Document_File (Item.Nav.Store, Open_Key (Item), Details.Key, Ending),
          At_Time => Time);
       if not Models.Shows_Picture (Item.Models (Which)) then
          return;   --  and says why
+
       end if;
       Items.Sources.Set_Captured (Item.Nav.Store, Details.Key, Time);
       Items.Sources.Set_Page (Item.Nav.Store, Details.Key, Page);

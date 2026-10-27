@@ -26,11 +26,9 @@ package body JSON.Types is
    Initial_Object_Capacity : constant := 8;
    --  Small objects are common; reserving once avoids repeated vector growth.
 
-   function "+" (Text : String) return SU.Unbounded_String
-     renames SU.To_Unbounded_String;
+   function "+" (Text : String) return SU.Unbounded_String renames SU.To_Unbounded_String;
 
-   function "+" (Text : SU.Unbounded_String) return String
-     renames SU.To_String;
+   function "+" (Text : SU.Unbounded_String) return String renames SU.To_String;
 
    function Unescape (Text : String) return String is
       --  Unicode escapes never expand beyond their source representation.
@@ -46,12 +44,14 @@ package body JSON.Types is
             if Index > Text'Last then
                raise Program_Error with "Incomplete Unicode escape";
             end if;
-            Code := Code * 16
+            Code :=
+              Code
+              * 16
               + (case Text (Index) is
                    when '0' .. '9' => Character'Pos (Text (Index)) - Character'Pos ('0'),
                    when 'a' .. 'f' => Character'Pos (Text (Index)) - Character'Pos ('a') + 10,
                    when 'A' .. 'F' => Character'Pos (Text (Index)) - Character'Pos ('A') + 10,
-                   when others => raise Program_Error with "Invalid Unicode escape");
+                   when others     => raise Program_Error with "Invalid Unicode escape");
             Index := Index + 1;
          end loop;
          return Code;
@@ -96,20 +96,30 @@ package body JSON.Types is
                begin
                   Index := Index + 1;
                   case Escaped is
-                     when '"' | '\' | '/' => SB.Append (Value, Escaped);
-                     when 'b' => SB.Append (Value, BS);
-                     when 'f' => SB.Append (Value, FF);
-                     when 'n' => SB.Append (Value, LF);
-                     when 'r' => SB.Append (Value, CR);
-                     when 't' => SB.Append (Value, HT);
-                     when 'u' =>
+                     when '"' | '\' | '/' =>
+                        SB.Append (Value, Escaped);
+
+                     when 'b'             =>
+                        SB.Append (Value, BS);
+
+                     when 'f'             =>
+                        SB.Append (Value, FF);
+
+                     when 'n'             =>
+                        SB.Append (Value, LF);
+
+                     when 'r'             =>
+                        SB.Append (Value, CR);
+
+                     when 't'             =>
+                        SB.Append (Value, HT);
+
+                     when 'u'             =>
                         declare
                            Code : Natural := Hex4;
                         begin
                            if Code in 16#D800# .. 16#DBFF# then
-                              if Index + 1 > Text'Last or else Text (Index) /= '\'
-                                or else Text (Index + 1) /= 'u'
-                              then
+                              if Index + 1 > Text'Last or else Text (Index) /= '\' or else Text (Index + 1) /= 'u' then
                                  raise Program_Error with "Missing low surrogate";
                               end if;
                               Index := Index + 2;
@@ -126,7 +136,9 @@ package body JSON.Types is
                            end if;
                            Append_Code (Code);
                         end;
-                     when others => raise Program_Error with "Invalid string escape";
+
+                     when others          =>
+                        raise Program_Error with "Invalid string escape";
                   end case;
                end;
             else
@@ -144,24 +156,18 @@ package body JSON.Types is
    --                             Memory allocator                            --
    -----------------------------------------------------------------------------
 
-   function Create_Array
-     (Object : Memory_Allocator;
-      Depth  : Positive) return Array_Offset is
+   function Create_Array (Object : Memory_Allocator; Depth : Positive) return Array_Offset is
    begin
       if Depth > Object.Maximum_Depth then
-         raise Constraint_Error with
-           "Maximum depth (" & Object.Maximum_Depth'Image & ") exceeded";
+         raise Constraint_Error with "Maximum depth (" & Object.Maximum_Depth'Image & ") exceeded";
       end if;
       return Array_Offset (Object.Array_Levels (Depth).Length);
    end Create_Array;
 
-   function Create_Object
-     (Object : Memory_Allocator;
-      Depth  : Positive) return Array_Offset is
+   function Create_Object (Object : Memory_Allocator; Depth : Positive) return Array_Offset is
    begin
       if Depth > Object.Maximum_Depth then
-         raise Constraint_Error with
-           "Maximum depth (" & Object.Maximum_Depth'Image & ") exceeded";
+         raise Constraint_Error with "Maximum depth (" & Object.Maximum_Depth'Image & ") exceeded";
       end if;
       return Array_Offset (Object.Object_Levels (Depth).Length);
    end Create_Object;
@@ -171,11 +177,9 @@ package body JSON.Types is
    -----------------------------------------------------------------------------
 
    function Create_String
-     (Stream : Streams.Stream_Ptr;
-      Offset, Length : Streams.AS.Stream_Element_Offset) return JSON_Value is
+     (Stream : Streams.Stream_Ptr; Offset, Length : Streams.AS.Stream_Element_Offset) return JSON_Value is
    begin
-      return (Kind => String_Kind, Stream => Stream,
-        String_Offset => Offset, String_Length => Length);
+      return (Kind => String_Kind, Stream => Stream, String_Offset => Offset, String_Length => Length);
    end Create_String;
 
    function Create_Integer (Value : Integer_Type) return JSON_Value is
@@ -198,48 +202,38 @@ package body JSON.Types is
       return (Kind => Null_Kind);
    end Create_Null;
 
-   function Create_Array
-     (Allocator : Memory_Allocator_Ptr;
-      Depth     : Positive) return JSON_Value is
+   function Create_Array (Allocator : Memory_Allocator_Ptr; Depth : Positive) return JSON_Value is
    begin
-      return (Kind      => Array_Kind,
-              Allocator => Allocator,
-              Depth     => Depth,
-              Offset    => Create_Array (Allocator.all, Depth),
-              Length    => 0);
+      return
+        (Kind      => Array_Kind,
+         Allocator => Allocator,
+         Depth     => Depth,
+         Offset    => Create_Array (Allocator.all, Depth),
+         Length    => 0);
    end Create_Array;
 
-   function Create_Object
-     (Allocator : Memory_Allocator_Ptr;
-      Depth     : Positive) return JSON_Value
-   is
+   function Create_Object (Allocator : Memory_Allocator_Ptr; Depth : Positive) return JSON_Value is
       Offset : constant Array_Offset := Create_Object (Allocator.all, Depth);
    begin
       if Natural (Allocator.Object_Levels (Depth).Length) = 0 then
          Allocator.Object_Levels (Depth).Reserve_Capacity (Initial_Object_Capacity);
       end if;
-      return (Kind      => Object_Kind,
-              Allocator => Allocator,
-              Depth     => Depth,
-              Offset    => Offset,
-              Length    => 0);
+      return (Kind => Object_Kind, Allocator => Allocator, Depth => Depth, Offset => Offset, Length => 0);
    end Create_Object;
 
    -----------------------------------------------------------------------------
    --                                  Value                                  --
    -----------------------------------------------------------------------------
 
-   function "=" (Left : String; Right : JSON_Value) return Boolean is
-     (if Right.Kind = String_Kind then
-        Left = Unescape (Right.Stream.Get_String (Right.String_Offset, Right.String_Length))
-      else
-        False);
+   function "=" (Left : String; Right : JSON_Value) return Boolean
+   is (if Right.Kind = String_Kind
+       then Left = Unescape (Right.Stream.Get_String (Right.String_Offset, Right.String_Length))
+       else False);
 
    function Value (Object : JSON_Value) return String is
    begin
       if Object.Kind = String_Kind then
-         return Unescape (Object.Stream.Get_String
-           (Object.String_Offset, Object.String_Length));
+         return Unescape (Object.Stream.Get_String (Object.String_Offset, Object.String_Length));
       else
          raise Invalid_Type_Error with "Value not a string";
       end if;
@@ -290,8 +284,8 @@ package body JSON.Types is
       if Object.Kind = Object_Kind then
          for Index in 1 .. Object.Length loop
             declare
-               Pair : Key_Value_Pair renames Object.Allocator.Object_Levels
-                 (Object.Depth).Element (Object.Offset + Index);
+               Pair : Key_Value_Pair renames
+                 Object.Allocator.Object_Levels (Object.Depth).Element (Object.Offset + Index);
             begin
                if Key = Pair.Key then
                   return True;
@@ -308,8 +302,7 @@ package body JSON.Types is
    function Get (Object : JSON_Value; Index : Positive) return JSON_Value is
    begin
       if Object.Kind = Array_Kind then
-         return Object.Allocator.Array_Levels (Object.Depth).Element
-           (Object.Offset + Index).Value;
+         return Object.Allocator.Array_Levels (Object.Depth).Element (Object.Offset + Index).Value;
       else
          raise Invalid_Type_Error with "Value not an array";
       end if;
@@ -323,8 +316,8 @@ package body JSON.Types is
       if Object.Kind = Object_Kind then
          for Index in 1 .. Object.Length loop
             declare
-               Pair : constant Key_Value_Pair := Object.Allocator.Object_Levels
-                 (Object.Depth).Element (Object.Offset + Index);
+               Pair : constant Key_Value_Pair :=
+                 Object.Allocator.Object_Levels (Object.Depth).Element (Object.Offset + Index);
             begin
                if Key = Pair.Key then
                   return Pair.Element;
@@ -340,32 +333,26 @@ package body JSON.Types is
    procedure Append (Object : in out JSON_Value; Value : JSON_Value) is
    begin
       declare
-         Length : constant Natural
-           := Natural (Object.Allocator.Array_Levels (Object.Depth).Length);
+         Length : constant Natural := Natural (Object.Allocator.Array_Levels (Object.Depth).Length);
       begin
          --  Assert that Object is the last array in a particular level
          --  so that its elements form a continuous array
          pragma Assert (Length = Object.Offset + Object.Length);
       end;
 
-      Object.Allocator.Array_Levels (Object.Depth).Append
-        (Array_Value'(Kind => Value.Kind, Value => Value));
+      Object.Allocator.Array_Levels (Object.Depth).Append (Array_Value'(Kind => Value.Kind, Value => Value));
       Object.Length := Object.Length + 1;
    end Append;
 
-   procedure Insert
-     (Object : in out JSON_Value;
-      Key    : JSON_Value;
-      Value  : JSON_Value;
-      Check_Duplicate_Keys : Boolean) is
+   procedure Insert (Object : in out JSON_Value; Key : JSON_Value; Value : JSON_Value; Check_Duplicate_Keys : Boolean)
+   is
    begin
       if Check_Duplicate_Keys and then Object.Contains (Key.Value) then
          raise Constraint_Error with "JSON object already has key '" & Key.Value & "'";
       end if;
 
       declare
-         Length : constant Natural
-           := Natural (Object.Allocator.Object_Levels (Object.Depth).Length);
+         Length : constant Natural := Natural (Object.Allocator.Object_Levels (Object.Depth).Length);
       begin
          --  Assert that Object is the last object in a particular level
          --  so that its key-value pairs form a continuous array
@@ -380,27 +367,25 @@ package body JSON.Types is
 
    -----------------------------------------------------------------------------
 
-   function Constant_Reference (Object : JSON_Value; Index : Positive)
-     return JSON_Value renames Get;
+   function Constant_Reference (Object : JSON_Value; Index : Positive) return JSON_Value renames Get;
 
-   function Constant_Reference (Object : JSON_Value; Key : String)
-     return JSON_Value renames Get;
+   function Constant_Reference (Object : JSON_Value; Key : String) return JSON_Value renames Get;
 
-   function Constant_Reference (Object : aliased JSON_Value; Position : Cursor)
-     return JSON_Value is
+   function Constant_Reference (Object : aliased JSON_Value; Position : Cursor) return JSON_Value is
    begin
       case Position.Kind is
-         when Array_Kind =>
-            return Object.Allocator.Array_Levels (Position.Data.Depth).Element
-              (Position.Data.Offset + Position.Index).Value;
+         when Array_Kind  =>
+            return
+              Object.Allocator.Array_Levels (Position.Data.Depth).Element (Position.Data.Offset + Position.Index).Value;
+
          when Object_Kind =>
-            return Object.Allocator.Object_Levels (Position.Data.Depth).Element
-              (Position.Data.Offset + Position.Index).Key;
+            return
+              Object.Allocator.Object_Levels (Position.Data.Depth).Element (Position.Data.Offset + Position.Index).Key;
       end case;
    end Constant_Reference;
 
-   function Has_Element (Position : Cursor) return Boolean is
-     (Position.Index <= Position.Data.Length);
+   function Has_Element (Position : Cursor) return Boolean
+   is (Position.Index <= Position.Data.Length);
 
    overriding
    function First (Object : Iterator) return Cursor is
@@ -409,15 +394,12 @@ package body JSON.Types is
    end First;
 
    overriding
-   function Next
-     (Object   : Iterator;
-      Position : Cursor) return Cursor is
+   function Next (Object : Iterator; Position : Cursor) return Cursor is
    begin
       return (Kind => Position.Kind, Data => Position.Data, Index => Position.Index + 1);
    end Next;
 
-   function Iterate (Object : JSON_Value)
-     return Value_Iterator_Interfaces.Forward_Iterator'Class is
+   function Iterate (Object : JSON_Value) return Value_Iterator_Interfaces.Forward_Iterator'Class is
    begin
       if Object.Kind in Array_Kind | Object_Kind then
          return Iterator'(Kind => Object.Kind, Data => Object);
@@ -430,8 +412,7 @@ package body JSON.Types is
    --                                 Helpers                                 --
    -----------------------------------------------------------------------------
 
-   function Get_Array_Or_Empty
-     (Object : JSON_Value; Key : String) return JSON_Value is
+   function Get_Array_Or_Empty (Object : JSON_Value; Key : String) return JSON_Value is
    begin
       if Object.Contains (Key) then
          return Object.Get (Key);
@@ -445,8 +426,7 @@ package body JSON.Types is
       end if;
    end Get_Array_Or_Empty;
 
-   function Get_Object_Or_Empty
-     (Object : JSON_Value; Key : String) return JSON_Value is
+   function Get_Object_Or_Empty (Object : JSON_Value; Key : String) return JSON_Value is
    begin
       if Object.Contains (Key) then
          return Object.Get (Key);
@@ -460,10 +440,7 @@ package body JSON.Types is
       end if;
    end Get_Object_Or_Empty;
 
-   function Get
-     (Object  : JSON_Value;
-      Key     : String;
-      Default : Integer_Type) return JSON_Value is
+   function Get (Object : JSON_Value; Key : String; Default : Integer_Type) return JSON_Value is
    begin
       if Object.Contains (Key) then
          return Object.Get (Key);
@@ -472,10 +449,7 @@ package body JSON.Types is
       end if;
    end Get;
 
-   function Get
-     (Object  : JSON_Value;
-      Key     : String;
-      Default : Float_Type) return JSON_Value is
+   function Get (Object : JSON_Value; Key : String; Default : Float_Type) return JSON_Value is
    begin
       if Object.Contains (Key) then
          return Object.Get (Key);
@@ -484,10 +458,7 @@ package body JSON.Types is
       end if;
    end Get;
 
-   function Get
-     (Object  : JSON_Value;
-      Key     : String;
-      Default : Boolean) return JSON_Value is
+   function Get (Object : JSON_Value; Key : String; Default : Boolean) return JSON_Value is
    begin
       if Object.Contains (Key) then
          return Object.Get (Key);
@@ -501,8 +472,7 @@ package body JSON.Types is
    -----------------------------------------------------------------------------
 
    function Image_String (Object : JSON_Value) return String is
-      Text : String renames Object.Stream.Get_String
-        (Object.String_Offset, Object.String_Length);
+      Text : String renames Object.Stream.Get_String (Object.String_Offset, Object.String_Length);
    begin
       --  A string backed by a stream is always escaped. The tokenizer
       --  will verify that the string does not contain unexpected characters
@@ -529,11 +499,11 @@ package body JSON.Types is
       end if;
    end Image_Float;
 
-   function Image_Boolean (Object : JSON_Value) return String is
-     (if Object.Boolean_Value then "true" else "false");
+   function Image_Boolean (Object : JSON_Value) return String
+   is (if Object.Boolean_Value then "true" else "false");
 
    function Image_Array (Object : JSON_Value) return String is
-      Index  : Natural             := 0;
+      Index  : Natural := 0;
       Result : SU.Unbounded_String := +"[";
    begin
       for Element of Object loop
@@ -548,7 +518,7 @@ package body JSON.Types is
    end Image_Array;
 
    function Image_Object (Object : JSON_Value) return String is
-      Index  : Natural             := 0;
+      Index  : Natural := 0;
       Result : SU.Unbounded_String := +"{";
    begin
       for Key of Object loop
@@ -567,19 +537,25 @@ package body JSON.Types is
    function Image (Object : JSON_Value) return String is
    begin
       case Object.Kind is
-         when Array_Kind =>
+         when Array_Kind   =>
             return Image_Array (Object);
-         when Object_Kind =>
+
+         when Object_Kind  =>
             return Image_Object (Object);
-         when String_Kind =>
+
+         when String_Kind  =>
             return Image_String (Object);
+
          when Integer_Kind =>
             return Image_Integer (Object);
-         when Float_Kind =>
+
+         when Float_Kind   =>
             return Image_Float (Object);
+
          when Boolean_Kind =>
             return Image_Boolean (Object);
-         when Null_Kind =>
+
+         when Null_Kind    =>
             return "null";
       end case;
    end Image;

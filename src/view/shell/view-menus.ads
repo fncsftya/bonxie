@@ -4,6 +4,7 @@ with Pomarine.Widgets;
 --  The menu bar across the top of the screen: the commands of the window
 --  that a Mac application has there, with the keys they are chosen by,
 --  said as the buttons say them, and what is possible when.
+
 private package View.Menus is
 
    procedure Build (Item : in out Session);

@@ -123,11 +123,15 @@ package body View.Navigation is
             else
                Writing.Add_For_Section (Item, Index);
             end if;
-         when Nav_VM.Add_Source =>
+
+         when Nav_VM.Add_Source   =>
             Canvas_Items.Add (Item, Canvas_Items.Untitled_Source, Items.Source);
-         when Nav_VM.Add_Folder =>
+
+         when Nav_VM.Add_Folder   =>
             Writing.Add_Folder (Item);
-         when others => null;
+
+         when others              =>
+            null;
       end case;
       Sync (Item);
    end Executed;
@@ -137,10 +141,10 @@ package body View.Navigation is
       Do_Command
         (Item,
          (case To is
-             when Outline => Nav_VM.Show_Outline,
-             when Canvas  => Nav_VM.Show_Canvas,
-             when Write   => Nav_VM.Show_Writing,
-             when Publish => Nav_VM.Show_Publish));
+            when Outline => Nav_VM.Show_Outline,
+            when Canvas  => Nav_VM.Show_Canvas,
+            when Write   => Nav_VM.Show_Writing,
+            when Publish => Nav_VM.Show_Publish));
    end Show;
 
    procedure Enter (Item : in out Session; Key : Projects.Id) is
@@ -160,13 +164,8 @@ package body View.Navigation is
       Do_Command (Item, Nav_VM.Leave_Project);
    end Leave;
 
-   procedure Keep
-     (Item    : in out Session;
-      Name    : String;
-      Updated : Projects.Seconds)
-   is
-      Key : constant Projects.Id :=
-        Projects.Create (Item.Nav.Store, Name, Time => Updated);
+   procedure Keep (Item : in out Session; Name : String; Updated : Projects.Seconds) is
+      Key : constant Projects.Id := Projects.Create (Item.Nav.Store, Name, Time => Updated);
       pragma Unreferenced (Key);
    begin
       Recent.Refresh (Item);

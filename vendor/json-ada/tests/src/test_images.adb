@@ -37,34 +37,26 @@ package body Test_Images is
       Test_Suite.Add_Test (Caller.Create (Name & "Image 'true'", Test_True_Text'Access));
       Test_Suite.Add_Test (Caller.Create (Name & "Image 'false'", Test_False_Text'Access));
       Test_Suite.Add_Test (Caller.Create (Name & "Image 'null'", Test_Null_Text'Access));
-      Test_Suite.Add_Test (Caller.Create
-        (Name & "Image '""BS CR LF \ / HT""'", Test_Escaped_Text'Access));
+      Test_Suite.Add_Test (Caller.Create (Name & "Image '""BS CR LF \ / HT""'", Test_Escaped_Text'Access));
 
-      Test_Suite.Add_Test (Caller.Create
-        (Name & "Image '""""'", Test_Empty_String_Text'Access));
-      Test_Suite.Add_Test (Caller.Create
-        (Name & "Image '""test""'", Test_Non_Empty_String_Text'Access));
-      Test_Suite.Add_Test (Caller.Create
-        (Name & "Image '""12.34""'", Test_Number_String_Text'Access));
+      Test_Suite.Add_Test (Caller.Create (Name & "Image '""""'", Test_Empty_String_Text'Access));
+      Test_Suite.Add_Test (Caller.Create (Name & "Image '""test""'", Test_Non_Empty_String_Text'Access));
+      Test_Suite.Add_Test (Caller.Create (Name & "Image '""12.34""'", Test_Number_String_Text'Access));
 
       Test_Suite.Add_Test (Caller.Create (Name & "Image '42'", Test_Integer_Number_Text'Access));
 
       Test_Suite.Add_Test (Caller.Create (Name & "Image '[]'", Test_Empty_Array_Text'Access));
-      Test_Suite.Add_Test (Caller.Create
-        (Name & "Image '[""test""]'", Test_One_Element_Array_Text'Access));
-      Test_Suite.Add_Test (Caller.Create
-        (Name & "Image '[3.14, true]'", Test_Multiple_Elements_Array_Text'Access));
+      Test_Suite.Add_Test (Caller.Create (Name & "Image '[""test""]'", Test_One_Element_Array_Text'Access));
+      Test_Suite.Add_Test (Caller.Create (Name & "Image '[3.14, true]'", Test_Multiple_Elements_Array_Text'Access));
 
       Test_Suite.Add_Test (Caller.Create (Name & "Image '{}'", Test_Empty_Object_Text'Access));
-      Test_Suite.Add_Test (Caller.Create
-        (Name & "Image '{""foo"":""bar""}'", Test_One_Member_Object_Text'Access));
-      Test_Suite.Add_Test (Caller.Create
-        (Name & "Image '{""foo"":1,""bar"":2}'", Test_Multiple_Members_Object_Text'Access));
+      Test_Suite.Add_Test (Caller.Create (Name & "Image '{""foo"":""bar""}'", Test_One_Member_Object_Text'Access));
+      Test_Suite.Add_Test
+        (Caller.Create (Name & "Image '{""foo"":1,""bar"":2}'", Test_Multiple_Members_Object_Text'Access));
 
-      Test_Suite.Add_Test (Caller.Create
-        (Name & "Image '[{""foo"":[true, 42]}]'", Test_Array_Object_Array'Access));
-      Test_Suite.Add_Test (Caller.Create
-        (Name & "Image '{""foo"":[null, {""bar"": 42}]}'", Test_Object_Array_Object'Access));
+      Test_Suite.Add_Test (Caller.Create (Name & "Image '[{""foo"":[true, 42]}]'", Test_Array_Object_Array'Access));
+      Test_Suite.Add_Test
+        (Caller.Create (Name & "Image '{""foo"":[null, {""bar"": 42}]}'", Test_Object_Array_Object'Access));
 
       return Test_Suite'Access;
    end Suite;
@@ -75,8 +67,8 @@ package body Test_Images is
       Text : constant String := "true";
 
       Parser : Parsers.Parser := Parsers.Create (Text);
-      Value : constant JSON_Value := Parser.Parse;
-      Image : constant String := Value.Image;
+      Value  : constant JSON_Value := Parser.Parse;
+      Image  : constant String := Value.Image;
    begin
       Assert (Text = Image, "Image not '" & Text & "'");
    end Test_True_Text;
@@ -85,8 +77,8 @@ package body Test_Images is
       Text : constant String := "false";
 
       Parser : Parsers.Parser := Parsers.Create (Text);
-      Value : constant JSON_Value := Parser.Parse;
-      Image : constant String := Value.Image;
+      Value  : constant JSON_Value := Parser.Parse;
+      Image  : constant String := Value.Image;
    begin
       Assert (Text = Image, "Image not '" & Text & "'");
    end Test_False_Text;
@@ -95,8 +87,8 @@ package body Test_Images is
       Text : constant String := "null";
 
       Parser : Parsers.Parser := Parsers.Create (Text);
-      Value : constant JSON_Value := Parser.Parse;
-      Image : constant String := Value.Image;
+      Value  : constant JSON_Value := Parser.Parse;
+      Image  : constant String := Value.Image;
    begin
       Assert (Text = Image, "Image not '" & Text & "'");
    end Test_Null_Text;
@@ -105,8 +97,8 @@ package body Test_Images is
       Text : constant String := """BS:\b LF:\n CR:\r \\ \/ HT:\t""";
 
       Parser : Parsers.Parser := Parsers.Create (Text);
-      Value : constant JSON_Value := Parser.Parse;
-      Image : constant String := Value.Image;
+      Value  : constant JSON_Value := Parser.Parse;
+      Image  : constant String := Value.Image;
    begin
       Assert (Text = Image, "Image not '" & Text & "'");
    end Test_Escaped_Text;
@@ -115,8 +107,8 @@ package body Test_Images is
       Text : constant String := """""";
 
       Parser : Parsers.Parser := Parsers.Create (Text);
-      Value : constant JSON_Value := Parser.Parse;
-      Image : constant String := Value.Image;
+      Value  : constant JSON_Value := Parser.Parse;
+      Image  : constant String := Value.Image;
    begin
       Assert (Text = Image, "Image not '" & Text & "'");
    end Test_Empty_String_Text;
@@ -125,8 +117,8 @@ package body Test_Images is
       Text : constant String := """test""";
 
       Parser : Parsers.Parser := Parsers.Create (Text);
-      Value : constant JSON_Value := Parser.Parse;
-      Image : constant String := Value.Image;
+      Value  : constant JSON_Value := Parser.Parse;
+      Image  : constant String := Value.Image;
    begin
       Assert (Text = Image, "Image not '" & Text & "'");
    end Test_Non_Empty_String_Text;
@@ -135,8 +127,8 @@ package body Test_Images is
       Text : constant String := """12.34""";
 
       Parser : Parsers.Parser := Parsers.Create (Text);
-      Value : constant JSON_Value := Parser.Parse;
-      Image : constant String := Value.Image;
+      Value  : constant JSON_Value := Parser.Parse;
+      Image  : constant String := Value.Image;
    begin
       Assert (Text = Image, "Image not '" & Text & "'");
    end Test_Number_String_Text;
@@ -145,8 +137,8 @@ package body Test_Images is
       Text : constant String := "42";
 
       Parser : Parsers.Parser := Parsers.Create (Text);
-      Value : constant JSON_Value := Parser.Parse;
-      Image : constant String := Value.Image;
+      Value  : constant JSON_Value := Parser.Parse;
+      Image  : constant String := Value.Image;
    begin
       Assert (Text = Image, "Image not '" & Text & "'");
    end Test_Integer_Number_Text;
@@ -155,8 +147,8 @@ package body Test_Images is
       Text : constant String := "[]";
 
       Parser : Parsers.Parser := Parsers.Create (Text);
-      Value : constant JSON_Value := Parser.Parse;
-      Image : constant String := Value.Image;
+      Value  : constant JSON_Value := Parser.Parse;
+      Image  : constant String := Value.Image;
    begin
       Assert (Text = Image, "Image not '" & Text & "'");
    end Test_Empty_Array_Text;
@@ -165,8 +157,8 @@ package body Test_Images is
       Text : constant String := "[""test""]";
 
       Parser : Parsers.Parser := Parsers.Create (Text);
-      Value : constant JSON_Value := Parser.Parse;
-      Image : constant String := Value.Image;
+      Value  : constant JSON_Value := Parser.Parse;
+      Image  : constant String := Value.Image;
    begin
       Assert (Text = Image, "Image not '" & Text & "'");
    end Test_One_Element_Array_Text;
@@ -175,8 +167,8 @@ package body Test_Images is
       Text : constant String := "[42,true]";
 
       Parser : Parsers.Parser := Parsers.Create (Text);
-      Value : constant JSON_Value := Parser.Parse;
-      Image : constant String := Value.Image;
+      Value  : constant JSON_Value := Parser.Parse;
+      Image  : constant String := Value.Image;
    begin
       Assert (Text = Image, "Image not '" & Text & "'");
    end Test_Multiple_Elements_Array_Text;
@@ -185,8 +177,8 @@ package body Test_Images is
       Text : constant String := "{}";
 
       Parser : Parsers.Parser := Parsers.Create (Text);
-      Value : constant JSON_Value := Parser.Parse;
-      Image : constant String := Value.Image;
+      Value  : constant JSON_Value := Parser.Parse;
+      Image  : constant String := Value.Image;
    begin
       Assert (Text = Image, "Image not '" & Text & "'");
    end Test_Empty_Object_Text;
@@ -195,8 +187,8 @@ package body Test_Images is
       Text : constant String := "{""foo"":""bar""}";
 
       Parser : Parsers.Parser := Parsers.Create (Text);
-      Value : constant JSON_Value := Parser.Parse;
-      Image : constant String := Value.Image;
+      Value  : constant JSON_Value := Parser.Parse;
+      Image  : constant String := Value.Image;
    begin
       Assert (Text = Image, "Image not '" & Text & "'");
    end Test_One_Member_Object_Text;
@@ -206,19 +198,18 @@ package body Test_Images is
       Text2 : constant String := "{""bar"":2,""foo"":1}";
 
       Parser : Parsers.Parser := Parsers.Create (Text);
-      Value : constant JSON_Value := Parser.Parse;
-      Image : constant String := Value.Image;
+      Value  : constant JSON_Value := Parser.Parse;
+      Image  : constant String := Value.Image;
    begin
-      Assert
-        (Text = Image or else Text2 = Image, "Image '" & Image & "' is not '" & Text & "'");
+      Assert (Text = Image or else Text2 = Image, "Image '" & Image & "' is not '" & Text & "'");
    end Test_Multiple_Members_Object_Text;
 
    procedure Test_Array_Object_Array (Object : in out Test) is
       Text : constant String := "[{""foo"":[true,42]}]";
 
       Parser : Parsers.Parser := Parsers.Create (Text);
-      Value : constant JSON_Value := Parser.Parse;
-      Image : constant String := Value.Image;
+      Value  : constant JSON_Value := Parser.Parse;
+      Image  : constant String := Value.Image;
    begin
       Assert (Text = Image, "Image not '" & Text & "'");
    end Test_Array_Object_Array;
@@ -227,8 +218,8 @@ package body Test_Images is
       Text : constant String := "{""foo"":[null,{""bar"":42}]}";
 
       Parser : Parsers.Parser := Parsers.Create (Text);
-      Value : constant JSON_Value := Parser.Parse;
-      Image : constant String := Value.Image;
+      Value  : constant JSON_Value := Parser.Parse;
+      Image  : constant String := Value.Image;
    begin
       Assert (Text = Image, "Image not '" & Text & "'");
    end Test_Object_Array_Object;

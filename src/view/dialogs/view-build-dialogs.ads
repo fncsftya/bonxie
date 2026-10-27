@@ -1,4 +1,5 @@
 --  The dialogs over both screens: their bar and border, the modal and the list of items.
+
 private package View.Build.Dialogs is
 
    procedure Build_Modal (Item : in out Session);

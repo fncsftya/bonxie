@@ -9,6 +9,7 @@ with Pomarine.View_Models;
 --
 --  The dialog only asks. The view does what the answer says (it knows how to
 --  delete a project, a folder or the model), from Answer.
+
 package Confirm_VM is
 
    package Parts renames Pomarine.View_Models;
@@ -54,17 +55,16 @@ package Confirm_VM is
    --  Asking: whatever was asked before is forgotten.
 
    procedure Ask_Project (Self : in out View_Model; Key : Projects.Id; Name : String)
-     with Pre => Key /= 0,
-          Post => Subject (Self) = Project;
+   with Pre => Key /= 0, Post => Subject (Self) = Project;
    --  About this project, independently of the order of the recent-project list.
 
    procedure Ask_Node (Self : in out View_Model; Kind : Nodes; Dir, Doc : Natural; Name : String)
-     with Post => Subject (Self) = Kind;
+   with Post => Subject (Self) = Kind;
    --  About a folder (Dir is which), or a document or source (Doc is its window, Dir the folder it
    --  is in, 0 if none).
 
    procedure Ask_Model (Self : in out View_Model; Size : String)
-     with Post => Subject (Self) = Model;
+   with Post => Subject (Self) = Model;
    --  About the speech model's files, which are Size.
 
    function Subject (Self : View_Model) return Subjects;
@@ -93,13 +93,16 @@ package Confirm_VM is
 
    procedure Set_Delete_Documents (Self : in out View_Model; To : Boolean);
 
-   overriding function Version (Self : View_Model) return Parts.Version_Number;
+   overriding
+   function Version (Self : View_Model) return Parts.Version_Number;
 
-   overriding function Can_Execute (Self : View_Model; What : Command; Index : Natural := 0) return Boolean;
+   overriding
+   function Can_Execute (Self : View_Model; What : Command; Index : Natural := 0) return Boolean;
    --  Both, while it is up.
 
-   overriding procedure Execute (Self : in out View_Model; What : Command; Index : Natural := 0)
-     with Post => not Is_Asking (Self);
+   overriding
+   procedure Execute (Self : in out View_Model; What : Command; Index : Natural := 0)
+   with Post => not Is_Asking (Self);
    --  Confirm: the dialog goes and its answer is kept. Cancel: it goes, and nothing is.
 
    --  The answer to the last Confirm
@@ -112,12 +115,12 @@ private
 
    type View_Model is limited new Commands.Model with record
       Reactions : Effects_Access;
-      Asked    : Answer;
+      Asked     : Answer;
       --  What the dialog is about; its Subject is Nothing when it is not up.
-      Name     : Ada.Strings.Unbounded.Unbounded_String;
-      Size     : Ada.Strings.Unbounded.Unbounded_String;
-      Given    : Answer;
-      Changes  : Parts.Change_Counter;
+      Name      : Ada.Strings.Unbounded.Unbounded_String;
+      Size      : Ada.Strings.Unbounded.Unbounded_String;
+      Given     : Answer;
+      Changes   : Parts.Change_Counter;
    end record;
 
 end Confirm_VM;

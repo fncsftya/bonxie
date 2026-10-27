@@ -34,30 +34,39 @@ package body Ebook.Books is
 
    subtype Style_Id is Positive range 1 .. 8 * (Size_Classes'Pos (Size_Classes'Last) + 1);
 
-   function Style_Of (Bold, Italic, Fixed : Boolean; Class : Size_Classes) return Style_Id is
-     (1 + Boolean'Pos (Bold) + 2 * Boolean'Pos (Italic) + 4 * Boolean'Pos (Fixed)
-      + 8 * Size_Classes'Pos (Class));
+   function Style_Of (Bold, Italic, Fixed : Boolean; Class : Size_Classes) return Style_Id
+   is (1 + Boolean'Pos (Bold) + 2 * Boolean'Pos (Italic) + 4 * Boolean'Pos (Fixed) + 8 * Size_Classes'Pos (Class));
 
-   function Is_Bold (Style : Style_Id) return Boolean is ((Style - 1) mod 2 = 1);
-   function Is_Italic (Style : Style_Id) return Boolean is (((Style - 1) / 2) mod 2 = 1);
-   function Is_Fixed (Style : Style_Id) return Boolean is (((Style - 1) / 4) mod 2 = 1);
-   function Class_Of (Style : Style_Id) return Size_Classes is
-     (Size_Classes'Val ((Style - 1) / 8));
+   function Is_Bold (Style : Style_Id) return Boolean
+   is ((Style - 1) mod 2 = 1);
+   function Is_Italic (Style : Style_Id) return Boolean
+   is (((Style - 1) / 2) mod 2 = 1);
+   function Is_Fixed (Style : Style_Id) return Boolean
+   is (((Style - 1) / 4) mod 2 = 1);
+   function Class_Of (Style : Style_Id) return Size_Classes
+   is (Size_Classes'Val ((Style - 1) / 8));
 
-   function Size_Of (Style : Style_Id) return Float is
-     (Point_Size (Class_Of (Style)) * (if Is_Fixed (Style) then Fixed_Scale else 1.0));
+   function Size_Of (Style : Style_Id) return Float
+   is (Point_Size (Class_Of (Style)) * (if Is_Fixed (Style) then Fixed_Scale else 1.0));
 
-   function Face_Name (Style : Style_Id) return String is
-     (if Is_Fixed (Style) then
-        (if Is_Bold (Style) and then Is_Italic (Style) then "Menlo-BoldItalic"
-         elsif Is_Bold (Style) then "Menlo-Bold"
-         elsif Is_Italic (Style) then "Menlo-Italic"
-         else "Menlo-Regular")
-      else
-        (if Is_Bold (Style) and then Is_Italic (Style) then "Georgia-BoldItalic"
-         elsif Is_Bold (Style) then "Georgia-Bold"
-         elsif Is_Italic (Style) then "Georgia-Italic"
-         else "Georgia"));
+   function Face_Name (Style : Style_Id) return String
+   is (if Is_Fixed (Style)
+       then
+         (if Is_Bold (Style) and then Is_Italic (Style)
+          then "Menlo-BoldItalic"
+          elsif Is_Bold (Style)
+          then "Menlo-Bold"
+          elsif Is_Italic (Style)
+          then "Menlo-Italic"
+          else "Menlo-Regular")
+       else
+         (if Is_Bold (Style) and then Is_Italic (Style)
+          then "Georgia-BoldItalic"
+          elsif Is_Bold (Style)
+          then "Georgia-Bold"
+          elsif Is_Italic (Style)
+          then "Georgia-Italic"
+          else "Georgia"));
 
    Fonts : array (Style_Id) of CoreText.Fonts.Font;
 
@@ -70,8 +79,7 @@ package body Ebook.Books is
 
    Scratch : CoreText.Lines.Line;
 
-   package Width_Maps is new Ada.Containers.Indefinite_Hashed_Maps
-     (String, Float, Ada.Strings.Hash, "=");
+   package Width_Maps is new Ada.Containers.Indefinite_Hashed_Maps (String, Float, Ada.Strings.Hash, "=");
 
    Widths : Width_Maps.Map;
    --  How wide each word is in each style: the style, then the word.
@@ -133,15 +141,15 @@ package body Ebook.Books is
    type Pending_Array is array (1 .. Max_Words_In_Line) of Pending_Word;
 
    type Kept_Book is record
-      Name     : Ada.Strings.Unbounded.Unbounded_String;
-      Size     : Ada.Directories.File_Size := 0;
-      Time     : Ada.Calendar.Time := Ada.Calendar.Time_Of (1970, 1, 1);
-      Loaded   : Boolean := False;
-      Title    : Ada.Strings.Unbounded.Unbounded_String;
-      Words    : Word_Vectors.Vector;
-      Starts   : Index_Vectors.Vector;   --  the first word of each page
-      Store    : Data_Access;
-      Used     : Natural := 0;           --  of Store
+      Name   : Ada.Strings.Unbounded.Unbounded_String;
+      Size   : Ada.Directories.File_Size := 0;
+      Time   : Ada.Calendar.Time := Ada.Calendar.Time_Of (1970, 1, 1);
+      Loaded : Boolean := False;
+      Title  : Ada.Strings.Unbounded.Unbounded_String;
+      Words  : Word_Vectors.Vector;
+      Starts : Index_Vectors.Vector;   --  the first word of each page
+      Store  : Data_Access;
+      Used   : Natural := 0;           --  of Store
    end record;
 
    Book : Kept_Book;
@@ -162,8 +170,7 @@ package body Ebook.Books is
       if Book.Store = null or else Book.Used + Text'Length > Book.Store'Length then
          declare
             Wanted : constant Natural :=
-              Natural'Max (2 * (if Book.Store = null then 0 else Book.Store'Length),
-                           Book.Used + Text'Length + 65_536);
+              Natural'Max (2 * (if Book.Store = null then 0 else Book.Store'Length), Book.Used + Text'Length + 65_536);
             Grown  : constant Data_Access := new String (1 .. Wanted);
          begin
             if Book.Store /= null then
@@ -190,11 +197,11 @@ package body Ebook.Books is
 
    --  Put the pending words on the page, as a line.
    procedure Flush_Line is
-      Tallest : Style_Id := Style_Id'First;
-      Height  : Float := 0.0;
-      Body_H  : constant Float := Point_Size (Body_Size) * Line_Factor;
-      Spare   : Float;
-      Across  : Float := Margin_Left + Indent;
+      Tallest  : Style_Id := Style_Id'First;
+      Height   : Float := 0.0;
+      Body_H   : constant Float := Point_Size (Body_Size) * Line_Factor;
+      Spare    : Float;
+      Across   : Float := Margin_Left + Indent;
       Baseline : Float;
    begin
       if Pending_Count = 0 then
@@ -211,8 +218,7 @@ package body Ebook.Books is
          end;
       end loop;
       Spare := (if Page_Fresh then 0.0 else Gap);
-      if not Page_Fresh
-        and then Cursor_Y + Spare + Height + (if Keep_Next then 2.0 * Body_H else 0.0) > Bottom_Edge
+      if not Page_Fresh and then Cursor_Y + Spare + Height + (if Keep_Next then 2.0 * Body_H else 0.0) > Bottom_Edge
       then
          Start_Page;
          Spare := 0.0;
@@ -227,8 +233,9 @@ package body Ebook.Books is
       Line_On_Page := Line_On_Page + 1;
       Ensure_Font (Tallest);
       Baseline :=
-        Cursor_Y + (Height - (CoreText.Fonts.Ascent (Fonts (Tallest)) + CoreText.Fonts.Descent (Fonts (Tallest))))
-        / 2.0 + CoreText.Fonts.Ascent (Fonts (Tallest));
+        Cursor_Y
+        + (Height - (CoreText.Fonts.Ascent (Fonts (Tallest)) + CoreText.Fonts.Descent (Fonts (Tallest)))) / 2.0
+        + CoreText.Fonts.Ascent (Fonts (Tallest));
       for Each in 1 .. Pending_Count loop
          declare
             Word : Pending_Word renames Pending (Each);
@@ -237,8 +244,14 @@ package body Ebook.Books is
                Across := Across + Measure (Word.Style, " ");
             end if;
             Book.Words.Append
-              (Placed_Word'(First => Word.First, Last => Word.Last, Style => Word.Style, X => Across,
-                Y => Baseline, Width => Word.Width, Line => Line_On_Page));
+              (Placed_Word'
+                 (First => Word.First,
+                  Last  => Word.Last,
+                  Style => Word.Style,
+                  X     => Across,
+                  Y     => Baseline,
+                  Width => Word.Width,
+                  Line  => Line_On_Page));
             Across := Across + Word.Width;
          end;
       end loop;
@@ -294,8 +307,7 @@ package body Ebook.Books is
          Append_Text (Text, First, Last);
          Pending_Count := Pending_Count + 1;
          Pending (Pending_Count) :=
-           (First => First, Last => Last, Style => Style, Width => Wide,
-            Spaced => Spaced and then Pending_Count > 1);
+           (First => First, Last => Last, Style => Style, Width => Wide, Spaced => Spaced and then Pending_Count > 1);
       end;
    end Add_Word;
 
@@ -305,40 +317,41 @@ package body Ebook.Books is
 
    Bullet : constant String := [Character'Val (16#E2#), Character'Val (16#80#), Character'Val (16#A2#)];
 
-   function Is_Space (C : Character) return Boolean is
-     (C in ' ' | ASCII.HT | ASCII.LF | ASCII.CR | ASCII.FF);
+   function Is_Space (C : Character) return Boolean
+   is (C in ' ' | ASCII.HT | ASCII.LF | ASCII.CR | ASCII.FF);
 
-   function Is_Skipped (Name : String) return Boolean is
-     (Name in "head" | "style" | "script" | "title" | "svg" | "math" | "template" | "noscript");
+   function Is_Skipped (Name : String) return Boolean
+   is (Name in "head" | "style" | "script" | "title" | "svg" | "math" | "template" | "noscript");
 
-   function Heading_Level (Name : String) return Natural is
-     (if Name'Length = 2 and then Name (Name'First) = 'h' and then Name (Name'Last) in '1' .. '6'
-      then Character'Pos (Name (Name'Last)) - Character'Pos ('0') else 0);
+   function Heading_Level (Name : String) return Natural
+   is (if Name'Length = 2 and then Name (Name'First) = 'h' and then Name (Name'Last) in '1' .. '6'
+       then Character'Pos (Name (Name'Last)) - Character'Pos ('0')
+       else 0);
 
    procedure Set_Chapter (Source : String) is
-      Position : Positive := Source'First;
-      Token    : Markup.Token;
-      Skip     : Natural := 0;
-      Skipping : String (1 .. Markup.Max_Name) := [others => ' '];
-      Skip_Len : Natural := 0;
+      Position            : Positive := Source'First;
+      Token               : Markup.Token;
+      Skip                : Natural := 0;
+      Skipping            : String (1 .. Markup.Max_Name) := [others => ' '];
+      Skip_Len            : Natural := 0;
       Bold, Italic, Fixed : Natural := 0;
-      Heading  : Natural := 0;
-      Quotes   : Natural := 0;
-      Lists    : Natural := 0;
-      Preformatted : Boolean := False;
-      Space    : Boolean := False;   --  white space has come since the last word
-      Numbers  : array (1 .. 16) of Natural := [others => 0];
-      Ordered  : array (1 .. 16) of Boolean := [others => False];
+      Heading             : Natural := 0;
+      Quotes              : Natural := 0;
+      Lists               : Natural := 0;
+      Preformatted        : Boolean := False;
+      Space               : Boolean := False;   --  white space has come since the last word
+      Numbers             : array (1 .. 16) of Natural := [others => 0];
+      Ordered             : array (1 .. 16) of Boolean := [others => False];
 
-      function Class return Size_Classes is
-        (case Heading is
-            when 1 => Heading_1,
-            when 2 => Heading_2,
-            when 3 => Heading_3,
+      function Class return Size_Classes
+      is (case Heading is
+            when 1      => Heading_1,
+            when 2      => Heading_2,
+            when 3      => Heading_3,
             when others => Body_Size);
 
-      function Style return Style_Id is
-        (Style_Of (Bold > 0 or else Heading > 0, Italic > 0, Fixed > 0, Class));
+      function Style return Style_Id
+      is (Style_Of (Bold > 0 or else Heading > 0, Italic > 0, Fixed > 0, Class));
 
       procedure Set_Indent is
       begin
@@ -367,8 +380,8 @@ package body Ebook.Books is
             for Index in Text'Range loop
                if Text (Index) = ASCII.LF or else Index = Text'Last then
                   declare
-                     Stop : constant Natural := (if Text (Index) = ASCII.LF then Index - 1 else Index);
-                     Line : constant String := Text (Start .. Stop);
+                     Stop  : constant Natural := (if Text (Index) = ASCII.LF then Index - 1 else Index);
+                     Line  : constant String := Text (Start .. Stop);
                      Clean : String := Line;
                   begin
                      for C of Clean loop
@@ -428,10 +441,22 @@ package body Ebook.Books is
                Bold := Bold + 1;
             end if;
             Keep_Next := True;
-         elsif Name = "p" or else Name = "div" or else Name = "section" or else Name = "article"
-           or else Name = "figure" or else Name = "figcaption" or else Name = "dt" or else Name = "dd"
-           or else Name = "table" or else Name = "caption" or else Name = "aside" or else Name = "header"
-           or else Name = "footer" or else Name = "nav" or else Name = "main" or else Name = "address"
+         elsif Name = "p"
+           or else Name = "div"
+           or else Name = "section"
+           or else Name = "article"
+           or else Name = "figure"
+           or else Name = "figcaption"
+           or else Name = "dt"
+           or else Name = "dd"
+           or else Name = "table"
+           or else Name = "caption"
+           or else Name = "aside"
+           or else Name = "header"
+           or else Name = "footer"
+           or else Name = "nav"
+           or else Name = "main"
+           or else Name = "address"
          then
             Break_Block (0.0);
          elsif Name = "blockquote" then
@@ -497,9 +522,17 @@ package body Ebook.Books is
                Bold := Natural'Max (0, Bold - 1);
             end if;
             Heading := 0;
-         elsif Name = "p" or else Name = "div" or else Name = "section" or else Name = "figure"
-           or else Name = "figcaption" or else Name = "dd" or else Name = "dt" or else Name = "table"
-           or else Name = "article" or else Name = "caption" or else Name = "tr"
+         elsif Name = "p"
+           or else Name = "div"
+           or else Name = "section"
+           or else Name = "figure"
+           or else Name = "figcaption"
+           or else Name = "dd"
+           or else Name = "dt"
+           or else Name = "table"
+           or else Name = "article"
+           or else Name = "caption"
+           or else Name = "tr"
          then
             Break_Block (if Name = "p" then Point_Size (Body_Size) * 0.6 else 0.0);
          elsif Name = "blockquote" then
@@ -528,7 +561,8 @@ package body Ebook.Books is
          exit when Token.Kind = Markup.Finished;
          if Skip > 0 then
             --  Inside something that is not shown: only its end matters.
-            if Token.Kind = Markup.Start_Tag and then not Token.Self_Closing
+            if Token.Kind = Markup.Start_Tag
+              and then not Token.Self_Closing
               and then Markup.Tag (Token) = Skipping (1 .. Skip_Len)
             then
                Skip := Skip + 1;
@@ -537,8 +571,9 @@ package body Ebook.Books is
             end if;
          else
             case Token.Kind is
-               when Markup.Text =>
+               when Markup.Text      =>
                   Words_Of (Markup.Decode (Source (Token.First .. Token.Last)));
+
                when Markup.Start_Tag =>
                   if Is_Skipped (Markup.Tag (Token)) then
                      if not Token.Self_Closing then
@@ -560,9 +595,11 @@ package body Ebook.Books is
                         Close_Tag (Markup.Tag (Token));
                      end if;
                   end if;
-               when Markup.End_Tag =>
+
+               when Markup.End_Tag   =>
                   Close_Tag (Markup.Tag (Token));
-               when Markup.Finished =>
+
+               when Markup.Finished  =>
                   null;
             end case;
          end if;
@@ -624,9 +661,7 @@ package body Ebook.Books is
          Size := Ada.Directories.Size (File_Name);
          Time := Ada.Directories.Modification_Time (File_Name);
       end if;
-      if Book.Loaded and then To_String (Book.Name) = File_Name and then Book.Size = Size
-        and then Book.Time = Time
-      then
+      if Book.Loaded and then To_String (Book.Name) = File_Name and then Book.Size = Size and then Book.Time = Time then
          return;
       end if;
       Forget;
@@ -689,8 +724,7 @@ package body Ebook.Books is
          when Problem : others =>
             Gate.Release;
             Pages := 0;
-            Say ("the e-book could not be read " & Ada.Exceptions.Exception_Information (Problem),
-                 Message, Last);
+            Say ("the e-book could not be read " & Ada.Exceptions.Exception_Information (Problem), Message, Last);
             return;
       end;
       Gate.Release;
@@ -708,8 +742,8 @@ package body Ebook.Books is
       Lead : constant Unsigned_32 := Unsigned_32 (Character'Pos (Text (At_Index)));
       More : Natural;
 
-      function Tail (Offset : Natural) return Unsigned_32 is
-        (Unsigned_32 (Character'Pos (Text (At_Index + Offset))) and 16#3F#);
+      function Tail (Offset : Natural) return Unsigned_32
+      is (Unsigned_32 (Character'Pos (Text (At_Index + Offset))) and 16#3F#);
    begin
       if Lead < 16#80# then
          More := 0;
@@ -744,8 +778,7 @@ package body Ebook.Books is
       Content   : out Pomarine.Pages.Page_Access;
       Found     : in out Pomarine.Words.Result;
       Message   : out String;
-      Last      : out Natural)
-   is
+      Last      : out Natural) is
    begin
       Content := null;
       Last := Message'First - 1;
@@ -762,22 +795,21 @@ package body Ebook.Books is
             return;
          end if;
          declare
-            First : constant Positive := Book.Starts (Number);
-            Stop  : constant Natural :=
-              (if Number < Natural (Book.Starts.Length) then Book.Starts (Number + 1) - 1
-               else Book.Words.Last_Index);
-            Letters : Natural := 0;
-            Runs    : Natural := 0;
-            Faces   : Natural := 0;
-            Slot    : array (Style_Id) of Natural := [others => 0];
+            First    : constant Positive := Book.Starts (Number);
+            Stop     : constant Natural :=
+              (if Number < Natural (Book.Starts.Length) then Book.Starts (Number + 1) - 1 else Book.Words.Last_Index);
+            Letters  : Natural := 0;
+            Runs     : Natural := 0;
+            Faces    : Natural := 0;
+            Slot     : array (Style_Id) of Natural := [others => 0];
             Previous : Natural := 0;
          begin
             for Index in First .. Stop loop
                declare
-                  Word : Placed_Word renames Book.Words (Index);
+                  Word     : Placed_Word renames Book.Words (Index);
                   At_Index : Positive := Word.First;
-                  Code : Interfaces.Unsigned_32;
-                  Units : Positive;
+                  Code     : Interfaces.Unsigned_32;
+                  Units    : Positive;
                begin
                   while At_Index <= Word.Last loop
                      Next_Code (Book.Store.all (Word.First .. Word.Last), At_Index, Code, Units);
@@ -793,9 +825,15 @@ package body Ebook.Books is
                   end if;
                end;
             end loop;
-            Content := new Pomarine.Pages.Page
-              (Operations => Runs, Points => 0, Characters => Letters, Faces => Faces,
-               Clips => 0, Images => 0, Bytes => 0);
+            Content :=
+              new Pomarine.Pages.Page
+                    (Operations => Runs,
+                     Points => 0,
+                     Characters => Letters,
+                     Faces => Faces,
+                     Clips => 0,
+                     Images => 0,
+                     Bytes => 0);
             Content.Width := Sheet_Width;
             Content.Height := Sheet_Height;
             Found.Count := 0;
@@ -818,15 +856,15 @@ package body Ebook.Books is
             begin
                for Index in First .. Stop loop
                   declare
-                     Word  : Placed_Word renames Book.Words (Index);
-                     Text  : constant String := Book.Store.all (Word.First .. Word.Last);
-                     Points : constant Float := Size_Of (Word.Style);
-                     Top   : Float;
-                     Tall  : Float;
+                     Word     : Placed_Word renames Book.Words (Index);
+                     Text     : constant String := Book.Store.all (Word.First .. Word.Last);
+                     Points   : constant Float := Size_Of (Word.Style);
+                     Top      : Float;
+                     Tall     : Float;
                      At_Index : Positive := Text'First;
-                     Unit  : Natural := 0;
-                     Code  : Interfaces.Unsigned_32;
-                     Units : Positive;
+                     Unit     : Natural := 0;
+                     Code     : Interfaces.Unsigned_32;
+                     Units    : Positive;
                   begin
                      Ensure_Font (Word.Style);
                      CoreText.Lines.Make (Scratch, Fonts (Word.Style), Text);
@@ -834,9 +872,14 @@ package body Ebook.Books is
                         Next_Run := Next_Run + 1;
                         Run_Slot := Slot (Word.Style);
                         Content.Op (Next_Run) :=
-                          (Kind => Pomarine.Pages.Text, Clip => 0, First => Next_Letter + 1, Count => 0,
-                           Color => (0, 0, 0, 255), Width => 0.0, Face => Run_Slot,
-                           Box => (Word.X, Word.Y - Points, Word.X + Word.Width, Word.Y + Points * 0.3));
+                          (Kind  => Pomarine.Pages.Text,
+                           Clip  => 0,
+                           First => Next_Letter + 1,
+                           Count => 0,
+                           Color => (0, 0, 0, 255),
+                           Width => 0.0,
+                           Face  => Run_Slot,
+                           Box   => (Word.X, Word.Y - Points, Word.X + Word.Width, Word.Y + Points * 0.3));
                      end if;
                      Top := Word.Y - CoreText.Fonts.Ascent (Fonts (Word.Style));
                      Tall := CoreText.Fonts.Ascent (Fonts (Word.Style)) + CoreText.Fonts.Descent (Fonts (Word.Style));
@@ -849,8 +892,9 @@ package body Ebook.Books is
                            Next_Letter := Next_Letter + 1;
                            Content.Letters (Next_Letter) :=
                              (Code => Code,
-                              X => Word.X + CoreText.Lines.Offset_For_Index (Scratch, Before),
-                              Y => Word.Y, Size => Points);
+                              X    => Word.X + CoreText.Lines.Offset_For_Index (Scratch, Before),
+                              Y    => Word.Y,
+                              Size => Points);
                         end;
                      end loop;
                      declare
@@ -867,10 +911,13 @@ package body Ebook.Books is
                         Found.Count := Found.Count + 1;
                         Found.Text (Found.Length + 1 .. Found.Length + Text'Length) := Text;
                         Found.Words (Found.Count) :=
-                          (Line => Word.Line,
-                           First => Found.Length + 1, Last => Found.Length + Text'Length,
-                           Left => Word.X / Sheet_Width, Top => Top / Sheet_Height,
-                           Width => Word.Width / Sheet_Width, Height => Tall / Sheet_Height);
+                          (Line   => Word.Line,
+                           First  => Found.Length + 1,
+                           Last   => Found.Length + Text'Length,
+                           Left   => Word.X / Sheet_Width,
+                           Top    => Top / Sheet_Height,
+                           Width  => Word.Width / Sheet_Width,
+                           Height => Tall / Sheet_Height);
                         Found.Length := Found.Length + Text'Length;
                      end;
                   end;

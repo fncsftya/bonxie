@@ -1,4 +1,5 @@
 --  Questions and texts shared by the outline's parts.
+
 private package View.Outlines.Support is
 
    function In_Outline (Item : Session) return Boolean;

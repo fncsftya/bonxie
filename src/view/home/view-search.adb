@@ -34,12 +34,12 @@ package body View.Search is
 
    procedure Build_Bar (Item : in out Session; In_Window : Boolean := False) is
       use Pomarine.Widgets.Layouts;
-      S : Search_State renames Item.Searching;
+      S         : Search_State renames Item.Searching;
       Bar_Style : constant Layouts.Style :=
         (if In_Window
          then (Flow => Row, Height => 36.0, Shrink => 0.0, Gap => 3.0, Padding => (others => 3.0), others => <>)
          else (Flow => Row, Height => 44.0, Shrink => 0.0, Gap => 8.0, Padding => (others => 6.0), others => <>));
-      Wide : constant Float := (if In_Window then 24.0 else 36.0);
+      Wide      : constant Float := (if In_Window then 24.0 else 36.0);
    begin
       if not Has_Screen (Item, Search_Region) then
          Fields.Set_Shared (S.Field, Item.Host.Doc_Resources'Unchecked_Access);
@@ -49,7 +49,7 @@ package body View.Search is
          declare
             Bound : constant Search_UI.Controls.Context'Class :=
               Search_UI.Controls.Bind (Screen_Of (Item, Search_Region).all, S.Model);
-            Bar : constant UI.Widget_Handle := Bound.Borrow_Widget (S.Bar);
+            Bar   : constant UI.Widget_Handle := Bound.Borrow_Widget (S.Bar);
          begin
             S.Query_Control := Bound.Borrow_Field (S.Field, S.Doc, Search_UI.Query);
             S.Count_Control := Bound.Borrow_Label (S.Count, Search_UI.Summary);
@@ -69,19 +69,24 @@ package body View.Search is
             return UI.Place (Control, Width => Layouts.Length_Of (Wide), Exact => True);
          end Button;
 
-         Field    : constant UI.Layout :=
-           UI.Place (S.Query_Control, Grow => 1.0, Width => 0.0, Exact => True);
+         Field    : constant UI.Layout := UI.Place (S.Query_Control, Grow => 1.0, Width => 0.0, Exact => True);
          Counting : constant UI.Layout :=
            UI.Place (S.Count_Control, Width => UI.Layouts.Length_Of (if In_Window then 48.0 else 100.0), Exact => True);
          Back     : constant UI.Layout :=
-           Button (S.Previous, S.Previous_Control,
-                   Buttons.Looks ("Previous", Icon => Pomarine.Icons.Shown (Icon_Set.Back), Focusable => True));
+           Button
+             (S.Previous,
+              S.Previous_Control,
+              Buttons.Looks ("Previous", Icon => Pomarine.Icons.Shown (Icon_Set.Back), Focusable => True));
          Forward  : constant UI.Layout :=
-           Button (S.Next, S.Next_Control,
-                   Buttons.Looks ("Next", Icon => Pomarine.Icons.Shown (Icon_Set.Forward), Focusable => True));
+           Button
+             (S.Next,
+              S.Next_Control,
+              Buttons.Looks ("Next", Icon => Pomarine.Icons.Shown (Icon_Set.Forward), Focusable => True));
          Closer   : constant UI.Layout :=
-           Button (S.Close, S.Close_Control,
-                   Buttons.Looks ("Close", Icon => Pomarine.Icons.Shown (Pomarine.Icons.Close), Focusable => True));
+           Button
+             (S.Close,
+              S.Close_Control,
+              Buttons.Looks ("Close", Icon => Pomarine.Icons.Shown (Pomarine.Icons.Close), Focusable => True));
          Parts    : constant UI.Layout_Array := [Field, Counting, Back, Forward, Closer];
       begin
          --  The bar moves between the project and the window of an item: it is taken out, with what is in it,
@@ -91,11 +96,13 @@ package body View.Search is
          end if;
          if In_Window then
             Items.Windows.Mount_Search_Bar
-              (Item.Windows (Search_VM.Location (S.Model).Target), Form,
+              (Item.Windows (Search_VM.Location (S.Model).Target),
+               Form,
                UI.Styled (UI.Put_In (Form, S.Bar, Parts, Flow => Layouts.Row), Bar_Style));
          else
             UI.Mount_Into
-              (Form, Project_Panel (Item).all,
+              (Form,
+               Project_Panel (Item).all,
                UI.Styled (UI.Put_In (Form, S.Bar, Parts, Flow => Layouts.Row), Bar_Style));
          end if;
       end;
@@ -115,14 +122,14 @@ package body View.Search is
    end Build;
 
    procedure Choose_Document (Item : in out Session) is
-      S : Search_State renames Item.Searching;
+      S      : Search_State renames Item.Searching;
       Before : Natural := 0;
    begin
       S.Rank := 0;
       for Rank in 1 .. S.Documents.Count loop
          declare
             Count : constant Natural := S.Documents (Rank).Matches;
-            Area : Areas.Text_Area renames Editors.Area (Item.Docs.Pages (Rank).Text).all;
+            Area  : Areas.Text_Area renames Editors.Area (Item.Docs.Pages (Rank).Text).all;
          begin
             Areas.Search_Choose (Area, 0);
             if S.Current > Before and then S.Current <= Before + Count then
@@ -162,23 +169,26 @@ package body View.Search is
    end Step_Engine;
 
    procedure Update_Documents (Item : in out Session; Term : String) is
-      S : Search_State renames Item.Searching;
+      S        : Search_State renames Item.Searching;
       New_Term : constant Boolean := Term /= To_String (S.Term);
-      Changed : Boolean := New_Term or else S.Documents.Count /= Trees.Page_Count (Item.Docs.Ordering);
+      Changed  : Boolean := New_Term or else S.Documents.Count /= Trees.Page_Count (Item.Docs.Ordering);
    begin
       Search_Document_Lists.Resize (S.Documents, Trees.Page_Count (Item.Docs.Ordering), (others => <>));
       S.Total := 0;
       for Rank in 1 .. Trees.Page_Count (Item.Docs.Ordering) loop
          declare
             Which : constant Items.Slot := Trees.Page_At (Item.Docs.Ordering, Rank);
-            Doc : constant Docs.Document_Access := Items.Models.Content_Document (Item.Models (Which));
-            Area : Areas.Text_Area renames Editors.Area (Item.Docs.Pages (Rank).Text).all;
+            Doc   : constant Docs.Document_Access := Items.Models.Content_Document (Item.Models (Which));
+            Area  : Areas.Text_Area renames Editors.Area (Item.Docs.Pages (Rank).Text).all;
             State : Search_Document renames S.Documents (Rank);
-            Key : constant Items.Id := Items.Models.Details (Item.Models (Which)).Key;
+            Key   : constant Items.Id := Items.Models.Details (Item.Models (Which)).Key;
          begin
             pragma Assert (Item.Docs.Pages (Rank).Bound = Which);
-            if New_Term or else State.Which /= Which or else State.Key /= Key
-              or else State.Revision /= Docs.Current (Doc.all) or else State.Serial /= Docs.Serial (Doc.all)
+            if New_Term
+              or else State.Which /= Which
+              or else State.Key /= Key
+              or else State.Revision /= Docs.Current (Doc.all)
+              or else State.Serial /= Docs.Serial (Doc.all)
               or else State.Matches /= Areas.Search_Count (Area)
             then
                Areas.Search (Area, Term);
@@ -197,11 +207,12 @@ package body View.Search is
    end Update_Documents;
 
    procedure Reveal (Item : in out Session) is
-      S : Search_State renames Item.Searching;
+      S                : Search_State renames Item.Searching;
       X, Y, Wide, High : Float;
-      Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
+      Pixels           : constant Float := Widgets.Density (Item.Root.Widgets);
    begin
-      if not Search_VM.Is_Showing (S.Model) or else Search_VM.Location (S.Model).Scope /= Search_VM.Writing
+      if not Search_VM.Is_Showing (S.Model)
+        or else Search_VM.Location (S.Model).Scope /= Search_VM.Writing
         or else not S.Reveal_Pending
       then
          return;
@@ -213,7 +224,7 @@ package body View.Search is
       Areas.Search_Box (Editors.Area (Item.Docs.Pages (S.Rank).Text).all, X, Y, Wide, High);
       declare
          Scroll : Pomarine.Widgets.Scrollers.Scroller renames Item.Page_View.Pages_Scroll;
-         Top : constant Float := Widgets.Top_Of (Scroll) + 32.0 * Pixels;
+         Top    : constant Float := Widgets.Top_Of (Scroll) + 32.0 * Pixels;
          Bottom : constant Float := Widgets.Top_Of (Scroll) + Widgets.Height_Of (Scroll) - 32.0 * Pixels;
       begin
          if Y < Top then
@@ -253,12 +264,15 @@ package body View.Search is
       S.Seen := 0;
    end Clear_Engine;
 
-   function Valid (Item : Session; Where : Search_VM.Context) return Boolean is
-     (Screen (Item) = Project
-      and then (if Where.Scope = Search_VM.Writing then View_Mode (Item) = Write
-                else View_Mode (Item) = Canvas and then Where.Target <= Item.Windows.Count
-                  and then Items.Windows.Searchable (Item.Windows (Where.Target))
-                  and then Items.Models.Details (Item.Models (Where.Target)).Key = Where.Key));
+   function Valid (Item : Session; Where : Search_VM.Context) return Boolean
+   is (Screen (Item) = Project
+       and then (if Where.Scope = Search_VM.Writing
+                 then View_Mode (Item) = Write
+                 else
+                   View_Mode (Item) = Canvas
+                   and then Where.Target <= Item.Windows.Count
+                   and then Items.Windows.Searchable (Item.Windows (Where.Target))
+                   and then Items.Models.Details (Item.Models (Where.Target)).Key = Where.Key));
 
    procedure Refresh_Engine
      (Item : in out Session; Where : Search_VM.Context; Term : String; Found : out Search_VM.Result)
@@ -270,7 +284,7 @@ package body View.Search is
          Found := (S.Current, S.Total, False);
       else
          declare
-            W : Items.Windows.Window renames Item.Windows (Where.Target);
+            W        : Items.Windows.Window renames Item.Windows (Where.Target);
             Revision : constant Docs.Version :=
               Docs.Current (Items.Models.Content_Document (Item.Models (Where.Target)).all);
          begin
@@ -306,10 +320,10 @@ package body View.Search is
    end Update;
 
    procedure Handle (Item : in out Session; Event : Pomarine.Events.Event; Handled : out Boolean) is
-      S : Search_State renames Item.Searching;
+      S       : Search_State renames Item.Searching;
       Focused : constant Widgets.Widget_Access := Widgets.Focus_Of (Item.Root.Widgets);
-      Target : Items.Slot := Items.Slot'First;
-      Found : Boolean := False;
+      Target  : Items.Slot := Items.Slot'First;
+      Found   : Boolean := False;
    begin
       Handled := False;
       if Event.Kind /= Pomarine.Events.Key_Down then
@@ -339,7 +353,7 @@ package body View.Search is
          for Row in 1 .. Canvas_Items.Count (Item) loop
             declare
                Which : constant Items.Slot := Canvas_Items.Nth (Item, Row);
-               W : Items.Windows.Window renames Item.Windows (Which);
+               W     : Items.Windows.Window renames Item.Windows (Which);
             begin
                if Items.Windows.Searchable (W) then
                   if Focused /= null and then Items.Windows.Owns (W, Focused) then
@@ -357,8 +371,7 @@ package body View.Search is
             Close (Item);
             Fields.Set_Placeholder (S.Field, "Find in item");
             Widgets.Set_Accessible_Name (S.Field, "Find in item");
-            Search_VM.Open
-              (S.Model, (Search_VM.Canvas_Item, Target, Items.Models.Details (Item.Models (Target)).Key));
+            Search_VM.Open (S.Model, (Search_VM.Canvas_Item, Target, Items.Models.Details (Item.Models (Target)).Key));
             Build_Bar (Item, In_Window => True);
             Sync (Item);
          end if;

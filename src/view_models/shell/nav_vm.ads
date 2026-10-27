@@ -13,6 +13,7 @@ with Settings_VM;
 --  It does not hold the settings' or the dialog's state: it is given those view-models and answers from them (Layer),
 --  so what is open is said once. Showing a screen, a view or the list is the view's, in reaction to the versions here
 --  (see View.Navigation).
+
 package Nav_VM is
 
    package Parts renames Pomarine.View_Models;
@@ -52,7 +53,7 @@ package Nav_VM is
       Add_Folder,
       --  Create a folder in the writing view and begin naming it.
       Toggle_Section_Notes);
-      --  Index: a writing section. Toggle its shared outline notes.
+   --  Index: a writing section. Toggle its shared outline notes.
 
    package Commands is new Parts.Command_Models (Command);
 
@@ -111,15 +112,16 @@ package Nav_VM is
       Item_List,
       --  The list of the project's items.
       Deleting);
-      --  The dialog that asks before a project, a folder, a document or a source is deleted.
+   --  The dialog that asks before a project, a folder, a document or a source is deleted.
 
    function Layer (Self : View_Model) return Layers;
    --  The topmost one.
 
-   function Is_Over (Self : View_Model) return Boolean is (Layer (Self) /= Plain);
+   function Is_Over (Self : View_Model) return Boolean
+   is (Layer (Self) /= Plain);
 
    function Project_Key (Self : View_Model) return Projects.Id
-     with Post => (Project_Key'Result = 0) = (Screen (Self) = Home);
+   with Post => (Project_Key'Result = 0) = (Screen (Self) = Home);
    --  The project shown; 0 at the home screen.
 
    function Name (Self : View_Model) return String;
@@ -129,13 +131,14 @@ package Nav_VM is
    --  Different whenever the name is.
 
    procedure Open (Self : in out View_Model; Which : Projects.Id)
-     with Pre  => Screen (Self) = Home and then Which /= 0,
-          Post => Screen (Self) = Project and then Project_Key (Self) = Which and then Mode (Self) = Canvas;
+   with
+     Pre  => Screen (Self) = Home and then Which /= 0,
+     Post => Screen (Self) = Project and then Project_Key (Self) = Which and then Mode (Self) = Canvas;
    --  Go to the project, at the canvas: Restore_Mode then goes to the view it was left at, once the screen is
    --  ready for it.
 
    procedure Restore_Mode (Self : in out View_Model)
-     with Pre => Screen (Self) = Project;
+   with Pre => Screen (Self) = Project;
    --  Show the view the project was left at, which is not kept again.
 
    function Is_Listing (Self : View_Model) return Boolean;
@@ -147,7 +150,7 @@ package Nav_VM is
    --  The name being typed.
 
    procedure Set_Draft (Self : in out View_Model; Text : String)
-     with Post => Draft (Self) = Text;
+   with Post => Draft (Self) = Text;
 
    function Takes_Gestures (Self : View_Model) return Boolean;
    --  Whether the canvas, the writing view and the outline may be worked: at a project, with nothing over it.
@@ -168,10 +171,12 @@ package Nav_VM is
    function Renaming_Version (Self : View_Model) return Parts.Version_Number;
    --  Different whenever renaming begins or ends.
 
-   overriding function Version (Self : View_Model) return Parts.Version_Number;
+   overriding
+   function Version (Self : View_Model) return Parts.Version_Number;
    --  Different whenever any of these are, or the draft.
 
-   overriding function Can_Execute (Self : View_Model; What : Command; Index : Natural := 0) return Boolean;
+   overriding
+   function Can_Execute (Self : View_Model; What : Command; Index : Natural := 0) return Boolean;
    --  Start_Project, Open_Project (the row, Index, is listed; 0 asks whether any is) and Open_Settings: at the home
    --  screen, with nothing over it. Close_Settings: they are up, and the dialog over them is not. Leave_Project and the
    --  views: at a project. Open_List: at a project. Begin_Rename: at a project with nothing over it.
@@ -180,19 +185,22 @@ package Nav_VM is
    --  with nothing over it. Add_Document accepts Index 0 for an ordinary document, or a listed section in Write.
    --  Toggle_Section_Notes requires a positive listed section in Write.
 
-   overriding procedure Execute (Self : in out View_Model; What : Command; Index : Natural := 0)
-     with Post => (case What is
-                      when Start_Project | Open_Project => Screen (Self) = Project,
-                      when Leave_Project  => Screen (Self) = Home and then not Is_Renaming (Self),
-                      when Show_Outline   => Mode (Self) = Outline,
-                      when Show_Canvas    => Mode (Self) = Canvas,
-                      when Show_Writing   => Mode (Self) = Write,
-                      when Show_Publish   => Mode (Self) = Publish,
-                      when Open_List      => Is_Listing (Self),
-                      when Close_List     => not Is_Listing (Self),
-                      when Begin_Rename   => Is_Renaming (Self),
-                      when Accept_Rename | Cancel_Rename => not Is_Renaming (Self),
-                      when others         => True);
+   overriding
+   procedure Execute (Self : in out View_Model; What : Command; Index : Natural := 0)
+   with
+     Post =>
+       (case What is
+          when Start_Project | Open_Project  => Screen (Self) = Project,
+          when Leave_Project                 => Screen (Self) = Home and then not Is_Renaming (Self),
+          when Show_Outline                  => Mode (Self) = Outline,
+          when Show_Canvas                   => Mode (Self) = Canvas,
+          when Show_Writing                  => Mode (Self) = Write,
+          when Show_Publish                  => Mode (Self) = Publish,
+          when Open_List                     => Is_Listing (Self),
+          when Close_List                    => not Is_Listing (Self),
+          when Begin_Rename                  => Is_Renaming (Self),
+          when Accept_Rename | Cancel_Rename => not Is_Renaming (Self),
+          when others                        => True);
 
 private
 

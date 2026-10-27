@@ -1,4 +1,3 @@
-
 package body Previews is
 
    use all type SDL3.Painters.Painter;
@@ -24,8 +23,7 @@ package body Previews is
       end if;
    end Set_Cards;
 
-   procedure Set_Corners
-     (Item : in out Preview; Radius : Float; Round : Pomarine.Boxes.Corner_Flags) is
+   procedure Set_Corners (Item : in out Preview; Radius : Float; Round : Pomarine.Boxes.Corner_Flags) is
    begin
       Item.Radius := Radius;
       Item.Round := Round;
@@ -39,18 +37,14 @@ package body Previews is
       Set_Cards (Item, [1 .. 0 => <>]);
    end Clear;
 
-   overriding procedure Draw
-     (Item   : in out Preview;
-      Target : SDL3.Painters.Painter'Class;
-      Colors : Pomarine.Themes.Theme)
-   is
+   overriding
+   procedure Draw (Item : in out Preview; Target : SDL3.Painters.Painter'Class; Colors : Pomarine.Themes.Theme) is
       Pixels : constant Float := Pomarine.Widgets.Density (Item);
       Left   : constant Float := Pomarine.Widgets.Left_Of (Item);
       Top    : constant Float := Pomarine.Widgets.Top_Of (Item);
       Wide   : constant Float := Pomarine.Widgets.Width_Of (Item);
       High   : constant Float := Pomarine.Widgets.Height_Of (Item);
-      Side   : constant Float :=
-        Float'Max (1.0, Float'Rounding (Dot_Side * Pixels));
+      Side   : constant Float := Float'Max (1.0, Float'Rounding (Dot_Side * Pixels));
       Step   : constant Float := Dot_Step * Pixels;
       Ink    : constant Pomarine.Themes.Color :=
         Pomarine.Themes.Mix (Colors (Pomarine.Themes.Background), Colors (Pomarine.Themes.Border), 0.8);
@@ -61,14 +55,19 @@ package body Previews is
       X, Y   : Float;
    begin
       Pomarine.Boxes.Fill_Round
-        (Target, Colors (Pomarine.Themes.Background), Left, Top, Wide, High,
-         Pomarine.Boxes.Corner (Item.Radius, Pixels), Item.Round);
+        (Target,
+         Colors (Pomarine.Themes.Background),
+         Left,
+         Top,
+         Wide,
+         High,
+         Pomarine.Boxes.Corner (Item.Radius, Pixels),
+         Item.Round);
       Y := Step / 2.0;
       while Y < High loop
          X := Step / 2.0;
          while X < Wide loop
-            Fill_Rect (Target, Ink, Float'Rounding (Left + X),
-                       Float'Rounding (Top + Y), Side, Side);
+            Fill_Rect (Target, Ink, Float'Rounding (Left + X), Float'Rounding (Top + Y), Side, Side);
             X := X + Step;
          end loop;
          Y := Y + Step;
@@ -94,59 +93,59 @@ package body Previews is
             Scale  : constant Float :=
               Float'Min
                 (Most * Pixels,
-                 Float'Min (Room_X / Float'Max (1.0, Most_X - Least_X),
-                            Room_Y / Float'Max (1.0, Most_Y - Least_Y)));
-            From_X : constant Float :=
-              Left + (Wide - (Most_X - Least_X) * Scale) / 2.0;
-            From_Y : constant Float :=
-              Top + (High - (Most_Y - Least_Y) * Scale) / 2.0;
+                 Float'Min (Room_X / Float'Max (1.0, Most_X - Least_X), Room_Y / Float'Max (1.0, Most_Y - Least_Y)));
+            From_X : constant Float := Left + (Wide - (Most_X - Least_X) * Scale) / 2.0;
+            From_Y : constant Float := Top + (High - (Most_Y - Least_Y) * Scale) / 2.0;
             Pad    : constant Float := Float'Rounding (Card_Pad * Pixels);
-            Line   : constant Float :=
-              Float'Max (1.0, Float'Rounding (Line_High * Pixels));
+            Line   : constant Float := Float'Max (1.0, Float'Rounding (Line_High * Pixels));
          begin
             for Each of Item.Cards (1 .. Item.Count) loop
                declare
-                  L : constant Float :=
-                    Float'Rounding
-                      (From_X + (Each.Where.Left - Least_X) * Scale);
-                  T : constant Float :=
-                    Float'Rounding
-                      (From_Y + (Each.Where.Top - Least_Y) * Scale);
-                  W : constant Float :=
-                    Float'Rounding (Each.Where.Width * Scale);
-                  H : constant Float :=
-                    Float'Rounding (Each.Where.Height * Scale);
-                  Inner : constant Float := W - 2.0 * Pad;
-                  Mark  : constant Float := Float'Rounding (5.0 * Pixels);
+                  L          : constant Float := Float'Rounding (From_X + (Each.Where.Left - Least_X) * Scale);
+                  T          : constant Float := Float'Rounding (From_Y + (Each.Where.Top - Least_Y) * Scale);
+                  W          : constant Float := Float'Rounding (Each.Where.Width * Scale);
+                  H          : constant Float := Float'Rounding (Each.Where.Height * Scale);
+                  Inner      : constant Float := W - 2.0 * Pad;
+                  Mark       : constant Float := Float'Rounding (5.0 * Pixels);
                   Title_Left : Float := L + Pad;
-                  Row   : Float := T + Pad + Mark + Pad / 2.0;
-                  Part  : Natural := 0;
+                  Row        : Float := T + Pad + Mark + Pad / 2.0;
+                  Part       : Natural := 0;
                begin
                   Pomarine.Boxes.Draw
                     (Target,
-                     (Filled => True, Fill => Pomarine.Themes.Paper,
-                      Bordered => True, Border => Colors (Pomarine.Themes.Border),
-                      Shadowed => True, Shadow => Colors (Pomarine.Themes.Shadow),
-                      Dashed => False, others => <>),
-                     L, T, W + Pomarine.Boxes.Offset (Pixels / 2.0),
-                     H + Pomarine.Boxes.Offset (Pixels / 2.0), Pixels / 2.0);
+                     (Filled   => True,
+                      Fill     => Pomarine.Themes.Paper,
+                      Bordered => True,
+                      Border   => Colors (Pomarine.Themes.Border),
+                      Shadowed => True,
+                      Shadow   => Colors (Pomarine.Themes.Shadow),
+                      Dashed   => False,
+                      others   => <>),
+                     L,
+                     T,
+                     W + Pomarine.Boxes.Offset (Pixels / 2.0),
+                     H + Pomarine.Boxes.Offset (Pixels / 2.0),
+                     Pixels / 2.0);
                   if Inner > 0.0 then
                      if Each.Kind = Items.Source then
-                        Fill_Rect
-                          (Target, Pomarine.Themes.Resolve (Colors, Each.Ink),
-                           Title_Left, T + Pad, Mark, Mark);
+                        Fill_Rect (Target, Pomarine.Themes.Resolve (Colors, Each.Ink), Title_Left, T + Pad, Mark, Mark);
                         Title_Left := Title_Left + Mark + Pad / 2.0;
                      end if;
                      Fill_Rect
-                       (Target, Rule, Title_Left,
+                       (Target,
+                        Rule,
+                        Title_Left,
                         T + Pad + Float'Rounding ((Mark - Line) / 2.0),
-                        Float'Rounding (Inner * 0.45), Line);
+                        Float'Rounding (Inner * 0.45),
+                        Line);
                      --  Lines of text, as far as there is room.
                      while Row + Line < T + H - Pad and then Part < 6 loop
                         Fill_Rect
-                          (Target, Text, L + Pad, Row,
-                           Float'Rounding
-                             (Inner * (if Part mod 3 = 2 then 0.55 else 0.9)),
+                          (Target,
+                           Text,
+                           L + Pad,
+                           Row,
+                           Float'Rounding (Inner * (if Part mod 3 = 2 then 0.55 else 0.9)),
                            Line);
                         Row := Row + 3.0 * Line;
                         Part := Part + 1;

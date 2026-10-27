@@ -8,11 +8,14 @@ package body Ebook.Epub is
 
    use Ada.Strings.Unbounded;
 
-   function Is_Open (Item : Book) return Boolean is (Item.Open);
+   function Is_Open (Item : Book) return Boolean
+   is (Item.Open);
 
-   function Title (Item : Book) return String is (To_String (Item.Name));
+   function Title (Item : Book) return String
+   is (To_String (Item.Name));
 
-   function Chapter_Count (Item : Book) return Natural is (Natural (Item.Spine.Length));
+   function Chapter_Count (Item : Book) return Natural
+   is (Natural (Item.Spine.Length));
 
    procedure Close (Item : in out Book) is
    begin
@@ -51,16 +54,15 @@ package body Ebook.Epub is
       Used   : Natural := 0;
       I      : Natural := Text'First;
 
-      function Hex (C : Character) return Integer is
-        (case C is
+      function Hex (C : Character) return Integer
+      is (case C is
             when '0' .. '9' => Character'Pos (C) - Character'Pos ('0'),
             when 'a' .. 'f' => Character'Pos (C) - Character'Pos ('a') + 10,
             when 'A' .. 'F' => Character'Pos (C) - Character'Pos ('A') + 10,
-            when others => -1);
+            when others     => -1);
    begin
       while I <= Text'Last loop
-         if Text (I) = '%' and then I + 2 <= Text'Last and then Hex (Text (I + 1)) >= 0
-           and then Hex (Text (I + 2)) >= 0
+         if Text (I) = '%' and then I + 2 <= Text'Last and then Hex (Text (I + 1)) >= 0 and then Hex (Text (I + 2)) >= 0
          then
             Used := Used + 1;
             Result (Used) := Character'Val (16 * Hex (Text (I + 1)) + Hex (Text (I + 2)));
@@ -153,9 +155,11 @@ package body Ebook.Epub is
                   Kind : constant String := To_String (Each.Kind);
                   Path : constant String := Resolve (Folder, To_String (Each.Target));
                begin
-                  if (Kind = "" or else Ada.Strings.Fixed.Index (Kind, "html") > 0
+                  if (Kind = ""
+                      or else Ada.Strings.Fixed.Index (Kind, "html") > 0
                       or else Ada.Strings.Fixed.Index (Kind, "xml") > 0)
-                    and then Path /= "" and then Zip.Contains (Item.Files, Path)
+                    and then Path /= ""
+                    and then Zip.Contains (Item.Files, Path)
                   then
                      Item.Spine.Append (Path);
                   end if;
@@ -172,9 +176,10 @@ package body Ebook.Epub is
             when Markup.Start_Tag =>
                if Markup.Tag (Tag) = "item" then
                   Manifest.Append
-                    (Entry_Record'(To_Unbounded_String (Markup.Attribute (Content, Tag, "id")),
-                      To_Unbounded_String (Markup.Attribute (Content, Tag, "href")),
-                      To_Unbounded_String (Markup.Attribute (Content, Tag, "media-type"))));
+                    (Entry_Record'
+                       (To_Unbounded_String (Markup.Attribute (Content, Tag, "id")),
+                        To_Unbounded_String (Markup.Attribute (Content, Tag, "href")),
+                        To_Unbounded_String (Markup.Attribute (Content, Tag, "media-type"))));
                elsif Markup.Tag (Tag) = "itemref" then
                   --  The manifest comes before the spine.
                   if Markup.Attribute (Content, Tag, "linear") /= "no" then
@@ -183,24 +188,26 @@ package body Ebook.Epub is
                elsif Markup.Tag (Tag) = "title" and then Item.Name = Null_Unbounded_String then
                   In_Title := not Tag.Self_Closing;
                end if;
-            when Markup.Text =>
+
+            when Markup.Text      =>
                if In_Title then
-                  Item.Name := To_Unbounded_String
-                    (Ada.Strings.Fixed.Trim
-                       (Markup.Decode (Content (Tag.First .. Tag.Last)), Ada.Strings.Both));
+                  Item.Name :=
+                    To_Unbounded_String
+                      (Ada.Strings.Fixed.Trim (Markup.Decode (Content (Tag.First .. Tag.Last)), Ada.Strings.Both));
                   In_Title := False;
                end if;
-            when Markup.End_Tag =>
+
+            when Markup.End_Tag   =>
                In_Title := False;
-            when Markup.Finished =>
+
+            when Markup.Finished  =>
                null;
          end case;
       end loop;
       Ok := not Item.Spine.Is_Empty;
    end Read_Package;
 
-   procedure Open
-     (Item : in out Book; Path : String; Ok : out Boolean; Message : out String; Last : out Natural) is
+   procedure Open (Item : in out Book; Path : String; Ok : out Boolean; Message : out String; Last : out Natural) is
    begin
       Close (Item);
       Ok := False;

@@ -27,44 +27,45 @@ with View_Parts.Common;
 with View_Parts.Rows;
 
 --  The writing view: its pages, its sections, the sources read in it and the publish view.
+
 package View_Parts.Pages is
 
    type Doc_Page is limited record
-      Box     : Pomarine.Widgets.Panels.Panel;
+      Box            : Pomarine.Widgets.Panels.Panel;
       --  A column: the bar above, and the page.
-      Bar     : Pomarine.Widgets.Panels.Panel;
-      Heading_Area : Pomarine.Widgets.Grips.Grip;
-      Heading : Pomarine.Widgets.Labels.Label;
+      Bar            : Pomarine.Widgets.Panels.Panel;
+      Heading_Area   : Pomarine.Widgets.Grips.Grip;
+      Heading        : Pomarine.Widgets.Labels.Label;
       --  The title, in a grip that takes a double press to rename it.
-      Title_Field : Pomarine.Widgets.Text_Fields.Text_Field;
+      Title_Field    : Pomarine.Widgets.Text_Fields.Text_Field;
       --  In its place while it is renamed, on the title of the window.
       Sources_Button : Pomarine.Widgets.Buttons.Button;
       --  A dropdown: opens the menu of the sources the document is
       --  linked to, and shows how many.
-      Mic_Button : Pomarine.Widgets.Buttons.Button;
+      Mic_Button     : Pomarine.Widgets.Buttons.Button;
       --  Starts and stops dictating into the document.
-      Level : Pomarine.Widgets.Progress_Bars.Progress_Bar;
+      Level          : Pomarine.Widgets.Progress_Bars.Progress_Bar;
       --  Along the foot of the bar while dictating: how loud the sound
       --  heard is.
       Outline_Button : Pomarine.Widgets.Buttons.Button;
       --  A dropdown: opens the menu of the outline's sections, to make
       --  the document the one a section is read from.
-      Swatch  : Pomarine.Widgets.Panels.Panel;
+      Swatch         : Pomarine.Widgets.Panels.Panel;
       --  Before the title: the colour of the section the document is the
       --  own of, if it is.
-      Sheet   : Pomarine.Widgets.Panels.Panel;
+      Sheet          : Pomarine.Widgets.Panels.Panel;
       --  The white page.
-      Text    : Pomarine.Widgets.Editors.Editor;
+      Text           : Pomarine.Widgets.Editors.Editor;
       --  The text of a document, which its window on the canvas has too.
-      Words   : Pomarine.Widgets.Labels.Label;
+      Words          : Pomarine.Widgets.Labels.Label;
       --  Below the page, at the right: how many words it has.
-      Bound   : Natural := 0;
+      Bound          : Natural := 0;
       --  The window it shows, 0 if none.
-      Wide, High : Float := 0.0;
+      Wide, High     : Float := 0.0;
       --  The width of the sheet and the height of the text, in points, as
       --  last set.
-      Caret_For  : Texts.Position := (1, 1);
-      Caret_Seen : Texts.Documents.Version := 0;
+      Caret_For      : Texts.Position := (1, 1);
+      Caret_Seen     : Texts.Documents.Version := 0;
       --  Where the caret was, in what version of the document, when last
       --  brought into view.
    end record;
@@ -73,29 +74,29 @@ package View_Parts.Pages is
    subtype Page_Array is Page_Tables.Table;
 
    type Publish_Parts is limited record
-      Scroll  : Pomarine.Widgets.Scrollers.Scroller;
-      High    : Float := 0.0;
-      Content : Pomarine.Widgets.Panels.Panel;
-      Wide    : Float := 760.0;
-      Left    : Float := 0.0;
-      View    : Pomarine.Widgets.Panels.Panel;
-      Sidebar : Pomarine.Widgets.Panels.Panel;
-      Rule    : Pomarine.Widgets.Panels.Panel;
-      Options : aliased Publish_VM.View_Model;
-      Files : aliased Publish_VM.Disk.File_Store;
-      Content_Seen : Pomarine.View_Models.Watch;
-      Format  : Pomarine.Widgets.Selects.Select_Field;
-      Format_Menu : Pomarine.Widgets.Menus.Menu;
-      Divider : Pomarine.Widgets.Panels.Panel;
+      Scroll                                : Pomarine.Widgets.Scrollers.Scroller;
+      High                                  : Float := 0.0;
+      Content                               : Pomarine.Widgets.Panels.Panel;
+      Wide                                  : Float := 760.0;
+      Left                                  : Float := 0.0;
+      View                                  : Pomarine.Widgets.Panels.Panel;
+      Sidebar                               : Pomarine.Widgets.Panels.Panel;
+      Rule                                  : Pomarine.Widgets.Panels.Panel;
+      Options                               : aliased Publish_VM.View_Model;
+      Files                                 : aliased Publish_VM.Disk.File_Store;
+      Content_Seen                          : Pomarine.View_Models.Watch;
+      Format                                : Pomarine.Widgets.Selects.Select_Field;
+      Format_Menu                           : Pomarine.Widgets.Menus.Menu;
+      Divider                               : Pomarine.Widgets.Panels.Panel;
       --  Between the options and Export.
-      Copy    : Pomarine.Widgets.Buttons.Button;
-      Doc     : aliased Texts.Documents.Document;
-      Text    : Pomarine.Widgets.Editors.Editor;
-      Split_Rule : Pomarine.Widgets.Panels.Panel;
-      Source_Scroll  : Pomarine.Widgets.Scrollers.Scroller;
-      Source_Content : Pomarine.Widgets.Panels.Panel;
-      Source_Doc  : aliased Texts.Documents.Document;
-      Source_Text : Pomarine.Widgets.Editors.Editor;
+      Copy                                  : Pomarine.Widgets.Buttons.Button;
+      Doc                                   : aliased Texts.Documents.Document;
+      Text                                  : Pomarine.Widgets.Editors.Editor;
+      Split_Rule                            : Pomarine.Widgets.Panels.Panel;
+      Source_Scroll                         : Pomarine.Widgets.Scrollers.Scroller;
+      Source_Content                        : Pomarine.Widgets.Panels.Panel;
+      Source_Doc                            : aliased Texts.Documents.Document;
+      Source_Text                           : Pomarine.Widgets.Editors.Editor;
       Source_Wide, Source_High, Source_Left : Float := 0.0;
    end record;
 
@@ -108,86 +109,86 @@ package View_Parts.Pages is
    --  that is clicked.
 
    type Page_Parts is limited record
-      Write_View    : Pomarine.Widgets.Panels.Panel;
+      Write_View          : Pomarine.Widgets.Panels.Panel;
       --  A row, in the content area in the canvas's place when Mode is
       --  Write: the sidebar, the pages, and the pane of the pinned source;
       --  and the windows of the sources, over them.
-      Sidebar       : Pomarine.Widgets.Panels.Panel;
-      Edit_Heading  : Fold_Head;
+      Sidebar             : Pomarine.Widgets.Panels.Panel;
+      Edit_Heading        : Fold_Head;
       --  The head of the Edit section, above the grammar suggestions.
-      Actions : aliased Writing_VM.Actions.Page_Model;
-      Folding : aliased Sidebar_VM.View_Model;
-      Folds_Kept : aliased Sidebar_VM.Disk.File_Store;
+      Actions             : aliased Writing_VM.Actions.Page_Model;
+      Folding             : aliased Sidebar_VM.View_Model;
+      Folds_Kept          : aliased Sidebar_VM.Disk.File_Store;
       --  Whether each section of the sidebar is open; the heads fold them.
-      Grammar_Row   : Pomarine.Widgets.Panels.Panel;
-      Grammar_Switch : Pomarine.Widgets.Switches.Switch;
-      Grammar_Count : Pomarine.Widgets.Buttons.Button;
-      Sidebar_Edge  : Pomarine.Widgets.Grips.Grip;
+      Grammar_Row         : Pomarine.Widgets.Panels.Panel;
+      Grammar_Switch      : Pomarine.Widgets.Switches.Switch;
+      Grammar_Count       : Pomarine.Widgets.Buttons.Button;
+      Sidebar_Edge        : Pomarine.Widgets.Grips.Grip;
       --  At the sidebar's right, to size it by.
-      Sidebar_Wide  : Float := 206.0;
+      Sidebar_Wide        : Float := 206.0;
       --  How wide it is, in points: kept with the settings.
-      Sidebar_Rule  : Pomarine.Widgets.Panels.Panel;
+      Sidebar_Rule        : Pomarine.Widgets.Panels.Panel;
       --  The line at its right.
-      Docs_Head     : Pomarine.Widgets.Panels.Panel;
-      Docs_Heading  : Fold_Head;
-      Docs_Add      : Pomarine.Widgets.Buttons.Button;
-      Docs_Folder   : Pomarine.Widgets.Buttons.Button;
+      Docs_Head           : Pomarine.Widgets.Panels.Panel;
+      Docs_Heading        : Fold_Head;
+      Docs_Add            : Pomarine.Widgets.Buttons.Button;
+      Docs_Folder         : Pomarine.Widgets.Buttons.Button;
       --  Beside the name of the list: add a document, and a directory.
-      Docs_Scroll   : Pomarine.Widgets.Scrollers.Scroller;
-      Docs_Content  : Pomarine.Widgets.Panels.Panel;
-      Docs_None     : Pomarine.Widgets.Labels.Label;
-      Sources_Edge  : Pomarine.Widgets.Grips.Grip;
+      Docs_Scroll         : Pomarine.Widgets.Scrollers.Scroller;
+      Docs_Content        : Pomarine.Widgets.Panels.Panel;
+      Docs_None           : Pomarine.Widgets.Labels.Label;
+      Sources_Edge        : Pomarine.Widgets.Grips.Grip;
       --  Between the lists, to size the sources list by.
-      Sources_Grab  : Pomarine.Widgets.Panels.Panel;
-      Sources_Heading : Fold_Head;
-      Sources_Scroll  : Pomarine.Widgets.Scrollers.Scroller;
-      Sources_Content : Pomarine.Widgets.Panels.Panel;
-      Sources_None  : Pomarine.Widgets.Labels.Label;
+      Sources_Grab        : Pomarine.Widgets.Panels.Panel;
+      Sources_Heading     : Fold_Head;
+      Sources_Scroll      : Pomarine.Widgets.Scrollers.Scroller;
+      Sources_Content     : Pomarine.Widgets.Panels.Panel;
+      Sources_None        : Pomarine.Widgets.Labels.Label;
       --  The two lists of the sidebar: of the documents, in the order they
       --  are written in, and of the sources.
-      Pages_Scroll  : Pomarine.Widgets.Scrollers.Scroller;
-      Pages_Content : Pomarine.Widgets.Panels.Panel;
+      Pages_Scroll        : Pomarine.Widgets.Scrollers.Scroller;
+      Pages_Content       : Pomarine.Widgets.Panels.Panel;
       --  The pages, one above the next, scrolled together.
-      Pane          : Pomarine.Widgets.Panels.Panel;
-      Pane_Edge     : Pomarine.Widgets.Grips.Grip;
-      Pane_Body     : Pomarine.Widgets.Panels.Panel;
+      Pane                : Pomarine.Widgets.Panels.Panel;
+      Pane_Edge           : Pomarine.Widgets.Grips.Grip;
+      Pane_Body           : Pomarine.Widgets.Panels.Panel;
       --  At the right, the full height of the view, shown while a source
       --  is pinned; the edge is dragged to size it.
-      Menu          : Pomarine.Widgets.Menus.Menu;
+      Menu                : Pomarine.Widgets.Menus.Menu;
       --  Over the pages, hidden until a document's Sources button is
       --  clicked: a heading, a box for each source the document is linked
       --  to, ticked if it is the one pinned (or a note that there are
       --  none), a line, and Add Source.
-      Menu_Page     : Natural := 0;
+      Menu_Page           : Natural := 0;
       --  The page the menu is of, 0 if it is not shown.
-      Menu_Slots    : Common.Slot_Array;
-      Menu_Count    : Natural := 0;
+      Menu_Slots          : Common.Slot_Array;
+      Menu_Count          : Natural := 0;
       --  The windows of the sources the boxes are of, from the second
       --  row.
       Menu_Left, Menu_Top : Float := -1.0E9;
       --  Where it was last put, in points of the writing view.
-      Pane_Wide     : Float := 0.0;
+      Pane_Wide           : Float := 0.0;
       --  How wide, in points.
    end record;
    --  The writing view: the sidebar, the pages, the pane of the pinned source
    --  and the menu of a page.
 
    type Document_State is limited record
-      Pages        : Page_Array;
+      Pages       : Page_Array;
       --  The pages of the writing view: after Windows, whose documents
       --  they show.
-      Doc_Rows     : Rows.Tree_Row_Array;
-      Ordering     : Writing_VM.Trees.Tree_Model;
-      Dirs         : Items.Directories.Directory_List;
+      Doc_Rows    : Rows.Tree_Row_Array;
+      Ordering    : Writing_VM.Trees.Tree_Model;
+      Dirs        : Items.Directories.Directory_List;
       --  Loaded directories; document membership and row order belong to Ordering.
-      Navigation   : Writing_VM.View_Model;
-      Drop         : Rows.Drop_Target;
+      Navigation  : Writing_VM.View_Model;
+      Drop        : Rows.Drop_Target;
       --  Where the document being dragged would go.
-      Drop_Line    : Pomarine.Widgets.Panels.Panel;
+      Drop_Line   : Pomarine.Widgets.Panels.Panel;
       --  The line between two rows where it would go between documents,
       --  over the rows and out of the way of their layout.
-      Ghost        : Pomarine.Widgets.Panels.Panel;
-      Ghost_Title  : Pomarine.Widgets.Labels.Label;
+      Ghost       : Pomarine.Widgets.Panels.Panel;
+      Ghost_Title : Pomarine.Widgets.Labels.Label;
       --  Over the rows, under the pointer while one is dragged: a box of
       --  its name.
    end record;
@@ -262,24 +263,24 @@ package View_Parts.Pages is
    subtype Plan_Array is Plan_Lists.List;
 
    type Section_View_Parts is limited record
-      Heads   : Section_Heads;
-      Empties : Section_Empties;
-      Notes   : Note_Boxes;
-      Gaps    : Gap_Marks;
-      Tail    : Pomarine.Widgets.Panels.Panel;
+      Heads      : Section_Heads;
+      Empties    : Section_Empties;
+      Notes      : Note_Boxes;
+      Gaps       : Gap_Marks;
+      Tail       : Pomarine.Widgets.Panels.Panel;
       --  Last among the pages, flowing, as tall as they all are together
       --  while they are put by their edges (Grouped): it gives the view
       --  its height, and its corner is where their places are from.
-      Grouped : Boolean := False;
+      Grouped    : Boolean := False;
       --  Whether the pages are in the sections, each by its edges, and not
       --  one below the next.
-      Plan    : Plan_Array;
+      Plan       : Plan_Array;
       Plan_Count : Natural := 0;
       Plan_Wide  : Float := 0.0;
       Plan_Left  : Float := 0.0;
       --  The width the planned parts were given.
       --  What is shown, in order, and where, as last put.
-      Pending : Natural := 0;
+      Pending    : Natural := 0;
       --  The section that the document being made is to be of, 0 if none.
    end record;
    --  The sections among the pages of the writing view, each a heading
@@ -287,19 +288,19 @@ package View_Parts.Pages is
    --  those of none between them.
 
    type Reading_State is limited record
-      Source_Rows  : Rows.Index_Row_Array;
-      Readers      : Items.Readers.Tables.Table;
+      Source_Rows   : Rows.Index_Row_Array;
+      Readers       : Items.Readers.Tables.Table;
       --  The windows of the sources in the writing view, of the same
       --  slots as Windows.
-      Pane_Reader  : Items.Readers.Reader;
+      Pane_Reader   : Items.Readers.Reader;
       --  The pinned source, in the pane.
-      Reader_Sync  : Common.Sync_Array;
-      Pane_Sync    : Common.Sync_State;
+      Reader_Sync   : Common.Sync_Array;
+      Pane_Sync     : Common.Sync_State;
       Reader_Placed : Common.Placed_Array;
       --  Whether a reader has been given a place yet.
-      Sources : aliased Writing_Sources_VM.View_Model;
+      Sources       : aliased Writing_Sources_VM.View_Model;
       --  The windows of the sources, the earliest made first.
-      Pinned_Slot  : Natural := 0;
+      Pinned_Slot   : Natural := 0;
       --  The window of the source in the pane, 0 if none.
    end record;
    --  The sources in the writing view, and the orders of the windows of

@@ -10,9 +10,7 @@ begin
 
    --  The file named on the command line, or an empty document.
    if Ada.Command_Line.Argument_Count > 0 then
-      View.Run
-        (Files.Read (Ada.Command_Line.Argument (1)),
-         File_Name => Ada.Command_Line.Argument (1));
+      View.Run (Files.Read (Ada.Command_Line.Argument (1)), File_Name => Ada.Command_Line.Argument (1));
    else
       View.Run ("");
    end if;

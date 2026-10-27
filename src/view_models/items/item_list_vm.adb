@@ -5,10 +5,10 @@ package body Item_List_VM is
    use type Projects.Titles.Text;
 
    procedure Initialize
-     (Self : in out View_Model;
-      Canvas : not null access Canvas_VM.View_Model;
-      Models : not null access Items.Models.Tables.Table;
-      View : not null access Surface'Class;
+     (Self       : in out View_Model;
+      Canvas     : not null access Canvas_VM.View_Model;
+      Models     : not null access Items.Models.Tables.Table;
+      View       : not null access Surface'Class;
       Navigation : access Nav_VM.View_Model := null) is
    begin
       Self.Navigation := (if Navigation = null then null else Navigation.all'Unrestricted_Access);
@@ -18,7 +18,7 @@ package body Item_List_VM is
    end Initialize;
 
    procedure Refresh (Self : in out View_Model) is
-      Order : Canvas_VM.Slot_Lists.List;
+      Order   : Canvas_VM.Slot_Lists.List;
       Changed : Boolean := False;
    begin
       Canvas_VM.Order (Self.Canvas.all, Order);
@@ -55,16 +55,24 @@ package body Item_List_VM is
       end if;
    end Refresh;
 
-   function Count (Self : View_Model) return Natural is (Self.Listed.Count);
-   function Slot_Of (Self : View_Model; Row : Positive) return Items.Slot is (Self.Listed (Row).Slot);
-   function Row_Id (Self : View_Model; Row : Positive) return Positive is (Self.Listed (Row).Identity);
-   function Title (Self : View_Model; Row : Positive) return String is
-     (if Projects.Titles.Length (Self.Listed (Row).Title) = 0 then "(untitled)"
-      else Projects.Titles.To_String (Self.Listed (Row).Title));
-   function Is_Closed (Self : View_Model; Row : Positive) return Boolean is (Self.Listed (Row).Closed);
-   overriding function Version (Self : View_Model) return Parts.Version_Number is (Parts.Value (Self.Changes));
+   function Count (Self : View_Model) return Natural
+   is (Self.Listed.Count);
+   function Slot_Of (Self : View_Model; Row : Positive) return Items.Slot
+   is (Self.Listed (Row).Slot);
+   function Row_Id (Self : View_Model; Row : Positive) return Positive
+   is (Self.Listed (Row).Identity);
+   function Title (Self : View_Model; Row : Positive) return String
+   is (if Projects.Titles.Length (Self.Listed (Row).Title) = 0
+       then "(untitled)"
+       else Projects.Titles.To_String (Self.Listed (Row).Title));
+   function Is_Closed (Self : View_Model; Row : Positive) return Boolean
+   is (Self.Listed (Row).Closed);
+   overriding
+   function Version (Self : View_Model) return Parts.Version_Number
+   is (Parts.Value (Self.Changes));
 
-   overriding function Can_Execute (Self : View_Model; What : Command; Index : Natural := 0) return Boolean is
+   overriding
+   function Can_Execute (Self : View_Model; What : Command; Index : Natural := 0) return Boolean is
       pragma Unreferenced (What);
    begin
       if Self.Navigation /= null and then Nav_VM.Layer (Self.Navigation.all) /= Nav_VM.Item_List then
@@ -78,13 +86,15 @@ package body Item_List_VM is
          end loop;
          return False;
       end if;
-      return Index <= Count (Self)
+      return
+        Index <= Count (Self)
         and then Canvas_VM.Is_Item (Self.Canvas.all, Slot_Of (Self, Index))
         and then Items.Models.Details (Self.Models (Slot_Of (Self, Index))).Key = Self.Listed (Index).Key;
    end Can_Execute;
 
-   overriding procedure Execute (Self : in out View_Model; What : Command; Index : Natural := 0) is
-      Row : Natural := Index;
+   overriding
+   procedure Execute (Self : in out View_Model; What : Command; Index : Natural := 0) is
+      Row    : Natural := Index;
       Action : Canvas_VM.Command;
    begin
       if Row = 0 then
@@ -93,12 +103,14 @@ package body Item_List_VM is
             Row := Row + 1;
          end loop;
       end if;
-      Action := (case What is
-                    when Reveal => Canvas_VM.Show_Item,
-                    when Remove => Canvas_VM.Remove_Item,
-                    when Toggle_Shown =>
-                      (if Items.Models.Details (Self.Models (Slot_Of (Self, Row))).State = Items.Closed
-                       then Canvas_VM.Open_Item else Canvas_VM.Close_Item));
+      Action :=
+        (case What is
+           when Reveal       => Canvas_VM.Show_Item,
+           when Remove       => Canvas_VM.Remove_Item,
+           when Toggle_Shown =>
+             (if Items.Models.Details (Self.Models (Slot_Of (Self, Row))).State = Items.Closed
+              then Canvas_VM.Open_Item
+              else Canvas_VM.Close_Item));
       declare
          Slot : constant Items.Slot := Slot_Of (Self, Row);
       begin

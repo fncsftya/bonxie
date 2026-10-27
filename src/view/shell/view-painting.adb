@@ -43,9 +43,7 @@ package body View.Painting is
       end if;
       --  The target keeps what is drawn on it, offscreen and in a window,
       --  so that only what has changed need be drawn again.
-      Widgets.Paint
-        (Item.Root.Widgets, Item.Host.Target, Style.Colors,
-         Retained => Keeps_Frame (Item.Host.Target));
+      Widgets.Paint (Item.Root.Widgets, Item.Host.Target, Style.Colors, Retained => Keeps_Frame (Item.Host.Target));
    end Paint;
 
    procedure Fit_Density (Item : in out Session) is
@@ -66,8 +64,7 @@ package body View.Painting is
    procedure Fit_Buttons (Item : Session) is
    begin
       if Item.Shell.Windowed then
-         SDL3.Windows.Set_Title_Bar_Height
-           (Item.Host.Win, Style.Toolbar_Size, Style.Button_Inset);
+         SDL3.Windows.Set_Title_Bar_Height (Item.Host.Win, Style.Toolbar_Size, Style.Button_Inset);
       end if;
    end Fit_Buttons;
 

@@ -6,52 +6,67 @@ package body Settings_VM is
    use type Preferences.Speech_Models;
    use type Speech.Models.States;
 
-   overriding function Version (Self : View_Model) return Parts.Version_Number is
-     (Parts.Value (Self.Changes) + Flag_Properties.Version (Self.Showing) + Theme_Properties.Version (Self.Themes)
-      + Background_Properties.Version (Self.Pictures) + Speech_Properties.Version (Self.Voice)
-      + Flag_Properties.Version (Self.Ticked));
+   overriding
+   function Version (Self : View_Model) return Parts.Version_Number
+   is (Parts.Value (Self.Changes)
+       + Flag_Properties.Version (Self.Showing)
+       + Theme_Properties.Version (Self.Themes)
+       + Background_Properties.Version (Self.Pictures)
+       + Speech_Properties.Version (Self.Voice)
+       + Flag_Properties.Version (Self.Ticked));
 
-   function Config_Directory (Self : View_Model) return String is
-     (Ada.Strings.Unbounded.To_String (Self.Config));
+   function Config_Directory (Self : View_Model) return String
+   is (Ada.Strings.Unbounded.To_String (Self.Config));
 
-   function Persists (Self : View_Model) return Boolean is (Self.Store /= null);
+   function Persists (Self : View_Model) return Boolean
+   is (Self.Store /= null);
 
-   function Is_Showing (Self : View_Model) return Boolean is (Flag_Properties.Get (Self.Showing));
+   function Is_Showing (Self : View_Model) return Boolean
+   is (Flag_Properties.Get (Self.Showing));
 
-   function Theme (Self : View_Model) return Preferences.Theme_Choices is (Theme_Properties.Get (Self.Themes));
+   function Theme (Self : View_Model) return Preferences.Theme_Choices
+   is (Theme_Properties.Get (Self.Themes));
 
-   function Background (Self : View_Model) return Preferences.Background_Modes is
-     (Background_Properties.Get (Self.Pictures));
+   function Background (Self : View_Model) return Preferences.Background_Modes
+   is (Background_Properties.Get (Self.Pictures));
 
-   function Speech_Model (Self : View_Model) return Preferences.Speech_Models is
-     (Speech_Properties.Get (Self.Voice));
+   function Speech_Model (Self : View_Model) return Preferences.Speech_Models
+   is (Speech_Properties.Get (Self.Voice));
 
-   function VSync (Self : View_Model) return Boolean is (Flag_Properties.Get (Self.Ticked));
+   function VSync (Self : View_Model) return Boolean
+   is (Flag_Properties.Get (Self.Ticked));
 
-   function Seed (Self : View_Model) return Natural is (Self.Number);
+   function Seed (Self : View_Model) return Natural
+   is (Self.Number);
 
-   function Keep_Failed (Self : View_Model) return Boolean is (Self.Failed);
+   function Keep_Failed (Self : View_Model) return Boolean
+   is (Self.Failed);
 
    --  How the download stands
 
-   function Download_State (Self : View_Model) return Speech.Models.States is (Self.Download.State);
+   function Download_State (Self : View_Model) return Speech.Models.States
+   is (Self.Download.State);
 
-   function Running (Self : View_Model) return Boolean is (Self.Download.State = Speech.Models.Running);
+   function Running (Self : View_Model) return Boolean
+   is (Self.Download.State = Speech.Models.Running);
 
-   function Download_Row_Shown (Self : View_Model) return Boolean is (Speech_Model (Self) = Preferences.Parakeet);
+   function Download_Row_Shown (Self : View_Model) return Boolean
+   is (Speech_Model (Self) = Preferences.Parakeet);
 
-   function Download_Button_Shown (Self : View_Model) return Boolean is (not Self.Download.Present);
+   function Download_Button_Shown (Self : View_Model) return Boolean
+   is (not Self.Download.Present);
 
-   function Delete_Button_Shown (Self : View_Model) return Boolean is
-     (Self.Download.Present and then not Running (Self));
+   function Delete_Button_Shown (Self : View_Model) return Boolean
+   is (Self.Download.Present and then not Running (Self));
 
-   function Download_Bar_Shown (Self : View_Model) return Boolean is
-     (Download_Row_Shown (Self) and then Running (Self));
+   function Download_Bar_Shown (Self : View_Model) return Boolean
+   is (Download_Row_Shown (Self) and then Running (Self));
 
-   function Download_Fraction (Self : View_Model) return Float is (Self.Download.Fraction);
+   function Download_Fraction (Self : View_Model) return Float
+   is (Self.Download.Fraction);
 
-   function Trimmed (Value : Long_Long_Integer) return String is
-     (Ada.Strings.Fixed.Trim (Value'Image, Ada.Strings.Left));
+   function Trimmed (Value : Long_Long_Integer) return String
+   is (Ada.Strings.Fixed.Trim (Value'Image, Ada.Strings.Left));
 
    function Size_Text (Bytes : Long_Long_Integer) return String is
       function Digits_Of (Value : Long_Long_Integer; Width : Positive) return String is
@@ -77,16 +92,23 @@ package body Settings_VM is
       end if;
    end Size_Text;
 
-   function Size_On_Disk_Text (Self : View_Model) return String is (Size_Text (Self.Download.On_Disk));
+   function Size_On_Disk_Text (Self : View_Model) return String
+   is (Size_Text (Self.Download.On_Disk));
 
-   function Percent (Self : View_Model) return String is
-     (Trimmed (Long_Long_Integer (Natural (Self.Download.Fraction * 100.0))) & "%");
+   function Percent (Self : View_Model) return String
+   is (Trimmed (Long_Long_Integer (Natural (Self.Download.Fraction * 100.0))) & "%");
 
    --  "123.4 MB of 483.0 MB (25%)", or just the percentage while the total is not known.
-   function Progress_Text (Self : View_Model) return String is
-     (if Self.Download.Total = 0 then Percent (Self)
-      else Size_Text (Long_Long_Integer (Float (Self.Download.Total) * Self.Download.Fraction))
-           & " of " & Size_Text (Self.Download.Total) & " (" & Percent (Self) & ")");
+   function Progress_Text (Self : View_Model) return String
+   is (if Self.Download.Total = 0
+       then Percent (Self)
+       else
+         Size_Text (Long_Long_Integer (Float (Self.Download.Total) * Self.Download.Fraction))
+         & " of "
+         & Size_Text (Self.Download.Total)
+         & " ("
+         & Percent (Self)
+         & ")");
 
    function Download_Status (Self : View_Model) return String is
    begin
@@ -94,12 +116,15 @@ package body Settings_VM is
          return "Model available, " & Size_On_Disk_Text (Self) & " on disk";
       end if;
       case Self.Download.State is
-         when Speech.Models.Running =>
-            return (if Self.Download.Preparing
-                    then "Preparing the model, once only"
-                    else "Downloading " & Progress_Text (Self));
-         when Speech.Models.Failed =>
+         when Speech.Models.Running                   =>
+            return
+              (if Self.Download.Preparing
+               then "Preparing the model, once only"
+               else "Downloading " & Progress_Text (Self));
+
+         when Speech.Models.Failed                    =>
             return "Download failed: " & Ada.Strings.Unbounded.To_String (Self.Download.Message);
+
          when Speech.Models.Idle | Speech.Models.Done =>
             return "Model not downloaded";
       end case;
@@ -159,18 +184,24 @@ package body Settings_VM is
       Look (Self, Files => True);
    end Initialize;
 
-   overriding function Can_Execute (Self : View_Model; What : Command; Index : Natural := 0) return Boolean is
+   overriding
+   function Can_Execute (Self : View_Model; What : Command; Index : Natural := 0) return Boolean is
    begin
       return
         (case What is
-            when Open           => not Is_Showing (Self),
-            when Close          => Is_Showing (Self),
-            when Download_Model => not Self.Download.Present and then not Running (Self),
-            when Delete_Model | Confirm_Delete => Self.Download.Present and then not Running (Self),
-            when New_Picture => Is_Showing (Self) and then Self.Reactions /= null
-              and then Index in Preferences.Background_Modes'Pos (Preferences.Pictures'First)
-                .. Preferences.Background_Modes'Pos (Preferences.Pictures'Last),
-            when Choose_Theme | Choose_Background | Choose_Speech_Model | Toggle_VSync | Reseed => True);
+           when Open                                                                           => not Is_Showing (Self),
+           when Close                                                                          => Is_Showing (Self),
+           when Download_Model                                                                 =>
+             not Self.Download.Present and then not Running (Self),
+           when Delete_Model | Confirm_Delete                                                  =>
+             Self.Download.Present and then not Running (Self),
+           when New_Picture                                                                    =>
+             Is_Showing (Self)
+             and then Self.Reactions /= null
+             and then Index
+                      in Preferences.Background_Modes'Pos (Preferences.Pictures'First)
+                       .. Preferences.Background_Modes'Pos (Preferences.Pictures'Last),
+           when Choose_Theme | Choose_Background | Choose_Speech_Model | Toggle_VSync | Reseed => True);
    end Can_Execute;
 
    --  Keep a choice, if there is anywhere to. A save that fails is not a reason to take the choice back,
@@ -229,28 +260,33 @@ package body Settings_VM is
    procedure Keep_VSync is new Keep (Boolean, Save_Wait);
    procedure Keep_Seed is new Keep (Natural, Save_Number);
 
-   overriding procedure Execute (Self : in out View_Model; What : Command; Index : Natural := 0) is
+   overriding
+   procedure Execute (Self : in out View_Model; What : Command; Index : Natural := 0) is
    begin
       case What is
-         when Open =>
+         when Open                =>
             Flag_Properties.Set (Self.Showing, True);
             Look (Self, Files => True);
-         when Close =>
+
+         when Close               =>
             Flag_Properties.Set (Self.Showing, False);
-         when Choose_Theme =>
+
+         when Choose_Theme        =>
             declare
                To : constant Preferences.Theme_Choices := Preferences.Theme_Choices'Val (Index);
             begin
                Theme_Properties.Set (Self.Themes, To);
                Keep_Theme (Self, To);
             end;
-         when Choose_Background =>
+
+         when Choose_Background   =>
             declare
                To : constant Preferences.Background_Modes := Preferences.Background_Modes'Val (Index);
             begin
                Background_Properties.Set (Self.Pictures, To);
                Keep_Background (Self, To);
             end;
+
          when Choose_Speech_Model =>
             declare
                To : constant Preferences.Speech_Models := Preferences.Speech_Models'Val (Index);
@@ -258,22 +294,25 @@ package body Settings_VM is
                Speech_Properties.Set (Self.Voice, To);
                Keep_Speech (Self, To);
             end;
-         when Toggle_VSync =>
+
+         when Toggle_VSync        =>
             Flag_Properties.Set (Self.Ticked, not VSync (Self));
             Keep_VSync (Self, VSync (Self));
-         when Reseed =>
+
+         when Reseed              =>
             if Index >= Preferences.Seed_Limit then
                raise Constraint_Error with "a seed is below" & Preferences.Seed_Limit'Image;
             end if;
             Self.Number := Index;
             Parts.Bump (Self.Changes);
             Keep_Seed (Self, Index);
-         when New_Picture =>
+
+         when New_Picture         =>
             declare
-               To : constant Preferences.Pictures := Preferences.Pictures'Val (Index);
-               Number : constant Natural range 0 .. Preferences.Seed_Limit - 1 :=
+               To                : constant Preferences.Pictures := Preferences.Pictures'Val (Index);
+               Number            : constant Natural range 0 .. Preferences.Seed_Limit - 1 :=
                  New_Picture_Seed (Self.Reactions.all);
-               Failed_Before : constant Boolean := Self.Failed;
+               Failed_Before     : constant Boolean := Self.Failed;
                Background_Failed : Boolean;
             begin
                Background_Properties.Set (Self.Pictures, To);
@@ -289,22 +328,27 @@ package body Settings_VM is
                   Parts.Bump (Self.Changes);
                end if;
             end;
-         when Download_Model =>
+
+         when Download_Model      =>
             Start (Self.Source.all);
             Look (Self, Files => True);
-         when Delete_Model =>
+
+         when Delete_Model        =>
             Delete (Self.Source.all);
             Look (Self, Files => True);
-         when Confirm_Delete =>
+
+         when Confirm_Delete      =>
             null;
       end case;
       if Self.Reactions /= null then
          case What is
-            when Open | Close =>
+            when Open | Close   =>
                null;
+
             when Confirm_Delete =>
                Ask_To_Delete (Self.Reactions.all, Size_On_Disk_Text (Self));
-            when others =>
+
+            when others         =>
                Done (Self.Reactions.all, What);
          end case;
       end if;

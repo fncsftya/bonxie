@@ -9,6 +9,7 @@
 --  pin of any window but the one it starts from, and a small toolbar beside
 --  it chooses how it is drawn (stroke, end, colour, all kept) and deletes
 --  it, as Backspace does.
+
 private package View.Links is
 
    procedure Build (Item : in out Session);
@@ -20,19 +21,19 @@ private package View.Links is
    --  have them listened to.
 
    procedure Enter (Item : in out Session)
-     with Pre => Screen (Item) = Project;
+   with Pre => Screen (Item) = Project;
    --  Load the project's links, once its windows are on the canvas.
 
    procedure Leave (Item : in out Session);
    --  Put the pins and lines away.
 
    procedure Reload (Item : in out Session)
-     with Pre => Screen (Item) = Project;
+   with Pre => Screen (Item) = Project;
    --  Read the links again, as of an item that was removed with its
    --  links.
 
    procedure Update (Item : in out Session)
-     with Pre => Screen (Item) = Project;
+   with Pre => Screen (Item) = Project;
    --  Show the pins where the pointer is, put them at the windows' edges,
    --  take what has been dragged from them and let go on, and clicked on
    --  the toolbar, and draw the links and the line being dragged. Do it

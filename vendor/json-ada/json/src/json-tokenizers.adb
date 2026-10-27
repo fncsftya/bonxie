@@ -20,13 +20,10 @@ with Ada.Strings.Bounded;
 
 package body JSON.Tokenizers is
 
-   procedure Read_String
-     (Stream     : in out Streams.Stream;
-      Next_Token : out Token)
-   is
-      C : Character;
+   procedure Read_String (Stream : in out Streams.Stream; Next_Token : out Token) is
+      C             : Character;
       Index, Length : Streams.AS.Stream_Element_Offset := 0;
-      Escaped : Boolean := False;
+      Escaped       : Boolean := False;
       use type Streams.AS.Stream_Element_Offset;
 
       function Hex4 return Natural is
@@ -35,12 +32,14 @@ package body JSON.Tokenizers is
          for Each in 1 .. 4 loop
             Stream.Read_Character (C);
             Length := Length + Streams.AS.Stream_Element_Offset'(1);
-            Code := Code * 16
+            Code :=
+              Code
+              * 16
               + (case C is
                    when '0' .. '9' => Character'Pos (C) - Character'Pos ('0'),
                    when 'a' .. 'f' => Character'Pos (C) - Character'Pos ('a') + 10,
                    when 'A' .. 'F' => Character'Pos (C) - Character'Pos ('A') + 10,
-                   when others => raise Tokenizer_Error with "Invalid Unicode escape");
+                   when others     => raise Tokenizer_Error with "Invalid Unicode escape");
          end loop;
          return Code;
       end Hex4;
@@ -67,7 +66,8 @@ package body JSON.Tokenizers is
             case C is
                when '"' | '\' | '/' | 'b' | 'f' | 'n' | 'r' | 't' =>
                   null;
-               when 'u' =>
+
+               when 'u'                                           =>
                   declare
                      Code : constant Natural := Hex4;
                   begin
@@ -93,7 +93,8 @@ package body JSON.Tokenizers is
                         raise Tokenizer_Error with "Unexpected low surrogate";
                      end if;
                   end;
-               when others =>
+
+               when others                                        =>
                   raise Tokenizer_Error with "Unexpected escaped character in string";
             end case;
          elsif C /= '\' then
@@ -104,8 +105,7 @@ package body JSON.Tokenizers is
          end if;
          Escaped := not Escaped and C = '\';
       end loop;
-      Next_Token := Token'
-        (Kind => String_Token, String_Offset => Index - Length, String_Length => Length);
+      Next_Token := Token'(Kind => String_Token, String_Offset => Index - Length, String_Length => Length);
    end Read_String;
 
    procedure Test_Leading_Zeroes (First : Character; Value : String) is
@@ -123,38 +123,27 @@ package body JSON.Tokenizers is
       end if;
    end Test_Leading_Zeroes;
 
-   procedure Read_Number
-     (Stream     : in out Streams.Stream;
-      First      : Character;
-      Next_Token : out Token)
-   is
-      package SB is new Ada.Strings.Bounded.Generic_Bounded_Length
-        (Max => Types.Maximum_String_Length_Numbers);
+   procedure Read_Number (Stream : in out Streams.Stream; First : Character; Next_Token : out Token) is
+      package SB is new Ada.Strings.Bounded.Generic_Bounded_Length (Max => Types.Maximum_String_Length_Numbers);
 
-      Value : SB.Bounded_String;
-      C     : Character;
+      Value                            : SB.Bounded_String;
+      C                                : Character;
       Is_Float, Checked_Leading_Zeroes : Boolean := False;
 
-      Error_Dot_Message : constant String
-        := "Number must contain at least one digit after decimal point";
-      Error_Exp_Message : constant String
-        := "Expected optional +/- sign after e/E and then at least one digit";
-      Error_Plus_Message : constant String
-        := "Prefixing number with '+' character is not allowed";
-      Error_One_Digit_Message : constant String
-        := "Expected at least one digit after +/- sign in number";
-      Error_Length_Message : constant String
-        := "Number is longer than" & Types.Maximum_String_Length_Numbers'Image & " characters";
+      Error_Dot_Message       : constant String := "Number must contain at least one digit after decimal point";
+      Error_Exp_Message       : constant String := "Expected optional +/- sign after e/E and then at least one digit";
+      Error_Plus_Message      : constant String := "Prefixing number with '+' character is not allowed";
+      Error_One_Digit_Message : constant String := "Expected at least one digit after +/- sign in number";
+      Error_Length_Message    : constant String :=
+        "Number is longer than" & Types.Maximum_String_Length_Numbers'Image & " characters";
 
       procedure Create_Token_From_Number is
          Number : constant String := SB.To_String (Value);
       begin
          if Is_Float then
-            Next_Token := Token'(Kind => Float_Token,
-              Float_Value => Types.Float_Type'Value (Number));
+            Next_Token := Token'(Kind => Float_Token, Float_Value => Types.Float_Type'Value (Number));
          else
-            Next_Token := Token'(Kind => Integer_Token,
-              Integer_Value => Types.Integer_Type'Value (Number));
+            Next_Token := Token'(Kind => Integer_Token, Integer_Value => Types.Integer_Type'Value (Number));
          end if;
       end Create_Token_From_Number;
    begin
@@ -256,18 +245,13 @@ package body JSON.Tokenizers is
          raise Tokenizer_Error with Error_Length_Message;
    end Read_Number;
 
-   procedure Read_Literal
-     (Stream     : in out Streams.Stream;
-      First      : Character;
-      Next_Token : out Token)
-   is
+   procedure Read_Literal (Stream : in out Streams.Stream; First : Character; Next_Token : out Token) is
       package SB is new Ada.Strings.Bounded.Generic_Bounded_Length (Max => 5);
 
       Value : SB.Bounded_String;
       C     : Character;
 
-      Unexpected_Literal_Message : constant String
-        := "Expected literal 'true', 'false', or 'null'";
+      Unexpected_Literal_Message : constant String := "Expected literal 'true', 'false', or 'null'";
 
       procedure Create_Token_From_Literal is
          Literal : constant String := SB.To_String (Value);
@@ -300,11 +284,7 @@ package body JSON.Tokenizers is
          raise Tokenizer_Error with Unexpected_Literal_Message;
    end Read_Literal;
 
-   procedure Read_Token
-     (Stream     : in out Streams.Stream;
-      Next_Token : out Token;
-      Expect_EOF : Boolean := False)
-   is
+   procedure Read_Token (Stream : in out Streams.Stream; Next_Token : out Token; Expect_EOF : Boolean := False) is
       C : Character;
 
       use Ada.Characters.Latin_1;
@@ -330,25 +310,34 @@ package body JSON.Tokenizers is
       end if;
 
       case C is
-         when '[' =>
+         when '['                    =>
             Next_Token := Token'(Kind => Begin_Array_Token);
-         when '{' =>
+
+         when '{'                    =>
             Next_Token := Token'(Kind => Begin_Object_Token);
-         when ']' =>
+
+         when ']'                    =>
             Next_Token := Token'(Kind => End_Array_Token);
-         when '}' =>
+
+         when '}'                    =>
             Next_Token := Token'(Kind => End_Object_Token);
-         when ':' =>
+
+         when ':'                    =>
             Next_Token := Token'(Kind => Name_Separator_Token);
-         when ',' =>
+
+         when ','                    =>
             Next_Token := Token'(Kind => Value_Separator_Token);
-         when '"' =>
+
+         when '"'                    =>
             Read_String (Stream, Next_Token);
+
          when '0' .. '9' | '+' | '-' =>
             Read_Number (Stream, C, Next_Token);
-         when 'a' .. 'z' =>
+
+         when 'a' .. 'z'             =>
             Read_Literal (Stream, C, Next_Token);
-         when others =>
+
+         when others                 =>
             raise Tokenizer_Error with "Unexpected character";
       end case;
    exception

@@ -12,6 +12,7 @@ with Speech.Models;
 --  Applying a choice to the world (the window's VSync, the colours the windows
 --  are drawn in, the painted background) is the view's, as a reaction to
 --  Version: see View.Settings_View.
+
 package Settings_VM is
 
    package Parts renames Pomarine.View_Models;
@@ -36,7 +37,7 @@ package Settings_VM is
       Delete_Model,
       --  Remove them.
       Confirm_Delete);
-      --  Ask whether to remove them (Effects.Ask_To_Delete); Delete_Model is the answer.
+   --  Ask whether to remove them (Effects.Ask_To_Delete); Delete_Model is the answer.
 
    package Commands is new Parts.Command_Models (Command);
 
@@ -89,7 +90,7 @@ package Settings_VM is
    --  After What was executed (not Open and Close, which are the navigation's).
 
    function New_Picture_Seed (Self : in out Effects) return Natural is abstract
-     with Post'Class => New_Picture_Seed'Result < Preferences.Seed_Limit;
+   with Post'Class => New_Picture_Seed'Result < Preferences.Seed_Limit;
    --  Generate a picture seed; the model owns choosing its style and keeping the result.
 
    procedure Ask_To_Delete (Self : in out Effects; Size : String) is abstract;
@@ -98,9 +99,9 @@ package Settings_VM is
    type View_Model is limited new Commands.Model with private;
 
    procedure Initialize
-     (Self       : in out View_Model;
-      Source     : not null access Model_Source'Class;
-      Kept_In    : access Store'Class;
+     (Self            : in out View_Model;
+      Source          : not null access Model_Source'Class;
+      Kept_In         : access Store'Class;
       Config_Dir      : String;
       Kept_Speech     : Preferences.Speech_Models := Preferences.MacOS;
       Kept_Theme      : Preferences.Theme_Choices := Preferences.System;
@@ -117,23 +118,28 @@ package Settings_VM is
    function Persists (Self : View_Model) return Boolean;
    --  Whether the choices are kept: it has a Store.
 
-   overriding function Version (Self : View_Model) return Parts.Version_Number;
+   overriding
+   function Version (Self : View_Model) return Parts.Version_Number;
 
-   overriding function Can_Execute (Self : View_Model; What : Command; Index : Natural := 0) return Boolean;
+   overriding
+   function Can_Execute (Self : View_Model; What : Command; Index : Natural := 0) return Boolean;
    --  Open: the settings are not shown. Close: they are. Download_Model: the
    --  files are not there and not on their way. Delete_Model and Confirm_Delete: they are there and
    --  not being replaced. The choices, Toggle_VSync and Reseed: always.
    --  New_Picture: settings are shown, effects are injected, and Index names a pictured style.
 
-   overriding procedure Execute (Self : in out View_Model; What : Command; Index : Natural := 0)
-     with Post => (case What is
-                      when Open => Is_Showing (Self),
-                      when Close => not Is_Showing (Self),
-                      when Choose_Theme => Preferences.Theme_Choices'Pos (Theme (Self)) = Index,
-                      when Choose_Background => Preferences.Background_Modes'Pos (Background (Self)) = Index,
-                      when New_Picture => Preferences.Background_Modes'Pos (Background (Self)) = Index,
-                      when Choose_Speech_Model => Preferences.Speech_Models'Pos (Speech_Model (Self)) = Index,
-                      when others => True);
+   overriding
+   procedure Execute (Self : in out View_Model; What : Command; Index : Natural := 0)
+   with
+     Post =>
+       (case What is
+          when Open                => Is_Showing (Self),
+          when Close               => not Is_Showing (Self),
+          when Choose_Theme        => Preferences.Theme_Choices'Pos (Theme (Self)) = Index,
+          when Choose_Background   => Preferences.Background_Modes'Pos (Background (Self)) = Index,
+          when New_Picture         => Preferences.Background_Modes'Pos (Background (Self)) = Index,
+          when Choose_Speech_Model => Preferences.Speech_Models'Pos (Speech_Model (Self)) = Index,
+          when others              => True);
    --  A choice out of range raises Constraint_Error, and changes nothing.
 
    --  What is chosen
@@ -149,7 +155,7 @@ package Settings_VM is
    function VSync (Self : View_Model) return Boolean;
 
    function Seed (Self : View_Model) return Natural
-     with Post => Seed'Result < Preferences.Seed_Limit;
+   with Post => Seed'Result < Preferences.Seed_Limit;
    --  Of the picture last painted (Reseed).
 
    function Keep_Failed (Self : View_Model) return Boolean;
@@ -176,7 +182,7 @@ package Settings_VM is
    --  For Parakeet, while they come.
 
    function Download_Fraction (Self : View_Model) return Float
-     with Post => Download_Fraction'Result in 0.0 .. 1.0;
+   with Post => Download_Fraction'Result in 0.0 .. 1.0;
 
    function Download_Status (Self : View_Model) return String;
    --  What is said by the button: "Model not downloaded", "Downloading 12.3 MB of
@@ -186,7 +192,7 @@ package Settings_VM is
    --  As people say it: "483.0 MB".
 
    function Size_Text (Bytes : Long_Long_Integer) return String
-     with Post => Size_Text'Result /= "";
+   with Post => Size_Text'Result /= "";
    --  "12 KB", "483.0 MB", or "1.20 GB" from a thousand megabytes.
 
 private
@@ -214,21 +220,21 @@ private
    --  What the source said when last asked.
 
    type View_Model is limited new Commands.Model with record
-      Source   : Source_Access;
-      Store    : Store_Access;
+      Source    : Source_Access;
+      Store     : Store_Access;
       Reactions : Effects_Access;
-      Config   : Ada.Strings.Unbounded.Unbounded_String;
-      Showing  : Flag_Properties.Property;
-      Themes   : Theme_Properties.Property;
-      Pictures : Background_Properties.Property;
-      Voice    : Speech_Properties.Property;
-      Ticked   : Flag_Properties.Property;
+      Config    : Ada.Strings.Unbounded.Unbounded_String;
+      Showing   : Flag_Properties.Property;
+      Themes    : Theme_Properties.Property;
+      Pictures  : Background_Properties.Property;
+      Voice     : Speech_Properties.Property;
+      Ticked    : Flag_Properties.Property;
       --  VSync.
-      Number   : Natural range 0 .. Preferences.Seed_Limit - 1 := 0;
-      Download : Snapshot;
-      Changes  : Parts.Change_Counter;
+      Number    : Natural range 0 .. Preferences.Seed_Limit - 1 := 0;
+      Download  : Snapshot;
+      Changes   : Parts.Change_Counter;
       --  Of what is not a property: the download, the seed, a save that failed.
-      Failed   : Boolean := False;
+      Failed    : Boolean := False;
    end record;
 
 end Settings_VM;

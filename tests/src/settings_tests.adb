@@ -16,7 +16,8 @@ package body Settings_Tests is
    use type Preferences.Speech_Models;
    use type Preferences.Theme_Choices;
 
-   function Image (Value : Boolean) return String is (Value'Image);
+   function Image (Value : Boolean) return String
+   is (Value'Image);
 
    procedure Check (Name : String; Expected, Actual : String) renames Goldens.Check_Text;
 
@@ -45,19 +46,30 @@ package body Settings_Tests is
 
       --  Theme: its radio shows which is chosen, and the windows are dark or light.
       Testing.Click_On (Window, "Dark");
-      Check ("settings-name-dark", "TRUE",
-             Image (Settings.Theme_Choice (Session) = Preferences.Dark and then Settings.Is_Dark (Session)
-                    and then Testing.Shows (Window, "radio button 'Dark' ON")
-                    and then Testing.Shows (Window, "radio button 'Light' OFF")));
+      Check
+        ("settings-name-dark",
+         "TRUE",
+         Image
+           (Settings.Theme_Choice (Session) = Preferences.Dark
+            and then Settings.Is_Dark (Session)
+            and then Testing.Shows (Window, "radio button 'Dark' ON")
+            and then Testing.Shows (Window, "radio button 'Light' OFF")));
       Testing.Click_On (Window, "Light");
-      Check ("settings-name-light", "TRUE",
-             Image (Settings.Theme_Choice (Session) = Preferences.Light and then not Settings.Is_Dark (Session)
-                    and then Testing.Shows (Window, "radio button 'Light' ON")
-                    and then Testing.Shows (Window, "radio button 'Dark' OFF")));
+      Check
+        ("settings-name-light",
+         "TRUE",
+         Image
+           (Settings.Theme_Choice (Session) = Preferences.Light
+            and then not Settings.Is_Dark (Session)
+            and then Testing.Shows (Window, "radio button 'Light' ON")
+            and then Testing.Shows (Window, "radio button 'Dark' OFF")));
       Testing.Click_On (Window, "System");
-      Check ("settings-name-system", "TRUE",
-             Image (Settings.Theme_Choice (Session) = Preferences.System
-                    and then Testing.Shows (Window, "radio button 'System' ON")));
+      Check
+        ("settings-name-system",
+         "TRUE",
+         Image
+           (Settings.Theme_Choice (Session) = Preferences.System
+            and then Testing.Shows (Window, "radio button 'System' ON")));
       Testing.Click_On (Window, "Light");
 
       --  Both the picture and its name choose a style. Reseeding another card chooses that style too.
@@ -68,44 +80,58 @@ package body Settings_Tests is
          Before : constant Natural := Settings.Watercolour_Seed (Session);
       begin
          Testing.Click_On (Window, "New picture");
-         Check ("settings-name-reseeded", "TRUE",
-                Image (Settings.Watercolour_Seed (Session) /= Before
-                       and then Settings.Background_Choice (Session) = Preferences.Watercolour));
+         Check
+           ("settings-name-reseeded",
+            "TRUE",
+            Image
+              (Settings.Watercolour_Seed (Session) /= Before
+               and then Settings.Background_Choice (Session) = Preferences.Watercolour));
       end;
 
       --  Background: a card is clicked in its name, each a little further along the row, which is
       --  scrolled to keep the one chosen in view.
       for Mode in Preferences.Background_Modes loop
          Testing.Click_On (Window, Mode_Names (Mode).all);
-         Check ("settings-name-" & Mode_Names (Mode).all, "TRUE",
-                Image (Settings.Background_Choice (Session) = Mode));
+         Check ("settings-name-" & Mode_Names (Mode).all, "TRUE", Image (Settings.Background_Choice (Session) = Mode));
       end loop;
       Settings.Choose_Background (Session, Preferences.Fixed);
 
       --  Speech: the model's file is to be fetched, if it is not there, and only for Parakeet.
       Check ("settings-name-macos-no-download", "FALSE", Image (Testing.Exists (Window, "Download")));
       Testing.Click_On (Window, "Parakeet");
-      Check ("settings-name-parakeet", "TRUE",
-             Image (Settings.Speech_Model (Session) = Preferences.Parakeet
-                    and then Testing.Shows (Window, "radio button 'Parakeet' ON")
-                    and then Testing.Shows (Window, "radio button 'MacOS' OFF")));
-      Check ("settings-name-download-offered", "TRUE",
-             Image (Testing.Exists (Window, "Download") and then not Testing.Is_Disabled (Window, "Download")
-                    and then Testing.Shows (Window, "Model not downloaded")
-                    and then not Testing.Exists (Window, "Delete")));
+      Check
+        ("settings-name-parakeet",
+         "TRUE",
+         Image
+           (Settings.Speech_Model (Session) = Preferences.Parakeet
+            and then Testing.Shows (Window, "radio button 'Parakeet' ON")
+            and then Testing.Shows (Window, "radio button 'MacOS' OFF")));
+      Check
+        ("settings-name-download-offered",
+         "TRUE",
+         Image
+           (Testing.Exists (Window, "Download")
+            and then not Testing.Is_Disabled (Window, "Download")
+            and then Testing.Shows (Window, "Model not downloaded")
+            and then not Testing.Exists (Window, "Delete")));
       Testing.Click_On (Window, "MacOS");
-      Check ("settings-name-macos", "FALSE",
-             Image (Settings.Speech_Model (Session) = Preferences.Parakeet
-                    or else Testing.Exists (Window, "Download")));
+      Check
+        ("settings-name-macos",
+         "FALSE",
+         Image (Settings.Speech_Model (Session) = Preferences.Parakeet or else Testing.Exists (Window, "Download")));
 
       --  Graphics: VSync is a switch.
       Check ("settings-name-vsync-off", "FALSE", Image (Settings.VSync_Choice (Session)));
       Testing.Click_On (Window, "VSync");
-      Check ("settings-name-vsync-on", "TRUE",
-             Image (Settings.VSync_Choice (Session) and then Testing.Shows (Window, "switch 'VSync' ON")));
+      Check
+        ("settings-name-vsync-on",
+         "TRUE",
+         Image (Settings.VSync_Choice (Session) and then Testing.Shows (Window, "switch 'VSync' ON")));
       Testing.Click_On (Window, "VSync");
-      Check ("settings-name-vsync-again", "TRUE",
-             Image (not Settings.VSync_Choice (Session) and then Testing.Shows (Window, "switch 'VSync' OFF")));
+      Check
+        ("settings-name-vsync-again",
+         "TRUE",
+         Image (not Settings.VSync_Choice (Session) and then Testing.Shows (Window, "switch 'VSync' OFF")));
 
       --  Leaving: the way back, and Escape.
       Testing.Click_On (Window, "Projects");
@@ -115,9 +141,12 @@ package body Settings_Tests is
          Before : constant Natural := Settings.Watercolour_Seed (Session);
       begin
          Testing.Click_On (Window, "New picture");
-         Check ("settings-name-reopened-reseed", "TRUE", Image
-           (Settings.Watercolour_Seed (Session) /= Before
-            and then Settings.Background_Choice (Session) = Preferences.Watercolour));
+         Check
+           ("settings-name-reopened-reseed",
+            "TRUE",
+            Image
+              (Settings.Watercolour_Seed (Session) /= Before
+               and then Settings.Background_Choice (Session) = Preferences.Watercolour));
       end;
       Testing.Press (Window, Events.Key_Escape);
       Check ("settings-name-escaped", "FALSE", Image (Settings.Is_Settings_Open (Session)));

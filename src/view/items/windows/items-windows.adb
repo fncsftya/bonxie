@@ -20,21 +20,22 @@ package body Items.Windows is
    use type Widgets.Clipboard_Access;
    use type Docs.Version;
 
-   function Is_Assigned (Item : Window) return Boolean is
-     (Item.Model /= null and then Items.Models.Is_Assigned (Item.Model.all));
+   function Is_Assigned (Item : Window) return Boolean
+   is (Item.Model /= null and then Items.Models.Is_Assigned (Item.Model.all));
 
-   procedure Mount_Search_Bar
-     (Item : in out Window; Screen : in out Pomarine.UI.View; Content : Pomarine.UI.Layout) is
+   procedure Mount_Search_Bar (Item : in out Window; Screen : in out Pomarine.UI.View; Content : Pomarine.UI.Layout) is
    begin
       Pomarine.UI.Mount_Before (Screen, Frames.Content_End (Item.Chrome).all, Content);
    end Mount_Search_Bar;
 
-   function Searchable (Item : Window) return Boolean is
-     (Is_Assigned (Item) and then Items.Models.Details (Item.Model.all).State = Open and then
-       (Items.Models.Details (Item.Model.all).Kind /= Source or else Items.Models.Is_Text_Source (Item.Model.all)
-        or else Items.Models.Is_Paged (Item.Model.all)
-        or else (Items.Models.Details (Item.Model.all).Origin = Remote
-                 and then Items.Models.Recognized (Item.Model.all).Count > 0)));
+   function Searchable (Item : Window) return Boolean
+   is (Is_Assigned (Item)
+       and then Items.Models.Details (Item.Model.all).State = Open
+       and then (Items.Models.Details (Item.Model.all).Kind /= Source
+                 or else Items.Models.Is_Text_Source (Item.Model.all)
+                 or else Items.Models.Is_Paged (Item.Model.all)
+                 or else (Items.Models.Details (Item.Model.all).Origin = Remote
+                          and then Items.Models.Recognized (Item.Model.all).Count > 0)));
 
    procedure Search (Item : in out Window; Term : String) is
       M : Items.Models.Item renames Item.Model.all;
@@ -68,24 +69,28 @@ package body Items.Windows is
       end if;
    end Search_Step;
 
-   function Search_Busy (Item : Window) return Boolean is
-     (Items.Models.Is_Paged (Item.Model.all) and then Views.Search_Busy (Item.Pages));
+   function Search_Busy (Item : Window) return Boolean
+   is (Items.Models.Is_Paged (Item.Model.all) and then Views.Search_Busy (Item.Pages));
 
-   function Search_Count (Item : Window) return Natural is
-     (if Items.Models.Details (Item.Model.all).Kind /= Source then Editors.Search_Count (Item.Body_Text)
-      elsif Items.Models.Is_Text_Source (Item.Model.all) then Editors.Search_Count (Item.Text_View)
-      elsif Items.Models.Is_Paged (Item.Model.all) then Views.Search_Count (Item.Pages)
-      else Pictures.Search_Count (Item.Picture));
+   function Search_Count (Item : Window) return Natural
+   is (if Items.Models.Details (Item.Model.all).Kind /= Source
+       then Editors.Search_Count (Item.Body_Text)
+       elsif Items.Models.Is_Text_Source (Item.Model.all)
+       then Editors.Search_Count (Item.Text_View)
+       elsif Items.Models.Is_Paged (Item.Model.all)
+       then Views.Search_Count (Item.Pages)
+       else Pictures.Search_Count (Item.Picture));
 
-   function Search_Current (Item : Window) return Natural is
-     (if Items.Models.Details (Item.Model.all).Kind /= Source then Editors.Search_Current (Item.Body_Text)
-      elsif Items.Models.Is_Text_Source (Item.Model.all) then Editors.Search_Current (Item.Text_View)
-      elsif Items.Models.Is_Paged (Item.Model.all) then Views.Search_Current (Item.Pages)
-      else Pictures.Search_Current (Item.Picture));
+   function Search_Current (Item : Window) return Natural
+   is (if Items.Models.Details (Item.Model.all).Kind /= Source
+       then Editors.Search_Current (Item.Body_Text)
+       elsif Items.Models.Is_Text_Source (Item.Model.all)
+       then Editors.Search_Current (Item.Text_View)
+       elsif Items.Models.Is_Paged (Item.Model.all)
+       then Views.Search_Current (Item.Pages)
+       else Pictures.Search_Current (Item.Picture));
 
-   procedure Set_Shared
-     (Item   : in out Window;
-      Shared : not null Shared_Access) is
+   procedure Set_Shared (Item : in out Window; Shared : not null Shared_Access) is
    begin
       Frames.Share_Title (Item.Chrome, Shared);
       Editors.Set_Shared (Item.Body_Text, Shared);
@@ -97,11 +102,7 @@ package body Items.Windows is
       Frames.Set_Tag (Item.Chrome, To);
    end Set_Tag;
 
-   procedure Set_Outline_Link
-     (Item   : in out Window;
-      Linked : Boolean;
-      Ink    : Pomarine.Themes.Slot;
-      Open   : Boolean) is
+   procedure Set_Outline_Link (Item : in out Window; Linked : Boolean; Ink : Pomarine.Themes.Slot; Open : Boolean) is
    begin
       if Items.Models.Details (Item.Model.all).Kind = Note then
          if Linked then
@@ -112,29 +113,31 @@ package body Items.Windows is
       end if;
    end Set_Outline_Link;
 
-   function Outline_Box (Item : Window) return Items.Frame is
-     ((Left   => Widgets.Left_Of (Item.Outline_Button),
-       Top    => Widgets.Top_Of (Item.Outline_Button),
-       Width  => Widgets.Width_Of (Item.Outline_Button),
-       Height => Widgets.Height_Of (Item.Outline_Button)));
+   function Outline_Box (Item : Window) return Items.Frame
+   is ((Left   => Widgets.Left_Of (Item.Outline_Button),
+        Top    => Widgets.Top_Of (Item.Outline_Button),
+        Width  => Widgets.Width_Of (Item.Outline_Button),
+        Height => Widgets.Height_Of (Item.Outline_Button)));
 
-   procedure Set_Dictation_Editor
-     (Item : in out Window; To : access Pomarine.Widgets.Editors.Editor) is
+   procedure Set_Dictation_Editor (Item : in out Window; To : access Pomarine.Widgets.Editors.Editor) is
    begin
       Item.Dictate_In := To;
    end Set_Dictation_Editor;
 
-   function Marks_Version (Item : Window) return Natural is
-     (Parts.Shown_Marks_Version (Item));
+   function Marks_Version (Item : Window) return Natural
+   is (Parts.Shown_Marks_Version (Item));
 
-   function Is_Marking (Item : Window) return Boolean is
-     (if Items.Models.Is_Paged (Item.Model.all) then Views.Is_Marking (Item.Pages)
-      else Pomarine.Widgets.Pictures.Is_Marking (Item.Picture));
+   function Is_Marking (Item : Window) return Boolean
+   is (if Items.Models.Is_Paged (Item.Model.all)
+       then Views.Is_Marking (Item.Pages)
+       else Pomarine.Widgets.Pictures.Is_Marking (Item.Picture));
 
    procedure Get_Marks (Item : Window; Into : out Items.Marks.Mark_List) is
    begin
-      Into.Past := (if Items.Models.Is_Paged (Item.Model.all) then Views.History_Of (Item.Pages)
-                    else Pomarine.Widgets.Pictures.History_Of (Item.Picture));
+      Into.Past :=
+        (if Items.Models.Is_Paged (Item.Model.all)
+         then Views.History_Of (Item.Pages)
+         else Pomarine.Widgets.Pictures.History_Of (Item.Picture));
       if Items.Models.Is_Paged (Item.Model.all) then
          Into.Count := Views.Mark_Count (Item.Pages);
          Pomarine.Marks.Reserve (Into.Marks, Into.Count);
@@ -152,8 +155,7 @@ package body Items.Windows is
       Pomarine.Marks.Reserve (Into.Marks, Into.Count);
       for Index in 1 .. Into.Count loop
          declare
-            Each : constant Pomarine.Widgets.Pictures.Mark :=
-              Pomarine.Widgets.Pictures.Mark_At (Item.Picture, Index);
+            Each : constant Pomarine.Widgets.Pictures.Mark := Pomarine.Widgets.Pictures.Mark_At (Item.Picture, Index);
          begin
             Into.Marks.Data (Index) :=
               (Left => Each.Left, Right => Each.Right, Y => Each.Y, Page => 1, Trace => Each.Trace);
@@ -161,44 +163,44 @@ package body Items.Windows is
       end loop;
    end Get_Marks;
 
-   function Recognized_Count (Item : Window) return Natural is
-     (if Items.Models.Is_Paged (Item.Model.all) then Views.Word_Count (Item.Pages)
-      else Items.Models.Recognized (Item.Model.all).Count);
+   function Recognized_Count (Item : Window) return Natural
+   is (if Items.Models.Is_Paged (Item.Model.all)
+       then Views.Word_Count (Item.Pages)
+       else Items.Models.Recognized (Item.Model.all).Count);
 
-   function Document_Page (Item : Window) return Natural is
-     (if Items.Models.Is_Paged (Item.Model.all) and then Views.Is_Settled (Item.Pages)
-      then Views.Current_Page (Item.Pages) else 0);
+   function Document_Page (Item : Window) return Natural
+   is (if Items.Models.Is_Paged (Item.Model.all) and then Views.Is_Settled (Item.Pages)
+       then Views.Current_Page (Item.Pages)
+       else 0);
 
    procedure Go_To_Page (Item : in out Window; Page : Positive) is
    begin
       Views.Show_Page (Item.Pages, Page);
    end Go_To_Page;
 
-   function Selected_Text (Item : Window) return String is
-     (if Items.Models.Is_Paged (Item.Model.all) then Views.Selected_Text (Item.Pages)
-      else Pomarine.Widgets.Pictures.Selected_Text (Item.Picture));
+   function Selected_Text (Item : Window) return String
+   is (if Items.Models.Is_Paged (Item.Model.all)
+       then Views.Selected_Text (Item.Pages)
+       else Pomarine.Widgets.Pictures.Selected_Text (Item.Picture));
 
-   function Selected_Shown_Text (Item : Window) return String is
-     (Pomarine.Text_Areas.Selected_Text
-        (Editors.Area (Item.Text_View'Unrestricted_Access.all).all));
+   function Selected_Shown_Text (Item : Window) return String
+   is (Pomarine.Text_Areas.Selected_Text (Editors.Area (Item.Text_View'Unrestricted_Access.all).all));
    --  (Area takes the editor to change; looking does not.)
 
-   function Box (Item : Window) return Items.Frame is
-     ((Left   => Frames.Left_Of (Item.Chrome),
-       Top    => Frames.Top_Of (Item.Chrome),
-       Width  => Frames.Width_Of (Item.Chrome),
-       Height => Frames.Height_Of (Item.Chrome)));
+   function Box (Item : Window) return Items.Frame
+   is ((Left   => Frames.Left_Of (Item.Chrome),
+        Top    => Frames.Top_Of (Item.Chrome),
+        Width  => Frames.Width_Of (Item.Chrome),
+        Height => Frames.Height_Of (Item.Chrome)));
 
-   function Owns (Item : Window; Hit : Pomarine.Widgets.Widget_Access)
-     return Boolean is (Frames.Owns (Item.Chrome, Hit));
+   function Owns (Item : Window; Hit : Pomarine.Widgets.Widget_Access) return Boolean
+   is (Frames.Owns (Item.Chrome, Hit));
 
-   function Text_Contains (Item : Window; X, Y : Float) return Boolean is
-     (Widgets.Contains (Item.Body_Text, X, Y));
+   function Text_Contains (Item : Window; X, Y : Float) return Boolean
+   is (Widgets.Contains (Item.Body_Text, X, Y));
 
-   function Over_Text_Selection
-     (Item : in out Window; X, Y : Float) return Boolean is
-     (Pomarine.Text_Areas.Is_Over_Selection
-        (Editors.Area (Item.Body_Text).all, X, Y));
+   function Over_Text_Selection (Item : in out Window; X, Y : Float) return Boolean
+   is (Pomarine.Text_Areas.Is_Over_Selection (Editors.Area (Item.Body_Text).all, X, Y));
 
    procedure Put_Caret (Item : in out Window; X, Y : Float) is
       Area : Pomarine.Text_Areas.Text_Area renames Editors.Area (Item.Body_Text).all;
@@ -209,39 +211,42 @@ package body Items.Windows is
    end Put_Caret;
 
    procedure Edit_Text (Item : in out Window; Act : Text_Acts) is
-      Area  : Pomarine.Text_Areas.Text_Area renames
-        Editors.Area (Item.Body_Text).all;
-      Board : constant Widgets.Clipboard_Access :=
-        Widgets.Clipboard (Item.Body_Text);
+      Area  : Pomarine.Text_Areas.Text_Area renames Editors.Area (Item.Body_Text).all;
+      Board : constant Widgets.Clipboard_Access := Widgets.Clipboard (Item.Body_Text);
    begin
       if Act = Select_All then
          Pomarine.Text_Areas.Select_All (Area);
       elsif Board /= null then
          case Act is
-            when Copy =>
+            when Copy       =>
                Pomarine.Text_Areas.Copy (Area, Board.all);
-            when Cut =>
+
+            when Cut        =>
                Pomarine.Text_Areas.Cut (Area, Board.all);
-            when Paste =>
+
+            when Paste      =>
                Pomarine.Text_Areas.Paste (Area, Board.all);
+
             when Select_All =>
                null;
          end case;
       end if;
    end Edit_Text;
 
-   function Picture_Contains (Item : Window; X, Y : Float) return Boolean is
-     (if Items.Models.Is_Paged (Item.Model.all) then Widgets.Contains (Item.Pages, X, Y)
-      else Widgets.Contains (Item.Picture, X, Y));
+   function Picture_Contains (Item : Window; X, Y : Float) return Boolean
+   is (if Items.Models.Is_Paged (Item.Model.all)
+       then Widgets.Contains (Item.Pages, X, Y)
+       else Widgets.Contains (Item.Picture, X, Y));
 
-   function Over_Picture_Selection
-     (Item : Window; X, Y : Float) return Boolean is
-     (if Items.Models.Is_Paged (Item.Model.all) then Views.Is_Over_Selection (Item.Pages, X, Y)
-      else Pictures.Is_Over_Selection (Item.Picture, X, Y));
+   function Over_Picture_Selection (Item : Window; X, Y : Float) return Boolean
+   is (if Items.Models.Is_Paged (Item.Model.all)
+       then Views.Is_Over_Selection (Item.Pages, X, Y)
+       else Pictures.Is_Over_Selection (Item.Picture, X, Y));
 
-   function Has_Words (Item : Window) return Boolean is
-     (if Items.Models.Is_Paged (Item.Model.all) then Views.Has_Words (Item.Pages)
-      else Pictures.Has_Words (Item.Picture));
+   function Has_Words (Item : Window) return Boolean
+   is (if Items.Models.Is_Paged (Item.Model.all)
+       then Views.Has_Words (Item.Pages)
+       else Pictures.Has_Words (Item.Picture));
 
    procedure Select_All_Words (Item : in out Window) is
    begin
@@ -261,17 +266,18 @@ package body Items.Windows is
       end if;
    end Copy_Words;
 
-   function Is_Hovered (Item : Window) return Boolean is
-     (Is_Assigned (Item) and then Items.Models.Details (Item.Model.all).State = Open
-      and then Frames.Is_Hovered (Item.Chrome));
+   function Is_Hovered (Item : Window) return Boolean
+   is (Is_Assigned (Item)
+       and then Items.Models.Details (Item.Model.all).State = Open
+       and then Frames.Is_Hovered (Item.Chrome));
 
    procedure Warm (Item : in out Window) is
    begin
-      Pomarine.Widgets.Pictures.Load_Soon
-        (Item.Picture, Urgent => Items.Models.Details (Item.Model.all).State = Open);
+      Pomarine.Widgets.Pictures.Load_Soon (Item.Picture, Urgent => Items.Models.Details (Item.Model.all).State = Open);
    end Warm;
 
-   function Gesture (Item : Window) return Gestures is (Item.Dragged);
+   function Gesture (Item : Window) return Gestures
+   is (Item.Dragged);
 
    procedure Place (Item : in out Window) is
       Pixels   : constant Float := Frames.Pixels_Per_Point (Item.Chrome);
@@ -295,9 +301,7 @@ package body Items.Windows is
                Float'Rounding (Where.Width * Zoom * Pixels),
                Float'Rounding (Where.Height * Zoom * Pixels));
             --  The link is not zoomed, nor is the title.
-            Editors.Set_Zoom
-              (Item.Body_Text,
-               (if Details.Kind = Source then 1.0 else Zoom));
+            Editors.Set_Zoom (Item.Body_Text, (if Details.Kind = Source then 1.0 else Zoom));
          end;
       end if;
    end Place;
@@ -307,23 +311,25 @@ package body Items.Windows is
       Frames.Raise_To_Front (Item.Chrome);
    end Bring_To_Front;
 
-   function Is_Editing_Title (Item : Window) return Boolean is
-     (Frames.Is_Editing_Title (Item.Chrome));
+   function Is_Editing_Title (Item : Window) return Boolean
+   is (Frames.Is_Editing_Title (Item.Chrome));
 
    procedure Focus_Text (Item : in out Window) is
    begin
       Widgets.Focus (Item.Body_Text);
    end Focus_Text;
 
-   function Is_Dragging (Item : Window) return Boolean is
-     (Frames.Is_Dragging (Item.Chrome));
+   function Is_Dragging (Item : Window) return Boolean
+   is (Frames.Is_Dragging (Item.Chrome));
 
-   overriding procedure Requested (Self : in out Command_Effects; What : Item_Window_VM.Command; Index : Natural) is
+   overriding
+   procedure Requested (Self : in out Command_Effects; What : Item_Window_VM.Command; Index : Natural) is
    begin
       Handlers.Perform (Self.Owner.all, What, Index);
    end Requested;
 
-   overriding procedure Changed (Self : in out Command_Effects) is
+   overriding
+   procedure Changed (Self : in out Command_Effects) is
    begin
       Show (Self.Owner.all);
    end Changed;
@@ -437,14 +443,12 @@ package body Items.Windows is
 
    procedure Report (Item : in out Window) renames Syncing.Tell_Model;
 
-   procedure Set_Dictation
-     (Item   : in out Window;
-      To     : Items.Models.Dictations;
-      Detail : String := "") renames Speaking.Change;
+   procedure Set_Dictation (Item : in out Window; To : Items.Models.Dictations; Detail : String := "")
+   renames Speaking.Change;
 
    procedure Add_Dictation (Item : in out Window; Said : String) renames Speaking.Append_Said;
 
    procedure Set_Live_Dictation (Item : in out Window; Said : String; Settled : Natural := 0)
-     renames Speaking.Show_Live;
+   renames Speaking.Show_Live;
 
 end Items.Windows;

@@ -27,8 +27,7 @@ procedure Test_Bindings is
    function Suite return AUnit.Test_Suites.Access_Test_Suite;
 
    function Suite return AUnit.Test_Suites.Access_Test_Suite is
-      Result : constant AUnit.Test_Suites.Access_Test_Suite :=
-        AUnit.Test_Suites.New_Suite;
+      Result : constant AUnit.Test_Suites.Access_Test_Suite := AUnit.Test_Suites.New_Suite;
    begin
       Result.Add_Test (Test_Tokenizers.Suite);
       Result.Add_Test (Test_Parsers.Suite);

@@ -45,12 +45,12 @@ package body View.Writing.Layout is
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
       Total  : constant Natural := Outlines.Section_Count (Item);
       Group  : constant Boolean :=
-        Total > 0 and then (Writing_VM.Shown (Item.Docs.Navigation, Item.Docs.Dirs) = 0
-                           or else Support.Is_Section
-                             (Item, Writing_VM.Shown (Item.Docs.Navigation, Item.Docs.Dirs)));
+        Total > 0
+        and then (Writing_VM.Shown (Item.Docs.Navigation, Item.Docs.Dirs) = 0
+                  or else Support.Is_Section (Item, Writing_VM.Shown (Item.Docs.Navigation, Item.Docs.Dirs)));
 
-      function Notes_Box_Height (Place : Positive) return Float is
-        (Parts.Notes (Place).High + 2.0 * Style.Notes_Pad + 2.0);
+      function Notes_Box_Height (Place : Positive) return Float
+      is (Parts.Notes (Place).High + 2.0 * Style.Notes_Pad + 2.0);
       --  In points: the text, and the padding and outline round it.
 
       procedure Set_Grouped (To : Boolean) is
@@ -61,7 +61,7 @@ package body View.Writing.Layout is
             for Each of Item.Docs.Pages loop
                Layouts.Set_Layout
                  (Each.Box,
-                  Place => (if To then Layouts.Absolute else Layouts.Flowing),
+                  Place    => (if To then Layouts.Absolute else Layouts.Flowing),
                   Position => (if To then (others => Layouts.Unset) else (others => 0.0)));
             end loop;
             Widgets.Set_Visible (Parts.Tail, To);
@@ -98,9 +98,9 @@ package body View.Writing.Layout is
          end if;
       end loop;
       declare
-         Plan   : Plan_Array;
+         Plan     : Plan_Array;
          Planned  : Natural := 0;
-         Runs   : Natural := 0;
+         Runs     : Natural := 0;
          Open_Run : Boolean := False;
          --  The pages of documents that are of no section, in the order
          --  of the tree, which come one after another, are a run.
@@ -113,8 +113,7 @@ package body View.Writing.Layout is
 
          procedure Add_Section (Dir : Positive) is
             Place : constant Natural :=
-              Outlines.Index_Of_Key
-                (Item, Projects.Sections.Section_Id (Item.Docs.Dirs (Dir).Section));
+              Outlines.Index_Of_Key (Item, Projects.Sections.Section_Id (Item.Docs.Dirs (Dir).Section));
          begin
             if Place = 0 then
                return;
@@ -135,8 +134,9 @@ package body View.Writing.Layout is
             for Row in 2 .. Trees.Count (Item.Docs.Ordering) loop
                if Trees.Element (Item.Docs.Ordering, Row).Kind = Document_Leaf
                  and then Support.Within
-                   (Item, Trees.Element (Item.Docs.Ordering, Row).Dir,
-                    Writing_VM.Shown (Item.Docs.Navigation, Item.Docs.Dirs))
+                            (Item,
+                             Trees.Element (Item.Docs.Ordering, Row).Dir,
+                             Writing_VM.Shown (Item.Docs.Navigation, Item.Docs.Dirs))
                then
                   Add (Page_Entry, Support.Rank_Of (Item, Trees.Element (Item.Docs.Ordering, Row).Doc));
                end if;
@@ -151,9 +151,9 @@ package body View.Writing.Layout is
                         if Support.Is_Section (Item, Node.Dir) then
                            Add_Section (Node.Dir);
                         end if;
-                     when Document_Leaf =>
-                        if Support.Section_Directory (Item, Node.Dir) = 0
-                        then
+
+                     when Document_Leaf  =>
+                        if Support.Section_Directory (Item, Node.Dir) = 0 then
                            if not Open_Run then
                               Add (Gap_Entry, Runs);
                               Runs := Runs + 1;
@@ -161,7 +161,8 @@ package body View.Writing.Layout is
                            end if;
                         end if;
                         Add (Page_Entry, Support.Rank_Of (Item, Node.Doc));
-                     when Overview_Node =>
+
+                     when Overview_Node  =>
                         null;
                   end case;
                end;
@@ -173,8 +174,7 @@ package body View.Writing.Layout is
             if Plan (Each).Kind = Head_Entry then
                Labels.Set_Text
                  (Parts.Heads (Plan (Each).Index).Title,
-                  Projects.Sections.Title_Texts.To_String
-                       (Outlines.Section_At (Item, Plan (Each).Index).Title));
+                  Projects.Sections.Title_Texts.To_String (Outlines.Section_At (Item, Plan (Each).Index).Title));
             end if;
          end loop;
 
@@ -186,21 +186,22 @@ package body View.Writing.Layout is
                declare
                   Now  : Plan_Entry renames Plan (Each);
                   Gap  : constant Float :=
-                    (if Each = 1 then 0.0
-                     elsif Now.Kind = Head_Entry then Style.Section_Before * Pixels
-                     elsif Plan (Each - 1).Kind in Head_Entry | Gap_Entry
-                       and then Now.Kind /= Notes_Entry
+                    (if Each = 1
+                     then 0.0
+                     elsif Now.Kind = Head_Entry
+                     then Style.Section_Before * Pixels
+                     elsif Plan (Each - 1).Kind in Head_Entry | Gap_Entry and then Now.Kind /= Notes_Entry
                      then Style.Section_After * Pixels
-                     elsif Now.Kind = Notes_Entry then Style.Page_Gap * Pixels
+                     elsif Now.Kind = Notes_Entry
+                     then Style.Page_Gap * Pixels
                      else Style.Page_Gap * Pixels);
                   High : constant Float :=
                     (case Now.Kind is
-                        when Head_Entry  => Style.Section_Head_Height * Pixels,
-                        when Empty_Entry => Style.Section_Empty_Height * Pixels,
-                        when Notes_Entry => Notes_Box_Height (Now.Index) * Pixels,
-                        when Gap_Entry   => Style.Gap_Mark_Height * Pixels,
-                        when Page_Entry  =>
-                          Widgets.Height_Of (Item.Docs.Pages (Now.Index).Box));
+                       when Head_Entry  => Style.Section_Head_Height * Pixels,
+                       when Empty_Entry => Style.Section_Empty_Height * Pixels,
+                       when Notes_Entry => Notes_Box_Height (Now.Index) * Pixels,
+                       when Gap_Entry   => Style.Gap_Mark_Height * Pixels,
+                       when Page_Entry  => Widgets.Height_Of (Item.Docs.Pages (Now.Index).Box));
                begin
                   Y := Y + Gap;
                   Now.Top := Float'Rounding (Y);
@@ -220,35 +221,39 @@ package body View.Writing.Layout is
                then
                   declare
                      --  Where a page is, across: at the left of the view, after its inset.
-                     Home_Left : constant Float := Float'Rounding (Left * Pixels);
-                     Home_Top  : constant Float :=
+                     Home_Left   : constant Float := Float'Rounding (Left * Pixels);
+                     Home_Top    : constant Float :=
                        Widgets.Top_Of (Parts.Tail) - Widgets.Top_Of (Item.Page_View.Pages_Content);
-                     Shown_Heads  : array (1 .. Parts.Heads.Count) of Boolean := [others => False];
-                     Shown_Empty  : array (1 .. Parts.Heads.Count) of Boolean := [others => False];
-                     Shown_Notes  : array (1 .. Parts.Heads.Count) of Boolean := [others => False];
-                     Shown_Gaps   : array (0 .. Parts.Gaps.Count - 1) of Boolean := [others => False];
+                     Shown_Heads : array (1 .. Parts.Heads.Count) of Boolean := [others => False];
+                     Shown_Empty : array (1 .. Parts.Heads.Count) of Boolean := [others => False];
+                     Shown_Notes : array (1 .. Parts.Heads.Count) of Boolean := [others => False];
+                     Shown_Gaps  : array (0 .. Parts.Gaps.Count - 1) of Boolean := [others => False];
 
                      procedure Put (Part : in out Widgets.Widget'Class; Top : Float) is
                      begin
                         Layouts.Set_Layout (Part, Width => Layouts.Length_Of (Wide));
                         Layouts.Set_Layout
                           (Part,
-                           Position => (Left => Layouts.Length_Of (Home_Left),
-                                        Top => Layouts.Length_Of (Home_Top + Top), others => <>),
-                           Unit => Layouts.Device_Pixels);
+                           Position =>
+                             (Left   => Layouts.Length_Of (Home_Left),
+                              Top    => Layouts.Length_Of (Home_Top + Top),
+                              others => <>),
+                           Unit     => Layouts.Device_Pixels);
                      end Put;
                   begin
                      Layouts.Set_Layout
-                       (Parts.Tail, Width => Layouts.Length_Of (Wide),
-                        Height => Layouts.Length_Of (Float'Rounding (Y)), Unit => Layouts.Points);
-                     Layouts.Set_Layout (Parts.Tail, Height => Layouts.Length_Of (Float'Rounding (Y)),
-                                         Unit => Layouts.Device_Pixels);
+                       (Parts.Tail,
+                        Width  => Layouts.Length_Of (Wide),
+                        Height => Layouts.Length_Of (Float'Rounding (Y)),
+                        Unit   => Layouts.Points);
+                     Layouts.Set_Layout
+                       (Parts.Tail, Height => Layouts.Length_Of (Float'Rounding (Y)), Unit => Layouts.Device_Pixels);
                      for Each in 1 .. Planned loop
                         declare
                            Now : Plan_Entry renames Plan (Each);
                         begin
                            case Now.Kind is
-                              when Head_Entry =>
+                              when Head_Entry  =>
                                  declare
                                     Head    : Section_Head renames Parts.Heads (Now.Index);
                                     Section : constant Projects.Sections.Section :=
@@ -259,16 +264,18 @@ package body View.Writing.Layout is
                                     Widgets.Set_Visible (Head.Add, Owned > 0);
                                     Pomarine.Widgets.Buttons.Set_Selected (Head.Notes, Section.Open);
                                     Labels.Set_Text
-                                      (Head.Title,
-                                       Projects.Sections.Title_Texts.To_String (Section.Title));
+                                      (Head.Title, Projects.Sections.Title_Texts.To_String (Section.Title));
                                     Labels.Set_Text
                                       (Head.Count,
-                                       (if Owned = 0 then ""
-                                        else Support.Count_Image (Owned)
-                                             & (if Owned = 1 then " document" else " documents")));
+                                       (if Owned = 0
+                                        then ""
+                                        else
+                                          Support.Count_Image (Owned)
+                                          & (if Owned = 1 then " document" else " documents")));
                                     Pomarine.Widgets.Panels.Set_Fill (Head.Bar, Style.Section_Ink (Section.Colour));
                                     Put (Head.Row, Now.Top);
                                  end;
+
                               when Notes_Entry =>
                                  declare
                                     Note : Note_Box renames Parts.Notes (Now.Index);
@@ -277,20 +284,23 @@ package body View.Writing.Layout is
                                     Pomarine.Widgets.Panels.Set_Border
                                       (Note.Box, Style.Section_Ink (Outlines.Section_At (Item, Now.Index).Colour));
                                     Layouts.Set_Layout (Note.Text, Height => Layouts.Length_Of (Note.High));
-                                    Layouts.Set_Layout (Note.Box,
-                                                        Height => Layouts.Length_Of (Notes_Box_Height (Now.Index)));
+                                    Layouts.Set_Layout
+                                      (Note.Box, Height => Layouts.Length_Of (Notes_Box_Height (Now.Index)));
                                     Put (Note.Box, Now.Top);
                                  end;
+
                               when Empty_Entry =>
                                  Shown_Empty (Now.Index) := True;
                                  Pomarine.Widgets.Panels.Set_Border
                                    (Parts.Empties (Now.Index).Box,
                                     Style.Section_Ink (Outlines.Section_At (Item, Now.Index).Colour));
                                  Put (Parts.Empties (Now.Index).Box, Now.Top);
-                              when Gap_Entry =>
+
+                              when Gap_Entry   =>
                                  Shown_Gaps (Now.Index) := True;
                                  Put (Parts.Gaps (Now.Index + 1).Row, Now.Top);
-                              when Page_Entry =>
+
+                              when Page_Entry  =>
                                  Put (Item.Docs.Pages (Now.Index).Box, Now.Top);
                            end case;
                         end;
@@ -316,7 +326,7 @@ package body View.Writing.Layout is
    end Place_Sections;
 
    procedure Fit_Pages (Item : in out Session) is
-      Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
+      Pixels  : constant Float := Widgets.Density (Item.Root.Widgets);
       Changed : Boolean;
       Moved   : Boolean := False;
    begin
@@ -328,19 +338,22 @@ package body View.Writing.Layout is
                Pane : Publish_Parts renames Item.Publish_View;
 
                procedure Fit
-                 (Scroller : Widgets.Widget'Class; Content, Sheet : in out Widgets.Widget'Class;
-                  Area : in out Pomarine.Text_Areas.Text_Area; Left, Wide, High : in out Float)
+                 (Scroller         : Widgets.Widget'Class;
+                  Content, Sheet   : in out Widgets.Widget'Class;
+                  Area             : in out Pomarine.Text_Areas.Text_Area;
+                  Left, Wide, High : in out Float)
                is
-                  Room : constant Float := Widgets.Width_Of (Scroller) / Pixels;
+                  Room     : constant Float := Widgets.Width_Of (Scroller) / Pixels;
                   Now_Wide : constant Float := Style.Page_Wide (Room, Style.Page_Width);
                   Now_Left : constant Float := Style.Page_Left (Room, Now_Wide);
-                  Now_High : constant Float := Float'Max
-                    (Style.Page_Min_Height, Float'Ceiling (Pomarine.Text_Areas.Content_Height (Area)));
+                  Now_High : constant Float :=
+                    Float'Max (Style.Page_Min_Height, Float'Ceiling (Pomarine.Text_Areas.Content_Height (Area)));
                begin
                   if Now_Left /= Left then
                      Layouts.Set_Layout
-                       (Content, Padding => (Left => Layouts.Length_Of (Now_Left),
-                                             others => Layouts.Length_Of (Style.Page_Margin)));
+                       (Content,
+                        Padding =>
+                          (Left => Layouts.Length_Of (Now_Left), others => Layouts.Length_Of (Style.Page_Margin)));
                      Left := Now_Left;
                      Changed := True;
                   end if;
@@ -357,12 +370,17 @@ package body View.Writing.Layout is
                end Fit;
             begin
                Changed := False;
-               Fit (Pane.Scroll, Pane.Content, Pane.Text, Editors.Area (Pane.Text).all,
-                    Pane.Left, Pane.Wide, Pane.High);
+               Fit
+                 (Pane.Scroll, Pane.Content, Pane.Text, Editors.Area (Pane.Text).all, Pane.Left, Pane.Wide, Pane.High);
                if Publish_VM.Markdown (Pane.Options) then
-                  Fit (Pane.Source_Scroll, Pane.Source_Content, Pane.Source_Text,
-                       Editors.Area (Pane.Source_Text).all,
-                       Pane.Source_Left, Pane.Source_Wide, Pane.Source_High);
+                  Fit
+                    (Pane.Source_Scroll,
+                     Pane.Source_Content,
+                     Pane.Source_Text,
+                     Editors.Area (Pane.Source_Text).all,
+                     Pane.Source_Left,
+                     Pane.Source_Wide,
+                     Pane.Source_High);
                end if;
             end;
             exit when not Changed;
@@ -385,16 +403,15 @@ package body View.Writing.Layout is
                      High : constant Float :=
                        Float'Max
                          (Style.Page_Min_Height,
-                          Float'Ceiling
-                            (Pomarine.Text_Areas.Content_Height
-                               (Editors.Area (Each.Text).all)));
+                          Float'Ceiling (Pomarine.Text_Areas.Content_Height (Editors.Area (Each.Text).all)));
                   begin
                      if Wide /= Each.Wide then
                         Layouts.Set_Layout (Each.Box, Width => Layouts.Length_Of (Wide));
                         Editors.Set_Indent
                           (Each.Text,
                            Float'Max (Style.Page_Margin, (Wide - Style.Write_Text_Width) / 2.0)
-                           - Style.Page_Text_Inset - Style.Page_Border);
+                           - Style.Page_Text_Inset
+                           - Style.Page_Border);
                         Each.Wide := Wide;
                         Changed := True;
                      end if;
@@ -418,32 +435,28 @@ package body View.Writing.Layout is
       --  are scrolled.
       if Item.Page_View.Menu_Page /= 0 then
          declare
-            Button : Buttons.Button renames
-              Item.Docs.Pages (Item.Page_View.Menu_Page).Sources_Button;
-            Place_Left   : constant Float :=
+            Button     : Buttons.Button renames Item.Docs.Pages (Item.Page_View.Menu_Page).Sources_Button;
+            Place_Left : constant Float :=
               Float'Max
                 (0.0,
                  Float'Min
-                   ((Widgets.Left_Of (Button)
-                     - Widgets.Left_Of (Item.Page_View.Write_View)) / Pixels,
-                    Widgets.Width_Of (Item.Page_View.Write_View) / Pixels
-                    - Style.Menu_Width - Style.Reader_Margin));
-            Place_Top    : constant Float :=
-              (Widgets.Top_Of (Button) + Widgets.Height_Of (Button)
-               - Widgets.Top_Of (Item.Page_View.Write_View)) / Pixels
+                   ((Widgets.Left_Of (Button) - Widgets.Left_Of (Item.Page_View.Write_View)) / Pixels,
+                    Widgets.Width_Of (Item.Page_View.Write_View) / Pixels - Style.Menu_Width - Style.Reader_Margin));
+            Place_Top  : constant Float :=
+              (Widgets.Top_Of (Button) + Widgets.Height_Of (Button) - Widgets.Top_Of (Item.Page_View.Write_View))
+              / Pixels
               + Style.Menu_Gap;
          begin
-            if Place_Left /= Item.Page_View.Menu_Left
-               or else Place_Top /= Item.Page_View.Menu_Top
-            then
+            if Place_Left /= Item.Page_View.Menu_Left or else Place_Top /= Item.Page_View.Menu_Top then
                Item.Page_View.Menu_Left := Place_Left;
                Item.Page_View.Menu_Top := Place_Top;
                Layouts.Set_Layout
                  (Item.Page_View.Menu,
-                  Position => (Left => Layouts.Length_Of (Float'Rounding (Place_Left * Pixels)),
-                               Top  => Layouts.Length_Of (Float'Rounding (Place_Top * Pixels)),
-                               others => <>),
-                  Unit => Layouts.Device_Pixels);
+                  Position =>
+                    (Left   => Layouts.Length_Of (Float'Rounding (Place_Left * Pixels)),
+                     Top    => Layouts.Length_Of (Float'Rounding (Place_Top * Pixels)),
+                     others => <>),
+                  Unit     => Layouts.Device_Pixels);
                Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
             end if;
          end;
@@ -453,42 +466,32 @@ package body View.Writing.Layout is
       for Rank in 1 .. Trees.Page_Count (Item.Docs.Ordering) loop
          declare
             Each : Doc_Page renames Item.Docs.Pages (Rank);
-            Area : Pomarine.Text_Areas.Text_Area renames
-              Editors.Area (Each.Text).all;
+            Area : Pomarine.Text_Areas.Text_Area renames Editors.Area (Each.Text).all;
          begin
             if Widgets.Has_Focus (Each.Text) then
                declare
-                  Caret   : constant Texts.Position :=
-                    Pomarine.Text_Areas.Caret (Area);
-                  Edited  : constant Docs.Version :=
-                    Docs.Current (Pomarine.Text_Areas.Document (Area).all);
+                  Caret  : constant Texts.Position := Pomarine.Text_Areas.Caret (Area);
+                  Edited : constant Docs.Version := Docs.Current (Pomarine.Text_Areas.Document (Area).all);
                begin
-                  if Caret /= Each.Caret_For or else Edited /= Each.Caret_Seen
-                  then
+                  if Caret /= Each.Caret_For or else Edited /= Each.Caret_Seen then
                      Each.Caret_For := Caret;
                      Each.Caret_Seen := Edited;
                      declare
                         X, Y, Wide, High : Float;
-                        Reveal_Top    : constant Float :=
-                          Widgets.Top_Of (Item.Page_View.Pages_Scroll)
-                          + Reveal_Margin * Pixels;
-                        Bottom : constant Float :=
+                        Reveal_Top       : constant Float :=
+                          Widgets.Top_Of (Item.Page_View.Pages_Scroll) + Reveal_Margin * Pixels;
+                        Bottom           : constant Float :=
                           Widgets.Top_Of (Item.Page_View.Pages_Scroll)
                           + Widgets.Height_Of (Item.Page_View.Pages_Scroll)
                           - Reveal_Margin * Pixels;
-                        Offset : constant Float :=
-                          Scrollers.Offset (Item.Page_View.Pages_Scroll);
+                        Offset           : constant Float := Scrollers.Offset (Item.Page_View.Pages_Scroll);
                      begin
                         Editors.Caret_Box (Each.Text, X, Y, Wide, High);
                         if Y < Reveal_Top then
-                           Scrollers.Scroll_To
-                             (Item.Page_View.Pages_Scroll,
-                              Offset - (Reveal_Top - Y) / Pixels);
+                           Scrollers.Scroll_To (Item.Page_View.Pages_Scroll, Offset - (Reveal_Top - Y) / Pixels);
                            Moved := True;
                         elsif Y + High > Bottom then
-                           Scrollers.Scroll_To
-                             (Item.Page_View.Pages_Scroll,
-                              Offset + (Y + High - Bottom) / Pixels);
+                           Scrollers.Scroll_To (Item.Page_View.Pages_Scroll, Offset + (Y + High - Bottom) / Pixels);
                            Moved := True;
                         end if;
                      end;

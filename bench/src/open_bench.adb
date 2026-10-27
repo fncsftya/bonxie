@@ -10,6 +10,7 @@ with View.Project_Screen;
 
 --  Measures opening a project that is already kept, as a click on it does:
 --  open_bench database [project [times]].
+
 procedure Open_Bench is
    package Home renames View.Home_Screen;
    package Proj renames View.Project_Screen;
@@ -18,30 +19,23 @@ procedure Open_Bench is
 
    Path : constant String := Ada.Command_Line.Argument (1);
    Key  : constant Projects.Id :=
-     (if Ada.Command_Line.Argument_Count > 1
-      then Projects.Id'Value (Ada.Command_Line.Argument (2)) else 1);
+     (if Ada.Command_Line.Argument_Count > 1 then Projects.Id'Value (Ada.Command_Line.Argument (2)) else 1);
    Runs : constant Positive :=
-     (if Ada.Command_Line.Argument_Count > 2
-      then Positive'Value (Ada.Command_Line.Argument (3)) else 5);
+     (if Ada.Command_Line.Argument_Count > 2 then Positive'Value (Ada.Command_Line.Argument (3)) else 5);
 
    Session : View.Session;
    Start   : Time;
 begin
    SDL3.Initialize;
-   View.Open_Window
-     (Session, "", Hidden => True, Store => Path, VSync => False);
+   View.Open_Window (Session, "", Hidden => True, Store => Path, VSync => False);
    View.Paint_Frame (Session);
    for Run in 1 .. Runs loop
       Start := Clock;
       Home.Open_Project (Session, Key);
-      Put_Line
-        ("open" & Run'Image & ":"
-         & Duration'Image (To_Duration (Clock - Start) * 1000.0) & " ms");
+      Put_Line ("open" & Run'Image & ":" & Duration'Image (To_Duration (Clock - Start) * 1000.0) & " ms");
       Start := Clock;
       View.Paint_Frame (Session);
-      Put_Line
-        ("  first frame:"
-         & Duration'Image (To_Duration (Clock - Start) * 1000.0) & " ms");
+      Put_Line ("  first frame:" & Duration'Image (To_Duration (Clock - Start) * 1000.0) & " ms");
       --  As the event loop would: tick, and draw what that damaged. The
       --  longest frame is the pictures being put on the GPU.
       declare
@@ -55,9 +49,7 @@ begin
             Worst := Duration'Max (Worst, To_Duration (Clock - Start));
             delay 0.005;
          end loop;
-         Put_Line
-           ("  slowest frame after:"
-            & Duration'Image (Worst * 1000.0) & " ms");
+         Put_Line ("  slowest frame after:" & Duration'Image (Worst * 1000.0) & " ms");
       end;
       Proj.Close_Project (Session);
    end loop;

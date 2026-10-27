@@ -25,123 +25,153 @@ package body Items.Models is
    end Count_Words;
 
    function Day (Taken : Projects.Seconds) return String is
-      Image : constant String :=
+      Image  : constant String :=
         Ada.Calendar.Formatting.Image
-          (Ada.Calendar.Formatting.Time_Of (1970, 1, 1, Time_Zone => 0)
-           + Duration (Taken),
-           Time_Zone => 0);
+          (Ada.Calendar.Formatting.Time_Of (1970, 1, 1, Time_Zone => 0) + Duration (Taken), Time_Zone => 0);
       Months : constant array (1 .. 12) of String (1 .. 3) :=
-        ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
-         "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-      Date  : constant Positive := Positive'Value (Image (9 .. 10));
+        ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      Date   : constant Positive := Positive'Value (Image (9 .. 10));
    begin
-      return Ada.Strings.Fixed.Trim (Date'Image, Ada.Strings.Both) & " "
-        & Months (Positive'Value (Image (6 .. 7))) & " " & Image (1 .. 4);
+      return
+        Ada.Strings.Fixed.Trim (Date'Image, Ada.Strings.Both)
+        & " "
+        & Months (Positive'Value (Image (6 .. 7)))
+        & " "
+        & Image (1 .. 4);
    end Day;
 
-   function Is_Assigned (Self : Item) return Boolean is (Self.Assigned);
+   function Is_Assigned (Self : Item) return Boolean
+   is (Self.Assigned);
 
-   function Details (Self : Item) return Items.Info is (Self.Fields);
+   function Details (Self : Item) return Items.Info
+   is (Self.Fields);
 
-   function Title_Document (Self : in out Item) return Docs.Document_Access is (Self.Title_Doc'Unchecked_Access);
+   function Title_Document (Self : in out Item) return Docs.Document_Access
+   is (Self.Title_Doc'Unchecked_Access);
 
-   function Content_Document (Self : in out Item) return Docs.Document_Access is
-     (Self.Content_Doc'Unchecked_Access);
+   function Content_Document (Self : in out Item) return Docs.Document_Access
+   is (Self.Content_Doc'Unchecked_Access);
 
-   function Text_Document (Self : in out Item) return Docs.Document_Access is (Self.Text_Doc'Unchecked_Access);
+   function Text_Document (Self : in out Item) return Docs.Document_Access
+   is (Self.Text_Doc'Unchecked_Access);
 
-   function Text (Self : Item) return String is (Docs.Whole (Self.Content_Doc));
+   function Text (Self : Item) return String
+   is (Docs.Whole (Self.Content_Doc));
 
-   function Stored_Text (Self : Item) return String is (Docs.Stored (Self.Content_Doc));
+   function Stored_Text (Self : Item) return String
+   is (Docs.Stored (Self.Content_Doc));
 
-   function Shown_Text (Self : Item) return String is (Docs.Whole (Self.Text_Doc));
+   function Shown_Text (Self : Item) return String
+   is (Docs.Whole (Self.Text_Doc));
 
-   function Words (Self : Item) return Natural is (Self.Word_Count);
+   function Words (Self : Item) return Natural
+   is (Self.Word_Count);
 
-   function Is_Resizing (Self : Item) return Boolean is (Self.Sizing);
+   function Is_Resizing (Self : Item) return Boolean
+   is (Self.Sizing);
 
-   function Capture (Self : Item) return Captures is (Self.Capturing);
+   function Capture (Self : Item) return Captures
+   is (Self.Capturing);
 
-   function Picture_File (Self : Item) return String is (Unbounded.To_String (Self.File));
+   function Picture_File (Self : Item) return String
+   is (Unbounded.To_String (Self.File));
 
-   function Shows_Picture (Self : Item) return Boolean is
-     (Self.Paged or else Unbounded.Length (Self.File) > 0);
+   function Shows_Picture (Self : Item) return Boolean
+   is (Self.Paged or else Unbounded.Length (Self.File) > 0);
 
-   function Is_Unchosen (Self : Item) return Boolean is
-     (Self.Fields.Kind = Source and then Self.Fields.Origin = Unchosen);
+   function Is_Unchosen (Self : Item) return Boolean
+   is (Self.Fields.Kind = Source and then Self.Fields.Origin = Unchosen);
 
-   function Is_Text_Source (Self : Item) return Boolean is
-     (Self.Fields.Kind = Source and then Self.Fields.Origin /= Unchosen
-      and then Items.Sources.Is_Text (Items.Extensions.To_String (Self.Fields.Document)));
+   function Is_Text_Source (Self : Item) return Boolean
+   is (Self.Fields.Kind = Source
+       and then Self.Fields.Origin /= Unchosen
+       and then Items.Sources.Is_Text (Items.Extensions.To_String (Self.Fields.Document)));
 
-   function Wants_Pages (Self : Item) return Boolean is
-     (Self.Fields.Page > 0 and then Items.Sources.Is_Vector (Items.Extensions.To_String (Self.Fields.Document)));
+   function Wants_Pages (Self : Item) return Boolean
+   is (Self.Fields.Page > 0 and then Items.Sources.Is_Vector (Items.Extensions.To_String (Self.Fields.Document)));
 
-   function Is_Paged (Self : Item) return Boolean is (Self.Paged);
+   function Is_Paged (Self : Item) return Boolean
+   is (Self.Paged);
 
-   function Progress (Self : Item) return Float is (Self.Working);
+   function Progress (Self : Item) return Float
+   is (Self.Working);
 
-   function Shows_Progress (Self : Item) return Boolean is
-     (if Self.Fields.Kind = Source then Self.Capturing = Busy else Self.Dictating = Listening);
+   function Shows_Progress (Self : Item) return Boolean
+   is (if Self.Fields.Kind = Source then Self.Capturing = Busy else Self.Dictating = Listening);
 
-   function Recognized (Self : in out Item) return access Vision.Result is (Self.Found'Unchecked_Access);
+   function Recognized (Self : in out Item) return access Vision.Result
+   is (Self.Found'Unchecked_Access);
 
-   function Recognized_Version (Self : Item) return Parts.Version_Number is (Parts.Value (Self.Words_Found));
+   function Recognized_Version (Self : Item) return Parts.Version_Number
+   is (Parts.Value (Self.Words_Found));
 
-   function Picture_Version (Self : Item) return Parts.Version_Number is (Parts.Value (Self.Pictures));
+   function Picture_Version (Self : Item) return Parts.Version_Number
+   is (Parts.Value (Self.Pictures));
 
-   function Tool (Self : Item) return Tools is (Self.Using_Tool);
+   function Tool (Self : Item) return Tools
+   is (Self.Using_Tool);
 
-   function Marks_To_Show (Self : Item) return Parts.Version_Number is (Parts.Value (Self.Marks_Shown));
+   function Marks_To_Show (Self : Item) return Parts.Version_Number
+   is (Parts.Value (Self.Marks_Shown));
 
-   function Kept_Marks (Self : Item) return Items.Marks.Mark_List is (Self.Marks_Kept);
+   function Kept_Marks (Self : Item) return Items.Marks.Mark_List
+   is (Self.Marks_Kept);
 
-   function Mark_Count (Self : Item) return Natural is (Self.Marks_Kept.Count);
+   function Mark_Count (Self : Item) return Natural
+   is (Self.Marks_Kept.Count);
 
-   function Marks_Reported (Self : Item) return Natural is (Self.Marks_Now);
+   function Marks_Reported (Self : Item) return Natural
+   is (Self.Marks_Now);
 
-   function Dictation (Self : Item) return Dictations is (Self.Dictating);
+   function Dictation (Self : Item) return Dictations
+   is (Self.Dictating);
 
-   function Editor (Self : in out Item) return access Editor_VM.View_Model is (Self.Editing'Unchecked_Access);
+   function Editor (Self : in out Item) return access Editor_VM.View_Model
+   is (Self.Editing'Unchecked_Access);
 
-   function Scroll_Pending (Self : Item) return Boolean is (Self.Scroll_Waits);
+   function Scroll_Pending (Self : Item) return Boolean
+   is (Self.Scroll_Waits);
 
-   function Where_Version (Self : Item) return Parts.Version_Number is (Parts.Value (Self.Wheres));
+   function Where_Version (Self : Item) return Parts.Version_Number
+   is (Parts.Value (Self.Wheres));
 
-   function Look_Version (Self : Item) return Parts.Version_Number is (Parts.Value (Self.Looks));
+   function Look_Version (Self : Item) return Parts.Version_Number
+   is (Parts.Value (Self.Looks));
 
-   function Shape_Version (Self : Item) return Parts.Version_Number is (Parts.Value (Self.Shapes));
+   function Shape_Version (Self : Item) return Parts.Version_Number
+   is (Parts.Value (Self.Shapes));
 
-   function Zoom_Version (Self : Item) return Parts.Version_Number is (Parts.Value (Self.Zooms));
+   function Zoom_Version (Self : Item) return Parts.Version_Number
+   is (Parts.Value (Self.Zooms));
 
-   function Tool_Version (Self : Item) return Parts.Version_Number is (Parts.Value (Self.Choices));
+   function Tool_Version (Self : Item) return Parts.Version_Number
+   is (Parts.Value (Self.Choices));
 
-   function Page_Status (Self : Item) return String is
-     ("Page" & Self.Fields.Page'Image & " of" & Self.Fields.Page_Count'Image);
+   function Page_Status (Self : Item) return String
+   is ("Page" & Self.Fields.Page'Image & " of" & Self.Fields.Page_Count'Image);
 
    function Status (Self : Item) return String is
    begin
       if Self.Fields.Kind = Note then
          return
            (case Self.Dictating is
-               when Silent       => "",
-               when Preparing    => "Getting ready...",
-               when Listening    => "Listening...",
-               when Transcribing => "Transcribing...",
-               when Failed       => "Could not dictate: " & Unbounded.To_String (Self.Speech));
+              when Silent       => "",
+              when Preparing    => "Getting ready...",
+              when Listening    => "Listening...",
+              when Transcribing => "Transcribing...",
+              when Failed       => "Could not dictate: " & Unbounded.To_String (Self.Speech));
       end if;
       return
         (case Self.Capturing is
-            when Waiting =>
-              (case Self.Fields.Origin is
-                  when Unchosen => "Choose where it comes from",
-                  when Remote   => "Press Return to capture",
-                  when Local    => "Choose a file"),
-            when Busy    => "Capturing...",
-            when Ready   =>
-              (if Self.Fields.Page_Count > 0 then Page_Status (Self)
-               else "Captured " & Day (Self.Fields.Captured_At)),
-            when Failed  => "Failed: " & Unbounded.To_String (Self.Failure));
+           when Waiting =>
+             (case Self.Fields.Origin is
+                when Unchosen => "Choose where it comes from",
+                when Remote   => "Press Return to capture",
+                when Local    => "Choose a file"),
+           when Busy    => "Capturing...",
+           when Ready   =>
+             (if Self.Fields.Page_Count > 0 then Page_Status (Self) else "Captured " & Day (Self.Fields.Captured_At)),
+           when Failed  => "Failed: " & Unbounded.To_String (Self.Failure));
    end Status;
 
    procedure Looked (Self : in out Item) is
@@ -234,8 +264,7 @@ package body Items.Models is
       end if;
       Self.Raw_Width := Self.Raw_Width + Across;
       Self.Raw_Height := Self.Raw_Height + Down;
-      Self.Fields.Where := Sized
-        ((Self.Fields.Where with delta Width => Self.Raw_Width, Height => Self.Raw_Height));
+      Self.Fields.Where := Sized ((Self.Fields.Where with delta Width => Self.Raw_Width, Height => Self.Raw_Height));
       Self.Frame_Dirty := True;
       Self.Sizing := Still;
       Placed (Self);
@@ -268,11 +297,7 @@ package body Items.Models is
    end Set_Zoom;
 
    procedure Set_Capture
-     (Self    : in out Item;
-      To      : Captures;
-      File    : String := "";
-      Detail  : String := "";
-      At_Time : Projects.Seconds := 0) is
+     (Self : in out Item; To : Captures; File : String := ""; Detail : String := ""; At_Time : Projects.Seconds := 0) is
    begin
       Self.Capturing := To;
       if To = Busy then
@@ -281,14 +306,16 @@ package body Items.Models is
       case To is
          when Waiting | Busy =>
             null;
-         when Ready =>
+
+         when Ready          =>
             Self.Fields.Captured_At := At_Time;
             Clear_Recognized (Self);
             Forget_Marks (Self);
             Self.File := Unbounded.To_Unbounded_String (File);
             Self.Paged := False;
             Parts.Bump (Self.Pictures);
-         when Failed =>
+
+         when Failed         =>
             Self.Failure := Unbounded.To_Unbounded_String (Detail);
       end case;
       Shaped (Self);
@@ -409,11 +436,7 @@ package body Items.Models is
       Self.Scroll_Seen := Scroll;
    end Scrolled;
 
-   procedure Assign
-     (Self         : in out Item;
-      Of_Item      : Items.Info;
-      Saved_Text   : String;
-      Shown_File   : String := "") is
+   procedure Assign (Self : in out Item; Of_Item : Items.Info; Saved_Text : String; Shown_File : String := "") is
    begin
       Self.Assigned := True;
       Self.Fields := Of_Item;

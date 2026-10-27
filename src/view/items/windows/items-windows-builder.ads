@@ -1,4 +1,5 @@
 --  Making the widgets of a window.
+
 private package Items.Windows.Builder is
 
    procedure Make_Parts

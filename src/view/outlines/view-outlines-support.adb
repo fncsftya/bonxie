@@ -3,17 +3,15 @@ with View.Build;
 
 package body View.Outlines.Support is
 
-   function In_Outline (Item : Session) return Boolean is
-     (Takes_Gestures (Item) and then View_Mode (Item) = Outline);
+   function In_Outline (Item : Session) return Boolean
+   is (Takes_Gestures (Item) and then View_Mode (Item) = Outline);
 
    function Cut (Content : String; Most : Positive) return String is
       Last : Natural := Content'First - 1 + Natural'Min (Content'Length, Most);
    begin
       if Last < Content'Last then
          --  The next byte goes on a character that began in the part kept.
-         while Last >= Content'First
-           and then Character'Pos (Content (Last + 1)) in 16#80# .. 16#BF#
-         loop
+         while Last >= Content'First and then Character'Pos (Content (Last + 1)) in 16#80# .. 16#BF# loop
             Last := Last - 1;
          end loop;
       end if;

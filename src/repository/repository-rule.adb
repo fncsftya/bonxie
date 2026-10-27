@@ -17,8 +17,7 @@ package body Repository.Rule is
      & "pattern TEXT NOT NULL, "
      & "replacement TEXT NOT NULL)";
 
-   Index : constant String :=
-     "CREATE INDEX IF NOT EXISTS grammar_rules_project ON grammar_rules (project_id, id)";
+   Index : constant String := "CREATE INDEX IF NOT EXISTS grammar_rules_project ON grammar_rules (project_id, id)";
 
    procedure Prepare (Store : in out Projects.Store) is
    begin
@@ -26,11 +25,7 @@ package body Repository.Rule is
       Ada_Sqlite3.Execute (DB (Store).all, Index);
    end Prepare;
 
-   procedure Load
-     (Store   : Projects.Store;
-      Project : Projects.Id;
-      Result  : out Projects.Rules.Rule_List)
-   is
+   procedure Load (Store : Projects.Store; Project : Projects.Id; Result : out Projects.Rules.Rule_List) is
       Query : Ada_Sqlite3.Statement :=
         Ada_Sqlite3.Prepare
           (DB (Store).all,
@@ -69,12 +64,12 @@ package body Repository.Rule is
    is
       --  A correction is for a text of any kind, so its kind is not part of what makes it the same rule.
       Same_Kind : constant Projects.Rules.Kind_Code := (if Action = Projects.Rules.Correct then 0 else Kind);
-      Remove : Ada_Sqlite3.Statement :=
+      Remove    : Ada_Sqlite3.Statement :=
         Ada_Sqlite3.Prepare
           (DB (Store).all,
            "DELETE FROM grammar_rules WHERE project_id = :project AND action = :action "
            & "AND kind = :kind AND pattern = :pattern");
-      Query : Ada_Sqlite3.Statement :=
+      Query     : Ada_Sqlite3.Statement :=
         Ada_Sqlite3.Prepare
           (DB (Store).all,
            "INSERT INTO grammar_rules (project_id, action, kind, pattern, replacement) "

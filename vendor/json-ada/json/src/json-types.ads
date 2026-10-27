@@ -35,26 +35,16 @@ package JSON.Types is
    --                             Memory allocator                            --
    -----------------------------------------------------------------------------
 
-   type Memory_Allocator
-     (Maximum_Depth : Positive) is private;
+   type Memory_Allocator (Maximum_Depth : Positive) is private;
 
    type Memory_Allocator_Ptr is not null access all Memory_Allocator;
 
    -----------------------------------------------------------------------------
 
-   type Value_Kind is
-     (Array_Kind,
-      Object_Kind,
-      String_Kind,
-      Integer_Kind,
-      Float_Kind,
-      Boolean_Kind,
-      Null_Kind);
+   type Value_Kind is (Array_Kind, Object_Kind, String_Kind, Integer_Kind, Float_Kind, Boolean_Kind, Null_Kind);
 
    type JSON_Value (Kind : Value_Kind) is tagged private
-     with Constant_Indexing => Constant_Reference,
-          Default_Iterator  => Iterate,
-          Iterator_Element  => JSON_Value;
+   with Constant_Indexing => Constant_Reference, Default_Iterator => Iterate, Iterator_Element => JSON_Value;
 
    function Image (Object : JSON_Value) return String;
 
@@ -93,14 +83,10 @@ package JSON.Types is
    -----------------------------------------------------------------------------
 
    procedure Append (Object : in out JSON_Value; Value : JSON_Value)
-     with Pre => Object.Kind = Array_Kind;
+   with Pre => Object.Kind = Array_Kind;
    --  Internal procedure
 
-   procedure Insert
-     (Object : in out JSON_Value;
-      Key    : JSON_Value;
-      Value  : JSON_Value;
-      Check_Duplicate_Keys : Boolean)
+   procedure Insert (Object : in out JSON_Value; Key : JSON_Value; Value : JSON_Value; Check_Duplicate_Keys : Boolean)
    with Pre => Object.Kind = Object_Kind and Key.Kind = String_Kind;
    --  Internal procedure
 
@@ -108,30 +94,19 @@ package JSON.Types is
    --                                 Helpers                                 --
    -----------------------------------------------------------------------------
 
-   function Get_Array_Or_Empty
-     (Object : JSON_Value; Key : String) return JSON_Value
+   function Get_Array_Or_Empty (Object : JSON_Value; Key : String) return JSON_Value
    with Inline;
 
-   function Get_Object_Or_Empty
-     (Object : JSON_Value; Key : String) return JSON_Value
+   function Get_Object_Or_Empty (Object : JSON_Value; Key : String) return JSON_Value
    with Inline;
 
-   function Get
-     (Object  : JSON_Value;
-      Key     : String;
-      Default : Integer_Type) return JSON_Value
+   function Get (Object : JSON_Value; Key : String; Default : Integer_Type) return JSON_Value
    with Inline;
 
-   function Get
-     (Object  : JSON_Value;
-      Key     : String;
-      Default : Float_Type) return JSON_Value
+   function Get (Object : JSON_Value; Key : String; Default : Float_Type) return JSON_Value
    with Inline;
 
-   function Get
-     (Object  : JSON_Value;
-      Key     : String;
-      Default : Boolean) return JSON_Value
+   function Get (Object : JSON_Value; Key : String; Default : Boolean) return JSON_Value
    with Inline;
 
    -----------------------------------------------------------------------------
@@ -139,8 +114,7 @@ package JSON.Types is
    -----------------------------------------------------------------------------
 
    function Create_String
-     (Stream : Streams.Stream_Ptr;
-      Offset, Length : Streams.AS.Stream_Element_Offset) return JSON_Value;
+     (Stream : Streams.Stream_Ptr; Offset, Length : Streams.AS.Stream_Element_Offset) return JSON_Value;
 
    function Create_Integer (Value : Integer_Type) return JSON_Value;
 
@@ -150,38 +124,29 @@ package JSON.Types is
 
    function Create_Null return JSON_Value;
 
-   function Create_Array
-     (Allocator : Memory_Allocator_Ptr;
-      Depth     : Positive) return JSON_Value;
+   function Create_Array (Allocator : Memory_Allocator_Ptr; Depth : Positive) return JSON_Value;
 
-   function Create_Object
-     (Allocator : Memory_Allocator_Ptr;
-      Depth     : Positive) return JSON_Value;
+   function Create_Object (Allocator : Memory_Allocator_Ptr; Depth : Positive) return JSON_Value;
 
    -----------------------------------------------------------------------------
    --                                Iterating                                --
    -----------------------------------------------------------------------------
 
-   function Constant_Reference (Object : JSON_Value; Index : Positive)
-     return JSON_Value;
+   function Constant_Reference (Object : JSON_Value; Index : Positive) return JSON_Value;
    --  For Ada 2012 indexing syntax
 
-   function Constant_Reference (Object : JSON_Value; Key : String)
-     return JSON_Value;
+   function Constant_Reference (Object : JSON_Value; Key : String) return JSON_Value;
    --  For Ada 2012 indexing syntax
 
    type Cursor (<>) is private;
 
-   function Constant_Reference (Object : aliased JSON_Value; Position : Cursor)
-     return JSON_Value;
+   function Constant_Reference (Object : aliased JSON_Value; Position : Cursor) return JSON_Value;
 
    function Has_Element (Position : Cursor) return Boolean;
 
-   package Value_Iterator_Interfaces is
-     new Ada.Iterator_Interfaces (Cursor, Has_Element);
+   package Value_Iterator_Interfaces is new Ada.Iterator_Interfaces (Cursor, Has_Element);
 
-   function Iterate (Object : JSON_Value)
-     return Value_Iterator_Interfaces.Forward_Iterator'Class;
+   function Iterate (Object : JSON_Value) return Value_Iterator_Interfaces.Forward_Iterator'Class;
 
 private
 
@@ -191,18 +156,23 @@ private
       case Kind is
          when Array_Kind | Object_Kind =>
             Allocator : Memory_Allocator_Ptr;
-            Depth  : Positive;
-            Offset : Array_Offset;
-            Length : Natural;
+            Depth     : Positive;
+            Offset    : Array_Offset;
+            Length    : Natural;
+
          when String_Kind =>
-            Stream : Streams.Stream_Ptr;
+            Stream                       : Streams.Stream_Ptr;
             String_Offset, String_Length : Streams.AS.Stream_Element_Offset;
+
          when Integer_Kind =>
             Integer_Value : Integer_Type;
+
          when Float_Kind =>
             Float_Value : Float_Type;
+
          when Boolean_Kind =>
             Boolean_Value : Boolean;
+
          when Null_Kind =>
             null;
       end case;
@@ -219,17 +189,15 @@ private
       Index : Natural;
    end record;
 
-   type Iterator (Kind : Iterator_Kind) is limited
-     new Value_Iterator_Interfaces.Forward_Iterator with
-   record
+   type Iterator (Kind : Iterator_Kind) is limited new Value_Iterator_Interfaces.Forward_Iterator with record
       Data : JSON_Value (Kind => Kind);
    end record;
 
-   overriding function First (Object : Iterator) return Cursor;
+   overriding
+   function First (Object : Iterator) return Cursor;
 
-   overriding function Next
-     (Object   : Iterator;
-      Position : Cursor) return Cursor;
+   overriding
+   function Next (Object : Iterator; Position : Cursor) return Cursor;
 
    -----------------------------------------------------------------------------
    --                             Memory allocator                            --
@@ -244,16 +212,14 @@ private
       Element : JSON_Value (Kind => Kind);
    end record;
 
-   package Array_Vectors  is new Ada.Containers.Vectors (Positive, Array_Value);
+   package Array_Vectors is new Ada.Containers.Vectors (Positive, Array_Value);
    package Object_Vectors is new Ada.Containers.Indefinite_Vectors (Positive, Key_Value_Pair);
 
-   type Array_Level_Array  is array (Positive range <>) of Array_Vectors.Vector;
+   type Array_Level_Array is array (Positive range <>) of Array_Vectors.Vector;
    type Object_Level_Array is array (Positive range <>) of Object_Vectors.Vector;
 
-   type Memory_Allocator
-     (Maximum_Depth : Positive) is
-   record
-      Array_Levels  : Array_Level_Array  (1 .. Maximum_Depth);
+   type Memory_Allocator (Maximum_Depth : Positive) is record
+      Array_Levels  : Array_Level_Array (1 .. Maximum_Depth);
       Object_Levels : Object_Level_Array (1 .. Maximum_Depth);
    end record;
 

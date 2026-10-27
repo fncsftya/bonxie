@@ -67,15 +67,12 @@ package body Speech.Jobs is
          Refused.Include (Which);
       end Refuse;
 
-      function Is_Refused (Which : Slot) return Boolean is (Refused.Contains (Which));
+      function Is_Refused (Which : Slot) return Boolean
+      is (Refused.Contains (Which));
 
    end Lanes;
 
-   procedure Start
-     (Which           : Slot;
-      Engine          : Engines := System;
-      Model_Directory : String  := "")
-   is
+   procedure Start (Which : Slot; Engine : Engines := System; Model_Directory : String := "") is
       Using : Natural;
    begin
       Lanes.Claim (Which, Using);

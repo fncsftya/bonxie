@@ -1,4 +1,5 @@
 --  Tests of the grammar rules' view-model alone: no window, no display, no event. See Goldens.
+
 package Grammar_VM_Tests is
 
    procedure Rule_List;

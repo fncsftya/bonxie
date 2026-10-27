@@ -1,4 +1,5 @@
 --  Putting the pins and drawing the lines between them.
+
 private package View.Links.Drawing is
 
    procedure Show_Pins (Item : in out Session; Changed : in out Boolean);

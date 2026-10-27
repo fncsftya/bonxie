@@ -1,4 +1,5 @@
 --  Small questions about the widgets of a window, shared by the rest.
+
 private package Items.Windows.Parts is
 
    function Across_Of (Item : Window) return Float;

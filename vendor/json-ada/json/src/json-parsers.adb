@@ -26,20 +26,16 @@ package body JSON.Parsers is
    use type Tokenizers.Token_Kind;
 
    function Parse_Token
-     (Stream : Streams.Stream_Ptr;
-      Token  : Tokenizers.Token;
-      Allocator : Types.Memory_Allocator_Ptr;
-      Depth     : Positive) return Types.JSON_Value;
+     (Stream : Streams.Stream_Ptr; Token : Tokenizers.Token; Allocator : Types.Memory_Allocator_Ptr; Depth : Positive)
+      return Types.JSON_Value;
 
    function Parse_Array
-     (Stream    : Streams.Stream_Ptr;
-      Allocator : Types.Memory_Allocator_Ptr;
-      Depth     : Positive) return Types.JSON_Value
+     (Stream : Streams.Stream_Ptr; Allocator : Types.Memory_Allocator_Ptr; Depth : Positive) return Types.JSON_Value
    is
       Token : Tokenizers.Token;
 
       JSON_Array : Types.JSON_Value := Types.Create_Array (Allocator, Depth + 1);
-      Repeat : Boolean := False;
+      Repeat     : Boolean := False;
    begin
       loop
          Tokenizers.Read_Token (Stream.all, Token);
@@ -65,14 +61,12 @@ package body JSON.Parsers is
    end Parse_Array;
 
    function Parse_Object
-     (Stream    : Streams.Stream_Ptr;
-      Allocator : Types.Memory_Allocator_Ptr;
-      Depth     : Positive) return Types.JSON_Value
+     (Stream : Streams.Stream_Ptr; Allocator : Types.Memory_Allocator_Ptr; Depth : Positive) return Types.JSON_Value
    is
       Token : Tokenizers.Token;
 
       JSON_Object : Types.JSON_Value := Types.Create_Object (Allocator, Depth + 1);
-      Repeat : Boolean := False;
+      Repeat      : Boolean := False;
    begin
       loop
          Tokenizers.Read_Token (Stream.all, Token);
@@ -94,8 +88,7 @@ package body JSON.Parsers is
          end if;
 
          declare
-            Key : constant Types.JSON_Value
-              := Types.Create_String (Stream, Token.String_Offset, Token.String_Length);
+            Key : constant Types.JSON_Value := Types.Create_String (Stream, Token.String_Offset, Token.String_Length);
          begin
             --  Expect name separator (':' character) between key and value
             Tokenizers.Read_Token (Stream.all, Token);
@@ -105,9 +98,7 @@ package body JSON.Parsers is
 
             --  Parse member value and insert key-value pair in the object
             Tokenizers.Read_Token (Stream.all, Token);
-            JSON_Object.Insert
-              (Key, Parse_Token (Stream, Token, Allocator, Depth + 1),
-               Check_Duplicate_Keys);
+            JSON_Object.Insert (Key, Parse_Token (Stream, Token, Allocator, Depth + 1), Check_Duplicate_Keys);
          end;
 
          Repeat := True;
@@ -117,41 +108,43 @@ package body JSON.Parsers is
    end Parse_Object;
 
    function Parse_Token
-     (Stream : Streams.Stream_Ptr;
-      Token  : Tokenizers.Token;
-      Allocator : Types.Memory_Allocator_Ptr;
-      Depth     : Positive) return Types.JSON_Value is
+     (Stream : Streams.Stream_Ptr; Token : Tokenizers.Token; Allocator : Types.Memory_Allocator_Ptr; Depth : Positive)
+      return Types.JSON_Value is
    begin
       case Token.Kind is
-         when Tokenizers.Begin_Array_Token =>
+         when Tokenizers.Begin_Array_Token  =>
             return Parse_Array (Stream, Allocator, Depth);
+
          when Tokenizers.Begin_Object_Token =>
             return Parse_Object (Stream, Allocator, Depth);
-         when Tokenizers.String_Token =>
+
+         when Tokenizers.String_Token       =>
             return Types.Create_String (Stream, Token.String_Offset, Token.String_Length);
-         when Tokenizers.Integer_Token =>
+
+         when Tokenizers.Integer_Token      =>
             return Types.Create_Integer (Token.Integer_Value);
-         when Tokenizers.Float_Token =>
+
+         when Tokenizers.Float_Token        =>
             return Types.Create_Float (Token.Float_Value);
-         when Tokenizers.Boolean_Token =>
+
+         when Tokenizers.Boolean_Token      =>
             return Types.Create_Boolean (Token.Boolean_Value);
-         when Tokenizers.Null_Token =>
+
+         when Tokenizers.Null_Token         =>
             return Types.Create_Null;
-         when others =>
+
+         when others                        =>
             raise Parse_Error with "Unexpected token " & Token.Kind'Image;
       end case;
    end Parse_Token;
 
-   function Parse
-     (Stream    : Streams.Stream_Ptr;
-      Allocator : Types.Memory_Allocator_Ptr) return Types.JSON_Value with SPARK_Mode => On
+   function Parse (Stream : Streams.Stream_Ptr; Allocator : Types.Memory_Allocator_Ptr) return Types.JSON_Value
+   with SPARK_Mode => On
    is
       Token : Tokenizers.Token;
    begin
       Tokenizers.Read_Token (Stream.all, Token);
-      return Value : constant Types.JSON_Value
-        := Parse_Token (Stream, Token, Allocator, Positive'First)
-      do
+      return Value : constant Types.JSON_Value := Parse_Token (Stream, Token, Allocator, Positive'First) do
          Tokenizers.Read_Token (Stream.all, Token, Expect_EOF => True);
       end return;
    exception
@@ -160,47 +153,43 @@ package body JSON.Parsers is
    end Parse;
 
    function Create
-     (Pointer       : not null JSON.Streams.Stream_Element_Array_Access;
-      Maximum_Depth : Positive := Default_Maximum_Depth) return Parser is
+     (Pointer : not null JSON.Streams.Stream_Element_Array_Access; Maximum_Depth : Positive := Default_Maximum_Depth)
+      return Parser is
    begin
       return
-        (Ada.Finalization.Limited_Controlled with
-         Maximum_Depth => Maximum_Depth,
-         Pointer       => Pointer,
-         Own_Pointer   => False,
-         Stream        => Streams.Create_Stream (Pointer),
-         Allocator     => <>);
+        (Ada.Finalization.Limited_Controlled
+         with
+           Maximum_Depth => Maximum_Depth,
+           Pointer       => Pointer,
+           Own_Pointer   => False,
+           Stream        => Streams.Create_Stream (Pointer),
+           Allocator     => <>);
    end Create;
 
-   function Create
-     (Text          : String;
-      Maximum_Depth : Positive := Default_Maximum_Depth) return Parser
-   is
+   function Create (Text : String; Maximum_Depth : Positive := Default_Maximum_Depth) return Parser is
       Pointer : constant not null Streams.Stream_Element_Array_Access := Streams.From_Text (Text);
    begin
       return
-        (Ada.Finalization.Limited_Controlled with
-         Maximum_Depth => Maximum_Depth,
-         Pointer       => Pointer,
-         Own_Pointer   => True,
-         Stream        => Streams.Create_Stream (Pointer),
-         Allocator     => <>);
+        (Ada.Finalization.Limited_Controlled
+         with
+           Maximum_Depth => Maximum_Depth,
+           Pointer       => Pointer,
+           Own_Pointer   => True,
+           Stream        => Streams.Create_Stream (Pointer),
+           Allocator     => <>);
    end Create;
 
-   function Create_From_File
-     (File_Name     : String;
-      Maximum_Depth : Positive := Default_Maximum_Depth) return Parser
-   is
-      Pointer : constant not null Streams.Stream_Element_Array_Access :=
-        Streams.From_File (File_Name);
+   function Create_From_File (File_Name : String; Maximum_Depth : Positive := Default_Maximum_Depth) return Parser is
+      Pointer : constant not null Streams.Stream_Element_Array_Access := Streams.From_File (File_Name);
    begin
       return
-        (Ada.Finalization.Limited_Controlled with
-         Maximum_Depth => Maximum_Depth,
-         Pointer       => Pointer,
-         Own_Pointer   => True,
-         Stream        => Streams.Create_Stream (Pointer),
-         Allocator     => <>);
+        (Ada.Finalization.Limited_Controlled
+         with
+           Maximum_Depth => Maximum_Depth,
+           Pointer       => Pointer,
+           Own_Pointer   => True,
+           Stream        => Streams.Create_Stream (Pointer),
+           Allocator     => <>);
    end Create_From_File;
 
    function Parse (Object : in out Parser) return Types.JSON_Value is
@@ -210,9 +199,10 @@ package body JSON.Parsers is
 
    overriding
    procedure Finalize (Object : in out Parser) is
-      procedure Free is new Ada.Unchecked_Deallocation
-        (Object => Streams.AS.Stream_Element_Array,
-         Name   => Streams.Stream_Element_Array_Access);
+      procedure Free is new
+        Ada.Unchecked_Deallocation
+          (Object => Streams.AS.Stream_Element_Array,
+           Name   => Streams.Stream_Element_Array_Access);
 
       use type Streams.Stream_Element_Array_Access;
    begin

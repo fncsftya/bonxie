@@ -7,17 +7,19 @@ is
    Mark_2 : constant Character := Character'Val (16#96#);
    Mark_3 : constant Character := Character'Val (16#81#);
 
-   function Mark_At (Token_Text : String; From, Stop : Natural) return Boolean is
-     (From >= 1 and then Stop >= 3 and then From <= Stop - 2
-      and then Token_Text (From) = Mark_1
-      and then Token_Text (From + 1) = Mark_2
-      and then Token_Text (From + 2) = Mark_3)
-     with Pre => Token_Text'First = 1 and then Stop <= Token_Text'Length;
+   function Mark_At (Token_Text : String; From, Stop : Natural) return Boolean
+   is (From >= 1
+       and then Stop >= 3
+       and then From <= Stop - 2
+       and then Token_Text (From) = Mark_1
+       and then Token_Text (From + 1) = Mark_2
+       and then Token_Text (From + 2) = Mark_3)
+   with Pre => Token_Text'First = 1 and then Stop <= Token_Text'Length;
    --  Whether the mark is at From, of a token that ends at Stop.
 
-   function Space_At (Token_Text : String; From, Stop : Natural) return Boolean is
-     (From >= 1 and then From <= Stop and then Token_Text (From) = ' ')
-     with Pre => Token_Text'First = 1 and then Stop <= Token_Text'Length;
+   function Space_At (Token_Text : String; From, Stop : Natural) return Boolean
+   is (From >= 1 and then From <= Stop and then Token_Text (From) = ' ')
+   with Pre => Token_Text'First = 1 and then Stop <= Token_Text'Length;
 
    procedure Group
      (Token_Text     : String;
@@ -31,13 +33,13 @@ is
       Word_Stops     : in out Offsets;
       Word_Count     : out Natural)
    is
-      Used    : Natural := 0;
+      Used   : Natural := 0;
       --  How much of Text is made.
-      Done    : Natural := 0;
+      Done   : Natural := 0;
       --  How many words are made.
-      Spaced  : Boolean := True;
+      Spaced : Boolean := True;
       --  Whether the next piece begins a word.
-      Full    : Boolean := False;
+      Full   : Boolean := False;
       --  Whether a word did not fit.
    begin
       for Token in Token_Ends'Range loop

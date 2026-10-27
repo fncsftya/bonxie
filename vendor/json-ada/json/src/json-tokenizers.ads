@@ -41,21 +41,22 @@ package JSON.Tokenizers with SPARK_Mode => On is
       case Kind is
          when String_Token =>
             String_Offset, String_Length : Streams.AS.Stream_Element_Offset;
+
          when Integer_Token =>
             Integer_Value : Types.Integer_Type;
+
          when Float_Token =>
-            Float_Value   : Types.Float_Type;
+            Float_Value : Types.Float_Type;
+
          when Boolean_Token =>
             Boolean_Value : Boolean;
+
          when others =>
             null;
       end case;
    end record;
 
-   procedure Read_Token
-     (Stream     : in out Streams.Stream;
-      Next_Token : out Token;
-      Expect_EOF : Boolean := False)
+   procedure Read_Token (Stream : in out Streams.Stream; Next_Token : out Token; Expect_EOF : Boolean := False)
    with Post => Next_Token.Kind /= Invalid_Token and Expect_EOF = (Next_Token.Kind = EOF_Token);
 
    Tokenizer_Error : exception;

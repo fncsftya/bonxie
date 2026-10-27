@@ -8,10 +8,10 @@
 --  text), so they are not for the main thread: see Speech.Jobs.
 
 package Speech
-  with SPARK_Mode,
-       Abstract_State =>
-         (Recognizer with Synchronous, External => (Async_Readers, Async_Writers)),
-       Initializes    => null
+  with
+    SPARK_Mode,
+    Abstract_State => (Recognizer with Synchronous, External => (Async_Readers, Async_Writers)),
+    Initializes    => null
 is
    --  Recognizer is SpeechAnalyzer's (Swift's) side of listenings: it is
    --  shared by every thread, and changes of itself (as sound comes).
@@ -33,50 +33,40 @@ is
       --  Text (1 .. Settled) will not change; what follows may.
       Text      : String (1 .. Text_Capacity) := [others => ' '];
    end record
-     with Dynamic_Predicate =>
-       Transcript.Length <= Text_Capacity and then Transcript.Settled <= Transcript.Length;
+   with Dynamic_Predicate => Transcript.Length <= Text_Capacity and then Transcript.Settled <= Transcript.Length;
 
    function Image (Of_Transcript : Transcript) return String
-     is (Of_Transcript.Text (1 .. Of_Transcript.Length))
-     with Post => Image'Result'First = 1
-                  and then Image'Result'Length = Of_Transcript.Length;
+   is (Of_Transcript.Text (1 .. Of_Transcript.Length))
+   with Post => Image'Result'First = 1 and then Image'Result'Length = Of_Transcript.Length;
 
-   procedure Begin_Listening
-     (Which   : Session;
-      Ok      : out Boolean;
-      Message : out String;
-      Last    : out Natural)
-     with Global => (In_Out => Recognizer),
-          Pre    => Message'First = 1 and then Message'Length < Positive'Last / 2,
-          Post   => Last <= Message'Length;
+   procedure Begin_Listening (Which : Session; Ok : out Boolean; Message : out String; Last : out Natural)
+   with
+     Global => (In_Out => Recognizer),
+     Pre    => Message'First = 1 and then Message'Length < Positive'Last / 2,
+     Post   => Last <= Message'Length;
    --  Start listening, in session Which, which is not open already. On
    --  failure Ok is False and Message (1 .. Last) says why: no
    --  microphone, no leave to use it, a language that is not supported.
 
    function Level (Which : Session) return Float
-     with Volatile_Function,
-          Global => (Input => Recognizer),
-          Post   => Level'Result in 0.0 .. 1.0;
+   with Volatile_Function, Global => (Input => Recognizer), Post => Level'Result in 0.0 .. 1.0;
    --  How loud what is heard is now, from 0.0 (silence, or not
    --  listening) to 1.0: it falls away between sounds. Cheap, and may be
    --  called from any thread.
 
    procedure Peek (Which : Session; Into : in out Transcript)
-     with Global => (Input => Recognizer);
+   with Global => (Input => Recognizer);
    --  What has been heard so far in an open session, as text: the words
    --  that are settled, then those still being worked out, which a later
    --  Peek may change. Empty if the session is not open. Cheap enough to
    --  call every frame, and from any thread.
 
    procedure End_Listening
-     (Which   : Session;
-      Into    : in out Transcript;
-      Ok      : out Boolean;
-      Message : out String;
-      Last    : out Natural)
-     with Global => (In_Out => Recognizer),
-          Pre    => Message'First = 1 and then Message'Length < Positive'Last / 2,
-          Post   => Last <= Message'Length;
+     (Which : Session; Into : in out Transcript; Ok : out Boolean; Message : out String; Last : out Natural)
+   with
+     Global => (In_Out => Recognizer),
+     Pre    => Message'First = 1 and then Message'Length < Positive'Last / 2,
+     Post   => Last <= Message'Length;
    --  Stop listening, in an open session, and wait for the rest of what
    --  was heard to be made text, which goes in Into (empty if nothing
    --  was said). The session is closed, however it ends.

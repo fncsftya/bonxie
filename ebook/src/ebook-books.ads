@@ -10,6 +10,7 @@ with Pomarine.Words;
 --  Only the book's text is set: its headings, paragraphs, lists, quotes and
 --  preformatted text, in bold, italic and fixed faces. Its style sheets are
 --  not read, and its pictures are not drawn.
+
 package Ebook.Books is
 
    Sheet_Width  : constant := 432.0;
@@ -23,8 +24,9 @@ package Ebook.Books is
       Title_Last : out Natural;
       Message    : out String;
       Last       : out Natural)
-     with Pre  => Message'Length >= Max_Message,
-          Post => (if Pages > 0 then Last = Message'First - 1 else Last >= Message'First);
+   with
+     Pre  => Message'Length >= Max_Message,
+     Post => (if Pages > 0 then Last = Message'First - 1 else Last >= Message'First);
    --  Set the book and count its pages. Title (Title'First .. Title_Last)
    --  is its title, cut if it is longer than Title; empty if it has none.
 
@@ -35,7 +37,7 @@ package Ebook.Books is
       Found     : in out Pomarine.Words.Result;
       Message   : out String;
       Last      : out Natural)
-     with Pre => Message'Length >= Max_Message;
+   with Pre => Message'Length >= Max_Message;
    --  The page, as Ebook.Build_Page says.
 
 end Ebook.Books;

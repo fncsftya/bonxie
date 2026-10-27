@@ -6,8 +6,7 @@ with Repository.Project;
 
 package body Projects is
 
-   procedure Free is new Ada.Unchecked_Deallocation
-     (Ada_Sqlite3.Database, Database_Access);
+   procedure Free is new Ada.Unchecked_Deallocation (Ada_Sqlite3.Database, Database_Access);
 
    function Default_Path return String is
       use Ada.Environment_Variables;
@@ -21,33 +20,25 @@ package body Projects is
       return Config & "/bonxie/projects.db";
    end Default_Path;
 
-   function Is_Open (Item : Store) return Boolean is
-     (Item.Base /= null and then Ada_Sqlite3.Is_Open (Item.Base.all));
+   function Is_Open (Item : Store) return Boolean
+   is (Item.Base /= null and then Ada_Sqlite3.Is_Open (Item.Base.all));
 
-   function Folder (Item : Store; Key : Id) return String is
-     (Paths.To_String (Item.Root) & "/"
-      & Ada.Strings.Fixed.Trim (Key'Image, Ada.Strings.Both));
+   function Folder (Item : Store; Key : Id) return String
+   is (Paths.To_String (Item.Root) & "/" & Ada.Strings.Fixed.Trim (Key'Image, Ada.Strings.Both));
 
-   function Connection
-     (Item : Store) return not null access Ada_Sqlite3.Database is
-     (Item.Base);
+   function Connection (Item : Store) return not null access Ada_Sqlite3.Database
+   is (Item.Base);
 
    procedure Open (Item : in out Store; Path : String := Default_Path) is
    begin
       if Path /= Memory then
-         Ada.Directories.Create_Path
-           (Ada.Directories.Containing_Directory (Path));
-         Item.Root :=
-           Paths.To_Text
-             (Ada.Directories.Containing_Directory (Path));
+         Ada.Directories.Create_Path (Ada.Directories.Containing_Directory (Path));
+         Item.Root := Paths.To_Text (Ada.Directories.Containing_Directory (Path));
       else
          Item.Root :=
            Paths.To_Text
-             ((if Ada.Environment_Variables.Exists ("TMPDIR")
-                 and then Ada.Environment_Variables.Value ("TMPDIR") /= ""
-               then Ada.Strings.Fixed.Trim
-                      (Ada.Environment_Variables.Value ("TMPDIR"),
-                       Ada.Strings.Right)
+             ((if Ada.Environment_Variables.Exists ("TMPDIR") and then Ada.Environment_Variables.Value ("TMPDIR") /= ""
+               then Ada.Strings.Fixed.Trim (Ada.Environment_Variables.Value ("TMPDIR"), Ada.Strings.Right)
                else "/tmp")
               & "/bonxie-memory");
       end if;
@@ -55,11 +46,10 @@ package body Projects is
       Repository.Project.Prepare (Item);
    end Open;
 
-   function Stored_Description (Item : Store; Key : Id) return String is
-     (Repository.Project.Stored_Description (Item, Key));
+   function Stored_Description (Item : Store; Key : Id) return String
+   is (Repository.Project.Stored_Description (Item, Key));
 
-   procedure Set_Description
-     (Item : in out Store; Key : Id; Description : String) is
+   procedure Set_Description (Item : in out Store; Key : Id; Description : String) is
    begin
       Repository.Project.Set_Description (Item, Key, Description);
    end Set_Description;
@@ -69,47 +59,33 @@ package body Projects is
       Repository.Project.Set_Tab (Item, Key, To);
    end Set_Tab;
 
-   function Tab (Item : Store; Key : Id) return Natural is
-     (Repository.Project.Tab (Item, Key));
+   function Tab (Item : Store; Key : Id) return Natural
+   is (Repository.Project.Tab (Item, Key));
 
-   procedure Set_View
-     (Item : in out Store; Key : Id; Zoom, Centre_X, Centre_Y : Float) is
+   procedure Set_View (Item : in out Store; Key : Id; Zoom, Centre_X, Centre_Y : Float) is
    begin
       Repository.Project.Set_View (Item, Key, Zoom, Centre_X, Centre_Y);
    end Set_View;
 
-   procedure Get_View
-     (Item   : Store;
-      Key    : Id;
-      Found  : out Boolean;
-      Zoom, Centre_X, Centre_Y : out Float) is
+   procedure Get_View (Item : Store; Key : Id; Found : out Boolean; Zoom, Centre_X, Centre_Y : out Float) is
    begin
       Repository.Project.Get_View (Item, Key, Found, Zoom, Centre_X, Centre_Y);
    end Get_View;
 
-   function Create
-     (Item        : in out Store;
-      Title       : String;
-      Description : String := "";
-      Time        : Seconds := Now) return Id is
-     (Repository.Project.Insert (Item, Title, Description, Time));
+   function Create (Item : in out Store; Title : String; Description : String := ""; Time : Seconds := Now) return Id
+   is (Repository.Project.Insert (Item, Title, Description, Time));
 
    procedure Touch (Item : in out Store; Key : Id; Time : Seconds := Now) is
    begin
       Repository.Project.Touch (Item, Key, Time);
    end Touch;
 
-   procedure Find
-     (Item : Store; Key : Id; Found : out Boolean; Result : out Project) is
+   procedure Find (Item : Store; Key : Id; Found : out Boolean; Result : out Project) is
    begin
       Repository.Project.Find (Item, Key, Found, Result);
    end Find;
 
-   procedure Rename
-     (Item  : in out Store;
-      Key   : Id;
-      Title : String;
-      Time  : Seconds := Now) is
+   procedure Rename (Item : in out Store; Key : Id; Title : String; Time : Seconds := Now) is
    begin
       Repository.Project.Rename (Item, Key, Title, Time);
    end Rename;
@@ -132,7 +108,8 @@ package body Projects is
       Repository.Project.Recent (Item, Result);
    end Recent;
 
-   overriding procedure Finalize (Item : in out Store) is
+   overriding
+   procedure Finalize (Item : in out Store) is
    begin
       --  Closes the database.
       Free (Item.Base);

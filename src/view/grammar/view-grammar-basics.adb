@@ -11,27 +11,30 @@ package body View.Grammar.Basics is
    use type Docs.Version;
    use type Harper.Request_Id;
 
-   function Active (Item : Session) return Boolean is
-     (Screen (Item) = Project and then View_Mode (Item) = Write and then Item.Grammar_Checks.Enabled);
+   function Active (Item : Session) return Boolean
+   is (Screen (Item) = Project and then View_Mode (Item) = Write and then Item.Grammar_Checks.Enabled);
 
-   function Image (Total : Natural) return String is
-     (Ada.Strings.Fixed.Trim (Total'Image, Ada.Strings.Both));
+   function Image (Total : Natural) return String
+   is (Ada.Strings.Fixed.Trim (Total'Image, Ada.Strings.Both));
 
-   function Valid (Item : Session; Row : Grammar_Row) return Boolean is
-     (Row.Token /= 0 and then Row.Rank <= Trees.Page_Count (Item.Docs.Ordering)
-      and then Row.Token = Item.Grammar_Checks.Documents (Row.Rank).Token
-      and then Item.Grammar_Checks.Documents (Row.Rank).Serial =
-        Docs.Serial (Editors.Document (Item.Docs.Pages (Row.Rank).Text).all)
-      and then Item.Grammar_Checks.Documents (Row.Rank).Seen =
-        Docs.Current (Editors.Document (Item.Docs.Pages (Row.Rank).Text).all));
+   function Valid (Item : Session; Row : Grammar_Row) return Boolean
+   is (Row.Token /= 0
+       and then Row.Rank <= Trees.Page_Count (Item.Docs.Ordering)
+       and then Row.Token = Item.Grammar_Checks.Documents (Row.Rank).Token
+       and then Item.Grammar_Checks.Documents (Row.Rank).Serial
+                = Docs.Serial (Editors.Document (Item.Docs.Pages (Row.Rank).Text).all)
+       and then Item.Grammar_Checks.Documents (Row.Rank).Seen
+                = Docs.Current (Editors.Document (Item.Docs.Pages (Row.Rank).Text).all));
 
    function Flagged (Item : Session; Row : Grammar_Row) return String is
-      Doc : Docs.Document renames Editors.Document (Item.Docs.Pages (Row.Rank).Text).all;
+      Doc  : Docs.Document renames Editors.Document (Item.Docs.Pages (Row.Rank).Text).all;
       From : constant Texts.Position := Advance (Doc, Row.First, Row.Lint.Location.First);
       To   : constant Texts.Position := Advance (Doc, Row.First, Row.Lint.Location.Last);
    begin
-      return (if From.Paragraph = To.Paragraph and then From.Index < To.Index
-              then Docs.Slice (Doc, From.Paragraph, From.Index, To.Index) else "");
+      return
+        (if From.Paragraph = To.Paragraph and then From.Index < To.Index
+         then Docs.Slice (Doc, From.Paragraph, From.Index, To.Index)
+         else "");
    end Flagged;
 
    procedure Load_Rules (Item : in out Session) is

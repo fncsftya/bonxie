@@ -1,6 +1,7 @@
 with Projects;
 
 --  The items and links of a project in the database, for the canvas's view-model.
+
 package Canvas_VM.Stored is
 
    type Project_Kept is limited new Library with private;
@@ -12,48 +13,62 @@ package Canvas_VM.Stored is
 
    function Project (Self : Project_Kept) return Projects.Id;
 
-   overriding procedure Load (Self : in out Project_Kept; Into : out Items.Info_List);
+   overriding
+   procedure Load (Self : in out Project_Kept; Into : out Items.Info_List);
 
-   overriding function Create
-     (Self : in out Project_Kept; Name : String; Where : Items.Frame; Kind : Items.Kinds) return Items.Id;
+   overriding
+   function Create (Self : in out Project_Kept; Name : String; Where : Items.Frame; Kind : Items.Kinds) return Items.Id;
 
-   overriding function Stored_Content (Self : in out Project_Kept; Key : Items.Id) return String;
+   overriding
+   function Stored_Content (Self : in out Project_Kept; Key : Items.Id) return String;
 
-   overriding function Shown_File (Self : in out Project_Kept; Of_Item : Items.Info) return String;
+   overriding
+   function Shown_File (Self : in out Project_Kept; Of_Item : Items.Info) return String;
 
-   overriding procedure Load_Marks
-     (Self : in out Project_Kept; Key : Items.Id; Into : out Items.Marks.Mark_List);
+   overriding
+   procedure Load_Marks (Self : in out Project_Kept; Key : Items.Id; Into : out Items.Marks.Mark_List);
 
-   overriding procedure Keep_State (Self : in out Project_Kept; Key : Items.Id; To : Items.States);
+   overriding
+   procedure Keep_State (Self : in out Project_Kept; Key : Items.Id; To : Items.States);
 
-   overriding procedure Keep_Origin (Self : in out Project_Kept; Key : Items.Id; To : Items.Origins);
+   overriding
+   procedure Keep_Origin (Self : in out Project_Kept; Key : Items.Id; To : Items.Origins);
 
-   overriding procedure Delete (Self : in out Project_Kept; Key : Items.Id);
+   overriding
+   procedure Delete (Self : in out Project_Kept; Key : Items.Id);
 
-   overriding procedure Flush
+   overriding
+   procedure Flush
      (Self  : in out Project_Kept;
       Model : in out Items.Models.Item;
       Now   : Pomarine.Events.Milliseconds;
       Force : Boolean;
       Wrote : out Boolean);
 
-   overriding procedure Touch (Self : in out Project_Kept);
+   overriding
+   procedure Touch (Self : in out Project_Kept);
 
-   overriding procedure Get_View
-     (Self : in out Project_Kept; Found : out Boolean; Zoom, Centre_X, Centre_Y : out Float);
+   overriding
+   procedure Get_View (Self : in out Project_Kept; Found : out Boolean; Zoom, Centre_X, Centre_Y : out Float);
 
-   overriding procedure Set_View (Self : in out Project_Kept; Zoom, Centre_X, Centre_Y : Float);
+   overriding
+   procedure Set_View (Self : in out Project_Kept; Zoom, Centre_X, Centre_Y : Float);
 
-   overriding procedure Load_Links (Self : in out Project_Kept; Into : out Items.Links.Link_List);
+   overriding
+   procedure Load_Links (Self : in out Project_Kept; Into : out Items.Links.Link_List);
 
-   overriding procedure Add_Link (Self : in out Project_Kept; Fresh : Items.Links.Link; Added : out Boolean);
+   overriding
+   procedure Add_Link (Self : in out Project_Kept; Fresh : Items.Links.Link; Added : out Boolean);
 
-   overriding procedure Move_Link
+   overriding
+   procedure Move_Link
      (Self : in out Project_Kept; Key : Items.Id; To : Items.Id; Side : Items.Links.Sides; Moved : out Boolean);
 
-   overriding procedure Delete_Link (Self : in out Project_Kept; Key : Items.Id);
+   overriding
+   procedure Delete_Link (Self : in out Project_Kept; Key : Items.Id);
 
-   overriding procedure Set_Link_Style
+   overriding
+   procedure Set_Link_Style
      (Self   : in out Project_Kept;
       Key    : Items.Id;
       Stroke : Items.Links.Strokes;

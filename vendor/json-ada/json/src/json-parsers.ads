@@ -24,7 +24,7 @@ generic
 
    Default_Maximum_Depth : Positive := 10;
 
-   Check_Duplicate_Keys  : Boolean  := False;
+   Check_Duplicate_Keys : Boolean := False;
    --  If enabled, raise a Constraint_Error when an object contains
    --  duplicate keys. Parsing a JSON text will be slower if enabled.
 package JSON.Parsers with SPARK_Mode => On is
@@ -33,27 +33,21 @@ package JSON.Parsers with SPARK_Mode => On is
    type Parser (<>) is tagged limited private;
 
    function Create
-     (Pointer       : not null JSON.Streams.Stream_Element_Array_Access;
-      Maximum_Depth : Positive := Default_Maximum_Depth) return Parser;
+     (Pointer : not null JSON.Streams.Stream_Element_Array_Access; Maximum_Depth : Positive := Default_Maximum_Depth)
+      return Parser;
 
-   function Create
-     (Text          : String;
-      Maximum_Depth : Positive := Default_Maximum_Depth) return Parser;
+   function Create (Text : String; Maximum_Depth : Positive := Default_Maximum_Depth) return Parser;
 
-   function Create_From_File
-     (File_Name     : String;
-      Maximum_Depth : Positive := Default_Maximum_Depth) return Parser;
+   function Create_From_File (File_Name : String; Maximum_Depth : Positive := Default_Maximum_Depth) return Parser;
 
    function Parse (Object : in out Parser) return Types.JSON_Value
-     with SPARK_Mode => Off;
+   with SPARK_Mode => Off;
 
    Parse_Error : exception;
 
 private
 
-   type Parser (Maximum_Depth : Positive)
-     is limited new Ada.Finalization.Limited_Controlled with
-   record
+   type Parser (Maximum_Depth : Positive) is limited new Ada.Finalization.Limited_Controlled with record
       Stream      : aliased Streams.Stream;
       Allocator   : aliased Types.Memory_Allocator (Maximum_Depth);
       Pointer     : Streams.Stream_Element_Array_Access;

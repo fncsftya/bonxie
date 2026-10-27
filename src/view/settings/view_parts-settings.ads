@@ -12,6 +12,7 @@ with Settings_VM.Disk;
 with Speech.Models;
 
 --  The settings: their widgets, and the view-model they show with what ties them.
+
 package View_Parts.Settings is
 
    type Background_Card is limited record
@@ -31,20 +32,20 @@ package View_Parts.Settings is
    type Background_Card_Array is array (Preferences.Background_Modes) of Background_Card;
 
    type Settings_Parts is limited record
-      Settings_Panel : Pomarine.Widgets.Panels.Panel;
+      Settings_Panel    : Pomarine.Widgets.Panels.Panel;
       --  A column, in the home screen's place while the settings are shown: a
       --  bar across the top, which stays, and below it the form, scrolled.
-      Settings_Bar   : Pomarine.Widgets.Panels.Panel;
-      Settings_Title : Pomarine.Widgets.Labels.Label;
-      Settings_Scroll  : Pomarine.Widgets.Scrollers.Scroller;
-      Settings_Content : Pomarine.Widgets.Panels.Panel;
+      Settings_Bar      : Pomarine.Widgets.Panels.Panel;
+      Settings_Title    : Pomarine.Widgets.Labels.Label;
+      Settings_Scroll   : Pomarine.Widgets.Scrollers.Scroller;
+      Settings_Content  : Pomarine.Widgets.Panels.Panel;
       --  Centres the form, which is as wide as a page in the writing view.
-      Settings_Form  : Pomarine.Widgets.Panels.Panel;
-      Form_Wide      : Float := 0.0;
+      Settings_Form     : Pomarine.Widgets.Panels.Panel;
+      Form_Wide         : Float := 0.0;
       --  Its width, in points, as last set (see Settings_View.Fit).
       Background_Scroll : Pomarine.Widgets.Scrollers.Scroller;
-      Background_Row : Pomarine.Widgets.Panels.Panel;
-      Cards          : Background_Card_Array;
+      Background_Row    : Pomarine.Widgets.Panels.Panel;
+      Cards             : Background_Card_Array;
       --  Display's Background: a row of cards, scrolled across, each a small picture of a window drawn on
       --  it, with its name below. The rest of the form (the choices of theme and speech model, the
       --  download, VSync) is the view's controls, bound to the view-model (see View.Build.Settings_Form).
@@ -52,14 +53,14 @@ package View_Parts.Settings is
    --  The widgets of the settings. What is chosen in them is Settings_Choices'.
 
    type Settings_Choices is limited record
-      Model  : aliased Settings_VM.View_Model;
+      Model          : aliased Settings_VM.View_Model;
       --  What the settings mean: the choices, the download, when each command can be done.
-      Files  : aliased Settings_VM.Disk.File_Store;
-      Voice  : aliased Settings_VM.Disk.Speech_Files;
+      Files          : aliased Settings_VM.Disk.File_Store;
+      Voice          : aliased Settings_VM.Disk.Speech_Files;
       --  Where the choices are kept, and the speech model's files.
-      Seen   : Pomarine.View_Models.Watch;
+      Seen           : Pomarine.View_Models.Watch;
       --  The model's version as the widgets last showed it.
-      Download_Seen : Speech.Models.States := Speech.Models.Idle;
+      Download_Seen  : Speech.Models.States := Speech.Models.Idle;
       --  How the download was when the form last showed it.
       Dark_Shown     : Boolean := False;
       --  Whether the windows are drawn in the dark theme, as last applied.

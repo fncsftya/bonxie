@@ -17,14 +17,14 @@ package body Items.Windows.Syncing is
         and then Items.Models.Details (M).State = Open
         and then Widgets.Width_Of (Item.Body_Text) > 0.0
       then
-         Pomarine.Text_Areas.Scroll_To
-           (Editors.Area (Item.Body_Text).all, Items.Models.Details (M).Scroll);
+         Pomarine.Text_Areas.Scroll_To (Editors.Area (Item.Body_Text).all, Items.Models.Details (M).Scroll);
          Widgets.Invalidate (Item.Body_Text);
          Items.Models.Scrolled (M, Parts.Scroll_Of (Item));
       end if;
 
       --  Raised when it starts to be used.
-      Used := Frames.Is_Dragging (Item.Chrome)
+      Used :=
+        Frames.Is_Dragging (Item.Chrome)
         or else Sliders.Is_Dragging (Item.Zoom_Slider)
         or else Frames.Is_Editing_Title (Item.Chrome)
         or else Widgets.Has_Focus (Item.Body_Text);
@@ -33,10 +33,7 @@ package body Items.Windows.Syncing is
       end if;
       Item.Was_Used := Used;
       --  A ring round the window being typed in.
-      Frames.Set_Ring
-        (Item.Chrome,
-         Frames.Is_Editing_Title (Item.Chrome)
-         or else Widgets.Has_Focus (Item.Body_Text));
+      Frames.Set_Ring (Item.Chrome, Frames.Is_Editing_Title (Item.Chrome) or else Widgets.Has_Focus (Item.Body_Text));
       Displays.Show_Status (Item);
    end Use_Window;
 
@@ -60,9 +57,7 @@ package body Items.Windows.Syncing is
           Across   => Across,
           Pending  => Items.Models.Scroll_Pending (M)));
       --  What was marked on the picture.
-      if Source and then not Marking
-        and then Parts.Shown_Marks_Version (Item) /= Items.Models.Marks_Reported (M)
-      then
+      if Source and then not Marking and then Parts.Shown_Marks_Version (Item) /= Items.Models.Marks_Reported (M) then
          declare
             Made    : Items.Marks.Mark_List;
             Version : constant Natural := Parts.Shown_Marks_Version (Item);

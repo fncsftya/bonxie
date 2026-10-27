@@ -21,8 +21,8 @@ package body Items.Windows.Displays is
    use type Items.Models.Captures;
    use type Items.Models.Tools;
 
-   function Tool_Of (Chosen : Items.Models.Tools) return Pictures.Tools is
-     (case Chosen is
+   function Tool_Of (Chosen : Items.Models.Tools) return Pictures.Tools
+   is (case Chosen is
          when Items.Models.Pointer     => Pictures.Pointer,
          when Items.Models.Highlighter => Pictures.Highlighter,
          when Items.Models.Eraser      => Pictures.Eraser);
@@ -40,25 +40,24 @@ package body Items.Windows.Displays is
 
    procedure Show_Fetch (Item : in out Window) is
       Details : constant Items.Info := Items.Models.Details (Item.Model.all);
-      Wanted : constant Boolean :=
-        Details.Kind = Source and then Details.Captured_At = 0
+      Wanted  : constant Boolean :=
+        Details.Kind = Source
+        and then Details.Captured_At = 0
         and then Details.Origin = Remote
         and then Item.Looking.Zoom >= Metrics.Compact_Below;
    begin
       if Wanted /= Widgets.Is_Visible (Item.Fetch_Button) then
          Widgets.Set_Visible (Item.Fetch_Button, Wanted);
          Pomarine.Text_Areas.Set_Trail
-           (Editors.Area (Item.Body_Text).all,
-            (if Wanted then Metrics.Fetch_Width + Metrics.Fetch_Inset else 0.0));
+           (Editors.Area (Item.Body_Text).all, (if Wanted then Metrics.Fetch_Width + Metrics.Fetch_Inset else 0.0));
          Widgets.Request_Layout (Item.Body_Text);
       end if;
    end Show_Fetch;
 
    procedure Fit_Zoom (Item : in out Window) is
-      Chrome : constant Float :=
-        Float'Min (1.0, Float'Max (Metrics.Min_Chrome, Item.Looking.Zoom));
-      Pixels : constant Float := Frames.Pixels_Per_Point (Item.Chrome);
-      Narrow : constant Boolean := Item.Looking.Zoom < Metrics.Compact_Below;
+      Chrome    : constant Float := Float'Min (1.0, Float'Max (Metrics.Min_Chrome, Item.Looking.Zoom));
+      Pixels    : constant Float := Frames.Pixels_Per_Point (Item.Chrome);
+      Narrow    : constant Boolean := Item.Looking.Zoom < Metrics.Compact_Below;
       Of_Source : constant Boolean := Items.Models.Details (Item.Model.all).Kind = Source;
    begin
       Frames.Set_Status_Visible (Item.Chrome, not Narrow);
@@ -68,11 +67,13 @@ package body Items.Windows.Displays is
       Frames.Set_Scale (Item.Chrome, Chrome);
       Layouts.Set_Layout
         (Item.Fetch_Button,
-         Position => (Top => Layouts.Length_Of (Pomarine.Boxes.Edge (Metrics.Outline * Pixels)
-                             + (Metrics.Bar_Height * Chrome + (Metrics.Url_Height - Metrics.Fetch_Height) / 2.0)
-                               * Pixels),
-                      others => <>),
-         Unit => Layouts.Device_Pixels);
+         Position =>
+           (Top    =>
+              Layouts.Length_Of
+                (Pomarine.Boxes.Edge (Metrics.Outline * Pixels)
+                 + (Metrics.Bar_Height * Chrome + (Metrics.Url_Height - Metrics.Fetch_Height) / 2.0) * Pixels),
+            others => <>),
+         Unit     => Layouts.Device_Pixels);
       Show_Fetch (Item);
       Widgets.Request_Layout (Item.Body_Text);
    end Fit_Zoom;
@@ -120,17 +121,13 @@ package body Items.Windows.Displays is
       if Item.Face_Of /= Kind then
          Item.Face_Of := Kind;
          if Of_Source then
-            Editors.Configure
-              (Item.Body_Text, Pomarine.Line_Texts.Interface_Font, Metrics.Link_Size,
-               Metrics.Measure);
+            Editors.Configure (Item.Body_Text, Pomarine.Line_Texts.Interface_Font, Metrics.Link_Size, Metrics.Measure);
          else
-            Editors.Configure
-              (Item.Body_Text, Pomarine.Line_Texts.Serif, Metrics.Text_Size, Metrics.Measure);
+            Editors.Configure (Item.Body_Text, Pomarine.Line_Texts.Serif, Metrics.Text_Size, Metrics.Measure);
          end if;
       end if;
       Frames.Set_Tag_Visible (Item.Chrome, Of_Source);
-      Pomarine.Text_Areas.Set_Single_Line
-        (Editors.Area (Item.Body_Text).all, Of_Source);
+      Pomarine.Text_Areas.Set_Single_Line (Editors.Area (Item.Body_Text).all, Of_Source);
       Pomarine.Text_Areas.Set_Radius
         (Editors.Area (Item.Body_Text).all, (if Of_Source then 0.0 else Pomarine.Themes.Small_Radius));
       --  A source's link is a band like the toolbar's, without a box.
@@ -150,7 +147,8 @@ package body Items.Windows.Displays is
          Editors.Set_Placeholder (Item.Body_Text, "");
       end if;
       Layouts.Set_Layout
-        (Item.Body_Text, Grow => Layouts.Weight_Of (if Of_Source then 0.0 else 1.0),
+        (Item.Body_Text,
+         Grow   => Layouts.Weight_Of (if Of_Source then 0.0 else 1.0),
          Height => (Layouts.Length_Of (if Of_Source then Metrics.Url_Height else 0.0)));
       Widgets.Set_Visible (Item.Speak_Button, not Of_Source);
       Widgets.Set_Visible (Item.Outline_Button, not Of_Source);
@@ -180,7 +178,8 @@ package body Items.Windows.Displays is
       Pictures.Clear_Marks (Item.Picture);
       Views.Clear_Marks (Item.Pages);
       Pictures.Set_File (Item.Picture, "");
-      if Details.Kind /= Source or else Items.Models.Capture (M) /= Items.Models.Ready
+      if Details.Kind /= Source
+        or else Items.Models.Capture (M) /= Items.Models.Ready
         or else Items.Models.Picture_File (M) = ""
       then
          return;
@@ -191,8 +190,13 @@ package body Items.Windows.Displays is
             Last    : Natural;
          begin
             Items.Vector_Pages.Open
-              (Item.Pages, Item.Doc_Sizes, Item.Doc_Source, Items.Models.Picture_File (M),
-               Details.Page_Count, Message, Last);
+              (Item.Pages,
+               Item.Doc_Sizes,
+               Item.Doc_Source,
+               Items.Models.Picture_File (M),
+               Details.Page_Count,
+               Message,
+               Last);
             Items.Models.Pages_Opened
               (M, Last < Message'First, (if Last < Message'First then "" else Message (1 .. Last)));
             if Items.Models.Is_Paged (M) then
@@ -234,7 +238,8 @@ package body Items.Windows.Displays is
       --  What the picture says of them is not the person's.
       Items.Models.Marks_Shown_As
         (Item.Model.all,
-         (if Items.Models.Is_Paged (Item.Model.all) then Views.Marks_Version (Item.Pages)
+         (if Items.Models.Is_Paged (Item.Model.all)
+          then Views.Marks_Version (Item.Pages)
           else Pictures.Marks_Version (Item.Picture)));
    end Show_Marks;
 
@@ -245,9 +250,8 @@ package body Items.Windows.Displays is
    end Show_Look;
 
    procedure Show_Status (Item : in out Window) is
-      M       : Items.Models.Item renames Item.Model.all;
-      Stopping : constant Boolean :=
-        Items.Models.Dictation (M) in Items.Models.Preparing | Items.Models.Listening;
+      M        : Items.Models.Item renames Item.Model.all;
+      Stopping : constant Boolean := Items.Models.Dictation (M) in Items.Models.Preparing | Items.Models.Listening;
    begin
       Labels.Set_Text (Item.Status, Items.Models.Status (M));
       Widgets.Set_Visible (Item.Progress, Items.Models.Shows_Progress (M));

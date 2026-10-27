@@ -1,5 +1,6 @@
 --  Tests of the home screen's view-model and the deleting dialog's, alone: no
 --  window, no display, no event. See Goldens.
+
 package Home_VM_Tests is
 
    procedure Listing;

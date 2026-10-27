@@ -34,16 +34,11 @@ package body Repository.Mark is
       Delete_Where (Store, "item_marks", "item_id", Long_Integer (Key));
    end Delete;
 
-   procedure Replace
-     (Store : in out Projects.Store;
-      Key   : Items.Id;
-      Made  : Items.Marks.Mark_List)
-   is
-      Insert : Ada_Sqlite3.Statement :=
+   procedure Replace (Store : in out Projects.Store; Key : Items.Id; Made : Items.Marks.Mark_List) is
+      Insert       : Ada_Sqlite3.Statement :=
         Ada_Sqlite3.Prepare
           (DB (Store).all,
-           "INSERT INTO item_marks (item_id, seq, x0, x1, y, page)"
-           & " VALUES (:item, :seq, :x0, :x1, :y, :page)");
+           "INSERT INTO item_marks (item_id, seq, x0, x1, y, page)" & " VALUES (:item, :seq, :x0, :x1, :y, :page)");
       Insert_Point : Ada_Sqlite3.Statement :=
         Ada_Sqlite3.Prepare
           (DB (Store).all,
@@ -73,22 +68,16 @@ package body Repository.Mark is
       Ada_Sqlite3.Execute (DB (Store).all, "COMMIT");
    end Replace;
 
-   procedure Load
-     (Store : Projects.Store;
-      Key   : Items.Id;
-      Into  : out Items.Marks.Mark_List)
-   is
-      Query : Ada_Sqlite3.Statement :=
+   procedure Load (Store : Projects.Store; Key : Items.Id; Into : out Items.Marks.Mark_List) is
+      Query  : Ada_Sqlite3.Statement :=
         Ada_Sqlite3.Prepare
-          (DB (Store).all,
-           "SELECT x0, x1, y, page, seq FROM item_marks "
-           & "WHERE item_id = :id ORDER BY seq");
+          (DB (Store).all, "SELECT x0, x1, y, page, seq FROM item_marks " & "WHERE item_id = :id ORDER BY seq");
       Points : Ada_Sqlite3.Statement :=
         Ada_Sqlite3.Prepare
           (DB (Store).all,
            "SELECT x, y FROM item_mark_points WHERE item_id = :id AND seq = :seq ORDER BY point LIMIT :limit");
-      function Unit (Value : Float) return Float is
-        (Float'Max (0.0, Float'Min (1.0, Value)));
+      function Unit (Value : Float) return Float
+      is (Float'Max (0.0, Float'Min (1.0, Value)));
    begin
       Into.Count := 0;
       Into.Past := Pomarine.Marks.Empty_History;
@@ -98,8 +87,8 @@ package body Repository.Mark is
          Pomarine.Marks.Reserve (Into.Marks, Into.Count);
          Into.Marks.Data (Into.Count) :=
            (Left  => Unit (Ada_Sqlite3.Column_Double (Query, 0)),
-            Right => Float'Max (Unit (Ada_Sqlite3.Column_Double (Query, 0)),
-                                Unit (Ada_Sqlite3.Column_Double (Query, 1))),
+            Right =>
+              Float'Max (Unit (Ada_Sqlite3.Column_Double (Query, 0)), Unit (Ada_Sqlite3.Column_Double (Query, 1))),
             Y     => Unit (Ada_Sqlite3.Column_Double (Query, 2)),
             Page  => Integer'Max (1, Ada_Sqlite3.Column_Int (Query, 3)),
             Trace => <>);
@@ -109,7 +98,8 @@ package body Repository.Mark is
          Ada_Sqlite3.Bind_Int (Points, ":limit", Pomarine.Mark_Paths.Max_Points);
          while Ada_Sqlite3.Step (Points) = Ada_Sqlite3.ROW loop
             Pomarine.Mark_Paths.Append
-              (Into.Marks.Data (Into.Count).Trace, Unit (Ada_Sqlite3.Column_Double (Points, 0)),
+              (Into.Marks.Data (Into.Count).Trace,
+               Unit (Ada_Sqlite3.Column_Double (Points, 0)),
                Unit (Ada_Sqlite3.Column_Double (Points, 1)));
          end loop;
       end loop;

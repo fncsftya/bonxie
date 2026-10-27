@@ -18,8 +18,13 @@ package body Layout_Tests is
          Pomarine.Words.Reserve (Page, Page.Count, Used + Text'Length);
          Page.Text (Used + 1 .. Used + Text'Length) := Text;
          Page.Words (Page.Count) :=
-           (Line => Line, First => Used + 1, Last => Used + Text'Length,
-            Left => Left, Top => Top, Width => 0.1, Height => 0.01);
+           (Line   => Line,
+            First  => Used + 1,
+            Last   => Used + Text'Length,
+            Left   => Left,
+            Top    => Top,
+            Width  => 0.1,
+            Height => 0.01);
          Used := Used + Text'Length;
          Page.Length := Used;
       end Add;
@@ -30,15 +35,11 @@ package body Layout_Tests is
       begin
          for Index in 1 .. Page.Count loop
             declare
-               Text : constant String :=
-                 Vision.Image (Page.Words (Index), Page);
+               Text : constant String := Vision.Image (Page.Words (Index), Page);
                Mark : constant String :=
-                 (if Index = 1 then ""
-                  elsif Page.Words (Index).Line = Page.Words (Index - 1).Line
-                  then " " else "/");
+                 (if Index = 1 then "" elsif Page.Words (Index).Line = Page.Words (Index - 1).Line then " " else "/");
             begin
-               Result (Last + 1 .. Last + Mark'Length + Text'Length) :=
-                 Mark & Text;
+               Result (Last + 1 .. Last + Mark'Length + Text'Length) := Mark & Text;
                Last := Last + Mark'Length + Text'Length;
             end;
          end loop;
@@ -60,9 +61,7 @@ package body Layout_Tests is
       Add ("it", 7, 0.49, 0.50);
       Add ("far", 7, 0.60, 0.50);
       Vision.Layout.Reading_Order (Page, Aspect => 2.0);
-      Goldens.Check_Text
-        ("columns-read", "L1/L2/L3/R1/R2/R3/foot ends here past it far",
-         Reading);
+      Goldens.Check_Text ("columns-read", "L1/L2/L3/R1/R2/R3/foot ends here past it far", Reading);
 
       --  A line Vision made of both columns is cut at the gutter.
       Page.Count := 0;

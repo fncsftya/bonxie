@@ -16,58 +16,50 @@ package body Items.Sources is
    use type Interfaces.C.int;
    use type Interfaces.C.Strings.chars_ptr;
 
-   function Image_To_PNG
-     (From, To : Interfaces.C.Strings.chars_ptr) return Interfaces.C.int
-     with Import, Convention => C, External_Name => "pn_image_to_png";
+   function Image_To_PNG (From, To : Interfaces.C.Strings.chars_ptr) return Interfaces.C.int
+   with Import, Convention => C, External_Name => "pn_image_to_png";
 
-   function Percent (Zoom : Float) return String is
-     (Ada.Strings.Fixed.Trim
-        (Integer'Image (Integer (Float'Rounding (Zoom * 100.0))),
-         Ada.Strings.Both) & "%");
+   function Percent (Zoom : Float) return String
+   is (Ada.Strings.Fixed.Trim (Integer'Image (Integer (Float'Rounding (Zoom * 100.0))), Ada.Strings.Both) & "%");
 
-   function To_Slider (Zoom : Float) return Float is
-     (Float'Min
-        (1.0,
-         Float'Max
-           (0.0,
-            Ada.Numerics.Elementary_Functions.Log (Zoom / Min_Zoom)
-            / Ada.Numerics.Elementary_Functions.Log (Max_Zoom / Min_Zoom))));
+   function To_Slider (Zoom : Float) return Float
+   is (Float'Min
+         (1.0,
+          Float'Max
+            (0.0,
+             Ada.Numerics.Elementary_Functions.Log (Zoom / Min_Zoom)
+             / Ada.Numerics.Elementary_Functions.Log (Max_Zoom / Min_Zoom))));
 
-   function From_Slider (Along : Float) return Float is
-     (Float'Min
-        (Max_Zoom,
-         Float'Max
-           (Min_Zoom,
-            Float'Rounding
-              (100.0 * Min_Zoom
-               * Ada.Numerics.Elementary_Functions."**"
-                   (Max_Zoom / Min_Zoom, Along)) / 100.0)));
+   function From_Slider (Along : Float) return Float
+   is (Float'Min
+         (Max_Zoom,
+          Float'Max
+            (Min_Zoom,
+             Float'Rounding (100.0 * Min_Zoom * Ada.Numerics.Elementary_Functions."**" (Max_Zoom / Min_Zoom, Along))
+             / 100.0)));
 
-   procedure Set_Zoom
-     (Store : in out Projects.Store; Key : Id; Zoom : Zoom_Level) is
+   procedure Set_Zoom (Store : in out Projects.Store; Key : Id; Zoom : Zoom_Level) is
    begin
       Repository.Item.Set_Zoom (Store, Key, Zoom);
    end Set_Zoom;
 
-   procedure Set_Captured
-     (Store : in out Projects.Store; Key : Id; At_Time : Projects.Seconds) is
+   procedure Set_Captured (Store : in out Projects.Store; Key : Id; At_Time : Projects.Seconds) is
    begin
       Repository.Item.Set_Captured (Store, Key, At_Time);
       Words.Clear_Words (Store, Key);
       Marks.Clear_Marks (Store, Key);
    end Set_Captured;
 
-   procedure Set_Origin
-     (Store : in out Projects.Store; Key : Id; Origin : Origins) is
+   procedure Set_Origin (Store : in out Projects.Store; Key : Id; Origin : Origins) is
    begin
       Repository.Item.Set_Origin (Store, Key, Origin);
    end Set_Origin;
 
-   function Is_Text (Document : String) return Boolean is
-     (Ebook.Is_Text ("." & Document));
+   function Is_Text (Document : String) return Boolean
+   is (Ebook.Is_Text ("." & Document));
 
-   function Is_Vector (Document : String) return Boolean is
-     (Ebook.Is_Document ("." & Document));
+   function Is_Vector (Document : String) return Boolean
+   is (Ebook.Is_Document ("." & Document));
 
    function Read_Text (File_Name : String) return String is
       Raw  : constant String := Files.Read (File_Name);
@@ -76,8 +68,7 @@ package body Items.Sources is
       Used : Natural := 0;
       BOM  : constant String := [Character'Val (16#EF#), Character'Val (16#BB#), Character'Val (16#BF#)];
       --  A byte order mark is skipped: CoreFoundation drops it.
-      Next : Natural :=
-        Raw'First + (if Raw'Length >= 3 and then Raw (Raw'First .. Raw'First + 2) = BOM then 3 else 0);
+      Next : Natural := Raw'First + (if Raw'Length >= 3 and then Raw (Raw'First .. Raw'First + 2) = BOM then 3 else 0);
       Stop : constant Natural := Raw'First + Last - 1;
 
       procedure Put (C : Character) is
@@ -86,34 +77,40 @@ package body Items.Sources is
          Text (Used) := C;
       end Put;
 
-      function Continuation (At_Index : Natural) return Boolean is
-        (At_Index <= Stop and then Character'Pos (Raw (At_Index)) in 16#80# .. 16#BF#);
+      function Continuation (At_Index : Natural) return Boolean
+      is (At_Index <= Stop and then Character'Pos (Raw (At_Index)) in 16#80# .. 16#BF#);
 
       --  No overlong forms, surrogates or code points past U+10FFFF: the
       --  second byte is limited for these leads.
       function Well_Formed (At_Index, Lead, Size : Natural) return Boolean is
-         Second : constant Natural :=
-           (if Size > 1 then Character'Pos (Raw (At_Index + 1)) else 0);
+         Second : constant Natural := (if Size > 1 then Character'Pos (Raw (At_Index + 1)) else 0);
       begin
-         return (case Lead is
-                    when 16#E0# => Second >= 16#A0#,
-                    when 16#ED# => Second <= 16#9F#,
-                    when 16#F0# => Second >= 16#90#,
-                    when 16#F4# => Second <= 16#8F#,
-                    when others => True);
+         return
+           (case Lead is
+              when 16#E0# => Second >= 16#A0#,
+              when 16#ED# => Second <= 16#9F#,
+              when 16#F0# => Second >= 16#90#,
+              when 16#F4# => Second <= 16#8F#,
+              when others => True);
       end Well_Formed;
    begin
       while Next <= Stop loop
          declare
-            C    : constant Character := Raw (Next);
-            Code : constant Natural := Character'Pos (C);
-            Size : constant Natural :=
-              (if Code < 16#80# then 1
-               elsif Code in 16#C2# .. 16#DF# then 2
-               elsif Code in 16#E0# .. 16#EF# then 3
-               elsif Code in 16#F0# .. 16#F4# then 4 else 0);
+            C     : constant Character := Raw (Next);
+            Code  : constant Natural := Character'Pos (C);
+            Size  : constant Natural :=
+              (if Code < 16#80#
+               then 1
+               elsif Code in 16#C2# .. 16#DF#
+               then 2
+               elsif Code in 16#E0# .. 16#EF#
+               then 3
+               elsif Code in 16#F0# .. 16#F4#
+               then 4
+               else 0);
             Whole : constant Boolean :=
-              Size > 0 and then Next + Size - 1 <= Stop
+              Size > 0
+              and then Next + Size - 1 <= Stop
               and then (for all Offset in 1 .. Size - 1 => Continuation (Next + Offset))
               and then Well_Formed (Next, Code, Size);
          begin
@@ -147,8 +144,7 @@ package body Items.Sources is
       Part    : constant String := To & ".part";
       Success : Boolean;
    begin
-      GNAT.OS_Lib.Copy_File
-        (From, Part, Success, Mode => GNAT.OS_Lib.Overwrite, Preserve => GNAT.OS_Lib.None);
+      GNAT.OS_Lib.Copy_File (From, Part, Success, Mode => GNAT.OS_Lib.Overwrite, Preserve => GNAT.OS_Lib.None);
       if not Success then
          raise Ada.Directories.Use_Error with "could not copy " & From;
       end if;
@@ -178,21 +174,13 @@ package body Items.Sources is
          raise;
    end Convert_Image;
 
-   function Image_Folder
-     (Store : Projects.Store; Project : Projects.Id) return String is
-     (Projects.Folder (Store, Project) & "/sources");
+   function Image_Folder (Store : Projects.Store; Project : Projects.Id) return String
+   is (Projects.Folder (Store, Project) & "/sources");
 
-   function Image_File
-     (Store : Projects.Store; Project : Projects.Id; Key : Id) return String
-   is
-     (Image_Folder (Store, Project) & "/"
-      & Ada.Strings.Fixed.Trim (Key'Image, Ada.Strings.Both) & ".png");
+   function Image_File (Store : Projects.Store; Project : Projects.Id; Key : Id) return String
+   is (Image_Folder (Store, Project) & "/" & Ada.Strings.Fixed.Trim (Key'Image, Ada.Strings.Both) & ".png");
 
-   procedure Set_Document
-     (Store      : in out Projects.Store;
-      Key        : Id;
-      Document   : String;
-      Page_Count : Natural) is
+   procedure Set_Document (Store : in out Projects.Store; Key : Id; Document : String; Page_Count : Natural) is
    begin
       Repository.Item.Set_Document (Store, Key, Document, Page_Count);
    end Set_Document;
@@ -202,29 +190,19 @@ package body Items.Sources is
       Repository.Item.Set_Page (Store, Key, Page);
    end Set_Page;
 
-   function Document_File
-     (Store    : Projects.Store;
-      Project  : Projects.Id;
-      Key      : Id;
-      Document : String) return String is
-     (Image_Folder (Store, Project) & "/"
-      & Ada.Strings.Fixed.Trim (Key'Image, Ada.Strings.Both) & "." & Document);
+   function Document_File (Store : Projects.Store; Project : Projects.Id; Key : Id; Document : String) return String
+   is (Image_Folder (Store, Project) & "/" & Ada.Strings.Fixed.Trim (Key'Image, Ada.Strings.Both) & "." & Document);
 
-   function Shown_File
-     (Store : Projects.Store; Project : Projects.Id; Of_Item : Info) return String is
-     (if Of_Item.Origin /= Unchosen
+   function Shown_File (Store : Projects.Store; Project : Projects.Id; Of_Item : Info) return String
+   is (if Of_Item.Origin /= Unchosen
          and then (Is_Text (Extensions.To_String (Of_Item.Document))
-                   or else (Is_Vector (Extensions.To_String (Of_Item.Document))
-                            and then Of_Item.Page > 0))
-      then Document_File (Store, Project, Of_Item.Key, Extensions.To_String (Of_Item.Document))
-      else Image_File (Store, Project, Of_Item.Key));
+                   or else (Is_Vector (Extensions.To_String (Of_Item.Document)) and then Of_Item.Page > 0))
+       then Document_File (Store, Project, Of_Item.Key, Extensions.To_String (Of_Item.Document))
+       else Image_File (Store, Project, Of_Item.Key));
 
-   procedure Delete_Files
-     (Store : Projects.Store; Project : Projects.Id; Key : Id)
-   is
+   procedure Delete_Files (Store : Projects.Store; Project : Projects.Id; Key : Id) is
       Folder : constant String := Image_Folder (Store, Project);
-      Name   : constant String :=
-        Ada.Strings.Fixed.Trim (Key'Image, Ada.Strings.Both);
+      Name   : constant String := Ada.Strings.Fixed.Trim (Key'Image, Ada.Strings.Both);
    begin
       if not Ada.Directories.Exists (Folder) then
          return;
@@ -237,8 +215,7 @@ package body Items.Sources is
             Found  : Ada.Directories.Directory_Entry_Type;
          begin
             Ada.Directories.Start_Search
-              (Search, Folder, Name & ".*",
-               [Ada.Directories.Ordinary_File => True, others => False]);
+              (Search, Folder, Name & ".*", [Ada.Directories.Ordinary_File => True, others => False]);
             if not Ada.Directories.More_Entries (Search) then
                Ada.Directories.End_Search (Search);
                return;
@@ -250,8 +227,7 @@ package body Items.Sources is
       end loop;
    end Delete_Files;
 
-   procedure Make_Image_Folder
-     (Store : Projects.Store; Project : Projects.Id) is
+   procedure Make_Image_Folder (Store : Projects.Store; Project : Projects.Id) is
    begin
       Ada.Directories.Create_Path (Image_Folder (Store, Project));
    end Make_Image_Folder;

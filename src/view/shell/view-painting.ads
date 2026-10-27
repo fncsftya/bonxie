@@ -1,4 +1,5 @@
 --  Drawing what is shown to the target.
+
 private package View.Painting is
 
    procedure Paint (Item : in out Session);

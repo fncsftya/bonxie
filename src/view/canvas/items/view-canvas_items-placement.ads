@@ -1,5 +1,6 @@
 --  Where the canvas is looking: what it says of itself to the view-model, where the view-model asks it to go, and the
 --  items put in place by it.
+
 private package View.Canvas_Items.Placement is
 
    procedure Report_Camera (Item : in out Session);

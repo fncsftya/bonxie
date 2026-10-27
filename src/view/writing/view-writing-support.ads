@@ -1,4 +1,5 @@
 --  Questions about the items, the tree of documents and the rows of the writing view.
+
 private package View.Writing.Support is
 
    function Is_Note (Item : Session; Which : Items.Slot) return Boolean;

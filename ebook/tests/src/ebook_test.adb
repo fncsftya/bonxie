@@ -9,6 +9,7 @@ with Pomarine.Words;
 
 --  Usage: ebook_test FILE OUT_FOLDER. Draws the file's first page, and its
 --  last, and checks what Ebook says of links.
+
 procedure Ebook_Test is
    use type Pomarine.Pages.Page_Access;
    Found   : Ebook.Information;
@@ -34,18 +35,21 @@ begin
    Ada.Text_IO.Put_Line ("missing e-book: " & Message (1 .. Last));
 
    declare
-      File : constant String := Ada.Command_Line.Argument (1);
+      File       : constant String := Ada.Command_Line.Argument (1);
       Out_Folder : constant String := Ada.Command_Line.Argument (2);
    begin
       Ada.Directories.Create_Path (Out_Folder);
       Ebook.Open (File, Found, Message, Last);
       pragma Assert (Found.Pages > 0, Message (1 .. Last));
-      Ada.Text_IO.Put_Line
-        ("pages:" & Found.Pages'Image & " title: " & Found.Title (1 .. Found.Last));
+      Ada.Text_IO.Put_Line ("pages:" & Found.Pages'Image & " title: " & Found.Title (1 .. Found.Last));
       for Page of Pair'[1, Found.Pages] when Ebook.File_Extension (File) /= "epub" loop
          Ebook.Render
-           (File, Page, Out_Folder & "/" & Ada.Strings.Fixed.Trim (Page'Image, Ada.Strings.Both) & ".png",
-            Height, Message, Last);
+           (File,
+            Page,
+            Out_Folder & "/" & Ada.Strings.Fixed.Trim (Page'Image, Ada.Strings.Both) & ".png",
+            Height,
+            Message,
+            Last);
          pragma Assert (Height > 0, Message (1 .. Last));
          Ada.Text_IO.Put_Line ("page" & Page'Image & " height" & Height'Image);
       end loop;
@@ -56,18 +60,32 @@ begin
          Ebook.Build_Page (File, 1, Content, Words, Message, Last);
          pragma Assert (Content /= null, Message (1 .. Last));
          Ada.Text_IO.Put_Line
-           ("vector page" & Content.Width'Image & " x" & Content.Height'Image
-            & ": ops" & Content.Operations'Image & " points" & Content.Points'Image
-            & " characters" & Content.Characters'Image & " faces" & Content.Faces'Image
-            & " pictures" & Content.Images'Image & " words" & Words.Count'Image);
+           ("vector page"
+            & Content.Width'Image
+            & " x"
+            & Content.Height'Image
+            & ": ops"
+            & Content.Operations'Image
+            & " points"
+            & Content.Points'Image
+            & " characters"
+            & Content.Characters'Image
+            & " faces"
+            & Content.Faces'Image
+            & " pictures"
+            & Content.Images'Image
+            & " words"
+            & Words.Count'Image);
          for Face of Content.Fonts loop
             Ada.Text_IO.Put_Line ("  face " & Face.Name (1 .. Face.Last));
          end loop;
          for Each in 1 .. Natural'Min (Words.Count, 12) loop
             Ada.Text_IO.Put_Line
-              ("  word " & Pomarine.Words.Image (Words.Words (Each), Words)
+              ("  word "
+               & Pomarine.Words.Image (Words.Words (Each), Words)
                & Words.Words (Each).Line'Image
-               & Words.Words (Each).Left'Image & Words.Words (Each).Top'Image);
+               & Words.Words (Each).Left'Image
+               & Words.Words (Each).Top'Image);
          end loop;
          Pomarine.Pages.Free (Content);
       end;

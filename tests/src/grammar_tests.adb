@@ -51,16 +51,15 @@ package body Grammar_Tests is
    end Snap;
 
    procedure Checking is
-      Item : View.Session;
-      Now  : Events.Milliseconds := 10_000;
+      Item  : View.Session;
+      Now   : Events.Milliseconds := 10_000;
       Image : Goldens.Images.Image;
    begin
       View.Open (Item, "", 720, 480, 2.0);
       View.Home_Screen.New_Project (Item);
       Proj.Set_Mode (Item, View.Canvas);
       Windows.Add_Item (Item, "First document");
-      View.Handle (Item, Events.Text_Event
-        ("This is a speling mistake. This is the the sentence. This is an test."));
+      View.Handle (Item, Events.Text_Event ("This is a speling mistake. This is the the sentence. This is an test."));
       Windows.Add_Item (Item, "Second document");
       View.Handle (Item, Events.Text_Event ("This is a speling mistake."));
       Proj.Set_Mode (Item, View.Write);
@@ -76,8 +75,7 @@ package body Grammar_Tests is
       Click_On (Item, 28.0, 115.0);
       View.Tick (Item, Now);
       Check ("grammar-off", not Docs.Grammar_Suggestions_Shown (Item));
-      Check ("grammar-cleared", Docs.Grammar_Highlights (Item, 1) = 0
-             and then Docs.Grammar_Highlights (Item, 2) = 0);
+      Check ("grammar-cleared", Docs.Grammar_Highlights (Item, 1) = 0 and then Docs.Grammar_Highlights (Item, 2) = 0);
       Snap (Item, "write-grammar-off");
       Click_On (Item, 28.0, 115.0);
       Await (Item, Now);
@@ -132,8 +130,10 @@ package body Grammar_Tests is
          View.Tick (Item, Now);
          Check ("grammar-span-typing-count", Docs.Grammar_Count (Item) = "1");
       end loop;
-      Goldens.Check_Text ("grammar-span-edited", "This is a speling mistake.|Fine and dandy. It is good.",
-                          Windows.Item_Text (Item, 1) & "|" & Windows.Item_Text (Item, 2));
+      Goldens.Check_Text
+        ("grammar-span-edited",
+         "This is a speling mistake.|Fine and dandy. It is good.",
+         Windows.Item_Text (Item, 1) & "|" & Windows.Item_Text (Item, 2));
       Now := Now + 500;
       Await (Item, Now);
       Check ("grammar-span-kept-marks", Docs.Grammar_Highlights (Item, 1) > 0);
@@ -156,8 +156,7 @@ package body Grammar_Tests is
       Docs.Move_Document (Item, 2, 1);
       View.Tick (Item, Now);
       Await (Item, Now);
-      Check ("grammar-reordered", Docs.Grammar_Highlights (Item, 1) = 0
-             and then Docs.Grammar_Highlights (Item, 2) > 0);
+      Check ("grammar-reordered", Docs.Grammar_Highlights (Item, 1) = 0 and then Docs.Grammar_Highlights (Item, 2) > 0);
 
       --  Notes alone never create document checker jobs.
       Proj.Close_Project (Item);
@@ -187,23 +186,28 @@ package body Grammar_Tests is
       --  speling is bytes 10 .. 17, the first ADA 27 .. 30, ADAM 40 .. 44, the last ADA 53 .. 56.
 
       Rule_List : PR.Rule_List;
-      Result : Harper.Check_Result;
+      Result    : Harper.Check_Result;
 
       procedure Rule_For (Action : PR.Actions; Kind : PR.Kind_Code; Pattern, Replacement : String) is
       begin
          Rule_List.Append
-           ((Key => PR.Rule_Id (Rule_List.Count + 1), Action => Action, Kind => Kind,
-             Pattern => Long_Texts.To_Text (Pattern), Replacement => Long_Texts.To_Text (Replacement)));
+           ((Key         => PR.Rule_Id (Rule_List.Count + 1),
+             Action      => Action,
+             Kind        => Kind,
+             Pattern     => Long_Texts.To_Text (Pattern),
+             Replacement => Long_Texts.To_Text (Replacement)));
       end Rule_For;
 
       procedure Lint (First, Last : Natural; Kind : Harper.Lint_Kind; Fix : String) is
       begin
          Result.Count := Result.Count + 1;
          Result.Lints (Result.Count) :=
-           (Location => (First, Last), Kind => Kind, Suggestion_Count => 1, Priority => 31,
-            Suggestions => [1 => ((First, Last), Harper.Replacements.To_Bounded_String (Fix)),
-                            others => <>],
-            others => <>);
+           (Location         => (First, Last),
+            Kind             => Kind,
+            Suggestion_Count => 1,
+            Priority         => 31,
+            Suggestions      => [1 => ((First, Last), Harper.Replacements.To_Bounded_String (Fix)), others => <>],
+            others           => <>);
       end Lint;
    begin
       --  Nothing ruled: nothing changes.
@@ -223,14 +227,22 @@ package body Grammar_Tests is
       --  A correction goes first at a diagnostic on its text, and is not offered twice.
       Rule_For (PR.Correct, 0, "ADA", "Ada");
       Grammar_Rules.Apply (Rule_List, Text, Result);
-      Check ("rules-correct-upgrades", Result.Lints (1).Custom and then Result.Lints (1).Suggestion_Count = 1
-             and then Harper.Replacements.To_String (Result.Lints (1).Suggestions (1).Text) = "Ada");
-      Check ("rules-correct-message", Harper.Messages.To_String (Result.Lints (1).Message)
-             = "Your rule: replace ""ADA"" with ""Ada"".");
+      Check
+        ("rules-correct-upgrades",
+         Result.Lints (1).Custom
+         and then Result.Lints (1).Suggestion_Count = 1
+         and then Harper.Replacements.To_String (Result.Lints (1).Suggestions (1).Text) = "Ada");
+      Check
+        ("rules-correct-message",
+         Harper.Messages.To_String (Result.Lints (1).Message) = "Your rule: replace ""ADA"" with ""Ada"".");
 
       --  And makes its own where Harper found nothing: at whole words only, in the order of the places.
-      Check ("rules-correct-adds", Result.Count = 2 and then Result.Lints (2).Location = (53, 56)
-             and then Result.Lints (2).Custom and then Result.Lints (2).Kind = Harper.Spelling);
+      Check
+        ("rules-correct-adds",
+         Result.Count = 2
+         and then Result.Lints (2).Location = (53, 56)
+         and then Result.Lints (2).Custom
+         and then Result.Lints (2).Kind = Harper.Spelling);
 
       --  Harper's own order is kept, and a rule is no one's diagnostic twice.
       Grammar_Rules.Apply (Rule_List, Text, Result);
@@ -266,8 +278,8 @@ package body Grammar_Tests is
 
    procedure Rule_Cards is
       use type Projects.Rules.Rule_Id;
-      Item : View.Session;
-      Now  : Events.Milliseconds := 10_000;
+      Item  : View.Session;
+      Now   : Events.Milliseconds := 10_000;
       Store : Projects.Store;
    begin
       View.Open (Item, "", 720, 480, 2.0);
@@ -305,8 +317,9 @@ package body Grammar_Tests is
       Check ("rule-cards-removed", Docs.Grammar_Rule_Count (Item) = 0);
       Now := Now + 1;
       Await (Item, Now);
-      Check ("rule-cards-unmade", Docs.Grammar_Made_By_Rule (Item, "speling") = 0
-             and then Docs.Grammar_Marking (Item, "speling") = 2);
+      Check
+        ("rule-cards-unmade",
+         Docs.Grammar_Made_By_Rule (Item, "speling") = 0 and then Docs.Grammar_Marking (Item, "speling") = 2);
 
       --  Ignoring a text drops the diagnostics on it, and no others.
       Docs.Grammar_Ignore (Item, "speling");
@@ -324,8 +337,12 @@ package body Grammar_Tests is
          Yours : constant Projects.Id := Projects.Create (Store, "Yours");
          Made  : Projects.Rules.Rule_List;
 
-         procedure Put (Owner : Projects.Id; Action : Projects.Rules.Actions; Kind : Projects.Rules.Kind_Code;
-                        Pattern : String; Replacement : String := "")
+         procedure Put
+           (Owner       : Projects.Id;
+            Action      : Projects.Rules.Actions;
+            Kind        : Projects.Rules.Kind_Code;
+            Pattern     : String;
+            Replacement : String := "")
          is
             Key : constant Projects.Rules.Rule_Id :=
               Projects.Rules.Add (Store, Owner, Action, Kind, Pattern, Replacement);
@@ -374,8 +391,11 @@ package body Grammar_Tests is
       --  and has an Add rule of its own, after the card's.
       Check ("grammar-name-no-form", not Testing.Shows (Window, "Always correct"));
       Testing.Click_On (Window, "Add rule");
-      Check ("grammar-name-form", Testing.Shows (Window, "Always correct ""speling"" to:")
-            and then Testing.Exists (Window, "Add rule", Nth => 2) and then Testing.Exists (Window, "Cancel"));
+      Check
+        ("grammar-name-form",
+         Testing.Shows (Window, "Always correct ""speling"" to:")
+         and then Testing.Exists (Window, "Add rule", Nth => 2)
+         and then Testing.Exists (Window, "Cancel"));
 
       --  What changes nothing is no rule, and the form stays.
       Testing.Press (Window, Events.Key_A, Command => True);
@@ -383,13 +403,14 @@ package body Grammar_Tests is
       Check ("grammar-name-same-disabled", Testing.Is_Disabled (Window, "Add rule", Nth => 2));
       Testing.Press (Window, Events.Key_Return);
       Testing.Click_On (Window, "Add rule", Nth => 2);
-      Check ("grammar-name-same",
-             Docs.Grammar_Rule_Count (Session) = 0 and then Testing.Shows (Window, "Always correct"));
+      Check
+        ("grammar-name-same", Docs.Grammar_Rule_Count (Session) = 0 and then Testing.Shows (Window, "Always correct"));
 
       --  Cancelled, nothing is made and the form goes.
       Testing.Click_On (Window, "Cancel");
-      Check ("grammar-name-cancelled",
-             Docs.Grammar_Rule_Count (Session) = 0 and then not Testing.Exists (Window, "Add rule", Nth => 2));
+      Check
+        ("grammar-name-cancelled",
+         Docs.Grammar_Rule_Count (Session) = 0 and then not Testing.Exists (Window, "Add rule", Nth => 2));
 
       --  Accepted, there is a rule, the form goes, and the text is corrected first at both places.
       Testing.Click_On (Window, "Add rule");
@@ -397,8 +418,9 @@ package body Grammar_Tests is
       Testing.Type_Text (Window, "spelling");
       Check ("grammar-name-valid-enabled", not Testing.Is_Disabled (Window, "Add rule", Nth => 2));
       Testing.Press (Window, Events.Key_Return);
-      Check ("grammar-name-made",
-             Docs.Grammar_Rule_Count (Session) = 1 and then not Testing.Exists (Window, "Add rule", Nth => 2));
+      Check
+        ("grammar-name-made",
+         Docs.Grammar_Rule_Count (Session) = 1 and then not Testing.Exists (Window, "Add rule", Nth => 2));
       Now := Now + 1;
       Await (Session, Now);
       Goldens.Check_Text ("grammar-name-first-fix", "spelling", Docs.Grammar_First_Suggestion (Session, "speling"));

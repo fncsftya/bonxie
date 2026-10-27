@@ -13,9 +13,11 @@ package body Outline_Screen_Tests is
 
    procedure Check (Name : String; Expected, Actual : String) renames Goldens.Check_Text;
 
-   function Image (Value : Boolean) return String is (Value'Image);
+   function Image (Value : Boolean) return String
+   is (Value'Image);
 
-   function Number (Value : Integer) return String is (Value'Image (2 .. Value'Image'Last));
+   function Number (Value : Integer) return String
+   is (Value'Image (2 .. Value'Image'Last));
 
    procedure By_Name is
       Session : aliased View.Session;
@@ -48,20 +50,32 @@ package body Outline_Screen_Tests is
       View.Home_Screen.New_Project (Session);
       Testing.Attach (Window, View.Widget_Tree (Session).all, Ears'Access);
 
-      Check ("outline-name-first", "TRUE 0",
-             Image (Testing.Shows (Window, "text 'No sections yet'")) & " " & Number (Outline.Section_Count (Session)));
+      Check
+        ("outline-name-first",
+         "TRUE 0",
+         Image (Testing.Shows (Window, "text 'No sections yet'")) & " " & Number (Outline.Section_Count (Session)));
 
       --  Add: a section last, which is called nothing yet, and its buttons, but not those that go nowhere.
       Testing.Click_On (Window, "Add Section");
       Testing.Click_On (Window, "Add Section");
-      Check ("outline-name-added", "2 Untitled section|Untitled section| FALSE",
-             Number (Outline.Section_Count (Session)) & " " & Titles & " "
-             & Image (Testing.Shows (Window, "No sections yet")));
-      Check ("outline-name-ends", "TRUE FALSE TRUE FALSE",
-             Image (Testing.Is_Disabled (Window, "Move up", Nth => 1)) & " "
-             & Image (Testing.Is_Disabled (Window, "Move up", Nth => 2)) & " "
-             & Image (Testing.Is_Disabled (Window, "Move down", Nth => 2)) & " "
-             & Image (Testing.Is_Disabled (Window, "Move down", Nth => 1)));
+      Check
+        ("outline-name-added",
+         "2 Untitled section|Untitled section| FALSE",
+         Number (Outline.Section_Count (Session))
+         & " "
+         & Titles
+         & " "
+         & Image (Testing.Shows (Window, "No sections yet")));
+      Check
+        ("outline-name-ends",
+         "TRUE FALSE TRUE FALSE",
+         Image (Testing.Is_Disabled (Window, "Move up", Nth => 1))
+         & " "
+         & Image (Testing.Is_Disabled (Window, "Move up", Nth => 2))
+         & " "
+         & Image (Testing.Is_Disabled (Window, "Move down", Nth => 2))
+         & " "
+         & Image (Testing.Is_Disabled (Window, "Move down", Nth => 1)));
 
       --  Typing names them, and that is kept.
       Rename_Section (1, "Opening");
@@ -74,14 +88,20 @@ package body Outline_Screen_Tests is
       Check ("outline-name-up", "Closing|Opening|", Titles);
       Testing.Click_On (Window, "Move down", Nth => 1);
       Check ("outline-name-down", "Opening|Closing|", Titles);
-      Check ("outline-name-ends-again", "TRUE TRUE", Image (Testing.Is_Disabled (Window, "Move up", Nth => 1)) & " "
-             & Image (Testing.Is_Disabled (Window, "Move down", Nth => 2)));
+      Check
+        ("outline-name-ends-again",
+         "TRUE TRUE",
+         Image (Testing.Is_Disabled (Window, "Move up", Nth => 1))
+         & " "
+         & Image (Testing.Is_Disabled (Window, "Move down", Nth => 2)));
 
       --  Notes open and shut.
       Check ("outline-name-notes-shut", "FALSE", Image (Outline.Notes_Shown (Session, 2)));
       Testing.Click_On (Window, "Notes", Nth => 2);
-      Check ("outline-name-notes-open", "TRUE FALSE", Image (Outline.Notes_Shown (Session, 2)) & " "
-             & Image (Outline.Notes_Shown (Session, 1)));
+      Check
+        ("outline-name-notes-open",
+         "TRUE FALSE",
+         Image (Outline.Notes_Shown (Session, 2)) & " " & Image (Outline.Notes_Shown (Session, 1)));
       Testing.Click_On (Window, "Notes", Nth => 2);
       Check ("outline-name-notes-closed", "FALSE", Image (Outline.Notes_Shown (Session, 2)));
 
@@ -89,8 +109,10 @@ package body Outline_Screen_Tests is
       Testing.Click_On (Window, "Project title");
       Testing.Press (Window, Pomarine.Events.Key_A, Command => True);
       Testing.Type_Text (Window, "Great skua");
-      Check ("outline-name-project", "Great skua TRUE", Outline.Project_Title (Session) & " "
-             & Image (Testing.Shows (Window, "heading 'Great skua'")));
+      Check
+        ("outline-name-project",
+         "Great skua TRUE",
+         Outline.Project_Title (Session) & " " & Image (Testing.Shows (Window, "heading 'Great skua'")));
       Testing.Press (Window, Pomarine.Events.Key_A, Command => True);
       Testing.Press (Window, Pomarine.Events.Key_Backspace);
       Check ("outline-name-project-nothing", "TRUE", Image (Testing.Shows (Window, "heading 'Great skua'")));
@@ -99,8 +121,10 @@ package body Outline_Screen_Tests is
       Testing.Click_On (Window, "Delete section", Nth => 1);
       Check ("outline-name-removed", "1 Closing|", Number (Outline.Section_Count (Session)) & " " & Titles);
       Testing.Click_On (Window, "Delete section");
-      Check ("outline-name-removed-all", "0 TRUE", Number (Outline.Section_Count (Session)) & " "
-             & Image (Testing.Shows (Window, "text 'No sections yet'")));
+      Check
+        ("outline-name-removed-all",
+         "0 TRUE",
+         Number (Outline.Section_Count (Session)) & " " & Image (Testing.Shows (Window, "text 'No sections yet'")));
    end By_Name;
 
 end Outline_Screen_Tests;

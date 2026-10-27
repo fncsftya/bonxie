@@ -38,9 +38,7 @@ package body View.Writing.Tree is
 
    procedure Choose_Row (Row : in out Index_Row; Chosen : Boolean) is
    begin
-      Labels.Set_Style
-        (Row.Caption,
-         (if Chosen then Pomarine.Line_Texts.Strong else Pomarine.Line_Texts.Regular));
+      Labels.Set_Style (Row.Caption, (if Chosen then Pomarine.Line_Texts.Strong else Pomarine.Line_Texts.Regular));
       if Chosen then
          Grips.Set_Fill (Row.Row, Style.Row_Open);
          Grips.Set_Hover_Fill (Row.Row, Style.Row_Open);
@@ -54,9 +52,7 @@ package body View.Writing.Tree is
       end if;
    end Choose_Row;
 
-   function Linked_Sources
-     (Item : Session; Which : Items.Slot) return Natural
-   is
+   function Linked_Sources (Item : Session; Which : Items.Slot) return Natural is
       Key   : constant Items.Id := Models.Details (Item.Models (Which)).Key;
       Total : Natural := 0;
    begin
@@ -69,9 +65,7 @@ package body View.Writing.Tree is
                declare
                   Each : constant Items.Links.Link := Canvas_VM.Link_At (Item.Canvas_Model.Model, Number);
                begin
-                  if (Each.From = Key and then Each.To = Other)
-                    or else (Each.From = Other and then Each.To = Key)
-                  then
+                  if (Each.From = Key and then Each.To = Other) or else (Each.From = Other and then Each.To = Key) then
                      Total := Total + 1;
                      exit;
                   end if;
@@ -89,56 +83,52 @@ package body View.Writing.Tree is
    procedure Show_Tree_Row (Item : in out Session; Row : Tree_Row) is
       Each    : Index_Row renames Item.Docs.Doc_Rows (Row);
       Node    : constant Tree_Entry := Trees.Element (Item.Docs.Ordering, Row);
-      Dropped : constant Boolean :=
-        Item.Docs.Drop.Kind = Into_Node and then Item.Docs.Drop.Row = Row;
+      Dropped : constant Boolean := Item.Docs.Drop.Kind = Into_Node and then Item.Docs.Drop.Row = Row;
       --  While a document is dragged, the nodes it can be dropped on show.
       Hinted  : constant Boolean :=
-        Item.Dragging.Drag_Row /= 0 and then Item.Dragging.Drag_Moved
+        Item.Dragging.Drag_Row /= 0
+        and then Item.Dragging.Drag_Moved
         and then (Trees.Element (Item.Docs.Ordering, Item.Dragging.Drag_Row).Kind = Document_Leaf
                   or else Node.Kind = Overview_Node
                   or else (Node.Kind = Directory_Node
                            and then not Support.Within
-                             (Item, Node.Dir, Trees.Element (Item.Docs.Ordering, Item.Dragging.Drag_Row).Dir)));
+                                          (Item,
+                                           Node.Dir,
+                                           Trees.Element (Item.Docs.Ordering, Item.Dragging.Drag_Row).Dir)));
       Chosen  : Boolean;
       Level   : Float := 0.0;
    begin
       Widgets.Set_Visible
         (Each.Folder_Mark, Node.Kind = Directory_Node and then not Support.Is_Section (Item, Node.Dir));
       case Node.Kind is
-         when Overview_Node =>
+         when Overview_Node  =>
             Labels.Set_Text (Each.Caption, "Overview");
-            Labels.Set_Text (Each.Count,
-                             Support.Count_Image (Trees.Page_Count (Item.Docs.Ordering)));
+            Labels.Set_Text (Each.Count, Support.Count_Image (Trees.Page_Count (Item.Docs.Ordering)));
             Chosen := Writing_VM.Shown (Item.Docs.Navigation, Item.Docs.Dirs) = 0;
+
          when Directory_Node =>
-            Labels.Set_Text
-              (Each.Caption,
-               Projects.Titles.To_String
-                         (Item.Docs.Dirs (Node.Dir).Title));
-            Labels.Set_Text
-              (Each.Count, Support.Count_Image (Support.Documents_In (Item, Node.Dir)));
+            Labels.Set_Text (Each.Caption, Projects.Titles.To_String (Item.Docs.Dirs (Node.Dir).Title));
+            Labels.Set_Text (Each.Count, Support.Count_Image (Support.Documents_In (Item, Node.Dir)));
             Chosen := Writing_VM.Shown (Item.Docs.Navigation, Item.Docs.Dirs) = Node.Dir;
             Level := Float (Support.Depth (Item, Node.Dir)) * Style.Tree_Indent;
-         when Document_Leaf =>
+
+         when Document_Leaf  =>
             Labels.Set_Text (Each.Caption, Support.Title_Of (Item, Node.Doc));
-            Labels.Set_Text
-              (Each.Count,
-               Support.Count_Image (Models.Words (Item.Models (Node.Doc))));
+            Labels.Set_Text (Each.Count, Support.Count_Image (Models.Words (Item.Models (Node.Doc))));
             if Node.Dir /= 0 then
                Level := Float (Support.Depth (Item, Node.Dir) + 1) * Style.Tree_Indent;
             end if;
             Chosen :=
               (if Item.Dragging.Drag_Row /= 0 and then Item.Dragging.Drag_Moved
                then Row = Item.Dragging.Drag_Row
-               else Widgets.Has_Focus
-                      (Item.Docs.Pages (Support.Rank_Of (Item, Node.Doc)).Text));
+               else Widgets.Has_Focus (Item.Docs.Pages (Support.Rank_Of (Item, Node.Doc)).Text));
       end case;
       Widgets.Set_Accessible_Name
         (Each.Row,
          (case Node.Kind is
-             when Overview_Node => "Overview",
-             when Directory_Node => "Directory " & Projects.Titles.To_String (Item.Docs.Dirs (Node.Dir).Title),
-             when Document_Leaf => "Document " & Support.Title_Of (Item, Node.Doc)));
+            when Overview_Node  => "Overview",
+            when Directory_Node => "Directory " & Projects.Titles.To_String (Item.Docs.Dirs (Node.Dir).Title),
+            when Document_Leaf  => "Document " & Support.Title_Of (Item, Node.Doc)));
       if Node.Kind = Overview_Node then
          --  Neither a section, a directory nor a document: a band of its
          --  own, with a rule in the accent colour, lit when it is shown.
@@ -147,8 +137,7 @@ package body View.Writing.Tree is
          Grips.Set_Fill (Each.Row, (if Chosen then Pomarine.Themes.Selection else Pomarine.Themes.Tint));
          Grips.Set_Hover_Fill (Each.Row, Pomarine.Themes.Selection);
          Grips.Clear_Shadow (Each.Row);
-         Grips.Set_Border
-           (Each.Row, (if Chosen then Pomarine.Themes.Accent else Pomarine.Themes.Border));
+         Grips.Set_Border (Each.Row, (if Chosen then Pomarine.Themes.Accent else Pomarine.Themes.Border));
       elsif Node.Kind = Document_Leaf then
          --  A box, standing up.
          Choose_Row (Each, Chosen);
@@ -173,9 +162,10 @@ package body View.Writing.Tree is
          Pomarine.Widgets.Panels.Set_Fill
            (Each.Tag,
             (if Support.Is_Section (Item, Node.Dir)
-             then Style.Section_Ink
-                    (Projects.Sections.Colour_Value (Item.Docs.Dirs (Node.Dir).Colour))
-             elsif Chosen then Pomarine.Themes.Accent else Style.Quiet_Ink));
+             then Style.Section_Ink (Projects.Sections.Colour_Value (Item.Docs.Dirs (Node.Dir).Colour))
+             elsif Chosen
+             then Pomarine.Themes.Accent
+             else Style.Quiet_Ink));
          Widgets.Set_Visible (Each.Tag, Support.Is_Section (Item, Node.Dir));
       end if;
       if Level /= Each.Indent then
@@ -193,21 +183,17 @@ package body View.Writing.Tree is
          begin
             if Rank <= Trees.Page_Count (Item.Docs.Ordering) then
                declare
-                  Which : constant Items.Slot
-                     := Trees.Page_At (Item.Docs.Ordering, Rank);
+                  Which : constant Items.Slot := Trees.Page_At (Item.Docs.Ordering, Rank);
                begin
                   if Each.Bound /= Which then
                      Naming_VM.End_Title (Item.Naming.Names, Rank);
                      Widgets.Set_Visible (Each.Title_Field, False);
                      Widgets.Set_Visible (Each.Heading_Area, True);
-                     Editors.Attach
-                       (Each.Text,
-                        Models.Content_Document (Item.Models (Which)));
+                     Editors.Attach (Each.Text, Models.Content_Document (Item.Models (Which)));
                      Each.Bound := Which;
                      Each.Caret_Seen := 0;
                   end if;
-                  Labels.Set_Text
-                    (Each.Heading, Support.Title_Of (Item, Which));
+                  Labels.Set_Text (Each.Heading, Support.Title_Of (Item, Which));
                   Widgets.Set_Accessible_Name (Each.Text, "Text of " & Support.Title_Of (Item, Which));
                   declare
                      Section : constant Natural := Section_Links.Section_Of (Item, Which);
@@ -243,15 +229,13 @@ package body View.Writing.Tree is
                and then Support.In_View (Item, Trees.Page_At (Item.Docs.Ordering, Rank)));
          end;
       end loop;
-      Widgets.Set_Visible (Item.Page_View.Docs_None,
-                           Trees.Page_Count (Item.Docs.Ordering) = 0);
+      Widgets.Set_Visible (Item.Page_View.Docs_None, Trees.Page_Count (Item.Docs.Ordering) = 0);
 
       for Row in 1 .. Item.Docs.Doc_Rows.Count loop
          if Row <= Trees.Count (Item.Docs.Ordering) then
             Show_Tree_Row (Item, Row);
          end if;
-         Widgets.Set_Visible (Item.Docs.Doc_Rows (Row).Row,
-                              Row <= Trees.Count (Item.Docs.Ordering));
+         Widgets.Set_Visible (Item.Docs.Doc_Rows (Row).Row, Row <= Trees.Count (Item.Docs.Ordering));
       end loop;
 
       for Row in 1 .. Item.Windows.Count loop
@@ -260,27 +244,21 @@ package body View.Writing.Tree is
          begin
             if Row <= Writing_Sources_VM.Count (Item.Reading.Sources) then
                declare
-                  Which : constant Items.Slot
-                     := Writing_Sources_VM.Slot_At (Item.Reading.Sources, Row);
+                  Which : constant Items.Slot := Writing_Sources_VM.Slot_At (Item.Reading.Sources, Row);
                begin
                   Widgets.Set_Accessible_Name (Each.Row, "Source " & Support.Title_Of (Item, Which));
-                  Labels.Set_Text
-                    (Each.Caption, Support.Title_Of (Item, Which));
-                  Pomarine.Widgets.Panels.Set_Fill
-                    (Each.Tag, Canvas_Items.Source_Ink (Item, Which));
+                  Labels.Set_Text (Each.Caption, Support.Title_Of (Item, Which));
+                  Pomarine.Widgets.Panels.Set_Fill (Each.Tag, Canvas_Items.Source_Ink (Item, Which));
                   Choose_Row
                     (Each,
                      Item.Reading.Pinned_Slot = Which
-                     or else Readers.Details
-                               (Item.Reading.Readers (Which)).State
-                             = Items.Open);
+                     or else Readers.Details (Item.Reading.Readers (Which)).State = Items.Open);
                end;
             end if;
             Widgets.Set_Visible (Each.Row, Row <= Writing_Sources_VM.Count (Item.Reading.Sources));
          end;
       end loop;
-      Widgets.Set_Visible (Item.Page_View.Sources_None,
-                           Writing_Sources_VM.Count (Item.Reading.Sources) = 0);
+      Widgets.Set_Visible (Item.Page_View.Sources_None, Writing_Sources_VM.Count (Item.Reading.Sources) = 0);
    end Refresh;
 
    procedure Go_To (Item : in out Session; Rank : Positive) is
@@ -288,8 +266,8 @@ package body View.Writing.Tree is
    begin
       Scrollers.Scroll_To
         (Item.Page_View.Pages_Scroll,
-         (Widgets.Top_Of (Item.Docs.Pages (Rank).Box)
-          - Widgets.Top_Of (Item.Page_View.Pages_Content)) / Pixels
+         (Widgets.Top_Of (Item.Docs.Pages (Rank).Box) - Widgets.Top_Of (Item.Page_View.Pages_Content))
+         / Pixels
          - Style.Page_Margin / 2.0);
    end Go_To;
 

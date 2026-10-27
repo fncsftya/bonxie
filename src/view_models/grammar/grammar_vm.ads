@@ -5,6 +5,7 @@ with Projects.Rules;
 --  The view-model of a project's grammar rules: the rules it has (to ignore a text, or always correct it to
 --  another) and the form that makes a correction, with when it can be made. It names no widget, so the
 --  tests run it without a window. An injected engine supplies current diagnostic facts and applies card actions.
+
 package Grammar_VM is
 
    package Parts renames Pomarine.View_Models;
@@ -21,7 +22,7 @@ package Grammar_VM is
 
    type Card_State is record
       Writing, Showing, Current, Editable, Has_Text : Boolean := False;
-      Suggestions : Natural := 0;
+      Suggestions                                   : Natural := 0;
    end record;
    --  Facts about the live diagnostic, queried at execution time so stale checks cannot edit replacement text.
    --  Expand_Card indexes a viewport card; Apply_Fix indexes a suggestion of the expanded diagnostic.
@@ -45,7 +46,8 @@ package Grammar_VM is
       Action      : Rules.Actions;
       Kind        : Rules.Kind_Code;
       Pattern     : String;
-      Replacement : String) return Rules.Rule_Id is abstract;
+      Replacement : String) return Rules.Rule_Id
+   is abstract;
 
    procedure Remove (Self : in out Library; Key : Rules.Rule_Id) is abstract;
 
@@ -66,11 +68,11 @@ package Grammar_VM is
    --  Kept must be there as long as the view-model is. No project's rules are in it.
 
    procedure Open (Self : in out View_Model; Owner : Projects.Id)
-     with Post => Owner_Of (Self) = Owner;
+   with Post => Owner_Of (Self) = Owner;
    --  The rules of the project, unless they are those it has (and the entry is put away if they are not).
 
    procedure Forget (Self : in out View_Model)
-     with Post => Owner_Of (Self) = 0;
+   with Post => Owner_Of (Self) = 0;
    --  Let go of them, so that Open reads them again.
 
    function Owner_Of (Self : View_Model) return Projects.Id;
@@ -84,11 +86,11 @@ package Grammar_VM is
    --  Different whenever the rules are: a view checks again.
 
    procedure Ignore (Self : in out View_Model; Kind : Rules.Kind_Code; Pattern : String)
-     with Pre => Owner_Of (Self) /= 0 and then Pattern'Length > 0;
+   with Pre => Owner_Of (Self) /= 0 and then Pattern'Length > 0;
    --  Never flag this text, of this kind.
 
    procedure Remove_Correction (Self : in out View_Model; Pattern : String; Removed : out Boolean)
-     with Pre => Owner_Of (Self) /= 0;
+   with Pre => Owner_Of (Self) /= 0;
    --  Take away the rule that always corrects the text. Removed is False if there is none.
 
    function Corrects (Self : View_Model; Pattern : String) return Boolean;
@@ -97,8 +99,9 @@ package Grammar_VM is
    --  The entry
 
    procedure Begin_Entry (Self : in out View_Model; Pattern : String; Kind : Rules.Kind_Code; Starting : String)
-     with Pre  => Owner_Of (Self) /= 0 and then Pattern'Length > 0,
-          Post => Is_Entering (Self) and then Correction (Self) = Starting;
+   with
+     Pre  => Owner_Of (Self) /= 0 and then Pattern'Length > 0,
+     Post => Is_Entering (Self) and then Correction (Self) = Starting;
    --  Begin a rule that always corrects the text of Pattern, of a diagnostic of this kind, to what is typed,
    --  which is Starting to begin with.
 
@@ -113,19 +116,22 @@ package Grammar_VM is
    function Correction (Self : View_Model) return String;
 
    procedure Set_Correction (Self : in out View_Model; Text : String)
-     with Post => Correction (Self) = Text;
+   with Post => Correction (Self) = Text;
    --  What has been typed.
 
-   overriding function Version (Self : View_Model) return Parts.Version_Number;
+   overriding
+   function Version (Self : View_Model) return Parts.Version_Number;
 
-   overriding function Can_Execute (Self : View_Model; What : Command; Index : Natural := 0) return Boolean;
+   overriding
+   function Can_Execute (Self : View_Model; What : Command; Index : Natural := 0) return Boolean;
    --  Card commands require the writing view and a current diagnostic; applying also requires an editable
    --  document and a valid suggestion. Rule actions require nonempty diagnostic text and an open project.
    --  Cancel_Entry: it is being made. Accept_Entry: and the correction is not the text itself, which
    --  would change nothing, and is not longer than a rule's can be.
 
-   overriding procedure Execute (Self : in out View_Model; What : Command; Index : Natural := 0)
-     with Post => (if What in Accept_Entry | Cancel_Entry then not Is_Entering (Self));
+   overriding
+   procedure Execute (Self : in out View_Model; What : Command; Index : Natural := 0)
+   with Post => (if What in Accept_Entry | Cancel_Entry then not Is_Entering (Self));
    --  Accept_Entry makes the rule, and puts the entry away; Cancel_Entry puts it away.
    --  Card commands apply the action through the injected engine and leave entry lifecycle to that action.
 
@@ -136,17 +142,17 @@ private
    type Card_Engine_Access is access all Card_Engine'Class;
 
    type View_Model is limited new Commands.Model with record
-      Kept     : Library_Access;
+      Kept      : Library_Access;
       Reactions : Effects_Access;
-      Engine : Card_Engine_Access;
-      Owner    : Projects.Id := 0;
-      Known    : aliased Rules.Rule_List;
-      Entering : Boolean := False;
-      Text     : Projects.Titles.Text;
-      Kind     : Rules.Kind_Code := 0;
-      Typed    : Parts.Text_Property;
-      Changes  : Parts.Change_Counter;
-      Lists    : Parts.Change_Counter;
+      Engine    : Card_Engine_Access;
+      Owner     : Projects.Id := 0;
+      Known     : aliased Rules.Rule_List;
+      Entering  : Boolean := False;
+      Text      : Projects.Titles.Text;
+      Kind      : Rules.Kind_Code := 0;
+      Typed     : Parts.Text_Property;
+      Changes   : Parts.Change_Counter;
+      Lists     : Parts.Change_Counter;
    end record;
 
 end Grammar_VM;

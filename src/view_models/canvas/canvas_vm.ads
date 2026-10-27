@@ -12,6 +12,7 @@ with Pomarine.View_Models;
 --  The canvas widget is the person's hand on the camera (it pans and zooms as they drag and pinch); it tells this what
 --  it came to (Set_Camera), and it is asked to go where this wants it (Steering). The windows of the items show their
 --  models, in the camera's place (see View.Canvas_Items).
+
 package Canvas_VM is
 
    package Parts renames Pomarine.View_Models;
@@ -20,7 +21,7 @@ package Canvas_VM is
 
    Untitled_Source : constant String := "Untitled source";
 
-   Cascade_Step  : constant Float := 24.0;
+   Cascade_Step : constant Float := 24.0;
 
    Cascade_Count : constant := 6;
    --  Each new item is put this far down and right of the last, for so many, so that they are not all on top of each
@@ -47,8 +48,8 @@ package Canvas_VM is
       Set_Stroke,
       Set_Ending,
       Set_Color);
-      --  Index: of Items.Links.Strokes, Endings (the place in the type, from 1) or Link_Colors. The look of the
-      --  link selected.
+   --  Index: of Items.Links.Strokes, Endings (the place in the type, from 1) or Link_Colors. The look of the
+   --  link selected.
 
    package Commands is new Parts.Command_Models (Command);
 
@@ -60,7 +61,7 @@ package Canvas_VM is
    --  The items of the project, the earliest made first.
 
    function Create (Self : in out Library; Name : String; Where : Items.Frame; Kind : Items.Kinds) return Items.Id
-     is abstract;
+   is abstract;
 
    function Stored_Content (Self : in out Library; Key : Items.Id) return String is abstract;
 
@@ -80,7 +81,8 @@ package Canvas_VM is
       Model : in out Items.Models.Item;
       Now   : Pomarine.Events.Milliseconds;
       Force : Boolean;
-      Wrote : out Boolean) is abstract;
+      Wrote : out Boolean)
+   is abstract;
 
    procedure Touch (Self : in out Library) is abstract;
    --  The project has been changed.
@@ -95,7 +97,7 @@ package Canvas_VM is
 
    procedure Move_Link
      (Self : in out Library; Key : Items.Id; To : Items.Id; Side : Items.Links.Sides; Moved : out Boolean)
-     is abstract;
+   is abstract;
 
    procedure Delete_Link (Self : in out Library; Key : Items.Id) is abstract;
 
@@ -104,7 +106,8 @@ package Canvas_VM is
       Key    : Items.Id;
       Stroke : Items.Links.Strokes;
       Ending : Items.Links.Endings;
-      Color  : Items.Links.Link_Colors) is abstract;
+      Color  : Items.Links.Link_Colors)
+   is abstract;
 
    --  What shows the items.
 
@@ -118,19 +121,19 @@ package Canvas_VM is
    type View_Model is limited new Commands.Model with private;
 
    procedure Initialize
-     (Self   : in out View_Model;
-      Kept   : not null access Library'Class;
-      Room   : not null access Surface'Class;
-      Slots  : not null access Items.Models.Tables.Table);
+     (Self  : in out View_Model;
+      Kept  : not null access Library'Class;
+      Room  : not null access Surface'Class;
+      Slots : not null access Items.Models.Tables.Table);
    --  All must be there as long as the view-model is. Slots has the items, as many slots as there are windows.
 
    procedure Enter (Self : in out View_Model)
-     with Post => Is_Entered (Self);
+   with Post => Is_Entered (Self);
    --  Take the items and the links of the project from the library, and give each its model. The windows are for the
    --  view to show.
 
    procedure Leave (Self : in out View_Model)
-     with Post => not Is_Entered (Self) and then Count (Self) = 0;
+   with Post => not Is_Entered (Self) and then Count (Self) = 0;
    --  Let go of the items: the view has written what was not (Flush_All) and put the windows away.
 
    function Is_Entered (Self : View_Model) return Boolean;
@@ -149,11 +152,11 @@ package Canvas_VM is
    --  The slot of the item made last; 0 if none has been.
 
    procedure Add (Self : in out View_Model; Name : String; Kind : Items.Kinds; Slot : out Items.Slot)
-     with Pre => Is_Entered (Self), Post => Is_Item (Self, Slot) and then Made (Self) = Slot;
+   with Pre => Is_Entered (Self), Post => Is_Item (Self, Slot) and then Made (Self) = Slot;
    --  Make an item called Name, in the middle of what is shown (and a step down and right of the last made).
 
    function Source_Rank (Self : View_Model; Slot : Items.Slot) return Natural
-     with Pre => Is_Item (Self, Slot);
+   with Pre => Is_Item (Self, Slot);
    --  Of a source, which it is of the sources, by when they were made; 0 for a note.
 
    function Items_Version (Self : View_Model) return Parts.Version_Number;
@@ -172,11 +175,11 @@ package Canvas_VM is
    --  What the windows put themselves by: it changes as the camera does.
 
    procedure Set_Camera (Self : in out View_Model; To : Items.Models.Camera)
-     with Pre => To.Zoom > 0.0;
+   with Pre => To.Zoom > 0.0;
    --  The person panned or zoomed the canvas.
 
    procedure Set_Viewport (Self : in out View_Model; Width, Height : Float)
-     with Pre => Width >= 0.0 and then Height >= 0.0;
+   with Pre => Width >= 0.0 and then Height >= 0.0;
    --  How much of the canvas there is to see, in points.
 
    function Camera_Version (Self : View_Model) return Parts.Version_Number;
@@ -213,26 +216,26 @@ package Canvas_VM is
    --  What is done to the items by hand
 
    procedure Move_Item (Self : in out View_Model; Slot : Items.Slot; Across, Down : Float)
-     with Pre => Is_Item (Self, Slot);
+   with Pre => Is_Item (Self, Slot);
    --  Its window was dragged by so many points of the screen.
 
    procedure Resize_Item (Self : in out View_Model; Slot : Items.Slot; Across, Down : Float; Still : Boolean)
-     with Pre => Is_Item (Self, Slot);
+   with Pre => Is_Item (Self, Slot);
    --  Its corner was dragged by so many points of the screen; Still, it is held.
 
    procedure Choose_Origin (Self : in out View_Model; Slot : Items.Slot; To : Items.Origins)
-     with Pre => Is_Item (Self, Slot) and then Details_Is_Source (Self, Slot);
+   with Pre => Is_Item (Self, Slot) and then Details_Is_Source (Self, Slot);
    --  The source is from a link, or from a file; and that is kept.
 
    function Details_Is_Source (Self : View_Model; Slot : Items.Slot) return Boolean;
 
    procedure Put_Tool_Away (Self : in out View_Model; Slot : Items.Slot)
-     with Pre => Is_Item (Self, Slot);
+   with Pre => Is_Item (Self, Slot);
    --  The pointer was pressed outside the window of the item, which had a tool in hand (a highlighter, an eraser): it
    --  has the pointer again.
 
    procedure Flush_All (Self : in out View_Model; Now : Pomarine.Events.Milliseconds; Force : Boolean)
-     with Pre => Is_Entered (Self);
+   with Pre => Is_Entered (Self);
    --  Write what has changed of the items, as Items.Models.Flush does, the windows having said what they know
    --  (Items.Windows.Report).
 
@@ -241,7 +244,7 @@ package Canvas_VM is
    function Link_Count (Self : View_Model) return Natural;
 
    function Link_At (Self : View_Model; Number : Positive) return Items.Links.Link
-     with Pre => Number <= Link_Count (Self);
+   with Pre => Number <= Link_Count (Self);
 
    function Link_Number (Self : View_Model; Key : Items.Id) return Natural;
    --  Its place among them; 0 if there is none such.
@@ -253,16 +256,15 @@ package Canvas_VM is
    --  The key of the one selected; 0 if none.
 
    procedure Select_Link (Self : in out View_Model; Number : Natural)
-     with Pre => Number <= Link_Count (Self);
+   with Pre => Number <= Link_Count (Self);
    --  The one in that place is selected; none, if 0.
 
-   procedure Join
-     (Self : in out View_Model; From, To : Items.Slot; From_Side, To_Side : Items.Links.Sides)
-     with Pre => Is_Item (Self, From) and then Is_Item (Self, To);
+   procedure Join (Self : in out View_Model; From, To : Items.Slot; From_Side, To_Side : Items.Links.Sides)
+   with Pre => Is_Item (Self, From) and then Is_Item (Self, To);
    --  Draw a line from the side of one item to the side of the other, if they are not joined already.
 
    procedure Begin_Link (Self : in out View_Model; From : Items.Slot; Side : Items.Links.Sides)
-     with Pre => Is_Item (Self, From);
+   with Pre => Is_Item (Self, From);
    --  A line is dragged from a pin.
 
    procedure Begin_Moving_Link (Self : in out View_Model);
@@ -293,16 +295,19 @@ package Canvas_VM is
    function Links_Version (Self : View_Model) return Parts.Version_Number;
    --  Different whenever the links are, or which is selected, or what is dragged.
 
-   overriding function Version (Self : View_Model) return Parts.Version_Number;
+   overriding
+   function Version (Self : View_Model) return Parts.Version_Number;
 
-   overriding function Can_Execute (Self : View_Model; What : Command; Index : Natural := 0) return Boolean;
+   overriding
+   function Can_Execute (Self : View_Model; What : Command; Index : Natural := 0) return Boolean;
    --  Add_Note and Add_Source: the canvas is entered. Of an item (Index; 0 asks whether there is any): Open_Item, if it
    --  is not open; Minimize_Item, if it is; Close_Item, if it is not closed; Show_Item and Remove_Item, if it is there.
    --  Delete_Link: one is selected. Cancel_Link: a line is being dragged.
    --  Pick_Link: always (a number that is of no link is none).
    --  Set_Stroke, Set_Ending and Set_Color: one is selected, and the Index is of one of the type.
 
-   overriding procedure Execute (Self : in out View_Model; What : Command; Index : Natural := 0);
+   overriding
+   procedure Execute (Self : in out View_Model; What : Command; Index : Natural := 0);
 
 private
 
@@ -311,27 +316,27 @@ private
    type Table_Access is access all Items.Models.Tables.Table;
 
    type View_Model is limited new Commands.Model with record
-      Kept      : Library_Access;
-      Room      : Surface_Access;
-      Models    : Table_Access;
-      Entered   : Boolean := False;
-      Last_Made : Natural := 0;
-      Looking   : aliased Items.Models.Camera;
-      Looks     : Parts.Change_Counter;
+      Kept          : Library_Access;
+      Room          : Surface_Access;
+      Models        : Table_Access;
+      Entered       : Boolean := False;
+      Last_Made     : Natural := 0;
+      Looking       : aliased Items.Models.Camera;
+      Looks         : Parts.Change_Counter;
       --  Of where it is looked at from.
       Width, Height : Float := 0.0;
-      Asked     : Steer;
-      Asks      : Parts.Change_Counter;
-      Front     : Natural := 0;
-      Fronts    : Parts.Change_Counter;
-      Shown     : Parts.Change_Counter;
+      Asked         : Steer;
+      Asks          : Parts.Change_Counter;
+      Front         : Natural := 0;
+      Fronts        : Parts.Change_Counter;
+      Shown         : Parts.Change_Counter;
       --  Of the items made, taken away and shown another way.
-      Link_Set  : Items.Links.Link_List;
-      Chosen    : Items.Id := 0;
-      From      : Natural := 0;
-      From_Side : Items.Links.Sides := Items.Links.Top;
-      Moving    : Boolean := False;
-      Joined    : Parts.Change_Counter;
+      Link_Set      : Items.Links.Link_List;
+      Chosen        : Items.Id := 0;
+      From          : Natural := 0;
+      From_Side     : Items.Links.Sides := Items.Links.Top;
+      Moving        : Boolean := False;
+      Joined        : Parts.Change_Counter;
    end record;
 
 end Canvas_VM;

@@ -1,4 +1,5 @@
 --  Opening a source: a link downloaded or its page captured, or a file chosen, as a picture, a document or text.
+
 private package View.Canvas_Items.Opening is
 
    procedure Start_Capture (Item : in out Session; Which : Items.Slot);

@@ -9,8 +9,7 @@ package body View.Menus is
 
    use type Pomarine.Widgets.Command_State;
 
-   Ellipsis : constant String :=
-     [Character'Val (16#E2#), Character'Val (16#80#), Character'Val (16#A6#)];
+   Ellipsis : constant String := [Character'Val (16#E2#), Character'Val (16#80#), Character'Val (16#A6#)];
    --  In UTF-8.
 
    function Validate (Item : Session; Tag : Integer; Index : Natural) return Widgets.Command_State is
@@ -24,17 +23,19 @@ package body View.Menus is
          declare
             State : constant Widgets.Command_State :=
               (if Nav_VM.Can_Execute (Item.Nav_Model.Model, Command_Of (Tag), Index)
-               then Widgets.Enabled else Widgets.Disabled);
+               then Widgets.Enabled
+               else Widgets.Disabled);
             What  : constant Nav_VM.Command := Command_Of (Tag);
          begin
             --  The menu ticks the view that is shown.
-            if State = Widgets.Enabled and then Menu_Bar.Is_Installed (Item.Host.Menus)
+            if State = Widgets.Enabled
+              and then Menu_Bar.Is_Installed (Item.Host.Menus)
               and then (case What is
-                           when Nav_VM.Show_Outline => View_Mode (Item) = Outline,
-                           when Nav_VM.Show_Canvas  => View_Mode (Item) = Canvas,
-                           when Nav_VM.Show_Writing => View_Mode (Item) = Write,
-                           when Nav_VM.Show_Publish => View_Mode (Item) = Publish,
-                           when others              => False)
+                          when Nav_VM.Show_Outline => View_Mode (Item) = Outline,
+                          when Nav_VM.Show_Canvas  => View_Mode (Item) = Canvas,
+                          when Nav_VM.Show_Writing => View_Mode (Item) = Write,
+                          when Nav_VM.Show_Publish => View_Mode (Item) = Publish,
+                          when others              => False)
             then
                return Widgets.Ticked;
             end if;
@@ -46,7 +47,7 @@ package body View.Menus is
 
    procedure Build (Item : in out Session) is
       File, Edit, Pane : Menu_Bar.Menu;
-      Bar : Menu_Bar.Menu_Bar renames Item.Host.Menus;
+      Bar              : Menu_Bar.Menu_Bar renames Item.Host.Menus;
    begin
       Menu_Bar.Install (Bar);
       if not Menu_Bar.Is_Installed (Bar) then
@@ -83,22 +84,28 @@ package body View.Menus is
    begin
       if not Menu_Bar.Is_Installed (Item.Host.Menus)
         or else Event.Kind /= Pomarine.Events.Key_Down
-        or else not Event.Command or else Event.Option
+        or else not Event.Command
+        or else Event.Option
       then
          return;
       end if;
       case Event.Key is
          when Pomarine.Events.Key_Z =>
             Tag := (if Event.Shift then Widgets.Edit_Redo else Widgets.Edit_Undo);
+
          when Pomarine.Events.Key_X =>
             Tag := Widgets.Edit_Cut;
+
          when Pomarine.Events.Key_C =>
             Tag := Widgets.Edit_Copy;
+
          when Pomarine.Events.Key_V =>
             Tag := Widgets.Edit_Paste;
+
          when Pomarine.Events.Key_A =>
             Tag := Widgets.Edit_Select_All;
-         when others =>
+
+         when others                =>
             null;
       end case;
       if Tag /= Widgets.No_Tag then

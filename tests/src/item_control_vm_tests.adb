@@ -22,27 +22,30 @@ package body Item_Control_VM_Tests is
    end Check;
 
    type Window_Effects is limited new Windows.Effects with record
-      Last : Windows.Command := Windows.Capture;
-      Index : Natural := 0;
+      Last              : Windows.Command := Windows.Capture;
+      Index             : Natural := 0;
       Requests, Changes : Natural := 0;
    end record;
-   overriding procedure Changed (Self : in out Window_Effects);
-   overriding procedure Requested (Self : in out Window_Effects; What : Windows.Command; Index : Natural) is
+   overriding
+   procedure Changed (Self : in out Window_Effects);
+   overriding
+   procedure Requested (Self : in out Window_Effects; What : Windows.Command; Index : Natural) is
    begin
       Self.Last := What;
       Self.Index := Index;
       Self.Requests := Self.Requests + 1;
    end Requested;
-   overriding procedure Changed (Self : in out Window_Effects) is
+   overriding
+   procedure Changed (Self : in out Window_Effects) is
    begin
       Self.Changes := Self.Changes + 1;
    end Changed;
 
    procedure Window_Rules is
-      Item : aliased Models.Item;
-      View : aliased Window_Effects;
-      Model : Windows.Model;
-      Seen : Pomarine.View_Models.Version_Number;
+      Item     : aliased Models.Item;
+      View     : aliased Window_Effects;
+      Model    : Windows.Model;
+      Seen     : Pomarine.View_Models.Version_Number;
       Rejected : Boolean := False;
    begin
       Check ("item-window-vm-uninitialized", not Windows.Can_Execute (Model, Windows.Capture));
@@ -53,14 +56,20 @@ package body Item_Control_VM_Tests is
       Seen := Windows.Version (Model);
       Windows.Poll (Model);
       Check ("item-window-vm-no-change", Windows.Version (Model) = Seen);
-      Check ("item-window-vm-source-commands", Windows.Can_Execute (Model, Windows.Choose_Link)
-             and then Windows.Can_Execute (Model, Windows.Choose_File)
-             and then not Windows.Can_Execute (Model, Windows.Speak)
-             and then not Windows.Can_Execute (Model, Windows.Capture, 1));
+      Check
+        ("item-window-vm-source-commands",
+         Windows.Can_Execute (Model, Windows.Choose_Link)
+         and then Windows.Can_Execute (Model, Windows.Choose_File)
+         and then not Windows.Can_Execute (Model, Windows.Speak)
+         and then not Windows.Can_Execute (Model, Windows.Capture, 1));
       Windows.Execute (Model, Windows.Use_Marker);
-      Check ("item-window-vm-selected", Models.Tool (Item) = Models.Highlighter
-             and then Windows.Marker_Selected (Model) and then not Windows.Pointer_Selected (Model)
-             and then View.Changes = 1 and then View.Requests = 0);
+      Check
+        ("item-window-vm-selected",
+         Models.Tool (Item) = Models.Highlighter
+         and then Windows.Marker_Selected (Model)
+         and then not Windows.Pointer_Selected (Model)
+         and then View.Changes = 1
+         and then View.Requests = 0);
       Seen := Windows.Version (Model);
       Windows.Execute (Model, Windows.Use_Marker);
       Check ("item-window-vm-same-tool", Windows.Version (Model) = Seen);
@@ -73,21 +82,28 @@ package body Item_Control_VM_Tests is
       Models.Set_Pages (Item, "pdf", 2, 2);
       Check ("item-window-vm-page-last", Windows.Previous_Allowed (Model) and then not Windows.Next_Allowed (Model));
       Windows.Execute (Model, Windows.Zoom_Preset, 6);
-      Check ("item-window-vm-preset", Models.Details (Item).Zoom = 2.0
-             and then View.Last = Windows.Zoom_Preset and then View.Index = 6);
-      Check ("item-window-vm-preset-range", not Windows.Can_Execute (Model, Windows.Zoom_Preset)
-             and then not Windows.Can_Execute (Model, Windows.Zoom_Preset, 7));
+      Check
+        ("item-window-vm-preset",
+         Models.Details (Item).Zoom = 2.0 and then View.Last = Windows.Zoom_Preset and then View.Index = 6);
+      Check
+        ("item-window-vm-preset-range",
+         not Windows.Can_Execute (Model, Windows.Zoom_Preset)
+         and then not Windows.Can_Execute (Model, Windows.Zoom_Preset, 7));
       Models.Set_Origin (Item, Items.Remote);
       Check ("item-window-vm-remote-path", not Windows.Can_Execute (Model, Windows.Choose_File));
       Models.Set_Origin (Item, Items.Local);
       Check ("item-window-vm-local-path", Windows.Can_Execute (Model, Windows.Choose_File));
-      Check ("item-window-vm-frame-open", Windows.Can_Execute (Model, Windows.Minimize_Window)
-             and then Windows.Can_Execute (Model, Windows.Begin_Title_Edit)
-             and then not Windows.Can_Execute (Model, Windows.Restore_Window));
+      Check
+        ("item-window-vm-frame-open",
+         Windows.Can_Execute (Model, Windows.Minimize_Window)
+         and then Windows.Can_Execute (Model, Windows.Begin_Title_Edit)
+         and then not Windows.Can_Execute (Model, Windows.Restore_Window));
       Models.Set_State (Item, Items.Minimized);
-      Check ("item-window-vm-frame-minimized", Windows.Can_Execute (Model, Windows.Restore_Window)
-             and then Windows.Can_Execute (Model, Windows.Close_Window)
-             and then not Windows.Can_Execute (Model, Windows.Begin_Title_Edit));
+      Check
+        ("item-window-vm-frame-minimized",
+         Windows.Can_Execute (Model, Windows.Restore_Window)
+         and then Windows.Can_Execute (Model, Windows.Close_Window)
+         and then not Windows.Can_Execute (Model, Windows.Begin_Title_Edit));
       Windows.Execute (Model, Windows.Restore_Window);
       Check ("item-window-vm-restore-effect", View.Last = Windows.Restore_Window);
       Models.Set_State (Item, Items.Open);
@@ -99,27 +115,34 @@ package body Item_Control_VM_Tests is
       Check ("item-window-vm-released", not Windows.Can_Execute (Model, Windows.Use_Pointer));
       Models.Assign (Item, (Key => 2, Kind => Items.Note, others => <>), "");
       Windows.Poll (Model);
-      Check ("item-window-vm-note", Windows.Can_Execute (Model, Windows.Speak)
-             and then Windows.Can_Execute (Model, Windows.Link_To_Outline)
-             and then not Windows.Can_Execute (Model, Windows.Use_Marker));
-      Check ("item-window-vm-editor-events", Windows.Can_Execute (Model, Windows.Use_Tool, 3)
-             and then Windows.Can_Execute (Model, Windows.Follow_Link)
-             and then not Windows.Can_Execute (Model, Windows.Use_Tool)
-             and then not Windows.Can_Execute (Model, Windows.Follow_Link, 1));
+      Check
+        ("item-window-vm-note",
+         Windows.Can_Execute (Model, Windows.Speak)
+         and then Windows.Can_Execute (Model, Windows.Link_To_Outline)
+         and then not Windows.Can_Execute (Model, Windows.Use_Marker));
+      Check
+        ("item-window-vm-editor-events",
+         Windows.Can_Execute (Model, Windows.Use_Tool, 3)
+         and then Windows.Can_Execute (Model, Windows.Follow_Link)
+         and then not Windows.Can_Execute (Model, Windows.Use_Tool)
+         and then not Windows.Can_Execute (Model, Windows.Follow_Link, 1));
       Windows.Execute (Model, Windows.Use_Tool, 3);
       Check ("item-window-vm-tool-effect", View.Last = Windows.Use_Tool and then View.Index = 3);
       Windows.Execute (Model, Windows.Speak);
       Check ("item-window-vm-speech-effect", View.Last = Windows.Speak);
       Models.Set_State (Item, Items.Minimized);
       Windows.Poll (Model);
-      Check ("item-window-vm-editor-minimized", not Windows.Can_Execute (Model, Windows.Use_Tool, 1)
-             and then not Windows.Can_Execute (Model, Windows.Follow_Link));
+      Check
+        ("item-window-vm-editor-minimized",
+         not Windows.Can_Execute (Model, Windows.Use_Tool, 1)
+         and then not Windows.Can_Execute (Model, Windows.Follow_Link));
       Models.Set_State (Item, Items.Open);
       Windows.Poll (Model);
       begin
          Windows.Execute (Model, Windows.Capture);
       exception
-         when Ada.Assertions.Assertion_Error => Rejected := True;
+         when Ada.Assertions.Assertion_Error =>
+            Rejected := True;
       end;
       Check ("item-window-vm-contract", Rejected);
       Seen := Windows.Version (Model);
@@ -130,38 +153,56 @@ package body Item_Control_VM_Tests is
    end Window_Rules;
 
    type Reading_Engine is limited new Readers.Engine with record
-      Opened : Boolean := False;
-      Selected : Models.Tools := Models.Pointer;
-      Scale : Float := 1.0;
+      Opened               : Boolean := False;
+      Selected             : Models.Tools := Models.Pointer;
+      Scale                : Float := 1.0;
       Pins, Visits, Closes : Natural := 0;
    end record;
-   overriding procedure Requested (Self : in out Reading_Engine; What : Readers.Command);
-   overriding function Zoom (Self : Reading_Engine) return Float is (Self.Scale);
-   overriding procedure Set_Zoom (Self : in out Reading_Engine; Value : Float);
-   overriding function Is_Open (Self : Reading_Engine) return Boolean is (Self.Opened);
-   overriding function Tool (Self : Reading_Engine) return Models.Tools is (Self.Selected);
-   overriding procedure Select_Tool (Self : in out Reading_Engine; To : Models.Tools) is
+   overriding
+   procedure Requested (Self : in out Reading_Engine; What : Readers.Command);
+   overriding
+   function Zoom (Self : Reading_Engine) return Float
+   is (Self.Scale);
+   overriding
+   procedure Set_Zoom (Self : in out Reading_Engine; Value : Float);
+   overriding
+   function Is_Open (Self : Reading_Engine) return Boolean
+   is (Self.Opened);
+   overriding
+   function Tool (Self : Reading_Engine) return Models.Tools
+   is (Self.Selected);
+   overriding
+   procedure Select_Tool (Self : in out Reading_Engine; To : Models.Tools) is
    begin
       Self.Selected := To;
    end Select_Tool;
-   overriding procedure Set_Zoom (Self : in out Reading_Engine; Value : Float) is
+   overriding
+   procedure Set_Zoom (Self : in out Reading_Engine; Value : Float) is
    begin
       Self.Scale := Value;
    end Set_Zoom;
-   overriding procedure Requested (Self : in out Reading_Engine; What : Readers.Command) is
+   overriding
+   procedure Requested (Self : in out Reading_Engine; What : Readers.Command) is
    begin
       case What is
-         when Readers.Toggle_Pin => Self.Pins := Self.Pins + 1;
-         when Readers.Close_Reader => Self.Closes := Self.Closes + 1;
-         when Readers.Visit => Self.Visits := Self.Visits + 1;
-         when others => raise Program_Error;
+         when Readers.Toggle_Pin   =>
+            Self.Pins := Self.Pins + 1;
+
+         when Readers.Close_Reader =>
+            Self.Closes := Self.Closes + 1;
+
+         when Readers.Visit        =>
+            Self.Visits := Self.Visits + 1;
+
+         when others               =>
+            raise Program_Error;
       end case;
    end Requested;
 
    procedure Reader_Rules is
-      Engine : aliased Reading_Engine;
-      Model : Readers.Model;
-      Seen : Pomarine.View_Models.Version_Number;
+      Engine   : aliased Reading_Engine;
+      Model    : Readers.Model;
+      Seen     : Pomarine.View_Models.Version_Number;
       Rejected : Boolean := False;
    begin
       Check ("reader-vm-uninitialized", not Readers.Can_Execute (Model, Readers.Use_Marker));
@@ -169,14 +210,18 @@ package body Item_Control_VM_Tests is
       Check ("reader-vm-closed", not Readers.Can_Execute (Model, Readers.Use_Marker));
       Engine.Opened := True;
       Readers.Poll (Model);
-      Check ("reader-vm-open", Readers.Can_Execute (Model, Readers.Toggle_Pin)
-             and then not Readers.Can_Execute (Model, Readers.Visit, 1));
+      Check
+        ("reader-vm-open",
+         Readers.Can_Execute (Model, Readers.Toggle_Pin) and then not Readers.Can_Execute (Model, Readers.Visit, 1));
       Seen := Readers.Version (Model);
       Readers.Poll (Model);
       Check ("reader-vm-no-change", Readers.Version (Model) = Seen);
       Readers.Execute (Model, Readers.Use_Marker);
-      Check ("reader-vm-selected", Engine.Selected = Models.Highlighter
-             and then Readers.Marker_Selected (Model) and then not Readers.Pointer_Selected (Model));
+      Check
+        ("reader-vm-selected",
+         Engine.Selected = Models.Highlighter
+         and then Readers.Marker_Selected (Model)
+         and then not Readers.Pointer_Selected (Model));
       Seen := Readers.Version (Model);
       Readers.Execute (Model, Readers.Use_Marker);
       Check ("reader-vm-same-tool", Readers.Version (Model) = Seen);
@@ -198,19 +243,22 @@ package body Item_Control_VM_Tests is
       begin
          Readers.Execute (Model, Readers.Visit);
       exception
-         when Ada.Assertions.Assertion_Error => Rejected := True;
+         when Ada.Assertions.Assertion_Error =>
+            Rejected := True;
       end;
       Check ("reader-vm-contract", Rejected and then Engine.Visits = 1);
    end Reader_Rules;
    type Menu_Router is limited new Menu_VM.Router with record
-      Rows : Natural := 2;
+      Rows     : Natural := 2;
       Disabled : Natural := 0;
-      Last : Natural := 0;
-      Which : Menu_VM.Command := Menu_VM.Source_Menu;
+      Last     : Natural := 0;
+      Which    : Menu_VM.Command := Menu_VM.Source_Menu;
    end record;
-   overriding function Allowed (Self : Menu_Router; What : Menu_VM.Command; Row : Natural) return Boolean is
-     (Row in 1 .. Self.Rows and then Row /= Self.Disabled);
-   overriding procedure Choose (Self : in out Menu_Router; What : Menu_VM.Command; Row : Positive) is
+   overriding
+   function Allowed (Self : Menu_Router; What : Menu_VM.Command; Row : Natural) return Boolean
+   is (Row in 1 .. Self.Rows and then Row /= Self.Disabled);
+   overriding
+   procedure Choose (Self : in out Menu_Router; What : Menu_VM.Command; Row : Positive) is
    begin
       Self.Last := Row;
       Self.Which := What;
@@ -218,21 +266,24 @@ package body Item_Control_VM_Tests is
 
    procedure Menu_Rules is
       use type Menu_VM.Command;
-      Target : aliased Menu_Router;
-      Model : Menu_VM.Model;
+      Target   : aliased Menu_Router;
+      Model    : Menu_VM.Model;
       Rejected : Boolean := False;
    begin
       Check ("menu-vm-uninitialized", not Menu_VM.Can_Execute (Model, Menu_VM.Source_Menu, 1));
       Menu_VM.Initialize (Model, Target'Access);
-      Check ("menu-vm-row-range", Menu_VM.Can_Execute (Model, Menu_VM.Source_Menu, 2)
-             and then not Menu_VM.Can_Execute (Model, Menu_VM.Source_Menu)
-             and then not Menu_VM.Can_Execute (Model, Menu_VM.Source_Menu, 3));
+      Check
+        ("menu-vm-row-range",
+         Menu_VM.Can_Execute (Model, Menu_VM.Source_Menu, 2)
+         and then not Menu_VM.Can_Execute (Model, Menu_VM.Source_Menu)
+         and then not Menu_VM.Can_Execute (Model, Menu_VM.Source_Menu, 3));
       Target.Disabled := 2;
       Check ("menu-vm-live-availability", not Menu_VM.Can_Execute (Model, Menu_VM.Context_Menu, 2));
       begin
          Menu_VM.Execute (Model, Menu_VM.Context_Menu, 2);
       exception
-         when Ada.Assertions.Assertion_Error => Rejected := True;
+         when Ada.Assertions.Assertion_Error =>
+            Rejected := True;
       end;
       Check ("menu-vm-contract", Rejected and then Target.Last = 0);
       Target.Rows := 3;

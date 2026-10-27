@@ -9,6 +9,7 @@ with SDL3.Windows.Renderers;
 --  on a surface and of a surface on its neighbour, hold for every hue. What
 --  means something in itself (the primary action's green, the danger's red,
 --  the accent, the focus ring, the model's purple, the highlighter) stays.
+
 package Adaptive_Themes is
 
    use type SDL3.Windows.Renderers.Color_Component;
@@ -17,7 +18,7 @@ package Adaptive_Themes is
    --  A turn of the colour wheel: 0.0 is red, 1.0 is red again.
 
    function Luminance (Value : Pomarine.Themes.Color) return Float
-     with Post => Luminance'Result in 0.0 .. 1.0;
+   with Post => Luminance'Result in 0.0 .. 1.0;
    --  How bright it looks, as the relative luminance of sRGB: 0.0 for black, 1.0 for white.
 
    function From_Chroma
@@ -37,7 +38,7 @@ package Adaptive_Themes is
    type Strengths_Array is array (Positive range <>) of Strengths;
 
    function Palette_For (Dark : Boolean; Hue : Hues; Strength : Strengths := 1.0) return Pomarine.Themes.Palette
-     with Post => Palette_For'Result.Dark = Dark;
+   with Post => Palette_For'Result.Dark = Dark;
    --  The light palette, or the dark, with its greys in Hue.
 
    function Grey
@@ -45,18 +46,15 @@ package Adaptive_Themes is
       return Pomarine.Themes.Color;
    --  One of the greys the application makes for itself, in Hue as the palette's are (see Palette_For).
 
-   function Retint
-     (Value      : Pomarine.Themes.Color;
-      Hue        : Hues;
-      Saturation : Float) return Pomarine.Themes.Color
-     with Pre  => Saturation in 0.0 .. 1.0,
-          Post => Retint'Result.Alpha = Value.Alpha
-                  and then abs (Luminance (Retint'Result) - Luminance (Value)) < 0.01;
+   function Retint (Value : Pomarine.Themes.Color; Hue : Hues; Saturation : Float) return Pomarine.Themes.Color
+   with
+     Pre  => Saturation in 0.0 .. 1.0,
+     Post => Retint'Result.Alpha = Value.Alpha and then abs (Luminance (Retint'Result) - Luminance (Value)) < 0.01;
    --  Value in Hue, as saturated as Saturation says (of what the colour's lightness allows),
    --  and as bright as it was.
 
    function Contrast (A, B : Pomarine.Themes.Color) return Float
-     with Post => Contrast'Result >= 1.0;
+   with Post => Contrast'Result >= 1.0;
    --  The ratio of the two colours' luminances, each a little raised (WCAG): 1.0 for the same,
    --  21.0 for black and white. 4.5 is enough to read text.
 

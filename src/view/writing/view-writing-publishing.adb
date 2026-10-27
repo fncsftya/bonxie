@@ -28,21 +28,24 @@ package body View.Writing.Publishing is
    --  What Docs.Stored starts with, before its paragraphs.
 
    procedure Refresh_Publish (Item : in out Session) is
-      Pane : Publish_Parts renames Item.Publish_View;
-      Body_Markup : Ada.Strings.Unbounded.Unbounded_String;
-      Marks : Markdown_Export.Writer;
+      Pane             : Publish_Parts renames Item.Publish_View;
+      Body_Markup      : Ada.Strings.Unbounded.Unbounded_String;
+      Marks            : Markdown_Export.Writer;
       Previous_Section : Natural := 0;
 
-      function Is_Blank (Words : String) return Boolean is
-        (for all C of Words => C in ' ' | ASCII.HT | ASCII.LF | ASCII.CR);
+      function Is_Blank (Words : String) return Boolean
+      is (for all C of Words => C in ' ' | ASCII.HT | ASCII.LF | ASCII.CR);
 
       procedure Heading (Words : String; Level : Positive) is
       begin
          if not Is_Blank (Words) then
             Ada.Strings.Unbounded.Append
               (Body_Markup,
-               "<p k=""" & Ada.Strings.Fixed.Trim (Level'Image, Ada.Strings.Both) & """><b>"
-               & Docs.Escaped (Words) & "</b></p>");
+               "<p k="""
+               & Ada.Strings.Fixed.Trim (Level'Image, Ada.Strings.Both)
+               & """><b>"
+               & Docs.Escaped (Words)
+               & "</b></p>");
             Markdown_Export.Add_Heading (Marks, Level, Words);
          end if;
       end Heading;
@@ -50,8 +53,10 @@ package body View.Writing.Publishing is
       procedure Append (From : Docs.Document) is
          Markup : constant String := Docs.Stored (From);
       begin
-         pragma Assert (Markup'Length >= Stored_Header'Length
-                        and then Markup (Markup'First .. Markup'First + Stored_Header'Length - 1) = Stored_Header);
+         pragma
+           Assert
+             (Markup'Length >= Stored_Header'Length
+                and then Markup (Markup'First .. Markup'First + Stored_Header'Length - 1) = Stored_Header);
          if not Is_Blank (Docs.Whole (From)) then
             Ada.Strings.Unbounded.Append (Body_Markup, Markup (Markup'First + Stored_Header'Length .. Markup'Last));
             Markdown_Export.Add_Document (Marks, From);
@@ -60,11 +65,10 @@ package body View.Writing.Publishing is
    begin
       for Rank in 1 .. Trees.Page_Count (Item.Docs.Ordering) loop
          declare
-            Which : constant Items.Slot := Trees.Page_At (Item.Docs.Ordering, Rank);
+            Which   : constant Items.Slot := Trees.Page_At (Item.Docs.Ordering, Rank);
             Section : constant Natural := Section_Links.Section_Of (Item, Which);
          begin
-            if Publish_VM.Section_Headings (Pane.Options)
-              and then Section /= 0 and then Section /= Previous_Section
+            if Publish_VM.Section_Headings (Pane.Options) and then Section /= 0 and then Section /= Previous_Section
             then
                Heading (Projects.Sections.Title_Texts.To_String (Outlines.Section_At (Item, Section).Title), 2);
             end if;
@@ -107,7 +111,7 @@ package body View.Writing.Publishing is
    end Show_Format;
 
    procedure Synchronize (Item : in out Session) is
-      Pane : Publish_Parts renames Item.Publish_View;
+      Pane   : Publish_Parts renames Item.Publish_View;
       Pixels : constant Float := Widgets.Density (Item.Root.Widgets);
    begin
       Show_Format (Item);
@@ -120,10 +124,17 @@ package body View.Writing.Publishing is
          Layouts.Set_Layout
            (Pane.Format_Menu,
             Position =>
-              (Left => Layouts.Length_Of (Float'Rounding (Widgets.Left_Of (Pane.Format) - Widgets.Left_Of (Pane.View))),
-               Top => Layouts.Length_Of (Float'Rounding
-                 (Widgets.Top_Of (Pane.Format) + Widgets.Height_Of (Pane.Format) - Widgets.Top_Of (Pane.View)
-                  + Style.Menu_Gap * Pixels)), others => <>), Unit => Layouts.Device_Pixels);
+              (Left   =>
+                 Layouts.Length_Of (Float'Rounding (Widgets.Left_Of (Pane.Format) - Widgets.Left_Of (Pane.View))),
+               Top    =>
+                 Layouts.Length_Of
+                   (Float'Rounding
+                      (Widgets.Top_Of (Pane.Format)
+                       + Widgets.Height_Of (Pane.Format)
+                       - Widgets.Top_Of (Pane.View)
+                       + Style.Menu_Gap * Pixels)),
+               others => <>),
+            Unit     => Layouts.Device_Pixels);
          Layouts.Set_Layout (Pane.Format_Menu, Width => Layouts.Length_Of (Widgets.Width_Of (Pane.Format) / Pixels));
          Widgets.Raise_To_Front (Pane.Format_Menu);
       end if;

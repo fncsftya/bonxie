@@ -15,19 +15,15 @@ package body View.Links.Events is
    begin
       for Which in 1 .. Item.Windows.Count loop
          for Side in Item_Links.Sides loop
-            Pins.Set_Accepting
-              (Item.Linking.Pins (Which) (Side),
-               Except /= 0 and then Which /= Except);
+            Pins.Set_Accepting (Item.Linking.Pins (Which) (Side), Except /= 0 and then Which /= Except);
          end loop;
       end loop;
    end Set_Accepting;
 
-   function Pin_Number (Which : Items.Slot; Side : Item_Links.Sides) return Positive is
-     ((Which - 1) * Side_Count + Item_Links.Sides'Pos (Side) + 1);
+   function Pin_Number (Which : Items.Slot; Side : Item_Links.Sides) return Positive
+   is ((Which - 1) * Side_Count + Item_Links.Sides'Pos (Side) + 1);
 
-   procedure Pin_Pressed
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
-   is
+   procedure Pin_Pressed (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event) is
       pragma Unreferenced (Source);
       Which : constant Items.Slot := (Event.Index - 1) / Side_Count + 1;
       Side  : constant Item_Links.Sides := Item_Links.Sides'Val ((Event.Index - 1) mod Side_Count);
@@ -38,8 +34,7 @@ package body View.Links.Events is
       end if;
    end Pin_Pressed;
 
-   procedure Handle_Pressed
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
+   procedure Handle_Pressed (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
    is
       pragma Unreferenced (Source, Event);
    begin
@@ -54,9 +49,7 @@ package body View.Links.Events is
       end if;
    end Handle_Pressed;
 
-   procedure Pin_Released
-     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
-   is
+   procedure Pin_Released (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event) is
       pragma Unreferenced (Event);
       Model : Canvas_VM.View_Model renames Item.Canvas_Model.Model;
       To    : Natural := 0;

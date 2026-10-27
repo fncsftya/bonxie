@@ -13,10 +13,11 @@ package body Canvas_VM is
    use type Items.Links.Endings;
    use type Parts.Version_Number;
 
-   function Is_Entered (Self : View_Model) return Boolean is (Self.Entered);
+   function Is_Entered (Self : View_Model) return Boolean
+   is (Self.Entered);
 
-   function Is_Item (Self : View_Model; Slot : Items.Slot) return Boolean is
-     (Self.Models /= null and then Slot <= Self.Models.Count and then Models.Is_Assigned (Self.Models.all (Slot)));
+   function Is_Item (Self : View_Model; Slot : Items.Slot) return Boolean
+   is (Self.Models /= null and then Slot <= Self.Models.Count and then Models.Is_Assigned (Self.Models.all (Slot)));
 
    function Count (Self : View_Model) return Natural is
       Found : Natural := 0;
@@ -31,8 +32,8 @@ package body Canvas_VM is
       return Found;
    end Count;
 
-   function Key_Of (Self : View_Model; Slot : Items.Slot) return Items.Id is
-     (Models.Details (Self.Models.all (Slot)).Key);
+   function Key_Of (Self : View_Model; Slot : Items.Slot) return Items.Id
+   is (Models.Details (Self.Models.all (Slot)).Key);
 
    procedure Order (Self : View_Model; Into : in out Slot_Lists.List) is
    begin
@@ -58,7 +59,8 @@ package body Canvas_VM is
       end loop;
    end Order;
 
-   function Made (Self : View_Model) return Natural is (Self.Last_Made);
+   function Made (Self : View_Model) return Natural
+   is (Self.Last_Made);
 
    function Source_Rank (Self : View_Model; Slot : Items.Slot) return Natural is
       Key  : constant Items.Id := Key_Of (Self, Slot);
@@ -78,30 +80,40 @@ package body Canvas_VM is
       return Rank;
    end Source_Rank;
 
-   function Items_Version (Self : View_Model) return Parts.Version_Number is (Parts.Value (Self.Shown));
+   function Items_Version (Self : View_Model) return Parts.Version_Number
+   is (Parts.Value (Self.Shown));
 
-   function Raised (Self : View_Model) return Natural is (Self.Front);
+   function Raised (Self : View_Model) return Natural
+   is (Self.Front);
 
-   function Raised_Version (Self : View_Model) return Parts.Version_Number is (Parts.Value (Self.Fronts));
+   function Raised_Version (Self : View_Model) return Parts.Version_Number
+   is (Parts.Value (Self.Fronts));
 
-   function Camera (Self : View_Model) return Items.Models.Camera is (Self.Looking);
+   function Camera (Self : View_Model) return Items.Models.Camera
+   is (Self.Looking);
 
-   function Shown_Camera (Self : in out View_Model) return access constant Items.Models.Camera is
-     (Self.Looking'Unchecked_Access);
+   function Shown_Camera (Self : in out View_Model) return access constant Items.Models.Camera
+   is (Self.Looking'Unchecked_Access);
 
-   function Camera_Version (Self : View_Model) return Parts.Version_Number is (Parts.Value (Self.Looks));
+   function Camera_Version (Self : View_Model) return Parts.Version_Number
+   is (Parts.Value (Self.Looks));
 
-   function Middle (Self : View_Model; Across : Boolean) return Float is
-     (if Across then (Self.Width / 2.0 - Self.Looking.Origin_X) / Self.Looking.Zoom
-      else (Self.Height / 2.0 - Self.Looking.Origin_Y) / Self.Looking.Zoom);
+   function Middle (Self : View_Model; Across : Boolean) return Float
+   is (if Across
+       then (Self.Width / 2.0 - Self.Looking.Origin_X) / Self.Looking.Zoom
+       else (Self.Height / 2.0 - Self.Looking.Origin_Y) / Self.Looking.Zoom);
 
-   function Steering (Self : View_Model) return Steer is (Self.Asked);
+   function Steering (Self : View_Model) return Steer
+   is (Self.Asked);
 
-   function Steering_Version (Self : View_Model) return Parts.Version_Number is (Parts.Value (Self.Asks));
+   function Steering_Version (Self : View_Model) return Parts.Version_Number
+   is (Parts.Value (Self.Asks));
 
-   function Link_Count (Self : View_Model) return Natural is (Self.Link_Set.Count);
+   function Link_Count (Self : View_Model) return Natural
+   is (Self.Link_Set.Count);
 
-   function Link_At (Self : View_Model; Number : Positive) return Items.Links.Link is (Self.Link_Set (Number));
+   function Link_At (Self : View_Model; Number : Positive) return Items.Links.Link
+   is (Self.Link_Set (Number));
 
    function Link_Number (Self : View_Model; Key : Items.Id) return Natural is
    begin
@@ -128,25 +140,34 @@ package body Canvas_VM is
       return 0;
    end Slot_Of;
 
-   function Selected_Link (Self : View_Model) return Items.Id is (Self.Chosen);
+   function Selected_Link (Self : View_Model) return Items.Id
+   is (Self.Chosen);
 
-   function Link_From (Self : View_Model) return Natural is (Self.From);
+   function Link_From (Self : View_Model) return Natural
+   is (Self.From);
 
-   function Link_From_Side (Self : View_Model) return Items.Links.Sides is (Self.From_Side);
+   function Link_From_Side (Self : View_Model) return Items.Links.Sides
+   is (Self.From_Side);
 
-   function Is_Moving_Link (Self : View_Model) return Boolean is (Self.Moving);
+   function Is_Moving_Link (Self : View_Model) return Boolean
+   is (Self.Moving);
 
-   function Links_Version (Self : View_Model) return Parts.Version_Number is (Parts.Value (Self.Joined));
+   function Links_Version (Self : View_Model) return Parts.Version_Number
+   is (Parts.Value (Self.Joined));
 
-   overriding function Version (Self : View_Model) return Parts.Version_Number is
-     (Items_Version (Self) + Camera_Version (Self) + Steering_Version (Self) + Raised_Version (Self)
-      + Links_Version (Self));
+   overriding
+   function Version (Self : View_Model) return Parts.Version_Number
+   is (Items_Version (Self)
+       + Camera_Version (Self)
+       + Steering_Version (Self)
+       + Raised_Version (Self)
+       + Links_Version (Self));
 
    procedure Initialize
-     (Self   : in out View_Model;
-      Kept   : not null access Library'Class;
-      Room   : not null access Surface'Class;
-      Slots  : not null access Items.Models.Tables.Table) is
+     (Self  : in out View_Model;
+      Kept  : not null access Library'Class;
+      Room  : not null access Surface'Class;
+      Slots : not null access Items.Models.Tables.Table) is
    begin
       Self.Kept := Kept.all'Unrestricted_Access;
       Self.Room := Room.all'Unrestricted_Access;
@@ -176,7 +197,9 @@ package body Canvas_VM is
       end if;
       for I in 1 .. Found.Count loop
          Models.Assign
-           (Self.Models.all (I), Found (I), Stored_Content (Self.Kept.all, Found (I).Key),
+           (Self.Models.all (I),
+            Found (I),
+            Stored_Content (Self.Kept.all, Found (I).Key),
             Shown_File (Self.Kept.all, Found (I)));
          if Found (I).Kind = Items.Source then
             declare
@@ -239,7 +262,7 @@ package body Canvas_VM is
    end Centre_On;
 
    procedure Centre_On_Items (Self : in out View_Model) is
-      Any : Boolean := False;
+      Any                      : Boolean := False;
       Left, Top, Right, Bottom : Float := 0.0;
    begin
       for Each in 1 .. Self.Models.Count loop
@@ -250,15 +273,15 @@ package body Canvas_VM is
                Where : constant Items.Frame := Models.Details (Self.Models.all (Each)).Where;
             begin
                if Any then
-                  Left   := Float'Min (Left, Where.Left);
-                  Top    := Float'Min (Top, Where.Top);
-                  Right  := Float'Max (Right, Where.Left + Where.Width);
+                  Left := Float'Min (Left, Where.Left);
+                  Top := Float'Min (Top, Where.Top);
+                  Right := Float'Max (Right, Where.Left + Where.Width);
                   Bottom := Float'Max (Bottom, Where.Top + Where.Height);
                else
-                  Any    := True;
-                  Left   := Where.Left;
-                  Top    := Where.Top;
-                  Right  := Where.Left + Where.Width;
+                  Any := True;
+                  Left := Where.Left;
+                  Top := Where.Top;
+                  Right := Where.Left + Where.Width;
                   Bottom := Where.Top + Where.Height;
                end if;
             end;
@@ -351,8 +374,8 @@ package body Canvas_VM is
       Models.Resize (Self.Models.all (Slot), Across / Self.Looking.Zoom, Down / Self.Looking.Zoom, Still);
    end Resize_Item;
 
-   function Details_Is_Source (Self : View_Model; Slot : Items.Slot) return Boolean is
-     (Models.Details (Self.Models.all (Slot)).Kind = Items.Source);
+   function Details_Is_Source (Self : View_Model; Slot : Items.Slot) return Boolean
+   is (Models.Details (Self.Models.all (Slot)).Kind = Items.Source);
 
    procedure Choose_Origin (Self : in out View_Model; Slot : Items.Slot; To : Items.Origins) is
    begin
@@ -389,15 +412,16 @@ package body Canvas_VM is
       end if;
    end Select_Link;
 
-   procedure Join
-     (Self : in out View_Model; From, To : Items.Slot; From_Side, To_Side : Items.Links.Sides)
-   is
+   procedure Join (Self : in out View_Model; From, To : Items.Slot; From_Side, To_Side : Items.Links.Sides) is
       Added : Boolean;
    begin
       Add_Link
         (Self.Kept.all,
-         (From => Key_Of (Self, From), To => Key_Of (Self, To), From_Side => From_Side, To_Side => To_Side,
-          others => <>),
+         (From      => Key_Of (Self, From),
+          To        => Key_Of (Self, To),
+          From_Side => From_Side,
+          To_Side   => To_Side,
+          others    => <>),
          Added);
       if Added then
          Reload_Links (Self);
@@ -430,7 +454,10 @@ package body Canvas_VM is
    procedure End_Link (Self : in out View_Model; To : Natural; Side : Items.Links.Sides) is
       Done : Boolean;
    begin
-      if Self.From /= 0 and then To /= 0 and then To /= Self.From and then Is_Item (Self, To)
+      if Self.From /= 0
+        and then To /= 0
+        and then To /= Self.From
+        and then Is_Item (Self, To)
         and then Models.Details (Self.Models.all (To)).State = Items.Open
         and then Models.Details (Self.Models.all (Self.From)).State = Items.Open
       then
@@ -475,49 +502,61 @@ package body Canvas_VM is
       end;
    end Restyle;
 
-   overriding function Can_Execute (Self : View_Model; What : Command; Index : Natural := 0) return Boolean is
-      function Of_Item (Applies : not null access function (Details : Items.Info) return Boolean) return Boolean is
-        (if Index = 0 then (for some Each in 1 .. Self.Models.Count =>
-                              Models.Is_Assigned (Self.Models.all (Each))
-                              and then Applies (Models.Details (Self.Models.all (Each))))
-         else Is_Item (Self, Index) and then Applies (Models.Details (Self.Models.all (Index))));
-      function Not_Open (Details : Items.Info) return Boolean is (Details.State /= Items.Open);
-      function Open (Details : Items.Info) return Boolean is (Details.State = Items.Open);
-      function Not_Closed (Details : Items.Info) return Boolean is (Details.State /= Items.Closed);
-      function Any (Details : Items.Info) return Boolean is (Details.Key /= 0);
+   overriding
+   function Can_Execute (Self : View_Model; What : Command; Index : Natural := 0) return Boolean is
+      function Of_Item (Applies : not null access function (Details : Items.Info) return Boolean) return Boolean
+      is (if Index = 0
+          then
+            (for some Each in 1 .. Self.Models.Count =>
+               Models.Is_Assigned (Self.Models.all (Each)) and then Applies (Models.Details (Self.Models.all (Each))))
+          else Is_Item (Self, Index) and then Applies (Models.Details (Self.Models.all (Index))));
+      function Not_Open (Details : Items.Info) return Boolean
+      is (Details.State /= Items.Open);
+      function Open (Details : Items.Info) return Boolean
+      is (Details.State = Items.Open);
+      function Not_Closed (Details : Items.Info) return Boolean
+      is (Details.State /= Items.Closed);
+      function Any (Details : Items.Info) return Boolean
+      is (Details.Key /= 0);
    begin
       return
         (case What is
-            when Add_Note | Add_Source => Self.Entered,
-            when Open_Item     => Self.Entered and then Of_Item (Not_Open'Access),
-            when Minimize_Item => Self.Entered and then Of_Item (Open'Access),
-            when Close_Item    => Self.Entered and then Of_Item (Not_Closed'Access),
-            when Show_Item | Remove_Item => Self.Entered and then Of_Item (Any'Access),
-            when Delete_Link   => Self.Chosen /= 0,
-            when Cancel_Link   => Self.From /= 0,
-            when Pick_Link     => True,
-            when Set_Stroke    =>
-               Self.Chosen /= 0 and then Index in 1 .. Items.Links.Strokes'Pos (Items.Links.Strokes'Last) + 1,
-            when Set_Ending    =>
-               Self.Chosen /= 0 and then Index in 1 .. Items.Links.Endings'Pos (Items.Links.Endings'Last) + 1,
-            when Set_Color     => Self.Chosen /= 0 and then Index in Items.Links.Link_Colors);
+           when Add_Note | Add_Source   => Self.Entered,
+           when Open_Item               => Self.Entered and then Of_Item (Not_Open'Access),
+           when Minimize_Item           => Self.Entered and then Of_Item (Open'Access),
+           when Close_Item              => Self.Entered and then Of_Item (Not_Closed'Access),
+           when Show_Item | Remove_Item => Self.Entered and then Of_Item (Any'Access),
+           when Delete_Link             => Self.Chosen /= 0,
+           when Cancel_Link             => Self.From /= 0,
+           when Pick_Link               => True,
+           when Set_Stroke              =>
+             Self.Chosen /= 0 and then Index in 1 .. Items.Links.Strokes'Pos (Items.Links.Strokes'Last) + 1,
+           when Set_Ending              =>
+             Self.Chosen /= 0 and then Index in 1 .. Items.Links.Endings'Pos (Items.Links.Endings'Last) + 1,
+           when Set_Color               => Self.Chosen /= 0 and then Index in Items.Links.Link_Colors);
    end Can_Execute;
 
-   overriding procedure Execute (Self : in out View_Model; What : Command; Index : Natural := 0) is
+   overriding
+   procedure Execute (Self : in out View_Model; What : Command; Index : Natural := 0) is
       Slot : Items.Slot;
    begin
       case What is
-         when Add_Note =>
+         when Add_Note                            =>
             Add (Self, Untitled, Items.Note, Slot);
-         when Add_Source =>
+
+         when Add_Source                          =>
             Add (Self, Untitled_Source, Items.Source, Slot);
-         when Open_Item =>
+
+         when Open_Item                           =>
             Show_As (Self, Index, Items.Open);
-         when Minimize_Item =>
+
+         when Minimize_Item                       =>
             Show_As (Self, Index, Items.Minimized);
-         when Close_Item =>
+
+         when Close_Item                          =>
             Show_As (Self, Index, Items.Closed);
-         when Show_Item =>
+
+         when Show_Item                           =>
             declare
                Where : constant Items.Frame := Models.Details (Self.Models.all (Index)).Where;
             begin
@@ -527,22 +566,27 @@ package body Canvas_VM is
                Centre_On (Self, Where.Left + Where.Width / 2.0, Where.Top + Where.Height / 2.0);
                Raise_Item (Self, Index);
             end;
-         when Remove_Item =>
+
+         when Remove_Item                         =>
             Delete (Self.Kept.all, Key_Of (Self, Index));
             Models.Release (Self.Models.all (Index));
             Reload_Links (Self);
             Parts.Bump (Self.Shown);
             Touch (Self);
-         when Delete_Link =>
+
+         when Delete_Link                         =>
             Delete_Link (Self.Kept.all, Self.Chosen);
             Reload_Links (Self);
             Touch (Self);
-         when Cancel_Link =>
+
+         when Cancel_Link                         =>
             Self.From := 0;
             Self.Moving := False;
             Parts.Bump (Self.Joined);
-         when Pick_Link =>
+
+         when Pick_Link                           =>
             Select_Link (Self, (if Index <= Self.Link_Set.Count then Index else 0));
+
          when Set_Stroke | Set_Ending | Set_Color =>
             declare
                Was : constant Items.Links.Link := Link_At (Self, Link_Number (Self, Self.Chosen));
