@@ -50,18 +50,20 @@ package body View.Build.Settings_Form is
    function Is_MacOS (Item : Settings_VM.View_Model) return Boolean is (Is_Voice (Item, Preferences.MacOS));
    function Is_Parakeet (Item : Settings_VM.View_Model) return Boolean is (Is_Voice (Item, Preferences.Parakeet));
 
-   package Light_Flag is new Settings_UI.Read_Flag (Is_Light);
-   package Dark_Flag is new Settings_UI.Read_Flag (Is_Dark);
-   package System_Flag is new Settings_UI.Read_Flag (Is_System);
-   package MacOS_Flag is new Settings_UI.Read_Flag (Is_MacOS);
-   package Parakeet_Flag is new Settings_UI.Read_Flag (Is_Parakeet);
-   package VSync_Flag is new Settings_UI.Read_Flag (Settings_VM.VSync);
-   package Row_Flag is new Settings_UI.Read_Flag (Settings_VM.Download_Row_Shown);
-   package Download_Flag is new Settings_UI.Read_Flag (Settings_VM.Download_Button_Shown);
-   package Delete_Flag is new Settings_UI.Read_Flag (Settings_VM.Delete_Button_Shown);
-   package Bar_Flag is new Settings_UI.Read_Flag (Settings_VM.Download_Bar_Shown);
-   package Status_Text is new Settings_UI.Read_Text (Settings_VM.Download_Status);
-   package Fraction_Value is new Settings_UI.Read_Fraction (Settings_VM.Download_Fraction);
+   Light_Flag : constant Settings_UI.Flag_Property := Settings_UI.Showing (Is_Light'Access);
+   Dark_Flag : constant Settings_UI.Flag_Property := Settings_UI.Showing (Is_Dark'Access);
+   System_Flag : constant Settings_UI.Flag_Property := Settings_UI.Showing (Is_System'Access);
+   MacOS_Flag : constant Settings_UI.Flag_Property := Settings_UI.Showing (Is_MacOS'Access);
+   Parakeet_Flag : constant Settings_UI.Flag_Property := Settings_UI.Showing (Is_Parakeet'Access);
+   VSync_Flag : constant Settings_UI.Flag_Property := Settings_UI.Showing (Settings_VM.VSync'Access);
+   Row_Flag : constant Settings_UI.Flag_Property := Settings_UI.Showing (Settings_VM.Download_Row_Shown'Access);
+   Download_Flag : constant Settings_UI.Flag_Property :=
+     Settings_UI.Showing (Settings_VM.Download_Button_Shown'Access);
+   Delete_Flag : constant Settings_UI.Flag_Property := Settings_UI.Showing (Settings_VM.Delete_Button_Shown'Access);
+   Bar_Flag : constant Settings_UI.Flag_Property := Settings_UI.Showing (Settings_VM.Download_Bar_Shown'Access);
+   Status_Text : constant Settings_UI.Text_Property := Settings_UI.Showing (Settings_VM.Download_Status'Access);
+   Fraction_Value : constant Settings_UI.Fraction_Property :=
+     Settings_UI.Showing (Settings_VM.Download_Fraction'Access);
 
    procedure Build_Settings (Item : in out Session) is
       Prefs : Settings_Parts renames Item.Prefs;
@@ -179,9 +181,9 @@ package body View.Build.Settings_Form is
          Delete   : constant UI.Button_Handle :=
            Bound.Button ("Delete", Settings_VM.Confirm_Delete, Buttons.Danger, Focusable => True);
 
-         Status : constant UI.Label_Handle := Bound.Label (Status_Text.Property);
-         Bar    : constant UI.Progress_Handle := Bound.Progress (Fraction_Value.Property);
-         Switch : constant UI.Switch_Handle := Bound.Switch ("VSync", VSync_Flag.Property, Settings_VM.Toggle_VSync);
+         Status : constant UI.Label_Handle := Bound.Label (Status_Text);
+         Bar    : constant UI.Progress_Handle := Bound.Progress (Fraction_Value);
+         Switch : constant UI.Switch_Handle := Bound.Switch ("VSync", VSync_Flag, Settings_VM.Toggle_VSync);
          Close  : constant UI.Button_Handle :=
            Navs.Button
              (Buttons.Looks ("Projects", Buttons.Quiet, Icon => Pomarine.Icons.Shown (Icon_Set.Back),
@@ -225,19 +227,19 @@ package body View.Build.Settings_Form is
          Choices : constant UI.Layout_Array :=
            [Heading ("DISPLAY"),
             Name ("Theme"),
-            Radio ("Light", Light_Flag.Property, Settings_VM.Choose_Theme,
+            Radio ("Light", Light_Flag, Settings_VM.Choose_Theme,
                    Preferences.Theme_Choices'Pos (Preferences.Light)),
-            Radio ("Dark", Dark_Flag.Property, Settings_VM.Choose_Theme,
+            Radio ("Dark", Dark_Flag, Settings_VM.Choose_Theme,
                    Preferences.Theme_Choices'Pos (Preferences.Dark)),
-            Radio ("System", System_Flag.Property, Settings_VM.Choose_Theme,
+            Radio ("System", System_Flag, Settings_VM.Choose_Theme,
                    Preferences.Theme_Choices'Pos (Preferences.System)),
             Name ("Background", Top => Layouts.Length_Of (Gap)),
             Cards,
             Heading ("SPEECH", Top => Layouts.Length_Of (Heading_Top)),
             Name ("Model"),
-            Radio ("MacOS", MacOS_Flag.Property, Settings_VM.Choose_Speech_Model,
+            Radio ("MacOS", MacOS_Flag, Settings_VM.Choose_Speech_Model,
                    Preferences.Speech_Models'Pos (Preferences.MacOS)),
-            Radio ("Parakeet", Parakeet_Flag.Property, Settings_VM.Choose_Speech_Model,
+            Radio ("Parakeet", Parakeet_Flag, Settings_VM.Choose_Speech_Model,
                    Preferences.Speech_Models'Pos (Preferences.Parakeet)),
             Download_Row,
             UI.Styled (UI.Place (Bar), Line (Progress_Height)),
@@ -288,10 +290,10 @@ package body View.Build.Settings_Form is
                                                                                        others => <>));
       begin
          Labels.Set_Ink (UI.Widget_Of (Form, Status).all, Quiet_Ink);
-         Bound.Show_When (Download_Row, Row_Flag.Property);
-         Bound.Show_When (UI.Any (Download), Download_Flag.Property);
-         Bound.Show_When (UI.Any (Bar), Bar_Flag.Property);
-         Bound.Show_When (UI.Any (Delete), Delete_Flag.Property);
+         Bound.Show_When (Download_Row, Row_Flag);
+         Bound.Show_When (UI.Any (Download), Download_Flag);
+         Bound.Show_When (UI.Any (Bar), Bar_Flag);
+         Bound.Show_When (UI.Any (Delete), Delete_Flag);
          Scrollers.Set_Across (Prefs.Background_Scroll, True);
          Panels.Set_Fill (Prefs.Settings_Bar, Toolbar);
          Labels.Set_Text (Prefs.Settings_Title, "Settings");

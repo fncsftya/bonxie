@@ -3,7 +3,8 @@ with Pomarine.UI.Contexts;
 
 package Publish_UI is
    package Controls is new Pomarine.UI.Contexts (Publish_VM.Commands, Publish_VM.View_Model);
-   package Sections is new Controls.Read_Flag (Publish_VM.Section_Headings);
-   package Copy_Caption is new Controls.Read_Text (Publish_VM.Copy_Caption);
-   package Documents is new Controls.Read_Flag (Publish_VM.Document_Headings);
+   Sections : constant Controls.Flag_Property := Controls.Showing (Publish_VM.Section_Headings'Access);
+   Copy_Caption : constant Controls.Text_Property := Controls.Showing (Publish_VM.Copy_Caption'Access);
+   Documents : constant Controls.Flag_Property := Controls.Showing (Publish_VM.Document_Headings'Access);
+
 end Publish_UI;

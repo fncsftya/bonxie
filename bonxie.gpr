@@ -31,9 +31,7 @@ project Bonxie is
       for Default_Switches ("C") use
         ("-x", "objective-c", "-fobjc-arc", "-O2", "-Wall", "-Wextra", "-Wno-unused-command-line-argument");
       for Default_Switches ("Ada") use Bonxie_Config.Ada_Compiler_Switches &
-        ("-gnatwn",          --  warnings are not errors: Pomarine's obsolescent entities (-gnatwj) are warned of
-                             --  until the code is moved off them, and GNAT cannot exempt just those from -gnatwe
-         "-gnatwh",          --  local declarations hiding others
+        ("-gnatwh",          --  local declarations hiding others
          "-gnatyM120",        --  longest line
          "-gnatVa",          --  validity checks everywhere
          "-fstack-check",    --  detect stack overflow

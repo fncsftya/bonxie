@@ -242,9 +242,9 @@ package body View.Grammar is
          Form : UI.View renames Item.Forms (Grammar_Region).Screen.all;
          Bound : constant Grammar_UI.Controls.Context'Class := Grammar_UI.Controls.Bind
            (Form, Item.Grammar_Model.Model'Access);
-         Prompt : constant UI.Label_Handle := Bound.Borrow_Label (State.Entry_Prompt, Grammar_UI.Prompt.Property);
+         Prompt : constant UI.Label_Handle := Bound.Borrow_Label (State.Entry_Prompt, Grammar_UI.Prompt);
          Field : constant UI.Field_Handle := Bound.Borrow_Field
-           (State.Entry_Field, State.Entry_Doc, Grammar_UI.Correction.Property);
+           (State.Entry_Field, State.Entry_Doc, Grammar_UI.Correction);
          Accept_Button : constant UI.Button_Handle := Bound.Borrow_Button (State.Entry_Ok, Grammar_VM.Accept_Entry);
          Cancel_Button : constant UI.Button_Handle := Bound.Borrow_Button (State.Entry_Cancel, Grammar_VM.Cancel_Entry);
 
@@ -343,7 +343,7 @@ package body View.Grammar is
             Buttons.Configure (State.Entry_Ok, Buttons.Looks ("Add rule", Buttons.Primary, Focusable => True));
             Buttons.Configure (State.Entry_Cancel, Buttons.Looks ("Cancel", Focusable => True));
             Bound.On_Event (UI.Any (Field), Widgets.Submit, Grammar_VM.Accept_Entry);
-            Bound.Show_When (Entry_Box, Grammar_UI.Entering.Property);
+            Bound.Show_When (Entry_Box, Grammar_UI.Entering);
             UI.Mount_Into (Form, Content_Panel (Item).all, Popout);
             UI.Mount_Into (Form, Content_Panel (Item).all, Inline);
             UI.Mount_Into (Form, Content_Panel (Item).all, Entry_Box);

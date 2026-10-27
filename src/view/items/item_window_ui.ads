@@ -3,10 +3,12 @@ with Pomarine.UI.Contexts;
 
 package Item_Window_UI is
    package Controls is new Pomarine.UI.Contexts (Item_Window_VM.Commands, Item_Window_VM.Model);
-   package Previous_Flag is new Controls.Read_Flag (Item_Window_VM.Previous_Allowed);
-   package Next_Flag is new Controls.Read_Flag (Item_Window_VM.Next_Allowed);
-   package Zoom_Value is new Controls.Edit_Fraction (Item_Window_VM.Zoom_Fraction, Item_Window_VM.Set_Zoom_Fraction);
-   package Pointer_Flag is new Controls.Read_Flag (Item_Window_VM.Pointer_Selected);
-   package Marker_Flag is new Controls.Read_Flag (Item_Window_VM.Marker_Selected);
-   package Eraser_Flag is new Controls.Read_Flag (Item_Window_VM.Eraser_Selected);
+   Previous_Flag : constant Controls.Flag_Property := Controls.Showing (Item_Window_VM.Previous_Allowed'Access);
+   Next_Flag : constant Controls.Flag_Property := Controls.Showing (Item_Window_VM.Next_Allowed'Access);
+   Zoom_Value : constant Controls.Fraction_Property :=
+     Controls.Editing (Item_Window_VM.Zoom_Fraction'Access, Item_Window_VM.Set_Zoom_Fraction'Access);
+   Pointer_Flag : constant Controls.Flag_Property := Controls.Showing (Item_Window_VM.Pointer_Selected'Access);
+   Marker_Flag : constant Controls.Flag_Property := Controls.Showing (Item_Window_VM.Marker_Selected'Access);
+   Eraser_Flag : constant Controls.Flag_Property := Controls.Showing (Item_Window_VM.Eraser_Selected'Access);
+
 end Item_Window_UI;

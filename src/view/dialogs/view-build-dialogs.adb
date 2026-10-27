@@ -75,11 +75,12 @@ package body View.Build.Dialogs is
       end if;
    end Set_Documents;
 
-   package Title_Text is new Confirm_UI.Read_Text (Confirm_VM.Title);
-   package Message_Text is new Confirm_UI.Read_Text (Confirm_VM.Message);
-   package Note_Text is new Confirm_UI.Read_Text (Confirm_VM.Note);
-   package Documents_Flag is new Confirm_UI.Edit_Flag (Confirm_VM.Delete_Documents, Set_Documents);
-   package Offers_Flag is new Confirm_UI.Read_Flag (Confirm_VM.Offers_Documents);
+   Title_Text : constant Confirm_UI.Text_Property := Confirm_UI.Showing (Confirm_VM.Title'Access);
+   Message_Text : constant Confirm_UI.Text_Property := Confirm_UI.Showing (Confirm_VM.Message'Access);
+   Note_Text : constant Confirm_UI.Text_Property := Confirm_UI.Showing (Confirm_VM.Note'Access);
+   Documents_Flag : constant Confirm_UI.Flag_Property :=
+     Confirm_UI.Editing (Confirm_VM.Delete_Documents'Access, Set_Documents'Access);
+   Offers_Flag : constant Confirm_UI.Flag_Property := Confirm_UI.Showing (Confirm_VM.Offers_Documents'Access);
 
    procedure Build_Modal (Item : in out Session) is
       Ask : Confirm_Parts renames Item.Confirm;
@@ -90,12 +91,12 @@ package body View.Build.Dialogs is
          Bound : constant Confirm_UI.Context'Class :=
            Confirm_UI.Bind (Form, Item.Dialog_Model.Model'Unrestricted_Access);
 
-         Heading   : constant UI.Label_Handle := Bound.Label (Title_Text.Property);
+         Heading   : constant UI.Label_Handle := Bound.Label (Title_Text);
          Close   : constant UI.Button_Handle := Bound.Button (Closer, Confirm_VM.Cancel);
-         Message : constant UI.Label_Handle := Bound.Label (Message_Text.Property);
-         Note    : constant UI.Label_Handle := Bound.Label (Note_Text.Property);
+         Message : constant UI.Label_Handle := Bound.Label (Message_Text);
+         Note    : constant UI.Label_Handle := Bound.Label (Note_Text);
          Offered : constant UI.Check_Handle :=
-           Bound.Check ("Delete documents too", Documents_Flag.Property);
+           Bound.Check ("Delete documents too", Documents_Flag);
          Cancel  : constant UI.Button_Handle :=
            Bound.Button (Buttons.Looks ("Cancel", Focusable => True), Confirm_VM.Cancel);
          Delete  : constant UI.Button_Handle :=
@@ -137,7 +138,7 @@ package body View.Build.Dialogs is
       begin
          Labels.Set_Style (UI.Widget_Of (Form, Heading).all, Pomarine.Line_Texts.Strong);
          Labels.Set_Ink (UI.Widget_Of (Form, Heading).all, Themes.Bar_Ink);
-         Bound.Show_When (UI.Any (Offered), Offers_Flag.Property);
+         Bound.Show_When (UI.Any (Offered), Offers_Flag);
          Ask.Overlay := Overlay;
          Ask.Border := Border;
          Ask.Dialog_Close := Close;
@@ -156,8 +157,8 @@ package body View.Build.Dialogs is
    function Is_Empty (Item : Item_List_VM.View_Model) return Boolean is (Item_List_VM.Count (Item) = 0);
    function Is_Filled (Item : Item_List_VM.View_Model) return Boolean is (Item_List_VM.Count (Item) > 0);
 
-   package Empty_Flag is new Items_UI.Read_Flag (Is_Empty);
-   package Filled_Flag is new Items_UI.Read_Flag (Is_Filled);
+   Empty_Flag : constant Items_UI.Flag_Property := Items_UI.Showing (Is_Empty'Access);
+   Filled_Flag : constant Items_UI.Flag_Property := Items_UI.Showing (Is_Filled'Access);
 
    procedure Build_List (Item : in out Session) is
       Parts : List_Parts renames Item.Item_List;
@@ -193,8 +194,8 @@ package body View.Build.Dialogs is
          Bound.On_Event (Rows, Widgets.Click, Item_List_VM.Reveal, Index_From_Event => True);
          Bound.On_Event (Rows, Widgets.Submit, Item_List_VM.Reveal, Index_From_Event => True);
          Bound.On_List_Actions (Rows, [Item_List_VM.Toggle_Shown, Item_List_VM.Remove]);
-         Bound.Show_When (UI.Any (Rows), Filled_Flag.Property);
-         Bound.Show_When (UI.Any (None), Empty_Flag.Property);
+         Bound.Show_When (UI.Any (Rows), Filled_Flag);
+         Bound.Show_When (UI.Any (None), Empty_Flag);
          Parts.Overlay := Overlay;
          Parts.Border := Border;
          Parts.List_Close := Close;

@@ -57,12 +57,12 @@ package body Items.Windows.Builder is
                Handle : constant UI.Button_Handle := Bound.Borrow_Button (Part, What, Index, Reflect => False);
             begin
                case What is
-                  when Item_Window_VM.Use_Pointer => Bound.Selected_When (Handle, Item_Window_UI.Pointer_Flag.Property);
-                  when Item_Window_VM.Use_Marker => Bound.Selected_When (Handle, Item_Window_UI.Marker_Flag.Property);
-                  when Item_Window_VM.Use_Eraser => Bound.Selected_When (Handle, Item_Window_UI.Eraser_Flag.Property);
+                  when Item_Window_VM.Use_Pointer => Bound.Selected_When (Handle, Item_Window_UI.Pointer_Flag);
+                  when Item_Window_VM.Use_Marker => Bound.Selected_When (Handle, Item_Window_UI.Marker_Flag);
+                  when Item_Window_VM.Use_Eraser => Bound.Selected_When (Handle, Item_Window_UI.Eraser_Flag);
                   when Item_Window_VM.Previous_Page =>
-                     Bound.Enabled_When (Handle, Item_Window_UI.Previous_Flag.Property);
-                  when Item_Window_VM.Next_Page => Bound.Enabled_When (Handle, Item_Window_UI.Next_Flag.Property);
+                     Bound.Enabled_When (Handle, Item_Window_UI.Previous_Flag);
+                  when Item_Window_VM.Next_Page => Bound.Enabled_When (Handle, Item_Window_UI.Next_Flag);
                   when others => null;
                end case;
                return UI.Styled (UI.Place (Handle), Size (Wide, High));
@@ -159,7 +159,7 @@ package body Items.Windows.Builder is
          end Zoom_Row;
 
          Slider_Handle : constant UI.Widget_Handle :=
-           Bound.Borrow_Slider (Item.Zoom_Slider, Item_Window_UI.Zoom_Value.Property);
+           Bound.Borrow_Slider (Item.Zoom_Slider, Item_Window_UI.Zoom_Value);
          Slider : constant UI.Layout := UI.Styled
            (UI.Place (Slider_Handle), Size (Metrics.Zoom_Slider_Width, Metrics.Zoom_Row_Height));
          First_Row : constant UI.Layout := Zoom_Row (1);

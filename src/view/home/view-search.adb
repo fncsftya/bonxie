@@ -51,12 +51,12 @@ package body View.Search is
               Search_UI.Controls.Bind (Item.Forms (Search_Region).Screen.all, S.Model'Unrestricted_Access);
             Bar : constant UI.Widget_Handle := Bound.Borrow_Widget (S.Bar);
          begin
-            S.Query_Control := Bound.Borrow_Field (S.Field, S.Doc, Search_UI.Query.Property);
-            S.Count_Control := Bound.Borrow_Label (S.Count, Search_UI.Summary.Property);
+            S.Query_Control := Bound.Borrow_Field (S.Field, S.Doc, Search_UI.Query);
+            S.Count_Control := Bound.Borrow_Label (S.Count, Search_UI.Summary);
             S.Previous_Control := Bound.Borrow_Button (S.Previous, Search_VM.Previous);
             S.Next_Control := Bound.Borrow_Button (S.Next, Search_VM.Next);
             S.Close_Control := Bound.Borrow_Button (S.Close, Search_VM.Close);
-            Bound.Show_When (UI.Any (Bar), Search_UI.Showing.Property);
+            Bound.Show_When (UI.Any (Bar), Search_UI.Showing);
          end;
       end if;
       declare

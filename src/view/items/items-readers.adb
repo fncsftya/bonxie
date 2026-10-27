@@ -127,9 +127,9 @@ package body Items.Readers is
                Handle : constant UI.Button_Handle := Bound.Borrow_Button (Part, What, Reflect => False);
             begin
                case What is
-                  when Reader_VM.Use_Pointer => Bound.Selected_When (Handle, Reader_UI.Pointer_Flag.Property);
-                  when Reader_VM.Use_Marker => Bound.Selected_When (Handle, Reader_UI.Marker_Flag.Property);
-                  when Reader_VM.Use_Eraser => Bound.Selected_When (Handle, Reader_UI.Eraser_Flag.Property);
+                  when Reader_VM.Use_Pointer => Bound.Selected_When (Handle, Reader_UI.Pointer_Flag);
+                  when Reader_VM.Use_Marker => Bound.Selected_When (Handle, Reader_UI.Marker_Flag);
+                  when Reader_VM.Use_Eraser => Bound.Selected_When (Handle, Reader_UI.Eraser_Flag);
                   when others => null;
                end case;
                return UI.Styled (UI.Place (Handle),
@@ -154,7 +154,7 @@ package body Items.Readers is
                      UI.Styled (UI.Put (Screen, Item.Pages), (Grow => 1.0, Height => 0.0, others => <>)),
                      UI.Styled (UI.Put (Screen, Item.Text_View), (Grow => 1.0, Height => 0.0, others => <>))]);
          Zoom_Control : constant UI.Widget_Handle :=
-           Bound.Borrow_Slider (Item.Zoom_Slider, Reader_UI.Zoom_Value.Property);
+           Bound.Borrow_Slider (Item.Zoom_Slider, Reader_UI.Zoom_Value);
          Visit_Control : constant UI.Button_Handle :=
            Bound.Borrow_Button (Item.Visit_Button, Reader_VM.Visit, Reflect => False);
          Status : constant UI.Layout := UI.Fragment

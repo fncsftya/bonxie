@@ -84,12 +84,12 @@ package body View.Build.Shell_Views is
       end if;
    end Set_Draft_Of_Row;
 
-   package Editing_Flag is new Home_UI.Indexed_Flag (Is_Editing_Row);
-   package Name_Flag is new Home_UI.Indexed_Flag (Is_Not_Editing_Row);
-   package Draft_Text is new Home_UI.Edit_Text (Home_VM.Draft, Set_Draft_Of_Row);
-   package Title_Text is new Home_UI.Indexed_Text (Title_Of);
-   package Meta_Text is new Home_UI.Indexed_Text (Meta_Of);
-   package Listed_Flag is new Home_UI.Indexed_Flag (Is_Listed);
+   Editing_Flag : constant Home_UI.Flag_Property := Home_UI.Showing (Is_Editing_Row'Access);
+   Name_Flag : constant Home_UI.Flag_Property := Home_UI.Showing (Is_Not_Editing_Row'Access);
+   Draft_Text : constant Home_UI.Text_Property := Home_UI.Editing (Home_VM.Draft'Access, Set_Draft_Of_Row'Access);
+   Title_Text : constant Home_UI.Text_Property := Home_UI.Showing (Title_Of'Access);
+   Meta_Text : constant Home_UI.Text_Property := Home_UI.Showing (Meta_Of'Access);
+   Listed_Flag : constant Home_UI.Flag_Property := Home_UI.Showing (Is_Listed'Access);
 
    procedure Build_Home (Item : in out Session) is
       Front : Home_Parts renames Item.Home_View;
@@ -129,8 +129,8 @@ package body View.Build.Shell_Views is
             Picture : constant UI.Widget_Handle := Navs.Borrow_Widget (Card.Picture);
             Name    : constant UI.Grip_Handle :=
               Navs.Grip ((Pointer => True, others => <>), Nav_VM.Open_Project, Number);
-            Heading : constant UI.Label_Handle := Homes.Label (Title_Text.Property, Number);
-            Meta    : constant UI.Label_Handle := Homes.Label (Meta_Text.Property, Number);
+            Heading : constant UI.Label_Handle := Homes.Label (Title_Text, Number);
+            Meta    : constant UI.Label_Handle := Homes.Label (Meta_Text, Number);
             Rename  : constant UI.Button_Handle :=
               Homes.Button
                 (Buttons.Looks ("Rename", Icon => Pomarine.Icons.Shown (Icon_Set.Edit), Focusable => True),
@@ -144,7 +144,7 @@ package body View.Build.Shell_Views is
 
             --  In place of the name and the buttons, while the project is renamed.
             Field   : constant UI.Field_Handle :=
-              Homes.Text_Field (Draft_Text.Property, Home_VM.Accept_Rename);
+              Homes.Text_Field (Draft_Text, Home_VM.Accept_Rename);
             Ok      : constant UI.Button_Handle :=
               Homes.Button (Buttons.Looks ("OK", Buttons.Primary, Focusable => True), Home_VM.Accept_Rename);
             Cancel  : constant UI.Button_Handle :=
@@ -203,13 +203,13 @@ package body View.Build.Shell_Views is
                   Shadowed => On, others => <>));
          begin
             Labels.Set_Style (UI.Widget_Of (Form, Heading).all, Pomarine.Line_Texts.Heading);
-            Homes.Show_When (Whole, Listed_Flag.Property, Number);
-            Homes.Show_When (Naming, Name_Flag.Property, Number);
-            Homes.Show_When (UI.Any (Rename), Name_Flag.Property, Number);
-            Homes.Show_When (UI.Any (Delete), Name_Flag.Property, Number);
-            Homes.Show_When (Editing, Editing_Flag.Property, Number);
+            Homes.Show_When (Whole, Listed_Flag, Number);
+            Homes.Show_When (Naming, Name_Flag, Number);
+            Homes.Show_When (UI.Any (Rename), Name_Flag, Number);
+            Homes.Show_When (UI.Any (Delete), Name_Flag, Number);
+            Homes.Show_When (Editing, Editing_Flag, Number);
             --  Its field has the focus, with its text selected, once it is shown.
-            Homes.Focus_When (UI.Focus_Of (Field), Editing_Flag.Property, Number);
+            Homes.Focus_When (UI.Focus_Of (Field), Editing_Flag, Number);
             Card.Editing := Editing;
             Card.Field := Field;
             Card.Ok := Ok;
@@ -329,10 +329,12 @@ package body View.Build.Shell_Views is
    function Not_Renaming (Model : Nav_VM.View_Model) return Boolean is
      (not Nav_VM.Is_Renaming (Model));
 
-   package Project_Name is new Nav_UI.Read_Text (Nav_VM.Name, Nav_VM.Name_Version);
-   package Project_Draft is new Nav_UI.Edit_Text (Nav_VM.Draft, Nav_VM.Set_Draft);
-   package Renaming is new Nav_UI.Read_Flag (Nav_VM.Is_Renaming);
-   package Named is new Nav_UI.Read_Flag (Not_Renaming);
+   Project_Name : constant Nav_UI.Text_Property :=
+
+     Nav_UI.Showing (Nav_VM.Name'Access, Changes => Nav_VM.Name_Version'Access);
+   Project_Draft : constant Nav_UI.Text_Property := Nav_UI.Editing (Nav_VM.Draft'Access, Nav_VM.Set_Draft'Access);
+   Renaming : constant Nav_UI.Flag_Property := Nav_UI.Showing (Nav_VM.Is_Renaming'Access);
+   Named : constant Nav_UI.Flag_Property := Nav_UI.Showing (Not_Renaming'Access);
 
    procedure Build_Project (Item : in out Session) is
       Bar : Toolbar_Parts renames Item.Toolbar;
@@ -371,10 +373,10 @@ package body View.Build.Shell_Views is
              (Buttons.Looks ("Items", Icon => Pomarine.Icons.Shown (Icon_Set.List), Captioned => True,
                              Focusable => True),
               Nav_VM.Open_List);
-         Caption : constant UI.Label_Handle := Navs.Borrow_Label (Bar.Project_Title, Project_Name.Property);
+         Caption : constant UI.Label_Handle := Navs.Borrow_Label (Bar.Project_Title, Project_Name);
          Area    : constant UI.Widget_Handle := Navs.Borrow_Widget (Bar.Title_Area);
          Field   : constant UI.Field_Handle :=
-           Navs.Borrow_Field (Bar.Title_Field, Bar.Title_Doc, Project_Draft.Property);
+           Navs.Borrow_Field (Bar.Title_Field, Bar.Title_Doc, Project_Draft);
 
          --  The bar across the top: the way back and the project's name at the left, the tabs in the
          --  middle (the sides take equal shares), the list of items at the right.
@@ -445,9 +447,9 @@ package body View.Build.Shell_Views is
          Navs.On_Event (Area, Widgets.Double_Click, Nav_VM.Begin_Rename);
          Navs.On_Event (UI.Any (Field), Widgets.Submit, Nav_VM.Accept_Rename);
          Navs.On_Event (UI.Any (Field), Widgets.Blur, Nav_VM.Accept_Rename);
-         Navs.Show_When (UI.Any (Area), Named.Property);
-         Navs.Show_When (UI.Any (Field), Renaming.Property);
-         Navs.Focus_When (UI.Focus_Of (Field), Renaming.Property);
+         Navs.Show_When (UI.Any (Area), Named);
+         Navs.Show_When (UI.Any (Field), Renaming);
+         Navs.Focus_When (UI.Focus_Of (Field), Renaming);
          UI.Observe (Form, Item.Layout_Watcher'Access);
          Bar.Project_Layout := Project;
          Bar.Content_Layout := Content;
@@ -536,9 +538,9 @@ package body View.Build.Shell_Views is
          Export : constant UI.Button_Handle := Bound.Button ("Export", Publish_VM.Export, Focusable => True);
          Copy : constant UI.Button_Handle := Bound.Borrow_Button (Pane.Copy, Publish_VM.Copy);
          Sections : constant UI.Switch_Handle := Bound.Switch
-           ("Include section headings", Publish_UI.Sections.Property, Publish_VM.Toggle_Section_Headings);
+           ("Include section headings", Publish_UI.Sections, Publish_VM.Toggle_Section_Headings);
          Documents : constant UI.Switch_Handle := Bound.Switch
-           ("Include document headings", Publish_UI.Documents.Property, Publish_VM.Toggle_Document_Headings);
+           ("Include document headings", Publish_UI.Documents, Publish_VM.Toggle_Document_Headings);
 
          function Line (Widget : in out Widgets.Widget'Class; Box : Layouts.Style) return UI.Layout is
            (UI.Styled (UI.Put (Form, Widget), Box));
@@ -608,7 +610,7 @@ package body View.Build.Shell_Views is
                  Flow => Layouts.Row),
               (Flow => Row, Grow => 1.0, Height => 0.0, others => <>));
       begin
-         Bound.Caption_From (Copy, Publish_UI.Copy_Caption.Property);
+         Bound.Caption_From (Copy, Publish_UI.Copy_Caption);
          Bound.On_Event (Format_Field, Widgets.Click, Publish_VM.Toggle_Format);
          Bound.On_Event (Format_Menu, Widgets.Choose, Publish_VM.Choose_Markdown, Index_From_Event => True);
          UI.Mount_Into (Form, Content_Panel (Item).all, Whole);
