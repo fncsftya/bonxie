@@ -39,22 +39,14 @@ package body View.Build.Settings_Form is
 
    package Settings_UI is new Pomarine.UI.Contexts (Settings_VM.Commands, Settings_VM.View_Model);
 
-   function Is_Theme (Item : Settings_VM.View_Model; To : Preferences.Theme_Choices) return Boolean is
-     (Preferences."=" (Settings_VM.Theme (Item), To));
-   function Is_Voice (Item : Settings_VM.View_Model; To : Preferences.Speech_Models) return Boolean is
-     (Preferences."=" (Settings_VM.Speech_Model (Item), To));
+   function Theme_Of (Item : Settings_VM.View_Model) return Preferences.Theme_Choices is
+     (Settings_VM.Theme (Item));
+   function Voice_Of (Item : Settings_VM.View_Model) return Preferences.Speech_Models is
+     (Settings_VM.Speech_Model (Item));
 
-   function Is_Light (Item : Settings_VM.View_Model) return Boolean is (Is_Theme (Item, Preferences.Light));
-   function Is_Dark (Item : Settings_VM.View_Model) return Boolean is (Is_Theme (Item, Preferences.Dark));
-   function Is_System (Item : Settings_VM.View_Model) return Boolean is (Is_Theme (Item, Preferences.System));
-   function Is_MacOS (Item : Settings_VM.View_Model) return Boolean is (Is_Voice (Item, Preferences.MacOS));
-   function Is_Parakeet (Item : Settings_VM.View_Model) return Boolean is (Is_Voice (Item, Preferences.Parakeet));
+   package Theme_Is is new Settings_UI.Choosing_Among (Preferences.Theme_Choices, Theme_Of);
+   package Voice_Is is new Settings_UI.Choosing_Among (Preferences.Speech_Models, Voice_Of);
 
-   Light_Flag : constant Settings_UI.Flag_Property := Settings_UI.Showing (Is_Light'Access);
-   Dark_Flag : constant Settings_UI.Flag_Property := Settings_UI.Showing (Is_Dark'Access);
-   System_Flag : constant Settings_UI.Flag_Property := Settings_UI.Showing (Is_System'Access);
-   MacOS_Flag : constant Settings_UI.Flag_Property := Settings_UI.Showing (Is_MacOS'Access);
-   Parakeet_Flag : constant Settings_UI.Flag_Property := Settings_UI.Showing (Is_Parakeet'Access);
    VSync_Flag : constant Settings_UI.Flag_Property := Settings_UI.Showing (Settings_VM.VSync'Access);
    Row_Flag : constant Settings_UI.Flag_Property := Settings_UI.Showing (Settings_VM.Download_Row_Shown'Access);
    Download_Flag : constant Settings_UI.Flag_Property :=
@@ -218,19 +210,19 @@ package body View.Build.Settings_Form is
          Choices : constant UI.Layout_Array :=
            [Heading ("DISPLAY"),
             Name ("Theme"),
-            Radio ("Light", Light_Flag, Settings_VM.Choose_Theme,
+            Radio ("Light", Theme_Is.Is_Value (Preferences.Light), Settings_VM.Choose_Theme,
                    Preferences.Theme_Choices'Pos (Preferences.Light)),
-            Radio ("Dark", Dark_Flag, Settings_VM.Choose_Theme,
+            Radio ("Dark", Theme_Is.Is_Value (Preferences.Dark), Settings_VM.Choose_Theme,
                    Preferences.Theme_Choices'Pos (Preferences.Dark)),
-            Radio ("System", System_Flag, Settings_VM.Choose_Theme,
+            Radio ("System", Theme_Is.Is_Value (Preferences.System), Settings_VM.Choose_Theme,
                    Preferences.Theme_Choices'Pos (Preferences.System)),
             Name ("Background", Top => Layouts.Length_Of (Gap)),
             Cards,
             Heading ("SPEECH", Top => Layouts.Length_Of (Heading_Top)),
             Name ("Model"),
-            Radio ("MacOS", MacOS_Flag, Settings_VM.Choose_Speech_Model,
+            Radio ("MacOS", Voice_Is.Is_Value (Preferences.MacOS), Settings_VM.Choose_Speech_Model,
                    Preferences.Speech_Models'Pos (Preferences.MacOS)),
-            Radio ("Parakeet", Parakeet_Flag, Settings_VM.Choose_Speech_Model,
+            Radio ("Parakeet", Voice_Is.Is_Value (Preferences.Parakeet), Settings_VM.Choose_Speech_Model,
                    Preferences.Speech_Models'Pos (Preferences.Parakeet)),
             Download_Row,
             UI.Styled (UI.Place (Bar), Line (Progress_Height)),
