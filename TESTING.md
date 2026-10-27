@@ -294,6 +294,13 @@ write failures and retries, a captured 200,000-byte export completed after leavi
 extensions, real file output, copy verification and exact confirmation expiry/renewal. `publish-by-name`
 checks the clipboard contents and Copied label, declared through `Caption_From`; the offscreen Export button
 is disabled without a native window.
+`publish-formats-vm` checks the seven formats of the menu (rows, extensions, which are text and so have a source
+and Copy), re-choosing one, and that an export keeps the format it was asked for if the menu changes meanwhile;
+`publish-by-name` checks that an EPUB has a chapter for a section. `write-publishing` also picks PDF, which hides the source. The writers are tested in `export-*` on a document with
+every block and mark: plain text and HTML as strings, and EPUB, ODT, DOCX and PDF as files that are opened again
+(`Ebook.Zip` for the zips, PDFium for the PDF's pages and title) and checked in their XML. They are also
+worth opening in the real programs (Pages, Word, LibreOffice, Books) when a writer changes; `unzip -t` and
+`xmllint --noout` on the parts, and `pandoc` reading a file back, are quick checks on a development machine.
 
 Home-card Delete buttons declare `Home_VM.Ask_Delete`; the model cancels renaming and asks the injected
 confirmation model. Confirmation retains a project key across changes to the recent list. `home-vm-deleting`

@@ -766,6 +766,9 @@ package body Write_Tests is
          & ASCII.LF,
          View.Clipboard_Text (Session));
       Snap (Session, "publish-copied");
+      Click_On (Session, 100.0, 85.0);
+      Click_On (Session, 100.0, 276.0);
+      Snap (Session, "publish-pdf");
    end Publishing;
 
    procedure Markdown is

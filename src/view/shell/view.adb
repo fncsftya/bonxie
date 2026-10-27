@@ -226,8 +226,8 @@ package body View is
    end Copy_Available;
 
    overriding
-   function Markdown_Text (Self : Publishing_Effects) return String
-   is (Texts.Documents.Whole (Self.Owner.Publish_View.Source_Doc));
+   function Render (Self : Publishing_Effects; Which : Publish_VM.Formats) return String
+   is (Writing.Rendered (Self.Owner.all, Which));
 
    overriding
    function Clock (Self : Publishing_Effects) return Pomarine.Events.Milliseconds is
@@ -237,10 +237,14 @@ package body View is
    end Clock;
 
    overriding
-   procedure Ask_Export (Self : in out Publishing_Effects) is
+   procedure Ask_Export (Self : in out Publishing_Effects; Which : Publish_VM.Formats) is
    begin
       SDL3.Dialogs.Reset;
-      SDL3.Dialogs.Save_File (Self.Owner.Host.Win, "Markdown", "md", "Export.md");
+      SDL3.Dialogs.Save_File
+        (Self.Owner.Host.Win,
+         Publish_VM.Label (Which),
+         Publish_VM.Extension (Which),
+         "Export." & Publish_VM.Extension (Which));
    end Ask_Export;
 
    overriding
@@ -778,6 +782,9 @@ package body View is
 
    function Clipboard_Text (Item : Session) return String
    is (Widgets.Clipboard (Item.Publish_View.Copy).Text);
+
+   function Published_As (Item : Session; Which : Publish_VM.Formats) return String
+   is (Writing.Rendered (Item, Which));
 
    procedure Tick (Item : in out Session; Now : Pomarine.Events.Milliseconds) is
    begin

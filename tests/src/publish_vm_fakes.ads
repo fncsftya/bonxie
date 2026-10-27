@@ -10,6 +10,8 @@ package Publish_VM_Fakes is
       Copy_Delay                            : Pomarine.Events.Milliseconds := 0;
       State                                 : Publish_VM.Export_States := Publish_VM.Cancelled;
       Requests, Results, Copies             : Natural := 0;
+      Asked                                 : Publish_VM.Formats := Publish_VM.Markdown;
+      --  The format of the last Ask_Export.
    end record;
    overriding
    function Export_Available (Self : Platform) return Boolean
@@ -18,13 +20,17 @@ package Publish_VM_Fakes is
    function Copy_Available (Self : Platform) return Boolean
    is (Self.Copy_Ready);
    overriding
-   function Markdown_Text (Self : Platform) return String
-   is (Long_Texts.To_String (Self.Words));
+   function Render (Self : Platform; Which : Publish_VM.Formats) return String
+   is (Long_Texts.To_String (Self.Words)
+       & (case Which is
+            when Publish_VM.Markdown => "",
+            when others              => " as " & Publish_VM.Label (Which)));
+   --  Markdown is the words; another format is them with its name after.
    overriding
    function Clock (Self : Platform) return Pomarine.Events.Milliseconds
    is (Self.Time);
    overriding
-   procedure Ask_Export (Self : in out Platform);
+   procedure Ask_Export (Self : in out Platform; Which : Publish_VM.Formats);
    overriding
    procedure Export_Result (Self : in out Platform; State : out Publish_VM.Export_States; Path : out Long_Texts.Text);
    overriding

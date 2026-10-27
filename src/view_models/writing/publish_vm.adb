@@ -19,8 +19,32 @@ package body Publish_VM is
    is (Self.Sections);
    function Document_Headings (Self : View_Model) return Boolean
    is (Self.Documents);
-   function Markdown (Self : View_Model) return Boolean
+   function Label (Which : Formats) return String
+   is (case Which is
+         when Markdown   => "Markdown",
+         when Plain_Text => "Plain text",
+         when HTML       => "HTML",
+         when EPUB       => "EPUB e-book",
+         when ODT        => "OpenDocument (.odt)",
+         when DOCX       => "Word (.docx)",
+         when PDF        => "PDF");
+
+   function Extension (Which : Formats) return String
+   is (case Which is
+         when Markdown   => "md",
+         when Plain_Text => "txt",
+         when HTML       => "html",
+         when EPUB       => "epub",
+         when ODT        => "odt",
+         when DOCX       => "docx",
+         when PDF        => "pdf");
+
+   function Has_Format (Self : View_Model) return Boolean
    is (Self.Chosen);
+   function Format (Self : View_Model) return Formats
+   is (Self.Which);
+   function Source_Shown (Self : View_Model) return Boolean
+   is (Self.Chosen and then Has_Source (Self.Which));
    function Format_Open (Self : View_Model) return Boolean
    is (Self.Opened);
    function Content_Version (Self : View_Model) return Parts.Version_Number
@@ -39,7 +63,9 @@ package body Publish_VM is
         Self.Navigation /= null
         and then Nav_VM.Takes_Gestures (Self.Navigation.all)
         and then Nav_VM.Mode (Self.Navigation.all) = Nav_VM.Publish
-        and then (if What = Choose_Markdown then Index = 1 and then Self.Opened else Index = 0)
+        and then (if What = Choose_Format
+                  then Index in 1 .. Formats'Pos (Formats'Last) + 1 and then Self.Opened
+                  else Index = 0)
         and then (case What is
                     when Export =>
                       Self.Chosen
@@ -48,7 +74,9 @@ package body Publish_VM is
                       and then Self.Files /= null
                       and then Export_Available (Self.Platform.all),
                     when Copy   =>
-                      Self.Chosen and then Self.Platform /= null and then Copy_Available (Self.Platform.all),
+                      Source_Shown (Self)
+                      and then Self.Platform /= null
+                      and then Copy_Available (Self.Platform.all),
                     when others => True);
    end Can_Execute;
 
@@ -70,8 +98,9 @@ package body Publish_VM is
             Parts.Bump (Self.Menu);
 
          when Export                       =>
-            Self.Snapshot := Long_Texts.To_Text (Markdown_Text (Self.Platform.all));
-            Ask_Export (Self.Platform.all);
+            Self.Saving := Self.Which;
+            Self.Snapshot := Long_Texts.To_Text (Render (Self.Platform.all, Self.Which));
+            Ask_Export (Self.Platform.all, Self.Which);
             Self.Pending := True;
             Parts.Bump (Self.Status);
 
@@ -79,7 +108,7 @@ package body Publish_VM is
             declare
                Succeeded : Boolean;
             begin
-               Copy_Text (Self.Platform.all, Markdown_Text (Self.Platform.all), Succeeded);
+               Copy_Text (Self.Platform.all, Render (Self.Platform.all, Self.Which), Succeeded);
                if Succeeded then
                   declare
                      Now        : constant Pomarine.Events.Milliseconds := Clock (Self.Platform.all);
@@ -95,10 +124,16 @@ package body Publish_VM is
                end if;
             end;
 
-         when Choose_Markdown              =>
-            if not Self.Chosen then
+         when Choose_Format                =>
+            if not Self.Chosen or else Self.Which /= Formats'Val (Index - 1) then
                Self.Chosen := True;
+               Self.Which := Formats'Val (Index - 1);
                Parts.Bump (Self.Content);
+               if Self.Copied then
+                  Self.Copied := False;
+                  Self.Copied_Until := 0;
+                  Parts.Bump (Self.Status);
+               end if;
             end if;
             Self.Opened := False;
             Parts.Bump (Self.Menu);
@@ -120,10 +155,10 @@ package body Publish_VM is
               Pomarine.Events.Milliseconds'Max (0, Self.Copied_Until - Clock (Self.Platform.all))));
    end Copy_Remaining;
 
-   function File_Name (Path : String) return String
+   function File_Name (Path : String; Which : Formats) return String
    is (if (for some I in reverse Path'Range => Path (I) = '.' and then (for all J in I .. Path'Last => Path (J) /= '/'))
        then Path
-       else Path & ".md");
+       else Path & "." & Extension (Which));
 
    procedure Poll (Self : in out View_Model) is
    begin
@@ -144,7 +179,9 @@ package body Publish_VM is
                if State = Chosen and then Long_Texts.Length (Path) > 0 then
                   begin
                      Save
-                       (Self.Files.all, File_Name (Long_Texts.To_String (Path)), Long_Texts.To_String (Self.Snapshot));
+                       (Self.Files.all,
+                        File_Name (Long_Texts.To_String (Path), Self.Saving),
+                        Long_Texts.To_String (Self.Snapshot));
                   exception
                      when others =>
                         null; --  A failed write must release the pending request for another attempt.

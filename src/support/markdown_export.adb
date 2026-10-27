@@ -1,16 +1,13 @@
-with Ada.Containers.Vectors;
-with Texts;
+with Exports;
 
 package body Markdown_Export is
 
-   use type Texts.Paragraph_Kind;
    use type Ada.Strings.Unbounded.Unbounded_String;
+   use type Exports.Block_Kinds;
+   use type Exports.Mark;
 
    package Unbounded renames Ada.Strings.Unbounded;
-   package Docs renames Texts.Documents;
-
-   Bullet_Mark : constant String := [Character'Val (16#E2#), Character'Val (16#80#), Character'Val (16#A2#), ' '];
-   --  What the editor puts before an item of a bulleted list.
+   package Ex renames Exports;
 
    Em_Space    : constant String := "&emsp;";
    Indent_Step : constant String := "    ";
@@ -66,24 +63,6 @@ package body Markdown_Export is
       return Unbounded.To_String (Made);
    end Address_Of;
 
-   type Mark is (Underlined, Struck, Bold, Italic, Linked);
-   --  In the order they are opened, outermost first.
-
-   type Mark_Set is array (Mark) of Boolean;
-
-   type Piece is record
-      Words   : Unbounded.Unbounded_String;
-      Marks   : Mark_Set := [others => False];
-      Address : Unbounded.Unbounded_String;
-   end record;
-
-   function Same (Left, Right : Piece) return Boolean
-   is (Left.Marks = Right.Marks and then Left.Address = Right.Address);
-
-   package Piece_Vectors is new Ada.Containers.Vectors (Positive, Piece);
-   package Cut_Vectors is new Ada.Containers.Vectors (Positive, Positive);
-   package Cut_Sorting is new Cut_Vectors.Generic_Sorting;
-
    function Repeated (Unit : String; Times : Natural) return String is
       Made : Unbounded.Unbounded_String;
    begin
@@ -95,38 +74,39 @@ package body Markdown_Export is
 
    function Is_Blank (Words : String) return Boolean
    is (for all C of Words => C in ' ' | ASCII.HT);
+   --  Of what is at the edge of a span: not the line feeds that Exports.Is_Blank counts.
 
    --  The inline Markdown for the pieces of a paragraph, with marks opened and closed as they change.
-   function Inline (Pieces : Piece_Vectors.Vector; Plain : Boolean) return String is
+   function Inline (Pieces : Ex.Span_Vectors.Vector) return String is
       Made    : Unbounded.Unbounded_String;
-      Open    : array (1 .. Mark'Pos (Mark'Last) + 1) of Mark;
+      Open    : array (1 .. Ex.Mark'Pos (Ex.Mark'Last) + 1) of Ex.Mark;
       Depth   : Natural := 0;
       Where   : Unbounded.Unbounded_String;  --  of the open link
       Pending : Unbounded.Unbounded_String;  --  space waiting to be put outside the marks that close
       Begun   : Boolean := False;
 
-      function Opening (Which : Mark) return String
+      function Opening (Which : Ex.Mark) return String
       is (case Which is
-            when Underlined => "<u>",
-            when Struck     => "~~",
-            when Bold       => "**",
-            when Italic     => "*",
-            when Linked     => "[");
+            when Ex.Underlined => "<u>",
+            when Ex.Struck     => "~~",
+            when Ex.Bold       => "**",
+            when Ex.Italic     => "*",
+            when Ex.Linked     => "[");
 
-      function Closing (Which : Mark) return String
+      function Closing (Which : Ex.Mark) return String
       is (case Which is
-            when Underlined => "</u>",
-            when Struck     => "~~",
-            when Bold       => "**",
-            when Italic     => "*",
-            when Linked     => "](" & Address_Of (Unbounded.To_String (Where)) & ")");
+            when Ex.Underlined => "</u>",
+            when Ex.Struck     => "~~",
+            when Ex.Bold       => "**",
+            when Ex.Italic     => "*",
+            when Ex.Linked     => "](" & Address_Of (Unbounded.To_String (Where)) & ")");
 
-      procedure Reach (Wanted : Mark_Set; Address : Unbounded.Unbounded_String) is
+      procedure Reach (Wanted : Ex.Mark_Set; Address : Unbounded.Unbounded_String) is
          Keep : Natural := 0;
       begin
          while Keep < Depth
            and then Wanted (Open (Keep + 1))
-           and then (Open (Keep + 1) /= Linked or else Address = Where)
+           and then (Open (Keep + 1) /= Ex.Linked or else Address = Where)
          loop
             Keep := Keep + 1;
          end loop;
@@ -136,11 +116,11 @@ package body Markdown_Export is
          end loop;
          Unbounded.Append (Made, Pending);
          Pending := Unbounded.Null_Unbounded_String;
-         for Each in Mark loop
+         for Each in Ex.Mark loop
             if Wanted (Each) and then not (for some I in 1 .. Depth => Open (I) = Each) then
                Depth := Depth + 1;
                Open (Depth) := Each;
-               if Each = Linked then
+               if Each = Ex.Linked then
                   Where := Address;
                end if;
                Unbounded.Append (Made, Opening (Each));
@@ -153,11 +133,8 @@ package body Markdown_Export is
             Words : constant String := Unbounded.To_String (Each.Words);
             First : Positive := Words'First;
             Last  : Natural := Words'Last;
-            Marks : Mark_Set := Each.Marks;
+            Marks : constant Ex.Mark_Set := Each.Marks;
          begin
-            if Plain then
-               Marks (Bold) := False;
-            end if;
             while First <= Last and then Words (First) in ' ' | ASCII.HT loop
                First := First + 1;
             end loop;
@@ -209,139 +186,33 @@ package body Markdown_Export is
       end if;
    end Add_Heading;
 
-   --  The pieces of paragraph Para from byte Start: cut where a format begins or ends.
-   function Pieces_Of (Item : Docs.Document; Para : Positive; Start : Positive) return Piece_Vectors.Vector is
-      Stop   : constant Positive := Docs.Byte_Length (Item, Para) + 1;
-      Result : Piece_Vectors.Vector;
-      Cuts   : Cut_Vectors.Vector;
+   procedure Add_Document (Into : in out Writer; Item : Texts.Documents.Document) is
    begin
-      Cuts.Append (Start);
-      Cuts.Append (Stop);
-      for Index in 1 .. Docs.Run_Count (Item) loop
+      for Each of Ex.Blocks_Of (Item) loop
          declare
-            R : constant Docs.Format_Run := Docs.Run (Item, Index);
+            Heading : constant Boolean := Each.Kind = Ex.Heading;
+            Which   : constant Blocks :=
+              (case Each.Kind is
+                 when Ex.Bullet => Bullet_Item,
+                 when Ex.Number => Number_Item,
+                 when others    => Other);
+            Quote   : constant String := (if Each.Quoted then "> " else "");
+            Marker  : constant String :=
+              (case Each.Kind is
+                 when Ex.Bullet => "- ",
+                 when Ex.Number => Unbounded.To_String (Each.Figure) & ". ",
+                 when others    => "");
+            Nest    : constant String :=
+              (if Each.Kind in Ex.Bullet | Ex.Number
+               then Repeated (Indent_Step, Each.Indent)
+               elsif not Heading
+               then Repeated (Em_Space, Each.Indent)
+               else "");
+            Hashes  : constant String := (if Heading then [1 .. Each.Level => '#'] & ' ' else "");
+            Words   : constant String := Inline (Each.Spans);
          begin
-            if R.From.Paragraph <= Para and then Para <= R.To.Paragraph then
-               Cuts.Append (Natural'Max (Start, (if R.From.Paragraph = Para then R.From.Index else 1)));
-               Cuts.Append (Natural'Min (Stop, (if R.To.Paragraph = Para then R.To.Index else Stop)));
-            end if;
-         end;
-      end loop;
-      Cut_Sorting.Sort (Cuts);
-      for Each in Cuts.First_Index .. Cuts.Last_Index - 1 loop
-         declare
-            From : constant Positive := Cuts (Each);
-            To   : constant Positive := Cuts (Each + 1);
-            Part : Piece;
-         begin
-            if From < To then
-               Part.Words := Unbounded.To_Unbounded_String (Docs.Slice (Item, Para, From, To));
-               for Index in 1 .. Docs.Run_Count (Item) loop
-                  declare
-                     R      : constant Docs.Format_Run := Docs.Run (Item, Index);
-                     Covers : constant Boolean :=
-                       R.From.Paragraph <= Para
-                       and then Para <= R.To.Paragraph
-                       and then (R.From.Paragraph < Para or else R.From.Index <= From)
-                       and then (R.To.Paragraph > Para or else To <= R.To.Index);
-                  begin
-                     if Covers then
-                        case R.Style is
-                           when Docs.Bold                                             =>
-                              Part.Marks (Bold) := True;
-
-                           when Docs.Italic                                           =>
-                              Part.Marks (Italic) := True;
-
-                           when Docs.Underline                                        =>
-                              Part.Marks (Underlined) := True;
-
-                           when Docs.Strikethrough                                    =>
-                              Part.Marks (Struck) := True;
-
-                           when Docs.Linked                                           =>
-                              Part.Marks (Linked) := True;
-                              Part.Address := R.Name;
-
-                           when Docs.Faded | Docs.Sized | Docs.Faced | Docs.Versioned =>
-                              null;
-                        end case;
-                     end if;
-                  end;
-               end loop;
-               if not Result.Is_Empty and then Same (Result.Last_Element, Part) then
-                  Unbounded.Append (Result (Result.Last_Index).Words, Part.Words);
-               else
-                  Result.Append (Part);
-               end if;
-            end if;
-         end;
-      end loop;
-      return Result;
-   end Pieces_Of;
-
-   procedure Add_Document (Into : in out Writer; Item : Docs.Document) is
-   begin
-      for Para in 1 .. Docs.Count (Item) loop
-         declare
-            Line    : constant String := Docs.Text (Item, Para);
-            Kind    : constant Texts.Paragraph_Kind := Docs.Kind (Item, Para);
-            Inset   : constant Texts.Paragraph_Inset := Docs.Inset (Item, Para);
-            Lead    : Natural := 0;
-            Skip    : Natural := 0;
-            Which   : Blocks := Other;
-            Figures : Natural := 0;
-            Number  : Unbounded.Unbounded_String;
-         begin
-            if Kind = Texts.Plain or else Kind > Texts.Heading_3 then
-               while Lead < Line'Length and then Line (Line'First + Lead) = ' ' loop
-                  Lead := Lead + 1;
-               end loop;
-               declare
-                  Rest : constant String := Line (Line'First + Lead .. Line'Last);
-               begin
-                  if Rest'Length >= Bullet_Mark'Length
-                    and then Rest (Rest'First .. Rest'First + Bullet_Mark'Length - 1) = Bullet_Mark
-                  then
-                     Which := Bullet_Item;
-                     Skip := Lead + Bullet_Mark'Length;
-                  else
-                     while Figures < Rest'Length and then Rest (Rest'First + Figures) in '0' .. '9' loop
-                        Figures := Figures + 1;
-                     end loop;
-                     if Figures > 0
-                       and then Rest'Length >= Figures + 2
-                       and then Rest (Rest'First + Figures .. Rest'First + Figures + 1) = ". "
-                     then
-                        Which := Number_Item;
-                        Skip := Lead + Figures + 2;
-                        Number := Unbounded.To_Unbounded_String (Rest (Rest'First .. Rest'First + Figures - 1));
-                     end if;
-                  end if;
-               end;
-            end if;
-            if not Is_Blank (Line (Line'First + Skip .. Line'Last)) then
-               declare
-                  Heading   : constant Boolean := Kind in Texts.Heading_1 .. Texts.Heading_3;
-                  Body_Text : constant String := Inline (Pieces_Of (Item, Para, Skip + 1), Plain => Heading);
-                  Quote     : constant String := (if Inset.Quoted then "> " else "");
-                  Marker    : constant String :=
-                    (case Which is
-                       when Bullet_Item => "- ",
-                       when Number_Item => Unbounded.To_String (Number) & ". ",
-                       when others      => "");
-                  Nest      : constant String :=
-                    (if Which in Bullet_Item | Number_Item
-                     then Repeated (Indent_Step, Inset.Indent)
-                     elsif not Heading
-                     then Repeated (Em_Space, Inset.Indent)
-                     else "");
-                  Hashes    : constant String := (if Heading then [1 .. Natural (Kind) => '#'] & ' ' else "");
-               begin
-                  if Body_Text /= "" then
-                     Put (Into, Quote & Nest & Marker & Hashes & Body_Text, Which, Inset.Quoted);
-                  end if;
-               end;
+            if Words /= "" then
+               Put (Into, Quote & Nest & Marker & Hashes & Words, Which, Each.Quoted);
             end if;
          end;
       end loop;
@@ -350,7 +221,7 @@ package body Markdown_Export is
    function Text (From : Writer) return String
    is (Unbounded.To_String (From.Output));
 
-   function Of_Document (Item : Docs.Document) return String is
+   function Of_Document (Item : Texts.Documents.Document) return String is
       Made : Writer;
    begin
       Add_Document (Made, Item);

@@ -15,6 +15,9 @@ with Vision;
 private package View.Writing is
    procedure Synchronize_Publish (Item : in out Session);
 
+   function Rendered (Item : Session; Which : Publish_VM.Formats) return String;
+   --  The publish view's document as a file of that format.
+
    procedure Enter (Item : in out Session)
    with Pre => Screen (Item) = Project;
    --  Make the lists, pages and windows of the items there are: once the

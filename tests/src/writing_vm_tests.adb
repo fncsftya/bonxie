@@ -1,4 +1,6 @@
 with Ada.Assertions;
+with Ada.Strings.Fixed;
+with Publish_VM;
 with Goldens;
 with Items.Directories;
 with Pomarine.View_Models;
@@ -441,6 +443,15 @@ package body Writing_VM_Tests is
         ("publish-name-return",
          not Testing.Exists (Window, "Markdown") and then Testing.Value_Of (Window, "Publish format") = "Markdown");
       Copy_And_Check ("publish-name-kept-options", "### Chapter" & LF & LF & "Body" & LF);
+      declare
+         Book : constant String := View.Published_As (App, Publish_VM.EPUB);
+      begin
+         --  The section is a chapter, whether or not its heading is published.
+         Check
+           ("publish-name-epub-chapter",
+            Ada.Strings.Fixed.Index (Book, "<a href=""chapter-1.xhtml"">Chapter</a>") > 0
+            and then Ada.Strings.Fixed.Index (Book, "chapter-2.xhtml") = 0);
+      end;
    end Publishing_By_Name;
 
    procedure Sections_By_Name is

@@ -1,6 +1,6 @@
 private with Writing_Sources_VM;
 private with Writing_VM.Actions;
-private with Publish_VM;
+with Publish_VM;
 private with Long_Texts;
 private with Menu_VM;
 private with Grammar_VM;
@@ -164,6 +164,9 @@ package View is
    function Clipboard_Text (Item : Session) return String;
    --  What is on the clipboard the session uses (its own, offscreen).
 
+   function Published_As (Item : Session; Which : Publish_VM.Formats) return String;
+   --  What the Publish view would export as a file of that format, for a test to read.
+
    procedure Tick (Item : in out Session; Now : Pomarine.Events.Milliseconds)
    with Pre => Is_Open (Item);
    --  As if it were time Now, as Pomarine.Events.Ticks: the caret blinks.
@@ -306,11 +309,11 @@ private
    overriding
    function Copy_Available (Self : Publishing_Effects) return Boolean;
    overriding
-   function Markdown_Text (Self : Publishing_Effects) return String;
+   function Render (Self : Publishing_Effects; Which : Publish_VM.Formats) return String;
    overriding
    function Clock (Self : Publishing_Effects) return Pomarine.Events.Milliseconds;
    overriding
-   procedure Ask_Export (Self : in out Publishing_Effects);
+   procedure Ask_Export (Self : in out Publishing_Effects; Which : Publish_VM.Formats);
    overriding
    procedure Export_Result
      (Self : in out Publishing_Effects; State : out Publish_VM.Export_States; Path : out Long_Texts.Text);

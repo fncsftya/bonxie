@@ -1318,7 +1318,7 @@ package body Nav_VM_Tests is
          & " "
          & Image (P.Document_Headings (Model))
          & " "
-         & Image (P.Markdown (Model))
+         & Image (P.Has_Format (Model))
          & " "
          & Image (P.Format_Open (Model)));
       Check ("publish-vm-home", "FALSE", Image (P.Can_Execute (Model, P.Toggle_Format)));
@@ -1335,7 +1335,7 @@ package body Nav_VM_Tests is
       end loop;
       Seen := P.Version (Model);
       begin
-         P.Execute (Model, P.Choose_Markdown, 1);
+         P.Execute (Model, P.Choose_Format, 1);
       exception
          when Ada.Assertions.Assertion_Error =>
             Refused := True;
@@ -1355,30 +1355,30 @@ package body Nav_VM_Tests is
       P.Execute (Model, P.Toggle_Format);
       Check
         ("publish-vm-menu",
-         "TRUE TRUE TRUE FALSE FALSE FALSE",
+         "TRUE TRUE TRUE FALSE TRUE FALSE",
          Image (P.Format_Open (Model))
          & " "
          & Image (P.Content_Version (Model) = Content)
          & " "
-         & Image (P.Can_Execute (Model, P.Choose_Markdown, 1))
+         & Image (P.Can_Execute (Model, P.Choose_Format, 1))
          & " "
-         & Image (P.Can_Execute (Model, P.Choose_Markdown))
+         & Image (P.Can_Execute (Model, P.Choose_Format))
          & " "
-         & Image (P.Can_Execute (Model, P.Choose_Markdown, 2))
+         & Image (P.Can_Execute (Model, P.Choose_Format, 2))
          & " "
          & Image (P.Can_Execute (Model, P.Toggle_Format, 1)));
-      P.Execute (Model, P.Choose_Markdown, 1);
+      P.Execute (Model, P.Choose_Format, 1);
       Check
         ("publish-vm-chosen",
          "TRUE FALSE TRUE",
-         Image (P.Markdown (Model))
+         Image (P.Has_Format (Model))
          & " "
          & Image (P.Format_Open (Model))
          & " "
          & Image (P.Content_Version (Model) /= Content));
       Content := P.Content_Version (Model);
       P.Execute (Model, P.Toggle_Format);
-      P.Execute (Model, P.Choose_Markdown, 1);
+      P.Execute (Model, P.Choose_Format, 1);
       Check ("publish-vm-rechoose-no-content-change", "TRUE", Image (P.Content_Version (Model) = Content));
       P.Execute (Model, P.Toggle_Format);
       Nav_VM.Execute (Where.Model, Open_List);
@@ -1387,7 +1387,7 @@ package body Nav_VM_Tests is
          "FALSE FALSE TRUE",
          Image (P.Can_Execute (Model, P.Toggle_Document_Headings))
          & " "
-         & Image (P.Can_Execute (Model, P.Choose_Markdown, 1))
+         & Image (P.Can_Execute (Model, P.Choose_Format, 1))
          & " "
          & Image (P.Can_Execute (Model, P.Close_Format)));
       P.Execute (Model, P.Close_Format);
@@ -1410,12 +1410,93 @@ package body Nav_VM_Tests is
          "FALSE TRUE TRUE TRUE",
          Image (P.Format_Open (Model))
          & " "
-         & Image (P.Markdown (Model))
+         & Image (P.Has_Format (Model))
          & " "
          & Image (P.Section_Headings (Model))
          & " "
          & Image (P.Document_Headings (Model)));
    end Publishing;
+
+   procedure Publishing_Formats is
+      package P renames Publish_VM;
+      use type P.Formats;
+      Where    : aliased Setting;
+      Platform : aliased Publish_VM_Fakes.Platform;
+      Kept     : aliased Publish_VM_Fakes.Store;
+      Model    : P.View_Model;
+      Content  : Parts.Version_Number;
+      Names    : Ada.Strings.Unbounded.Unbounded_String;
+      Source   : Ada.Strings.Unbounded.Unbounded_String;
+
+      procedure Choose (Which : P.Formats) is
+      begin
+         P.Execute (Model, P.Toggle_Format);
+         P.Execute (Model, P.Choose_Format, P.Formats'Pos (Which) + 1);
+      end Choose;
+   begin
+      Prepare (Where);
+      P.Initialize (Model, Where.Model'Access, Platform'Access, Kept'Access);
+      Nav_VM.Execute (Where.Model, Open_Project, 1);
+      Nav_VM.Execute (Where.Model, Show_Publish);
+      P.Execute (Model, P.Toggle_Format);
+      Check
+        ("publish-formats-rows",
+         "TRUE FALSE FALSE",
+         Image (P.Can_Execute (Model, P.Choose_Format, 7))
+         & " "
+         & Image (P.Can_Execute (Model, P.Choose_Format, 8))
+         & " "
+         & Image (P.Can_Execute (Model, P.Choose_Format)));
+      P.Execute (Model, P.Close_Format);
+      for Each in P.Formats loop
+         Choose (Each);
+         Ada.Strings.Unbounded.Append
+           (Names,
+            P.Label (Each)
+            & "."
+            & P.Extension (Each)
+            & (if P.Format (Model) = Each then " " else "? ")
+            & (if P.Source_Shown (Model) then "source " else "file ")
+            & (if P.Can_Execute (Model, P.Copy) then "copy|" else "nocopy|"));
+         Ada.Strings.Unbounded.Append (Source, Image (P.Has_Source (Each)) & " ");
+      end loop;
+      Check
+        ("publish-formats-each",
+         "Markdown.md source copy|Plain text.txt source copy|HTML.html source copy|EPUB e-book.epub file nocopy|"
+         & "OpenDocument (.odt).odt file nocopy|Word (.docx).docx file nocopy|PDF.pdf file nocopy|",
+         Ada.Strings.Unbounded.To_String (Names));
+      Check
+        ("publish-formats-text", "TRUE TRUE TRUE FALSE FALSE FALSE FALSE ", Ada.Strings.Unbounded.To_String (Source));
+      Content := P.Content_Version (Model);
+      Choose (P.PDF);
+      Check ("publish-formats-same-no-change", "TRUE", Image (P.Content_Version (Model) = Content));
+      Choose (P.HTML);
+      Check ("publish-formats-change", "TRUE", Image (P.Content_Version (Model) /= Content));
+      Platform.Words := Long_Texts.To_Text ("words");
+      Choose (P.DOCX);
+      P.Execute (Model, P.Export);
+      Platform.State := P.Chosen;
+      Platform.Path := Long_Texts.To_Text ("/tmp/essay");
+      P.Poll (Model);
+      Check
+        ("publish-formats-exported",
+         "Word (.docx) /tmp/essay.docx words as Word (.docx)",
+         P.Label (Platform.Asked)
+         & " "
+         & Long_Texts.To_String (Kept.Path)
+         & " "
+         & Long_Texts.To_String (Kept.Words));
+      Choose (P.EPUB);
+      P.Execute (Model, P.Export);
+      Choose (P.PDF);
+      Platform.State := P.Chosen;
+      Platform.Path := Long_Texts.To_Text ("/tmp/book");
+      P.Poll (Model);
+      Check
+        ("publish-formats-chosen-while-asking",
+         "EPUB e-book /tmp/book.epub PDF",
+         P.Label (Platform.Asked) & " " & Long_Texts.To_String (Kept.Path) & " " & P.Label (P.Format (Model)));
+   end Publishing_Formats;
 
    procedure Publishing_Output is
       package P renames Publish_VM;
@@ -1441,7 +1522,7 @@ package body Nav_VM_Tests is
          "FALSE FALSE",
          Image (P.Can_Execute (Model, P.Export)) & " " & Image (P.Can_Execute (Model, P.Copy)));
       P.Execute (Model, P.Toggle_Format);
-      P.Execute (Model, P.Choose_Markdown, 1);
+      P.Execute (Model, P.Choose_Format, 1);
       Platform.Export_Ready := False;
       Platform.Copy_Ready := False;
       Check
@@ -1529,8 +1610,10 @@ package body Nav_VM_Tests is
         ("publish-output-extensions",
          "TRUE",
          Image
-           (P.File_Name ("/tmp/folder.with.dot/export") = "/tmp/folder.with.dot/export.md"
-            and then P.File_Name ("/tmp/export.txt") = "/tmp/export.txt"));
+           (P.File_Name ("/tmp/folder.with.dot/export", P.Markdown) = "/tmp/folder.with.dot/export.md"
+            and then P.File_Name ("/tmp/export.txt", P.Markdown) = "/tmp/export.txt"
+            and then P.File_Name ("/tmp/book", P.EPUB) = "/tmp/book.epub"
+            and then P.File_Name ("/tmp/book.md", P.PDF) = "/tmp/book.md"));
       Platform.Accept_Copy := False;
       Seen := P.Version (Model);
       P.Execute (Model, P.Copy);
@@ -1593,9 +1676,9 @@ package body Nav_VM_Tests is
          P.Initialize (Without_Store, Where.Model'Access, Platform'Access);
          P.Initialize (Without_Platform, Where.Model'Access);
          P.Execute (Without_Store, P.Toggle_Format);
-         P.Execute (Without_Store, P.Choose_Markdown, 1);
+         P.Execute (Without_Store, P.Choose_Format, 1);
          P.Execute (Without_Platform, P.Toggle_Format);
-         P.Execute (Without_Platform, P.Choose_Markdown, 1);
+         P.Execute (Without_Platform, P.Choose_Format, 1);
          Check
            ("publish-output-missing-dependencies",
             "FALSE TRUE FALSE FALSE",

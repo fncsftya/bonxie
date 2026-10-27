@@ -1,9 +1,10 @@
 package body Publish_VM_Fakes is
    use type Pomarine.Events.Milliseconds;
    overriding
-   procedure Ask_Export (Self : in out Platform) is
+   procedure Ask_Export (Self : in out Platform; Which : Publish_VM.Formats) is
    begin
       Self.Requests := @ + 1;
+      Self.Asked := Which;
       Self.State := Publish_VM.Waiting;
    end Ask_Export;
 

@@ -637,8 +637,8 @@ package body View.Build.Shell_Views is
                  (Top => Layouts.Length_Of (Sidebar_Pad + Heading_Top), others => Layouts.Length_Of (Sidebar_Pad)),
                others  => <>));
 
-         --  The sheets: the Markdown (Source_Text) at the left of the page as it is rendered, which is shown
-         --  only when Markdown is the format.
+         --  The sheets: the source (Source_Text) at the left of the page as it is rendered, which is shown
+         --  only when the format is text.
          Source_Sheet : constant UI.Layout :=
            UI.Styled
              (UI.Put_In
@@ -700,7 +700,7 @@ package body View.Build.Shell_Views is
       begin
          Bound.Caption_From (Copy, Publish_UI.Copy_Caption);
          Bound.On_Event (Format_Field, Widgets.Click, Publish_VM.Toggle_Format);
-         Bound.On_Event (Format_Menu, Widgets.Choose, Publish_VM.Choose_Markdown, Index_From_Event => True);
+         Bound.On_Event (Format_Menu, Widgets.Choose, Publish_VM.Choose_Format, Index_From_Event => True);
          UI.Mount_Into (Form, Content_Panel (Item).all, Whole);
          UI.Observe (Form, Item.Publish_Watcher'Access);
       end;
@@ -708,7 +708,10 @@ package body View.Build.Shell_Views is
       Selects.Set_Value (Pane.Format, "Choose a format");
       Widgets.Set_Accessible_Name (Pane.Format, "Publish format");
       Widgets.Set_Visible (Pane.Format_Menu, False);
-      Pomarine.UI.Menus.Set_Content (Pane.Format_Menu, [Pomarine.UI.Menus.Row (Menus.Check, "Markdown")]);
+      Pomarine.UI.Menus.Set_Content
+        (Pane.Format_Menu,
+         [for Place in 1 .. Publish_VM.Formats'Pos (Publish_VM.Formats'Last) + 1 =>
+            Pomarine.UI.Menus.Row (Menus.Check, Publish_VM.Label (Publish_VM.Formats'Val (Place - 1)))]);
       Panels.Set_Fill (Pane.Divider, Themes.Border);
       if not Item.Shell.Windowed then
          Panels.Set_Fill (Pane.View, Desk);

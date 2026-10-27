@@ -37,6 +37,9 @@ with View.Writing.Tree;
 package body View.Writing is
    procedure Synchronize_Publish (Item : in out Session) renames Publishing.Synchronize;
 
+   function Rendered (Item : Session; Which : Publish_VM.Formats) return String
+   is (Publishing.Document_As (Item, Which));
+
    package Widgets renames Pomarine.Widgets;
    package Buttons renames Pomarine.Widgets.Buttons;
    package Grips renames Pomarine.Widgets.Grips;

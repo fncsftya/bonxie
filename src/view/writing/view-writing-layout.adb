@@ -372,7 +372,7 @@ package body View.Writing.Layout is
                Changed := False;
                Fit
                  (Pane.Scroll, Pane.Content, Pane.Text, Editors.Area (Pane.Text).all, Pane.Left, Pane.Wide, Pane.High);
-               if Publish_VM.Markdown (Pane.Options) then
+               if Publish_VM.Source_Shown (Pane.Options) then
                   Fit
                     (Pane.Source_Scroll,
                      Pane.Source_Content,

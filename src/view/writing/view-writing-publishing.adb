@@ -1,8 +1,13 @@
-with Publish_VM;
 with Pomarine.View_Models;
 with Items.Models;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
+with Exports.Docx;
+with Exports.Epub;
+with Exports.HTML;
+with Exports.Odt;
+with Exports.Pdf;
+with Exports.Plain;
 with Markdown_Export;
 with Projects.Sections;
 with Pomarine.UI.Menus;
@@ -17,6 +22,9 @@ with View.Writing.Support;
 
 package body View.Writing.Publishing is
 
+   use type Publish_VM.Formats;
+   use Ada.Strings.Unbounded;
+
    package Widgets renames Pomarine.Widgets;
    package Models renames Items.Models;
    package Docs renames Texts.Documents;
@@ -27,11 +35,33 @@ package body View.Writing.Publishing is
    Stored_Header : constant String := "<version>1</version>";
    --  What Docs.Stored starts with, before its paragraphs.
 
+   function Export_Title (Item : Session) return String is
+      Name : constant String := Docs.Whole (Item.Outline_View.Name_Doc);
+   begin
+      return (if Name = "" then "Export" else Name);
+   end Export_Title;
+
+   function Document_As (Item : Session; Which : Publish_VM.Formats) return String is
+      Pane : Publish_Parts renames Item.Publish_View;
+   begin
+      return
+        (case Which is
+           when Publish_VM.Markdown   => Docs.Whole (Pane.Source_Doc),
+           when Publish_VM.Plain_Text => Exports.Plain.Of_Document (Pane.Doc),
+           when Publish_VM.HTML       => Exports.HTML.Page (Pane.Doc, Export_Title (Item)),
+           when Publish_VM.EPUB       => Exports.Epub.Of_Document (Pane.Doc, Export_Title (Item), Pane.Chapters),
+           when Publish_VM.ODT        => Exports.Odt.Of_Document (Pane.Doc, Export_Title (Item)),
+           when Publish_VM.DOCX       => Exports.Docx.Of_Document (Pane.Doc, Export_Title (Item)),
+           when Publish_VM.PDF        => Exports.Pdf.Of_Document (Pane.Doc, Export_Title (Item)));
+   end Document_As;
+
    procedure Refresh_Publish (Item : in out Session) is
       Pane             : Publish_Parts renames Item.Publish_View;
       Body_Markup      : Ada.Strings.Unbounded.Unbounded_String;
       Marks            : Markdown_Export.Writer;
       Previous_Section : Natural := 0;
+      Paragraphs       : Natural := 0;
+      --  Of the markup so far, a paragraph to each of a heading's and of a document's: where a chapter starts.
 
       function Is_Blank (Words : String) return Boolean
       is (for all C of Words => C in ' ' | ASCII.HT | ASCII.LF | ASCII.CR);
@@ -47,6 +77,7 @@ package body View.Writing.Publishing is
                & Docs.Escaped (Words)
                & "</b></p>");
             Markdown_Export.Add_Heading (Marks, Level, Words);
+            Paragraphs := Paragraphs + 1;
          end if;
       end Heading;
 
@@ -60,14 +91,30 @@ package body View.Writing.Publishing is
          if not Is_Blank (Docs.Whole (From)) then
             Ada.Strings.Unbounded.Append (Body_Markup, Markup (Markup'First + Stored_Header'Length .. Markup'Last));
             Markdown_Export.Add_Document (Marks, From);
+            Paragraphs := Paragraphs + Docs.Count (From);
          end if;
       end Append;
    begin
+      Pane.Chapters.Clear;
       for Rank in 1 .. Trees.Page_Count (Item.Docs.Ordering) loop
          declare
             Which   : constant Items.Slot := Trees.Page_At (Item.Docs.Ordering, Rank);
             Section : constant Natural := Section_Links.Section_Of (Item, Which);
          begin
+            if Section /= 0 and then Section /= Previous_Section then
+               declare
+                  Name  : constant String :=
+                    Projects.Sections.Title_Texts.To_String (Outlines.Section_At (Item, Section).Title);
+                  Start : constant Exports.Epub.Chapter :=
+                    (First => Paragraphs + 1, Title => To_Unbounded_String (Name));
+               begin
+                  if not Pane.Chapters.Is_Empty and then Pane.Chapters.Last_Element.First = Start.First then
+                     Pane.Chapters.Delete_Last; --  The section before had nothing to publish.
+
+                  end if;
+                  Pane.Chapters.Append (Start);
+               end;
+            end if;
             if Publish_VM.Section_Headings (Pane.Options) and then Section /= 0 and then Section /= Previous_Section
             then
                Heading (Projects.Sections.Title_Texts.To_String (Outlines.Section_At (Item, Section).Title), 2);
@@ -81,10 +128,20 @@ package body View.Writing.Publishing is
       end loop;
       if Ada.Strings.Unbounded.Length (Body_Markup) = 0 then
          Docs.Load (Pane.Doc, "");
+         Pane.Chapters.Clear;
       else
          Docs.Load_Stored (Pane.Doc, Stored_Header & Ada.Strings.Unbounded.To_String (Body_Markup));
+         pragma Assert (Paragraphs = Docs.Count (Pane.Doc));
       end if;
-      Docs.Load (Pane.Source_Doc, Markdown_Export.Text (Marks));
+      Docs.Load
+        (Pane.Source_Doc,
+         (if not Publish_VM.Source_Shown (Pane.Options)
+          then ""
+          else
+            (case Publish_VM.Format (Pane.Options) is
+               when Publish_VM.Markdown   => Markdown_Export.Text (Marks),
+               when Publish_VM.Plain_Text => Exports.Plain.Of_Document (Pane.Doc),
+               when others                => Exports.HTML.Page (Pane.Doc, Export_Title (Item)))));
       Widgets.Invalidate (Pane.Text);
       Widgets.Invalidate (Pane.Source_Text);
    end Refresh_Publish;
@@ -102,12 +159,22 @@ package body View.Writing.Publishing is
    procedure Show_Format (Item : in out Session) is
       Pane : Publish_Parts renames Item.Publish_View;
    begin
-      Selects.Set_Value (Pane.Format, (if Publish_VM.Markdown (Pane.Options) then "Markdown" else "Choose a format"));
+      Selects.Set_Value
+        (Pane.Format,
+         (if Publish_VM.Has_Format (Pane.Options)
+          then Publish_VM.Label (Publish_VM.Format (Pane.Options))
+          else "Choose a format"));
       Pomarine.UI.Menus.Set_Content
         (Pane.Format_Menu,
-         [Pomarine.UI.Menus.Row (Menus.Check, "Markdown", Checked => Publish_VM.Markdown (Pane.Options))]);
-      Widgets.Set_Visible (Pane.Source_Scroll, Publish_VM.Markdown (Pane.Options));
-      Widgets.Set_Visible (Pane.Split_Rule, Publish_VM.Markdown (Pane.Options));
+         [for Place in 1 .. Publish_VM.Formats'Pos (Publish_VM.Formats'Last) + 1 =>
+            Pomarine.UI.Menus.Row
+              (Menus.Check,
+               Publish_VM.Label (Publish_VM.Formats'Val (Place - 1)),
+               Checked =>
+                 Publish_VM.Has_Format (Pane.Options)
+                 and then Publish_VM.Format (Pane.Options) = Publish_VM.Formats'Val (Place - 1))]);
+      Widgets.Set_Visible (Pane.Source_Scroll, Publish_VM.Source_Shown (Pane.Options));
+      Widgets.Set_Visible (Pane.Split_Rule, Publish_VM.Source_Shown (Pane.Options));
    end Show_Format;
 
    procedure Synchronize (Item : in out Session) is

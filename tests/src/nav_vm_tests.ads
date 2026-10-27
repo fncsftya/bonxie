@@ -37,6 +37,9 @@ package Nav_VM_Tests is
    procedure Publishing;
    --  Publishing options, format-menu rules, content versions and modal layers.
 
+   procedure Publishing_Formats;
+   --  The formats of the menu: their rows, which are text, and what is exported as which.
+
    procedure Publishing_Output;
    --  Export snapshots and completion, clipboard confirmation and file persistence.
 

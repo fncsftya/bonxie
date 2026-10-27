@@ -20,7 +20,8 @@ PREFER features from the Ada 2022 standard, e.g.
   - Target name symbol (`@`)
 PREFER to refactor existing code if it can be improved.
 KEEP lines to at most 120 columns (`-gnatyM120` in each project).
-Before handoff, run `rg --files -0 -g '*.adb' -g '*.ads' -g '*.ada' | xargs -0 gnatformat --no-project --keep-going --width 120 --charset utf-8` from the repository root. Install the `gnatformat_bin` Alire crate if needed.
+Before handoff, run `tools/format.sh` (it finds gnatformat, in PATH or `~/.alire/bin`, or installs `gnatformat_bin`; with file
+  arguments it formats only those). It runs `rg --files -0 -g '*.adb' -g '*.ads' -g '*.ada' | xargs -0 gnatformat --no-project --keep-going --width 120 --charset utf-8` from the repository root. Install the `gnatformat_bin` Alire crate if needed.
 
 ## Layers
 

@@ -1,5 +1,6 @@
 with Writing_Sources_VM;
 with Writing_VM.Actions;
+with Exports.Epub;
 with Publish_VM.Disk;
 with Publish_VM;
 with Pomarine.View_Models;
@@ -91,6 +92,8 @@ package View_Parts.Pages is
       --  Between the options and Export.
       Copy                                  : Pomarine.Widgets.Buttons.Button;
       Doc                                   : aliased Texts.Documents.Document;
+      Chapters                              : Exports.Epub.Chapter_Vectors.Vector;
+      --  Where the sections start in Doc, for an e-book's chapters.
       Text                                  : Pomarine.Widgets.Editors.Editor;
       Split_Rule                            : Pomarine.Widgets.Panels.Panel;
       Source_Scroll                         : Pomarine.Widgets.Scrollers.Scroller;

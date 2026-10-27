@@ -17,13 +17,13 @@ Currently only supports Apple Silicon.
 - **Grammar and spelling:** review suggestions from [Harper](https://writewithharper.com/) as you write.
 - **Flexible structure:** reorder sections and documents, and organise drafts into folders.
 - **Sources beside your writing:** view web pages, PDFs, EPUBs, text files and images; pin references and add highlights.
+- **Export:** Markdown, plain text, HTML, EPUB (a chapter to each section), OpenDocument, Word and PDF (A4), written by bonxie itself (no other program needed).
 - **Themes:** light or dark mode, with optional procedural backgrounds and colour variations.
 - **Alternative wordings:** use Reword to keep and compare different versions of a passage.
 
 ## TODO
 
 - Better editing workflows
-- More export targets (pdf, ebook, text)
 - More places to put notes
 - Project-level undo
 - Version control
