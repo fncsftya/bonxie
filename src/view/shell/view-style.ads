@@ -230,10 +230,6 @@ private package View.Style is
    Row_Height           : constant Float := 36.0;
    Row_Gap              : constant Pomarine.Widgets.Layouts.Length := 8.0;
    Dialog_Width         : constant Pomarine.Widgets.Layouts.Length := 320.0;
-   Dialog_Bar_Height    : constant Pomarine.Widgets.Layouts.Length := 30.0;
-   Dialog_Bar_Pad       : constant Pomarine.Widgets.Layouts.Length := 8.0;
-   Dialog_Close_Size    : constant Pomarine.Widgets.Layouts.Length := 18.0;
-   Dialog_Close_Icon    : constant Float := 11.0;
    Dialog_Foot_Pad      : constant Pomarine.Widgets.Layouts.Length := 10.0;
    --  The dark bar across the top of a dialog, its button to close it,
    --  and the padding of the foot, round its buttons.

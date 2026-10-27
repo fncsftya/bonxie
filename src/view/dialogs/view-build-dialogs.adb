@@ -22,48 +22,6 @@ package body View.Build.Dialogs is
    use Style;
    use Pomarine.Widgets.Layouts;
 
-   function Bar (Heading : UI.Label_Handle; Close : UI.Button_Handle) return UI.Layout
-   is (UI.Styled
-         (UI.Row
-            ([UI.Place (Heading, Grow => 1.0, Width => 0.0, Height => Dialog_Bar_Height, Exact => True),
-              UI.Place (Close, Width => Dialog_Close_Size, Height => Dialog_Close_Size, Shrink => 0.0, Exact => True)],
-             Appearance => (Fill => Toolbar, others => <>)),
-          (Flow    => Row,
-           Align   => Center,
-           Height  => Dialog_Bar_Height,
-           Shrink  => 0.0,
-           Padding => (Left | Right => Dialog_Bar_Pad, others => <>),
-           others  => <>)));
-   --  The dark bar across the top of a dialog, as a window's: its title, white, and a small button to close
-   --  it, at the right.
-
-   function Closer return Buttons.Settings
-   is (Buttons.Looks
-         ("Close",
-          Icon        => Pomarine.Icons.Shown (Pomarine.Icons.Close),
-          Icon_Points => Dialog_Close_Icon,
-          Focusable   => True));
-
-   function Boxed
-     (Inside : UI.Layout_Array; Width : UI.Layouts.Length; Height : UI.Layouts.Length := UI.Unset) return UI.Layout
-   is (UI.Styled
-         (UI.Column
-            (Inside,
-             Appearance => (Fill => Themes.Border, Radius => Themes.Large_Radius, Framed => True, others => <>)),
-          (Flow => Column, Outlined => On, Width => Width, Height => Height, others => <>)));
-   --  The outline round a dialog, of this size.
-
-   function Over_All (Dialog : UI.Layout) return UI.Layout
-   is (UI.Styled
-         (UI.Column ([Dialog], Appearance => (Fill => Themes.Scrim, others => <>)),
-          (Place    => Absolute,
-           Position => (others => 0.0),
-           Flow     => Column,
-           Spread   => Center,
-           Align    => Center,
-           others   => <>)));
-   --  Not in the layout of the screens: over them, all of the window, with the dialog in the middle.
-
    --  The dialog that asks before something is deleted: its controls are the view's (Pomarine.UI), bound to
    --  the Confirm_VM, which has what it says and what it is about.
 
@@ -94,7 +52,7 @@ package body View.Build.Dialogs is
 
          Heading : constant UI.Label_Handle :=
            Bound.Label (Title_Text, Style => Pomarine.Line_Texts.Strong, Ink => Themes.Bar_Ink);
-         Close   : constant UI.Button_Handle := Bound.Button (Closer, Confirm_VM.Cancel);
+         Close   : constant UI.Button_Handle := Bound.Button (UI.Close_Look, Confirm_VM.Cancel);
          Message : constant UI.Label_Handle := Bound.Label (Message_Text);
          Note    : constant UI.Label_Handle := Bound.Label (Note_Text);
          Offered : constant UI.Check_Handle := Bound.Check ("Delete documents too", Documents_Flag);
@@ -135,9 +93,14 @@ package body View.Build.Dialogs is
                  Appearance => (Fill => Themes.Tint, others => <>)),
               (Flow => Row, Spread => Finish, Padding => (others => Dialog_Foot_Pad), Gap => Row_Gap, others => <>));
 
-         Border  : constant UI.Layout :=
-           UI.Called (Boxed ([Bar (Heading, Close), Body_Layout, Rule, Foot], Dialog_Width), Confirm_Border);
-         Overlay : constant UI.Layout := UI.Called (Over_All (Border), Confirm_Overlay);
+         Overlay : constant UI.Layout :=
+           UI.Dialog
+             (Heading,
+              Close,
+              [Body_Layout, Rule, Foot],
+              (Width => Dialog_Width, others => <>),
+              Confirm_Overlay,
+              Confirm_Border);
       begin
          Bound.Show_When (UI.Any (Offered), Offers_Flag);
          UI.Mount_Into (Form, Item.Root.Window_Panel, Overlay);
@@ -168,7 +131,7 @@ package body View.Build.Dialogs is
 
          Heading : constant UI.Label_Handle :=
            Bound.Label ("Items", Style => Pomarine.Line_Texts.Strong, Ink => Themes.Bar_Ink);
-         Close   : constant UI.Button_Handle := Navs.Button (Closer, Nav_VM.Close_List);
+         Close   : constant UI.Button_Handle := Navs.Button (UI.Close_Look, Nav_VM.Close_List);
          Rows    : constant UI.Widget_Handle := Bound.Borrow_Widget (Parts.List_View);
          None    : constant UI.Label_Handle := Bound.Label (No_Items);
 
@@ -180,9 +143,9 @@ package body View.Build.Dialogs is
                  Appearance => (Fill => Paper, others => <>)),
               (Flow => Column, Grow => 1.0, Height => 0.0, Padding => (others => Dialog_Pad), others => <>));
 
-         Border  : constant UI.Layout :=
-           UI.Called (Boxed ([Bar (Heading, Close), Dialog], List_Width, List_Height), List_Border);
-         Overlay : constant UI.Layout := UI.Called (Over_All (Border), List_Overlay);
+         Overlay : constant UI.Layout :=
+           UI.Dialog
+             (Heading, Close, [Dialog], (Width => List_Width, Height => List_Height), List_Overlay, List_Border);
       begin
          Bound.On_Event (Rows, Widgets.Click, Item_List_VM.Reveal, Index_From_Event => True);
          Bound.On_Event (Rows, Widgets.Submit, Item_List_VM.Reveal, Index_From_Event => True);
