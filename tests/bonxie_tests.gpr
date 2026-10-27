@@ -15,7 +15,9 @@ project Bonxie_Tests is
    package Compiler is
       for Default_Switches ("Ada") use
         Bonxie_Tests_Config.Ada_Compiler_Switches &
-        ("-gnatwh",          --  local declarations hiding others
+        ("-gnatwn",          --  warnings are not errors: Pomarine's obsolescent entities (-gnatwj) are warned of
+                             --  until the code is moved off them, and GNAT cannot exempt just those from -gnatwe
+         "-gnatwh",          --  local declarations hiding others
          "-gnatyM120",        --  longest line
          "-gnatVa",          --  validity checks everywhere
          "-fstack-check",    --  detect stack overflow

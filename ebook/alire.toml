@@ -9,6 +9,7 @@ tags = []
 
 [[depends-on]]
 pomarine_model = "*"
+coretext = "*"
 
 [[pins]]
 pomarine_ui = { path = "../pomarine/ui" }
