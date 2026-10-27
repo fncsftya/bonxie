@@ -473,7 +473,10 @@ is
       end Next;
    end Numbers;
 
-   task type Worker with Storage_Size => 8 * 1024 * 1024;
+   subtype Preset_Lane is Natural range 0 .. Slot_Count;
+
+   task type Worker (Preset : Preset_Lane := 0) with Storage_Size => 8 * 1024 * 1024;
+   --  Preset is the slot it is for, if it is said; if not, it is told, as it begins (Numbers).
    --  A slot's task. Its stack holds what it hears with, which is more
    --  than most tasks' (the stack is address space, not memory, until it
    --  is used).
@@ -484,7 +487,11 @@ is
       Mine : Lane;
       Quit : Boolean;
    begin
-      Numbers.Next (Mine);
+      if Preset = 0 then
+         Numbers.Next (Mine);
+      else
+         Mine := Preset;
+      end if;
       loop
          Run_Gates (Mine).Pass (Quit);
          exit when Quit;
@@ -492,9 +499,13 @@ is
       end loop;
    end Worker;
 
-   Workers : array (Lane) of Worker;
-   --  One to a slot, from the start, so that starting a job never waits
-   --  for another's (and nothing is made while the program runs).
+   package Pool is
+      procedure Ensure (Which : Lane);
+      --  Make sure the slot has its task, made when the slot is first used so that a program that never listens
+      --  has none (a proof, which allows no task to be made while it runs, has them all from the start).
+   end Pool;
+
+   package body Pool is separate;
 
    procedure Start_Job (Which : Lane; Engine : Engines := System; Model_Directory : String := "") is
       Job : Natural;
@@ -505,6 +516,7 @@ is
            "is set by ""Begin_Job"" but not used",
            Reason => "the task finds which job it is to do (Job_Of), when it comes to it");
    begin
+      Pool.Ensure (Which);
       Board.Begin_Job (Which, Engine, Model_Directory, Job);
       Run_Gates (Which).Release;
    end Start_Job;

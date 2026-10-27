@@ -9,7 +9,6 @@ project Speech is
    --  The C is Swift (speech_swift.swift): SpeechAnalyzer can be reached
    --  from Swift alone, so it gives Ada a C interface. Alire has no
    --  configuration for Swift, so it is built as if it were C, by swiftc.
-   for Source_Dirs use ("src/**", "config/");
    for Object_Dir use "obj/" & Speech_Config.Build_Profile;
    for Create_Missing_Dirs use "True";
    for Library_Dir use "lib";
@@ -30,6 +29,15 @@ project Speech is
 
    type Proof_Kind is ("yes", "no");
    Proof : Proof_Kind := external ("SPEECH_PROOF", "no");
+
+   case Proof is
+      when "yes" =>
+         for Source_Dirs use ("src/**", "config/", "variants/eager");
+         --  Every slot's task from the start: a proof allows none to be made while the program runs.
+      when "no" =>
+         for Source_Dirs use ("src/**", "config/", "variants/lazy");
+         --  A slot's task is made when the slot is first used.
+   end case;
 
    package Compiler is
       --  Stack probes and canaries are for development and validation builds; a release build leaves them out.

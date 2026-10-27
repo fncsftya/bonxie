@@ -20,8 +20,7 @@ package Speech.Jobs is
    --  that body is analyzed under the proof configuration described there.
 
    Slot_Count : constant := Max_Sessions;
-   --  How many jobs can be going at once (a microphone to each, of the
-   --  tasks made when the program begins).
+   --  How many jobs can be going at once (a microphone to each, and a task, made when its slot is first used).
 
    subtype Lane is Positive range 1 .. Slot_Count;
    --  What a job goes on in, while it is not yet Reset.
@@ -90,7 +89,7 @@ package Speech.Jobs is
    procedure Shutdown;
    --  The program is ending: let the tasks that listen go. A program that
    --  uses this package must call it before it ends, or it does not: the
-   --  tasks are made when the program begins, one to a slot, and wait for
+   --  tasks are made when their slots are first used, one to a slot, and wait for
    --  something to do. (A job that is listening is not stopped by this,
    --  and its task does not go until it is: Stop, or Reset, first.)
 

@@ -1,3 +1,4 @@
+with Ada.Unchecked_Deallocation;
 with Interfaces.C;
 with System;
 
@@ -152,16 +153,33 @@ package body Harper is
       Language : Dialect := British;
       Format   : Text_Format := Plain_Text) is
    begin
-      select
-         Item.Engine.Begin_Check (Text, Revision, Language, Format);
-         Accepted := True;
+      if Item.Engine = null then
+         --  A task that is only now made is not yet at its accept: it is given a moment.
+         Item.Engine := new Worker;
+         select
+            Item.Engine.Begin_Check (Text, Revision, Language, Format);
+            Accepted := True;
+         or
+            delay 0.1;
+            Accepted := False;
+         end select;
       else
-         Accepted := False;
-      end select;
+         select
+            Item.Engine.Begin_Check (Text, Revision, Language, Format);
+            Accepted := True;
+         else
+            Accepted := False;
+         end select;
+      end if;
    end Submit;
 
    procedure Poll (Item : in out Checker; Value : out Check_Result; Ready : out Boolean) is
    begin
+      if Item.Engine = null then
+         Value := (others => <>);
+         Ready := False;
+         return;
+      end if;
       select
          Item.Engine.Take_Result (Value);
          Ready := True;
@@ -170,5 +188,15 @@ package body Harper is
          Ready := False;
       end select;
    end Poll;
+
+   overriding
+   procedure Finalize (Item : in out Checker) is
+      procedure Free is new Ada.Unchecked_Deallocation (Worker, Worker_Ref);
+   begin
+      if Item.Engine /= null then
+         abort Item.Engine.all;
+         Free (Item.Engine);
+      end if;
+   end Finalize;
 
 end Harper;

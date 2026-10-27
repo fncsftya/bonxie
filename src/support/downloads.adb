@@ -284,7 +284,7 @@ package body Downloads is
          Job.Finish (Failed, "could not save the file (" & Ada.Exceptions.Exception_Message (Problem) & ")");
    end Fetch;
 
-   task Worker is
+   task type Worker is
       entry Go;
    end Worker;
 
@@ -300,10 +300,19 @@ package body Downloads is
       end loop;
    end Worker;
 
+   type Worker_Ref is access Worker;
+
+   Engine : Worker_Ref;
+   --  Made by the first Start, so that a program that downloads nothing has no task. Start is the caller's, one
+   --  at a time, as the one job is.
+
    procedure Start (URL, File_Name : String) is
    begin
       Job.Begin_Job (Paths.To_Bounded_String (URL), Paths.To_Bounded_String (File_Name));
-      Worker.Go;
+      if Engine = null then
+         Engine := new Worker;
+      end if;
+      Engine.Go;
    end Start;
 
    function State return States

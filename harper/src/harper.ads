@@ -1,6 +1,7 @@
+with Ada.Finalization;
 with Ada.Strings.Bounded;
 
---  UTF-8 spelling and grammar checking. Each Checker owns one Ada task.
+--  UTF-8 spelling and grammar checking. Each Checker owns one Ada task, made by its first Submit.
 --  Submit and Poll only copy bounded data; every call into Rust is made
 --  by that task, including dictionary initialization and cleanup.
 
@@ -112,8 +113,15 @@ private
       entry Begin_Check (Text : String; Revision : Request_Id; Language : Dialect; Format : Text_Format);
       entry Take_Result (Value : out Check_Result);
    end Worker;
-   type Checker is limited record
-      Engine : Worker;
+   type Worker_Ref is access Worker;
+
+   type Checker is limited new Ada.Finalization.Limited_Controlled with record
+      Engine : Worker_Ref;
+      --  Null until the first Submit: a Checker that is never used has no task.
    end record;
+
+   overriding
+   procedure Finalize (Item : in out Checker);
+   --  A check that is running finishes, and the task goes (it is not waited for).
 
 end Harper;
