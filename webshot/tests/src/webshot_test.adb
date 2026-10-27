@@ -94,7 +94,7 @@ procedure Webshot_Test is
 begin
    Ada.Directories.Create_Path (Folder);
 
-   --  Its whole length, however long: scaled to fit a picture, not cut off.
+   --  Its whole length, however long: written as strips at the full scale, not cut off.
    Write_Page ("tall", "<title>tall</title><body style='margin:0'><div style='height:40000px;background:#cde'>x</div>");
    declare
       Title : constant String := Take ("tall");
@@ -102,8 +102,11 @@ begin
       Check (Title = "tall", "tall: its title, " & Title);
       if Webshot.State (Which) = Webshot.Done then
          Check
-           (Webshot.Height (Which) in 16_000 .. Webshot.Max_Pixels,
-            "tall: all of it is in a picture that fits, " & Webshot.Height (Which)'Image & " pixels");
+           (Webshot.Height (Which) in 79_000 .. 81_000,
+            "tall: all of it, at the full scale, " & Webshot.Height (Which)'Image & " pixels");
+         Check
+           (Webshot.Strip_Count (Which) = 5,
+            "tall: in strips that are no taller than a texture, " & Webshot.Strip_Count (Which)'Image);
       end if;
    end;
 

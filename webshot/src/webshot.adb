@@ -105,6 +105,12 @@ package body Webshot is
    function Tile_Count (Which : Slot) return Natural
    is (Natural (WS_Tiles (Index (Which))));
 
+   function WS_Strips (Which : Interfaces.C.int) return Interfaces.C.int
+   with Import, Convention => C, External_Name => "ws_strips";
+
+   function Strip_Count (Which : Slot) return Natural
+   is (Natural (WS_Strips (Index (Which))));
+
    function Pressed (Which : Slot) return Boolean
    is (WS_Pressed (Index (Which)) = 1);
 

@@ -29,12 +29,16 @@ package Webshot is
    --  pixels (see Scale).
 
    Scale : constant := 2;
-   --  Pixels to a point of the page, as far as that is no more than
-   --  Max_Pixels down the picture: a very long page has fewer, so that the
-   --  whole page is in the picture, however long it is.
+   --  Pixels to a point of the page. A page too long for one picture is
+   --  written as several, one under another (see Strip_Count), each no more
+   --  than Max_Pixels tall; only one longer than Max_Strips of them have
+   --  fewer pixels to a point, so that the whole page is there.
 
    Max_Pixels : constant := 16_384;
    --  Pixels tall a picture is at most, which a GPU texture can be.
+
+   Max_Strips : constant := 32;
+   --  Pictures a page is written as, at the most.
 
    procedure Start
      (Which           : Slot;
@@ -70,7 +74,14 @@ package Webshot is
 
    function Height (Which : Slot) return Natural
    with Pre => State (Which) = Done;
-   --  Pixels tall the picture is.
+   --  Pixels tall the picture is: all the strips, together.
+
+   function Strip_Count (Which : Slot) return Natural
+   with Pre => State (Which) = Done, Post => Strip_Count'Result <= Max_Strips;
+   --  How many pictures the page was written as, from 1 (none for a file
+   --  that was fetched). The first is File_Name, and the rest are beside it,
+   --  as File_Name without its ending, then ".2.png" and on (see
+   --  Pomarine.Strips), one under another, all as wide.
 
    function Progress (Which : Slot) return Float
    with Post => Progress'Result in 0.0 .. 1.0;

@@ -14,6 +14,7 @@ enum { WS_IDLE = 0, WS_WORKING = 1, WS_DONE = 2, WS_FAILED = 3, WS_LOOKED = 4 };
 static const NSTimeInterval kLoadTimeout = 45.0;
 static const int kPixelsPerPoint = 2;
 static const int kMaxPixels = 16384;  // a texture's side, at most
+static const int kMaxStrips = 32;  // pictures a page is written as, at most: a longer page is shrunk to fit them
 static const NSTimeInterval kSettle = 0.6;  // after load, for late layout
 static const NSTimeInterval kBannerWait = 1.0;  // after a click, for the banner to go
 static const int kBannerRounds = 2;  // a banner may lead to another notice
@@ -245,6 +246,7 @@ typedef struct {
     char document[WS_URL];  // of the PDF the page is of, once Looked
     int pressed;  // whether the last press found a button
     int tile_count;  // screens written beside the whole page, once Done
+    int strip_count;  // pictures the page is written as, once Done
 } WSSlot;
 
 static WSSlot **slot_table;
@@ -304,6 +306,9 @@ static void finish(int slot, int state, int height, NSString *message)
 @property BOOL dismiss;  // click away banners the page's own way
 @property(copy) NSString *lookPath;  // the picture of the top of the page, or nil for none
 @property(copy) NSString *tilePrefix;  // where the first screens of the page are written, or nil for none
+@property double stripScale;  // pixels to a point, in the strips of the page
+@property int stripPoints;  // points of the page a strip is of, but the last
+@property int stripPixels;  // pixels tall the strips written so far are, together
 @property(strong) NSMutableArray<WKFrameInfo *> *frames;  // of the page's frames inside it
 @end
 
@@ -598,48 +603,75 @@ static BOOL stopped_for_download(WSJob *job, NSError *error)
     }];
 }
 
+// The name of the picture of a strip of the page: the first is the file asked for, and the
+// others are beside it, as stem.2.png and on.
+- (NSString *)stripName:(int)index
+{
+    if (index == 1) return self.path;
+    return [[self.path stringByDeletingPathExtension] stringByAppendingFormat:@".%d.png", index];
+}
+
+// The page is written as strips, one under another, each no more pixels tall than a GPU texture
+// can be (see kMaxPixels), at twice as many pixels as points, for small text to be read (by
+// Vision) and drawn well: only a page so long that even the most strips (kMaxStrips) cannot hold
+// it so is shrunk, to as many pixels as they can. The snapshot's width is in points, and the
+// picture has the screen's backing scale (1, 2...) pixels to each: so ask for what gives the
+// pixels wanted, whichever screen it is.
 - (void)shoot:(int)high
 {
     self.view.frame = NSMakeRect(0, 0, self.width, high);
-    WKSnapshotConfiguration *config = [WKSnapshotConfiguration new];
-    config.rect = NSMakeRect(0, 0, self.width, high);
-    // Twice as many pixels as points, for small text to be read (by Vision)
-    // and drawn well, unless the page is so long that that would be more
-    // pixels than a GPU texture can have down it: then as many as can be.
-    // The snapshot's width is in points, and the picture has the screen's
-    // backing scale (1, 2...) pixels to each: so ask for what gives the
-    // pixels wanted, whichever screen it is.
-    double backing = [NSScreen mainScreen].backingScaleFactor;
-    if (backing < 1.0) backing = 1.0;
-    double scale = MIN((double)kPixelsPerPoint, (double)kMaxPixels / high);
-    config.snapshotWidth = @(self.width * scale / backing);
+    self.stripScale = MIN((double)kPixelsPerPoint, (double)kMaxStrips * kMaxPixels / high);
+    self.stripPoints = MAX(1, (int)floor(kMaxPixels / self.stripScale));
+    self.stripPixels = 0;
+    // What a longer page left beside the file is not part of this one.
+    for (int old = 2; [[NSFileManager defaultManager] fileExistsAtPath:[self stripName:old]]; old++)
+        [[NSFileManager defaultManager] removeItemAtPath:[self stripName:old] error:nil];
     __weak WSJob *me = self;
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.3 * NSEC_PER_SEC)),
                    dispatch_get_main_queue(), ^{
-        WSJob *job = me;
-        if (!job || job.finished) return;
-        [job.view takeSnapshotWithConfiguration:config
-                              completionHandler:^(NSImage *image, NSError *error) {
-            WSJob *again = me;
-            if (!again || again.finished) return;
-            if (!image) {
-                [again fail:error.localizedDescription ?: @"No snapshot"];
-                return;
-            }
-            CGImageRef cg = [image CGImageForProposedRect:NULL context:nil hints:nil];
-            if (!cg) { [again fail:@"No image"]; return; }
-            NSBitmapImageRep *rep = [[NSBitmapImageRep alloc] initWithCGImage:cg];
-            NSData *png = [rep representationUsingType:NSBitmapImageFileTypePNG properties:@{}];
-            NSString *temp = [again.path stringByAppendingString:@".part"];
-            if (![png writeToFile:temp atomically:NO]
-                || rename(temp.fileSystemRepresentation, again.path.fileSystemRepresentation) != 0) {
-                [again fail:@"The picture could not be written"];
-                return;
-            }
-            strlcpy(slot_data(again.slot)->title, again.view.title.UTF8String ?: "", WS_MESSAGE);
-            [again tile:1 of:high picture:(int)CGImageGetHeight(cg)];
-        }];
+        [me strip:1 of:high];
     });
+}
+
+- (void)strip:(int)index of:(int)high
+{
+    int offset = (index - 1) * self.stripPoints;
+    if (self.finished) return;
+    if (offset >= high) {
+        [self tile:1 of:high picture:self.stripPixels];
+        return;
+    }
+    WKSnapshotConfiguration *config = [WKSnapshotConfiguration new];
+    config.rect = NSMakeRect(0, offset, self.width, MIN(self.stripPoints, high - offset));
+    double backing = [NSScreen mainScreen].backingScaleFactor;
+    if (backing < 1.0) backing = 1.0;
+    config.snapshotWidth = @(self.width * self.stripScale / backing);
+    __weak WSJob *me = self;
+    [self.view takeSnapshotWithConfiguration:config
+                          completionHandler:^(NSImage *image, NSError *error) {
+        WSJob *again = me;
+        if (!again || again.finished) return;
+        if (!image) {
+            [again fail:error.localizedDescription ?: @"No snapshot"];
+            return;
+        }
+        CGImageRef cg = [image CGImageForProposedRect:NULL context:nil hints:nil];
+        if (!cg) { [again fail:@"No image"]; return; }
+        NSBitmapImageRep *rep = [[NSBitmapImageRep alloc] initWithCGImage:cg];
+        NSData *png = [rep representationUsingType:NSBitmapImageFileTypePNG properties:@{}];
+        NSString *name = [again stripName:index];
+        NSString *temp = [name stringByAppendingString:@".part"];
+        if (![png writeToFile:temp atomically:NO]
+            || rename(temp.fileSystemRepresentation, name.fileSystemRepresentation) != 0) {
+            [again fail:@"The picture could not be written"];
+            return;
+        }
+        if (index == 1)
+            strlcpy(slot_data(again.slot)->title, again.view.title.UTF8String ?: "", WS_MESSAGE);
+        again.stripPixels += (int)CGImageGetHeight(cg);
+        slot_data(again.slot)->strip_count = index;
+        [again strip:index + 1 of:high];
+    }];
 }
 
 @end
@@ -674,6 +706,7 @@ int ws_download(int slot, const char *url, const char *path)
     slot_data(slot)->document[0] = 0;
     slot_data(slot)->pressed = 0;
     slot_data(slot)->tile_count = 0;
+    slot_data(slot)->strip_count = 0;
     slot_data(slot)->phase = 0;
     slot_data(slot)->message[0] = 0;
     if ([target isFileURL]) {
@@ -712,6 +745,7 @@ int ws_start(int slot, const char *url, const char *path, int width, const char 
     job.lookPath = look && look[0] ? [NSString stringWithUTF8String:look] : nil;
     job.tilePrefix = tiles && tiles[0] ? [NSString stringWithUTF8String:tiles] : nil;
     slot_data(slot)->tile_count = 0;
+    slot_data(slot)->strip_count = 0;
     slot_data(slot)->document[0] = 0;
     slot_data(slot)->pressed = 0;
     WKWebViewConfiguration *config = [WKWebViewConfiguration new];
@@ -767,6 +801,7 @@ int ws_pressed(int slot) { return slot >= 0 && slot < slot_count ? slot_data(slo
 const char *ws_document(int slot) { return slot >= 0 && slot < slot_count ? slot_data(slot)->document : ""; }
 
 int ws_state(int slot) { return slot >= 0 && slot < slot_count ? slot_data(slot)->state : WS_IDLE; }
+int ws_strips(int slot) { return slot >= 0 && slot < slot_count ? slot_data(slot)->strip_count : 0; }
 int ws_height(int slot) { return slot >= 0 && slot < slot_count ? slot_data(slot)->height : 0; }
 const char *ws_message(int slot) { return slot >= 0 && slot < slot_count ? slot_data(slot)->message : ""; }
 // Percent done: the page's load is the first four fifths, then the wait
@@ -797,4 +832,5 @@ void ws_reset(int slot)
     slot_data(slot)->document[0] = 0;
     slot_data(slot)->pressed = 0;
     slot_data(slot)->tile_count = 0;
+    slot_data(slot)->strip_count = 0;
 }
