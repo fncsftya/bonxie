@@ -32,6 +32,13 @@ project Speech is
    Proof : Proof_Kind := external ("SPEECH_PROOF", "no");
 
    package Compiler is
+      --  Stack probes and canaries are for development and validation builds; a release build leaves them out.
+      Stack_Checks := ("-fstack-check", "-fstack-protector-strong");
+      case Speech_Config.Build_Profile is
+         when "release" => Stack_Checks := ();
+         when others => null;
+      end case;
+
       case Proof is
          when "yes" =>
             for Local_Configuration_Pragmas use Project'Project_Dir & "jorvik.adc";
@@ -41,10 +48,8 @@ project Speech is
       for Default_Switches ("Ada") use Speech_Config.Ada_Compiler_Switches &
         ("-gnatwh",          --  local declarations hiding others
          "-gnatyM120",        --  longest line
-         "-gnatVa",          --  validity checks everywhere
-         "-fstack-check",    --  detect stack overflow
-         "-fstack-protector-strong",
-         "-mmacosx-version-min=26.0");
+         "-gnatVa")          --  validity checks everywhere
+        & Stack_Checks & ("-mmacosx-version-min=26.0");
       for Driver ("C") use Project'Project_Dir & "swiftc.sh";
       for Default_Switches ("C") use
         ("-parse-as-library", "-swift-version", "5", "-O",

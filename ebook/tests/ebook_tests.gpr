@@ -10,12 +10,18 @@ project Ebook_Tests is
    for Main use ("ebook_test.adb", "page_view.adb");
 
    package Compiler is
+      --  Stack probes and canaries are for development and validation builds; a release build leaves them out.
+      Stack_Checks := ("-fstack-check", "-fstack-protector-strong");
+      case Ebook_Tests_Config.Build_Profile is
+         when "release" => Stack_Checks := ();
+         when others => null;
+      end case;
+
       for Default_Switches ("Ada") use Ebook_Tests_Config.Ada_Compiler_Switches &
         ("-gnatwh",          --  local declarations hiding others
          "-gnatyM120",        --  longest line
-         "-gnatVa",          --  validity checks everywhere
-         "-fstack-check",    --  detect stack overflow
-         "-fstack-protector-strong");
+         "-gnatVa")          --  validity checks everywhere
+        & Stack_Checks;
    end Compiler;
 
    package Binder is

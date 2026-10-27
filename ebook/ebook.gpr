@@ -23,12 +23,18 @@ project Ebook is
    Pdfium := external ("PDFIUM_PREFIX", Project'Project_Dir & "pdfium");
 
    package Compiler is
+      --  Stack probes and canaries are for development and validation builds; a release build leaves them out.
+      Stack_Checks := ("-fstack-check", "-fstack-protector-strong");
+      case Ebook_Config.Build_Profile is
+         when "release" => Stack_Checks := ();
+         when others => null;
+      end case;
+
       for Default_Switches ("Ada") use Ebook_Config.Ada_Compiler_Switches &
         ("-gnatwh",          --  local declarations hiding others
          "-gnatyM120",        --  longest line
-         "-gnatVa",          --  validity checks everywhere
-         "-fstack-check",    --  detect stack overflow
-         "-fstack-protector-strong");
+         "-gnatVa")          --  validity checks everywhere
+        & Stack_Checks;
       --  Alire's GCC does not find Apple's frameworks: Apple's clang is
       --  used for the C, as for the Objective-C of webshot.
       for Driver ("C") use "/usr/bin/clang";

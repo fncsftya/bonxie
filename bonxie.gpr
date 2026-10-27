@@ -27,22 +27,29 @@ project Bonxie is
    end Naming;
 
    package Compiler is
+      --  Stack probes and canaries are for development and validation builds; a release build leaves them out.
+      Stack_Checks := ("-fstack-check", "-fstack-protector-strong");
+      case Bonxie_Config.Build_Profile is
+         when "release" => Stack_Checks := ();
+         when others => null;
+      end case;
+
       for Driver ("C") use "/usr/bin/clang";
       for Default_Switches ("C") use
         ("-x", "objective-c", "-fobjc-arc", "-O2", "-Wall", "-Wextra", "-Wno-unused-command-line-argument");
       for Default_Switches ("Ada") use Bonxie_Config.Ada_Compiler_Switches &
         ("-gnatwh",          --  local declarations hiding others
          "-gnatyM120",        --  longest line
-         "-gnatVa",          --  validity checks everywhere
-         "-fstack-check",    --  detect stack overflow
-         "-fstack-protector-strong");
+         "-gnatVa")          --  validity checks everywhere
+        & Stack_Checks;
    end Compiler;
 
    package Linker is
       for Linker_Options use ("-framework", "Metal", "-framework", "Foundation");
       --  The session keeps its text areas, fixed freehand paths and undo storage
       --  where it is declared: about 72 MB, plus space for calls and temporaries.
-      for Default_Switches ("Ada") use ("-Wl,-stack_size,0x6000000", "-framework", "Metal", "-framework", "Foundation");
+      for Default_Switches ("Ada") use
+        ("-Wl,-stack_size,0x6000000", "-Wl,-dead_strip", "-framework", "Metal", "-framework", "Foundation");
    end Linker;
 
    package Binder is

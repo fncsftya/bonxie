@@ -9,8 +9,15 @@ library project Harper is
    for Create_Missing_Dirs use "True";
 
    package Compiler is
+      --  Stack probes and canaries are for development and validation builds; a release build leaves them out.
+      Stack_Checks := ("-fstack-check", "-fstack-protector-strong");
+      case Harper_Config.Build_Profile is
+         when "release" => Stack_Checks := ();
+         when others => null;
+      end case;
+
       for Default_Switches ("Ada") use Harper_Config.Ada_Compiler_Switches &
-        ("-gnatwh", "-gnatyM120", "-gnatVa", "-fstack-check", "-fstack-protector-strong");
+        ("-gnatwh", "-gnatyM120", "-gnatVa") & Stack_Checks;
    end Compiler;
 
    package Linker is

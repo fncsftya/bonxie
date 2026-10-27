@@ -15,18 +15,24 @@ project Bench is
    for Main use ("item_bench.adb", "open_bench.adb", "write_bench.adb");
 
    package Compiler is
+      --  Stack probes and canaries are for development and validation builds; a release build leaves them out.
+      Stack_Checks := ("-fstack-check", "-fstack-protector-strong");
+      case Bench_Config.Build_Profile is
+         when "release" => Stack_Checks := ();
+         when others => null;
+      end case;
+
       for Default_Switches ("Ada") use Bench_Config.Ada_Compiler_Switches &
         ("-gnatwh",          --  local declarations hiding others
          "-gnatyM120",        --  longest line
-         "-gnatVa",          --  validity checks everywhere
-         "-fstack-check",    --  detect stack overflow
-         "-fstack-protector-strong");
+         "-gnatVa")          --  validity checks everywhere
+        & Stack_Checks;
    end Compiler;
 
    package Linker is
       --  The session keeps its items' text areas where it is declared:
       --  more than the usual 8 MB of the main thread's stack.
-      for Default_Switches ("Ada") use ("-Wl,-stack_size,0x4000000");
+      for Default_Switches ("Ada") use ("-Wl,-stack_size,0x4000000", "-Wl,-dead_strip");
    end Linker;
 
    package Binder is
