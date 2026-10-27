@@ -242,7 +242,7 @@ package body View.Build.Shell_Views is
          --  The outline of a card, to make a project.
          Plus          : constant UI.Button_Handle :=
            Navs.Button
-             (Buttons.Looks ("New", Buttons.Primary, Icon => Pomarine.Icons.Shown (Icon_Set.Plus)),
+             (Buttons.Looks ("New", Buttons.Primary, Icon => Pomarine.Icons.Shown (Icon_Set.Plus), Focusable => False),
               Nav_VM.Start_Project,
               Reflect => False);
          Wording       : constant UI.Label_Handle :=

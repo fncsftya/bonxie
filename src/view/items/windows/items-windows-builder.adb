@@ -84,14 +84,19 @@ package body Items.Windows.Builder is
            Button
              (Item.Link_Button,
               Item_Window_VM.Choose_Link,
-              Buttons.Looks ("From URL", Icon => Pomarine.Icons.Shown (Icon_Set.Link), Captioned => True),
+              Buttons.Looks
+                ("From URL", Icon => Pomarine.Icons.Shown (Icon_Set.Link), Captioned => True, Focusable => False),
               Metrics.Wizard_Button_Width,
               Metrics.Wizard_Button_Height);
          File         : constant UI.Layout :=
            Button
              (Item.File_Button,
               Item_Window_VM.Choose_File,
-              Buttons.Looks ("From File", Icon => Pomarine.Icons.Shown (Icon_Set.Document), Captioned => True),
+              Buttons.Looks
+                ("From File",
+                 Icon      => Pomarine.Icons.Shown (Icon_Set.Document),
+                 Captioned => True,
+                 Focusable => False),
               Metrics.Wizard_Button_Width,
               Metrics.Wizard_Button_Height);
          Wizard       : constant UI.Layout :=
@@ -128,14 +133,14 @@ package body Items.Windows.Builder is
            Button
              (Item.Prev_Button,
               Item_Window_VM.Previous_Page,
-              Buttons.Looks ("Previous page", Icon => Pomarine.Icons.Shown (Icon_Set.Back)),
+              Buttons.Looks ("Previous page", Icon => Pomarine.Icons.Shown (Icon_Set.Back), Focusable => False),
               Metrics.Tool_Size,
               Metrics.Zoom_Row_Height);
          Next         : constant UI.Layout :=
            Button
              (Item.Next_Button,
               Item_Window_VM.Next_Page,
-              Buttons.Looks ("Next page", Icon => Pomarine.Icons.Shown (Icon_Set.Forward)),
+              Buttons.Looks ("Next page", Icon => Pomarine.Icons.Shown (Icon_Set.Forward), Focusable => False),
               Metrics.Tool_Size,
               Metrics.Zoom_Row_Height);
          Pager        : constant UI.Layout :=
@@ -156,21 +161,21 @@ package body Items.Windows.Builder is
            Button
              (Item.Cursor_Button,
               Item_Window_VM.Use_Pointer,
-              Buttons.Looks ("Ptr", Icon => Pomarine.Icons.Shown (Icon_Set.Cursor)),
+              Buttons.Looks ("Ptr", Icon => Pomarine.Icons.Shown (Icon_Set.Cursor), Focusable => False),
               Metrics.Tool_Size,
               Metrics.Zoom_Row_Height);
          Marker       : constant UI.Layout :=
            Button
              (Item.Marker_Button,
               Item_Window_VM.Use_Marker,
-              Buttons.Looks ("Mark", Icon => Pomarine.Icons.Shown (Icon_Set.Highlighter)),
+              Buttons.Looks ("Mark", Icon => Pomarine.Icons.Shown (Icon_Set.Highlighter), Focusable => False),
               Metrics.Tool_Size,
               Metrics.Zoom_Row_Height);
          Eraser       : constant UI.Layout :=
            Button
              (Item.Eraser_Button,
               Item_Window_VM.Use_Eraser,
-              Buttons.Looks ("Rub", Icon => Pomarine.Icons.Shown (Icon_Set.Eraser)),
+              Buttons.Looks ("Rub", Icon => Pomarine.Icons.Shown (Icon_Set.Eraser), Focusable => False),
               Metrics.Tool_Size,
               Metrics.Zoom_Row_Height);
          Tools        : constant UI.Layout :=
@@ -184,14 +189,14 @@ package body Items.Windows.Builder is
            Button
              (Item.Outline_Button,
               Item_Window_VM.Link_To_Outline,
-              Buttons.Looks ("Section", Captioned => True, Shape => Buttons.Dropdown),
+              Buttons.Looks ("Section", Captioned => True, Shape => Buttons.Dropdown, Focusable => False),
               Metrics.Outline_Button_Width,
               Metrics.Zoom_Row_Height);
          Zoom         : constant UI.Layout :=
            Button
              (Item.Zoom_Button,
               Item_Window_VM.Toggle_Zoom,
-              Buttons.Looks ("100%", Captioned => True, Shape => Buttons.Dropdown),
+              Buttons.Looks ("100%", Captioned => True, Shape => Buttons.Dropdown, Focusable => False),
               Metrics.Zoom_Button_Width,
               Metrics.Zoom_Row_Height);
          Status       : constant UI.Layout :=
@@ -225,7 +230,7 @@ package body Items.Windows.Builder is
                     Button
                       (Item.Menu_Buttons (Which),
                        Item_Window_VM.Zoom_Preset,
-                       Buttons.Looks (Items.Sources.Percent (Metrics.Preset_Zooms (Which))),
+                       Buttons.Looks (Items.Sources.Percent (Metrics.Preset_Zooms (Which)), Focusable => False),
                        Metrics.Preset_Width,
                        Metrics.Zoom_Row_Height,
                        Index => Which);
@@ -260,7 +265,7 @@ package body Items.Windows.Builder is
            Button
              (Item.Fetch_Button,
               Item_Window_VM.Capture,
-              Buttons.Looks ("Add", Buttons.Primary),
+              Buttons.Looks ("Add", Buttons.Primary, Focusable => False),
               Metrics.Fetch_Width,
               Metrics.Fetch_Height);
          Fetch_Overlay : constant UI.Layout :=

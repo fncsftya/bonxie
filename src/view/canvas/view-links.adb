@@ -36,7 +36,7 @@ package body View.Links is
 
    procedure Build (Item : in out Session) is
       function Pictured (Name : String; Icon : Pomarine.Icons.Icon) return Buttons.Settings
-      is (Buttons.Looks (Name, Icon => Pomarine.Icons.Shown (Icon)));
+      is (Buttons.Looks (Name, Icon => Pomarine.Icons.Shown (Icon), Focusable => False));
 
       Buttons_Needed : constant Natural :=
         Item_Links.Strokes'Pos (Item_Links.Strokes'Last)
@@ -102,7 +102,7 @@ package body View.Links is
             Tool
               (Item.Linking.Color_Buttons (Each),
                Apart => Each = 1,
-               Looks => Buttons.Looks ("Ink"),
+               Looks => Buttons.Looks ("Ink", Focusable => False),
                What  => Canvas_VM.Set_Color,
                Index => Each);
             Buttons.Set_Swatch (Item.Linking.Color_Buttons (Each), Style.Link_Inks (Each));
@@ -110,7 +110,9 @@ package body View.Links is
          Tool
            (Item.Linking.Delete_Link,
             Apart => True,
-            Looks => Buttons.Looks ("Del", Buttons.Danger, Icon => Pomarine.Icons.Shown (Icon_Set.Delete)),
+            Looks =>
+              Buttons.Looks
+                ("Del", Buttons.Danger, Icon => Pomarine.Icons.Shown (Icon_Set.Delete), Focusable => False),
             What  => Canvas_VM.Delete_Link);
 
          declare

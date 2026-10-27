@@ -117,7 +117,8 @@ package body Items.Readers is
         (Item.Chrome, Parent, Bar, Pixels, Placement => (if Pinned then Frames.Filling else Frames.Floating));
       Buttons.Configure
         (Item.Pin_Button,
-         Buttons.Looks ("Pin", Icon => Pomarine.Icons.Shown (Icon_Set.Pin), Icon_Points => Pin_Icon_Size));
+         Buttons.Looks
+           ("Pin", Icon => Pomarine.Icons.Shown (Icon_Set.Pin), Icon_Points => Pin_Icon_Size, Focusable => False));
       Buttons.Set_Selected (Item.Pin_Button, Pinned);
 
       Buttons.Set_Label (Item.Visit_Button, "Visit Source");
@@ -137,7 +138,7 @@ package body Items.Readers is
            (Part : in out Buttons.Button; What : Reader_VM.Command; Caption : String; Icon : Pomarine.Icons.Optional)
             return UI.Layout is
          begin
-            Buttons.Configure (Part, Buttons.Looks (Caption, Icon => Icon));
+            Buttons.Configure (Part, Buttons.Looks (Caption, Icon => Icon, Focusable => False));
             declare
                Handle : constant UI.Button_Handle := Bound.Borrow_Button (Part, What, Reflect => False);
             begin

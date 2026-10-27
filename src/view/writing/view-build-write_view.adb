@@ -209,12 +209,12 @@ package body View.Build.Write_View is
                UI.Place (Title_Control, Grow => 1.0, Width => 0.0, Height => Title_Height, Exact => True),
                Command_Button
                  (Each.Outline_Button,
-                  Buttons.Looks ("Section", Captioned => True, Shape => Buttons.Dropdown),
+                  Buttons.Looks ("Section", Captioned => True, Shape => Buttons.Dropdown, Focusable => False),
                   Writing_VM.Actions.Open_Section_Menu,
                   (Width => Outline_Link_Width, Height => Layouts.Length_Of (Bar_Button_Height), others => <>)),
                Command_Button
                  (Each.Sources_Button,
-                  Buttons.Looks ("Sources", Shape => Buttons.Dropdown),
+                  Buttons.Looks ("Sources", Shape => Buttons.Dropdown, Focusable => False),
                   Writing_VM.Actions.Open_Sources,
                   (Width => Sources_Width, Height => Layouts.Length_Of (Bar_Button_Height), others => <>)),
                Command_Button
