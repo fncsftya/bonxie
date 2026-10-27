@@ -15,6 +15,7 @@ static WKWebView *live_view;
 static NSWindow *live_window;
 static WLDelegate *live_delegate;
 static id live_monitor;
+static NSMutableArray<NSWindow *> *popups;
 
 // Command with a letter that the program keeps for itself (see wl_keep): the page would take it, so it is
 // caught on its way, and said in wl_shortcut.
@@ -26,14 +27,57 @@ static int pending_shortcut;
 
 @implementation WLDelegate
 
-// A link that asks for a new window (target=_blank, window.open) opens here.
+// A page that asks for a window of its own (window.open, as the sign-in of Google and others does, which
+// talks to the page that opened it and closes itself when done) is given one: a window beside the program's,
+// with the configuration it was handed, which is what keeps it joined to the page that opened it. A plain link
+// that names no frame (target=_blank) is the same page's, and is followed here.
 - (WKWebView *)webView:(WKWebView *)view
     createWebViewWithConfiguration:(WKWebViewConfiguration *)config
                forNavigationAction:(WKNavigationAction *)action
                     windowFeatures:(WKWindowFeatures *)features
 {
-    if (action.targetFrame == nil) [view loadRequest:action.request];
-    return nil;
+    if (!action.targetFrame && !features.width && !features.height && action.navigationType == WKNavigationTypeLinkActivated) {
+        [view loadRequest:action.request];
+        return nil;
+    }
+    CGFloat width = features.width ? features.width.doubleValue : 520;
+    CGFloat height = features.height ? features.height.doubleValue : 680;
+    NSRect over = live_window.frame;
+    NSRect frame = NSMakeRect(NSMidX(over) - width / 2, NSMidY(over) - height / 2, width, height);
+    NSWindow *popup = [[NSWindow alloc]
+        initWithContentRect:frame
+                  styleMask:NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskResizable |
+                            NSWindowStyleMaskMiniaturizable
+                    backing:NSBackingStoreBuffered
+                      defer:NO];
+    popup.releasedWhenClosed = NO;
+    WKWebView *page = [[WKWebView alloc] initWithFrame:((NSView *)popup.contentView).bounds configuration:config];
+    page.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+    page.UIDelegate = self;
+    page.navigationDelegate = self;
+    [popup.contentView addSubview:page];
+    if (popups == nil) popups = [NSMutableArray new];
+    [popups addObject:popup];
+    [[NSNotificationCenter defaultCenter] addObserverForName:NSWindowWillCloseNotification
+                                                      object:popup
+                                                       queue:nil
+                                                  usingBlock:^(NSNotification *note) {
+        [popups removeObject:popup];
+    }];
+    [popup makeKeyAndOrderFront:nil];
+    return page;
+}
+
+// The page that was opened asks to be closed (window.close).
+- (void)webViewDidClose:(WKWebView *)view
+{
+    if (view != live_view) [view.window close];
+}
+
+// A window of its own is named for the page in it.
+- (void)webView:(WKWebView *)view didFinishNavigation:(WKNavigation *)navigation
+{
+    if (view != live_view && view.title.length > 0) view.window.title = view.title;
 }
 
 @end
@@ -49,6 +93,7 @@ int wl_attach(void *window)
     config.websiteDataStore = [WKWebsiteDataStore defaultDataStore];
     // Some sign-in pages turn away a browser that does not say it is Safari.
     config.applicationNameForUserAgent = @"Version/17.5 Safari/605.1.15";
+    config.preferences.javaScriptCanOpenWindowsAutomatically = YES;
     live_view = [[WKWebView alloc] initWithFrame:NSMakeRect(0, 0, 100, 100) configuration:config];
     live_delegate = [WLDelegate new];
     live_view.UIDelegate = live_delegate;
@@ -57,7 +102,7 @@ int wl_attach(void *window)
     [live_window.contentView addSubview:live_view];
     live_monitor = [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskKeyDown
                                                          handler:^NSEvent *(NSEvent *event) {
-        if (live_view == nil || live_view.hidden || !wl_has_focus()) return event;
+        if (live_view == nil || live_view.hidden || event.window != live_window || !wl_has_focus()) return event;
         NSEventModifierFlags flags = event.modifierFlags & NSEventModifierFlagDeviceIndependentFlagsMask;
         if (flags != NSEventModifierFlagCommand) return event;
         NSString *letter = event.charactersIgnoringModifiers;
@@ -75,6 +120,7 @@ int wl_attach(void *window)
 
 void wl_detach(void)
 {
+    for (NSWindow *popup in [popups copy]) [popup close];
     if (live_monitor != nil) [NSEvent removeMonitor:live_monitor];
     live_monitor = nil;
     [live_view removeFromSuperview];

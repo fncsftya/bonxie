@@ -61,7 +61,7 @@ package body Item_Tests is
    Tools_Y  : constant Float := 440.5;
    --  The middle of the buttons in the tray over the foot of the canvas:
    --  Add Document and Add Source.
-   List_X   : constant Float := 668.0;
+   List_X   : constant Float := 567.0;
    List_Y   : constant Float := 22.0;
    --  Items, at the right of the toolbar.
 

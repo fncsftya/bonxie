@@ -63,7 +63,8 @@ package View_Parts.Common is
       Writing_Region,
       Canvas_Region,
       Grammar_Region,
-      Header_Region);
+      Header_Region,
+      Browser_Region);
    --  The views of the session's controls (Pomarine.UI), one for each region of the window.
 
    type Form_Array is array (Form_Kinds) of Screen_Holder;

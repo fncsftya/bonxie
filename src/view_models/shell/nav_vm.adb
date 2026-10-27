@@ -24,6 +24,12 @@ package body Nav_VM is
    function Is_Renaming (Self : View_Model) return Boolean
    is (Self.Renaming);
 
+   function Browser_Open (Self : View_Model) return Boolean
+   is (Self.Browsing);
+
+   function Browser_Shown (Self : View_Model) return Boolean
+   is (Self.Browsing and then Self.Shown = Project);
+
    function Draft (Self : View_Model) return String
    is (Parts.Get (Self.Typed));
 
@@ -61,12 +67,16 @@ package body Nav_VM is
    function Renaming_Version (Self : View_Model) return Parts.Version_Number
    is (Parts.Value (Self.Titles));
 
+   function Browser_Version (Self : View_Model) return Parts.Version_Number
+   is (Parts.Value (Self.Browsers));
+
    overriding
    function Version (Self : View_Model) return Parts.Version_Number
    is (Screen_Version (Self)
        + Mode_Version (Self)
        + Layer_Version (Self)
        + Renaming_Version (Self)
+       + Browser_Version (Self)
        + Parts.Version (Self.Typed)
        + Name_Version (Self)
        + Settings_VM.Version (Self.Settings.all)
@@ -141,7 +151,8 @@ package body Nav_VM is
            when Toggle_Section_Notes          =>
              Takes_Gestures (Self)
              and then Mode (Self) = Write
-             and then Index in 1 .. Outline_VM.Count (Self.Outline.all));
+             and then Index in 1 .. Outline_VM.Count (Self.Outline.all),
+           when Toggle_Browser                => Takes_Gestures (Self));
    end Can_Execute;
 
    procedure Accept_Draft (Self : in out View_Model) is
@@ -245,6 +256,10 @@ package body Nav_VM is
 
          when Toggle_Section_Notes                   =>
             Outline_VM.Execute (Self.Outline.all, Outline_VM.Toggle_Notes, Index);
+
+         when Toggle_Browser                         =>
+            Self.Browsing := not Self.Browsing;
+            Parts.Bump (Self.Browsers);
 
          when Add_Document | Add_Source | Add_Folder =>
             --  Creation needs the surface's geometry and focus; Executed supplies that effect.

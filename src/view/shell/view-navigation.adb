@@ -1,5 +1,6 @@
 with Settings_VM;
 with Pomarine.View_Models;
+with View.Browsers;
 with View.Canvas_Items;
 with View.Listing;
 with View.Outlines;
@@ -92,6 +93,7 @@ package body View.Navigation is
                Listing.Hide_List (Item);
             end if;
          end if;
+         Browsers.Sync (Item);
          --  The buttons the commands are on are turned on and off as the view-model says.
          Widgets.Revalidate (Item.Root.Widgets);
       end if;

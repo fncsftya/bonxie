@@ -31,11 +31,12 @@ package body View.Menus is
             if State = Widgets.Enabled
               and then Menu_Bar.Is_Installed (Item.Host.Menus)
               and then (case What is
-                          when Nav_VM.Show_Outline => View_Mode (Item) = Outline,
-                          when Nav_VM.Show_Canvas  => View_Mode (Item) = Canvas,
-                          when Nav_VM.Show_Writing => View_Mode (Item) = Write,
-                          when Nav_VM.Show_Publish => View_Mode (Item) = Publish,
-                          when others              => False)
+                          when Nav_VM.Show_Outline   => View_Mode (Item) = Outline,
+                          when Nav_VM.Show_Canvas    => View_Mode (Item) = Canvas,
+                          when Nav_VM.Show_Writing   => View_Mode (Item) = Write,
+                          when Nav_VM.Show_Publish   => View_Mode (Item) = Publish,
+                          when Nav_VM.Toggle_Browser => Nav_VM.Browser_Open (Item.Nav_Model.Model),
+                          when others                => False)
             then
                return Widgets.Ticked;
             end if;
@@ -76,6 +77,7 @@ package body View.Menus is
       Menu_Bar.Add_Item (Bar, Pane, "Publish", Tag_Of (Nav_VM.Show_Publish), Key => "4");
       Menu_Bar.Add_Separator (Bar, Pane);
       Menu_Bar.Add_Item (Bar, Pane, "Items", Tag_Of (Nav_VM.Open_List));
+      Menu_Bar.Add_Item (Bar, Pane, "Browser", Tag_Of (Nav_VM.Toggle_Browser), Key => "g");
    end Build;
 
    procedure Key_Taken (Item : in out Session; Event : Pomarine.Events.Event) is

@@ -38,7 +38,8 @@ package Icon_Set is
          Dedent,
          Indent,
          List_Bullet,
-         Numbered_List);
+         Numbered_List,
+         Globe);
    end Names;
 
    package Sets is new Pomarine.Icons.Sets (Names.Name);
@@ -73,6 +74,7 @@ package Icon_Set is
    Indent        : constant Pomarine.Icons.Icon := Sets.Icon_Of (Names.Indent);
    List_Bullet   : constant Pomarine.Icons.Icon := Sets.Icon_Of (Names.List_Bullet);
    Numbered_List : constant Pomarine.Icons.Icon := Sets.Icon_Of (Names.Numbered_List);
+   Globe         : constant Pomarine.Icons.Icon := Sets.Icon_Of (Names.Globe);
 
    procedure Install (Library : in out Pomarine.Icons.Library; Directory : String);
    --  Where the files are, and which is which.

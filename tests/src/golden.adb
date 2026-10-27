@@ -33,6 +33,7 @@ with Item_Model_Tests;
 with Item_Control_VM_Tests;
 with Reader_Binding_Tests;
 with Nav_Tests;
+with Browser_VM_Tests;
 with Nav_VM_Tests;
 with Outline_VM_Tests;
 with Settings_Tests;
@@ -1341,6 +1342,10 @@ begin
    Run ("nav-by-name", Nav_Tests.By_Name'Access);
    Run ("nav-vm-opening", Nav_VM_Tests.Opening'Access);
    Run ("nav-vm-views", Nav_VM_Tests.Views'Access);
+   Run ("nav-vm-browser", Nav_VM_Tests.Browser'Access);
+   Run ("browser-vm-address", Browser_VM_Tests.Addresses'Access);
+   Run ("browser-vm-going", Browser_VM_Tests.Going'Access);
+   Run ("browser-vm-no-page", Browser_VM_Tests.Without_A_Page'Access);
    Run ("nav-vm-renaming", Nav_VM_Tests.Renaming'Access);
    Run ("nav-vm-layers", Nav_VM_Tests.Layers'Access);
    Run ("nav-vm-writing-sections", Nav_VM_Tests.Writing_Sections'Access);

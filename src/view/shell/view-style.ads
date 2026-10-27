@@ -34,6 +34,7 @@ private package View.Style is
    Tab_Height      : constant Float := 26.0;
    Tab_Gap         : constant Pomarine.Widgets.Layouts.Length := 5.0;
    Items_Width     : constant Float := 80.0;
+   Browser_Width   : constant Float := 96.0;
 
    --  The tray of tools over the canvas, at the foot, in points
 

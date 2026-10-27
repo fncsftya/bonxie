@@ -18,6 +18,7 @@ with SDL3.Events.Redraws;
 with SDL3.Windows.Renderers;
 with View.Search;
 with View.Build;
+with View.Browsers;
 with View.Canvas_Items;
 with View.Deletion;
 with View.Menus;
@@ -904,6 +905,7 @@ package body View is
          end if;
          Wait_And_Handle (Item);
          Menus.Update (Item);
+         Browsers.Update (Item);
          --  The person's setting for less movement is theirs to change at any
          --  time.
          Widgets.Set_Reduced_Motion (Item.Root.Widgets, Pomarine.System_Settings.Reduce_Motion);

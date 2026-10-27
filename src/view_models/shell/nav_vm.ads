@@ -52,8 +52,10 @@ package Nav_VM is
       --  Create a document in Canvas or Write, or a source on the canvas.
       Add_Folder,
       --  Create a folder in the writing view and begin naming it.
-      Toggle_Section_Notes);
-   --  Index: a writing section. Toggle its shared outline notes.
+      Toggle_Section_Notes,
+      --  Index: a writing section. Toggle its shared outline notes.
+      Toggle_Browser);
+   --  Put the browser pane over the right of the project's view, or away, in any view.
 
    package Commands is new Parts.Command_Models (Command);
 
@@ -146,6 +148,12 @@ package Nav_VM is
 
    function Is_Renaming (Self : View_Model) return Boolean;
 
+   function Browser_Open (Self : View_Model) return Boolean;
+   --  Whether the browser pane was asked for: kept as the views are changed, and between projects.
+
+   function Browser_Shown (Self : View_Model) return Boolean;
+   --  Whether it is there: asked for, at a project.
+
    function Draft (Self : View_Model) return String;
    --  The name being typed.
 
@@ -169,6 +177,9 @@ package Nav_VM is
    --  Different whenever the list or the settings are put up or away.
 
    function Renaming_Version (Self : View_Model) return Parts.Version_Number;
+
+   function Browser_Version (Self : View_Model) return Parts.Version_Number;
+   --  Different whenever the pane is asked for or put away.
    --  Different whenever renaming begins or ends.
 
    overriding
@@ -183,7 +194,8 @@ package Nav_VM is
    --  Close_List: it is up. Accept_Rename and Cancel_Rename: a name is being typed. Dismiss: something is over the
    --  screen. Add_Document: Canvas or Write; Add_Source: Canvas; Add_Folder: Write. Each needs a project
    --  with nothing over it. Add_Document accepts Index 0 for an ordinary document, or a listed section in Write.
-   --  Toggle_Section_Notes requires a positive listed section in Write.
+   --  Toggle_Section_Notes requires a positive listed section in Write. Toggle_Browser: at a project with nothing
+   --  over it.
 
    overriding
    procedure Execute (Self : in out View_Model; What : Command; Index : Natural := 0)
@@ -233,6 +245,9 @@ private
       --  Of the list and the settings.
       Titles    : Parts.Change_Counter;
       --  Of renaming.
+      Browsing  : Boolean := False;
+      Browsers  : Parts.Change_Counter;
+      --  Of the browser pane.
    end record;
 
 end Nav_VM;

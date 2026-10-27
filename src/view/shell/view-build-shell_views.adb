@@ -21,6 +21,7 @@ with Pomarine.Widgets;
 with Pomarine.Widgets.Layouts;
 with Pomarine.Widgets.Scrollers;
 with Pomarine.Text_Areas;
+with View_Parts.Browser;
 with View.Links;
 with View.Style;
 with Pomarine.Icons;
@@ -409,6 +410,11 @@ package body View.Build.Shell_Views is
              (Buttons.Looks
                 ("Items", Icon => Pomarine.Icons.Shown (Icon_Set.List), Captioned => True, Focusable => True),
               Nav_VM.Open_List);
+         Browser : constant UI.Button_Handle :=
+           Navs.Button
+             (Buttons.Looks
+                ("Browser", Icon => Pomarine.Icons.Shown (Icon_Set.Globe), Captioned => True, Focusable => True),
+              Nav_VM.Toggle_Browser);
          Caption : constant UI.Label_Handle := Navs.Borrow_Label (Bar.Project_Title, Project_Name);
          Area    : constant UI.Widget_Handle := Navs.Borrow_Widget (Bar.Title_Area);
          Field   : constant UI.Field_Handle := Navs.Borrow_Field (Bar.Title_Field, Bar.Title_Doc, Project_Draft);
@@ -448,7 +454,17 @@ package body View.Build.Shell_Views is
                   UI.Styled (UI.Place (Publish), Size (Tab_Width, Tab_Height))]),
               (Flow => Row, Gap => Tab_Gap, others => <>));
          Finish_Side : constant UI.Layout :=
-           UI.Styled (UI.Row ([UI.Styled (UI.Place (Listing), Size (Items_Width, Tab_Height))]), Side (Finish));
+           UI.Styled
+             (UI.Row
+                ([UI.Styled (UI.Place (Listing), Size (Items_Width, Tab_Height)),
+                  UI.Styled (UI.Place (Browser), Size (Browser_Width, Tab_Height))]),
+              (Flow   => Row,
+               Align  => Center,
+               Spread => Finish,
+               Grow   => 1.0,
+               Width  => 0.0,
+               Gap    => Tab_Gap,
+               others => <>));
          Toolbar_Row : constant UI.Layout :=
            UI.Styled
              (UI.Row ([Left_Side, Tabs, Finish_Side], Appearance => (Fill => Toolbar, others => <>)),
@@ -463,9 +479,23 @@ package body View.Build.Shell_Views is
                others  => <>));
          --  The pages are taller than it: the content takes what the bars leave. Under it, the dock of
          --  minimised items, a row of bars that scrolls across when they are wider than the window.
+         --  The browser pane floats over the right of the views, from the toolbar to the dock, when it is up: it
+         --  takes no room from them.
          Content     : constant UI.Layout :=
            UI.Styled
-             (UI.Column ([UI.Styled (UI.Put (Form, Item.Canvas_View), (Grow => 1.0, others => <>))]),
+             (UI.Column
+                ([UI.Styled (UI.Put (Form, Item.Canvas_View), (Grow => 1.0, others => <>)),
+                  UI.Styled
+                    (UI.Put (Form, Item.Browser.Pane),
+                     (Place    => Absolute,
+                      Position =>
+                        (Right  => Layouts.Length_Of (0.0),
+                         Top    => Layouts.Length_Of (0.0),
+                         Bottom => Layouts.Length_Of (0.0),
+                         others => <>),
+                      Width    => Layouts.Length_Of (View_Parts.Browser.Pane_Width),
+                      Flow     => Column,
+                      others   => <>))]),
               (Grow => 1.0, Flow => Column, Height => 0.0, others => <>));
          Dock_Row    : constant UI.Layout :=
            UI.Styled
@@ -504,6 +534,7 @@ package body View.Build.Shell_Views is
          Bar.Outline_Tab := Outline;
          Bar.Canvas_Tab := Canvas;
          Bar.Write_Tab := Write;
+         Bar.Browser_Tab := Browser;
          Bar.Publish_Tab := Publish;
          Item.Dock.Tool_List := Listing;
          UI.Mount_Into (Form, Item.Root.Window_Panel, Project);

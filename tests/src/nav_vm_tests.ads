@@ -14,6 +14,9 @@ package Nav_VM_Tests is
    procedure Layers;
    --  What is over the screen: the settings, the list of items, the dialogs; what each takes, and Dismiss.
 
+   procedure Browser;
+   --  The browser pane: asked for in any view, kept as the views change, there at a project, and away at home.
+
    procedure Creating;
    --  Canvas creation commands, modal availability and effects without navigation changes.
 

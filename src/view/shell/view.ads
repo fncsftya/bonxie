@@ -42,6 +42,7 @@ private with View_Parts.Settings;
 private with View_Parts.Outline;
 private with View_Parts.Grammar;
 private with View_Parts.Canvas;
+private with View_Parts.Browser;
 
 --  A window of two screens: the home, with the recent projects and
 --  buttons to start with, and a project, with a toolbar and, above it, the
@@ -429,6 +430,8 @@ private
       Outline_Tab    : Pomarine.UI.Button_Handle;
       Canvas_Tab     : Pomarine.UI.Button_Handle;
       Publish_Tab    : Pomarine.UI.Button_Handle;
+      Browser_Tab    : Pomarine.UI.Button_Handle;
+      --  At the right end of the bar: puts the browser pane up and away.
       Write_Tab      : Pomarine.UI.Button_Handle;
       --  A tab for each view, in the middle of the toolbar.
    end record;
@@ -498,6 +501,7 @@ private
       Publish_View        : Publish_Parts;
       Section_View        : Section_View_Parts;
       Dock                : Dock_Parts;
+      Browser             : View_Parts.Browser.Browser_Choices;
       Nav                 : Nav_State;
       Item_List           : List_Parts;
       Host                : Host_Resources;

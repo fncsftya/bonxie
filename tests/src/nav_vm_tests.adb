@@ -161,6 +161,68 @@ package body Nav_VM_Tests is
       Check ("nav-vm-started", "PROJECT CANVAS 1 'Great skua' 1", Where_Is (Model) & " " & Number (Where.Kept.Made));
    end Opening;
 
+   type View_Commands is array (Positive range <>) of Nav_VM.Command;
+
+   Each_View : constant View_Commands := [Show_Writing, Show_Outline, Show_Publish, Show_Canvas];
+
+   procedure Browser is
+      Where : aliased Setting;
+      Model : Nav_VM.View_Model renames Where.Model;
+      Seen  : Parts.Version_Number;
+   begin
+      Prepare (Where);
+      Check ("nav-vm-browser-home", "FALSE", Can (Model, Toggle_Browser));
+      Nav_VM.Open (Model, 1);
+      Check
+        ("nav-vm-browser-closed",
+         "TRUE FALSE FALSE",
+         Can (Model, Toggle_Browser)
+         & " "
+         & Image (Nav_VM.Browser_Open (Model))
+         & " "
+         & Image (Nav_VM.Browser_Shown (Model)));
+      Seen := Nav_VM.Version (Model);
+      Nav_VM.Execute (Model, Toggle_Browser);
+      Check
+        ("nav-vm-browser-opened",
+         "TRUE TRUE TRUE",
+         Image (Nav_VM.Browser_Open (Model))
+         & " "
+         & Image (Nav_VM.Browser_Shown (Model))
+         & " "
+         & Image (Nav_VM.Version (Model) /= Seen));
+
+      --  Kept as the views change, and there in each of them.
+      for View of Each_View loop
+         Nav_VM.Execute (Model, View);
+         Check
+           ("nav-vm-browser-" & Nav_VM.Mode (Model)'Image,
+            "TRUE TRUE TRUE",
+            Image (Nav_VM.Browser_Open (Model))
+            & " "
+            & Image (Nav_VM.Browser_Shown (Model))
+            & " "
+            & Can (Model, Toggle_Browser));
+      end loop;
+
+      --  Not while a layer is over the screen; away at the home screen, and still asked for after.
+      Nav_VM.Execute (Model, Open_List);
+      Check ("nav-vm-browser-over", "FALSE", Can (Model, Toggle_Browser));
+      Nav_VM.Execute (Model, Close_List);
+      Nav_VM.Execute (Model, Leave_Project);
+      Check
+        ("nav-vm-browser-left",
+         "TRUE FALSE",
+         Image (Nav_VM.Browser_Open (Model)) & " " & Image (Nav_VM.Browser_Shown (Model)));
+      Nav_VM.Open (Model, 1);
+      Check ("nav-vm-browser-kept", "TRUE", Image (Nav_VM.Browser_Shown (Model)));
+      Nav_VM.Execute (Model, Toggle_Browser);
+      Check
+        ("nav-vm-browser-closed-again",
+         "FALSE FALSE",
+         Image (Nav_VM.Browser_Open (Model)) & " " & Image (Nav_VM.Browser_Shown (Model)));
+   end Browser;
+
    procedure Views is
       Where : aliased Setting;
       Model : Nav_VM.View_Model renames Where.Model;
@@ -1481,11 +1543,7 @@ package body Nav_VM_Tests is
       Check
         ("publish-formats-exported",
          "Word (.docx) /tmp/essay.docx words as Word (.docx)",
-         P.Label (Platform.Asked)
-         & " "
-         & Long_Texts.To_String (Kept.Path)
-         & " "
-         & Long_Texts.To_String (Kept.Words));
+         P.Label (Platform.Asked) & " " & Long_Texts.To_String (Kept.Path) & " " & Long_Texts.To_String (Kept.Words));
       Choose (P.EPUB);
       P.Execute (Model, P.Export);
       Choose (P.PDF);

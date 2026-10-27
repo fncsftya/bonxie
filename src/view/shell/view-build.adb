@@ -26,6 +26,7 @@ with Pomarine.Line_Texts;
 with Pomarine.UI;
 with Pomarine.Widgets;
 with Pomarine.Widgets.Layouts;
+with View.Browsers;
 with View.Canvas_Items;
 with View.Links;
 with View.Listing;
@@ -331,6 +332,7 @@ package body View.Build is
       end if;
       Shell_Views.Build_Home (Item);
       Shell_Views.Build_Project (Item);
+      Browsers.Build (Item);
       Write_View.Build_Write (Item);
       Shell_Views.Build_Publish (Item);
       Outline_View.Build_Outline (Item);
