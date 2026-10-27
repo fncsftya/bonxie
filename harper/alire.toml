@@ -1,6 +1,6 @@
 name = "harper"
 description = "Tasked Ada bindings to the vendored Harper spelling and grammar checker"
-version = "0.1.0-dev"
+version = "0.1.0-alpha"
 licenses = "GPL-3.0-only"
 authors = ["Matt Rawcliffe"]
 
