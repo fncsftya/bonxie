@@ -132,9 +132,8 @@ package body Items.Readers is
                   when Reader_VM.Use_Eraser => Bound.Selected_When (Handle, Reader_UI.Eraser_Flag);
                   when others => null;
                end case;
-               return UI.Styled (UI.Place (Handle),
-                                 (Width => Layouts.Length_Of (Button_Size), Height => Layouts.Length_Of (Row_Height),
-                                  others => <>));
+               return UI.Place (Handle, Width => Layouts.Length_Of (Button_Size),
+                  Height => Layouts.Length_Of (Row_Height), Exact => True);
             end;
          end Tool;
 
@@ -159,21 +158,18 @@ package body Items.Readers is
            Bound.Borrow_Button (Item.Visit_Button, Reader_VM.Visit, Reflect => False);
          Status : constant UI.Layout := UI.Fragment
            (Screen, [Tools,
-                     UI.Styled (UI.Place (Zoom_Control),
-                                (Width => Layouts.Length_Of (Slider_Width), Height => Layouts.Length_Of (Row_Height),
-                                 others => <>)),
+                     UI.Place (Zoom_Control, Width => Layouts.Length_Of (Slider_Width),
+                        Height => Layouts.Length_Of (Row_Height), Exact => True),
                      Put (Item.Zoom_Label, Percent_Width, Label_Height),
                      UI.Styled (UI.Put (Screen, Item.Status),
                                 (Grow => 1.0, Width => 0.0, Height => Layouts.Length_Of (Label_Height), others => <>)),
-                     UI.Styled (UI.Place (Visit_Control),
-                                (Width => Layouts.Length_Of (Visit_Width), Height => Layouts.Length_Of (Row_Height),
-                                 others => <>))]);
+                     UI.Place (Visit_Control, Width => Layouts.Length_Of (Visit_Width),
+                        Height => Layouts.Length_Of (Row_Height), Exact => True)]);
          Pin_Control : constant UI.Button_Handle :=
            Bound.Borrow_Button (Item.Pin_Button, Reader_VM.Toggle_Pin, Reflect => False);
          Pin : constant UI.Layout :=
-           UI.Styled (UI.Place (Pin_Control),
-                      (Width => Layouts.Length_Of (Button_Size), Height => Layouts.Length_Of (Button_Size),
-                       others => <>));
+           UI.Place (Pin_Control, Width => Layouts.Length_Of (Button_Size), Height => Layouts.Length_Of (Button_Size),
+              Exact => True);
       begin
          Bound.On_Frame_Event (Item.Chrome, Widgets.Close, Reader_VM.Close_Reader);
          UI.Mount_Before (Screen, Frames.Title_End (Item.Chrome).all, Pin);

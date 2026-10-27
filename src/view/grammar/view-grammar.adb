@@ -323,18 +323,16 @@ package body View.Grammar is
               UI.Styled
                 (UI.Put_In
                    (Form, State.Entry_Row,
-                    [UI.Styled
-                       (UI.Place (Accept_Button), (Width => 76.0, Height => 28.0, others => <>)),
-                     UI.Styled
-                       (UI.Place (Cancel_Button), (Width => 64.0, Height => 28.0, others => <>))],
+                    [UI.Place (Accept_Button, Width => 76.0, Height => 28.0, Exact => True),
+                     UI.Place (Cancel_Button, Width => 64.0, Height => 28.0, Exact => True)],
                     Flow => Layouts.Row),
                  (Height => 28.0, Shrink => 0.0, Flow => Layouts.Row, Gap => 8.0, Spread => Between, others => <>));
             Entry_Box : constant UI.Layout :=
               UI.Styled
                 (UI.Put_In
                    (Form, State.Entry_Panel,
-                    [UI.Styled (UI.Place (Prompt), (Height => 22.0, Shrink => 0.0, others => <>)),
-                     UI.Styled (UI.Place (Field), (Height => 36.0, Shrink => 0.0, others => <>)),
+                    [UI.Place (Prompt, Height => 22.0, Shrink => 0.0, Exact => True),
+                     UI.Place (Field, Height => 36.0, Shrink => 0.0, Exact => True),
                      Buttons_Row]),
                  (Place => Absolute, Width => Layouts.Length_Of (Entry_Width), Height => 124.0, Flow => Column,
                   Outlined => On,

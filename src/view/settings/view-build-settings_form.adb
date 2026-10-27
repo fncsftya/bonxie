@@ -80,16 +80,14 @@ package body View.Build.Settings_Form is
            (Height => Layouts.Length_Of (High), Shrink => 0.0, Margin => (Top => Top, others => <>), others => <>);
 
          function Heading (Words : String; Top : Layouts.Length := Unset) return UI.Layout is
-            Made : constant UI.Label_Handle := Bound.Label (Words);
+            Made : constant UI.Label_Handle := Bound.Label (Words, Style => Pomarine.Line_Texts.Caption);
          begin
-            Labels.Set_Style (UI.Widget_Of (Form, Made).all, Pomarine.Line_Texts.Caption);
             return UI.Styled (UI.Place (Made), Line (Heading_Height, Top));
          end Heading;
 
          function Name (Words : String; Top : Layouts.Length := Unset) return UI.Layout is
-            Made : constant UI.Label_Handle := Bound.Label (Words);
+            Made : constant UI.Label_Handle := Bound.Label (Words, Style => Pomarine.Line_Texts.Strong);
          begin
-            Labels.Set_Style (UI.Widget_Of (Form, Made).all, Pomarine.Line_Texts.Strong);
             return UI.Styled (UI.Place (Made), Line (Settings_Line, Top));
          end Name;
 
@@ -102,10 +100,7 @@ package body View.Build.Settings_Form is
                Line (Settings_Line)));
 
          function Sized (Made : UI.Button_Handle) return UI.Layout is
-           (UI.Styled
-              (UI.Place (Made),
-               (Width => Layouts.Length_Of (Download_Width), Height => Layouts.Length_Of (Download_Height),
-                Shrink => 0.0, others => <>)));
+           (UI.Place (Made, Width => Download_Width, Height => Download_Height, Shrink => 0.0, Exact => True));
 
          --  A choice of background: a picture, which is clicked, and a foot with its name, which is too.
          function Card_Of (Mode : Preferences.Background_Modes) return UI.Layout is
@@ -128,9 +123,7 @@ package body View.Build.Settings_Form is
                   Buttons.Configure
                     (Card.Reseed,
                      Buttons.Looks ("New picture", Icon => Pomarine.Icons.Shown (Icon_Set.Refresh), Focusable => True));
-                  return UI.Styled
-                    (UI.Place (Button), (Width => Layouts.Length_Of (Card_Button),
-                                         Height => Layouts.Length_Of (Card_Button), Shrink => 0.0, others => <>));
+                  return UI.Place (Button, Width => Card_Button, Height => Card_Button, Shrink => 0.0, Exact => True);
                end;
             end New_Picture;
 
@@ -139,14 +132,14 @@ package body View.Build.Settings_Form is
                 (UI.Hold
                    (Pick_Control,
                     [UI.Styled (UI.Put (Form, Card.Name),
-                                (Height => Layouts.Length_Of (Card_Title_Height), others => <>))]),
+                                (Height => Card_Title_Height, others => <>))]),
                  (Grow => 1.0, Width => 0.0, Flow => Column, Spread => Center, Align_Self => Stretch, others => <>));
             Reseeding : constant UI.Layout := New_Picture;
             Foot  : constant UI.Layout :=
               UI.Styled
                 (UI.Put_In (Form, Card.Foot, (if Pictured then [Naming, Reseeding] else [Naming])),
-                 (Height => Layouts.Length_Of (Card_Foot_Height), Shrink => 0.0, Flow => Row, Align => Center,
-                  Gap => Layouts.Length_Of (Row_Gap),
+                 (Height => Card_Foot_Height, Shrink => 0.0, Flow => Row, Align => Center,
+                  Gap => Row_Gap,
                   Padding => (Left | Right => Layouts.Length_Of (Card_Pad), others => <>), others => <>));
             Peek  : constant UI.Layout :=
               UI.Styled
@@ -181,7 +174,7 @@ package body View.Build.Settings_Form is
          Delete   : constant UI.Button_Handle :=
            Bound.Button ("Delete", Settings_VM.Confirm_Delete, Buttons.Danger, Focusable => True);
 
-         Status : constant UI.Label_Handle := Bound.Label (Status_Text);
+         Status : constant UI.Label_Handle := Bound.Label (Status_Text, Ink => Quiet_Ink);
          Bar    : constant UI.Progress_Handle := Bound.Progress (Fraction_Value);
          Switch : constant UI.Switch_Handle := Bound.Switch ("VSync", VSync_Flag, Settings_VM.Toggle_VSync);
          Close  : constant UI.Button_Handle :=
@@ -194,10 +187,8 @@ package body View.Build.Settings_Form is
            UI.Styled
              (UI.Row
                 ([Sized (Download), Sized (Delete),
-                  UI.Styled
-                    (UI.Place (Status), (Grow => 1.0, Width => 0.0, Height => Layouts.Length_Of (Download_Height),
-                                         others => <>))]),
-              (Height => Layouts.Length_Of (Download_Height), Shrink => 0.0, Flow => Layouts.Row, Align => Center,
+                  UI.Place (Status, Grow => 1.0, Width => 0.0, Height => Download_Height, Exact => True)]),
+              (Height => Download_Height, Shrink => 0.0, Flow => Layouts.Row, Align => Center,
                Gap => Layouts.Length_Of (Gap),
                Margin => (Top => Layouts.Length_Of (Gap), others => <>), others => <>));
 
@@ -251,8 +242,8 @@ package body View.Build.Settings_Form is
            UI.Styled
              (UI.Put_In (Form, Prefs.Settings_Form, Choices),
               (Flow => Column, Shrink => 0.0, Width => Layouts.Length_Of (Page_Width),
-               Padding => (others => Layouts.Length_Of (Dialog_Pad)),
-               Shadowed => On, Gap => Layouts.Length_Of (Row_Gap), others => <>));
+               Padding => (others => Dialog_Pad),
+               Shadowed => On, Gap => Row_Gap, others => <>));
          Sheet : constant UI.Layout :=
            UI.Styled
              (UI.Put_In
@@ -273,7 +264,7 @@ package body View.Build.Settings_Form is
                  [UI.Styled
                     (UI.Place (Close),
                      (Width => Layouts.Length_Of (Back_Width), Height => Layouts.Length_Of (Tab_Height), Shrink => 0.0,
-                      Margin => (Right => Layouts.Length_Of (Name_Gap), others => <>), others => <>)),
+                      Margin => (Right => Name_Gap, others => <>), others => <>)),
                   UI.Styled
                     (UI.Put (Form, Prefs.Settings_Title),
                      (Grow => 1.0, Width => 0.0, Height => Layouts.Length_Of (Tab_Height),
@@ -289,7 +280,6 @@ package body View.Build.Settings_Form is
            UI.Styled (UI.Put_In (Form, Prefs.Settings_Panel, [Title_Bar, Sheet]), (Flow => Column, Grow => 1.0,
                                                                                        others => <>));
       begin
-         Labels.Set_Ink (UI.Widget_Of (Form, Status).all, Quiet_Ink);
          Bound.Show_When (Download_Row, Row_Flag);
          Bound.Show_When (UI.Any (Download), Download_Flag);
          Bound.Show_When (UI.Any (Bar), Bar_Flag);

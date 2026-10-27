@@ -15,7 +15,6 @@ package body View.Build.Dialogs is
 
    package Widgets renames Pomarine.Widgets;
    package Buttons renames Pomarine.Widgets.Buttons;
-   package Labels renames Pomarine.Widgets.Labels;
    package Themes renames Pomarine.Themes;
 
    package UI renames Pomarine.UI;
@@ -27,16 +26,11 @@ package body View.Build.Dialogs is
      (Heading : UI.Label_Handle; Close : UI.Button_Handle) return UI.Layout is
      (UI.Styled
         (UI.Row
-           ([UI.Styled
-               (UI.Place (Heading), (Grow => 1.0, Width => 0.0, Height => UI.Layouts.Length_Of (Dialog_Bar_Height),
-                                     others => <>)),
-             UI.Styled
-               (UI.Place (Close),
-                (Width => UI.Layouts.Length_Of (Dialog_Close_Size), Height => UI.Layouts.Length_Of (Dialog_Close_Size),
-                 Shrink => 0.0, others => <>))],
+           ([UI.Place (Heading, Grow => 1.0, Width => 0.0, Height => Dialog_Bar_Height, Exact => True),
+             UI.Place (Close, Width => Dialog_Close_Size, Height => Dialog_Close_Size, Shrink => 0.0, Exact => True)],
             Appearance => (Fill => Toolbar, others => <>)),
-         (Flow => Row, Align => Center, Height => UI.Layouts.Length_Of (Dialog_Bar_Height), Shrink => 0.0,
-          Padding => (Left | Right => UI.Layouts.Length_Of (Dialog_Bar_Pad), others => <>), others => <>)));
+         (Flow => Row, Align => Center, Height => Dialog_Bar_Height, Shrink => 0.0,
+          Padding => (Left | Right => Dialog_Bar_Pad, others => <>), others => <>)));
    --  The dark bar across the top of a dialog, as a window's: its title, white, and a small button to close
    --  it, at the right.
 
@@ -91,7 +85,8 @@ package body View.Build.Dialogs is
          Bound : constant Confirm_UI.Context'Class :=
            Confirm_UI.Bind (Form, Item.Dialog_Model.Model'Unrestricted_Access);
 
-         Heading   : constant UI.Label_Handle := Bound.Label (Title_Text);
+         Heading   : constant UI.Label_Handle :=
+           Bound.Label (Title_Text, Style => Pomarine.Line_Texts.Strong, Ink => Themes.Bar_Ink);
          Close   : constant UI.Button_Handle := Bound.Button (Closer, Confirm_VM.Cancel);
          Message : constant UI.Label_Handle := Bound.Label (Message_Text);
          Note    : constant UI.Label_Handle := Bound.Label (Note_Text);
@@ -109,11 +104,11 @@ package body View.Build.Dialogs is
          Body_Layout : constant UI.Layout :=
            UI.Styled
              (UI.Column
-                ([UI.Styled (UI.Place (Message), (Height => UI.Layouts.Length_Of (Dialog_Line), others => <>)),
-                  UI.Styled (UI.Place (Note), (Height => UI.Layouts.Length_Of (Dialog_Line), others => <>)),
-                  UI.Styled (UI.Place (Offered), (Height => UI.Layouts.Length_Of (Dialog_Line), others => <>))],
+                ([UI.Place (Message, Height => Dialog_Line, Exact => True),
+                  UI.Place (Note, Height => Dialog_Line, Exact => True),
+                  UI.Place (Offered, Height => Dialog_Line, Exact => True)],
                  Appearance => (Fill => Paper, others => <>)),
-              (Flow => Column, Padding => (others => UI.Layouts.Length_Of (Dialog_Pad)), others => <>));
+              (Flow => Column, Padding => (others => Dialog_Pad), others => <>));
 
          Rule : constant UI.Layout :=
            UI.Styled (UI.Spacer (Form, (Fill => Themes.Border, others => <>)), (Height => Hairline, others => <>));
@@ -121,23 +116,17 @@ package body View.Build.Dialogs is
          Foot : constant UI.Layout :=
            UI.Styled
              (UI.Row
-                ([UI.Styled
-                    (UI.Place (Cancel), (Height => UI.Layouts.Length_Of (Dialog_Button_Height),
-                                         Width => UI.Layouts.Length_Of (Dialog_Button_Width), others => <>)),
-                  UI.Styled
-                    (UI.Place (Delete), (Height => UI.Layouts.Length_Of (Dialog_Button_Height),
-                                         Width => UI.Layouts.Length_Of (Dialog_Button_Width), others => <>))],
+                ([UI.Place (Cancel, Height => Dialog_Button_Height, Width => Dialog_Button_Width, Exact => True),
+                  UI.Place (Delete, Height => Dialog_Button_Height, Width => Dialog_Button_Width, Exact => True)],
                  Appearance => (Fill => Themes.Tint, others => <>)),
-              (Flow => Row, Spread => Finish, Padding => (others => UI.Layouts.Length_Of (Dialog_Foot_Pad)),
-               Gap => UI.Layouts.Length_Of (Row_Gap),
+              (Flow => Row, Spread => Finish, Padding => (others => Dialog_Foot_Pad),
+               Gap => Row_Gap,
                others => <>));
 
          Border : constant UI.Layout :=
-           Boxed ([Bar (Heading, Close), Body_Layout, Rule, Foot], UI.Layouts.Length_Of (Dialog_Width));
+           Boxed ([Bar (Heading, Close), Body_Layout, Rule, Foot], Dialog_Width);
          Overlay : constant UI.Layout := Over_All (Border);
       begin
-         Labels.Set_Style (UI.Widget_Of (Form, Heading).all, Pomarine.Line_Texts.Strong);
-         Labels.Set_Ink (UI.Widget_Of (Form, Heading).all, Themes.Bar_Ink);
          Bound.Show_When (UI.Any (Offered), Offers_Flag);
          Ask.Overlay := Overlay;
          Ask.Border := Border;
@@ -170,7 +159,8 @@ package body View.Build.Dialogs is
          Bound   : constant Items_UI.Context'Class :=
            Items_UI.Bind (Form, Item.Item_List.Model'Unrestricted_Access);
 
-         Heading : constant UI.Label_Handle := Bound.Label ("Items");
+         Heading : constant UI.Label_Handle :=
+           Bound.Label ("Items", Style => Pomarine.Line_Texts.Strong, Ink => Themes.Bar_Ink);
          Close   : constant UI.Button_Handle := Navs.Button (Closer, Nav_VM.Close_List);
          Rows    : constant UI.Widget_Handle := Bound.Borrow_Widget (Parts.List_View);
          None    : constant UI.Label_Handle := Bound.Label (No_Items);
@@ -178,19 +168,17 @@ package body View.Build.Dialogs is
          Dialog : constant UI.Layout :=
            UI.Styled
              (UI.Column
-                ([UI.Styled (UI.Place (Rows), (Grow => 1.0, Height => 0.0, others => <>)),
-                  UI.Styled (UI.Place (None), (Height => UI.Layouts.Length_Of (Title_Height), others => <>))],
+                ([UI.Place (Rows, Grow => 1.0, Height => 0.0, Exact => True),
+                  UI.Place (None, Height => Title_Height, Exact => True)],
                  Appearance => (Fill => Paper, others => <>)),
-              (Flow => Column, Grow => 1.0, Height => 0.0, Padding => (others => UI.Layouts.Length_Of (Dialog_Pad)),
+              (Flow => Column, Grow => 1.0, Height => 0.0, Padding => (others => Dialog_Pad),
                others => <>));
 
          Border : constant UI.Layout :=
-           Boxed ([Bar (Heading, Close), Dialog], UI.Layouts.Length_Of (List_Width),
-                  UI.Layouts.Length_Of (List_Height));
+           Boxed ([Bar (Heading, Close), Dialog], List_Width,
+                  List_Height);
          Overlay : constant UI.Layout := Over_All (Border);
       begin
-         Labels.Set_Style (UI.Widget_Of (Form, Heading).all, Pomarine.Line_Texts.Strong);
-         Labels.Set_Ink (UI.Widget_Of (Form, Heading).all, Themes.Bar_Ink);
          Bound.On_Event (Rows, Widgets.Click, Item_List_VM.Reveal, Index_From_Event => True);
          Bound.On_Event (Rows, Widgets.Submit, Item_List_VM.Reveal, Index_From_Event => True);
          Bound.On_List_Actions (Rows, [Item_List_VM.Toggle_Shown, Item_List_VM.Remove]);

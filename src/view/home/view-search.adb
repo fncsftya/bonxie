@@ -66,13 +66,13 @@ package body View.Search is
            (Part : in out Buttons.Button; Control : UI.Button_Handle; Look : Buttons.Settings) return UI.Layout is
          begin
             Buttons.Configure (Part, Look);
-            return UI.Styled (UI.Place (Control), (Width => Layouts.Length_Of (Wide), others => <>));
+            return UI.Place (Control, Width => Layouts.Length_Of (Wide), Exact => True);
          end Button;
 
          Field    : constant UI.Layout :=
-           UI.Styled (UI.Place (S.Query_Control), (Grow => 1.0, Width => 0.0, others => <>));
+           UI.Place (S.Query_Control, Grow => 1.0, Width => 0.0, Exact => True);
          Counting : constant UI.Layout :=
-           UI.Styled (UI.Place (S.Count_Control), (Width => (if In_Window then 48.0 else 100.0), others => <>));
+           UI.Place (S.Count_Control, Width => UI.Layouts.Length_Of (if In_Window then 48.0 else 100.0), Exact => True);
          Back     : constant UI.Layout :=
            Button (S.Previous, S.Previous_Control,
                    Buttons.Looks ("Previous", Icon => Pomarine.Icons.Shown (Icon_Set.Back), Focusable => True));
