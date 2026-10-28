@@ -7,6 +7,10 @@ with Pomarine.UI.Contexts;
 package Browser_UI is
    package Controls is new Pomarine.UI.Contexts (Browser_VM.Commands, Browser_VM.Model);
 
+   Status : constant Controls.Text_Property := Controls.Showing (Browser_VM.Status'Access);
+
+   Marked : constant Controls.Flag_Property := Controls.Showing (Browser_VM.Is_Favourite'Access);
+
    Address : constant Controls.Text_Property :=
      Controls.Editing (Browser_VM.Address_Draft'Access, Browser_VM.Set_Address_Draft'Access);
 end Browser_UI;

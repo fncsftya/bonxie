@@ -1,3 +1,4 @@
+with Ada.Directories;
 with Ada.Strings.Unbounded;
 with Browser_VM;
 with Goldens;
@@ -18,11 +19,13 @@ package body Browser_VM_Tests is
 
    --  A page that keeps what it was told.
    type Pretend is limited new Browser_VM.Page with record
-      Present  : Boolean := True;
-      Loaded   : Strings.Unbounded_String;
-      Loads    : Natural := 0;
-      Reloads  : Natural := 0;
-      Location : Strings.Unbounded_String;
+      Present   : Boolean := True;
+      Loaded    : Strings.Unbounded_String;
+      Loads     : Natural := 0;
+      Reloads   : Natural := 0;
+      Location  : Strings.Unbounded_String;
+      Backs     : Natural := 0;
+      Capturing : Boolean := False;
    end record;
 
    overriding
@@ -33,6 +36,28 @@ package body Browser_VM_Tests is
    procedure Reload (Self : in out Pretend);
    overriding
    function Address (Self : Pretend) return String;
+   overriding
+   function Title (Self : Pretend) return String;
+   overriding
+   procedure Go_Back (Self : in out Pretend);
+   overriding
+   procedure Go_Forward (Self : in out Pretend);
+   overriding
+   function Can_Go_Back (Self : Pretend) return Boolean;
+   overriding
+   function Can_Go_Forward (Self : Pretend) return Boolean;
+   overriding
+   function Theme_Colour (Self : Pretend) return Integer;
+   overriding
+   procedure Start_Capture (Self : in out Pretend; File : String);
+   overriding
+   function Capture_State (Self : Pretend) return Browser_VM.Capture_States;
+   overriding
+   function Capture_Title (Self : Pretend) return String;
+   overriding
+   function Capture_Message (Self : Pretend) return String;
+   overriding
+   procedure Reset_Capture (Self : in out Pretend);
 
    overriding
    function Is_Ready (Self : Pretend) return Boolean
@@ -55,6 +80,55 @@ package body Browser_VM_Tests is
    overriding
    function Address (Self : Pretend) return String
    is (Strings.To_String (Self.Location));
+
+   overriding
+   function Title (Self : Pretend) return String
+   is ("A page");
+
+   overriding
+   procedure Go_Back (Self : in out Pretend) is
+   begin
+      Self.Backs := Self.Backs + 1;
+   end Go_Back;
+
+   overriding
+   procedure Go_Forward (Self : in out Pretend) is null;
+
+   overriding
+   function Can_Go_Back (Self : Pretend) return Boolean
+   is (Self.Backs = 0);
+
+   overriding
+   function Can_Go_Forward (Self : Pretend) return Boolean
+   is (False);
+
+   overriding
+   function Theme_Colour (Self : Pretend) return Integer
+   is (16#102030#);
+
+   overriding
+   procedure Start_Capture (Self : in out Pretend; File : String) is
+   begin
+      Self.Capturing := File /= "";
+   end Start_Capture;
+
+   overriding
+   function Capture_State (Self : Pretend) return Browser_VM.Capture_States
+   is (if Self.Capturing then Browser_VM.Done else Browser_VM.Idle);
+
+   overriding
+   function Capture_Title (Self : Pretend) return String
+   is ("A page");
+
+   overriding
+   function Capture_Message (Self : Pretend) return String
+   is ("");
+
+   overriding
+   procedure Reset_Capture (Self : in out Pretend) is
+   begin
+      Self.Capturing := False;
+   end Reset_Capture;
 
    procedure Addresses is
    begin
@@ -100,6 +174,59 @@ package body Browser_VM_Tests is
       Browser_VM.Execute (Model, Reload);
       Check ("browser-vm-reloaded", "1", Shown.Reloads'Image (2 .. Shown.Reloads'Image'Last));
    end Going;
+
+   procedure Keeping is
+      Shown  : aliased Pretend;
+      Model  : Browser_VM.Model;
+      Folder : constant String := "/tmp/bonxie-browser-vm-test";
+   begin
+      Ada.Directories.Create_Path (Folder);
+      if Ada.Directories.Exists (Folder & "/favourites") then
+         Ada.Directories.Delete_File (Folder & "/favourites");
+      end if;
+      Browser_VM.Initialize (Model, Shown'Access, Folder);
+      Browser_VM.Set_Address_Draft (Model, "example.org/a");
+      Browser_VM.Execute (Model, Go);
+      Browser_VM.Refresh (Model);
+      Check ("browser-vm-nav-back", "TRUE FALSE", Can (Model, Back) & " " & Can (Model, Forward));
+
+      Browser_VM.Execute (Model, Favourite);
+      Check
+        ("browser-vm-favourited",
+         "1 A page https://example.org/a TRUE",
+         Browser_VM.Favourite_Count (Model)'Image (2 .. 2)
+         & " "
+         & Browser_VM.Favourite_Title (Model, 1)
+         & " "
+         & Browser_VM.Favourite_Address (Model, 1)
+         & " "
+         & Image (Browser_VM.Is_Favourite (Model)));
+      Check ("browser-vm-favourite-colour", "1056816", Browser_VM.Favourite_Colour (Model, 1)'Image (2 .. 8));
+
+      --  A second model reads the file the first kept.
+      declare
+         Again : Browser_VM.Model;
+      begin
+         Browser_VM.Initialize (Again, Shown'Access, Folder);
+         Check ("browser-vm-favourite-kept", "https://example.org/a", Browser_VM.Favourite_Address (Again, 1));
+      end;
+
+      Browser_VM.Execute (Model, Favourite);
+      Check ("browser-vm-unfavourited", "0", Browser_VM.Favourite_Count (Model)'Image (2 .. 2));
+
+      Browser_VM.Execute (Model, Capture);
+      Browser_VM.Refresh (Model);
+      Check
+        ("browser-vm-captured",
+         "DONE A page https://example.org/a",
+         Browser_VM.Capture_State (Model)'Image
+         & " "
+         & Browser_VM.Capture_Title (Model)
+         & " "
+         & Browser_VM.Capture_Address (Model));
+      Browser_VM.Finish_Capture (Model);
+      Check ("browser-vm-capture-finished", "IDLE", Browser_VM.Capture_State (Model)'Image);
+   end Keeping;
 
    procedure Without_A_Page is
       Shown : aliased Pretend;

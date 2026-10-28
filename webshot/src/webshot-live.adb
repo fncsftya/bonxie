@@ -58,6 +58,29 @@ package body Webshot.Live is
    function WL_Shortcut return Interfaces.C.int
    with Import, Convention => C, External_Name => "wl_shortcut";
 
+   function WL_Page_Colour return Interfaces.C.int
+   with Import, Convention => C, External_Name => "wl_page_colour";
+
+   function WL_Capture_Start (Path : Interfaces.C.char_array) return Interfaces.C.int
+   with Import, Convention => C, External_Name => "wl_capture_start";
+
+   function WL_Capture_State return Interfaces.C.int
+   with Import, Convention => C, External_Name => "wl_capture_state";
+
+   function WL_Capture_Strips return Interfaces.C.int
+   with Import, Convention => C, External_Name => "wl_capture_strips";
+
+   function WL_Capture_Title
+     (Buffer : in out Interfaces.C.char_array; Capacity : Interfaces.C.int) return Interfaces.C.int
+   with Import, Convention => C, External_Name => "wl_capture_title";
+
+   function WL_Capture_Message
+     (Buffer : in out Interfaces.C.char_array; Capacity : Interfaces.C.int) return Interfaces.C.int
+   with Import, Convention => C, External_Name => "wl_capture_message";
+
+   procedure WL_Capture_Reset
+   with Import, Convention => C, External_Name => "wl_capture_reset";
+
    Is_Attached : Boolean := False;
 
    function Flag (Value : Boolean) return Interfaces.C.int
@@ -154,5 +177,46 @@ package body Webshot.Live is
    begin
       return Interfaces.C.To_Ada (Buffer (0 .. Interfaces.C.size_t (Length)));
    end Address;
+
+   function Theme_Colour return Integer
+   is (Integer (WL_Page_Colour));
+
+   procedure Capture (File : String) is
+      Started : constant Interfaces.C.int := WL_Capture_Start (Interfaces.C.To_C (File));
+   begin
+      pragma Assert (Started /= 0);
+   end Capture;
+
+   function Capture_State return Capture_States
+   is (if not Is_Attached
+       then Idle
+       else
+         (case WL_Capture_State is
+            when 1      => Working,
+            when 2      => Done,
+            when 3      => Failed,
+            when others => Idle));
+
+   function Capture_Strips return Natural
+   is (Natural (WL_Capture_Strips));
+
+   function Capture_Title return String is
+      Buffer : Interfaces.C.char_array (0 .. Text_Capacity);
+      Length : constant Interfaces.C.int := WL_Capture_Title (Buffer, Text_Capacity + 1);
+   begin
+      return Interfaces.C.To_Ada (Buffer (0 .. Interfaces.C.size_t (Length)));
+   end Capture_Title;
+
+   function Capture_Message return String is
+      Buffer : Interfaces.C.char_array (0 .. 255);
+      Length : constant Interfaces.C.int := WL_Capture_Message (Buffer, 256);
+   begin
+      return Interfaces.C.To_Ada (Buffer (0 .. Interfaces.C.size_t (Length)));
+   end Capture_Message;
+
+   procedure Capture_Reset is
+   begin
+      WL_Capture_Reset;
+   end Capture_Reset;
 
 end Webshot.Live;

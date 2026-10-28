@@ -74,4 +74,31 @@ package Webshot.Live is
    with Pre => Attached;
    --  The page's, as it now is (a redirect or a click changes it).
 
+   function Theme_Colour return Integer
+   with Pre => Attached, Post => Theme_Colour'Result in -1 .. 16#FFFFFF#;
+   --  The colour the page gives itself (its theme-color), as 16#RRGGBB#; -1 if it gives none (or not yet).
+
+   type Capture_States is (Idle, Working, Done, Failed);
+
+   procedure Capture (File : String)
+   with Pre => Attached and then Capture_State /= Working, Post => Capture_State = Working;
+   --  Begin to take a picture of the whole page as it now is, with whatever the person has done to it, to be
+   --  written as File (in a folder that exists): as Webshot does a page, in strips one under another, the first
+   --  File and the rest beside it (see Pomarine.Strips), none more than a texture can be tall. The view is
+   --  hidden for a moment as it is taken.
+
+   function Capture_State return Capture_States;
+
+   function Capture_Strips return Natural;
+   --  How many pictures are written so far.
+
+   function Capture_Title return String;
+   --  The page's title when the capture began.
+
+   function Capture_Message return String;
+   --  Why a Failed capture was.
+
+   procedure Capture_Reset;
+   --  Forget how a capture ended: Idle (not a Working one, which goes on).
+
 end Webshot.Live;

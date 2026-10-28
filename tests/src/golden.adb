@@ -1252,6 +1252,7 @@ begin
    Run ("layout-columns", Layout_Tests.Columns'Access);
    Run ("items-linking", Item_Tests.Linking'Access);
    Run ("items-link-editing", Item_Tests.Editing_Links'Access);
+   Run ("browser-pane", Item_Tests.Browser_Pane'Access);
    Run ("sources-window", Item_Tests.Source_Windows'Access);
    Run ("sources-pages", Item_Tests.Source_Pages'Access);
    Run ("sources-words", Item_Tests.Source_Words'Access);
@@ -1345,6 +1346,7 @@ begin
    Run ("nav-vm-browser", Nav_VM_Tests.Browser'Access);
    Run ("browser-vm-address", Browser_VM_Tests.Addresses'Access);
    Run ("browser-vm-going", Browser_VM_Tests.Going'Access);
+   Run ("browser-vm-keeping", Browser_VM_Tests.Keeping'Access);
    Run ("browser-vm-no-page", Browser_VM_Tests.Without_A_Page'Access);
    Run ("nav-vm-renaming", Nav_VM_Tests.Renaming'Access);
    Run ("nav-vm-layers", Nav_VM_Tests.Layers'Access);

@@ -32,6 +32,39 @@ package Browser_Hosts is
    overriding
    function Address (Self : Live_Page) return String;
 
+   overriding
+   function Title (Self : Live_Page) return String;
+
+   overriding
+   procedure Go_Back (Self : in out Live_Page);
+
+   overriding
+   procedure Go_Forward (Self : in out Live_Page);
+
+   overriding
+   function Can_Go_Back (Self : Live_Page) return Boolean;
+
+   overriding
+   function Can_Go_Forward (Self : Live_Page) return Boolean;
+
+   overriding
+   function Theme_Colour (Self : Live_Page) return Integer;
+
+   overriding
+   procedure Start_Capture (Self : in out Live_Page; File : String);
+
+   overriding
+   function Capture_State (Self : Live_Page) return Browser_VM.Capture_States;
+
+   overriding
+   function Capture_Title (Self : Live_Page) return String;
+
+   overriding
+   function Capture_Message (Self : Live_Page) return String;
+
+   overriding
+   procedure Reset_Capture (Self : in out Live_Page);
+
    type Window_Access is access all SDL3.Windows.Window;
 
    type Browser_Host is limited new Pomarine.Widgets.Embeds.Host with record

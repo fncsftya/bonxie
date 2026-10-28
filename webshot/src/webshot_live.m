@@ -25,6 +25,33 @@ static int kept_number[KEPT];
 static int kept_count;
 static int pending_shortcut;
 
+// Where the program last asked the view to be: while a capture has it taller and hidden, Place and Show only say.
+static NSRect want_frame;
+static BOOL want_hidden = YES;
+static BOOL capturing;
+
+// The brand colour the page gives itself (its theme-color), as 0xRRGGBB, or -1.
+static int page_colour = -1;
+
+// The capture of the whole page as it now is, written as strips (see wl_capture_start).
+enum { CAP_IDLE, CAP_WORKING, CAP_DONE, CAP_FAILED };
+static int cap_state;
+static int cap_strips;
+static char cap_title[4096];
+static char cap_message[256];
+static NSString *cap_path;
+static const int kMaxStrips = 32;       // pictures a page is written as, at most
+static const int kMaxPixels = 16384;    // pixels tall a picture is, at most: what a GPU texture can be
+static const int kPixelsPerPoint = 2;
+static const int kMaxPoints = 100000;   // points tall the view is made to take a page
+
+static NSString *const kColourScript =
+    @"(function(){var m=document.querySelector('meta[name=\"theme-color\"]');"
+     "if(!m||!m.content)return -1;var c=document.createElement('canvas');c.width=c.height=1;"
+     "var x=c.getContext('2d');x.fillStyle='#010203';x.fillStyle=m.content;"
+     "if(x.fillStyle==='#010203'&&m.content.replace(/\\s/g,'').toLowerCase()!=='#010203')return -1;"
+     "x.fillRect(0,0,1,1);var d=x.getImageData(0,0,1,1).data;return d[0]*65536+d[1]*256+d[2];})()";
+
 @implementation WLDelegate
 
 // A page that asks for a window of its own (window.open, as the sign-in of Google and others does, which
@@ -77,7 +104,18 @@ static int pending_shortcut;
 // A window of its own is named for the page in it.
 - (void)webView:(WKWebView *)view didFinishNavigation:(WKNavigation *)navigation
 {
-    if (view != live_view && view.title.length > 0) view.window.title = view.title;
+    if (view != live_view) {
+        if (view.title.length > 0) view.window.title = view.title;
+        return;
+    }
+    [view evaluateJavaScript:kColourScript completionHandler:^(id result, NSError *error) {
+        page_colour = [result isKindOfClass:[NSNumber class]] ? [result intValue] : -1;
+    }];
+}
+
+- (void)webView:(WKWebView *)view didCommitNavigation:(WKNavigation *)navigation
+{
+    if (view == live_view) page_colour = -1;
 }
 
 @end
@@ -159,13 +197,17 @@ void wl_set_frame(double x, double y, double w, double h)
     NSView *content = live_window.contentView;
     double top = content.isFlipped ? y : content.bounds.size.height - y - h;
     NSRect frame = NSMakeRect(x, top, w, h);
+    want_frame = frame;
+    if (capturing) return;
     if (!NSEqualRects(live_view.frame, frame)) live_view.frame = frame;
 }
 
 void wl_set_hidden(int hidden)
 {
     if (live_view == nil) return;
-    live_view.hidden = hidden != 0;
+    want_hidden = hidden != 0;
+    if (capturing) return;
+    live_view.hidden = want_hidden;
 }
 
 void wl_load(const char *url)
@@ -234,3 +276,104 @@ int wl_shortcut(void)
     pending_shortcut = 0;
     return number;
 }
+
+int wl_page_colour(void) { return page_colour; }
+
+// The capture ---------------------------------------------------------------------------------------------
+
+// The name of the picture of a strip: the first is the file asked for, the others are beside it, as stem.2.png.
+static NSString *strip_name(int index)
+{
+    if (index == 1) return cap_path;
+    return [[cap_path stringByDeletingPathExtension] stringByAppendingFormat:@".%d.png", index];
+}
+
+static void cap_end(int state, NSString *message)
+{
+    capturing = NO;
+    if (live_view != nil) {
+        live_view.frame = want_frame;
+        live_view.hidden = want_hidden;
+    }
+    if (message != nil) strlcpy(cap_message, message.UTF8String, sizeof cap_message);
+    cap_state = state;
+}
+
+static void cap_strip(int index, int high, double scale, int points)
+{
+    int offset = (index - 1) * points;
+    if (live_view == nil) { cap_end(CAP_FAILED, @"The page is gone"); return; }
+    if (offset >= high) { cap_end(CAP_DONE, nil); return; }
+    WKSnapshotConfiguration *config = [WKSnapshotConfiguration new];
+    double width = live_view.frame.size.width;
+    config.rect = NSMakeRect(0, offset, width, MIN(points, high - offset));
+    double backing = [NSScreen mainScreen].backingScaleFactor;
+    if (backing < 1.0) backing = 1.0;
+    config.snapshotWidth = @(width * scale / backing);
+    [live_view takeSnapshotWithConfiguration:config completionHandler:^(NSImage *image, NSError *error) {
+        CGImageRef cg = image ? [image CGImageForProposedRect:NULL context:nil hints:nil] : NULL;
+        if (!cg) { cap_end(CAP_FAILED, error.localizedDescription ?: @"No snapshot"); return; }
+        NSBitmapImageRep *rep = [[NSBitmapImageRep alloc] initWithCGImage:cg];
+        NSData *png = [rep representationUsingType:NSBitmapImageFileTypePNG properties:@{}];
+        NSString *name = strip_name(index);
+        NSString *temp = [name stringByAppendingString:@".part"];
+        if (![png writeToFile:temp atomically:NO]
+            || rename(temp.fileSystemRepresentation, name.fileSystemRepresentation) != 0) {
+            cap_end(CAP_FAILED, @"The picture could not be written");
+            return;
+        }
+        cap_strips = index;
+        cap_strip(index + 1, high, scale, points);
+    }];
+}
+
+// Take the whole of the page, one picture under another, as the strips of a page that a job of webshot.m takes:
+// but of the page as it is, with what the person has done to it. The view is hidden and made as tall as the
+// page while it is done, and as it was after.
+int wl_capture_start(const char *path)
+{
+    if (live_view == nil || cap_state == CAP_WORKING) return 0;
+    cap_state = CAP_WORKING;
+    cap_strips = 0;
+    cap_message[0] = 0;
+    cap_path = [NSString stringWithUTF8String:path];
+    strlcpy(cap_title, live_view.title.UTF8String ?: "", sizeof cap_title);
+    capturing = YES;
+    live_view.hidden = YES;
+    // The page's height; or, for one that scrolls inside a box of its own (as many apps do) and not as a whole,
+    // the tallest such box's, which is as tall as the page is to be made for the box to show it all.
+    [live_view evaluateJavaScript:@"(function(){var h=Math.max(document.documentElement.scrollHeight,"
+                                   "document.body?document.body.scrollHeight:0);"
+                                   "if(h<=window.innerHeight+1){var all=document.querySelectorAll('*');"
+                                   "for(var i=0;i<all.length;i++){var e=all[i];var o=getComputedStyle(e).overflowY;"
+                                   "if((o==='auto'||o==='scroll')&&e.scrollHeight>e.clientHeight+1){"
+                                   "h=Math.max(h,window.innerHeight+e.scrollHeight-e.clientHeight);}}}"
+                                   "return h;})()"
+                completionHandler:^(id result, NSError *error) {
+        if (live_view == nil) { cap_end(CAP_FAILED, @"The page is gone"); return; }
+        int high = [result isKindOfClass:[NSNumber class]] ? [result intValue] : 0;
+        high = MIN(kMaxPoints, MAX(high, (int)ceil(want_frame.size.height)));
+        double scale = MIN((double)kPixelsPerPoint, (double)kMaxStrips * kMaxPixels / high);
+        int points = MAX(1, (int)floor(kMaxPixels / scale));
+        live_view.frame = NSMakeRect(want_frame.origin.x, want_frame.origin.y, want_frame.size.width, high);
+        // What a longer page left beside the file is not part of this one.
+        for (int old = 2; [[NSFileManager defaultManager] fileExistsAtPath:strip_name(old)]; old++)
+            [[NSFileManager defaultManager] removeItemAtPath:strip_name(old) error:nil];
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            cap_strip(1, high, scale, points);
+        });
+    }];
+    return 1;
+}
+
+int wl_capture_state(void) { return cap_state; }
+int wl_capture_strips(void) { return cap_strips; }
+int wl_capture_title(char *buffer, int capacity)
+{
+    return give([NSString stringWithUTF8String:cap_title], buffer, capacity);
+}
+int wl_capture_message(char *buffer, int capacity)
+{
+    return give([NSString stringWithUTF8String:cap_message], buffer, capacity);
+}
+void wl_capture_reset(void) { if (cap_state != CAP_WORKING) cap_state = CAP_IDLE; }

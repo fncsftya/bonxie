@@ -35,6 +35,9 @@ package Item_Tests is
    procedure Kept;
    procedure Linking;
    procedure Editing_Links;
+   procedure Browser_Pane;
+   --  The browser pane over the canvas: the bar, the favourites as cards, and the tray.
+
    procedure Source_Windows;
    procedure Source_Pages;
    procedure Source_Words;

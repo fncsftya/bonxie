@@ -2,6 +2,7 @@ with Settings_VM;
 with Ada.Directories;
 with Items.Links;
 with Items.Sources;
+with Pomarine.Strips;
 with Items.Windows.Callbacks;
 with Downloads;
 with Preferences;
@@ -278,6 +279,22 @@ package body View.Canvas_Items is
                Items.Sources.Copy_File (File, Kept);
                Ada.Directories.Delete_File (File);
          end;
+         if not Document then
+            --  A page too long for one picture was written as more, beside it: they go with it.
+            for Strip in 2 .. Pomarine.Strips.Max_Strips loop
+               declare
+                  From : constant String := Pomarine.Strips.Strip_File (File, Strip);
+                  To   : constant String := Pomarine.Strips.Strip_File (Kept, Strip);
+               begin
+                  if Ada.Directories.Exists (To) then
+                     Ada.Directories.Delete_File (To);
+                  end if;
+                  if Ada.Directories.Exists (From) then
+                     Ada.Directories.Rename (From, To);
+                  end if;
+               end;
+            end loop;
+         end if;
          if Document then
             --  Counted and drawn as a PDF fetched for the source is.
             Opening.Open_Fetched (Item, Made, "pdf");

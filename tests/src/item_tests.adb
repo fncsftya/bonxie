@@ -13,6 +13,7 @@ with Items.Schema;
 with Items.Sources;
 with Items.Words;
 with Ada.Directories;
+with Ada.Environment_Variables;
 with Ada.Streams.Stream_IO;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
@@ -30,6 +31,7 @@ with View;
 with View.Canvas_Camera;
 with View.Canvas_Links;
 with View.Canvas_Windows;
+with Favourites;
 with View.Home_Screen;
 with View.Project_Screen;
 
@@ -1459,6 +1461,36 @@ package body Item_Tests is
          Waited := Waited + 1;
       end loop;
    end Capture_From;
+
+   procedure Browser_Pane is
+      Session : View.Session;
+      Config  : constant String :=
+        (if Ada.Environment_Variables.Exists ("TMPDIR") and then Ada.Environment_Variables.Value ("TMPDIR") /= ""
+         then Ada.Environment_Variables.Value ("TMPDIR")
+         else "/tmp")
+        & "/bonxie-memory";
+      Made    : Favourites.Lists.List;
+   begin
+      Made.Append
+        ((Title   => Ada.Strings.Unbounded.To_Unbounded_String ("Example Domain"),
+          Address => Ada.Strings.Unbounded.To_Unbounded_String ("https://example.org/a"),
+          Colour  => 16#2980B9#));
+      Made.Append
+        ((Title   => Ada.Strings.Unbounded.To_Unbounded_String ("A page with a rather long title indeed"),
+          Address => Ada.Strings.Unbounded.To_Unbounded_String ("https://news.example.com/x/y"),
+          Colour  => 16#F1C40F#));
+      Made.Append
+        ((Title   => Ada.Strings.Unbounded.To_Unbounded_String ("Third"),
+          Address => Ada.Strings.Unbounded.To_Unbounded_String ("https://third.test"),
+          Colour  => -1));
+      Ada.Directories.Create_Path (Config);
+      Favourites.Save (Config, Made);
+      Start (Session);
+      Click_On (Session, 660.0, 22.0);  --  the Browser button
+      View.Tick (Session, 1_000);
+      Snap (Session, "browser-pane");
+      Ada.Directories.Delete_File (Favourites.File_Name (Config));
+   end Browser_Pane;
 
    procedure Source_Windows is
       Session : View.Session;
