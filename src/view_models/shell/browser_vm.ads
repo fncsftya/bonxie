@@ -10,7 +10,7 @@ with Pomarine.View_Models;
 
 package Browser_VM is
 
-   type Command is (Go, Reload, Back, Forward, Favourite, Capture, Open_Favourite);
+   type Command is (Go, Reload, Back, Forward, Home, Favourite, Capture, Open_Favourite);
    package Commands is new Pomarine.View_Models.Command_Models (Command);
 
    type Page is limited interface;
@@ -92,7 +92,8 @@ package Browser_VM is
    overriding
    function Can_Execute (Self : Model; What : Command; Index : Natural := 0) return Boolean;
    --  Go: the page is there and something is typed. Reload, Capture, Favourite: the page has been gone to
-   --  (Capture, and nothing is being captured; and a folder was given). Back, Forward: the page can. Open_Favourite
+   --  (Capture, and nothing is being captured; and a folder was given). Back, Forward: the page can.
+   --  Home: the page has been gone to; it returns to the place to start. Open_Favourite
    --  (Index): that favourite is gone to, and Favourite marks the page, or, if it is marked, lets it go.
 
 private

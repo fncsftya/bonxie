@@ -275,6 +275,10 @@ package body View.Browsers is
            Bound.Button
              (Widgets.Buttons.Looks ("Forward", Icon => Pomarine.Icons.Shown (Icon_Set.Forward), Focusable => True),
               Browser_VM.Forward);
+         House  : constant UI.Button_Handle :=
+           Bound.Button
+             (Widgets.Buttons.Looks ("Home", Icon => Pomarine.Icons.Shown (Icon_Set.Home), Focusable => True),
+              Browser_VM.Home);
          Again  : constant UI.Button_Handle :=
            Bound.Button
              (Widgets.Buttons.Looks ("Reload", Icon => Pomarine.Icons.Shown (Icon_Set.Refresh), Focusable => True),
@@ -298,6 +302,7 @@ package body View.Browsers is
            UI.Row
              ([Tool (Back),
                Tool (Ahead),
+               Tool (House),
                UI.Called
                  (Bound.Text_Field
                     (Browser_UI.Address,

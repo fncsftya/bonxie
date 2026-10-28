@@ -41,7 +41,8 @@ package Icon_Set is
          Numbered_List,
          Globe,
          Star,
-         Star_Filled);
+         Star_Filled,
+         Home);
    end Names;
 
    package Sets is new Pomarine.Icons.Sets (Names.Name);
@@ -79,6 +80,7 @@ package Icon_Set is
    Globe         : constant Pomarine.Icons.Icon := Sets.Icon_Of (Names.Globe);
    Star          : constant Pomarine.Icons.Icon := Sets.Icon_Of (Names.Star);
    Star_Filled   : constant Pomarine.Icons.Icon := Sets.Icon_Of (Names.Star_Filled);
+   Home          : constant Pomarine.Icons.Icon := Sets.Icon_Of (Names.Home);
 
    procedure Install (Library : in out Pomarine.Icons.Library; Directory : String);
    --  Where the files are, and which is which.

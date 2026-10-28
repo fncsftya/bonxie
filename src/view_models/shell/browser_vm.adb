@@ -138,7 +138,7 @@ package body Browser_VM is
                      Index = 0
                      and then (case What is
                                  when Go                 => Address_Draft (Self)'Length > 0,
-                                 when Reload | Favourite => Self.Started,
+                                 when Reload | Home | Favourite => Self.Started,
                                  when Back               => Self.Started and then Self.Back_Ok,
                                  when Forward            => Self.Started and then Self.Forward_Ok,
                                  when Capture            =>
@@ -191,6 +191,12 @@ package body Browser_VM is
 
          when Forward        =>
             Self.Shown.Go_Forward;
+
+         when Home           =>
+            Self.Started := False;
+            Self.Where := Strings.Null_Unbounded_String;
+            Set_Address_Draft (Self, "");
+            Mark_Changed (Self);
 
          when Favourite      =>
             Toggle_Favourite (Self);

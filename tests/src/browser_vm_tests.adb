@@ -190,6 +190,8 @@ package body Browser_VM_Tests is
       Browser_VM.Refresh (Model);
       Check ("browser-vm-nav-back", "TRUE FALSE", Can (Model, Back) & " " & Can (Model, Forward));
 
+      Check ("browser-vm-can-home", "TRUE", Can (Model, Home));
+
       Browser_VM.Execute (Model, Favourite);
       Check
         ("browser-vm-favourited",
@@ -226,6 +228,12 @@ package body Browser_VM_Tests is
          & Browser_VM.Capture_Address (Model));
       Browser_VM.Finish_Capture (Model);
       Check ("browser-vm-capture-finished", "IDLE", Browser_VM.Capture_State (Model)'Image);
+
+      Browser_VM.Execute (Model, Home);
+      Check
+        ("browser-vm-home",
+         "FALSE FALSE ",
+         Image (Browser_VM.Has_Started (Model)) & " " & Can (Model, Home) & " " & Browser_VM.Address_Draft (Model));
    end Keeping;
 
    procedure Without_A_Page is
