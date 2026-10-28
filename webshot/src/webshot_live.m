@@ -102,11 +102,35 @@ int wl_attach(void *window)
     [live_window.contentView addSubview:live_view];
     live_monitor = [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskKeyDown
                                                          handler:^NSEvent *(NSEvent *event) {
-        if (live_view == nil || live_view.hidden || event.window != live_window || !wl_has_focus()) return event;
+        if (live_view == nil) return event;
+        BOOL popup = event.window != nil && [popups containsObject:event.window];
+        if (!popup && (live_view.hidden || event.window != live_window || !wl_has_focus())) return event;
         NSEventModifierFlags flags = event.modifierFlags & NSEventModifierFlagDeviceIndependentFlagsMask;
-        if (flags != NSEventModifierFlagCommand) return event;
         NSString *letter = event.charactersIgnoringModifiers;
         if (letter.length != 1) return event;
+        // The Edit menu's Command-Z X C V A would reach the program's own text, not the page that has the
+        // keyboard (nor that of a window the page opened), so they are put to the page here.
+        BOOL shifted = flags == (NSEventModifierFlagCommand | NSEventModifierFlagShift);
+        if (flags == NSEventModifierFlagCommand || shifted) {
+            SEL action = NULL;
+            switch ([letter.lowercaseString characterAtIndex:0]) {
+            case 'x': action = shifted ? NULL : @selector(cut:); break;
+            case 'c': action = shifted ? NULL : @selector(copy:); break;
+            case 'v': action = shifted ? NULL : @selector(paste:); break;
+            case 'a': action = shifted ? NULL : @selector(selectAll:); break;
+            case 'z': {
+                NSUndoManager *undo = [event.window.firstResponder undoManager];
+                if (undo == nil) undo = event.window.undoManager;
+                if (shifted) [undo redo]; else [undo undo];
+                return nil;
+            }
+            }
+            if (action != NULL) {
+                [NSApp sendAction:action to:nil from:nil];
+                return nil;
+            }
+        }
+        if (popup || flags != NSEventModifierFlagCommand) return event;
         for (int i = 0; i < kept_count; i++) {
             if ([letter characterAtIndex:0] == (unichar)kept_letter[i]) {
                 pending_shortcut = kept_number[i];
