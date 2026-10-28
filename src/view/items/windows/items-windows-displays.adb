@@ -123,7 +123,12 @@ package body Items.Windows.Displays is
          if Of_Source then
             Editors.Configure (Item.Body_Text, Pomarine.Line_Texts.Interface_Font, Metrics.Link_Size, Metrics.Measure);
          else
-            Editors.Configure (Item.Body_Text, Pomarine.Line_Texts.Serif, Metrics.Text_Size, Metrics.Measure);
+            Editors.Configure
+              (Item.Body_Text,
+               Pomarine.Line_Texts.Serif,
+               Metrics.Text_Size,
+               Metrics.Measure,
+               Spacing => Editors.Prose_Spacing (Metrics.Text_Size));
          end if;
       end if;
       Frames.Set_Tag_Visible (Item.Chrome, Of_Source);

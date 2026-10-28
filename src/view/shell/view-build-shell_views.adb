@@ -754,7 +754,8 @@ package body View.Build.Shell_Views is
       Panels.Set_Fill (Pane.Sidebar, Side_Fill);
       Panels.Set_Fill (Pane.Rule, Themes.Border);
       Editors.Set_Shared (Pane.Source_Text, Item.Host.Doc_Resources'Unchecked_Access);
-      Editors.Configure (Pane.Source_Text, "Menlo", Source_Text_Size, 2000.0, Spacing => 0.35 * Source_Text_Size);
+      Editors.Configure
+        (Pane.Source_Text, "Menlo", Source_Text_Size, 2000.0, Spacing => Editors.Prose_Spacing (Source_Text_Size));
       Editors.Set_Paper (Pane.Source_Text, Paper);
       Editors.Set_Borderless (Pane.Source_Text, True);
       Editors.Set_Indent (Pane.Source_Text, Page_Margin - Page_Text_Inset - Page_Border);
@@ -769,7 +770,11 @@ package body View.Build.Shell_Views is
       Widgets.Set_Visible (Pane.Split_Rule, False);
       Editors.Set_Shared (Pane.Text, Item.Host.Doc_Resources'Unchecked_Access);
       Editors.Configure
-        (Pane.Text, Pomarine.Line_Texts.Serif, Page_Text_Size, 2000.0, Spacing => 0.35 * Page_Text_Size);
+        (Pane.Text,
+         Pomarine.Line_Texts.Serif,
+         Page_Text_Size,
+         2000.0,
+         Spacing => Editors.Prose_Spacing (Page_Text_Size));
       Editors.Set_Paper (Pane.Text, Paper);
       Editors.Set_Borderless (Pane.Text, True);
       Editors.Set_Indent (Pane.Text, Page_Margin - Page_Text_Inset - Page_Border);

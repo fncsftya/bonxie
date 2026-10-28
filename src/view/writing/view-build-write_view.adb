@@ -282,7 +282,11 @@ package body View.Build.Write_View is
       Panels.Set_Shadow (Each.Sheet, Themes.Shadow);
       Editors.Set_Shared (Each.Text, Item.Host.Doc_Resources'Unchecked_Access);
       Editors.Configure
-        (Each.Text, Pomarine.Line_Texts.Serif, Page_Text_Size, 2000.0, Spacing => 0.35 * Page_Text_Size);
+        (Each.Text,
+         Pomarine.Line_Texts.Serif,
+         Page_Text_Size,
+         2000.0,
+         Spacing => Editors.Prose_Spacing (Page_Text_Size));
       Editors.Set_Paper (Each.Text, Paper);
       Editors.Set_Toolbar (Each.Text);
       Word_Tools.Add (Each.Text);

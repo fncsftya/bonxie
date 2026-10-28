@@ -93,10 +93,7 @@ package body Items.Windows.Builder is
              (Item.File_Button,
               Item_Window_VM.Choose_File,
               Buttons.Looks
-                ("From File",
-                 Icon      => Pomarine.Icons.Shown (Icon_Set.Document),
-                 Captioned => True,
-                 Focusable => False),
+                ("From File", Icon => Pomarine.Icons.Shown (Icon_Set.Document), Captioned => True, Focusable => False),
               Metrics.Wizard_Button_Width,
               Metrics.Wizard_Button_Height);
          Wizard       : constant UI.Layout :=
@@ -300,11 +297,21 @@ package body Items.Windows.Builder is
       Pomarine.Widgets.Progress_Bars.Set_Over (Item.Progress, Pomarine.Themes.Strip, Meter_Slot);
       Panels.Set_Fill (Item.Wizard, Pomarine.Themes.Page);
       Panels.Set_Fill (Item.Zoom_Menu, Pomarine.Themes.Border);
-      Editors.Configure (Item.Body_Text, Pomarine.Line_Texts.Serif, Metrics.Text_Size, Metrics.Measure);
+      Editors.Configure
+        (Item.Body_Text,
+         Pomarine.Line_Texts.Serif,
+         Metrics.Text_Size,
+         Metrics.Measure,
+         Spacing => Editors.Prose_Spacing (Metrics.Text_Size));
       Editors.Set_Paper (Item.Body_Text, Pomarine.Themes.Page);
       Editors.Set_Toolbar (Item.Body_Text);
       Word_Tools.Add (Item.Body_Text);
-      Editors.Configure (Item.Text_View, Pomarine.Line_Texts.Serif, Metrics.Text_Size, Metrics.Measure);
+      Editors.Configure
+        (Item.Text_View,
+         Pomarine.Line_Texts.Serif,
+         Metrics.Text_Size,
+         Metrics.Measure,
+         Spacing => Editors.Prose_Spacing (Metrics.Text_Size));
       Editors.Set_Paper (Item.Text_View, Pomarine.Themes.Page);
       Pomarine.Text_Areas.Set_Read_Only (Editors.Area (Item.Text_View).all);
 
