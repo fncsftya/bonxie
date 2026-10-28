@@ -96,6 +96,8 @@ private package View.Style is
    Outline_Gap                : constant Pomarine.Widgets.Layouts.Length := 24.0;
    --  Between the form and the sections, and round them.
    Outline_Description_Height : constant Pomarine.Widgets.Layouts.Length := 220.0;
+   Desc_Grip_Size             : constant Float := 14.0;
+   --  The corner to size the description by.
    Outline_Block_Height       : constant Float := 40.0;
    Outline_Notes_Height       : constant Pomarine.Widgets.Layouts.Length := 96.0;
    --  Of a section's notes, when shown.

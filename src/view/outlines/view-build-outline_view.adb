@@ -193,8 +193,15 @@ package body View.Build.Outline_View is
                       others => <>)),
                   UI.Styled
                     (UI.Put_In
-                       (Form, Pane.Desc_Sheet, [Line (Pane.Desc_Text, (Grow => 1.0, Height => 0.0, others => <>))]),
-                     (Flow => Column, Height => Outline_Description_Height, Shrink => 0.0, others => <>))]),
+                       (Form, Pane.Desc_Sheet, [Line (Pane.Desc_Text, (Grow => 1.0, Height => 0.0, others => <>)),
+                        Line
+                          (Pane.Desc_Grip,
+                           (Place    => Absolute,
+                            Position => (Right | Bottom => Layouts.Length_Of (0.0), others => <>),
+                            Width    => Layouts.Length_Of (Desc_Grip_Size),
+                            Height   => Layouts.Length_Of (Desc_Grip_Size),
+                            others   => <>))]),
+                     (Flow => Column, Height => Layouts.Length_Of (Pane.Desc_Height), Shrink => 0.0, others => <>))]),
               (Flow => Column, Grow => 1.0, Width => 0.0, Gap => Layouts.Length_Of (Tool_Gap), others => <>));
 
          --  The ghost of the block dragged: its title, in a box of the same outline, a little clear.
@@ -308,6 +315,9 @@ package body View.Build.Outline_View is
       Editors.Configure (Pane.Desc_Text, Pomarine.Line_Texts.Interface_Font, Edit_Size, 2000.0);
       Editors.Set_Paper (Pane.Desc_Text, Paper);
       Editors.Attach (Pane.Desc_Text, Pane.Desc_Doc'Unchecked_Access);
+      Grips.Set_Shape (Pane.Desc_Grip, Grips.Corner);
+      Grips.Set_Wanted_Cursor (Pane.Desc_Grip, SDL3.Cursors.Resize);
+      Widgets.Set_Accessible_Name (Pane.Desc_Grip, "Resize description");
 
       Labels.Set_Text (Pane.Heading, "Sections");
       Labels.Set_Style (Pane.Heading, Pomarine.Line_Texts.Caption);

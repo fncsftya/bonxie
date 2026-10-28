@@ -338,6 +338,7 @@ package body View.Build is
       Write_View.Build_Write (Item);
       Shell_Views.Build_Publish (Item);
       Outline_View.Build_Outline (Item);
+      Outlines.Listen_Description (Item);
       Shell_Views.Build_Tray (Item);
       Search.Build (Item);
       Settings_Form.Build_Settings (Item);

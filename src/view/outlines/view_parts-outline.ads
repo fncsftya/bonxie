@@ -73,6 +73,9 @@ package View_Parts.Outline is
       Desc_Label               : Pomarine.Widgets.Labels.Label;
       Desc_Sheet               : Pomarine.Widgets.Panels.Panel;
       Desc_Text                : Pomarine.Widgets.Editors.Editor;
+      Desc_Grip                : Pomarine.Widgets.Grips.Grip;
+      Desc_Height              : Float := 220.0;
+      --  The corner to size the description by, and how high it is, in points.
       Sections                 : Pomarine.Widgets.Panels.Panel;
       Head                     : Pomarine.Widgets.Panels.Panel;
       Heading                  : Pomarine.Widgets.Labels.Label;

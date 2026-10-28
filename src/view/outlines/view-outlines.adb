@@ -2,6 +2,7 @@ with View.Writing;
 with Pomarine.Text_Areas;
 with Pomarine.Widgets.Buttons;
 with Pomarine.Widgets.Callbacks;
+with Pomarine.Widgets.Layouts;
 with Pomarine.Widgets.Scrollers;
 with Pomarine.Widgets.Text_Fields;
 with Texts.Documents;
@@ -12,6 +13,7 @@ with View.Outlines.Support;
 package body View.Outlines is
 
    package Widgets renames Pomarine.Widgets;
+   package Layouts renames Pomarine.Widgets.Layouts;
    package Buttons renames Pomarine.Widgets.Buttons;
    package Scrollers renames Pomarine.Widgets.Scrollers;
    package Text_Fields renames Pomarine.Widgets.Text_Fields;
@@ -287,5 +289,24 @@ package body View.Outlines is
       Hear (Block.Row, Drag, Blocks.Block_Dragged'Access, Index);
       Hear (Block.Row, Release, Blocks.Block_Released'Access);
    end Listen_Block;
+
+   --  The least the description is sized to, in points.
+   Least_Description : constant Float := 96.0;
+
+   procedure Description_Sized
+     (Item : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source);
+      Pane : Outline_Parts renames Item.Outline_View;
+   begin
+      Pane.Desc_Height := Float'Max (Least_Description, Pane.Desc_Height + Event.Down);
+      Layouts.Set_Layout (Pane.Desc_Sheet, Height => Layouts.Length_Of (Pane.Desc_Height));
+      Widgets.Request_Layout (Pane.Desc_Sheet);
+   end Description_Sized;
+
+   procedure Listen_Description (Item : in out Session) is
+   begin
+      Hooks.On (Item.Outline_View.Desc_Grip, Widgets.Drag, Item'Unchecked_Access, Description_Sized'Access);
+   end Listen_Description;
 
 end View.Outlines;

@@ -66,6 +66,9 @@ private package View.Outlines is
    procedure Listen_Block (Item : in out Session; Index : Positive);
    --  Give the widgets of the section's block the procedures they call.
 
+   procedure Listen_Description (Item : in out Session);
+   --  Give the corner of the description the procedure it calls.
+
    procedure Leave (Item : in out Session);
    --  Keep what was typed, and let go of the project's sections.
 
