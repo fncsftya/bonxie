@@ -17,6 +17,7 @@ with Pomarine.Line_Texts;
 with Pomarine.Widgets;
 with Pomarine.Widgets.Labels;
 with Pomarine.Widgets.Panels;
+with Pomarine.Widgets.Tooltips;
 
 --  What the other parts of a viewer's session share, and the small parts of it.
 
@@ -81,6 +82,8 @@ package View_Parts.Common is
       Widgets      : aliased Pomarine.Widgets.Tree;
       Window_Panel : Backgrounds.Panel;
       --  The root, of both screens, one of which is hidden.
+      Tip          : Pomarine.Widgets.Tooltips.Tooltip;
+      --  The small box that names a button when the pointer rests on it.
       Header_Panel : Pomarine.Widgets.Panels.Panel;
       Header_Title : Pomarine.Widgets.Labels.Label;
       --  Across the top of a window, where its title bar was: under the

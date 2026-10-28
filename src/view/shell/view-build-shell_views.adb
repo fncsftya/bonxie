@@ -372,6 +372,9 @@ package body View.Build.Shell_Views is
    Renaming      : constant Nav_UI.Flag_Property := Nav_UI.Showing (Nav_VM.Is_Renaming'Access);
    Named         : constant Nav_UI.Flag_Property := Nav_UI.Showing (Not_Renaming'Access);
 
+   Command_Mark : constant String := [Character'Val (16#E2#), Character'Val (16#8C#), Character'Val (16#98#)];
+   --  The place-of-interest sign (U+2318) that the Mac says Command by.
+
    procedure Build_Project (Item : in out Session) is
       Bar : Toolbar_Parts renames Item.Toolbar;
 
@@ -535,6 +538,7 @@ package body View.Build.Shell_Views is
          Bar.Canvas_Tab := Canvas;
          Bar.Write_Tab := Write;
          Bar.Browser_Tab := Browser;
+         Widgets.Set_Tooltip (UI.Widget_Of (Form, Browser).all, "Browser (" & Command_Mark & "G)");
          Bar.Publish_Tab := Publish;
          Item.Dock.Tool_List := Listing;
          UI.Mount_Into (Form, Item.Root.Window_Panel, Project);

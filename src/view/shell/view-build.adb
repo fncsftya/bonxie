@@ -26,6 +26,7 @@ with Pomarine.Line_Texts;
 with Pomarine.UI;
 with Pomarine.Widgets;
 with Pomarine.Widgets.Layouts;
+with Pomarine.Widgets.Tooltips;
 with View.Browsers;
 with View.Canvas_Items;
 with View.Links;
@@ -327,6 +328,7 @@ package body View.Build is
       end if;
       Widgets.Set_Root (Item.Root.Widgets, Item.Root.Window_Panel);
       Set_Layout (Item.Root.Window_Panel, Flow => Column);
+      Pomarine.Widgets.Tooltips.Install (Item.Root.Widgets, Item.Root.Tip);
       if Item.Shell.Windowed then
          Shell_Views.Build_Header (Item);
       end if;
