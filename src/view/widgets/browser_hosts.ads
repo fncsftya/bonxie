@@ -1,6 +1,7 @@
 with System;
 with Browser_VM;
 with Pomarine.Widgets.Embeds;
+with Site_Filters;
 with SDL3.Windows;
 
 --  The live web view (Webshot.Live) in the browser pane: as the Page the browser's view-model moves, and as the host
@@ -17,6 +18,9 @@ package Browser_Hosts is
    function Is_Attached return Boolean;
 
    procedure Keep (Letter : Character; Number : Positive);
+
+   procedure Hold_Back (Using : Site_Filters.Rules);
+   --  Have the web view open only the pages the rules permit (as Webshot.Live.Set_Filter). May be before Attach.
 
    type Live_Page is limited new Browser_VM.Page with null record;
 

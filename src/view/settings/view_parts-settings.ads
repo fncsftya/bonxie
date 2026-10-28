@@ -9,6 +9,7 @@ with Pomarine.Widgets.Panels;
 with Pomarine.Widgets.Scrollers;
 with Settings_VM;
 with Settings_VM.Disk;
+with Site_Filter_VM;
 with Speech.Models;
 
 --  The settings: their widgets, and the view-model they show with what ties them.
@@ -43,6 +44,8 @@ package View_Parts.Settings is
       Settings_Form     : Pomarine.Widgets.Panels.Panel;
       Form_Wide         : Float := 0.0;
       --  Its width, in points, as last set (see Settings_View.Fit).
+      Sites_Box         : Pomarine.Widgets.Panels.Panel;
+      --  The browser filter's list of sites, in a border.
       Background_Scroll : Pomarine.Widgets.Scrollers.Scroller;
       Background_Row    : Pomarine.Widgets.Panels.Panel;
       Cards             : Background_Card_Array;
@@ -58,8 +61,12 @@ package View_Parts.Settings is
       Files          : aliased Settings_VM.Disk.File_Store;
       Voice          : aliased Settings_VM.Disk.Speech_Files;
       --  Where the choices are kept, and the speech model's files.
+      Filter         : aliased Site_Filter_VM.Model;
+      --  The browser's site filter: how it is set, the sites, and what is typed to add one.
       Seen           : Pomarine.View_Models.Watch;
       --  The model's version as the widgets last showed it.
+      Filter_Seen    : Pomarine.View_Models.Watch;
+      --  The filter's, as the browser's web view was last told it.
       Download_Seen  : Speech.Models.States := Speech.Models.Idle;
       --  How the download was when the form last showed it.
       Dark_Shown     : Boolean := False;

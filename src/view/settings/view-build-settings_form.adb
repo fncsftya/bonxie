@@ -8,6 +8,8 @@ with Pomarine.Widgets.Grips;
 with Pomarine.Widgets.Scrollers;
 with Preferences;
 with Settings_VM;
+with Site_Filter_VM;
+with Site_Filters;
 with SDL3.Cursors;
 with Icon_Set;
 with Pomarine.Line_Texts;
@@ -44,6 +46,24 @@ package body View.Build.Settings_Form is
    function Voice_Of (Item : Settings_VM.View_Model) return Preferences.Speech_Models
    is (Settings_VM.Speech_Model (Item));
 
+   package Filter_UI is new Pomarine.UI.Contexts (Site_Filter_VM.Commands, Site_Filter_VM.Model);
+
+   function Mode_Of (Item : Site_Filter_VM.Model) return Site_Filters.Modes
+   is (Site_Filter_VM.Mode (Item));
+
+   package Mode_Is is new Filter_UI.Choosing_Among (Site_Filters.Modes, Mode_Of);
+
+   Site_Draft  : constant Filter_UI.Text_Property :=
+     Filter_UI.Editing (Site_Filter_VM.Draft'Access, Site_Filter_VM.Set_Draft'Access);
+   Site_Hint   : constant Filter_UI.Text_Property := Filter_UI.Showing (Site_Filter_VM.Hint'Access);
+   Site_Rows   : constant Filter_UI.Rows_Property := Filter_UI.Listing (Site_Filter_VM.Rows'Access);
+   Site_Choice : constant Filter_UI.Choice_Property :=
+     Filter_UI.Choosing (Site_Filter_VM.Selected_Site'Access, Site_Filter_VM.Select_Site'Access);
+   Site_List   : constant Filter_UI.Flag_Property := Filter_UI.Showing (Site_Filter_VM.List_Shown'Access);
+
+   Sites_Height : constant Float := 96.0;
+   --  The list of sites, in points.
+
    package Theme_Is is new Settings_UI.Choosing_Among (Preferences.Theme_Choices, Theme_Of);
    package Voice_Is is new Settings_UI.Choosing_Among (Preferences.Speech_Models, Voice_Of);
 
@@ -65,6 +85,7 @@ package body View.Build.Settings_Form is
          Form  : UI.View renames Screen_Of (Item, Settings_Region).all;
          Bound : constant Settings_UI.Context'Class := Settings_UI.Bind (Form, Item.Choices.Model);
          Navs  : constant Nav_UI.Context'Class := Nav_UI.Bind (Form, Item.Nav_Model.Model);
+         Sites : constant Filter_UI.Context'Class := Filter_UI.Bind (Form, Item.Choices.Filter);
 
          function Line (High : Float; Top : Layouts.Length := Unset) return Layouts.Style
          is (Height => Layouts.Length_Of (High), Shrink => 0.0, Margin => (Top => Top, others => <>), others => <>);
@@ -176,6 +197,55 @@ package body View.Build.Settings_Form is
          Delete   : constant UI.Button_Handle :=
            Bound.Button ("Delete", Settings_VM.Confirm_Delete, Buttons.Danger, Focusable => True);
 
+         function Filter_Radio (Words : String; Mode : Site_Filters.Modes) return UI.Layout
+         is (UI.Styled
+               (Sites.Check
+                  (Words,
+                   Mode_Is.Is_Value (Mode),
+                   Site_Filter_VM.Choose_Mode,
+                   Form  => Checks.Radio,
+                   Index => Site_Filters.Modes'Pos (Mode)),
+                Line (Settings_Line)));
+
+         --  Typed in a field: Return, or the buttons, add the site, change the chosen one to what is typed, or
+         --  remove it; they are on as the view-model says.
+         Site_Entry : constant UI.Layout :=
+           UI.Styled
+             (UI.Row
+                ([Sites.Text_Field
+                    (Site_Draft,
+                     Site_Filter_VM.Add_Site,
+                     Placeholder => "https://example.com",
+                     Name        => "Site",
+                     Grow        => 1.0,
+                     Width       => Layouts.Length_Of (0.0),
+                     Height      => Download_Height),
+                  Sites.Button ("Add", Site_Filter_VM.Add_Site, Buttons.Primary, Width => Download_Width),
+                  Sites.Button ("Change", Site_Filter_VM.Change_Site, Width => Download_Width),
+                  Sites.Button ("Remove", Site_Filter_VM.Remove_Site, Buttons.Danger, Width => Download_Width)]),
+              (Height => Download_Height,
+               Shrink => 0.0,
+               Flow   => Layouts.Row,
+               Align  => Center,
+               Gap    => Layouts.Length_Of (Gap),
+               others => <>));
+
+         Site_Editor : constant UI.Layout :=
+           UI.Styled
+             (UI.Column
+                ([Site_Entry,
+                  UI.Styled
+                    (Sites.Label (Site_Hint, Ink => Quiet_Ink),
+                     (Height => Layouts.Length_Of (Settings_Line), Shrink => 0.0, others => <>)),
+                  UI.Styled
+                    (UI.Put_In
+                       (Form,
+                        Prefs.Sites_Box,
+                        [Sites.List (Site_Rows, Site_Choice, Name => "Sites", Grow => 1.0, Shrink => 0.0)]),
+                     (Height => Layouts.Length_Of (Sites_Height), Shrink => 0.0, Flow => Column, others => <>))],
+                 Gap => Layouts.Length_Of (Gap)),
+              (Shrink => 0.0, Margin => (Top => Layouts.Length_Of (Gap), others => <>), others => <>));
+
          Status : constant UI.Label_Handle := Bound.Label (Status_Text, Ink => Quiet_Ink);
          Bar    : constant UI.Progress_Handle := Bound.Progress (Fraction_Value);
          Switch : constant UI.Switch_Handle := Bound.Switch ("VSync", VSync_Flag, Settings_VM.Toggle_VSync);
@@ -265,7 +335,13 @@ package body View.Build.Settings_Form is
             Download_Row,
             UI.Styled (UI.Place (Bar), Line (Progress_Height)),
             Heading ("GRAPHICS", Top => Layouts.Length_Of (Heading_Top)),
-            UI.Styled (UI.Place (Switch), Line (Settings_Line))];
+            UI.Styled (UI.Place (Switch), Line (Settings_Line)),
+            Heading ("BROWSER", Top => Layouts.Length_Of (Heading_Top)),
+            Name ("Site filter"),
+            Filter_Radio ("Off", Site_Filters.Off),
+            Filter_Radio ("Block the sites listed", Site_Filters.Use_Blocked),
+            Filter_Radio ("Allow only the sites listed", Site_Filters.Use_Allowed),
+            Site_Editor];
 
          --  The form, on a page of its own, in the middle, scrolled.
          Page  : constant UI.Layout :=
@@ -328,6 +404,9 @@ package body View.Build.Settings_Form is
          Bound.Show_When (UI.Any (Download), Download_Flag);
          Bound.Show_When (UI.Any (Bar), Bar_Flag);
          Bound.Show_When (UI.Any (Delete), Delete_Flag);
+         Sites.Show_When (Site_Editor, Site_List);
+         Panels.Set_Border (Prefs.Sites_Box, Themes.Border);
+         Panels.Set_Radius (Prefs.Sites_Box, Themes.Small_Radius, Framed => True);
          Scrollers.Set_Across (Prefs.Background_Scroll, True);
          Panels.Set_Fill (Prefs.Settings_Bar, Toolbar);
          Labels.Set_Text (Prefs.Settings_Title, "Settings");

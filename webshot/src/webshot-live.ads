@@ -30,6 +30,15 @@ package Webshot.Live is
    procedure Load (URL : String)
    with Pre => Attached;
 
+   type Filters is (Off, Hold_Back_Listed, Hold_Back_Unlisted);
+
+   procedure Set_Filter (Mode : Filters; Hosts : String);
+   --  Which pages the view opens: any (Off), those of hosts not in the list (Hold_Back_Listed), or only those of
+   --  hosts in it (Hold_Back_Unlisted). Hosts is one lower-case host to a line; a host is a listed one if it is
+   --  that, or a subdomain of it. Held back are any pages it is asked to go to, by Load, a click, a redirect or a
+   --  page that opens another, and a note of the site is shown in place of the page. Only web addresses (http
+   --  and https) are held back. It is for whatever is next loaded, and stays until set again.
+
    procedure Focus (Page : Boolean)
    with Pre => Attached;
    --  Give the keyboard to the page, or take it back for the program.

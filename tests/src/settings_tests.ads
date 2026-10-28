@@ -9,4 +9,9 @@ package Settings_Tests is
    --  The choices of theme, background and speech model, VSync, and the
    --  download row that Parakeet has.
 
+   procedure Browser_Filter;
+   --  The Browser section: the filter is off, and no list shows; each mode shows its own list, to which sites are
+   --  added, typed as any address, then chosen, changed and removed by the form's controls; what is not an
+   --  address is said so. A golden of the section with sites in it.
+
 end Settings_Tests;

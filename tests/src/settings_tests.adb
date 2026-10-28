@@ -1,5 +1,6 @@
 with Goldens;
 with Pomarine.Events;
+with Pomarine.Semantics;
 with Pomarine.Testing;
 with Preferences;
 with View;
@@ -9,6 +10,7 @@ with View.Settings;
 package body Settings_Tests is
 
    package Events renames Pomarine.Events;
+   package Images renames Goldens.Images;
    package Settings renames View.Settings;
    package Testing renames Pomarine.Testing;
 
@@ -151,5 +153,97 @@ package body Settings_Tests is
       Testing.Press (Window, Events.Key_Escape);
       Check ("settings-name-escaped", "FALSE", Image (Settings.Is_Settings_Open (Session)));
    end By_Name;
+
+   procedure Browser_Filter is
+      Session : aliased View.Session;
+      Ears    : aliased View_Driver.Driver (Session'Access);
+      Window  : Testing.Session;
+      Drawn   : Images.Image;
+
+      procedure Type_Site (Text : String) is
+      begin
+         Testing.Click_On (Window, "Site", Pomarine.Semantics.Text_Input);
+         Testing.Press (Window, Events.Key_A, Command => True);
+         Testing.Type_Text (Window, Text);
+      end Type_Site;
+   begin
+      --  Tall enough that the whole of the form shows.
+      View.Open (Session, "", 1000, 2000);
+      Testing.Attach (Window, View.Widget_Tree (Session).all, Ears'Access);
+      Testing.Click_On (Window, "Settings");
+
+      Check
+        ("settings-browser-off",
+         "TRUE FALSE",
+         Image (Testing.Shows (Window, "radio button 'Off' ON")) & " " & Image (Testing.Exists (Window, "Add")));
+
+      Testing.Click_On (Window, "Block the sites listed");
+      Check
+        ("settings-browser-blocking",
+         "TRUE TRUE TRUE",
+         Image
+           (Testing.Shows (Window, "radio button 'Block the sites listed' ON")
+            and then Testing.Exists (Window, "Site")
+            and then Testing.Exists (Window, "Sites"))
+         & " "
+         & Image (Testing.Is_Disabled (Window, "Add"))
+         & " "
+         & Image (Testing.Is_Disabled (Window, "Remove")));
+
+      --  An address is cut down to its base.
+      Type_Site ("Example.com/some/page?x=1");
+      Check ("settings-browser-can-add", "FALSE", Image (Testing.Is_Disabled (Window, "Add")));
+      Testing.Click_On (Window, "Add");
+      Type_Site ("https://news.example.org");
+      Testing.Click_On (Window, "Add");
+      Check
+        ("settings-browser-added",
+         "TRUE TRUE",
+         Image (Testing.Shows (Window, "https://example.com"))
+         & " "
+         & Image (Testing.Shows (Window, "https://news.example.org")));
+
+      Type_Site ("two words");
+      Check
+        ("settings-browser-refused",
+         "TRUE TRUE",
+         Image (Testing.Shows (Window, "That is not a web address."))
+         & " "
+         & Image (Testing.Is_Disabled (Window, "Add")));
+      Testing.Press (Window, Events.Key_A, Command => True);
+      Testing.Press (Window, Events.Key_Backspace);
+
+      --  The other mode has a list of its own.
+      Testing.Click_On (Window, "Allow only the sites listed");
+      Check
+        ("settings-browser-allowing",
+         "TRUE FALSE",
+         Image (Testing.Shows (Window, "radio button 'Allow only the sites listed' ON"))
+         & " "
+         & Image (Testing.Shows (Window, "https://example.com")));
+      Testing.Click_On (Window, "Block the sites listed");
+
+      --  Choose one, change it, remove it.
+      Testing.Click_On (Window, "https://news.example.org");
+      Check
+        ("settings-browser-chosen",
+         "https://news.example.org",
+         Testing.Value_Of (Window, "Site", Pomarine.Semantics.Text_Input));
+      Type_Site ("blog.example.org");
+      Testing.Click_On (Window, "Change");
+      Check
+        ("settings-browser-changed",
+         "TRUE FALSE",
+         Image (Testing.Shows (Window, "https://blog.example.org"))
+         & " "
+         & Image (Testing.Shows (Window, "https://news.example.org")));
+      Testing.Click_On (Window, "Remove");
+      Check ("settings-browser-removed", "FALSE", Image (Testing.Shows (Window, "https://blog.example.org")));
+      Type_Site ("blog.example.org");
+      Testing.Click_On (Window, "Add");
+
+      View.Render (Session, Drawn);
+      Goldens.Check ("settings-browser", Drawn);
+   end Browser_Filter;
 
 end Settings_Tests;

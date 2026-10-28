@@ -34,6 +34,7 @@ with Item_Control_VM_Tests;
 with Reader_Binding_Tests;
 with Nav_Tests;
 with Browser_VM_Tests;
+with Site_Filter_Tests;
 with Nav_VM_Tests;
 with Outline_VM_Tests;
 with Settings_Tests;
@@ -1303,6 +1304,7 @@ begin
    Run ("home-by-name", Home_Tests.By_Name'Access);
    Run ("outline-by-name", Outline_Screen_Tests.By_Name'Access);
    Run ("settings-by-name", Settings_Tests.By_Name'Access);
+   Run ("settings-browser-filter", Settings_Tests.Browser_Filter'Access);
    Run ("settings-vm-commands", Settings_VM_Tests.Command_Rules'Access);
    Run ("settings-vm-pictures", Settings_VM_Tests.New_Pictures'Access);
    Run ("settings-vm-keeping", Settings_VM_Tests.Keeping'Access);
@@ -1348,6 +1350,9 @@ begin
    Run ("browser-vm-going", Browser_VM_Tests.Going'Access);
    Run ("browser-vm-keeping", Browser_VM_Tests.Keeping'Access);
    Run ("browser-vm-no-page", Browser_VM_Tests.Without_A_Page'Access);
+   Run ("site-filter-bases", Site_Filter_Tests.Bases'Access);
+   Run ("site-filter-rules", Site_Filter_Tests.Rules_Permit'Access);
+   Run ("site-filter-vm", Site_Filter_Tests.Editing'Access);
    Run ("nav-vm-renaming", Nav_VM_Tests.Renaming'Access);
    Run ("nav-vm-layers", Nav_VM_Tests.Layers'Access);
    Run ("nav-vm-writing-sections", Nav_VM_Tests.Writing_Sections'Access);

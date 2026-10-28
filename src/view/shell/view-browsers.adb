@@ -20,6 +20,7 @@ with SDL3.Windows.Renderers;
 with System;
 with SDL3.Windows;
 with Settings_VM;
+with Site_Filter_VM;
 with View.Canvas_Items;
 with Pomarine.View_Models;
 with View.Navigation;
@@ -244,6 +245,7 @@ package body View.Browsers is
    begin
       Browser_VM.Initialize
         (Parts.Model, Parts.Live'Unrestricted_Access, Settings_VM.Config_Directory (Item.Choices.Model));
+      Browser_Hosts.Hold_Back (Site_Filter_VM.Rules (Item.Choices.Filter));
       if Item.Shell.Windowed then
          Browser_Hosts.Attach (SDL3.Windows.Native_Handle (Item.Host.Win));
          Browser_Hosts.Keep ('l', Address_Shortcut);

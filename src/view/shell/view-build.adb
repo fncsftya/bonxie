@@ -2,6 +2,7 @@ with Writing_Sources_VM;
 with Writing_VM.Actions;
 with Publish_VM;
 with Sidebar_VM;
+with Site_Filter_VM;
 with Sidebar_VM.Disk;
 with View.Search;
 with Backgrounds;
@@ -231,6 +232,7 @@ package body View.Build is
                Kept_Background => Preferences.Fixed,
                Reactions       => Item.Settings_Reactions'Access);
          end if;
+         Site_Filter_VM.Initialize (Choices.Filter, (if Persist then Config else ""));
       end;
       Nav_VM.Stored.Open (Item.Nav_Model.Library, Item.Nav.Store'Unchecked_Access);
       Nav_VM.Initialize

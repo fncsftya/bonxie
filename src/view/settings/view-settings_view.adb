@@ -1,4 +1,6 @@
 with Backgrounds;
+with Browser_Hosts;
+with Site_Filter_VM;
 with Pomarine.Themes;
 with Pomarine.Widgets;
 with Pomarine.Widgets.Panels;
@@ -284,6 +286,13 @@ package body View.Settings_View is
       Was : constant Speech.Models.States := Item.Choices.Download_Seen;
    begin
       Settings_VM.Poll (Item.Choices.Model);
+      --  What is typed or clicked in the filter's controls is taken up, for its model is not the settings'.
+      Sync_Screen (Item, Settings_Region);
+      if Model_Parts.Changed (Item.Choices.Filter_Seen, Site_Filter_VM.Version (Item.Choices.Filter)) then
+         --  The web view holds pages back as the filter now says; the list and its buttons come and go.
+         Browser_Hosts.Hold_Back (Site_Filter_VM.Rules (Item.Choices.Filter));
+         Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
+      end if;
       if Model_Parts.Changed (Item.Choices.Seen, Settings_VM.Version (Item.Choices.Model)) then
          Draw (Item);
          if Settings_VM.Download_State (Item.Choices.Model) /= Was then

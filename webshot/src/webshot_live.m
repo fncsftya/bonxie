@@ -52,7 +52,60 @@ static NSString *const kColourScript =
      "if(x.fillStyle==='#010203'&&m.content.replace(/\\s/g,'').toLowerCase()!=='#010203')return -1;"
      "x.fillRect(0,0,1,1);var d=x.getImageData(0,0,1,1).data;return d[0]*65536+d[1]*256+d[2];})()";
 
+// Which sites the pages may be of (see wl_set_filter): 0 any, 1 all but the hosts listed, 2 only the hosts listed.
+static int filter_mode;
+static NSArray<NSString *> *filter_hosts;
+
+// Whether a page at this address may be opened: only web addresses are held back, and a host is the listed one's
+// or a subdomain of it.
+static BOOL filter_permits(NSURL *url)
+{
+    NSString *scheme = url.scheme.lowercaseString;
+    if (filter_mode == 0 || !([scheme isEqualToString:@"http"] || [scheme isEqualToString:@"https"])) return YES;
+    NSString *host = url.host.lowercaseString;
+    BOOL listed = NO;
+    for (NSString *site in filter_hosts) {
+        if ([host isEqualToString:site] || [host hasSuffix:[@"." stringByAppendingString:site]]) {
+            listed = YES;
+            break;
+        }
+    }
+    return filter_mode == 1 ? !listed : listed;
+}
+
+static NSString *html_escaped(NSString *text)
+{
+    text = [text stringByReplacingOccurrencesOfString:@"&" withString:@"&amp;"];
+    text = [text stringByReplacingOccurrencesOfString:@"<" withString:@"&lt;"];
+    return [text stringByReplacingOccurrencesOfString:@">" withString:@"&gt;"];
+}
+
 @implementation WLDelegate
+
+// A page the filter holds back is not opened: the view says so in its place, so that it is not left showing a
+// page that was not asked for. A link that opens a window of its own is held back too (it is the same view's).
+- (void)webView:(WKWebView *)view
+    decidePolicyForNavigationAction:(WKNavigationAction *)action
+                    decisionHandler:(void (^)(WKNavigationActionPolicy))decisionHandler
+{
+    NSURL *url = action.request.URL;
+    if (!action.targetFrame.mainFrame && action.targetFrame != nil) {
+        decisionHandler(WKNavigationActionPolicyAllow);
+        return;
+    }
+    if (filter_permits(url)) {
+        decisionHandler(WKNavigationActionPolicyAllow);
+        return;
+    }
+    decisionHandler(WKNavigationActionPolicyCancel);
+    NSString *page = [NSString
+        stringWithFormat:@"<!doctype html><meta charset=utf-8><meta name=color-scheme content=\"light dark\">"
+                          "<body style=\"font:15px -apple-system;margin:3em 2em;color:gray\">"
+                          "<p><b>This site is not allowed.</b></p><p>%@</p><p>The site filter in the settings "
+                          "decides which sites the browser opens.</p>",
+                         html_escaped(url.host ?: url.absoluteString)];
+    dispatch_async(dispatch_get_main_queue(), ^{ [view loadHTMLString:page baseURL:nil]; });
+}
 
 // A page that asks for a window of its own (window.open, as the sign-in of Google and others does, which
 // talks to the page that opened it and closes itself when done) is given one: a window beside the program's,
@@ -208,6 +261,18 @@ void wl_set_hidden(int hidden)
     want_hidden = hidden != 0;
     if (capturing) return;
     live_view.hidden = want_hidden;
+}
+
+// Hold back the pages of some sites (see filter_mode): hosts is one lower-case host to a line.
+void wl_set_filter(int mode, const char *hosts)
+{
+    filter_mode = mode;
+    NSString *all = [NSString stringWithUTF8String:hosts ?: ""];
+    NSMutableArray<NSString *> *sites = [NSMutableArray new];
+    for (NSString *line in [all componentsSeparatedByString:@"\n"]) {
+        if (line.length > 0) [sites addObject:line.lowercaseString];
+    }
+    filter_hosts = sites;
 }
 
 void wl_load(const char *url)

@@ -18,6 +18,16 @@ package body Browser_Hosts is
       Webshot.Live.Keep (Letter, Number);
    end Keep;
 
+   procedure Hold_Back (Using : Site_Filters.Rules) is
+   begin
+      Webshot.Live.Set_Filter
+        ((case Using.Mode is
+            when Site_Filters.Off         => Webshot.Live.Off,
+            when Site_Filters.Use_Blocked => Webshot.Live.Hold_Back_Listed,
+            when Site_Filters.Use_Allowed => Webshot.Live.Hold_Back_Unlisted),
+         Site_Filters.Hosts_Of (Using));
+   end Hold_Back;
+
    overriding
    function Is_Ready (Self : Live_Page) return Boolean
    is (Webshot.Live.Attached);

@@ -16,6 +16,9 @@ package body Webshot.Live is
    procedure WL_Set_Hidden (Hidden : Interfaces.C.int)
    with Import, Convention => C, External_Name => "wl_set_hidden";
 
+   procedure WL_Set_Filter (Mode : Interfaces.C.int; Hosts : Interfaces.C.char_array)
+   with Import, Convention => C, External_Name => "wl_set_filter";
+
    procedure WL_Load (URL : Interfaces.C.char_array)
    with Import, Convention => C, External_Name => "wl_load";
 
@@ -117,6 +120,11 @@ package body Webshot.Live is
    begin
       WL_Load (Interfaces.C.To_C (URL));
    end Load;
+
+   procedure Set_Filter (Mode : Filters; Hosts : String) is
+   begin
+      WL_Set_Filter (Interfaces.C.int (Filters'Pos (Mode)), Interfaces.C.To_C (Hosts));
+   end Set_Filter;
 
    procedure Focus (Page : Boolean) is
    begin
