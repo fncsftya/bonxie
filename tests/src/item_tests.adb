@@ -1865,7 +1865,7 @@ package body Item_Tests is
       Snap (Session, "file-pdf");
       Type_In (Session, "typed over");
       Check ("file-not-typed", Book, Windows.Item_Text (Session, 1));
-      Click_On (Session, Next_X, Pager_Y);
+      Click_On (Session, File_Next_X, Pager_Y);
       Wait;
       Check ("file-next", "Page 2 of 2", Windows.Item_Status (Session, 1));
 
@@ -1877,7 +1877,7 @@ package body Item_Tests is
       Check ("file-epub-words", "TRUE", Boolean'Image (Windows.Item_Recognized (Session, 1) >= 8));
       Move_To (Session, 600.0, 60.0);
       Snap (Session, "file-epub");
-      Click_On (Session, Next_X, Pager_Y);
+      Click_On (Session, File_Next_X, Pager_Y);
       Wait;
       Check ("file-epub-next", "Page 2 of 2", Windows.Item_Status (Session, 1));
 

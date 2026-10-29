@@ -87,6 +87,9 @@ package body Item_Window_VM is
          when Choose_File                                       =>
             return Source and then Now.Origin /= Items.Remote;
 
+         when Open_In_Browser                                   =>
+            return Source and then Now.Origin = Items.Remote;
+
          when others                                            =>
             return Source;
       end case;

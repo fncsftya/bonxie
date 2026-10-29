@@ -182,6 +182,17 @@ package body Items.Windows.Builder is
               [Cursor, Marker, Eraser],
               Flow => Layouts.Row,
               Gap  => Layouts.Length_Of (Metrics.Button_Gap));
+         Browse       : constant UI.Layout :=
+           Button
+             (Item.Browser_Button,
+              Item_Window_VM.Open_In_Browser,
+              Buttons.Looks
+                ("Open in Browser",
+                 Icon      => Pomarine.Icons.Shown (Icon_Set.Globe),
+                 Captioned => True,
+                 Focusable => False),
+              Metrics.Browser_Button_Width,
+              Metrics.Zoom_Row_Height);
          Outline      : constant UI.Layout :=
            Button
              (Item.Outline_Button,
@@ -199,7 +210,8 @@ package body Items.Windows.Builder is
          Status       : constant UI.Layout :=
            UI.Fragment
              (Screen,
-              [Pager,
+              [Browse,
+               Pager,
                Speech,
                Put
                  (Item.Status,
@@ -316,6 +328,7 @@ package body Items.Windows.Builder is
       Pomarine.Text_Areas.Set_Read_Only (Editors.Area (Item.Text_View).all);
 
       Widgets.Set_Visible (Item.Fetch_Button, False);
+      Widgets.Set_Visible (Item.Browser_Button, False);
       Widgets.Set_Visible (Item.Tools, False);
       Widgets.Set_Visible (Item.Zoom_Button, False);
       Widgets.Set_Visible (Item.Zoom_Menu, False);

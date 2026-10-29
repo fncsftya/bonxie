@@ -46,6 +46,7 @@ package Items.Windows is
       Next_Page,
       Choose_Link,
       Choose_File,
+      Open_In_Browser,
       Link_To_Outline,
       Moved,
       Sized);
@@ -56,7 +57,9 @@ package Items.Windows is
    --  PDF or e-book of more than one page. Choose_Link and Choose_File are
    --  the two buttons of a source that is yet to say where it comes from;
    --  Choose_File too is what clicking the path of a source that is a file
-   --  asks: to choose another. Link_To_Outline is the button of a note
+   --  asks: to choose another. Open_In_Browser is the button of a source that
+   --  is a link, in its status line: to go to the link in the browser pane.
+   --  Link_To_Outline is the button of a note
    --  that opens the menu of the outline's sections, to make it the one
    --  that a section is read from. Moved and Sized are the title bar and
    --  the corner dragged: see Gesture.
@@ -352,6 +355,9 @@ private
       Zoom_Button     : Pomarine.Widgets.Buttons.Button;
       --  Of a source, in its status line: a slider to zoom its picture,
       --  and a button, saying how far, that opens a menu of zooms.
+      Browser_Button  : Pomarine.Widgets.Buttons.Button;
+      Browser_Captioned : Boolean := True;
+      --  Of a source that is a link, in its status line: opens the link in the browser pane.
       Speak_Button    : Pomarine.Widgets.Buttons.Button;
       --  Of a note, in its status line: starts and stops dictating.
       Outline_Button  : Pomarine.Widgets.Buttons.Button;

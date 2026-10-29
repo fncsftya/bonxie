@@ -65,9 +65,6 @@ package body View.Canvas_Items.Opening is
        or else Ending = "jp2"
        or else Ending = "exr");
 
-   function Link_Of (Typed : String) return String;
-   --  What was typed, as a link: with https:// if it has no scheme.
-
    function Link_Of (Typed : String) return String is
       Trimmed : constant String := Ada.Strings.Fixed.Trim (Typed, Ada.Strings.Both);
    begin

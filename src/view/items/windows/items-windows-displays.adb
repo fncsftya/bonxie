@@ -1,4 +1,5 @@
 with Pomarine.Boxes;
+with Pomarine.Icons;
 with Pomarine.Text_Areas;
 with Icon_Set;
 with Items.Sources;
@@ -54,6 +55,29 @@ package body Items.Windows.Displays is
       end if;
    end Show_Fetch;
 
+   procedure Show_Browser_Caption (Item : in out Window);
+   --  The button to open the link in the browser says so, but where the window is narrow it is only the icon.
+
+   procedure Show_Browser_Caption (Item : in out Window) is
+      Wide : constant Boolean :=
+        Items.Models.Details (Item.Model.all).Where.Width * Item.Looking.Zoom >= Metrics.Browser_Caption_Above;
+   begin
+      if Wide /= Item.Browser_Captioned then
+         Item.Browser_Captioned := Wide;
+         Buttons.Configure
+           (Item.Browser_Button,
+            Buttons.Looks
+              ("Open in Browser",
+               Icon      => Pomarine.Icons.Shown (Icon_Set.Globe),
+               Captioned => Wide,
+               Focusable => False));
+         Layouts.Set_Layout
+           (Item.Browser_Button,
+            Width => Layouts.Length_Of (if Wide then Metrics.Browser_Button_Width else Metrics.Tool_Size));
+         Widgets.Request_Layout (Item.Browser_Button);
+      end if;
+   end Show_Browser_Caption;
+
    procedure Fit_Zoom (Item : in out Window) is
       Chrome    : constant Float := Float'Min (1.0, Float'Max (Metrics.Min_Chrome, Item.Looking.Zoom));
       Pixels    : constant Float := Frames.Pixels_Per_Point (Item.Chrome);
@@ -75,6 +99,7 @@ package body Items.Windows.Displays is
             others => <>),
          Unit     => Layouts.Device_Pixels);
       Show_Fetch (Item);
+      Show_Browser_Caption (Item);
       Widgets.Request_Layout (Item.Body_Text);
    end Fit_Zoom;
 
@@ -157,6 +182,8 @@ package body Items.Windows.Displays is
          Height => (Layouts.Length_Of (if Of_Source then Metrics.Url_Height else 0.0)));
       Widgets.Set_Visible (Item.Speak_Button, not Of_Source);
       Widgets.Set_Visible (Item.Outline_Button, not Of_Source);
+      Widgets.Set_Visible
+        (Item.Browser_Button, Of_Source and then Items.Models.Details (Item.Model.all).Origin = Remote);
       if not Of_Source then
          Pomarine.Text_Areas.Set_Read_Only (Editors.Area (Item.Body_Text).all, False);
       end if;

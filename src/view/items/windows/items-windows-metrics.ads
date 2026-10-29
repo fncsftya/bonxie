@@ -43,6 +43,12 @@ private package Items.Windows.Metrics is
    Tool_Size : constant Float := 32.0;
    --  Of the buttons of the status line that are a symbol: the tools, the pages.
 
+   Browser_Button_Width : constant Float := 142.0;
+   --  Of the button of a source's link to open in the browser.
+
+   Browser_Caption_Above : constant Float := 440.0;
+   --  Points: a window narrower than this shows the browser button as its icon alone.
+
    Outline_Button_Width : constant Float := 96.0;
    --  Of the button of a note's link to the outline.
 

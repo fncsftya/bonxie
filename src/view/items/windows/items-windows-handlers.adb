@@ -88,6 +88,9 @@ package body Items.Windows.Handlers is
          when Item_Window_VM.Choose_File                                                         =>
             Say (Item, Choose_File);
 
+         when Item_Window_VM.Open_In_Browser                                                     =>
+            Say (Item, Open_In_Browser);
+
          when Item_Window_VM.Previous_Page                                                       =>
             Say (Item, Previous_Page);
 

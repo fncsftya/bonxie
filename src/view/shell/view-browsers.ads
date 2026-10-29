@@ -12,6 +12,9 @@ package View.Browsers is
    procedure Sync (Item : in out Session);
    --  Put the pane up or away as the navigation says, and show the button as pressed while it is asked for.
 
+   procedure Open (Item : in out Session; Address : String);
+   --  Put the pane up, if it is not, and go to Address in it. Nothing is done for no address.
+
    procedure Update (Item : in out Session);
    --  Once a frame, while the pane is up: look at the page, and show what changed (where it is).
 

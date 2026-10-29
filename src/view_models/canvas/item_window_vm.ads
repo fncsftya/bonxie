@@ -11,6 +11,7 @@ package Item_Window_VM is
      (Capture,
       Choose_Link,
       Choose_File,
+      Open_In_Browser,
       Previous_Page,
       Next_Page,
       Speak,

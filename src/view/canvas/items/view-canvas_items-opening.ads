@@ -2,6 +2,9 @@
 
 private package View.Canvas_Items.Opening is
 
+   function Link_Of (Typed : String) return String;
+   --  What was typed, as a link: with https:// if it has no scheme.
+
    procedure Start_Capture (Item : in out Session; Which : Items.Slot);
    --  Begin to take the picture of the page the source's text links to, or
    --  show the file its text is the path of.

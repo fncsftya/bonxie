@@ -49,8 +49,10 @@ package Item_Tests is
    --  The buttons of a source yet to say where it comes from.
 
    Pager_Y    : constant Float := 339.0;
-   Next_X     : constant Float := 244.0;
-   Previous_X : constant Float := 208.0;
+   Next_X     : constant Float := 280.0;
+   Previous_X : constant Float := 244.0;
+   File_Next_X : constant Float := 244.0;
+   --  Of a file, whose window has no button to open in the browser before its pager.
    --  The buttons that turn a source's page, at the left of its status line.
 
    Two_Pages : constant String :=

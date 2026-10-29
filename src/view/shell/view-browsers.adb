@@ -450,4 +450,19 @@ package body View.Browsers is
       end if;
    end Update;
 
+   procedure Open (Item : in out Session; Address : String) is
+   begin
+      if Address = "" then
+         return;
+      end if;
+      if not Nav_VM.Browser_Open (Item.Nav_Model.Model) then
+         Navigation.Do_Command (Item, Nav_VM.Toggle_Browser);
+      end if;
+      Browser_VM.Set_Address_Draft (Item.Browser.Model, Address);
+      if Browser_VM.Can_Execute (Item.Browser.Model, Browser_VM.Go) then
+         Browser_VM.Execute (Item.Browser.Model, Browser_VM.Go);
+         Show_Page_Or_Start (Item);
+      end if;
+   end Open;
+
 end View.Browsers;

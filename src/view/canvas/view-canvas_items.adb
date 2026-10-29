@@ -9,6 +9,7 @@ with Preferences;
 with Pomarine.Widgets;
 with Speech.Jobs;
 with Speech.Models;
+with View.Browsers;
 with View.Links;
 with View.Section_Links;
 with View.Style;
@@ -407,6 +408,9 @@ package body View.Canvas_Items is
 
          when Windows.Choose_File     =>
             Opening.Pick_File (Item, Which);
+
+         when Windows.Open_In_Browser =>
+            Browsers.Open (Item, Opening.Link_Of (Models.Text (Item.Models (Which))));
 
          when Windows.Moved           =>
             Canvas_VM.Move_Item
