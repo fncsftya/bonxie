@@ -1169,6 +1169,13 @@ package body Item_Tests is
       Key := Proj.Current_Project (Session);
       Windows.Add_Item (Session, Name);
       Check ("item-long-title", Natural'Image (Name'Length), Natural'Image (Windows.Item_Title (Session, 1)'Length));
+      Move_To (Session, 600.0, 60.0);
+      Snap (Session, "item-long-title");
+      Click_On (Session, Minimize_X, Bar_Y);
+      Check ("item-long-title-minimize", "MINIMIZED", Items.States'Image (Windows.Item_State (Session, 1)));
+      Click_On (Session, Restore_X, Dock_Y);
+      Click_On (Session, Close_X, Bar_Y);
+      Check ("item-long-title-close", "CLOSED", Items.States'Image (Windows.Item_State (Session, 1)));
       Proj.Close_Project (Session);
       Home.Open_Project (Session, Key);
       View.Project_Screen.Set_Mode (Session, View.Canvas);

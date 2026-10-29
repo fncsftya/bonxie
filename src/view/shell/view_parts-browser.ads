@@ -4,6 +4,8 @@ with Browser_VM;
 with Pomarine.UI;
 with Pomarine.View_Models;
 with Pomarine.Widgets.Labels;
+with Pomarine.Widgets.Buttons;
+with Pomarine.Widgets.Menus;
 with Pomarine.Widgets.Embeds;
 with Pomarine.Widgets.Grips;
 with Pomarine.Widgets.Panels;
@@ -57,6 +59,8 @@ package View_Parts.Browser is
       --  The button that marks the page a favourite: filled in while it is one.
       Starred         : Boolean := False;
       --  Whether it is filled in now.
+      Capture_Button  : Pomarine.Widgets.Buttons.Button;
+      Capture_Menu    : Pomarine.Widgets.Menus.Menu;
       Tray            : Pomarine.Widgets.Panels.Panel;
       --  The bar at the foot, which marks the page a favourite and captures it.
       Page            : aliased Pomarine.Widgets.Embeds.Embed;

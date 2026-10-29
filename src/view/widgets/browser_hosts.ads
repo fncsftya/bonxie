@@ -55,7 +55,7 @@ package Browser_Hosts is
    function Theme_Colour (Self : Live_Page) return Integer;
 
    overriding
-   procedure Start_Capture (Self : in out Live_Page; File : String);
+   procedure Start_Capture (Self : in out Live_Page; File : String; Current_View : Boolean);
 
    overriding
    function Capture_State (Self : Live_Page) return Browser_VM.Capture_States;

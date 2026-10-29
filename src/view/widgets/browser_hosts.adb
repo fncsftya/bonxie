@@ -77,9 +77,9 @@ package body Browser_Hosts is
    is (Webshot.Live.Theme_Colour);
 
    overriding
-   procedure Start_Capture (Self : in out Live_Page; File : String) is
+   procedure Start_Capture (Self : in out Live_Page; File : String; Current_View : Boolean) is
    begin
-      Webshot.Live.Capture (File);
+      Webshot.Live.Capture (File, Current_View);
    end Start_Capture;
 
    overriding

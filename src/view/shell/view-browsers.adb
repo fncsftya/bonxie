@@ -7,6 +7,8 @@ with Pomarine.Line_Texts;
 with Pomarine.Text_Areas;
 with Pomarine.Themes;
 with Pomarine.UI;
+with Pomarine.UI.Menus;
+with Pomarine.Widgets.Menus;
 with Pomarine.Widgets.Buttons;
 with Pomarine.Widgets.Editors;
 with Pomarine.Widgets.Callbacks;
@@ -240,6 +242,34 @@ package body View.Browsers is
       end loop;
    end Show_Favourites;
 
+   procedure Capture_Clicked (Self : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Event);
+      Button : Buttons.Button renames Buttons.Button (Source);
+   begin
+      if Buttons.Caret_Clicked (Button) then
+         Widgets.Set_Visible (Self.Browser.Capture_Menu, not Widgets.Is_Visible (Self.Browser.Capture_Menu));
+         Embeds.Set_Covered (Self.Browser.Page, Widgets.Is_Visible (Self.Browser.Capture_Menu));
+         Widgets.Raise_To_Front (Self.Browser.Capture_Menu);
+      elsif Browser_VM.Can_Execute (Self.Browser.Model, Browser_VM.Capture) then
+         Widgets.Set_Visible (Self.Browser.Capture_Menu, False);
+         Embeds.Set_Covered (Self.Browser.Page, False);
+         Browser_VM.Execute (Self.Browser.Model, Browser_VM.Capture);
+      end if;
+   end Capture_Clicked;
+
+   procedure Capture_Chosen (Self : in out Session; Source : in out Widgets.Widget'Class; Event : Widgets.Widget_Event)
+   is
+      pragma Unreferenced (Source);
+      What : constant Browser_VM.Command := (if Event.Row = 1 then Browser_VM.Capture else Browser_VM.Capture_View);
+   begin
+      Widgets.Set_Visible (Self.Browser.Capture_Menu, False);
+      Embeds.Set_Covered (Self.Browser.Page, False);
+      if Event.Row in 1 .. 2 and then Browser_VM.Can_Execute (Self.Browser.Model, What) then
+         Browser_VM.Execute (Self.Browser.Model, What);
+      end if;
+   end Capture_Chosen;
+
    procedure Build (Item : in out Session) is
       Parts : View_Parts.Browser.Browser_Choices renames Item.Browser;
    begin
@@ -265,30 +295,28 @@ package body View.Browsers is
       Widgets.Labels.Set_Ink (Parts.Start, Themes.Muted);
       Open_Screen (Item, Browser_Region);
       declare
-         Form   : UI.View renames Screen_Of (Item, Browser_Region).all;
-         Bound  : constant Controls.Context'Class := Controls.Bind (Form, Parts.Model'Unrestricted_Access);
-         Back   : constant UI.Button_Handle :=
+         Form  : UI.View renames Screen_Of (Item, Browser_Region).all;
+         Bound : constant Controls.Context'Class := Controls.Bind (Form, Parts.Model'Unrestricted_Access);
+         Back  : constant UI.Button_Handle :=
            Bound.Button
              (Widgets.Buttons.Looks ("Back", Icon => Pomarine.Icons.Shown (Icon_Set.Back), Focusable => True),
               Browser_VM.Back);
-         Ahead  : constant UI.Button_Handle :=
+         Ahead : constant UI.Button_Handle :=
            Bound.Button
              (Widgets.Buttons.Looks ("Forward", Icon => Pomarine.Icons.Shown (Icon_Set.Forward), Focusable => True),
               Browser_VM.Forward);
-         House  : constant UI.Button_Handle :=
+         House : constant UI.Button_Handle :=
            Bound.Button
              (Widgets.Buttons.Looks ("Home", Icon => Pomarine.Icons.Shown (Icon_Set.Home), Focusable => True),
               Browser_VM.Home);
-         Again  : constant UI.Button_Handle :=
+         Again : constant UI.Button_Handle :=
            Bound.Button
              (Widgets.Buttons.Looks ("Reload", Icon => Pomarine.Icons.Shown (Icon_Set.Refresh), Focusable => True),
               Browser_VM.Reload);
-         Star   : constant UI.Button_Handle :=
+         Star  : constant UI.Button_Handle :=
            Bound.Button
              (Widgets.Buttons.Looks ("Favourite", Icon => Pomarine.Icons.Shown (Icon_Set.Star), Focusable => True),
               Browser_VM.Favourite);
-         Taking : constant UI.Button_Handle :=
-           Bound.Button (Widgets.Buttons.Looks ("Capture", Captioned => True, Focusable => True), Browser_VM.Capture);
 
          function Tool (Made : UI.Button_Handle; Wide : Float := Tool_Side) return UI.Layout
          is (UI.Place
@@ -321,7 +349,11 @@ package body View.Browsers is
              (UI.Put_In
                 (Form,
                  Parts.Tray,
-                 [Bound.Label (Browser_UI.Status, Ink => Themes.Muted, Grow => 1.0), Tool (Star), Tool (Taking, 84.0)]),
+                 [Bound.Label (Browser_UI.Status, Ink => Themes.Muted, Grow => 1.0),
+                  Tool (Star),
+                  UI.Styled
+                    (UI.Put (Form, Parts.Capture_Button),
+                     (Width => 125.0, Height => Layouts.Length_Of (Tool_Side), Shrink => 0.0, others => <>))]),
               (Height  => Layouts.Length_Of (Tool_Side + 2.0 * Tray_Pad),
                Shrink  => 0.0,
                Flow    => Layouts.Row,
@@ -349,7 +381,18 @@ package body View.Browsers is
                Padding => (others => Layouts.Length_Of (14.0)),
                others  => <>));
          Inside : constant UI.Layout :=
-           UI.Column ([Bar, Home, Bound.Borrow_Widget (Parts.Page, Name => "Page", Grow => 1.0), Foot], Grow => 1.0);
+           UI.Column
+             ([Bar,
+               Home,
+               Bound.Borrow_Widget (Parts.Page, Name => "Page", Grow => 1.0),
+               Foot,
+               UI.Styled
+                 (UI.Put (Form, Parts.Capture_Menu),
+                  (Place    => Layouts.Absolute,
+                   Width    => 190.0,
+                   Position => (Right => 8.0, Bottom => 47.0, others => <>),
+                   others   => <>))],
+              Grow => 1.0);
          Whole  : constant UI.Layout :=
            UI.Row
              ([UI.Styled
@@ -362,6 +405,16 @@ package body View.Browsers is
          Parts.Star := Star;
          UI.Mount_Into (Form, Parts.Pane, Whole);
       end;
+      Buttons.Configure
+        (Parts.Capture_Button, Buttons.Looks ("Capture Page", Captioned => True, Shape => Buttons.Split_Dropdown));
+      Pomarine.UI.Menus.Set_Content
+        (Parts.Capture_Menu,
+         [Pomarine.UI.Menus.Row (Widgets.Menus.Action, "Capture Page"),
+          Pomarine.UI.Menus.Row (Widgets.Menus.Action, "Capture Current View")]);
+      Widgets.Menus.Set_Keyboard (Parts.Capture_Menu, True);
+      Clicking.On (Parts.Capture_Button, Widgets.Click, Item'Unrestricted_Access, Capture_Clicked'Access);
+      Clicking.On (Parts.Capture_Menu, Widgets.Choose, Item'Unrestricted_Access, Capture_Chosen'Access);
+      Widgets.Set_Visible (Parts.Capture_Menu, False);
       Widgets.Set_Visible (Parts.Page, False);
       Widgets.Set_Visible (Parts.Pane, False);
       Widgets.Panels.Set_Fill (Parts.Tray, Themes.Strip);
@@ -382,7 +435,8 @@ package body View.Browsers is
       Model : Nav_VM.View_Model renames Item.Nav_Model.Model;
       Shown : constant Boolean := Nav_VM.Browser_Shown (Model);
    begin
-      Embeds.Set_Covered (Item.Browser.Page, Nav_VM.Is_Over (Model));
+      Embeds.Set_Covered
+        (Item.Browser.Page, Nav_VM.Is_Over (Model) or else Widgets.Is_Visible (Item.Browser.Capture_Menu));
       Buttons.Set_Selected (Tab_Of (Item, Item.Toolbar.Browser_Tab).all, Nav_VM.Browser_Open (Model));
       if Widgets.Is_Visible (Item.Browser.Pane) /= Shown then
          Widgets.Set_Visible (Item.Browser.Pane, Shown);
@@ -445,6 +499,8 @@ package body View.Browsers is
             Keep_Capture (Item);
          end if;
          Show_Page_Or_Start (Item);
+         Buttons.Set_Enabled
+           (Item.Browser.Capture_Button, Browser_VM.Can_Execute (Item.Browser.Model, Browser_VM.Capture));
          Show_Star (Item);
          Sync_Screen (Item, Browser_Region);
       end if;

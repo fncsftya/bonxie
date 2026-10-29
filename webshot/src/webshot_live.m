@@ -395,7 +395,7 @@ static void cap_strip(int index, int high, double scale, int points)
 // Take the whole of the page, one picture under another, as the strips of a page that a job of webshot.m takes:
 // but of the page as it is, with what the person has done to it. The view is hidden and made as tall as the
 // page while it is done, and as it was after.
-int wl_capture_start(const char *path)
+int wl_capture_start(const char *path, int current_view)
 {
     if (live_view == nil || cap_state == CAP_WORKING) return 0;
     cap_state = CAP_WORKING;
@@ -404,6 +404,13 @@ int wl_capture_start(const char *path)
     cap_path = [NSString stringWithUTF8String:path];
     strlcpy(cap_title, live_view.title.UTF8String ?: "", sizeof cap_title);
     capturing = YES;
+    for (int old = 2; [[NSFileManager defaultManager] fileExistsAtPath:strip_name(old)]; old++)
+        [[NSFileManager defaultManager] removeItemAtPath:strip_name(old) error:nil];
+    if (current_view) {
+        int high = MAX(1, (int)ceil(live_view.frame.size.height));
+        cap_strip(1, high, kPixelsPerPoint, high);
+        return 1;
+    }
     live_view.hidden = YES;
     // The page's height; or, for one that scrolls inside a box of its own (as many apps do) and not as a whole,
     // the tallest such box's, which is as tall as the page is to be made for the box to show it all.

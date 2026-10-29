@@ -64,7 +64,7 @@ package body Webshot.Live is
    function WL_Page_Colour return Interfaces.C.int
    with Import, Convention => C, External_Name => "wl_page_colour";
 
-   function WL_Capture_Start (Path : Interfaces.C.char_array) return Interfaces.C.int
+   function WL_Capture_Start (Path : Interfaces.C.char_array; Current_View : Interfaces.C.int) return Interfaces.C.int
    with Import, Convention => C, External_Name => "wl_capture_start";
 
    function WL_Capture_State return Interfaces.C.int
@@ -189,8 +189,8 @@ package body Webshot.Live is
    function Theme_Colour return Integer
    is (Integer (WL_Page_Colour));
 
-   procedure Capture (File : String) is
-      Started : constant Interfaces.C.int := WL_Capture_Start (Interfaces.C.To_C (File));
+   procedure Capture (File : String; Current_View : Boolean := False) is
+      Started : constant Interfaces.C.int := WL_Capture_Start (Interfaces.C.To_C (File), Flag (Current_View));
    begin
       pragma Assert (Started /= 0);
    end Capture;

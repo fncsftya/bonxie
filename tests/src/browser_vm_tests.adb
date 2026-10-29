@@ -26,6 +26,7 @@ package body Browser_VM_Tests is
       Location  : Strings.Unbounded_String;
       Backs     : Natural := 0;
       Capturing : Boolean := False;
+      View_Only : Boolean := False;
    end record;
 
    overriding
@@ -49,7 +50,7 @@ package body Browser_VM_Tests is
    overriding
    function Theme_Colour (Self : Pretend) return Integer;
    overriding
-   procedure Start_Capture (Self : in out Pretend; File : String);
+   procedure Start_Capture (Self : in out Pretend; File : String; Current_View : Boolean);
    overriding
    function Capture_State (Self : Pretend) return Browser_VM.Capture_States;
    overriding
@@ -107,9 +108,10 @@ package body Browser_VM_Tests is
    is (16#102030#);
 
    overriding
-   procedure Start_Capture (Self : in out Pretend; File : String) is
+   procedure Start_Capture (Self : in out Pretend; File : String; Current_View : Boolean) is
    begin
       Self.Capturing := File /= "";
+      Self.View_Only := Current_View;
    end Start_Capture;
 
    overriding
@@ -217,6 +219,7 @@ package body Browser_VM_Tests is
       Check ("browser-vm-unfavourited", "0", Browser_VM.Favourite_Count (Model)'Image (2 .. 2));
 
       Browser_VM.Execute (Model, Capture);
+      pragma Assert (not Shown.View_Only);
       Browser_VM.Refresh (Model);
       Check
         ("browser-vm-captured",
@@ -228,6 +231,10 @@ package body Browser_VM_Tests is
          & Browser_VM.Capture_Address (Model));
       Browser_VM.Finish_Capture (Model);
       Check ("browser-vm-capture-finished", "IDLE", Browser_VM.Capture_State (Model)'Image);
+      Browser_VM.Execute (Model, Capture_View);
+      pragma Assert (Shown.View_Only);
+      Browser_VM.Refresh (Model);
+      Browser_VM.Finish_Capture (Model);
 
       Browser_VM.Execute (Model, Home);
       Check

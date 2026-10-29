@@ -10,7 +10,7 @@ with Pomarine.View_Models;
 
 package Browser_VM is
 
-   type Command is (Go, Reload, Back, Forward, Home, Favourite, Capture, Open_Favourite);
+   type Command is (Go, Reload, Back, Forward, Home, Favourite, Capture, Capture_View, Open_Favourite);
    package Commands is new Pomarine.View_Models.Command_Models (Command);
 
    type Page is limited interface;
@@ -32,7 +32,7 @@ package Browser_VM is
 
    type Capture_States is (Idle, Working, Done, Failed);
 
-   procedure Start_Capture (Self : in out Page; File : String) is abstract;
+   procedure Start_Capture (Self : in out Page; File : String; Current_View : Boolean) is abstract;
    --  Begin to write the whole page as a picture: File, and beside it more if it is long (Pomarine.Strips).
    function Capture_State (Self : Page) return Capture_States is abstract;
    function Capture_Title (Self : Page) return String is abstract;

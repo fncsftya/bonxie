@@ -89,9 +89,10 @@ package Webshot.Live is
 
    type Capture_States is (Idle, Working, Done, Failed);
 
-   procedure Capture (File : String)
+   procedure Capture (File : String; Current_View : Boolean := False)
    with Pre => Attached and then Capture_State /= Working, Post => Capture_State = Working;
-   --  Begin to take a picture of the whole page as it now is, with whatever the person has done to it, to be
+   --  Begin to take a picture of the whole page, or only its current view when Current_View is True, with
+   --  whatever the person has done to it, to be
    --  written as File (in a folder that exists): as Webshot does a page, in strips one under another, the first
    --  File and the rest beside it (see Pomarine.Strips), none more than a texture can be tall. The view is
    --  hidden for a moment as it is taken.

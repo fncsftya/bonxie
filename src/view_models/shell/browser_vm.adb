@@ -137,13 +137,13 @@ package body Browser_VM is
                    when others         =>
                      Index = 0
                      and then (case What is
-                                 when Go                 => Address_Draft (Self)'Length > 0,
+                                 when Go                        => Address_Draft (Self)'Length > 0,
                                  when Reload | Home | Favourite => Self.Started,
-                                 when Back               => Self.Started and then Self.Back_Ok,
-                                 when Forward            => Self.Started and then Self.Forward_Ok,
-                                 when Capture            =>
+                                 when Back                      => Self.Started and then Self.Back_Ok,
+                                 when Forward                   => Self.Started and then Self.Forward_Ok,
+                                 when Capture | Capture_View    =>
                                    Self.Started and then Self.Taking /= Working and then Capture_File (Self) /= "",
-                                 when Open_Favourite     => False)));
+                                 when Open_Favourite            => False)));
 
    procedure Toggle_Favourite (Self : in out Model);
    --  Mark the page, or let it go if it is marked, and keep them.
@@ -179,38 +179,38 @@ package body Browser_VM is
    procedure Perform (Self : in out Model; What : Command; Index : Natural := 0) is
    begin
       case What is
-         when Go             =>
+         when Go                     =>
             Self.Started := True;
             Self.Shown.Load (Address_Of (Address_Draft (Self)));
 
-         when Reload         =>
+         when Reload                 =>
             Self.Shown.Reload;
 
-         when Back           =>
+         when Back                   =>
             Self.Shown.Go_Back;
 
-         when Forward        =>
+         when Forward                =>
             Self.Shown.Go_Forward;
 
-         when Home           =>
+         when Home                   =>
             Self.Started := False;
             Self.Where := Strings.Null_Unbounded_String;
             Set_Address_Draft (Self, "");
             Mark_Changed (Self);
 
-         when Favourite      =>
+         when Favourite              =>
             Toggle_Favourite (Self);
 
-         when Open_Favourite =>
+         when Open_Favourite         =>
             Self.Started := True;
             Set_Address_Draft (Self, Favourite_Address (Self, Index));
             Self.Shown.Load (Favourite_Address (Self, Index));
 
-         when Capture        =>
+         when Capture | Capture_View =>
             Self.Taken := Self.Where;
             Self.Name := Strings.Null_Unbounded_String;
             Self.Taking := Working;
-            Self.Shown.Start_Capture (Capture_File (Self));
+            Self.Shown.Start_Capture (Capture_File (Self), Current_View => What = Capture_View);
       end case;
    end Perform;
 
