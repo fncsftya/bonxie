@@ -24,6 +24,11 @@ package Webshot.Live is
    with Pre => Attached and then Wide >= 0.0 and then High >= 0.0;
    --  Where the view is, in points from the window content's top left.
 
+   procedure Cut_Out (X, Y, Wide, High : Float)
+   with Pre => Attached;
+   --  A hole in the view, in points from the window content's top left, for what is drawn over it to show through and
+   --  take the pointer; none if Wide or High is 0.
+
    procedure Show (Visible : Boolean)
    with Pre => Attached;
 

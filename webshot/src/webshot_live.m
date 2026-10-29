@@ -6,12 +6,26 @@
 // All of it is for the main thread, which SDL's event loop runs.
 
 #import <AppKit/AppKit.h>
+#import <QuartzCore/QuartzCore.h>
 #import <WebKit/WebKit.h>
 
 @interface WLDelegate : NSObject <WKUIDelegate, WKNavigationDelegate>
 @end
 
-static WKWebView *live_view;
+// The page's view, with a hole in it (see wl_set_cutout) that shows what is behind and lets the pointer through.
+@interface WLWebView : WKWebView
+@property(nonatomic) NSRect cut;   // in the content's coordinates; empty for none
+@end
+
+@implementation WLWebView
+- (NSView *)hitTest:(NSPoint)point
+{
+    if (!NSIsEmptyRect(self.cut) && NSPointInRect(point, self.cut)) return nil;
+    return [super hitTest:point];
+}
+@end
+
+static WLWebView *live_view;
 static NSWindow *live_window;
 static WLDelegate *live_delegate;
 static id live_monitor;
@@ -185,7 +199,7 @@ int wl_attach(void *window)
     // Some sign-in pages turn away a browser that does not say it is Safari.
     config.applicationNameForUserAgent = @"Version/17.5 Safari/605.1.15";
     config.preferences.javaScriptCanOpenWindowsAutomatically = YES;
-    live_view = [[WKWebView alloc] initWithFrame:NSMakeRect(0, 0, 100, 100) configuration:config];
+    live_view = [[WLWebView alloc] initWithFrame:NSMakeRect(0, 0, 100, 100) configuration:config];
     live_delegate = [WLDelegate new];
     live_view.UIDelegate = live_delegate;
     live_view.navigationDelegate = live_delegate;
@@ -253,6 +267,32 @@ void wl_set_frame(double x, double y, double w, double h)
     want_frame = frame;
     if (capturing) return;
     if (!NSEqualRects(live_view.frame, frame)) live_view.frame = frame;
+}
+
+// Cut a hole in the view, points from the content's top left (w or h of 0: none), for what the program draws over
+// it (a menu) to show through; clicks in the hole go to what is behind.
+void wl_set_cutout(double x, double y, double w, double h)
+{
+    if (live_view == nil) return;
+    NSView *content = live_window.contentView;
+    double top = content.isFlipped ? y : content.bounds.size.height - y - h;
+    NSRect hole = (w > 0 && h > 0) ? NSMakeRect(x, top, w, h) : NSZeroRect;
+    live_view.cut = hole;
+    live_view.wantsLayer = YES;
+    if (NSIsEmptyRect(hole)) {
+        live_view.layer.mask = nil;
+        return;
+    }
+    NSRect local = [live_view convertRect:hole fromView:content];
+    CAShapeLayer *mask = [CAShapeLayer layer];
+    CGMutablePathRef path = CGPathCreateMutable();
+    CGPathAddRect(path, NULL, live_view.layer.bounds);
+    CGPathAddRect(path, NULL, NSRectToCGRect(local));
+    mask.path = path;
+    mask.fillRule = kCAFillRuleEvenOdd;
+    mask.frame = live_view.layer.bounds;
+    live_view.layer.mask = mask;
+    CGPathRelease(path);
 }
 
 void wl_set_hidden(int hidden)

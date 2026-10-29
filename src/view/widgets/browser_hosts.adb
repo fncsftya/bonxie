@@ -115,6 +115,15 @@ package body Browser_Hosts is
    end Place;
 
    overriding
+   procedure Cut_Out (Self : in out Browser_Host; Left, Top, Wide, High : Float) is
+      pragma Unreferenced (Self);
+   begin
+      if Webshot.Live.Attached then
+         Webshot.Live.Cut_Out (Left, Top, Wide, High);
+      end if;
+   end Cut_Out;
+
+   overriding
    procedure Give_Keyboard (Self : in out Browser_Host; To_View : Boolean) is
    begin
       if Webshot.Live.Attached then

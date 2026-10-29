@@ -13,6 +13,9 @@ package body Webshot.Live is
    procedure WL_Set_Frame (X, Y, W, H : Interfaces.C.double)
    with Import, Convention => C, External_Name => "wl_set_frame";
 
+   procedure WL_Set_Cutout (X, Y, W, H : Interfaces.C.double)
+   with Import, Convention => C, External_Name => "wl_set_cutout";
+
    procedure WL_Set_Hidden (Hidden : Interfaces.C.int)
    with Import, Convention => C, External_Name => "wl_set_hidden";
 
@@ -110,6 +113,12 @@ package body Webshot.Live is
       WL_Set_Frame
         (Interfaces.C.double (X), Interfaces.C.double (Y), Interfaces.C.double (Wide), Interfaces.C.double (High));
    end Place;
+
+   procedure Cut_Out (X, Y, Wide, High : Float) is
+   begin
+      WL_Set_Cutout
+        (Interfaces.C.double (X), Interfaces.C.double (Y), Interfaces.C.double (Wide), Interfaces.C.double (High));
+   end Cut_Out;
 
    procedure Show (Visible : Boolean) is
    begin

@@ -81,6 +81,9 @@ package Browser_Hosts is
    procedure Place (Self : in out Browser_Host; Left, Top, Wide, High : Float; Showing : Boolean);
 
    overriding
+   procedure Cut_Out (Self : in out Browser_Host; Left, Top, Wide, High : Float);
+
+   overriding
    procedure Give_Keyboard (Self : in out Browser_Host; To_View : Boolean);
 
    overriding

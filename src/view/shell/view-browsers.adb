@@ -249,11 +249,15 @@ package body View.Browsers is
    begin
       if Buttons.Caret_Clicked (Button) then
          Widgets.Set_Visible (Self.Browser.Capture_Menu, not Widgets.Is_Visible (Self.Browser.Capture_Menu));
-         Embeds.Set_Covered (Self.Browser.Page, Widgets.Is_Visible (Self.Browser.Capture_Menu));
          Widgets.Raise_To_Front (Self.Browser.Capture_Menu);
+         if Widgets.Is_Visible (Self.Browser.Capture_Menu) then
+            Embeds.Set_Cut_Out (Self.Browser.Page, Self.Browser.Capture_Menu);
+         else
+            Embeds.Clear_Cut_Out (Self.Browser.Page);
+         end if;
       elsif Browser_VM.Can_Execute (Self.Browser.Model, Browser_VM.Capture) then
          Widgets.Set_Visible (Self.Browser.Capture_Menu, False);
-         Embeds.Set_Covered (Self.Browser.Page, False);
+         Embeds.Clear_Cut_Out (Self.Browser.Page);
          Browser_VM.Execute (Self.Browser.Model, Browser_VM.Capture);
       end if;
    end Capture_Clicked;
@@ -264,7 +268,7 @@ package body View.Browsers is
       What : constant Browser_VM.Command := (if Event.Row = 1 then Browser_VM.Capture else Browser_VM.Capture_View);
    begin
       Widgets.Set_Visible (Self.Browser.Capture_Menu, False);
-      Embeds.Set_Covered (Self.Browser.Page, False);
+      Embeds.Clear_Cut_Out (Self.Browser.Page);
       if Event.Row in 1 .. 2 and then Browser_VM.Can_Execute (Self.Browser.Model, What) then
          Browser_VM.Execute (Self.Browser.Model, What);
       end if;
@@ -435,8 +439,12 @@ package body View.Browsers is
       Model : Nav_VM.View_Model renames Item.Nav_Model.Model;
       Shown : constant Boolean := Nav_VM.Browser_Shown (Model);
    begin
-      Embeds.Set_Covered
-        (Item.Browser.Page, Nav_VM.Is_Over (Model) or else Widgets.Is_Visible (Item.Browser.Capture_Menu));
+      Embeds.Set_Covered (Item.Browser.Page, Nav_VM.Is_Over (Model));
+      if Widgets.Is_Visible (Item.Browser.Capture_Menu) then
+         Embeds.Set_Cut_Out (Item.Browser.Page, Item.Browser.Capture_Menu);
+      else
+         Embeds.Clear_Cut_Out (Item.Browser.Page);
+      end if;
       Buttons.Set_Selected (Tab_Of (Item, Item.Toolbar.Browser_Tab).all, Nav_VM.Browser_Open (Model));
       if Widgets.Is_Visible (Item.Browser.Pane) /= Shown then
          Widgets.Set_Visible (Item.Browser.Pane, Shown);
