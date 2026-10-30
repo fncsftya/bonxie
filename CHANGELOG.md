@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.0
+
+- Add an embedded browser
+
 ## 0.1.0-alpha
 
 - Plan writing with outlines and a 2d canvas.
