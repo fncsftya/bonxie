@@ -9,6 +9,25 @@ with Speech.Models;
 
 package Settings_VM_Fakes is
 
+   type Gallery is limited new Settings_VM.Gallery_Source with record
+      Now    : Settings_VM.Gallery_States := Settings_VM.Idle;
+      Part   : Float := 0.0;
+      Files  : Boolean := False;
+      Starts : Natural := 0;
+   end record;
+   overriding
+   function Gallery_State_Of (Self : Gallery) return Settings_VM.Gallery_States;
+   overriding
+   function Gallery_Fraction_Of (Self : Gallery) return Float;
+   overriding
+   function Gallery_Message_Of (Self : Gallery) return String;
+   overriding
+   function Gallery_Present (Self : Gallery) return Boolean;
+   overriding
+   procedure Start_Gallery (Self : in out Gallery);
+   overriding
+   procedure Poll_Gallery (Self : in out Gallery);
+
    type Reactions is limited new Settings_VM.Effects with record
       Seed              : Natural := 1234;
       Requests, Notices : Natural := 0;

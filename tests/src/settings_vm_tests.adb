@@ -124,6 +124,7 @@ package body Settings_VM_Tests is
       Voice                  : aliased Fakes.Pretend;
       Saved                  : aliased Fakes.Notes;
       Pictures               : aliased Fakes.Reactions;
+      Gallery                : aliased Fakes.Gallery;
       Model, Without_Effects : Settings_VM.View_Model;
       Seen                   : Parts.Version_Number;
       Choice                 : constant Natural := Preferences.Background_Modes'Pos (Preferences.Mist);
@@ -196,6 +197,30 @@ package body Settings_VM_Tests is
            (Settings_VM.Background (Model) = Preferences.Grain
             and then Settings_VM.Seed (Model) = Pictures.Seed
             and then Settings_VM.Keep_Failed (Model)));
+      Settings_VM.Set_Gallery_Source (Model, Gallery'Access);
+      Settings_VM.Execute (Model, Choose_Background, Preferences.Background_Modes'Pos (Preferences.Gallery));
+      Check
+        ("settings-gallery-start",
+         "TRUE",
+         Image
+           (Gallery.Starts = 1
+            and then Settings_VM.Gallery_Bar_Shown (Model)
+            and then not Settings_VM.Can_Execute (Model, New_Gallery_Picture)));
+      Gallery.Part := 0.5;
+      Settings_VM.Poll (Model);
+      Check ("settings-gallery-progress", "TRUE", Image (Settings_VM.Gallery_Fraction (Model) = 0.5));
+      Gallery.Now := Settings_VM.Failed;
+      Settings_VM.Poll (Model);
+      Check
+        ("settings-gallery-retry",
+         "TRUE",
+         Image
+           (not Settings_VM.Gallery_Bar_Shown (Model)
+            and then Settings_VM.Gallery_Status_Shown (Model)
+            and then Settings_VM.Can_Execute (Model, New_Gallery_Picture)));
+      Gallery.Files := True;
+      Settings_VM.Execute (Model, New_Gallery_Picture);
+      Check ("settings-gallery-refresh", "TRUE", Image (Gallery.Starts = 2 and then Gallery.Files));
    end New_Pictures;
 
    procedure Keeping is

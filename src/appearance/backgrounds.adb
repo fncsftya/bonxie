@@ -3,6 +3,7 @@ with Ada.Numerics.Elementary_Functions;
 with Ada.Text_IO;
 with Files;
 with Interfaces.C;
+with SDL3.Pictures;
 
 package body Backgrounds is
 
@@ -85,6 +86,58 @@ package body Backgrounds is
          Item.Seed := New_Seed;
       end loop;
    end Reseed;
+
+   procedure Set_Gallery (Item : in out Cache; File_Name : String) is
+   begin
+      Item.Gallery_File := Ada.Strings.Unbounded.To_Unbounded_String (File_Name);
+      Textures.Release (Item.Gallery_Image);
+   end Set_Gallery;
+
+   Gallery_Veil : constant := 150;
+   --  How opaque the theme's background is over a gallery's painting, of 255: enough that the text drawn
+   --  straight on it (titles, captions, counts) reads on any patch of it, and the painting still shows.
+
+   --  The gallery's painting, cropped to fill the box, under a veil of Back (with Gallery_Veil's alpha).
+   procedure Gallery
+     (Item                  : in out Cache;
+      Target                : SDL3.Painters.Painter'Class;
+      Left, Top, Wide, High : Float;
+      Back                  : Pomarine.Themes.Color)
+   is
+      Image : Textures.Texture renames Item.Gallery_Image;
+   begin
+      if Target.Device = null or else Wide <= 0.0 or else High <= 0.0 then
+         return;
+      end if;
+      if Textures.Is_Empty (Image) then
+         declare
+            Decoded : SDL3.Pictures.Decoded;
+            Dark    : Boolean;
+         begin
+            SDL3.Pictures.Decode (Decoded, Ada.Strings.Unbounded.To_String (Item.Gallery_File), Dark);
+            Textures.Create_From_Decoded (Image, Target.Device.all, Decoded);
+         end;
+      end if;
+      declare
+         Image_Ratio : constant Float := Float (Textures.Width (Image)) / Float (Textures.Height (Image));
+         Box_Ratio   : constant Float := Wide / High;
+         U           : constant Float := (if Image_Ratio > Box_Ratio then Box_Ratio / Image_Ratio else 1.0);
+         V           : constant Float := (if Image_Ratio < Box_Ratio then Image_Ratio / Box_Ratio else 1.0);
+         L           : constant Float := (1.0 - U) / 2.0;
+         T           : constant Float := (1.0 - V) / 2.0;
+         Vertices    : constant Textures.Vertex_Array :=
+           [(Left, Top, 1.0, 1.0, 1.0, 1.0, L, T),
+            (Left + Wide, Top, 1.0, 1.0, 1.0, 1.0, L + U, T),
+            (Left, Top + High, 1.0, 1.0, 1.0, 1.0, L, T + V),
+            (Left + Wide, Top + High, 1.0, 1.0, 1.0, 1.0, L + U, T + V)];
+      begin
+         Target.Draw_Quads (Image, Vertices, 1);
+         Target.Fill_Rect ((Back with delta Alpha => Gallery_Veil), Left, Top, Wide, High);
+      end;
+   exception
+      when others =>
+         null;
+   end Gallery;
 
    overriding
    procedure Finalize (Item : in out Cache) is
@@ -173,6 +226,17 @@ package body Backgrounds is
    begin
       Pomarine.Widgets.Panels.Panel (Item).Draw (Target, Colors);
       if Item.Painting = null then
+         return;
+      end if;
+      if Item.Gallery then
+         Gallery
+           (Item.Painting.all,
+            Target,
+            Left_Of (Item),
+            Top_Of (Item),
+            Width_Of (Item),
+            Height_Of (Item),
+            Colors (Pomarine.Themes.Background));
          return;
       end if;
       Target.Output_Size (Wide, High);
@@ -270,7 +334,7 @@ package body Backgrounds is
             Line * 2.0);
       end Text;
    begin
-      if Item.Painting /= null and then Wide >= 1.0 and then High >= 1.0 then
+      if Item.Painting /= null and then not Item.Gallery and then Wide >= 1.0 and then High >= 1.0 then
          Ensure
            (Item.Painting.all,
             Item.Painting.Thumbs (Item.Style),
@@ -281,7 +345,9 @@ package body Backgrounds is
             Item.Dark,
             Ready);
       end if;
-      if Ready then
+      if Item.Painting /= null and then Item.Gallery then
+         Gallery (Item.Painting.all, Target, Left, Top, Wide, High, Look (Themes.Background));
+      elsif Ready then
          Draw_Cut
            (Target,
             Item.Painting.Thumbs (Item.Style).Image,

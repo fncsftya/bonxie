@@ -804,7 +804,7 @@ package body View is
       --  After the views have taken what was typed in them: the name of the project, for one.
       Navigation.Sync (Item);
       Grammar.Update (Item, Now);
-      if Settings_VM.Is_Showing (Item.Choices.Model) then
+      if Settings_VM.Is_Showing (Item.Choices.Model) or else Settings_View.Downloading (Item) then
          Settings_View.Update (Item);
       end if;
       Grammar.Update_Cursor (Item);

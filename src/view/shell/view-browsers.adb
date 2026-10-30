@@ -411,6 +411,8 @@ package body View.Browsers is
       end;
       Buttons.Configure
         (Parts.Capture_Button, Buttons.Looks ("Capture Page", Captioned => True, Shape => Buttons.Split_Dropdown));
+      --  As Update keeps it, from the first frame: there is no page to capture until one is gone to.
+      Buttons.Set_Enabled (Parts.Capture_Button, Browser_VM.Can_Execute (Parts.Model, Browser_VM.Capture));
       Pomarine.UI.Menus.Set_Content
         (Parts.Capture_Menu,
          [Pomarine.UI.Menus.Row (Widgets.Menus.Action, "Capture Page"),

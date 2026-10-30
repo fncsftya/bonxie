@@ -1,6 +1,7 @@
 with Pomarine.Boxes;
 with Pomarine.Themes;
 with Ada.Finalization;
+with Ada.Strings.Unbounded;
 with System;
 with Pomarine.Widgets.Panels;
 with Pomarine.Widgets.Canvases;
@@ -43,6 +44,8 @@ package Backgrounds is
    with Post => Seed_Number (Item) /= Seed_Number (Item)'Old;
    --  Paint another picture, at its next drawing.
 
+   procedure Set_Gallery (Item : in out Cache; File_Name : String);
+
    function Available (Item : Cache; Style : Styles) return Boolean;
    --  Whether there is a painting of Style to show: the shader compiled and has not failed since.
 
@@ -56,6 +59,7 @@ package Backgrounds is
       Painting : access Cache;
       Style    : Styles := Watercolour;
       Dark     : Boolean := False;
+      Gallery  : Boolean := False;
    end record;
 
    overriding
@@ -70,6 +74,7 @@ package Backgrounds is
       Style    : Styles := Watercolour;
       --  The picture to show, small; none to show the theme's own background.
       Dark     : Boolean := False;
+      Gallery  : Boolean := False;
       Look     : Pomarine.Themes.Theme := Pomarine.Themes.Light;
       Radius   : Float := 0.0;
       Round    : Pomarine.Boxes.Corner_Flags := Pomarine.Boxes.Top_Corners;
@@ -103,15 +108,17 @@ private
    type Layer_Array is array (Styles) of Layer;
 
    type Cache is new Ada.Finalization.Limited_Controlled with record
-      Native : System.Address := System.Null_Address;
-      Seed   : Seed_Numbers := 0;
-      Failed : Boolean := False;
+      Native        : System.Address := System.Null_Address;
+      Seed          : Seed_Numbers := 0;
+      Failed        : Boolean := False;
       --  The shader would not compile.
-      Broken : Style_Flags := [others => False];
+      Broken        : Style_Flags := [others => False];
       --  Which of the pictures would not paint.
-      Main   : Layer;
+      Main          : Layer;
       --  The window's background.
-      Thumbs : Layer_Array;
+      Thumbs        : Layer_Array;
+      Gallery_File  : Ada.Strings.Unbounded.Unbounded_String;
+      Gallery_Image : SDL3.Windows.Renderers.Textures.Texture;
       --  The small pictures in the settings.
    end record;
 

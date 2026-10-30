@@ -12,7 +12,8 @@ package Preferences is
    --  The appearance of the windows: light, dark, or the system's, which
    --  follows its light or dark appearance as it changes.
 
-   type Background_Modes is (Fixed, Watercolour, Paper, Ink_Wash, Mist, Grain, Marbling, Risograph, Contours, Bauhaus);
+   type Background_Modes is
+     (Fixed, Watercolour, Paper, Ink_Wash, Mist, Grain, Marbling, Risograph, Contours, Bauhaus, Gallery);
    --  What the windows are drawn on: Fixed, the theme's own colours on a plain background; or
    --  one of the procedural pictures (see Backgrounds.Styles), with colours worked out from it
    --  (adapted to it), light or dark as the theme is.

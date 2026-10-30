@@ -4,7 +4,9 @@ package body Settings_VM is
 
    use type Parts.Version_Number;
    use type Preferences.Speech_Models;
+   use type Preferences.Background_Modes;
    use type Speech.Models.States;
+   use type Ada.Strings.Unbounded.Unbounded_String;
 
    overriding
    function Version (Self : View_Model) return Parts.Version_Number
@@ -41,6 +43,33 @@ package body Settings_VM is
 
    function Keep_Failed (Self : View_Model) return Boolean
    is (Self.Failed);
+
+   procedure Set_Gallery_Source (Self : in out View_Model; Source : not null access Gallery_Source'Class) is
+   begin
+      Self.Gallery := Source.all'Unrestricted_Access;
+   end Set_Gallery_Source;
+
+   function Gallery_State (Self : View_Model) return Gallery_States
+   is (Self.Gallery_Now);
+   function Gallery_Fraction (Self : View_Model) return Float
+   is (Self.Gallery_Progress);
+   function Gallery_Bar_Shown (Self : View_Model) return Boolean
+   is (Self.Gallery_Now = Running);
+   function Gallery_Status_Shown (Self : View_Model) return Boolean
+   is (Self.Gallery_Now in Running | Failed);
+   function Gallery_Status (Self : View_Model) return String is
+   begin
+      case Self.Gallery_Now is
+         when Running =>
+            return "Downloading painting";
+
+         when Failed  =>
+            return "Download failed: " & Ada.Strings.Unbounded.To_String (Self.Gallery_Reason);
+
+         when others  =>
+            return "";
+      end case;
+   end Gallery_Status;
 
    --  How the download stands
 
@@ -159,6 +188,23 @@ package body Settings_VM is
    procedure Poll (Self : in out View_Model) is
    begin
       Look (Self, Files => False);
+      if Self.Gallery /= null then
+         Poll_Gallery (Self.Gallery.all);
+         declare
+            Now      : constant Gallery_States := Gallery_State_Of (Self.Gallery.all);
+            Progress : constant Float := Gallery_Fraction_Of (Self.Gallery.all);
+            Reason   : constant Ada.Strings.Unbounded.Unbounded_String :=
+              Ada.Strings.Unbounded.To_Unbounded_String (Gallery_Message_Of (Self.Gallery.all));
+         begin
+            if Now /= Self.Gallery_Now or else Progress /= Self.Gallery_Progress or else Reason /= Self.Gallery_Reason
+            then
+               Self.Gallery_Now := Now;
+               Self.Gallery_Progress := Progress;
+               Self.Gallery_Reason := Reason;
+               Parts.Bump (Self.Changes);
+            end if;
+         end;
+      end if;
    end Poll;
 
    procedure Initialize
@@ -201,6 +247,8 @@ package body Settings_VM is
              and then Index
                       in Preferences.Background_Modes'Pos (Preferences.Pictures'First)
                        .. Preferences.Background_Modes'Pos (Preferences.Pictures'Last),
+           when New_Gallery_Picture                                                            =>
+             Is_Showing (Self) and then Self.Gallery /= null and then Self.Gallery_Now /= Running,
            when Choose_Theme | Choose_Background | Choose_Speech_Model | Toggle_VSync | Reseed => True);
    end Can_Execute;
 
@@ -285,6 +333,14 @@ package body Settings_VM is
             begin
                Background_Properties.Set (Self.Pictures, To);
                Keep_Background (Self, To);
+               if To = Preferences.Gallery
+                 and then Self.Gallery /= null
+                 and then not Gallery_Present (Self.Gallery.all)
+                 and then Self.Gallery_Now /= Running
+               then
+                  Start_Gallery (Self.Gallery.all);
+                  Poll (Self);
+               end if;
             end;
 
          when Choose_Speech_Model =>
@@ -328,6 +384,12 @@ package body Settings_VM is
                   Parts.Bump (Self.Changes);
                end if;
             end;
+
+         when New_Gallery_Picture =>
+            Background_Properties.Set (Self.Pictures, Preferences.Gallery);
+            Keep_Background (Self, Preferences.Gallery);
+            Start_Gallery (Self.Gallery.all);
+            Poll (Self);
 
          when Download_Model      =>
             Start (Self.Source.all);

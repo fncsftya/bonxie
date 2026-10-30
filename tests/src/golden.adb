@@ -630,11 +630,13 @@ procedure Golden is
 
       --  The others are in the row, past its end: each is chosen by name, and the row is scrolled to it.
       for Mode in Preferences.Background_Modes loop
-         Settings.Choose_Background (Session, Mode);
-         Goldens.Check_Text
-           ("settings-chose-" & Ada.Characters.Handling.To_Lower (Preferences.Background_Modes'Image (Mode)),
-            "TRUE",
-            Boolean'Image (Settings.Background_Choice (Session) = Mode));
+         if Mode /= Preferences.Gallery then
+            Settings.Choose_Background (Session, Mode);
+            Goldens.Check_Text
+              ("settings-chose-" & Ada.Characters.Handling.To_Lower (Preferences.Background_Modes'Image (Mode)),
+               "TRUE",
+               Boolean'Image (Settings.Background_Choice (Session) = Mode));
+         end if;
       end loop;
       Settings.Choose_Background (Session, Preferences.Bauhaus);
       View.Render (Session, Drawn);
@@ -1304,6 +1306,8 @@ begin
    Run ("home-by-name", Home_Tests.By_Name'Access);
    Run ("outline-by-name", Outline_Screen_Tests.By_Name'Access);
    Run ("settings-by-name", Settings_Tests.By_Name'Access);
+   Run ("settings-gallery-cache", Settings_Tests.Gallery_Cache'Access);
+   Run ("settings-gallery-colours", Settings_Tests.Colour_Sampling'Access);
    Run ("settings-browser-filter", Settings_Tests.Browser_Filter'Access);
    Run ("settings-vm-commands", Settings_VM_Tests.Command_Rules'Access);
    Run ("settings-vm-pictures", Settings_VM_Tests.New_Pictures'Access);

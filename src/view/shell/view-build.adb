@@ -6,6 +6,7 @@ with Site_Filter_VM;
 with Sidebar_VM.Disk;
 with View.Search;
 with Backgrounds;
+with Gallery_Pictures;
 with Scripts;
 with Items.Schema;
 with Ada.Command_Line;
@@ -233,6 +234,11 @@ package body View.Build is
                Reactions       => Item.Settings_Reactions'Access);
          end if;
          Site_Filter_VM.Initialize (Choices.Filter, (if Persist then Config else ""));
+         Gallery_Pictures.Open (Choices.Gallery.Pictures, Share_Directory ("art") & "/nga-paintings.tsv", Config);
+         Settings_VM.Set_Gallery_Source (Choices.Model, Choices.Gallery'Unchecked_Access);
+         if Gallery_Pictures.Present (Choices.Gallery.Pictures) then
+            Backgrounds.Set_Gallery (Item.Host.Background, Gallery_Pictures.File_Name (Choices.Gallery.Pictures));
+         end if;
       end;
       Nav_VM.Stored.Open (Item.Nav_Model.Library, Item.Nav.Store'Unchecked_Access);
       Nav_VM.Initialize

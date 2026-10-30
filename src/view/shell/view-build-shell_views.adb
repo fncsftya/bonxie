@@ -342,9 +342,7 @@ package body View.Build.Shell_Views is
               UI.Styled
                 (UI.Row
                    ([Sidebar,
-                     UI.Styled
-                       (UI.Spacer (Form, (Fill => Themes.Border, others => <>)),
-                        (Width => Hairline, Shrink => 0.0, others => <>)),
+                     UI.Styled (UI.Spacer (Form), (Width => Hairline, Shrink => 0.0, others => <>)),
                      Projects_Column]),
                  (Flow => Row, Grow => 1.0, others => <>));
          begin

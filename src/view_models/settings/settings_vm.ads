@@ -32,6 +32,7 @@ package Settings_VM is
       --  Index: the number of the picture now painted (below Preferences.Seed_Limit), which is kept.
       New_Picture,
       --  Index: a pictured background style. Choose it and keep a new seed from the injected effects.
+      New_Gallery_Picture,
       Download_Model,
       --  Fetch the speech model's files.
       Delete_Model,
@@ -96,7 +97,22 @@ package Settings_VM is
    procedure Ask_To_Delete (Self : in out Effects; Size : String) is abstract;
    --  Confirm_Delete was executed: ask before the files, which take Size, are deleted.
 
+   type Gallery_States is (Idle, Running, Done, Failed);
+   type Gallery_Source is limited interface;
+   function Gallery_State_Of (Self : Gallery_Source) return Gallery_States is abstract;
+   function Gallery_Fraction_Of (Self : Gallery_Source) return Float is abstract;
+   function Gallery_Message_Of (Self : Gallery_Source) return String is abstract;
+   function Gallery_Present (Self : Gallery_Source) return Boolean is abstract;
+   procedure Start_Gallery (Self : in out Gallery_Source) is abstract;
+   procedure Poll_Gallery (Self : in out Gallery_Source) is abstract;
+
    type View_Model is limited new Commands.Model with private;
+   procedure Set_Gallery_Source (Self : in out View_Model; Source : not null access Gallery_Source'Class);
+   function Gallery_State (Self : View_Model) return Gallery_States;
+   function Gallery_Fraction (Self : View_Model) return Float;
+   function Gallery_Status (Self : View_Model) return String;
+   function Gallery_Bar_Shown (Self : View_Model) return Boolean;
+   function Gallery_Status_Shown (Self : View_Model) return Boolean;
 
    procedure Initialize
      (Self            : in out View_Model;
@@ -207,6 +223,7 @@ private
    type Store_Access is access all Store'Class;
 
    type Effects_Access is access all Effects'Class;
+   type Gallery_Access is access all Gallery_Source'Class;
 
    type Snapshot is record
       State     : Speech.Models.States := Speech.Models.Idle;
@@ -220,21 +237,25 @@ private
    --  What the source said when last asked.
 
    type View_Model is limited new Commands.Model with record
-      Source    : Source_Access;
-      Store     : Store_Access;
-      Reactions : Effects_Access;
-      Config    : Ada.Strings.Unbounded.Unbounded_String;
-      Showing   : Flag_Properties.Property;
-      Themes    : Theme_Properties.Property;
-      Pictures  : Background_Properties.Property;
-      Voice     : Speech_Properties.Property;
-      Ticked    : Flag_Properties.Property;
+      Source           : Source_Access;
+      Store            : Store_Access;
+      Reactions        : Effects_Access;
+      Config           : Ada.Strings.Unbounded.Unbounded_String;
+      Showing          : Flag_Properties.Property;
+      Themes           : Theme_Properties.Property;
+      Pictures         : Background_Properties.Property;
+      Voice            : Speech_Properties.Property;
+      Ticked           : Flag_Properties.Property;
       --  VSync.
-      Number    : Natural range 0 .. Preferences.Seed_Limit - 1 := 0;
-      Download  : Snapshot;
-      Changes   : Parts.Change_Counter;
+      Number           : Natural range 0 .. Preferences.Seed_Limit - 1 := 0;
+      Download         : Snapshot;
+      Changes          : Parts.Change_Counter;
       --  Of what is not a property: the download, the seed, a save that failed.
-      Failed    : Boolean := False;
+      Failed           : Boolean := False;
+      Gallery          : Gallery_Access;
+      Gallery_Now      : Gallery_States := Idle;
+      Gallery_Progress : Float := 0.0;
+      Gallery_Reason   : Ada.Strings.Unbounded.Unbounded_String;
    end record;
 
 end Settings_VM;

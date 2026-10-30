@@ -1,4 +1,9 @@
 with Goldens;
+with Ada.Directories;
+with Files;
+with Gallery_Pictures;
+with Painting_Colours;
+with SDL3.Pictures;
 with Pomarine.Events;
 with Pomarine.Semantics;
 with Pomarine.Testing;
@@ -23,6 +28,120 @@ package body Settings_Tests is
 
    procedure Check (Name : String; Expected, Actual : String) renames Goldens.Check_Text;
 
+   procedure Colour_Sampling is
+      Path          : constant String := "/private/tmp/bonxie-painting-colours.png";
+      Picture       : Images.Image;
+      Decoded       : SDL3.Pictures.Decoded;
+      Hue, Strength : Float;
+      Dark          : Boolean;
+
+      procedure Read_Back is
+      begin
+         Images.Save_PNG (Picture, Path);
+         SDL3.Pictures.Decode (Decoded, Path, Dark);
+         Painting_Colours.Sample (Decoded, Hue, Strength);
+      end Read_Back;
+   begin
+      Images.Create (Picture, 8, 8);
+      for Y in 0 .. 7 loop
+         for X in 0 .. 7 loop
+            Images.Set_Pixel (Picture, X, Y, (200, 40, 40, 255));
+         end loop;
+      end loop;
+      Read_Back;
+      Check ("settings-gallery-red-tint", "TRUE", Image (Hue < 0.01 and then Strength > 0.8));
+      for Y in 0 .. 7 loop
+         for X in 0 .. 7 loop
+            Images.Set_Pixel (Picture, X, Y, (40, 40, 200, 255));
+         end loop;
+      end loop;
+      Read_Back;
+      Check ("settings-gallery-blue-tint", "TRUE", Image (abs (Hue - 2.0 / 3.0) < 0.01 and then Strength > 0.8));
+      for Y in 0 .. 7 loop
+         for X in 0 .. 7 loop
+            Images.Set_Pixel (Picture, X, Y, (120, 120, 120, 255));
+         end loop;
+      end loop;
+      Read_Back;
+      Check ("settings-gallery-neutral-tint", "TRUE", Image (Strength = 0.0));
+   end Colour_Sampling;
+
+   procedure Gallery_Cache is
+      use type Gallery_Pictures.States;
+      Root       : constant String := "/private/tmp/bonxie-gallery-test";
+      Image_File : constant String := Root & "/source/a/full/!2560,2560/0/default.png";
+      Catalogue  : constant String := Root & "/catalogue.tsv";
+      Cached     : constant String := Root & "/cache/gallery-background.png";
+      Item       : Gallery_Pictures.Source;
+
+      procedure Await is
+      begin
+         for I in 1 .. 200 loop
+            Gallery_Pictures.Poll (Item);
+            exit when Gallery_Pictures.State (Item) /= Gallery_Pictures.Running;
+            delay 0.025;
+         end loop;
+      end Await;
+   begin
+      Ada.Directories.Create_Path (Ada.Directories.Containing_Directory (Image_File));
+      Ada.Directories.Create_Path (Ada.Directories.Containing_Directory (Cached));
+      Files.Write (Catalogue, "1" & ASCII.HT & "a" & ASCII.LF);
+      Files.Write (Cached, "old image");
+      Files.Write (Image_File, "invalid image");
+      Gallery_Pictures.Open (Item, Catalogue, Root & "/cache", "file://" & Root & "/source/");
+      Gallery_Pictures.Start (Item);
+      Await;
+      Check
+        ("settings-gallery-invalid-preserves",
+         "TRUE",
+         Image (Gallery_Pictures.State (Item) = Gallery_Pictures.Failed and then Files.Read (Cached) = "old image"));
+      Ada.Directories.Delete_File (Image_File);
+      Ada.Directories.Copy_File ("golden/home-empty.png", Image_File);
+      Gallery_Pictures.Start (Item);
+      Await;
+      Check
+        ("settings-gallery-installed",
+         "TRUE",
+         Image
+           (Gallery_Pictures.State (Item) = Gallery_Pictures.Done
+            and then Files.Read (Cached) = Files.Read ("golden/home-empty.png")));
+      Ada.Directories.Delete_File (Image_File);
+      declare
+         Blue     : Images.Image;
+         Reopened : Gallery_Pictures.Source;
+      begin
+         Images.Create (Blue, 4, 4);
+         for Y in 0 .. 3 loop
+            for X in 0 .. 3 loop
+               Images.Set_Pixel (Blue, X, Y, (30, 30, 220, 255));
+            end loop;
+         end loop;
+         Images.Save_PNG (Blue, Image_File);
+         Images.Save_PNG (Blue, Root & "/blue.png");
+         Gallery_Pictures.Start (Item);
+         Await;
+         Gallery_Pictures.Open (Reopened, Catalogue, Root & "/cache");
+         Check
+           ("settings-gallery-colour-cached",
+            "TRUE",
+            Image
+              (Gallery_Pictures.State (Item) = Gallery_Pictures.Done
+               and then abs (Gallery_Pictures.Hue (Item) - 2.0 / 3.0) < 0.01
+               and then Gallery_Pictures.Hue (Reopened) = Gallery_Pictures.Hue (Item)
+               and then Gallery_Pictures.Strength (Reopened) = Gallery_Pictures.Strength (Item)));
+      end;
+      Ada.Directories.Delete_File (Image_File);
+      Gallery_Pictures.Start (Item);
+      Await;
+      Check
+        ("settings-gallery-failure-preserves",
+         "TRUE",
+         Image
+           (Gallery_Pictures.State (Item) = Gallery_Pictures.Failed
+            and then Files.Read (Cached) = Files.Read (Root & "/blue.png")
+            and then abs (Gallery_Pictures.Hue (Item) - 2.0 / 3.0) < 0.01));
+   end Gallery_Cache;
+
    Mode_Names : constant array (Preferences.Background_Modes) of access constant String :=
      [Preferences.Fixed       => new String'("Fixed"),
       Preferences.Watercolour => new String'("Watercolour"),
@@ -33,7 +152,8 @@ package body Settings_Tests is
       Preferences.Marbling    => new String'("Marbling"),
       Preferences.Risograph   => new String'("Risograph"),
       Preferences.Contours    => new String'("Contours"),
-      Preferences.Bauhaus     => new String'("Bauhaus")];
+      Preferences.Bauhaus     => new String'("Bauhaus"),
+      Preferences.Gallery     => new String'("National Gallery of Art")];
 
    procedure By_Name is
       Session : aliased View.Session;
@@ -93,8 +213,11 @@ package body Settings_Tests is
       --  Background: a card is clicked in its name, each a little further along the row, which is
       --  scrolled to keep the one chosen in view.
       for Mode in Preferences.Background_Modes loop
-         Testing.Click_On (Window, Mode_Names (Mode).all);
-         Check ("settings-name-" & Mode_Names (Mode).all, "TRUE", Image (Settings.Background_Choice (Session) = Mode));
+         if Mode /= Preferences.Gallery then
+            Testing.Click_On (Window, Mode_Names (Mode).all);
+            Check
+              ("settings-name-" & Mode_Names (Mode).all, "TRUE", Image (Settings.Background_Choice (Session) = Mode));
+         end if;
       end loop;
       Settings.Choose_Background (Session, Preferences.Fixed);
 

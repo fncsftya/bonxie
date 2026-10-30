@@ -1,4 +1,5 @@
 with Backgrounds;
+with Gallery_Pictures;
 with Browser_Hosts;
 with Site_Filter_VM;
 with Pomarine.Themes;
@@ -24,14 +25,16 @@ package body View.Settings_View is
    use type Preferences.Speech_Models;
    use type Preferences.Theme_Choices;
    use type Preferences.Background_Modes;
+   use type Settings_VM.Gallery_States;
 
    use type Settings_VM.Command;
 
    package Model_Parts renames Settings_VM.Parts;
 
    function Downloading (Item : Session) return Boolean
-   is (Settings_VM.Is_Showing (Item.Choices.Model)
-       and then Settings_VM.Download_State (Item.Choices.Model) = Speech.Models.Running);
+   is ((Settings_VM.Is_Showing (Item.Choices.Model)
+        and then Settings_VM.Download_State (Item.Choices.Model) = Speech.Models.Running)
+       or else Settings_VM.Gallery_State (Item.Choices.Model) = Settings_VM.Running);
 
    function Choice_Of (Mode : Preferences.Background_Modes) return Natural
    is (Preferences.Background_Modes'Pos (Mode));
@@ -57,9 +60,20 @@ package body View.Settings_View is
          begin
             Panels.Set_Border (Card.Whole, (if Chosen then Themes.Accent else Themes.Border));
             Panels.Set_Shadow (Card.Whole, (if Chosen then Themes.Accent else Themes.Shadow));
-            if Mode = Preferences.Fixed then
-               Card.Sample.Painting := null;
-               Backgrounds.Set_Look (Card.Sample, Dark, View.Style.Make (Dark));
+            Card.Sample.Gallery := Mode = Preferences.Gallery;
+            if Mode = Preferences.Fixed or else Mode = Preferences.Gallery then
+               Card.Sample.Painting :=
+                 (if Mode = Preferences.Gallery then Item.Host.Background'Unchecked_Access else null);
+               Backgrounds.Set_Look
+                 (Card.Sample,
+                  Dark,
+                  (if Mode = Preferences.Gallery and then Gallery_Pictures.Present (Item.Choices.Gallery.Pictures)
+                   then
+                     View.Style.Make
+                       (Dark,
+                        Gallery_Pictures.Hue (Item.Choices.Gallery.Pictures),
+                        Gallery_Pictures.Strength (Item.Choices.Gallery.Pictures))
+                   else View.Style.Make (Dark)));
             else
                declare
                   Picture : constant Backgrounds.Styles := Style_Of (Mode);
@@ -99,6 +113,7 @@ package body View.Settings_View is
    begin
       Show_Backgrounds (Item);
       Item.Choices.Download_Seen := Settings_VM.Download_State (Item.Choices.Model);
+      Item.Choices.Gallery_State_Seen := Settings_VM.Gallery_State (Item.Choices.Model);
       Sync_Screen (Item, Settings_Region);
       --  The buttons the commands are on are turned on and off as the view-model says.
       Widgets.Revalidate (Item.Root.Widgets);
@@ -179,12 +194,18 @@ package body View.Settings_View is
            when Preferences.System => Pomarine.Events.System_Is_Dark);
       Mode     : constant Preferences.Background_Modes := Settings_VM.Background (Item.Choices.Model);
       --  Only a window has a painting to go with; offscreen, it is the theme's own colours.
-      Adaptive : constant Boolean :=
+      Painted  : constant Boolean :=
         Mode in Preferences.Pictures
         and then Item.Shell.Windowed
         and then Backgrounds.Available (Item.Host.Background, Style_Of (Mode));
+      Art      : constant Boolean :=
+        Mode = Preferences.Gallery
+        and then Item.Shell.Windowed
+        and then Gallery_Pictures.Present (Item.Choices.Gallery.Pictures);
+      Adaptive : constant Boolean := Painted or else Art;
    begin
-      if Adaptive then
+      Item.Root.Window_Panel.Gallery := Art;
+      if Painted then
          declare
             Picture : constant Backgrounds.Styles := Style_Of (Mode);
          begin
@@ -192,9 +213,15 @@ package body View.Settings_View is
             Item.Root.Window_Panel.Style := Picture;
          end;
          Item.Root.Window_Panel.Painting := Item.Host.Background'Unchecked_Access;
+      elsif Art then
+         View.Style.Use_Adaptive
+           (Dark,
+            Gallery_Pictures.Hue (Item.Choices.Gallery.Pictures),
+            Gallery_Pictures.Strength (Item.Choices.Gallery.Pictures));
+         Item.Root.Window_Panel.Painting := Item.Host.Background'Unchecked_Access;
       else
          View.Style.Use_Dark (Dark);
-         Item.Root.Window_Panel.Painting := null;
+         Item.Root.Window_Panel.Painting := (if Art then Item.Host.Background'Unchecked_Access else null);
       end if;
       Item.Canvas_View.Transparent := Adaptive;
       if Dark /= Item.Choices.Dark_Shown
@@ -238,6 +265,7 @@ package body View.Settings_View is
             Apply_Theme (Item);
             if Showing (Item) then
                Refresh (Item);
+               Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
                Reveal_Background (Item);
             end if;
 
@@ -255,11 +283,14 @@ package body View.Settings_View is
                Refresh (Item);
             end if;
 
-         when Settings_VM.Reseed | Settings_VM.New_Picture                                            =>
+         when Settings_VM.Reseed | Settings_VM.New_Picture | Settings_VM.New_Gallery_Picture          =>
             Apply_Theme (Item);
             Widgets.Invalidate_All (Item.Root.Widgets);
             if Showing (Item) then
                Refresh (Item);
+               if What = Settings_VM.New_Gallery_Picture then
+                  Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
+               end if;
                if What = Settings_VM.New_Picture then
                   Reveal_Background (Item);
                end if;
@@ -283,9 +314,16 @@ package body View.Settings_View is
    end Delete_Files;
 
    procedure Update (Item : in out Session) is
-      Was : constant Speech.Models.States := Item.Choices.Download_Seen;
+      Was     : constant Speech.Models.States := Item.Choices.Download_Seen;
+      Art_Was : constant Settings_VM.Gallery_States := Item.Choices.Gallery_State_Seen;
    begin
       Settings_VM.Poll (Item.Choices.Model);
+      if Gallery_Pictures.Version (Item.Choices.Gallery.Pictures) /= Item.Choices.Gallery_Seen then
+         Item.Choices.Gallery_Seen := Gallery_Pictures.Version (Item.Choices.Gallery.Pictures);
+         Backgrounds.Set_Gallery (Item.Host.Background, Gallery_Pictures.File_Name (Item.Choices.Gallery.Pictures));
+         Apply_Theme (Item);
+         Widgets.Invalidate_All (Item.Root.Widgets);
+      end if;
       --  What is typed or clicked in the filter's controls is taken up, for its model is not the settings'.
       Sync_Screen (Item, Settings_Region);
       if Model_Parts.Changed (Item.Choices.Filter_Seen, Site_Filter_VM.Version (Item.Choices.Filter)) then
@@ -295,7 +333,9 @@ package body View.Settings_View is
       end if;
       if Model_Parts.Changed (Item.Choices.Seen, Settings_VM.Version (Item.Choices.Model)) then
          Draw (Item);
-         if Settings_VM.Download_State (Item.Choices.Model) /= Was then
+         if Settings_VM.Download_State (Item.Choices.Model) /= Was
+           or else Settings_VM.Gallery_State (Item.Choices.Model) /= Art_Was
+         then
             --  It has ended, or begun: the button and the bar change.
             Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
          end if;

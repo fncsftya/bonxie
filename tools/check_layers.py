@@ -50,10 +50,12 @@ def forbidden(unit, prefixes):
 
 
 def main():
-    files = subprocess.check_output(["git", "ls-files", "src", "ebook"], cwd=ROOT, text=True).split()
+    files = subprocess.check_output(
+        ["git", "ls-files", "--cached", "--others", "--exclude-standard", "src", "ebook"], cwd=ROOT, text=True
+    ).split()
     found = []
     for f in files:
-        if not f.endswith((".ads", ".adb")):
+        if not f.endswith((".ads", ".adb")) or not os.path.isfile(os.path.join(ROOT, f)):
             continue
         text = open(os.path.join(ROOT, f), errors="ignore").read()
         for clause in re.findall(r"^\s*(?:limited\s+|private\s+)*with\s+([^;]+);", text, re.M):

@@ -198,7 +198,8 @@ private package View.Style is
          when Preferences.Marbling    => "Marbling",
          when Preferences.Risograph   => "Risograph",
          when Preferences.Contours    => "Contours",
-         when Preferences.Bauhaus     => "Bauhaus");
+         when Preferences.Bauhaus     => "Bauhaus",
+         when Preferences.Gallery     => "National Gallery of Art");
    --  What a choice of background is called, on its card.
 
    Background_Card_Width  : constant Float := 250.0;

@@ -35,6 +35,7 @@ package body View.Build.Settings_Form is
 
    use Style;
    use Pomarine.Widgets.Layouts;
+   use type Preferences.Background_Modes;
 
    --  The controls of the form, bound to the view-model (Pomarine.UI): a binding is a pointer to an adapter
    --  that is there as long as the program is, so they are made here, not in the procedure.
@@ -67,15 +68,25 @@ package body View.Build.Settings_Form is
    package Theme_Is is new Settings_UI.Choosing_Among (Preferences.Theme_Choices, Theme_Of);
    package Voice_Is is new Settings_UI.Choosing_Among (Preferences.Speech_Models, Voice_Of);
 
-   VSync_Flag     : constant Settings_UI.Flag_Property := Settings_UI.Showing (Settings_VM.VSync'Access);
-   Row_Flag       : constant Settings_UI.Flag_Property := Settings_UI.Showing (Settings_VM.Download_Row_Shown'Access);
-   Download_Flag  : constant Settings_UI.Flag_Property :=
+   VSync_Flag          : constant Settings_UI.Flag_Property := Settings_UI.Showing (Settings_VM.VSync'Access);
+   Row_Flag            : constant Settings_UI.Flag_Property :=
+     Settings_UI.Showing (Settings_VM.Download_Row_Shown'Access);
+   Download_Flag       : constant Settings_UI.Flag_Property :=
      Settings_UI.Showing (Settings_VM.Download_Button_Shown'Access);
-   Delete_Flag    : constant Settings_UI.Flag_Property := Settings_UI.Showing (Settings_VM.Delete_Button_Shown'Access);
-   Bar_Flag       : constant Settings_UI.Flag_Property := Settings_UI.Showing (Settings_VM.Download_Bar_Shown'Access);
-   Status_Text    : constant Settings_UI.Text_Property := Settings_UI.Showing (Settings_VM.Download_Status'Access);
-   Fraction_Value : constant Settings_UI.Fraction_Property :=
+   Delete_Flag         : constant Settings_UI.Flag_Property :=
+     Settings_UI.Showing (Settings_VM.Delete_Button_Shown'Access);
+   Bar_Flag            : constant Settings_UI.Flag_Property :=
+     Settings_UI.Showing (Settings_VM.Download_Bar_Shown'Access);
+   Status_Text         : constant Settings_UI.Text_Property := Settings_UI.Showing (Settings_VM.Download_Status'Access);
+   Fraction_Value      : constant Settings_UI.Fraction_Property :=
      Settings_UI.Showing (Settings_VM.Download_Fraction'Access);
+   Gallery_Bar_Flag    : constant Settings_UI.Flag_Property :=
+     Settings_UI.Showing (Settings_VM.Gallery_Bar_Shown'Access);
+   Gallery_Status_Flag : constant Settings_UI.Flag_Property :=
+     Settings_UI.Showing (Settings_VM.Gallery_Status_Shown'Access);
+   Gallery_Status      : constant Settings_UI.Text_Property := Settings_UI.Showing (Settings_VM.Gallery_Status'Access);
+   Gallery_Fraction    : constant Settings_UI.Fraction_Property :=
+     Settings_UI.Showing (Settings_VM.Gallery_Fraction'Access);
 
    procedure Build_Settings (Item : in out Session) is
       Prefs : Settings_Parts renames Item.Prefs;
@@ -115,7 +126,7 @@ package body View.Build.Settings_Form is
          --  A choice of background: a picture, which is clicked, and a foot with its name, which is too.
          function Card_Of (Mode : Preferences.Background_Modes) return UI.Layout is
             Card     : Background_Card renames Prefs.Cards (Mode);
-            Pictured : constant Boolean := Mode in Preferences.Pictures;
+            Pictured : constant Boolean := Mode in Preferences.Pictures or else Mode = Preferences.Gallery;
             Words    : constant String := Background_Name_Of (Mode);
             Choice   : constant Natural := Preferences.Background_Modes'Pos (Mode);
 
@@ -130,7 +141,7 @@ package body View.Build.Settings_Form is
                return
                  Bound.Borrow_Button
                    (Card.Reseed,
-                    Settings_VM.New_Picture,
+                    (if Mode = Preferences.Gallery then Settings_VM.New_Gallery_Picture else Settings_VM.New_Picture),
                     Choice,
                     Width  => Card_Button,
                     Height => Card_Button,
@@ -246,10 +257,12 @@ package body View.Build.Settings_Form is
                  Gap => Layouts.Length_Of (Gap)),
               (Shrink => 0.0, Margin => (Top => Layouts.Length_Of (Gap), others => <>), others => <>));
 
-         Status : constant UI.Label_Handle := Bound.Label (Status_Text, Ink => Quiet_Ink);
-         Bar    : constant UI.Progress_Handle := Bound.Progress (Fraction_Value);
-         Switch : constant UI.Switch_Handle := Bound.Switch ("VSync", VSync_Flag, Settings_VM.Toggle_VSync);
-         Close  : constant UI.Button_Handle :=
+         Status     : constant UI.Label_Handle := Bound.Label (Status_Text, Ink => Quiet_Ink);
+         Bar        : constant UI.Progress_Handle := Bound.Progress (Fraction_Value);
+         Art_Bar    : constant UI.Progress_Handle := Bound.Progress (Gallery_Fraction);
+         Art_Status : constant UI.Label_Handle := Bound.Label (Gallery_Status, Ink => Quiet_Ink);
+         Switch     : constant UI.Switch_Handle := Bound.Switch ("VSync", VSync_Flag, Settings_VM.Toggle_VSync);
+         Close      : constant UI.Button_Handle :=
            Navs.Button
              (Buttons.Looks
                 ("Projects",
@@ -320,6 +333,8 @@ package body View.Build.Settings_Form is
                Preferences.Theme_Choices'Pos (Preferences.System)),
             Name ("Background", Top => Layouts.Length_Of (Gap)),
             Cards,
+            UI.Styled (UI.Place (Art_Status), Line (Settings_Line)),
+            UI.Styled (UI.Place (Art_Bar), Line (Progress_Height)),
             Heading ("SPEECH", Top => Layouts.Length_Of (Heading_Top)),
             Name ("Model"),
             Radio
@@ -403,6 +418,8 @@ package body View.Build.Settings_Form is
          Bound.Show_When (Download_Row, Row_Flag);
          Bound.Show_When (UI.Any (Download), Download_Flag);
          Bound.Show_When (UI.Any (Bar), Bar_Flag);
+         Bound.Show_When (UI.Any (Art_Bar), Gallery_Bar_Flag);
+         Bound.Show_When (UI.Any (Art_Status), Gallery_Status_Flag);
          Bound.Show_When (UI.Any (Delete), Delete_Flag);
          Sites.Show_When (Site_Editor, Site_List);
          Panels.Set_Border (Prefs.Sites_Box, Themes.Border);

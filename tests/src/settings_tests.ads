@@ -14,4 +14,7 @@ package Settings_Tests is
    --  added, typed as any address, then chosen, changed and removed by the form's controls; what is not an
    --  address is said so. A golden of the section with sites in it.
 
+   procedure Gallery_Cache;
+   procedure Colour_Sampling;
+
 end Settings_Tests;

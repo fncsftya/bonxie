@@ -2,25 +2,26 @@ with Ada.Characters.Handling;
 with Ada.Directories;
 with Ada.Exceptions;
 with Ada.Strings.Bounded;
+with Ada.Strings.Unbounded;
 with Ada.Strings.Fixed;
 with Files;
 with Interfaces.C;
 with GNAT.OS_Lib;
 
-package body Downloads is
+package body Download_Jobs is
 
    use type GNAT.OS_Lib.Process_Id;
    use type Interfaces.C.int;
    use type GNAT.OS_Lib.String_Access;
 
-   package Paths is new Ada.Strings.Bounded.Generic_Bounded_Length (Max_Path);
+   package Paths renames Ada.Strings.Unbounded;
    package Messages is new Ada.Strings.Bounded.Generic_Bounded_Length (Max_Message);
 
    subtype Count is Long_Long_Integer range 0 .. Long_Long_Integer'Last;
 
    --  What the task and the caller share.
    protected Job is
-      procedure Begin_Job (From, To : Paths.Bounded_String);
+      procedure Begin_Job (From, To : Paths.Unbounded_String);
       procedure Finish (To : States; Why : String := "");
       procedure Set_Total (To : Count);
       procedure Set_Process (Pid : GNAT.OS_Lib.Process_Id; Stop : out Boolean);
@@ -30,13 +31,13 @@ package body Downloads is
       procedure Forget;
       function Current return States;
       function Total return Count;
-      function Source_URL return Paths.Bounded_String;
-      function Target_File return Paths.Bounded_String;
+      function Source_URL return Paths.Unbounded_String;
+      function Target_File return Paths.Unbounded_String;
       function Message return Messages.Bounded_String;
    private
       Now       : States := Idle;
-      Source    : Paths.Bounded_String;
-      Target    : Paths.Bounded_String;
+      Source    : Paths.Unbounded_String;
+      Target    : Paths.Unbounded_String;
       Size      : Count := 0;
       Reason    : Messages.Bounded_String;
       Process   : GNAT.OS_Lib.Process_Id := GNAT.OS_Lib.Invalid_Pid;
@@ -45,7 +46,7 @@ package body Downloads is
 
    protected body Job is
 
-      procedure Begin_Job (From, To : Paths.Bounded_String) is
+      procedure Begin_Job (From, To : Paths.Unbounded_String) is
       begin
          Now := Running;
          Source := From;
@@ -91,9 +92,9 @@ package body Downloads is
       is (Now);
       function Total return Count
       is (Size);
-      function Source_URL return Paths.Bounded_String
+      function Source_URL return Paths.Unbounded_String
       is (Source);
-      function Target_File return Paths.Bounded_String
+      function Target_File return Paths.Unbounded_String
       is (Target);
       function Message return Messages.Bounded_String
       is (Reason);
@@ -308,7 +309,7 @@ package body Downloads is
 
    procedure Start (URL, File_Name : String) is
    begin
-      Job.Begin_Job (Paths.To_Bounded_String (URL), Paths.To_Bounded_String (File_Name));
+      Job.Begin_Job (Paths.To_Unbounded_String (URL), Paths.To_Unbounded_String (File_Name));
       if Engine = null then
          Engine := new Worker;
       end if;
@@ -363,4 +364,4 @@ package body Downloads is
       end if;
    end Cancel;
 
-end Downloads;
+end Download_Jobs;

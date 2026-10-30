@@ -4,6 +4,31 @@ with Ada.Text_IO;
 package body Settings_VM_Fakes is
 
    overriding
+   function Gallery_State_Of (Self : Gallery) return Settings_VM.Gallery_States
+   is (Self.Now);
+   overriding
+   function Gallery_Fraction_Of (Self : Gallery) return Float
+   is (Self.Part);
+   overriding
+   function Gallery_Message_Of (Self : Gallery) return String
+   is (if Self.Files then "" else "unavailable");
+   overriding
+   function Gallery_Present (Self : Gallery) return Boolean
+   is (Self.Files);
+   overriding
+   procedure Start_Gallery (Self : in out Gallery) is
+   begin
+      Self.Starts := @ + 1;
+      Self.Now := Settings_VM.Running;
+   end Start_Gallery;
+   overriding
+   procedure Poll_Gallery (Self : in out Gallery) is
+      pragma Unreferenced (Self);
+   begin
+      null;
+   end Poll_Gallery;
+
+   overriding
    function New_Picture_Seed (Self : in out Reactions) return Natural is
    begin
       Self.Requests := Self.Requests + 1;
