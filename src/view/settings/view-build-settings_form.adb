@@ -10,6 +10,7 @@ with Preferences;
 with Settings_VM;
 with Site_Filter_VM;
 with Site_Filters;
+with Update_VM;
 with SDL3.Cursors;
 with Icon_Set;
 with Pomarine.Line_Texts;
@@ -46,6 +47,12 @@ package body View.Build.Settings_Form is
    is (Settings_VM.Theme (Item));
    function Voice_Of (Item : Settings_VM.View_Model) return Preferences.Speech_Models
    is (Settings_VM.Speech_Model (Item));
+
+   package Update_UI is new Pomarine.UI.Contexts (Update_VM.Commands, Update_VM.View_Model);
+
+   Version_Text     : constant Update_UI.Text_Property := Update_UI.Showing (Update_VM.Version_Line'Access);
+   Update_Status    : constant Update_UI.Text_Property := Update_UI.Showing (Update_VM.Status'Access);
+   Automatic_Checks : constant Update_UI.Flag_Property := Update_UI.Showing (Update_VM.Automatic'Access);
 
    package Filter_UI is new Pomarine.UI.Contexts (Site_Filter_VM.Commands, Site_Filter_VM.Model);
 
@@ -97,6 +104,7 @@ package body View.Build.Settings_Form is
          Bound : constant Settings_UI.Context'Class := Settings_UI.Bind (Form, Item.Choices.Model);
          Navs  : constant Nav_UI.Context'Class := Nav_UI.Bind (Form, Item.Nav_Model.Model);
          Sites : constant Filter_UI.Context'Class := Filter_UI.Bind (Form, Item.Choices.Filter);
+         Fresh : constant Update_UI.Context'Class := Update_UI.Bind (Form, Item.Choices.Updates.Model);
 
          function Line (High : Float; Top : Layouts.Length := Unset) return Layouts.Style
          is (Height => Layouts.Length_Of (High), Shrink => 0.0, Margin => (Top => Top, others => <>), others => <>);
@@ -262,6 +270,12 @@ package body View.Build.Settings_Form is
          Art_Bar    : constant UI.Progress_Handle := Bound.Progress (Gallery_Fraction);
          Art_Status : constant UI.Label_Handle := Bound.Label (Gallery_Status, Ink => Quiet_Ink);
          Switch     : constant UI.Switch_Handle := Bound.Switch ("VSync", VSync_Flag, Settings_VM.Toggle_VSync);
+         Version    : constant UI.Label_Handle := Fresh.Label (Version_Text, Ink => Quiet_Ink);
+         Automatic  : constant UI.Switch_Handle :=
+           Fresh.Switch ("Check for updates automatically", Automatic_Checks, Update_VM.Toggle_Automatic);
+         Check      : constant UI.Button_Handle :=
+           Fresh.Button ("Check for Updates", Update_VM.Check_Now, Focusable => True);
+         Checking   : constant UI.Label_Handle := Fresh.Label (Update_Status, Ink => Quiet_Ink);
          Close      : constant UI.Button_Handle :=
            Navs.Button
              (Buttons.Looks
@@ -278,6 +292,19 @@ package body View.Build.Settings_Form is
                 ([Sized (Download),
                   Sized (Delete),
                   UI.Place (Status, Grow => 1.0, Width => 0.0, Height => Download_Height, Exact => True)]),
+              (Height => Download_Height,
+               Shrink => 0.0,
+               Flow   => Layouts.Row,
+               Align  => Center,
+               Gap    => Layouts.Length_Of (Gap),
+               Margin => (Top => Layouts.Length_Of (Gap), others => <>),
+               others => <>));
+
+         Check_Row : constant UI.Layout :=
+           UI.Styled
+             (UI.Row
+                ([UI.Place (Check, Width => Check_Width, Height => Download_Height, Shrink => 0.0, Exact => True),
+                  UI.Place (Checking, Grow => 1.0, Width => 0.0, Height => Download_Height, Exact => True)]),
               (Height => Download_Height,
                Shrink => 0.0,
                Flow   => Layouts.Row,
@@ -356,6 +383,10 @@ package body View.Build.Settings_Form is
             UI.Styled (UI.Place (Bar), Line (Progress_Height)),
             Heading ("GRAPHICS", Top => Layouts.Length_Of (Heading_Top)),
             UI.Styled (UI.Place (Switch), Line (Settings_Line)),
+            Heading ("UPDATES", Top => Layouts.Length_Of (Heading_Top)),
+            UI.Styled (UI.Place (Version), Line (Settings_Line)),
+            UI.Styled (UI.Place (Automatic), Line (Settings_Line)),
+            Check_Row,
             Heading ("BROWSER", Top => Layouts.Length_Of (Heading_Top)),
             Name ("Site filter"),
             Filter_Radio ("Off", Site_Filters.Off),

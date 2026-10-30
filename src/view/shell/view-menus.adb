@@ -1,4 +1,5 @@
 with Nav_VM;
+with View.Updates;
 with Pomarine.Native_Menus;
 with Pomarine.UI;
 
@@ -19,6 +20,9 @@ package body View.Menus is
             return Pomarine.UI.Command_State (Each.Screen.all, Tag, Index);
          end if;
       end loop;
+      if Tag = Check_Updates_Tag then
+         return (if Updates.Can_Check (Item) then Widgets.Enabled else Widgets.Disabled);
+      end if;
       if Is_Nav_Tag (Tag) then
          declare
             State : constant Widgets.Command_State :=
@@ -60,6 +64,9 @@ package body View.Menus is
       Menu_Bar.Add_Item (Bar, File, "Settings" & Ellipsis, Tag_Of (Nav_VM.Open_Settings), Key => ",");
       Menu_Bar.Add_Separator (Bar, File);
       Menu_Bar.Add_Item (Bar, File, "Close Project", Tag_Of (Nav_VM.Leave_Project), Key => "w");
+
+      Menu_Bar.Add_Separator (Bar, File);
+      Menu_Bar.Add_Item (Bar, File, "Check for Updates" & Ellipsis, Check_Updates_Tag);
 
       Menu_Bar.Add_Menu (Bar, "Edit", Edit);
       Menu_Bar.Add_Item (Bar, Edit, "Undo", Widgets.Edit_Undo, Key => "z");

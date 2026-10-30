@@ -18,6 +18,7 @@ src/appearance      themes, backgrounds, icons
 pomarine/*          the toolkit: model (words, pages, marks: data only) < ui (widgets, views) < sdl3, texts, typeset,
                     coretext, yoga, vm; native (accessibility, menus)
 ebook, vision, speech, webshot, harper   sidecars (C, Swift, Objective-C, Rust)
+updater             releases, versions, signature checks, staging (Ada + CryptoKit); see docs/UPDATING.md
 ```
 
 Known and accepted:

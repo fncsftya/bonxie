@@ -72,6 +72,27 @@ package Preferences is
    with Pre => To < Seed_Limit;
    --  Keep it, making Config if need be.
 
+   function Load_Update_Checks (Config : String) return Boolean;
+   --  Whether the program looks for a newer version by itself, when it starts and about once a day: True if it was
+   --  not said, or it cannot be read.
+
+   procedure Save_Update_Checks (Config : String; To : Boolean);
+   --  Keep the choice, making Config if need be.
+
+   function Load_Skipped_Version (Config : String) return String;
+   --  The version the person asked not to be offered again (`0.2.0`), "" if none.
+
+   procedure Save_Skipped_Version (Config : String; To : String)
+   with Pre => To'Length <= 40 and then (for all C of To => C in '0' .. '9' | 'a' .. 'z' | 'A' .. 'Z' | '.' | '-');
+   --  Keep it ("" for none), making Config if need be.
+
+   function Load_Last_Update_Check (Config : String) return Long_Long_Integer;
+   --  When the program last asked GitHub for the newest version, in seconds since 1970; 0 if never.
+
+   procedure Save_Last_Update_Check (Config : String; To : Long_Long_Integer)
+   with Pre => To >= 0;
+   --  Keep it, making Config if need be.
+
    function Load_Sidebar_Width (Config : String) return Natural;
    --  How wide the writing view's list of documents was left, in points;
    --  0 if it was not, or it cannot be read.

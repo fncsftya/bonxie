@@ -15,7 +15,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 VIEW = ("view", "reader_ui", "item_window_ui", "previews")
 VMS = tuple(f"{n}_vm" for n in (
     "canvas confirm editor grammar home item_list item_window menu naming nav outline publish reader "
-    "search settings sidebar writing_sources writing").split())
+    "search settings sidebar update writing_sources writing").split())
 TOOLKIT_UI = ("pomarine.widgets", "sdl3", "pomarine.text_areas")
 
 # (directory prefix, forbidden unit prefixes, why)

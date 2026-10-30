@@ -1,6 +1,6 @@
 name = "bonxie"
 description = "Writing application with transcription and sources"
-version = "0.1.0-alpha"
+version = "0.2.0"
 licenses = "GPL-3.0-only"
 
 authors = ["Matt Rawcliffe"]
@@ -18,6 +18,7 @@ speech = "*"
 vision = "*"
 webshot = "*"
 json = "*"
+updater = "*"
 
 [[pins]]
 pomarine = { path = "pomarine" }
@@ -29,6 +30,7 @@ speech = { path = "speech" }
 vision = { path = "vision" }
 webshot = { path = "webshot" }
 json = { path = "vendor/json-ada/json" }
+updater = { path = "updater" }
 
 [build-switches]
 "*".ada_version = "Ada2022"

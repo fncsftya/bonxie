@@ -1,7 +1,10 @@
 with Items.Models;
 with Pomarine.UI;
 with Pomarine.Widgets;
+with Pomarine.Widgets.Layouts;
 with View.Recent;
+with View.Updates;
+with View.Style;
 with View.Settings_View;
 with View.Writing;
 
@@ -11,6 +14,7 @@ package body View.Deletion is
    package UI renames Pomarine.UI;
 
    use type Confirm_VM.Subjects;
+   use type Confirm_VM.Command;
    use type Items.Kinds;
 
    function Dialog (Item : Session) return access Widgets.Widget'Class
@@ -28,9 +32,15 @@ package body View.Deletion is
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
       if Confirm_VM.Subject (Item.Dialog_Model.Model) /= Confirm_VM.Model then
          Widgets.Set_Focus_Scope (Item.Root.Widgets, UI.Named (Form, Confirm_Border).all);
-         --  Its buttons are on now (see Revalidate), so that one can have the focus.
+         --  Its buttons are on now (see Revalidate), so that one can have the focus: the one that does nothing.
          Widgets.Revalidate (Item.Root.Widgets);
-         Widgets.Focus (UI.Named (Form, Confirm_Cancel_Button).all);
+         Widgets.Focus
+           (UI.Named
+              (Form,
+               (case Confirm_VM.Subject (Item.Dialog_Model.Model) is
+                  when Confirm_VM.Update         => Confirm_Later_Button,
+                  when Confirm_VM.Update_Problem => Confirm_Ok_Button,
+                  when others                    => Confirm_Cancel_Button)).all);
       end if;
    end Raise_Dialog;
 
@@ -50,6 +60,14 @@ package body View.Deletion is
       --  What it says, and the box the person ticks, are the view's.
       if Pomarine.View_Models.Changed (Item.Dialog_Model.Seen, Confirm_VM.Version (Model)) then
          Sync_Screen (Item, Confirm_Region);
+         --  What is said of an update has more words than what is said of a deletion.
+         Widgets.Layouts.Set_Layout
+           (UI.Named (Screen_Of (Item, Confirm_Region).all, Confirm_Border).all,
+            (Width  =>
+               (if Confirm_VM.Subject (Model) in Confirm_VM.Updates
+                then Style.Update_Dialog_Width
+                else Style.Dialog_Width),
+             others => <>));
          Widgets.Revalidate (Item.Root.Widgets);
       end if;
       if Confirm_VM.Is_Asking (Model) and then not Widgets.Is_Visible (Dialog (Item).all) then
@@ -108,6 +126,9 @@ package body View.Deletion is
 
          when Confirm_VM.Model                        =>
             Settings_View.Delete_Files (Item);
+
+         when Confirm_VM.Updates                      =>
+            Updates.Answered (Item, Said.Choice);
       end case;
       Widgets.Layout (Item.Root.Widgets, Item.Host.Target);
    end Answered;

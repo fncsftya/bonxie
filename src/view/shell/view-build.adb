@@ -3,6 +3,8 @@ with Writing_VM.Actions;
 with Publish_VM;
 with Sidebar_VM;
 with Site_Filter_VM;
+with Bonxie_Config;
+with Update_VM.Disk;
 with Sidebar_VM.Disk;
 with View.Search;
 with Backgrounds;
@@ -236,6 +238,13 @@ package body View.Build is
                Reactions       => Item.Settings_Reactions'Access);
          end if;
          Site_Filter_VM.Initialize (Choices.Filter, (if Persist then Config else ""));
+         Update_VM.Disk.Open (Choices.Updates.Disk, Config, Share_Directory ("update-helper.sh"));
+         Update_VM.Initialize
+           (Choices.Updates.Model, Choices.Updates.Disk'Unchecked_Access, Bonxie_Config.Crate_Version);
+         if Persist then
+            --  A person's own program, not a test: report an update that did not take, and look if it is time.
+            Update_VM.Start (Choices.Updates.Model);
+         end if;
          Gallery_Pictures.Open (Choices.Gallery.Pictures, Share_Directory ("art") & "/nga-paintings.tsv", Config);
          Settings_VM.Set_Gallery_Source (Choices.Model, Choices.Gallery'Unchecked_Access);
          if Gallery_Pictures.Present (Choices.Gallery.Pictures) then

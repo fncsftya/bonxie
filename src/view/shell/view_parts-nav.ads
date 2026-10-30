@@ -9,6 +9,9 @@ package View_Parts.Nav is
    Nav_Tag_Base : constant := 500;
    --  Native menu command tags. Declarative widgets use the tags owned by their UI view.
 
+   Check_Updates_Tag : constant := 450;
+   --  The menu's "Check for Updates", which is Update_VM's, not Nav_VM's.
+
    function Tag_Of (What : Nav_VM.Command) return Integer
    is (Nav_Tag_Base + Nav_VM.Command'Pos (What));
    --  For a menu item, which asks for the command by its tag.

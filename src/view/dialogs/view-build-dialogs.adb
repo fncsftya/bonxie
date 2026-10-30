@@ -43,6 +43,16 @@ package body View.Build.Dialogs is
      Confirm_UI.Editing (Confirm_VM.Delete_Documents'Access, Set_Documents'Access);
    Offers_Flag    : constant Confirm_UI.Flag_Property := Confirm_UI.Showing (Confirm_VM.Offers_Documents'Access);
 
+   --  Which of the buttons of the foot suit what is asked: a deletion's, an offer of an update, how the install
+   --  is going (which can be cancelled), or what went wrong (which can be put away).
+   function Is_Cancelable (Item : Confirm_VM.View_Model) return Boolean
+   is (Confirm_VM.Is_Deletion (Item) or else Confirm_VM.Is_Updating (Item));
+
+   Deletion_Flag : constant Confirm_UI.Flag_Property := Confirm_UI.Showing (Confirm_VM.Is_Deletion'Access);
+   Cancelable    : constant Confirm_UI.Flag_Property := Confirm_UI.Showing (Is_Cancelable'Access);
+   Offer_Flag    : constant Confirm_UI.Flag_Property := Confirm_UI.Showing (Confirm_VM.Is_Update_Offer'Access);
+   Problem_Flag  : constant Confirm_UI.Flag_Property := Confirm_UI.Showing (Confirm_VM.Is_Update_Problem'Access);
+
    procedure Build_Modal (Item : in out Session) is
    begin
       Open_Screen (Item, Confirm_Region);
@@ -69,6 +79,18 @@ package body View.Build.Dialogs is
                  Focusable   => True),
               Confirm_VM.Confirm);
 
+         Later   : constant UI.Button_Handle :=
+           Bound.Button (Buttons.Looks ("Later", Focusable => True), Confirm_VM.Cancel);
+         Skip    : constant UI.Button_Handle :=
+           Bound.Button (Buttons.Looks ("Skip This Version", Focusable => True), Confirm_VM.Skip);
+         Install : constant UI.Button_Handle :=
+           Bound.Button
+             (Buttons.Looks ("Install and Restart", Buttons.Primary, Captioned => True, Focusable => True),
+              Confirm_VM.Confirm);
+         Ok      : constant UI.Button_Handle :=
+           Bound.Button
+             (Buttons.Looks ("OK", Buttons.Primary, Captioned => True, Focusable => True), Confirm_VM.Cancel);
+
          Body_Layout : constant UI.Layout :=
            UI.Styled
              (UI.Column
@@ -89,7 +111,19 @@ package body View.Build.Dialogs is
                      Confirm_Cancel_Button),
                   UI.Called
                     (UI.Place (Delete, Height => Dialog_Button_Height, Width => Dialog_Button_Width, Exact => True),
-                     Confirm_Delete_Button)],
+                     Confirm_Delete_Button),
+                  UI.Called
+                    (UI.Place (Later, Height => Dialog_Button_Height, Width => Dialog_Button_Width, Exact => True),
+                     Confirm_Later_Button),
+                  UI.Called
+                    (UI.Place (Skip, Height => Dialog_Button_Height, Width => Update_Button_Width, Exact => True),
+                     Confirm_Skip_Button),
+                  UI.Called
+                    (UI.Place (Install, Height => Dialog_Button_Height, Width => Update_Button_Width, Exact => True),
+                     Confirm_Install_Button),
+                  UI.Called
+                    (UI.Place (Ok, Height => Dialog_Button_Height, Width => Dialog_Button_Width, Exact => True),
+                     Confirm_Ok_Button)],
                  Appearance => (Fill => Themes.Tint, others => <>)),
               (Flow => Row, Spread => Finish, Padding => (others => Dialog_Foot_Pad), Gap => Row_Gap, others => <>));
 
@@ -103,6 +137,12 @@ package body View.Build.Dialogs is
               Confirm_Border);
       begin
          Bound.Show_When (UI.Any (Offered), Offers_Flag);
+         Bound.Show_When (UI.Any (Cancel), Cancelable);
+         Bound.Show_When (UI.Any (Delete), Deletion_Flag);
+         Bound.Show_When (UI.Any (Later), Offer_Flag);
+         Bound.Show_When (UI.Any (Skip), Offer_Flag);
+         Bound.Show_When (UI.Any (Install), Offer_Flag);
+         Bound.Show_When (UI.Any (Ok), Problem_Flag);
          UI.Mount_Into (Form, Item.Root.Window_Panel, Overlay);
       end;
    end Build_Modal;

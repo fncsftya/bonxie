@@ -71,6 +71,11 @@ package View_Parts.Home is
    Delete_Documents_Check : constant String := "confirm-delete-documents";
    Confirm_Cancel_Button  : constant String := "confirm-cancel";
    Confirm_Delete_Button  : constant String := "confirm-delete";
+   Confirm_Later_Button   : constant String := "confirm-later";
+   Confirm_Skip_Button    : constant String := "confirm-skip";
+   Confirm_Install_Button : constant String := "confirm-install";
+   Confirm_Ok_Button      : constant String := "confirm-ok";
+   --  The buttons of the dialog about updating, which are the ones to show instead of Cancel and Delete.
    List_Overlay           : constant String := "list-overlay";
    --  Over the project screen, to grey it out and hold the list of items, which is shown while Nav_VM says it
    --  is up.

@@ -1,0 +1,46 @@
+with "config/updater_config.gpr";
+with "json.gpr";
+project Updater is
+
+   for Library_Name use "updater_ada";
+   for Library_Kind use "static";
+   for Languages use ("Ada", "C");
+   --  The C is Swift (updater_swift.swift): CryptoKit, which has Ed25519 and SHA-256 and can be reached from
+   --  Swift alone, gives Ada a C interface. Alire has no configuration for Swift, so it is built as if it were
+   --  C, by swiftc (see swiftc.sh, which is speech's).
+   for Source_Dirs use ("src", "config");
+   for Object_Dir use "obj/" & Updater_Config.Build_Profile;
+   for Library_Dir use "lib";
+   for Create_Missing_Dirs use "True";
+
+   package Naming is
+      for Body_Suffix ("C") use ".swift";
+   end Naming;
+
+   package Compiler is
+      --  Stack probes and canaries are for development and validation builds; a release build leaves them out.
+      Stack_Checks := ("-fstack-check", "-fstack-protector-strong");
+      case Updater_Config.Build_Profile is
+         when "release" => Stack_Checks := ();
+         when others => null;
+      end case;
+
+      for Default_Switches ("Ada") use Updater_Config.Ada_Compiler_Switches &
+        ("-gnatwh", "-gnatyM120", "-gnatVa") & Stack_Checks
+        & ("-mmacosx-version-min=26.0");
+      for Driver ("C") use Project'Project_Dir & "swiftc.sh";
+      for Default_Switches ("C") use ("-parse-as-library", "-swift-version", "5", "-O");
+   end Compiler;
+
+   --  Propagated to the programs that use it. Where to find the Swift libraries (an rpath, and the SDK's folder
+   --  for the linker) is the program's to say, once, as speech's does: see updater/tests for a program that has
+   --  no other Swift in it.
+   package Linker is
+      for Linker_Options use ("-framework", "CryptoKit", "-framework", "Foundation");
+   end Linker;
+
+   package Binder is
+      for Switches ("Ada") use ("-Es");
+   end Binder;
+
+end Updater;

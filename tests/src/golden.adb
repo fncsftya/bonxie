@@ -39,6 +39,7 @@ with Nav_VM_Tests;
 with Outline_VM_Tests;
 with Settings_Tests;
 with Settings_VM_Tests;
+with Update_VM_Tests;
 with Projects;
 with Speech.Jobs;
 with View;
@@ -1315,6 +1316,10 @@ begin
    Run ("settings-vm-keeping", Settings_VM_Tests.Keeping'Access);
    Run ("settings-vm-downloading", Settings_VM_Tests.Downloading'Access);
    Run ("settings-vm-sizes", Settings_VM_Tests.Sizes'Access);
+   Run ("update-vm-checking", Update_VM_Tests.Checking'Access);
+   Run ("update-vm-offering", Update_VM_Tests.Offering'Access);
+   Run ("update-vm-installing", Update_VM_Tests.Installing'Access);
+   Run ("update-vm-starting", Update_VM_Tests.Starting'Access);
    Run ("item-controls-by-name", Item_List_VM_Tests.Window_Controls_By_Name'Access);
    Run ("menu-vm-rules", Item_Control_VM_Tests.Menu_Rules'Access);
    Run ("item-window-vm-rules", Item_Control_VM_Tests.Window_Rules'Access);

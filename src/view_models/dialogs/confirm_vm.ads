@@ -9,6 +9,11 @@ with Pomarine.View_Models;
 --
 --  The dialog only asks. The view does what the answer says (it knows how to
 --  delete a project, a folder or the model), from Answer.
+--
+--  It also carries three things about updating the program (see Update_VM, which decides them): an offer of a
+--  newer version, with Skip beside Cancel ("Later") and Confirm ("Install"); how the install is getting on, which
+--  can only be cancelled; and what went wrong, which can only be put away. Their words are the update's, given
+--  when they are asked; every answer to them is passed on, Cancel's too.
 
 package Confirm_VM is
 
@@ -16,13 +21,18 @@ package Confirm_VM is
 
    use type Projects.Id;
 
-   type Subjects is (Nothing, Project, Folder, Document, Source, Model);
-   --  What is to be deleted. Nothing: the dialog is not up.
+   type Subjects is (Nothing, Project, Folder, Document, Source, Model, Update, Updating, Update_Problem);
+   --  What is to be deleted, or about updating. Nothing: the dialog is not up.
+
+   subtype Deletions is Subjects range Project .. Model;
+
+   subtype Updates is Subjects range Update .. Update_Problem;
 
    subtype Nodes is Subjects range Folder .. Source;
    --  What of the writing view's tree.
 
-   type Command is (Confirm, Cancel);
+   type Command is (Confirm, Cancel, Skip);
+   --  Skip is for an offer of an update only.
 
    package Commands is new Parts.Command_Models (Command);
 
@@ -34,6 +44,8 @@ package Confirm_VM is
       Dir, Doc         : Natural := 0;
       --  Of a node.
       Delete_Documents : Boolean := False;
+      Choice           : Command := Cancel;
+      --  Of an update, which was chosen.
    end record;
 
    --  What the world is told, for what is the view's to do about it: show or hide the dialog, and do what
@@ -67,10 +79,30 @@ package Confirm_VM is
    with Post => Subject (Self) = Model;
    --  About the speech model's files, which are Size.
 
+   procedure Ask_Update (Self : in out View_Model; Words, Detail : String)
+   with Post => Subject (Self) = Update;
+   --  To install, skip or put off a newer version; Words are what it says, and Detail what it adds.
+
+   procedure Ask_Updating (Self : in out View_Model; Words, Detail : String)
+   with Post => Subject (Self) = Updating;
+   --  How the install is going. Asked again, with other words, as it goes.
+
+   procedure Ask_Update_Problem (Self : in out View_Model; Words, Detail : String)
+   with Post => Subject (Self) = Update_Problem;
+   --  What went wrong.
+
    function Subject (Self : View_Model) return Subjects;
 
    function Is_Asking (Self : View_Model) return Boolean;
    --  Whether the dialog is up, about anything.
+
+   function Is_Deletion (Self : View_Model) return Boolean;
+   --  Whether it asks before something is deleted.
+
+   function Is_Update_Offer (Self : View_Model) return Boolean;
+   function Is_Updating (Self : View_Model) return Boolean;
+   function Is_Update_Problem (Self : View_Model) return Boolean;
+   --  Which of the three about updating it is.
 
    function Is_About_Node (Self : View_Model) return Boolean;
    --  Whether it is about a folder, a document or a source.
@@ -98,12 +130,14 @@ package Confirm_VM is
 
    overriding
    function Can_Execute (Self : View_Model; What : Command; Index : Natural := 0) return Boolean;
-   --  Both, while it is up.
+   --  Cancel while it is up; Confirm too, unless it is about how an update is going or what went wrong; Skip of an
+   --  offer.
 
    overriding
    procedure Execute (Self : in out View_Model; What : Command; Index : Natural := 0)
    with Post => not Is_Asking (Self);
-   --  Confirm: the dialog goes and its answer is kept. Cancel: it goes, and nothing is.
+   --  Confirm: the dialog goes and its answer is kept. Cancel: it goes, and nothing is (except an update's, which
+   --  is kept and passed on, as Skip's is).
 
    --  The answer to the last Confirm
 

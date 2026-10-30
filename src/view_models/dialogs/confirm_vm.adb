@@ -37,11 +37,38 @@ package body Confirm_VM is
       Ask (Self, (Subject => Model, others => <>), "", Size);
    end Ask_Model;
 
+   procedure Ask_Update (Self : in out View_Model; Words, Detail : String) is
+   begin
+      Ask (Self, (Subject => Update, others => <>), Words, Detail);
+   end Ask_Update;
+
+   procedure Ask_Updating (Self : in out View_Model; Words, Detail : String) is
+   begin
+      Ask (Self, (Subject => Updating, others => <>), Words, Detail);
+   end Ask_Updating;
+
+   procedure Ask_Update_Problem (Self : in out View_Model; Words, Detail : String) is
+   begin
+      Ask (Self, (Subject => Update_Problem, others => <>), Words, Detail);
+   end Ask_Update_Problem;
+
    function Subject (Self : View_Model) return Subjects
    is (Self.Asked.Subject);
 
    function Is_Asking (Self : View_Model) return Boolean
    is (Self.Asked.Subject /= Nothing);
+
+   function Is_Deletion (Self : View_Model) return Boolean
+   is (Self.Asked.Subject in Deletions);
+
+   function Is_Update_Offer (Self : View_Model) return Boolean
+   is (Self.Asked.Subject = Update);
+
+   function Is_Updating (Self : View_Model) return Boolean
+   is (Self.Asked.Subject = Updating);
+
+   function Is_Update_Problem (Self : View_Model) return Boolean
+   is (Self.Asked.Subject = Update_Problem);
 
    function Is_About_Node (Self : View_Model) return Boolean
    is (Self.Asked.Subject in Nodes);
@@ -49,6 +76,9 @@ package body Confirm_VM is
    function Title (Self : View_Model) return String
    is (case Self.Asked.Subject is
          when Nothing | Project => "Delete project",
+         when Update            => "Update available",
+         when Updating          => "Updating Bonxie",
+         when Update_Problem    => "Update",
          when Folder            => "Delete folder",
          when Document          => "Delete document",
          when Source            => "Delete source",
@@ -58,13 +88,14 @@ package body Confirm_VM is
    is (case Self.Asked.Subject is
          when Nothing => "",
          when Model   => "Delete the speech model?",
+         when Updates => Unbounded.To_String (Self.Name),
          when others  => "Delete " & Open_Quote & Unbounded.To_String (Self.Name) & Close_Quote & "?");
 
    function Note (Self : View_Model) return String
    is (case Self.Asked.Subject is
          when Nothing | Project | Document | Source => "This cannot be undone.",
          when Folder                                => "This also deletes all subfolders.",
-         when Model                                 => Unbounded.To_String (Self.Size));
+         when Model | Updates                       => Unbounded.To_String (Self.Size));
 
    function Offers_Documents (Self : View_Model) return Boolean
    is (Self.Asked.Subject = Folder);
@@ -90,19 +121,23 @@ package body Confirm_VM is
    begin
       return
         (case What is
-           when Confirm | Cancel => Is_Asking (Self));
+           when Confirm => Is_Asking (Self) and then Self.Asked.Subject not in Updating | Update_Problem,
+           when Cancel  => Is_Asking (Self),
+           when Skip    => Self.Asked.Subject = Update);
    end Can_Execute;
 
    overriding
    procedure Execute (Self : in out View_Model; What : Command; Index : Natural := 0) is
       pragma Unreferenced (Index);
+      Passed_On : constant Boolean := What = Confirm or else Self.Asked.Subject in Updates;
    begin
-      Self.Given := (if What = Confirm then Self.Asked else (others => <>));
+      Self.Given := (if Passed_On then Self.Asked else (others => <>));
+      Self.Given.Choice := What;
       Self.Asked := (others => <>);
       Parts.Bump (Self.Changes);
       if Self.Reactions /= null then
          Self.Reactions.Dialog_Changed;
-         if What = Confirm then
+         if Passed_On then
             Self.Reactions.Answered (Self.Given);
          end if;
       end if;

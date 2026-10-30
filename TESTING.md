@@ -341,3 +341,10 @@ The writing semantic-name tests also open and close Sources through its declarat
 across slot reuse. `write-sources` opens a production source row by semantic name and covers reader opening,
 closing, pinning and drawing. Source rows declare their Click binding beside their layout; the generic widget callback
 adapter is removed from `View.Responses`, leaving its continuous editor hooks.
+
+## Updating
+
+`update-vm-*` runs `Update_VM` on fake services (no network, disk or script): what a check finds, that nothing is
+fetched before Install, Skip and Later, the install step by step and where it can fail, and when the program
+looks by itself. The updater crate's own tests (versions, manifests, release JSON, Ed25519, staging a real disk
+image, the swap script) are in `updater/tests`; see docs/UPDATING.md.

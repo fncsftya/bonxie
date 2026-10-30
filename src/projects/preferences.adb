@@ -174,6 +174,43 @@ package body Preferences is
       Put_Setting (Config, "watercolour_seed", Ada.Strings.Fixed.Trim (Natural'Image (To), Ada.Strings.Left));
    end Save_Seed;
 
+   function Load_Update_Checks (Config : String) return Boolean
+   is (Ada.Characters.Handling.To_Lower (Setting (Config, "update_checks")) /= "false");
+
+   procedure Save_Update_Checks (Config : String; To : Boolean) is
+   begin
+      Put_Setting (Config, "update_checks", (if To then "true" else "false"));
+   end Save_Update_Checks;
+
+   function Load_Skipped_Version (Config : String) return String is
+      Saved : constant String := Setting (Config, "skipped_version");
+   begin
+      --  What was kept is what a version looks like, and no more.
+      return
+        (if Saved'Length <= 40 and then (for all C of Saved => C in '0' .. '9' | 'a' .. 'z' | 'A' .. 'Z' | '.' | '-')
+         then Saved
+         else "");
+   end Load_Skipped_Version;
+
+   procedure Save_Skipped_Version (Config : String; To : String) is
+   begin
+      Put_Setting (Config, "skipped_version", To);
+   end Save_Skipped_Version;
+
+   function Load_Last_Update_Check (Config : String) return Long_Long_Integer is
+      Saved : constant String := Setting (Config, "last_update_check");
+   begin
+      return (if Saved'Length in 1 .. 12 then Long_Long_Integer'Max (0, Long_Long_Integer'Value (Saved)) else 0);
+   exception
+      when Constraint_Error =>
+         return 0;  --  not a number
+   end Load_Last_Update_Check;
+
+   procedure Save_Last_Update_Check (Config : String; To : Long_Long_Integer) is
+   begin
+      Put_Setting (Config, "last_update_check", Ada.Strings.Fixed.Trim (To'Image, Ada.Strings.Left));
+   end Save_Last_Update_Check;
+
    function Load_Sidebar_Width (Config : String) return Natural is
       Saved : constant String := Setting (Config, "sidebar");
    begin

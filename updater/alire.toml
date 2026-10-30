@@ -1,0 +1,22 @@
+name = "updater"
+description = "Self-update from GitHub releases: versions, Ed25519 checks, staging"
+version = "0.1.0-alpha"
+licenses = "GPL-3.0-only"
+authors = ["Matt Rawcliffe"]
+
+[available.'case(os)']
+macos = true
+'...' = false
+
+[[depends-on]]
+json = "*"
+
+[[pins]]
+json = { path = "../vendor/json-ada/json" }
+
+[build-switches]
+"*".ada_version = "Ada2022"
+"*".compile_checks = "Errors"
+"*".runtime_checks = "Everything"
+"*".style_checks = "Yes"
+"*".contracts = "Yes"

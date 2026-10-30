@@ -12,6 +12,8 @@ with Settings_VM;
 with Settings_VM.Disk;
 with Site_Filter_VM;
 with Speech.Models;
+with Update_VM;
+with Update_VM.Disk;
 
 --  The settings: their widgets, and the view-model they show with what ties them.
 
@@ -72,6 +74,14 @@ package View_Parts.Settings is
    end record;
    --  The widgets of the settings. What is chosen in them is Settings_Choices'.
 
+   type Update_Choices is limited record
+      Model : aliased Update_VM.View_Model;
+      Disk  : aliased Update_VM.Disk.Disk_Services;
+      Seen  : Pomarine.View_Models.Watch;
+      --  The model's version as the dialog and the settings last showed it.
+   end record;
+   --  The view-model of updating the program, where it keeps its files, and what the widgets show of it.
+
    type Settings_Choices is limited record
       Model              : aliased Settings_VM.View_Model;
       --  What the settings mean: the choices, the download, when each command can be done.
@@ -81,6 +91,7 @@ package View_Parts.Settings is
       Gallery_Seen       : Natural := 0;
       Gallery_State_Seen : Settings_VM.Gallery_States := Settings_VM.Idle;
       --  Where the choices are kept, and the speech model's files.
+      Updates            : Update_Choices;
       Filter             : aliased Site_Filter_VM.Model;
       --  The browser's site filter: how it is set, the sites, and what is typed to add one.
       Seen               : Pomarine.View_Models.Watch;

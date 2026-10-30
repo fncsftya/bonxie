@@ -1,0 +1,20 @@
+name = "updater_tests"
+description = "Tests of the updater"
+version = "0.1.0-alpha"
+licenses = "GPL-3.0-only"
+authors = ["Matt Rawcliffe"]
+executables = ["check_updater"]
+
+[[depends-on]]
+updater = "*"
+
+[[pins]]
+updater = { path = ".." }
+json = { path = "../../vendor/json-ada/json" }
+
+[build-switches]
+"*".ada_version = "Ada2022"
+"*".compile_checks = "Errors"
+"*".runtime_checks = "Everything"
+"*".style_checks = "Yes"
+"*".contracts = "Yes"

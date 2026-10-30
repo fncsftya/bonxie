@@ -12,6 +12,15 @@ ROOT = Path(__file__).resolve().parent.parent
 OUTPUT = ROOT / 'bin' / 'Bonxie.app'
 
 
+def crate_version():
+    """The version of the program: the one in alire.toml, which the program is also built with
+    (Bonxie_Config.Crate_Version) and which the updater compares with the newest release."""
+    found = re.search(r'^version\s*=\s*"([^"]+)"', (ROOT / 'alire.toml').read_text(), re.MULTILINE)
+    if not found:
+        raise RuntimeError('No version in alire.toml')
+    return found.group(1)
+
+
 def run(*args):
     subprocess.run(args, check=True)
 
@@ -47,6 +56,7 @@ def main():
     if os.uname().sysname != 'Darwin':
         raise RuntimeError('The macOS bundle must be built on macOS')
     os.chdir(ROOT)
+    version = crate_version()
     run('alr', 'build', '--release')
     executable = ROOT / 'bin/bonxie'
     with tempfile.TemporaryDirectory(dir=ROOT / 'bin', prefix='.bonxie-bundle-') as temp:
@@ -63,7 +73,7 @@ def main():
             info = plistlib.load(source)
         info.update(CFBundleExecutable='bonxie', CFBundleIconFile='Bonxie.icns',
                     CFBundlePackageType='APPL', CFBundleName='Bonxie',
-                    CFBundleVersion='1', CFBundleShortVersionString='0.1.0')
+                    CFBundleVersion=version, CFBundleShortVersionString=version)
         with (contents / 'Info.plist').open('wb') as target:
             plistlib.dump(info, target)
 
@@ -107,11 +117,13 @@ def main():
                 run('install_name_tool', '-id', '@executable_path/../Frameworks/' + bundled.name, str(bundled))
         for library in frameworks.glob('*.dylib'):
             run('codesign', '--force', '--sign', '-', str(library))
+        for gpu_code in frameworks.glob('*.metallib'):  # The bundle's seal covers every file in Frameworks.
+            run('codesign', '--force', '--sign', '-', str(gpu_code))
         run('codesign', '--force', '--sign', '-', str(app))
         if OUTPUT.exists():
             shutil.rmtree(OUTPUT)
         shutil.move(str(app), OUTPUT)
-    print(f'Created {OUTPUT}')
+    print(f'Created {OUTPUT} (version {version})')
 
 
 if __name__ == '__main__':

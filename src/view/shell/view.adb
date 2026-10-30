@@ -31,6 +31,7 @@ with View.Painting;
 with View.Responses;
 with View.Settings_View;
 with View.Style;
+with View.Updates;
 with View.Writing;
 with View.Grammar;
 
@@ -732,7 +733,7 @@ package body View is
          Wake_In (Capture_Poll);
       end if;
       --  So is the file for the speech model: look at how far on it is.
-      if Settings_View.Downloading (Item) then
+      if Settings_View.Downloading (Item) or else Updates.Busy (Item) then
          Wake_In (Capture_Poll);
       end if;
       --  A worker result or popout update collected by Tick needs a
@@ -793,6 +794,14 @@ package body View is
       Widgets.Update (Item.Root.Widgets, Now);
       Recent.Sync (Item);
       Deletion.Sync (Item);
+      Updates.Tick (Item);
+      if Updates.Leaving (Item) and then not Item.Shell.Done then
+         --  The script that puts the new version in place is waiting for this to end, as a quit does.
+         if Screen (Item) = Project then
+            Canvas_Items.Save_All (Item);
+         end if;
+         Item.Shell.Done := True;
+      end if;
       if Screen (Item) = Project then
          Canvas_Items.Update (Item, Now);
          if Items_Listed (Item) then
@@ -917,6 +926,7 @@ package body View is
       Save_Geometry (Item);
       --  Not to go on fetching what no one will use.
       Speech.Models.Cancel;
+      Updates.Stop (Item);
    end Run;
 
 end View;

@@ -100,3 +100,7 @@ a higher-resolution source will improve its appearance at larger sizes.
 
 Run `tools/dmg-macos.sh` to build the release app and create `bin/Bonxie.dmg`,
 with an Applications shortcut for drag-and-drop installation.
+
+The bundle's version is the `version` in `alire.toml`. Installed copies update themselves from GitHub
+releases; `tools/release.py` builds, signs and publishes a release they can update to. See
+[docs/UPDATING.md](docs/UPDATING.md).

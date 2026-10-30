@@ -210,6 +210,7 @@ private package View.Style is
    --  Of a choice of background in the settings, and of its foot with the name; the picture takes the rest.
    Download_Height        : constant Pomarine.Widgets.Layouts.Length := 34.0;
    Download_Width         : constant Pomarine.Widgets.Layouts.Length := 112.0;
+   Check_Width            : constant Pomarine.Widgets.Layouts.Length := 160.0;
    Progress_Height        : constant Float := 12.0;
 
    --  The home screen, in points
@@ -240,6 +241,9 @@ private package View.Style is
    Dialog_Pad           : constant Pomarine.Widgets.Layouts.Length := 24.0;
    Dialog_Line          : constant Pomarine.Widgets.Layouts.Length := 24.0;
    Dialog_Button_Width  : constant Pomarine.Widgets.Layouts.Length := 96.0;
+   Update_Button_Width  : constant Pomarine.Widgets.Layouts.Length := 148.0;
+   Update_Dialog_Width  : constant Pomarine.Widgets.Layouts.Length := 480.0;
+   --  The dialog about updating has longer words, on its buttons and above them.
    Dialog_Button_Height : constant Pomarine.Widgets.Layouts.Length := 34.0;
    Ok_Width             : constant Pomarine.Widgets.Layouts.Length := 48.0;
    Cancel_Width         : constant Pomarine.Widgets.Layouts.Length := 64.0;
