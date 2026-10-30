@@ -1295,6 +1295,7 @@ begin
    Run ("write-linked-sources", Write_Tests.Linked_Sources'Access);
    Run ("write-typing", Write_Tests.Typing'Access);
    Run ("write-word-tools", Write_Tests.Word_Tools'Access);
+   Run ("write-thesaurus", Write_Tests.Thesaurus'Access);
    Run ("write-publishing", Write_Tests.Publishing'Access);
    Run ("write-markdown", Write_Tests.Markdown'Access);
    Run ("write-sources", Write_Tests.Sources'Access);

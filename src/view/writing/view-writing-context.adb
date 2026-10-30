@@ -1,3 +1,5 @@
+with Harper;
+with Word_Tools;
 with Writing_Sources_VM;
 with Pomarine.UI.Menus;
 with Writing_VM;
@@ -31,6 +33,7 @@ package body View.Writing.Context is
 
    use type Widgets.Clipboard_Access;
    use type Items.States;
+   use type Word_Tools.Thesaurus_States;
 
    procedure Show_Context (Item : in out Session; Content : Rows.Content; Kind : Context_Kinds; X, Y : Float);
    --  Show the menu, its rows added, at X, Y, in points of the window, as
@@ -41,6 +44,8 @@ package body View.Writing.Context is
    begin
       Rows.Set_Content (Item.Context.Context_Menu, Content);
       Item.Context.Context_Kind := Kind;
+      Item.Context.Context_X := X;
+      Item.Context.Context_Y := Y;
       Layouts.Set_Layout
         (Item.Context.Context_Menu,
          Position =>
@@ -97,7 +102,10 @@ package body View.Writing.Context is
            ((if Enabled then Menus.Action else Menus.Note),
             Name,
             Shade,
-            Icon => (if Act = Select_All_Act then Pomarine.Icons.No_Icon else Pomarine.Icons.Shown (Icon))));
+            Icon =>
+              (if Act in No_Act | Select_All_Act | Synonym_Act
+               then Pomarine.Icons.No_Icon
+               else Pomarine.Icons.Shown (Icon))));
       Item.Context.Context_Acts (Rows.Count (Content)) := (if Enabled then Act else No_Act);
    end Add_Act;
 
@@ -153,7 +161,7 @@ package body View.Writing.Context is
          Opened := True;
       end Picture_Menu;
 
-      procedure Text_Menu (Over : Boolean) is
+      procedure Text_Menu (Over : Boolean; Thesaurus : Word_Tools.Thesaurus_States) is
          Paste : constant Boolean := Board_Has_Text (Item);
       begin
          if Over then
@@ -161,6 +169,16 @@ package body View.Writing.Context is
             Add_Act (Item, Content, Cut_Act, "Cut", Icon_Set.Eraser);
             Add_Act (Item, Content, Paste_Act, "Paste", Icon_Set.Plus, Paste);
             Add_Act (Item, Content, Select_All_Act, "Select all", Pomarine.Icons.Check);
+            if Thesaurus /= Word_Tools.Unavailable then
+               Content.Append (Rows.Row (Menus.Separator));
+               Add_Act
+                 (Item,
+                  Content,
+                  Thesaurus_Act,
+                  "Thesaurus",
+                  Icon_Set.Refresh,
+                  Enabled => Thesaurus = Word_Tools.One_Word);
+            end if;
          else
             Add_Act (Item, Content, Paste_Act, "Paste", Icon_Set.Plus, Paste);
             Add_Act (Item, Content, Select_All_Act, "Select all", Pomarine.Icons.Check);
@@ -190,7 +208,11 @@ package body View.Writing.Context is
          end if;
          Begin_Menu;
          Item.Context.Context_Page := Rank;
-         Text_Menu (Over);
+         Text_Menu
+           (Over,
+            (if Over and then Editors.Has_Document (Page.Text)
+             then Word_Tools.Thesaurus_State (Page.Text)
+             else Word_Tools.Unavailable));
       end Of_Text;
 
       procedure Of_Window (Which : Items.Slot) is
@@ -205,7 +227,7 @@ package body View.Writing.Context is
                end if;
                Begin_Menu;
                Item.Context.Context_Canvas := Which;
-               Text_Menu (Over);
+               Text_Menu (Over, (if Over then Windows.Thesaurus_State (Shown) else Word_Tools.Unavailable));
             end;
          elsif Support.Is_Source (Item, Which) and then Windows.Picture_Contains (Shown, PX, PY) then
             Begin_Menu;
@@ -279,6 +301,68 @@ package body View.Writing.Context is
       end loop;
    end Open_At;
 
+   function Selected_Word (Item : in out Session) return String is
+      Page      : constant Natural := Item.Context.Context_Page;
+      On_Canvas : constant Natural := Item.Context.Context_Canvas;
+   begin
+      if On_Canvas /= 0 then
+         return
+           (if Windows.Is_Assigned (Item.Windows (On_Canvas))
+            then Windows.Selected_Word (Item.Windows (On_Canvas))
+            else "");
+      elsif Page in 1 .. Trees.Page_Count (Item.Docs.Ordering)
+        and then Editors.Has_Document (Item.Docs.Pages (Page).Text)
+      then
+         return Word_Tools.Selected_Word (Item.Docs.Pages (Page).Text);
+      end if;
+      return "";
+   end Selected_Word;
+   --  The word the text menu is of, if it is still selected.
+
+   procedure Show_Synonyms (Item : in out Session) is
+      Word    : constant String := Selected_Word (Item);
+      Content : Rows.Content;
+   begin
+      if Word = "" then
+         Popups.Close_Context (Item);
+         return;
+      end if;
+      Item.Context.Context_Words := Harper.Synonyms (Word);
+      Item.Context.Context_Acts := [others => No_Act];
+      Add_Act
+        (Item,
+         Content,
+         No_Act,
+         (if Item.Context.Context_Words.Count > 0 then "Reword as" else "No synonyms"),
+         Pomarine.Icons.Check,
+         Enabled => False);
+      for Each in 1 .. Natural'Min (Item.Context.Context_Words.Count, Synonym_Rows) loop
+         Add_Act
+           (Item,
+            Content,
+            Synonym_Act,
+            Harper.Word_Strings.To_String (Item.Context.Context_Words.Words (Each)),
+            Pomarine.Icons.Check);
+      end loop;
+      Show_Context (Item, Content, Text_Context, Item.Context.Context_X, Item.Context.Context_Y);
+   end Show_Synonyms;
+   --  Replace the menu's rows with the synonyms of the selected word, where the menu is.
+
+   procedure Use_Synonym (Item : in out Session; Word : String) is
+      Page      : constant Natural := Item.Context.Context_Page;
+      On_Canvas : constant Natural := Item.Context.Context_Canvas;
+   begin
+      if On_Canvas /= 0 then
+         if Windows.Is_Assigned (Item.Windows (On_Canvas)) then
+            Windows.Use_Synonym (Item.Windows (On_Canvas), Word);
+         end if;
+      elsif Page in 1 .. Trees.Page_Count (Item.Docs.Ordering)
+        and then Editors.Has_Document (Item.Docs.Pages (Page).Text)
+      then
+         Word_Tools.Use_Synonym (Item.Docs.Pages (Page).Text, Word);
+      end if;
+   end Use_Synonym;
+
    procedure Do_Context (Item : in out Session; Chosen : Positive) is
       Act       : constant Context_Acts := Item.Context.Context_Acts (Chosen);
       Kind      : constant Context_Kinds := Item.Context.Context_Kind;
@@ -288,6 +372,10 @@ package body View.Writing.Context is
       On_Canvas : constant Natural := Item.Context.Context_Canvas;
       Board     : constant Widgets.Clipboard_Access := Widgets.Clipboard (Content_Panel (Item).all);
    begin
+      if Kind = Text_Context and then Act = Thesaurus_Act then
+         Show_Synonyms (Item);
+         return;
+      end if;
       Popups.Close_Context (Item);
       case Kind is
          when No_Context      =>
@@ -314,7 +402,9 @@ package body View.Writing.Context is
             end if;
 
          when Text_Context    =>
-            if On_Canvas /= 0 then
+            if Act = Synonym_Act then
+               Use_Synonym (Item, Harper.Word_Strings.To_String (Item.Context.Context_Words.Words (Chosen - 1)));
+            elsif On_Canvas /= 0 then
                Windows.Edit_Text
                  (Item.Windows (On_Canvas),
                   (case Act is

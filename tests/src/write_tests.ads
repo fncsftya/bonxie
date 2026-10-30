@@ -19,6 +19,8 @@ package Write_Tests is
    procedure Word_Tools;
    --  Fade and Reword on a page, by their keys: kept in the markup, and
    --  through the project being closed and opened.
+   procedure Thesaurus;
+   --  The context menu's Thesaurus rewords the selected word, and is off for more than one.
    procedure Publishing;
    --  Choosing Markdown in the publish view splits it.
    procedure Markdown;

@@ -51,10 +51,13 @@ begin
    declare
       procedure Check_ABI
       with Import, Convention => C, External_Name => "check_harper_abi";
+      procedure Check_Synonyms_ABI
+      with Import, Convention => C, External_Name => "check_harper_synonyms_abi";
       task ABI_Check;
       task body ABI_Check is
       begin
          Check_ABI;
+         Check_Synonyms_ABI;
       end ABI_Check;
    begin
       null;
@@ -151,6 +154,32 @@ begin
       Temporary : Checker;
    begin
       Start (Temporary, "This is a speling mistake.");
+   end;
+
+   --  Synonyms: the word's own capitals, never the word itself, single words, none for what it lacks.
+   declare
+      function Has (List : Synonym_List; Word : String) return Boolean
+      is (for some Index in 1 .. List.Count => Word_Strings.To_String (List.Words (Index)) = Word);
+
+      Lower : constant Synonym_List := Synonyms ("large");
+      Upper : constant Synonym_List := Synonyms ("Large");
+      Loud  : constant Synonym_List := Synonyms ("LARGE");
+   begin
+      pragma Assert (Lower.Status = Success and then Lower.Count > 0);
+      pragma Assert (Has (Lower, "great") and then not Has (Lower, "large"));
+      pragma Assert (Has (Upper, "Great") and then not Has (Upper, "great"));
+      pragma Assert (Has (Loud, "GREAT"));
+      pragma
+        Assert
+          (for all Index in 1 .. Lower.Count =>
+             (for all C of Word_Strings.To_String (Lower.Words (Index)) => C not in ' ' | ','));
+      --  A phrase: its own entry, or what is left of it without words that only strengthen.
+      pragma Assert (Has (Synonyms ("give up"), "abandon"));
+      pragma Assert (Has (Synonyms ("Very easy"), "Simple") and then Has (Synonyms ("really very easy"), "simple"));
+      pragma Assert (Synonyms ("very zzzzqx").Count = 0);
+      pragma Assert (Synonyms ("zzzzqx").Status = Success and then Synonyms ("zzzzqx").Count = 0);
+      pragma Assert (Synonyms ("caf" & Character'Val (16#C3#) & Character'Val (16#A9#)).Status = Success);
+   --  UTF-8 for the e acute.
    end;
    Ada.Text_IO.Put_Line ("Harper task and ABI checks passed.");
 end Check_Harper;

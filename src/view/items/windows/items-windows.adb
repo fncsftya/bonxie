@@ -233,6 +233,21 @@ package body Items.Windows is
       end if;
    end Edit_Text;
 
+   function Thesaurus_State (Item : in out Window) return Word_Tools.Thesaurus_States
+   is (if Editors.Has_Document (Item.Body_Text)
+       then Word_Tools.Thesaurus_State (Item.Body_Text)
+       else Word_Tools.Unavailable);
+
+   function Selected_Word (Item : in out Window) return String
+   is (if Editors.Has_Document (Item.Body_Text) then Word_Tools.Selected_Word (Item.Body_Text) else "");
+
+   procedure Use_Synonym (Item : in out Window; Word : String) is
+   begin
+      if Editors.Has_Document (Item.Body_Text) then
+         Word_Tools.Use_Synonym (Item.Body_Text, Word);
+      end if;
+   end Use_Synonym;
+
    function Picture_Contains (Item : Window; X, Y : Float) return Boolean
    is (if Items.Models.Is_Paged (Item.Model.all)
        then Widgets.Contains (Item.Pages, X, Y)

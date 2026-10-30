@@ -44,6 +44,20 @@ package body Harper is
       return C.unsigned
    with Import, Convention => C, External_Name => "bonxie_harper_check";
 
+   type C_Lengths is array (1 .. Max_Synonyms) of C.unsigned with Convention => C;
+   type C_Words is array (1 .. Max_Synonyms) of C.char_array (0 .. Max_Word - 1) with Convention => C;
+
+   type C_Synonyms is record
+      Count     : C.unsigned;
+      Truncated : C.unsigned;
+      Lengths   : C_Lengths;
+      Words     : C_Words;
+   end record
+   with Convention => C;
+
+   function Find_Synonyms (Text : System.Address; Length : C.unsigned; Value : System.Address) return C.unsigned
+   with Import, Convention => C, External_Name => "bonxie_harper_synonyms";
+
    function Words (Text : C.char_array; Length : C.unsigned) return String
    with Pre => Length <= C.unsigned (Text'Length);
 
@@ -107,6 +121,59 @@ package body Harper is
          end;
       end loop;
    end Perform;
+
+   task body Lookup is
+      Raw : aliased C_Synonyms;
+   begin
+      loop
+         select
+            accept Find (Word : String; Value : out Synonym_List) do
+               Value := (others => <>);
+               declare
+                  Status : constant C.unsigned := Find_Synonyms (Word'Address, C.unsigned (Word'Length), Raw'Address);
+               begin
+                  if Status > C.unsigned (Check_Status'Pos (Check_Status'Last)) then
+                     Value.Status := Internal_Error;
+                  else
+                     Value.Status := Check_Status'Val (Status);
+                  end if;
+               end;
+               if Value.Status = Success then
+                  pragma Assert (Raw.Count <= Max_Synonyms);
+                  Value.Count := Natural (Raw.Count);
+                  Value.Truncated := Raw.Truncated /= 0;
+                  for Index in 1 .. Value.Count loop
+                     pragma Assert (Raw.Lengths (Index) in 1 .. Max_Word);
+                     Value.Words (Index) :=
+                       Word_Strings.To_Bounded_String (Words (Raw.Words (Index), Raw.Lengths (Index)));
+                  end loop;
+               end if;
+            end Find;
+         or
+            terminate;
+         end select;
+      end loop;
+   exception
+      when others =>
+         null;
+   end Lookup;
+
+   type Lookup_Ref is access Lookup;
+   Finder : Lookup_Ref;
+
+   function Synonyms (Word : String) return Synonym_List is
+      Value : Synonym_List;
+   begin
+      pragma Assert (C_Synonyms'Size = (64 + Max_Synonyms * 4 * 8) + Max_Synonyms * Max_Word * 8);
+      if Finder = null then
+         Finder := new Lookup;
+      end if;
+      Finder.Find (Word, Value);
+      return Value;
+   exception
+      when Tasking_Error =>
+         return (Status => Internal_Error, others => <>);
+   end Synonyms;
 
    task body Worker is
       Text_Buffer       : String (1 .. Max_Text);

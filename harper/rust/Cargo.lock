@@ -254,6 +254,7 @@ name = "bonxie_harper"
 version = "0.1.0"
 dependencies = [
  "harper-core",
+ "harper-thesaurus",
 ]
 
 [[package]]

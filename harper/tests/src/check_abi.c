@@ -24,3 +24,13 @@ void check_harper_abi(void)
     assert(bonxie_harper_check(NULL, 0, BH_BRITISH, BH_PLAIN_TEXT, &result) == BH_OK);
     assert(result.count == 0);
 }
+
+void check_harper_synonyms_abi(void)
+{
+    static bh_synonyms found;
+    assert(sizeof(bh_synonyms) == 8 + 4 * BH_MAX_SYNONYMS + BH_MAX_SYNONYMS * BH_MAX_WORD);
+    assert(bonxie_harper_synonyms(NULL, 0, &found) == BH_INVALID_ARGUMENT);
+    assert(bonxie_harper_synonyms((const uint8_t *)"a", 1, NULL) == BH_INVALID_ARGUMENT);
+    assert(bonxie_harper_synonyms((const uint8_t *)"\xff", 1, &found) == BH_INVALID_UTF8);
+    assert(found.count == 0);
+}

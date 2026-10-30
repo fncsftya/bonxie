@@ -86,6 +86,28 @@ package Harper is
       Lints     : Diagnostic_Array;
    end record;
 
+   Max_Word     : constant := 64;
+   Max_Synonyms : constant := 32;
+
+   package Word_Strings is new Ada.Strings.Bounded.Generic_Bounded_Length (Max_Word);
+   type Word_Array is array (Positive range 1 .. Max_Synonyms) of Word_Strings.Bounded_String;
+   type Synonym_List is record
+      Status    : Check_Status := Success;
+      Count     : Natural range 0 .. Max_Synonyms := 0;
+      Truncated : Boolean := False;
+      Words     : Word_Array;
+   end record;
+   --  The first Count of Words, the most used first.
+
+   function Synonyms (Word : String) return Synonym_List
+   with Pre => Word'Length in 1 .. Max_Word;
+   --  Other words of the thesaurus's for Word, in the capitals of Word (Hello gives Greeting, HELLO
+   --  GREETING); for a phrase (words and single spaces), phrases and words, from the phrase itself or, if
+   --  the thesaurus has not it, from what is left of it without the words in front that only strengthen
+   --  (very easy gives what easy does). None, with Success, if it has not the word. The Rust is called in a
+   --  task of its own, made by the first call (which waits for the thesaurus to be read) and ended with the
+   --  program, so call it from one task at a time.
+
    type Checker is limited private;
 
    procedure Submit
@@ -114,6 +136,10 @@ private
       entry Take_Result (Value : out Check_Result);
    end Worker;
    type Worker_Ref is access Worker;
+
+   task type Lookup with Storage_Size => 16 * 1024 * 1024 is
+      entry Find (Word : String; Value : out Synonym_List);
+   end Lookup;
 
    type Checker is limited new Ada.Finalization.Limited_Controlled with record
       Engine : Worker_Ref;

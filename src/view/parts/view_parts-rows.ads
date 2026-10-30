@@ -1,3 +1,4 @@
+with Harper;
 with Naming_VM;
 with Writing_VM.Trees;
 with Texts.Documents;
@@ -45,10 +46,24 @@ package View_Parts.Rows is
    --  source), the text of a page, or a source's picture.
 
    type Context_Acts is
-     (No_Act, Add_Document_Act, Add_Folder_Act, Rename_Act, Delete_Act, Copy_Act, Cut_Act, Paste_Act, Select_All_Act);
-   --  What a row of it does.
+     (No_Act,
+      Add_Document_Act,
+      Add_Folder_Act,
+      Rename_Act,
+      Delete_Act,
+      Copy_Act,
+      Cut_Act,
+      Paste_Act,
+      Select_All_Act,
+      Thesaurus_Act,
+      Synonym_Act);
+   --  What a row of it does. Thesaurus_Act shows the synonyms of the word selected in the same menu, as
+   --  rows of Synonym_Act, each of which rewords the word.
 
-   type Act_Array is array (1 .. 5) of Context_Acts;
+   Synonym_Rows : constant := 10;
+   --  How many synonyms the menu offers (the most used); a heading goes before them.
+
+   type Act_Array is array (1 .. Synonym_Rows + 1) of Context_Acts;
 
    type Index_Row is limited record
       Row         : Pomarine.Widgets.Grips.Grip;
@@ -85,6 +100,11 @@ package View_Parts.Rows is
       Context_Reader : Natural := 0;
       --  Of Picture_Context: the window of the source whose reader, or 0
       --  if the pinned one.
+      Context_X      : Float := 0.0;
+      Context_Y      : Float := 0.0;
+      --  Where it was asked for, in points of the window.
+      Context_Words  : Harper.Synonym_List;
+      --  Of Thesaurus_Act: the synonyms shown, row 2 on being the first.
       Context_Acts   : Act_Array := [others => No_Act];
       --  Over the writing view, hidden until the right button is pressed
       --  on a row of the sidebar, a page's text or a source's picture;

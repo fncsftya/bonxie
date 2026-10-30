@@ -43,6 +43,20 @@ enum { BH_OK, BH_INVALID_UTF8, BH_INVALID_ARGUMENT, BH_PANIC };
 enum { BH_AMERICAN, BH_CANADIAN, BH_AUSTRALIAN, BH_BRITISH, BH_INDIAN };
 enum { BH_PLAIN_TEXT, BH_MARKDOWN };
 
+#define BH_MAX_WORD 64
+#define BH_MAX_SYNONYMS 32
+
+/* Synonyms of one word, the most used first: words[i] holds lengths[i] bytes of UTF-8, none
+ * terminated. A word is given only words; a phrase (words with spaces), phrases and words. The capitals are those of
+ * the text asked for. A phrase the thesaurus lacks is looked up without the words in front of it that only
+ * strengthen (very, quite, ...), so "very easy" gives what "easy" does.
+ */
+typedef struct {
+    uint32_t count, truncated;
+    uint32_t lengths[BH_MAX_SYNONYMS];
+    uint8_t words[BH_MAX_SYNONYMS][BH_MAX_WORD];
+} bh_synonyms;
+
 /* Synchronous: the Ada binding calls this exclusively inside its Checker task.
  * text must address length readable bytes (NULL is allowed only for length 0).
  * result must address an aligned, writable bh_result, disjoint from text.
@@ -55,6 +69,11 @@ extern "C" {
 #endif
 uint32_t bonxie_harper_check(const uint8_t *text, uint32_t length,
                             uint32_t dialect, uint32_t format, bh_result *result);
+
+/* Look up the word or phrase of length bytes (1 to BH_MAX_WORD) in the thesaurus: the first call reads it.
+ * The statuses are those of bonxie_harper_check; a word it lacks is BH_OK with count 0.
+ */
+uint32_t bonxie_harper_synonyms(const uint8_t *text, uint32_t length, bh_synonyms *result);
 #ifdef __cplusplus
 }
 #endif

@@ -742,6 +742,72 @@ package body Write_Tests is
       end;
    end Word_Tools;
 
+   procedure Thesaurus is
+      Session : View.Session;
+   begin
+      Start_With_Three (Session);
+      Proj.Set_Mode (Session, View.Write);
+      Settle (Session);
+      Click_On (Session, 372.0, 165.0);
+      for Down in Boolean loop
+         View.Handle
+           (Session,
+            Events.Event'
+              (Kind    => (if Down then Events.Mouse_Down else Events.Mouse_Up),
+               Button  => 1,
+               Clicks  => 2,
+               Mouse_X => 372.0,
+               Mouse_Y => 165.0,
+               others  => <>));
+      end loop;
+      Settle (Session);
+      Right_Click_On (Session, 372.0, 165.0);
+      Settle (Session);
+      Snap (Session, "write-thesaurus-menu");
+      Click_On (Session, 412.0, 295.5);
+      Settle (Session);
+      Snap (Session, "write-thesaurus-words");
+
+      --  A synonym is another version of the word: the first is "bad", and "dark" is kept to cycle back to.
+      Click_On (Session, 412.0, 234.5);
+      Settle (Session);
+      Check ("write-thesaurus-reworded", "It was a bad and stormy night.", Windows.Item_Text (Session, 1));
+      Check
+        ("write-thesaurus-kept",
+         "<version>1</version><p>It was a <v sel=""2""><o>dark</o>bad</v> and stormy night.</p>",
+         Windows.Item_Stored_Text (Session, 1));
+
+      --  More than one word: the row is there, and off.
+      View.Handle (Session, Events.Event'(Kind => Events.Key_Down, Key => Events.Key_A, Command => True, others => <>));
+      Right_Click_On (Session, 372.0, 165.0);
+      Settle (Session);
+      Snap (Session, "write-thesaurus-several-words");
+      Click_On (Session, 412.0, 295.5);
+      Settle (Session);
+      Check ("write-thesaurus-several-kept", "It was a bad and stormy night.", Windows.Item_Text (Session, 1));
+
+      --  Two or three words are a phrase: it is looked up whole, or without the words that only strengthen.
+      Click_On (Session, 372.0, 165.0);
+      View.Handle (Session, Events.Event'(Kind => Events.Key_Down, Key => Events.Key_A, Command => True, others => <>));
+      Type_In (Session, "Very easy");
+      Settle (Session);
+      Drag (Session, 294.0, 165.0, 375.0, 165.0);
+      Settle (Session);
+      Right_Click_On (Session, 330.0, 165.0);
+      Settle (Session);
+      Snap (Session, "write-thesaurus-phrase-menu");
+      Click_On (Session, 370.0, 295.5);
+      Settle (Session);
+      Snap (Session, "write-thesaurus-phrase-words");
+      Click_On (Session, 370.0, 234.5);
+      Settle (Session);
+      Check ("write-thesaurus-phrase-reworded", "Simple", Windows.Item_Text (Session, 1));
+      Check
+        ("write-thesaurus-phrase-kept",
+         "<version>1</version><p><v sel=""2""><o>Very easy</o>Simple</v></p>",
+         Windows.Item_Stored_Text (Session, 1));
+   end Thesaurus;
+
    procedure Publishing is
       Session : View.Session;
    begin

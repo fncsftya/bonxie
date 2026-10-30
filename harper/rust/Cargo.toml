@@ -10,6 +10,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 harper-core = { path = "../vendor/harper/harper-core" }
+harper-thesaurus = { path = "../vendor/harper/harper-thesaurus" }
 
 [workspace]
 

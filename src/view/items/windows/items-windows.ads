@@ -17,6 +17,7 @@ with Items.Vector_Pages;
 with Pomarine.Pages;
 with Pomarine.Widgets.Page_Views;
 with Pomarine.Widgets.Editors;
+with Word_Tools;
 
 --  What shows one item (Items.Models): a window on the canvas, which can be dragged by
 --  its title bar and sized by its corner, with a title to edit, buttons to
@@ -208,6 +209,14 @@ package Items.Windows is
    with Pre => Is_Assigned (Item);
    --  Do it to the text's selection, with the tree's clipboard.
 
+   function Thesaurus_State (Item : in out Window) return Word_Tools.Thesaurus_States
+   with Pre => Is_Assigned (Item);
+   function Selected_Word (Item : in out Window) return String
+   with Pre => Is_Assigned (Item);
+   procedure Use_Synonym (Item : in out Window; Word : String)
+   with Pre => Is_Assigned (Item) and then Word /= "";
+   --  What Word_Tools gives for the text's selection.
+
    function Picture_Contains (Item : Window; X, Y : Float) return Boolean
    with Pre => Is_Assigned (Item);
 
@@ -338,66 +347,66 @@ private
       --  link.
       Placed_Once  : Boolean := False;
 
-      Chrome          : Pomarine.Widgets.Frames.Frame;
+      Chrome            : Pomarine.Widgets.Frames.Frame;
       --  On the canvas: the outline, round the bar, the text and the
       --  status line; and the bar in the dock. A source's tag is a
       --  square of its colour before its title.
-      Body_Text       : Pomarine.Widgets.Editors.Editor;
-      Dictate_In      : access Pomarine.Widgets.Editors.Editor;
+      Body_Text         : Pomarine.Widgets.Editors.Editor;
+      Dictate_In        : access Pomarine.Widgets.Editors.Editor;
       --  The text of a note. Of a source it is one line, its link, which
       --  a text area costs too much to have another of: a field with an
       --  icon of a link before it, a hint while it is empty, and room at
       --  its right for Fetch_Button.
-      Fetch_Button    : Pomarine.Widgets.Buttons.Button;
+      Fetch_Button      : Pomarine.Widgets.Buttons.Button;
       --  Of a source whose picture has not been taken, over the right of
       --  its link: takes it, as Return does.
-      Zoom_Slider     : Pomarine.Widgets.Sliders.Slider;
-      Zoom_Button     : Pomarine.Widgets.Buttons.Button;
+      Zoom_Slider       : Pomarine.Widgets.Sliders.Slider;
+      Zoom_Button       : Pomarine.Widgets.Buttons.Button;
       --  Of a source, in its status line: a slider to zoom its picture,
       --  and a button, saying how far, that opens a menu of zooms.
-      Browser_Button  : Pomarine.Widgets.Buttons.Button;
+      Browser_Button    : Pomarine.Widgets.Buttons.Button;
       Browser_Captioned : Boolean := True;
       --  Of a source that is a link, in its status line: opens the link in the browser pane.
-      Speak_Button    : Pomarine.Widgets.Buttons.Button;
+      Speak_Button      : Pomarine.Widgets.Buttons.Button;
       --  Of a note, in its status line: starts and stops dictating.
-      Outline_Button  : Pomarine.Widgets.Buttons.Button;
+      Outline_Button    : Pomarine.Widgets.Buttons.Button;
       --  Of a note, at the right of its status line: a dropdown, to link
       --  it to a section of the outline.
-      Tools           : Pomarine.Widgets.Panels.Panel;
-      Cursor_Button   : Pomarine.Widgets.Buttons.Button;
-      Marker_Button   : Pomarine.Widgets.Buttons.Button;
-      Eraser_Button   : Pomarine.Widgets.Buttons.Button;
+      Tools             : Pomarine.Widgets.Panels.Panel;
+      Cursor_Button     : Pomarine.Widgets.Buttons.Button;
+      Marker_Button     : Pomarine.Widgets.Buttons.Button;
+      Eraser_Button     : Pomarine.Widgets.Buttons.Button;
       --  Of a source, in the middle of its status line: the cursor, the
       --  highlighter and the eraser, one of which is chosen.
-      Pager           : Pomarine.Widgets.Panels.Panel;
-      Prev_Button     : Pomarine.Widgets.Buttons.Button;
-      Next_Button     : Pomarine.Widgets.Buttons.Button;
+      Pager             : Pomarine.Widgets.Panels.Panel;
+      Prev_Button       : Pomarine.Widgets.Buttons.Button;
+      Next_Button       : Pomarine.Widgets.Buttons.Button;
       --  Of a source of more than one page, over the foot of its picture,
       --  in the middle: to the page before and after.
-      Wizard          : Pomarine.Widgets.Panels.Panel;
-      Link_Button     : Pomarine.Widgets.Buttons.Button;
-      File_Button     : Pomarine.Widgets.Buttons.Button;
+      Wizard            : Pomarine.Widgets.Panels.Panel;
+      Link_Button       : Pomarine.Widgets.Buttons.Button;
+      File_Button       : Pomarine.Widgets.Buttons.Button;
       --  Of a source that is yet to say where it comes from, in place of
       --  its link and picture: its two ways.
-      Text_View       : Pomarine.Widgets.Editors.Editor;
+      Text_View         : Pomarine.Widgets.Editors.Editor;
       --  Of a source that is a text file: what it says, which is not for
       --  changing, in place of a picture.
-      Zoom_Menu       : Pomarine.Widgets.Panels.Panel;
-      Menu_Rows       : Panel_Rows;
-      Menu_Buttons    : Preset_Buttons;
+      Zoom_Menu         : Pomarine.Widgets.Panels.Panel;
+      Menu_Rows         : Panel_Rows;
+      Menu_Buttons      : Preset_Buttons;
       --  Over the picture, hidden until the button is clicked.
-      Picture         : Pomarine.Widgets.Pictures.Picture;
+      Picture           : Pomarine.Widgets.Pictures.Picture;
       --  Of a source, below its link: what is shown.
-      Pages           : Pomarine.Widgets.Page_Views.Page_View;
+      Pages             : Pomarine.Widgets.Page_Views.Page_View;
       --  Of a document, its pages one under another, in place of Picture.
-      Doc_Sizes       : Pomarine.Pages.Size_Array_Access;
-      Doc_Source      : aliased Items.Vector_Pages.File_Source;
-      Progress        : Pomarine.Widgets.Progress_Bars.Progress_Bar;
+      Doc_Sizes         : Pomarine.Pages.Size_Array_Access;
+      Doc_Source        : aliased Items.Vector_Pages.File_Source;
+      Progress          : Pomarine.Widgets.Progress_Bars.Progress_Bar;
       --  Along the foot of the status line while the picture is taken.
-      Status          : Pomarine.Widgets.Labels.Label;
-      Control_Effects : aliased Command_Effects;
-      Controls        : aliased Item_Window_VM.Model;
-      UI_Host         : Pomarine.UI.Hosts.Host;
+      Status            : Pomarine.Widgets.Labels.Label;
+      Control_Effects   : aliased Command_Effects;
+      Controls          : aliased Item_Window_VM.Model;
+      UI_Host           : Pomarine.UI.Hosts.Host;
       --  Last: detach the borrowed controls before their finalization.
    end record;
 
