@@ -326,6 +326,8 @@ void wl_load(const char *url)
 void wl_focus(int page)
 {
     if (live_view == nil) return;
+    // A hidden or unfocused page must not displace the program's input-method responder.
+    if (!page && !wl_has_focus()) return;
     [live_window makeFirstResponder:page ? live_view : live_window.contentView];
 }
 
