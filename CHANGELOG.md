@@ -4,6 +4,7 @@
 
 - Add an embedded browser
 - Add Granite Speech 5.0 2B (4-bit, on MLX) as a speech model option.
+- Add a thesaurus
 
 ## 0.1.0-alpha
 
