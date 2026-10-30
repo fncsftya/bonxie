@@ -97,12 +97,15 @@ def main():
                     copied[destination.name] = source
                     shutil.copy2(source, destination)
                     destination.chmod(destination.stat().st_mode | 0o200)
+                    metallib = source.parent / 'mlx.metallib'  # MLX's GPU code, found beside its library.
+                    if metallib.exists():
+                        shutil.copy2(metallib, frameworks / metallib.name)
                     queue.append((source, destination, paths))
                 run('install_name_tool', '-change', name, '@executable_path/../Frameworks/' + destination.name,
                     str(bundled))
             if bundled != macos / 'bonxie':
                 run('install_name_tool', '-id', '@executable_path/../Frameworks/' + bundled.name, str(bundled))
-        for library in frameworks.iterdir():
+        for library in frameworks.glob('*.dylib'):
             run('codesign', '--force', '--sign', '-', str(library))
         run('codesign', '--force', '--sign', '-', str(app))
         if OUTPUT.exists():

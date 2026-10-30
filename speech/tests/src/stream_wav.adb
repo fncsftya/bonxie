@@ -1,7 +1,8 @@
 --  Stream a 16 kHz mono 16-bit WAV through the Core ML model in 500 ms
 --  chunks, as the microphone would give it, and show the text after each
 --  run of the model: `stream_wav model-folder audio.wav` (the model is
---  fetched into the folder if it is not there).
+--  fetched into the folder if it is not there). MODEL=Granite_5 runs Granite
+--  instead of Parakeet.
 with Ada.Calendar;
 with Ada.Command_Line;
 with Ada.Direct_IO;
@@ -21,6 +22,10 @@ procedure Stream_Wav is
 
    Chunk : constant := 1365;
 
+   Kind    : constant Speech.Model_Kinds :=
+     (if Ada.Environment_Variables.Exists ("MODEL")
+      then Speech.Model_Kinds'Value (Ada.Environment_Variables.Value ("MODEL"))
+      else Speech.Parakeet_V3);
    Item    : Speech.Streams.Stream;
    Heard   : Speech.Transcript;
    Ok      : Boolean;
@@ -49,8 +54,8 @@ begin
       Speech.Streams.Configure (Item, Tuned);
    end;
    Start := Ada.Calendar.Clock;
-   if not Speech.Models.Present (Ada.Command_Line.Argument (1)) then
-      Speech.Models.Start (Ada.Command_Line.Argument (1));
+   if not Speech.Models.Present (Kind, Ada.Command_Line.Argument (1)) then
+      Speech.Models.Start (Kind, Ada.Command_Line.Argument (1));
       while Speech.Models.State = Speech.Models.Running loop
          Put_Line ("fetching" & Natural (Speech.Models.Fraction * 100.0)'Image & "%");
          delay 2.0;
@@ -60,7 +65,7 @@ begin
          return;
       end if;
    end if;
-   Speech.Parakeet.Load (Ada.Command_Line.Argument (1), Ok, Message, Last);
+   Speech.Parakeet.Load (Kind, Ada.Command_Line.Argument (1), Ok, Message, Last);
    if not Ok then
       Put_Line ("load: " & Message (1 .. Last));
       return;

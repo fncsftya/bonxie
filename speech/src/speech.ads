@@ -18,6 +18,10 @@ is
    --  Synchronous is a claim, not a proof: the Swift side is taken to
    --  serialize its own calls, and GNATprove does not look inside it.
 
+   type Model_Kinds is (Parakeet_V3, Granite_5);
+   --  The speech models that are fetched and run on this machine (see Speech.Models):
+   --  Parakeet TDT 0.6b v3 on Core ML, and Granite Speech 5.0 2B (4-bit) on MLX.
+
    Max_Sessions : constant := 16;
 
    subtype Session is Positive range 1 .. Max_Sessions;

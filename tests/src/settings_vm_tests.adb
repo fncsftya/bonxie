@@ -108,7 +108,7 @@ package body Settings_VM_Tests is
             Check ("settings-vm-theme-range", "raised", "raised");
       end;
       begin
-         Settings_VM.Execute (Model, Choose_Speech_Model, 2);
+         Settings_VM.Execute (Model, Choose_Speech_Model, 3);
          Check ("settings-vm-speech-range", "raised", "not raised");
       exception
          when Constraint_Error =>

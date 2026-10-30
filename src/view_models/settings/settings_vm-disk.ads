@@ -26,10 +26,17 @@ package Settings_VM.Disk is
 
    type Speech_Files is limited new Model_Source with private;
 
-   procedure Open (Self : in out Speech_Files; Directory : String);
-   --  The model whose files are in Directory, as Speech.Models fetches them.
-   --  They are read as they are, from the task that fetches: as Speech.Models
-   --  gives them.
+   procedure Open (Self : in out Speech_Files; Config_Dir : String);
+   --  The models whose files are in Config_Dir (see Preferences.Speech_Model_Directory), as Speech.Models
+   --  fetches them. They are read as they are, from the task that fetches: as Speech.Models gives them.
+   --  Parakeet's are the ones that are read until another is chosen.
+
+   function Kind_Of (Which : Preferences.Speech_Models) return Speech.Model_Kinds
+   with Pre => Preferences."/=" (Which, Preferences.MacOS);
+   --  The model that this choice runs.
+
+   overriding
+   procedure Choose (Self : in out Speech_Files; To : Preferences.Speech_Models);
 
    overriding
    function State (Self : Speech_Files) return Speech.Models.States;
@@ -65,7 +72,9 @@ private
    end record;
 
    type Speech_Files is limited new Model_Source with record
-      Directory : Ada.Strings.Unbounded.Unbounded_String;
+      Config : Ada.Strings.Unbounded.Unbounded_String;
+      Chosen : Preferences.Speech_Models := Preferences.Parakeet;
+      --  Never MacOS, which has no files.
    end record;
 
 end Settings_VM.Disk;

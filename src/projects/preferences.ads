@@ -4,9 +4,9 @@
 
 package Preferences is
 
-   type Speech_Models is (MacOS, Parakeet);
-   --  What turns speech into text: the system's, or Parakeet, which needs
-   --  its model fetched first (see Speech.Models).
+   type Speech_Models is (MacOS, Parakeet, Granite);
+   --  What turns speech into text: the system's, or Parakeet or Granite,
+   --  which need their model fetched first (see Speech.Models).
 
    type Theme_Choices is (Light, Dark, System);
    --  The appearance of the windows: light, dark, or the system's, which
@@ -28,10 +28,10 @@ package Preferences is
    --  a store that is not kept (Projects.Memory), one in the system's
    --  temporary folder.
 
-   function Speech_Model_Directory (Config : String) return String
-   with Post => Speech_Model_Directory'Result /= "";
-   --  Where the model for Parakeet is kept: the folder
-   --  `speech/parakeet-tdt-0.6b-v3` in Config.
+   function Speech_Model_Directory (Config : String; Which : Speech_Models) return String
+   with Pre => Which /= MacOS, Post => Speech_Model_Directory'Result /= "";
+   --  Where the model for Parakeet or Granite is kept: the folder
+   --  `speech/parakeet-tdt-0.6b-v3` or `speech/granite-speech-5.0-2b-mlx-4bit` in Config.
 
    function Load_Speech_Model (Config : String) return Speech_Models;
    --  The one chosen, MacOS if none was or it cannot be read.

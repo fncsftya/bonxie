@@ -12,7 +12,7 @@ procedure Listen is
    Heard : Speech.Transcript;
    Ticks : constant Natural := Natural'Value (Ada.Command_Line.Argument (2)) * 5;
 begin
-   Speech.Jobs.Start (Which, Speech.Jobs.Model, Ada.Command_Line.Argument (1));
+   Speech.Jobs.Start (Which, Speech.Jobs.Parakeet_V3, Ada.Command_Line.Argument (1));
    for Tick in 1 .. Ticks loop
       delay 0.2;
       Speech.Jobs.Heard_So_Far (Which, Heard);

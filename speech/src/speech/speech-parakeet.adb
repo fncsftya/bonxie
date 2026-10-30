@@ -5,12 +5,13 @@ package body Speech.Parakeet
   with SPARK_Mode, Refined_State => (Model => null)
 is
 
-   function Present (Directory : String) return Boolean
-   is (Native.Models_Present (Directory));
+   function Present (Kind : Model_Kinds; Directory : String) return Boolean
+   is (Native.Models_Present (Kind, Directory));
 
-   procedure Load (Directory : String; Ok : out Boolean; Message : in out String; Last : out Natural) is
+   procedure Load
+     (Kind : Model_Kinds; Directory : String; Ok : out Boolean; Message : in out String; Last : out Natural) is
    begin
-      Native.Load_Models (Directory, Ok, Message, Last);
+      Native.Load_Models (Kind, Directory, Ok, Message, Last);
    end Load;
 
    procedure Unload is

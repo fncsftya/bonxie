@@ -272,12 +272,19 @@ is
       return Words (First .. Last);
    end Trimmed;
 
-   procedure Run_Model (Which : Lane; Job : Natural; Path : String)
+   function Kind_Of (Engine : Engines) return Model_Kinds
+   is (case Engine is
+         when Granite_5 => Granite_5,
+         when others    => Parakeet_V3)
+   with Pre => Engine /= System;
+   --  The model that an engine hears with.
+
+   procedure Run_Model (Which : Lane; Job : Natural; Kind : Model_Kinds; Path : String)
    with Pre => Path'First = 1 and then Path'Length <= Max_Path;
    --  Hear the microphone and make it text with the model, until the job
    --  is told to stop (or is reset); then the rest. In the slot's task.
 
-   procedure Run_Model (Which : Lane; Job : Natural; Path : String) is
+   procedure Run_Model (Which : Lane; Job : Natural; Kind : Model_Kinds; Path : String) is
       Pause      : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Milliseconds (50);
       Item       : Streams.Stream;
       --  What it hears with: a window of sound, so it is large, and the
@@ -347,7 +354,7 @@ is
          Fail ("There is no folder for the model");
          return;
       end if;
-      Parakeet.Load (Path, Ok, Why, Why_Last);
+      Parakeet.Load (Kind, Path, Ok, Why, Why_Last);
       if not Ok then
          Fail (Why (1 .. Why_Last));
          return;
@@ -451,8 +458,8 @@ is
          return;  --  it was reset before the task came to it
 
       end if;
-      if Engine = Model then
-         Run_Model (Which, Job, Directory (1 .. Last));
+      if Engine /= System then
+         Run_Model (Which, Job, Kind_Of (Engine), Directory (1 .. Last));
       else
          Run_System (Which, Job);
       end if;
@@ -539,7 +546,7 @@ is
    begin
       if Standing /= Listening then
          return 0.0;
-      elsif Hearing = Model then
+      elsif Hearing /= System then
          return Capture.Loudness (Which);
       else
          return Speech.Level (Which);
@@ -551,7 +558,7 @@ is
       Hearing  : constant Engines := Board.Engine_Of (Which);
    begin
       if Standing = Listening then
-         if Hearing = Model then
+         if Hearing /= System then
             Live.Get (Which, Into);
          else
             Speech.Peek (Which, Into);

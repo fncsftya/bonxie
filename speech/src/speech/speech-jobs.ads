@@ -5,8 +5,8 @@
 --  caller polls (State), says when to stop (Stop), and takes the text
 --  when it is Done. The text is kept in the slot until Take.
 --
---  Two engines can do the listening: the system's (SpeechAnalyzer) or
---  Parakeet, a model on Core ML (Speech.Streams). The model's task hears
+--  Three engines can do the listening: the system's (SpeechAnalyzer),
+--  Parakeet, a model on Core ML, or Granite, a model on MLX (Speech.Streams). The model's task hears
 --  the microphone as 16 kHz mono (Speech.Capture) from the first moment,
 --  and feeds it to the model as it comes, so that Heard_So_Far has the
 --  words as they are worked out; the model is loaded meanwhile, so what is
@@ -41,7 +41,7 @@ package Speech.Jobs is
    subtype Open is States range Starting .. Listening;
    --  Not yet stopped: Stop ends it.
 
-   type Engines is (System, Model);
+   type Engines is (System, Parakeet_V3, Granite_5);
 
    Max_Message : constant := 160;
    Max_Path    : constant := 1024;
@@ -55,7 +55,7 @@ package Speech.Jobs is
        and then (Engine = System or else Model_Directory /= ""),
      Post => State (Which) in Starting | Listening | Failed;
    --  Begin to listen, with the engine; Model_Directory is where the
-   --  model is kept (see Speech.Models), for Model. If a job that was reset
+   --  model is kept (see Speech.Models), for the models. If a job that was reset
    --  is still running in the slot, the new one begins when that is over.
 
    procedure Stop (Which : Slot)

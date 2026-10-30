@@ -1,4 +1,5 @@
 with Settings_VM;
+with Settings_VM.Disk;
 with Ada.Directories;
 with Items.Links;
 with Items.Sources;
@@ -71,17 +72,28 @@ package body View.Canvas_Items is
          when Speech.Jobs.Idle | Speech.Jobs.Done | Speech.Jobs.Failed =>
             Speech.Jobs.Reset (Which);
             declare
-               Model_Directory : constant String :=
-                 Preferences.Speech_Model_Directory (Settings_VM.Config_Directory (Item.Choices.Model));
+               Chosen : constant Preferences.Speech_Models := Settings_VM.Speech_Model (Item.Choices.Model);
             begin
-               if Settings_VM.Speech_Model (Item.Choices.Model) = Preferences.Parakeet then
-                  if Speech.Models.Present (Model_Directory) then
-                     Speech.Jobs.Start (Which, Speech.Jobs.Model, Model_Directory);
-                     Windows.Set_Dictation (Item.Windows (Which), Models.Preparing);
-                  else
-                     Windows.Set_Dictation
-                       (Item.Windows (Which), Models.Failed, "The Parakeet model is not downloaded (Settings)");
-                  end if;
+               if Chosen /= Preferences.MacOS then
+                  declare
+                     Model_Directory : constant String :=
+                       Preferences.Speech_Model_Directory (Settings_VM.Config_Directory (Item.Choices.Model), Chosen);
+                  begin
+                     if Speech.Models.Present (Settings_VM.Disk.Kind_Of (Chosen), Model_Directory) then
+                        Speech.Jobs.Start
+                          (Which,
+                           (if Chosen = Preferences.Granite then Speech.Jobs.Granite_5 else Speech.Jobs.Parakeet_V3),
+                           Model_Directory);
+                        Windows.Set_Dictation (Item.Windows (Which), Models.Preparing);
+                     else
+                        Windows.Set_Dictation
+                          (Item.Windows (Which),
+                           Models.Failed,
+                           (if Chosen = Preferences.Granite
+                            then "The Granite model is not downloaded (Settings)"
+                            else "The Parakeet model is not downloaded (Settings)"));
+                     end if;
+                  end;
                else
                   Speech.Jobs.Start (Which);
                   Windows.Set_Dictation (Item.Windows (Which), Models.Preparing);

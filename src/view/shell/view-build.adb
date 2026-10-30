@@ -196,7 +196,7 @@ package body View.Build is
          Persist : constant Boolean := Store_Path /= Projects.Memory;
          Choices : Settings_Choices renames Item.Choices;
       begin
-         Settings_VM.Disk.Open (Choices.Voice, Preferences.Speech_Model_Directory (Config));
+         Settings_VM.Disk.Open (Choices.Voice, Config);
          if Persist then
             declare
                Kept : constant Natural := Preferences.Load_Sidebar_Width (Config);
@@ -219,8 +219,10 @@ package body View.Build is
                Reactions       => Item.Settings_Reactions'Access);
             --  The system may have let go of the compiled model: have it
             --  ready, in the background, before it is wanted.
-            if Preferences."=" (Settings_VM.Speech_Model (Choices.Model), Preferences.Parakeet) then
-               Speech.Models.Preload (Preferences.Speech_Model_Directory (Config));
+            if not Preferences."=" (Settings_VM.Speech_Model (Choices.Model), Preferences.MacOS) then
+               Speech.Models.Preload
+                 (Settings_VM.Disk.Kind_Of (Settings_VM.Speech_Model (Choices.Model)),
+                  Preferences.Speech_Model_Directory (Config, Settings_VM.Speech_Model (Choices.Model)));
             end if;
          else
             --  Offscreen, the light theme, whatever the system's is.

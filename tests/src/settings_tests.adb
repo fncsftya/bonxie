@@ -239,11 +239,20 @@ package body Settings_Tests is
             and then not Testing.Is_Disabled (Window, "Download")
             and then Testing.Shows (Window, "Model not downloaded")
             and then not Testing.Exists (Window, "Delete")));
+      Testing.Click_On (Window, "Granite");
+      Check
+        ("settings-name-granite",
+         "TRUE",
+         Image
+           (Settings.Speech_Model (Session) = Preferences.Granite
+            and then Testing.Shows (Window, "radio button 'Granite' ON")
+            and then Testing.Shows (Window, "radio button 'Parakeet' OFF")
+            and then Testing.Exists (Window, "Download")));
       Testing.Click_On (Window, "MacOS");
       Check
         ("settings-name-macos",
          "FALSE",
-         Image (Settings.Speech_Model (Session) = Preferences.Parakeet or else Testing.Exists (Window, "Download")));
+         Image (Settings.Speech_Model (Session) /= Preferences.MacOS or else Testing.Exists (Window, "Download")));
 
       --  Graphics: VSync is a switch.
       Check ("settings-name-vsync-off", "FALSE", Image (Settings.VSync_Choice (Session)));

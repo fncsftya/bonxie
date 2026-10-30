@@ -1,7 +1,9 @@
---  The Parakeet TDT 0.6b v3 speech model on Core ML (so, the Neural
---  Engine): Ada's side of parakeet/ (libBonxieParakeet, built by
---  native/build.sh). It makes text of audio given whole, with where each
---  word ends; Speech.Streams makes a stream of that.
+--  The speech models that run on this machine: Parakeet TDT 0.6b v3 on Core
+--  ML (so, the Neural Engine), Ada's side of parakeet/ (libBonxieParakeet),
+--  and Granite Speech 5.0 2B on MLX, of granite/ (libBonxieGranite): both
+--  built by native/build.sh. The one that was loaded last is the one that
+--  hears. It makes text of audio given whole, with where each word ends;
+--  Speech.Streams makes a stream of that.
 --
 --  Both calls wait (the first loads the models, downloading them the first
 --  time), so they are not for the main thread. The model runs one at a
@@ -39,16 +41,18 @@ is
       --  its start.
    end record;
 
-   function Present (Directory : String) return Boolean
+   function Present (Kind : Model_Kinds; Directory : String) return Boolean
    with Volatile_Function, Global => (Input => Model);
-   --  Whether the models are all in Directory (see Speech.Models).
+   --  Whether the model's files are all in Directory (see Speech.Models).
 
-   procedure Load (Directory : String; Ok : out Boolean; Message : in out String; Last : out Natural)
+   procedure Load
+     (Kind : Model_Kinds; Directory : String; Ok : out Boolean; Message : in out String; Last : out Natural)
    with
      Global => (In_Out => Model),
      Pre    => Message'First = 1 and then Message'Length < Positive'Last / 2 and then Directory /= "",
      Post   => Last <= Message'Length;
-   --  Have the models ready, if they are not already: those in Directory.
+   --  Have the model ready, if it is not already: that in Directory. Another
+   --  that was loaded is let go.
    --  On failure Message (1 .. Last) says why (not downloaded, say).
 
    procedure Transcribe

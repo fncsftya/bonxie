@@ -21,8 +21,11 @@ package body Preferences is
       end if;
    end Config_Directory;
 
-   function Speech_Model_Directory (Config : String) return String
-   is (Config & "/speech/parakeet-tdt-0.6b-v3");
+   function Speech_Model_Directory (Config : String; Which : Speech_Models) return String
+   is (Config
+       & (case Which is
+            when Granite => "/speech/granite-speech-5.0-2b-mlx-4bit",
+            when others  => "/speech/parakeet-tdt-0.6b-v3"));
 
    function Settings_File (Config : String) return String
    is (Config & "/settings");
@@ -92,8 +95,17 @@ package body Preferences is
       Files.Write (Settings_File (Config), Ada.Strings.Unbounded.To_String (Kept) & Name & "=" & Value & ASCII.LF);
    end Put_Setting;
 
-   function Load_Speech_Model (Config : String) return Speech_Models
-   is (if Ada.Characters.Handling.To_Lower (Setting (Config, "speech_model")) = "parakeet" then Parakeet else MacOS);
+   function Load_Speech_Model (Config : String) return Speech_Models is
+      Saved : constant String := Ada.Characters.Handling.To_Lower (Setting (Config, "speech_model"));
+   begin
+      if Saved = "parakeet" then
+         return Parakeet;
+      elsif Saved = "granite" then
+         return Granite;
+      else
+         return MacOS;
+      end if;
+   end Load_Speech_Model;
 
    procedure Save_Speech_Model (Config : String; To : Speech_Models) is
    begin

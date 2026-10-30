@@ -1,4 +1,5 @@
---  The C interface of libBonxieParakeet (see parakeet/Sources), as it is:
+--  The C interface of libBonxieParakeet and libBonxieGranite (see
+--  parakeet/Sources and granite/Sources, which are alike), as it is:
 --  nothing is made of what comes back here, and nothing is taken on trust
 --  by what calls it (Speech.Parakeet), except the plain sizes, which the
 --  body sees to.
@@ -11,10 +12,11 @@ is
    Max_Tokens          : constant := 4096;
    Token_Text_Capacity : constant := 65_536;
 
-   function Models_Present (Directory : String) return Boolean
+   function Models_Present (Kind : Model_Kinds; Directory : String) return Boolean
    with Volatile_Function, Global => (Input => Parakeet.Model);
 
-   procedure Load_Models (Directory : String; Ok : out Boolean; Message : in out String; Last : out Natural)
+   procedure Load_Models
+     (Kind : Model_Kinds; Directory : String; Ok : out Boolean; Message : in out String; Last : out Natural)
    with
      Global => (In_Out => Parakeet.Model),
      Pre    => Message'First = 1 and then Message'Length < Positive'Last / 2,
@@ -54,7 +56,7 @@ is
        and then Token_Text_Length <= Token_Text'Length
        and then Token_Count <= Token_Ends'Length
        and then (if not Ok then Token_Count = 0 and then Token_Text_Length = 0);
-   --  The model's tokens of the audio: their text, one after the other,
+   --  The loaded model's tokens of the audio: their text, one after the other,
    --  as the model has it (see pk_transcribe); where each ends in it; and
    --  where each starts and stops in the sound. As many as fit.
 

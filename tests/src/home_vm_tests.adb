@@ -374,7 +374,7 @@ package body Home_VM_Tests is
       Confirm_VM.Ask_Model (Dialog, "Its 483.0 MB of files go.");
       Check
         ("confirm-vm-model",
-         "Delete model|Delete the Parakeet model?|Its 483.0 MB of files go.|FALSE",
+         "Delete model|Delete the speech model?|Its 483.0 MB of files go.|FALSE",
          Confirm_VM.Title (Dialog)
          & "|"
          & Confirm_VM.Message (Dialog)

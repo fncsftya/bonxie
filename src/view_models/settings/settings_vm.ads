@@ -71,6 +71,9 @@ package Settings_VM is
 
    function Message (Self : Model_Source) return String is abstract;
 
+   procedure Choose (Self : in out Model_Source; To : Preferences.Speech_Models) is null;
+   --  The model that the rest speak of: the one chosen (it is not told to be MacOS's, which has no files).
+
    function Present (Self : Model_Source) return Boolean is abstract;
    --  Whether all of the files are there.
 
@@ -186,7 +189,7 @@ package Settings_VM is
    function Download_State (Self : View_Model) return Speech.Models.States;
 
    function Download_Row_Shown (Self : View_Model) return Boolean;
-   --  The download's controls are for Parakeet, whose files come to be fetched.
+   --  The download's controls are for Parakeet and Granite, whose files come to be fetched.
 
    function Download_Button_Shown (Self : View_Model) return Boolean;
    --  While the files are not there.
@@ -195,7 +198,7 @@ package Settings_VM is
    --  While they are, and none are coming.
 
    function Download_Bar_Shown (Self : View_Model) return Boolean;
-   --  For Parakeet, while they come.
+   --  For Parakeet or Granite, while they come.
 
    function Download_Fraction (Self : View_Model) return Float
    with Post => Download_Fraction'Result in 0.0 .. 1.0;

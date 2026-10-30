@@ -347,6 +347,11 @@ package body View.Build.Settings_Form is
                Voice_Is.Is_Value (Preferences.Parakeet),
                Settings_VM.Choose_Speech_Model,
                Preferences.Speech_Models'Pos (Preferences.Parakeet)),
+            Radio
+              ("Granite",
+               Voice_Is.Is_Value (Preferences.Granite),
+               Settings_VM.Choose_Speech_Model,
+               Preferences.Speech_Models'Pos (Preferences.Granite)),
             Download_Row,
             UI.Styled (UI.Place (Bar), Line (Progress_Height)),
             Heading ("GRAPHICS", Top => Layouts.Length_Of (Heading_Top)),

@@ -3,8 +3,13 @@ package body Settings_VM.Disk is
    function Where (Self : File_Store) return String
    is (Ada.Strings.Unbounded.To_String (Self.Config));
 
+   function Kind_Of (Which : Preferences.Speech_Models) return Speech.Model_Kinds
+   is (case Which is
+         when Preferences.Granite => Speech.Granite_5,
+         when others              => Speech.Parakeet_V3);
+
    function Folder (Self : Speech_Files) return String
-   is (Ada.Strings.Unbounded.To_String (Self.Directory));
+   is (Preferences.Speech_Model_Directory (Ada.Strings.Unbounded.To_String (Self.Config), Self.Chosen));
 
    procedure Open (Self : in out File_Store; Config_Dir : String) is
    begin
@@ -41,10 +46,22 @@ package body Settings_VM.Disk is
       Preferences.Save_Seed (Where (Self), To);
    end Save_Seed;
 
-   procedure Open (Self : in out Speech_Files; Directory : String) is
+   procedure Open (Self : in out Speech_Files; Config_Dir : String) is
    begin
-      Self.Directory := Ada.Strings.Unbounded.To_Unbounded_String (Directory);
+      Self.Config := Ada.Strings.Unbounded.To_Unbounded_String (Config_Dir);
    end Open;
+
+   use type Speech.Models.States;
+   use type Preferences.Speech_Models;
+
+   overriding
+   procedure Choose (Self : in out Speech_Files; To : Preferences.Speech_Models) is
+   begin
+      if To /= Preferences.MacOS and then Speech.Models.State /= Speech.Models.Running then
+         Self.Chosen := To;
+         Speech.Models.Focus (Kind_Of (To));
+      end if;
+   end Choose;
 
    overriding
    function State (Self : Speech_Files) return Speech.Models.States is
@@ -83,13 +100,11 @@ package body Settings_VM.Disk is
 
    overriding
    function Present (Self : Speech_Files) return Boolean
-   is (Speech.Models.Present (Folder (Self)));
+   is (Speech.Models.Present (Kind_Of (Self.Chosen), Folder (Self)));
 
    overriding
    function On_Disk (Self : Speech_Files) return Long_Long_Integer
    is (Speech.Models.Size_On_Disk (Folder (Self)));
-
-   use type Speech.Models.States;
 
    --  Not while a fetch goes on: the view-model does not ask, but the state may have changed since.
 
@@ -97,7 +112,7 @@ package body Settings_VM.Disk is
    procedure Start (Self : in out Speech_Files) is
    begin
       if Speech.Models.State /= Speech.Models.Running then
-         Speech.Models.Start (Folder (Self));
+         Speech.Models.Start (Kind_Of (Self.Chosen), Folder (Self));
       end if;
    end Start;
 
@@ -105,7 +120,7 @@ package body Settings_VM.Disk is
    procedure Delete (Self : in out Speech_Files) is
    begin
       if Speech.Models.State /= Speech.Models.Running then
-         Speech.Models.Delete (Folder (Self));
+         Speech.Models.Delete (Kind_Of (Self.Chosen), Folder (Self));
          Speech.Models.Reset;
       end if;
    end Delete;

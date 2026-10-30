@@ -57,7 +57,7 @@ package body Confirm_VM is
    function Message (Self : View_Model) return String
    is (case Self.Asked.Subject is
          when Nothing => "",
-         when Model   => "Delete the Parakeet model?",
+         when Model   => "Delete the speech model?",
          when others  => "Delete " & Open_Quote & Unbounded.To_String (Self.Name) & Close_Quote & "?");
 
    function Note (Self : View_Model) return String

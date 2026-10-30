@@ -1,8 +1,10 @@
---  The speech model fetched in the background (it is a folder of some
---  hundreds of megabytes, which the library downloads itself), one fetch at
---  a time. The caller polls (State, Fraction) and starts the next when it
---  is no longer Running. Where the model is kept is a folder of the
---  caller's choosing: the model is Present when all of it has come.
+--  A speech model fetched in the background (it is a folder of some
+--  hundreds of megabytes to a few gigabytes, which the library downloads
+--  itself), one fetch at a time, of either kind. The caller polls (State,
+--  Fraction) and starts the next when it is no longer Running; what they
+--  say is of the kind that was fetched last (or Focus was given). Where a
+--  model is kept is a folder of the caller's choosing: the model is
+--  Present when all of it has come.
 
 package Speech.Models is
 
@@ -13,10 +15,15 @@ package Speech.Models is
    Max_Path    : constant := 1024;
    Max_Message : constant := 120;
 
-   function Present (Directory : String) return Boolean;
+   function Present (Kind : Model_Kinds; Directory : String) return Boolean;
    --  Whether the model is all in Directory.
 
-   procedure Start (Directory : String)
+   procedure Focus (Kind : Model_Kinds)
+   with Pre => State /= Running, Post => State = Idle;
+   --  Have State, Fraction and the rest speak of this kind, as nothing
+   --  was fetched: for whoever shows the model that is chosen.
+
+   procedure Start (Kind : Model_Kinds; Directory : String)
    with Pre => State /= Running and then Directory'Length in 1 .. Max_Path, Post => State = Running;
    --  Begin to fetch the model into Directory, making it if need be.
 
@@ -31,7 +38,7 @@ package Speech.Models is
    --  Neural Engine (it has no fraction): True only while Running. The
    --  first transcription then does not wait for it.
 
-   procedure Preload (Directory : String)
+   procedure Preload (Kind : Model_Kinds; Directory : String)
    with Pre => Directory'Length in 1 .. Max_Path;
    --  Load and warm the model in the background, if it is Present and not
    --  loaded already, without waiting: for the start of the program, as
@@ -47,8 +54,8 @@ package Speech.Models is
    with Post => Size_On_Disk'Result >= 0;
    --  The bytes of the files in Directory and below it, 0 if there is none.
 
-   procedure Delete (Directory : String)
-   with Pre => State /= Running and then Directory'Length in 1 .. Max_Path, Post => not Present (Directory);
+   procedure Delete (Kind : Model_Kinds; Directory : String)
+   with Pre => State /= Running and then Directory'Length in 1 .. Max_Path, Post => not Present (Kind, Directory);
    --  Remove the model, all of Directory, and let the program forget it.
 
    function Message return String

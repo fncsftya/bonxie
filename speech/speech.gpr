@@ -66,14 +66,16 @@ project Speech is
 
    --  Propagated to every project that depends on this one. The plist is
    --  embedded in the program, as a program that is not in a bundle needs
-   --  it to ask for the microphone. libBonxieParakeet (Parakeet on Core ML,
-   --  built by native/build.sh) is found by its place here when the program
+   --  it to ask for the microphone. libBonxieParakeet (Parakeet on Core ML)
+   --  and libBonxieGranite (Granite on MLX, with mlx.metallib beside it),
+   --  built by native/build.sh, are found by its place here when the program
    --  runs from the tree, or in Frameworks beside the program's folder in a
    --  bundle.
    package Linker is
       for Linker_Options use
         ("-L" & Project'Project_Dir & "native/lib",
          "-lBonxieParakeet",
+         "-lBonxieGranite",
          "-Wl,-rpath," & Project'Project_Dir & "native/lib",
          "-Wl,-rpath,@executable_path/../Frameworks",
          "-framework", "Speech",

@@ -3,6 +3,7 @@
 ## 0.2.0
 
 - Add an embedded browser
+- Add Granite Speech 5.0 2B (4-bit, on MLX) as a speech model option.
 
 ## 0.1.0-alpha
 

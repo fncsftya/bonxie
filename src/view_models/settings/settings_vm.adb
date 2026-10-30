@@ -80,7 +80,7 @@ package body Settings_VM is
    is (Self.Download.State = Speech.Models.Running);
 
    function Download_Row_Shown (Self : View_Model) return Boolean
-   is (Speech_Model (Self) = Preferences.Parakeet);
+   is (Speech_Model (Self) /= Preferences.MacOS);
 
    function Download_Button_Shown (Self : View_Model) return Boolean
    is (not Self.Download.Present);
@@ -226,6 +226,7 @@ package body Settings_VM is
       Theme_Properties.Initialize (Self.Themes, Kept_Theme);
       Background_Properties.Initialize (Self.Pictures, Kept_Background);
       Speech_Properties.Initialize (Self.Voice, Kept_Speech);
+      Choose (Self.Source.all, Kept_Speech);
       Flag_Properties.Initialize (Self.Ticked, Kept_VSync);
       Look (Self, Files => True);
    end Initialize;
@@ -349,6 +350,8 @@ package body Settings_VM is
             begin
                Speech_Properties.Set (Self.Voice, To);
                Keep_Speech (Self, To);
+               Choose (Self.Source.all, To);
+               Look (Self, Files => True);
             end;
 
          when Toggle_VSync        =>

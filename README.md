@@ -13,7 +13,7 @@ Currently only supports Apple Silicon.
 
 - **Outlining:** plan your project with a description, coloured sections and section notes.
 - **2D planning:** arrange and connect documents and sources on an infinite canvas.
-- **Dictation and transcription:** speech-to-text using macOS speech recognition or Parakeet (recommended).
+- **Dictation and transcription:** speech-to-text using macOS speech recognition, Parakeet (recommended) or Granite.
 - **Grammar and spelling:** review suggestions from [Harper](https://writewithharper.com/) as you write.
 - **Flexible structure:** reorder sections and documents, and organise drafts into folders.
 - **Sources beside your writing:** view web pages, PDFs, EPUBs, text files and images; pin references and add highlights.
